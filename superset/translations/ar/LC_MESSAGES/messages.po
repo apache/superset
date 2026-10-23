@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-17 20:00+0530\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1439,6 +1439,9 @@ msgstr "يعمل"
 msgid "About"
 msgstr "عن"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -1929,6 +1932,9 @@ msgstr "تجميع"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "تجميع"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3901,6 +3907,12 @@ msgstr "تغيير هذا المخطط ممنوع"
 msgid "Changing this semantic view is forbidden"
 msgstr "يحظر تغيير مجموعة البيانات هذه"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "يحظر تغيير مجموعة البيانات هذه"
@@ -4068,6 +4080,10 @@ msgstr "عنوان الرسم البياني"
 #, fuzzy
 msgid "Chart type"
 msgstr "عنوان الرسم البياني"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
@@ -4459,6 +4475,9 @@ msgstr "إغلاق محرر نقاط توقف الألوان"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "إغلاق علامة التبويب"
 
@@ -4607,6 +4626,10 @@ msgstr "لون الموقع المستهدف"
 
 msgid "Color scheme"
 msgstr "نظام الألوان"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5260,8 +5283,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "عد"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "بلد"
@@ -5781,6 +5821,10 @@ msgstr "عنوان لوحة المعلومات"
 msgid "Dashboard updated %s"
 msgstr "آخر تحديث %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "استخدام لوحة القيادة"
 
@@ -6035,6 +6079,10 @@ msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "مخطط مجموعة البيانات غير صالح، بسبب ما يلي: %(error)s"
 
 #, python-format
+msgid "Dataset updated: %s"
+msgstr ""
+
+#, python-format
 msgid "Dataset used by %s chart updated: %s"
 msgid_plural "Dataset used by %s charts updated: %s"
 msgstr[0] ""
@@ -6095,9 +6143,6 @@ msgstr "تنسيق التاريخ"
 
 msgid "Date format string"
 msgstr "سلسلة تنسيق التاريخ"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "التاريخ/الوقت"
@@ -8293,6 +8338,10 @@ msgstr "فشلت"
 msgid "Failed at retrieving results"
 msgstr "فشل في استرداد النتائج"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8620,7 +8669,13 @@ msgstr "مخططات التصفية"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9295,10 +9350,10 @@ msgstr "يخفي الخط الخاص بالسلسلة الزمنية"
 msgid "Hierarchy"
 msgstr "التسلسل الهرمي"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9857,6 +9912,11 @@ msgstr "خط الطول/العرض غير صالح"
 msgid "Invalid metric object: %(metric)s"
 msgstr "كائن متري غير صالح: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "وظيفة numpy غير صالحة: %(operator)s"
@@ -10229,6 +10289,9 @@ msgstr "العام الماضي"
 msgid "Lat"
 msgstr "مسطحة"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "خط العرض"
 
@@ -10529,6 +10592,9 @@ msgstr "رقم منقسم"
 msgid "List Roles"
 msgstr "قائمة الأدوار"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "رقم منقسم"
@@ -10675,10 +10741,10 @@ msgstr "خطوط الطول والعرض"
 msgid "Longitude of default viewport"
 msgstr "خط طول إطار العرض الافتراضي"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10954,6 +11020,9 @@ msgstr "متوسط القيم خلال فترة محددة"
 msgid "Mean values"
 msgstr "القيم المتوسطة"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -11216,6 +11285,9 @@ msgstr "الحد الأدنى"
 msgid "Minimum Font Size"
 msgstr "الحد الأدنى لحجم الخط"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "الحد الأدنى من الشعاع"
 
@@ -11229,6 +11301,16 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "يجب أن يكون الحد الأدنى أقل بشكل صارم من الحد الأقصى"
 
@@ -11845,6 +11927,9 @@ msgstr ""
 "لم يتم %(validator_name)s العثور على مدقق مسمى (تم تكوينه %(engine_spec)s"
 " للمحرك)"
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "موضع تسمية العقدة"
 
@@ -12262,9 +12347,6 @@ msgstr "عتامة الفقاعات، 0 تعني الشفافية الكاملة
 msgid "Opacity, expects values between 0 and 100"
 msgstr "العتامة، تتوقع القيم بين 0 و 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "افتح علامة تبويب مصدر البيانات"
 
@@ -12300,6 +12382,9 @@ msgstr "افتح في مختبر SQL"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "افتح في مختبر SQL"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "افتح الاستعلام في SQL Lab"
@@ -12850,11 +12935,6 @@ msgstr "بكسل"
 
 msgid "Plain"
 msgstr "عادي"
-
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -14651,6 +14731,16 @@ msgstr "انتقل إلى الأسفل لتمكين تغييرات الكتاب�
 msgid "Search"
 msgstr "ابحث"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
 msgid "Search / Filter"
 msgstr "البحث\\ التصفية"
 
@@ -14718,9 +14808,6 @@ msgstr "البحث في الفلاتر"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "مقاييس البحث والأعمدة"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -15420,6 +15507,11 @@ msgstr "معلمات مجموعة البيانات غير صالحة."
 msgid "Semantic view updated"
 msgstr "تم تحديث العرض الدلالي"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15804,11 +15896,11 @@ msgstr "عرض الطابع الزمني"
 msgid "Show column headers"
 msgstr "تسمية رأس العمود"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "عرض المجموع الفرعي للأعمدة"
-
-msgid "Show columns total"
-msgstr "عرض إجمالي الأعمدة"
 
 msgid "Show empty columns"
 msgstr "عرض الأعمدة الفارغة"
@@ -15892,11 +15984,11 @@ msgstr "راجع تفاصيل الاستعلام"
 msgid "Show row labels"
 msgstr "عرض الملصقات"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "عرض المجموع الفرعي للصفوف"
-
-msgid "Show rows total"
-msgstr "عرض إجمالي الصفوف"
 
 msgid "Show series values on the chart"
 msgstr "عرض قيم السلسلة على الرسم البياني"
@@ -16145,6 +16237,9 @@ msgstr "تعذّر حل بعض الأذونات وتُعرض كمعرّفات."
 #, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "بعض الفلاتر المطلوبة في علامات التبويب الأخرى تحتوي على قيم ولن يتم مسحها"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -16658,6 +16753,15 @@ msgstr ""
 msgid "Sum"
 msgstr "مجموع"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "مجموع القيم خلال فترة محددة"
 
@@ -17009,6 +17113,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "معايير القالب"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -18304,6 +18411,9 @@ msgstr "القيم تتداخل مع قيم نقاط التوقف الأخرى"
 msgid "The version of the service"
 msgstr "اختر موضع وسيلة الإيضاح"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "اعرض القيمة أعلى الشريط"
@@ -18818,6 +18928,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -19184,6 +19297,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -19635,6 +19755,12 @@ msgid ""
 msgstr ""
 "تم طلب عدد كبير جداً من الشرائح الفرعية. الحد الأقصى المسموح به هو "
 "%(max)s، لكن تم طلب %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -20416,6 +20542,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "استخدم تنسيق التاريخ حتى عندما لا تكون قيمة المقياس طابعًا زمنيًا"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -20424,6 +20557,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "تايم جرين"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "استخدم المقاييس كمجموعة ذات مستوى أعلى للأعمدة أو للصفوف"
@@ -20764,6 +20900,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "منفذ العرض"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "افتراضية"
@@ -21454,6 +21593,9 @@ msgid "X Axis Label Interval"
 msgstr "ملصق المحور X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "تنسيق المحور X"
 
@@ -21500,6 +21642,9 @@ msgstr "تنسيق المحور Y"
 
 msgid "Y Axis Label"
 msgstr "ملصق المحور Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "عنوان المحور Y"
@@ -22066,6 +22211,11 @@ msgstr "تم تحديث الاستعلام الخاص بك"
 
 msgid "Your report could not be deleted"
 msgstr "لا يمكن حذف التقرير"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

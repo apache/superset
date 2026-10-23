@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-17 20:00+0530\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1542,6 +1542,9 @@ msgstr "Formato Datetime"
 msgid "About"
 msgstr "About"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Accesso"
 
@@ -2066,6 +2069,9 @@ msgstr "Aggregazione"
 
 msgid "Aggregation Method"
 msgstr "Metodo di aggregazione"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4379,6 +4385,12 @@ msgstr "La modifica di questo livello semantico è vietata"
 msgid "Changing this semantic view is forbidden"
 msgstr "La modifica di questa vista semantica è vietata"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Changing this task is forbidden"
@@ -4547,6 +4559,10 @@ msgstr "Titolo grafico"
 
 msgid "Chart type"
 msgstr "Tipo grafico"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Il grafico è stato salvato ma non può essere aggiunto al tab selezionato."
@@ -5013,6 +5029,9 @@ msgstr "Chiudi l'editor dei punti di interruzione colore"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -5183,6 +5202,10 @@ msgstr "Colore della posizione di destinazione"
 
 msgid "Color scheme"
 msgstr "Schema colore"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5982,8 +6005,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Conteggio"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Nazione"
@@ -6555,6 +6595,10 @@ msgstr "Titolo dashboard"
 msgid "Dashboard updated %s"
 msgstr "Dashboard aggiornata %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Utilizzo dashboard"
 
@@ -6841,6 +6885,10 @@ msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Lo schema del set di dati non è valido, causato da: %(error)s"
 
 #, python-format
+msgid "Dataset updated: %s"
+msgstr ""
+
+#, python-format
 msgid "Dataset used by %s chart updated: %s"
 msgid_plural "Dataset used by %s charts updated: %s"
 msgstr[0] ""
@@ -6900,9 +6948,6 @@ msgstr "Formato date"
 
 msgid "Date format string"
 msgstr "Stringa di formato delle date"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "Tempo"
@@ -9281,6 +9326,10 @@ msgstr "Fallito"
 msgid "Failed at retrieving results"
 msgstr "Errore nel recupero dei dati dal backend"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Failed to apply theme: Invalid JSON"
@@ -9634,7 +9683,13 @@ msgstr "Filtra grafici"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10453,10 +10508,10 @@ msgstr "Nasconde la linea per la serie temporale"
 msgid "Hierarchy"
 msgstr "Gerarchia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -11152,6 +11207,11 @@ msgstr "Longitudine/latitudine non valida"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Oggetto metrico non valido: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11620,6 +11680,9 @@ msgstr "Ultimo anno"
 msgid "Lat"
 msgstr "Lat"
 
+msgid "Latest save"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11973,6 +12036,9 @@ msgstr "Elenca gruppi"
 msgid "List Roles"
 msgstr "Elenca ruoli"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Elenca Utenti"
 
@@ -12149,10 +12215,10 @@ msgstr "Longitudine e Latitudine"
 msgid "Longitude of default viewport"
 msgstr "Longitudine della visualizzazione predefinita"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12473,6 +12539,9 @@ msgstr "Media dei valori nel periodo specificato"
 
 msgid "Mean values"
 msgstr "Valori medi"
+
+msgid "Median"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12810,6 +12879,9 @@ msgstr "Minimo"
 msgid "Minimum Font Size"
 msgstr "Dimensione Carattere Minima"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Raggio Minimo"
 
@@ -12818,6 +12890,16 @@ msgstr "Larghezza minima"
 
 msgid "Minimum dot size"
 msgstr "Dimensione minima del punto"
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
 msgstr "Il minimo deve essere strettamente minore del massimo"
@@ -13497,6 +13579,9 @@ msgstr ""
 "Nessun validatore denominato %(validator_name)s trovato (configurato per "
 "il motore %(engine_spec)s)"
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "Posizione etichetta nodo"
 
@@ -14025,9 +14110,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacità, prevede valori compresi tra 0 e 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Apri il tab Sorgente Dati"
 
@@ -14059,6 +14141,9 @@ msgstr "Esponi in SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Apri in SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Apri query in SQL Lab"
@@ -14761,11 +14846,6 @@ msgstr "Pixel"
 # uk, zh, zh_TW]
 msgid "Plain"
 msgstr "Normale"
-
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16893,6 +16973,12 @@ msgstr "Scorri fino in fondo per abilitare la sovrascrittura delle modifiche. "
 msgid "Search"
 msgstr "Cerca"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Cerca %s record"
+msgstr[1] "Cerca %s record"
+
 msgid "Search / Filter"
 msgstr "Cerca / Filtra"
 
@@ -16946,9 +17032,6 @@ msgstr "Cerca nei filtri"
 
 msgid "Search metrics by key or label"
 msgstr "Cerca metriche per chiave o etichetta"
-
-msgid "Search records"
-msgstr "Cerca record"
 
 msgid "Search tags"
 msgstr "Cerca tag"
@@ -17642,6 +17725,11 @@ msgstr "I parametri della vista semantica non sono validi."
 msgid "Semantic view updated"
 msgstr "Vista semantica aggiornata"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Semantic views"
@@ -18100,11 +18188,11 @@ msgstr "Query salvate"
 msgid "Show column headers"
 msgstr "Mostra intestazioni colonna"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Mostra subtotale colonne"
-
-msgid "Show columns total"
-msgstr "Mostra totale colonne"
 
 msgid "Show empty columns"
 msgstr "Mostra colonne vuote"
@@ -18204,14 +18292,11 @@ msgstr "Mostra identificatori query"
 msgid "Show row labels"
 msgstr "Mostra etichette riga"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Mostra subtotale righe"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "Show rows total"
-msgstr "Mostra il totale delle righe"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -18530,6 +18615,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Alcuni filtri obbligatori in altre schede hanno valori e non verranno "
 "cancellati"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr "Alcune tabelle non vengono mostrate. Perfeziona la ricerca."
@@ -19104,6 +19192,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Somma"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19498,6 +19595,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Parametri template"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
@@ -21032,6 +21132,9 @@ msgstr "I valori si sovrappongono ad altri valori di breakpoint"
 msgid "The version of the service"
 msgstr "La versione del servizio"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The visible title of the layer"
@@ -21615,6 +21718,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -22057,6 +22163,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -22577,6 +22690,12 @@ msgid ""
 msgstr ""
 "Sono stati richiesti troppi sotto-grafici. Il massimo consentito è "
 "%(max)s, ma ne sono stati richiesti %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
@@ -23522,6 +23641,13 @@ msgstr ""
 " non è un timestamp"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -23531,6 +23657,9 @@ msgstr ""
 # ro, ru, sr, sr_Latn, tr, uk]
 msgid "Use gradient"
 msgstr "Usa gradiente"
+
+msgid "Use metric definition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23916,6 +24045,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Visualizzazione"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -24868,6 +25000,9 @@ msgstr "Etichetta Asse X"
 msgid "X Axis Label Interval"
 msgstr "Intervallo etichetta asse X"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Formato numero asse X"
 
@@ -24927,6 +25062,9 @@ msgstr "Formato Asse Y"
 
 msgid "Y Axis Label"
 msgstr "Etichetta Asse Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Titolo Asse Y"
@@ -25582,6 +25720,11 @@ msgstr "La tua query è stata salvata"
 
 msgid "Your report could not be deleted"
 msgstr "Il report non può essere cancellato"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Your session has ended. Please sign in again."

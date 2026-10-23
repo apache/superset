@@ -39,6 +39,7 @@ from superset.sql.parse import (
     extract_tables_from_statement,
     folds_unquoted_object_names,
     has_aggregate,
+    is_constant_expression,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -2384,6 +2385,21 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT nextval('public.my_seq')", True),
         # currval() only reads the session's last value, so it is not mutating.
         ("SELECT currval('public.my_seq')", False),
+        # dblink functions that open remote connections or dispatch async writes.
+        ("SELECT dblink_exec('host=h dbname=d', 'DELETE FROM t')", True),
+        ("SELECT dblink_connect('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_connect_u('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_send_query('myconn', 'DELETE FROM t')", True),
+        ("SELECT * FROM dblink('host=h dbname=d', 'SELECT 1') AS t(c int)", True),
+        # pg_* state-mutating functions callable via SELECT.
+        ("SELECT pg_cancel_backend(1234)", True),
+        ("SELECT pg_reload_conf()", True),
+        ("SELECT pg_stat_reset()", True),
+        ("SELECT pg_switch_wal()", True),
+        ("SELECT pg_logical_emit_message(true, 'channel', 'msg')", True),
+        ("SELECT pg_create_restore_point('rp1')", True),
+        ("SELECT pg_drop_replication_slot('slot1')", True),
+        ("SELECT pg_rotate_logfile()", True),
         # Read-side large-object functions are intentionally NOT classified
         # as mutating here. They are still blocked via the function denylist
         # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
@@ -7029,6 +7045,49 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
     that grant something to aggregates and must not grant it on a guess.
     """
     assert has_aggregate(expression, fail_open=False) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,engine,expected",
+    [
+        ("'Other'", "postgresql", True),
+        ("('Other')", "postgresql", True),
+        ("42", "postgresql", True),
+        ("1.5", "postgresql", True),
+        ("NULL", "postgresql", True),
+        ("TRUE", "postgresql", True),
+        ("-1", "postgresql", True),
+        ("(-1.5)", "postgresql", True),
+        ("-1", "sqlite", True),
+        ("-region", "postgresql", False),
+        ("-(1 + 1)", "postgresql", False),
+        ("- 'a'", "postgresql", False),
+        ("-TRUE", "postgresql", False),
+        ("(FALSE)", "mysql", True),
+        ("TRUE", "sqlite", False),
+        ("(FALSE)", "sqlite", False),
+        ("'Other'", "sqlite", True),
+        ("NULL", "sqlite", True),
+        ("42", "sqlite", True),
+        ('"Other"', "mysql", True),
+        ('"Other"', "postgresql", False),
+        ("region", "postgresql", False),
+        ("CASE WHEN 1=1 THEN 'x' END", "postgresql", False),
+        ("CAST('x' AS VARCHAR)", "postgresql", False),
+        ("UPPER('x')", "postgresql", False),
+        ("'a' || region", "postgresql", False),
+        ("1 + 1", "postgresql", False),
+        ("'a', 'b'", "postgresql", False),
+        (")(", "postgresql", False),
+    ],
+)
+def test_is_constant_expression(expression: str, engine: str, expected: bool) -> None:
+    """
+    Only a bare literal or ``NULL`` (optionally parenthesized) is constant; an
+    expression that merely contains one, or can't be parsed, is not. ``TRUE`` and
+    ``FALSE`` are identifiers on SQLite, so they are not constant there.
+    """
+    assert is_constant_expression(expression, engine) is expected
 
 
 @pytest.mark.parametrize(
