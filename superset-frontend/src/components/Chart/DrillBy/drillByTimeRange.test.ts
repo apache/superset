@@ -345,78 +345,94 @@ test('fetchDrillByTimeRange falls back to the bucket when the range cannot be re
 });
 
 test.each(['adhoc_filters', 'adhoc_filters_b'])(
-  'independent temporal filters and outer drill buckets survive dashboard overrides in %s',
+  'query-wide ranges retain the chart row set on independent dates in %s',
   filterField => {
     const shipRange = '2004-01-01 : 2005-01-01';
-    const formData: QueryFormData = {
-      datasource: '1__table',
-      viz_type: 'mixed_timeseries',
-      time_range: 'No filter',
-      [filterField]: [
-        {
-          clause: 'WHERE',
-          expressionType: 'SIMPLE',
-          operator: 'TEMPORAL_RANGE',
-          subject: 'ship_date',
-          comparator: shipRange,
-        },
-        {
-          clause: 'WHERE',
-          expressionType: 'SIMPLE',
-          operator: 'TEMPORAL_RANGE',
-          subject: 'order_date',
-          comparator: YEAR_2003,
-        },
-        {
-          clause: 'WHERE',
-          expressionType: 'SIMPLE',
-          operator: 'TEMPORAL_RANGE',
-          subject: 'order_date',
-          comparator: OCT_2003,
-        },
-      ],
-      extra_filters: [
-        { col: '__time_range', op: '==', val: 'Last year' },
-        { col: 'country', op: 'IN', val: ['USA'] },
-      ],
-      extra_form_data: {
-        time_range: 'Last month',
-        filters: [
-          { col: 'delivery_date', op: 'TEMPORAL_RANGE', val: shipRange },
-        ],
-      },
+    const savedFilter = {
+      clause: 'WHERE',
+      expressionType: 'SIMPLE',
+      operator: 'TEMPORAL_RANGE',
+      subject: 'ship_date',
+      comparator: shipRange,
     };
-    // Query B uses the same core query builder after selecting its filter field.
-    const before = JSON.parse(JSON.stringify(formData));
-    const drilled = applyDrillByTimeRange(
-      formData,
-      OCT_1_2003,
-      monthBucketFilter,
-    );
-    const query = buildQueryObject({
-      ...drilled,
-      adhoc_filters: drilled[filterField],
-    });
-    expect(query.time_range).toBeFalsy();
-    expect(query.filters).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ col: 'ship_date', val: shipRange }),
-        expect.objectContaining({ col: 'delivery_date', val: shipRange }),
-        expect.objectContaining({ col: 'order_date', val: YEAR_2003 }),
+    const shapes = [
+      {},
+      { time_range: 'No filter' },
+      { time_range: YEAR_2003 },
+      { time_range: 'No filter', extra_form_data: { time_range: YEAR_2003 } },
+      {
+        time_range: 'No filter',
+        extra_filters: [{ col: '__time_range', op: '==', val: YEAR_2003 }],
+      },
+    ];
+    shapes.forEach(shape => {
+      const source = {
+        datasource: '1__table',
+        viz_type: 'mixed_timeseries',
+        ...shape,
+        [filterField]: [savedFilter],
+      } as QueryFormData;
+      const formData = {
+        ...source,
+        [filterField]: [
+          savedFilter,
+          {
+            ...savedFilter,
+            subject: 'order_date',
+            comparator: OCT_2003,
+          },
+        ],
+      };
+      const before = JSON.parse(JSON.stringify(formData));
+      const chart = buildQueryObject({
+        ...source,
+        adhoc_filters: source[filterField],
+      });
+      const drilled = applyDrillByTimeRange(
+        formData,
+        OCT_1_2003,
+        monthBucketFilter,
+        source,
+      );
+      const query = buildQueryObject({
+        ...drilled,
+        adhoc_filters: drilled[filterField],
+      });
+      expect(query.time_range).toBeFalsy();
+      expect(query.filters).toEqual([
+        expect.objectContaining({
+          col: 'ship_date',
+          val: chart.time_range ?? shipRange,
+        }),
         expect.objectContaining({ col: 'order_date', val: OCT_1_2003 }),
-        expect.objectContaining({ col: 'country', val: ['USA'] }),
-      ]),
-    );
-    expect(formData).toEqual(before);
-    expect(drilled[filterField]).toContainEqual(
-      expect.objectContaining({ subject: 'ship_date', comparator: shipRange }),
-    );
-    expect(drilled[filterField]).toContainEqual(
-      expect.objectContaining({
-        subject: 'order_date',
-        comparator: OCT_1_2003,
-      }),
-    );
+      ]);
+      // Model _apply_filters: a truthy query-wide range replaces every temporal
+      // value. Compare actual rows rather than a mocked aggregate response.
+      const rows = [
+        { order_date: '2003-10-01T12:00:00', ship_date: '2003-12-01T00:00:00' },
+        { order_date: '2003-10-01T12:00:00', ship_date: '2004-01-01T00:00:00' },
+        { order_date: '2003-10-02T12:00:00', ship_date: '2004-01-01T00:00:00' },
+      ];
+      const inRange = (value: string, range: string) => {
+        if (range === 'No filter') return true;
+        const [since, until] = range.split(' : ');
+        return value >= since && value < until;
+      };
+      const expected = rows.filter(
+        row =>
+          inRange(row.order_date, OCT_1_2003) &&
+          inRange(row.ship_date, chart.time_range ?? shipRange),
+      );
+      const actual = rows.filter(row =>
+        query.filters?.every(
+          filter =>
+            filter.op !== 'TEMPORAL_RANGE' ||
+            inRange(row[filter.col as keyof typeof row], String(filter.val)),
+        ),
+      );
+      expect(actual).toEqual(expected);
+      expect(formData).toEqual(before);
+    });
   },
 );
 
@@ -427,4 +443,74 @@ test('a bucket does not introduce a query-wide time range when none was saved', 
     extra_form_data: { filters: [] },
   };
   expect(applyDrillByTimeRange(formData, OCT_2003)).toBe(formData);
+});
+
+test.each(['extra_filters', 'native_filters', 'native_adhoc_filters'])(
+  'independent dashboard temporal filters keep their effective range from %s',
+  location => {
+    const savedRange = '2004-01-01 : 2005-01-01';
+    const filter = {
+      col: 'ship_date',
+      op: 'TEMPORAL_RANGE' as const,
+      val: savedRange,
+    };
+    const adhoc = {
+      clause: 'WHERE' as const,
+      expressionType: 'SIMPLE' as const,
+      operator: 'TEMPORAL_RANGE' as const,
+      subject: 'ship_date',
+      comparator: savedRange,
+    };
+    const source = {
+      datasource: '1__table',
+      viz_type: 'echarts_timeseries_bar',
+      time_range: 'No filter',
+      extra_filters: location === 'extra_filters' ? [filter] : [],
+      extra_form_data: {
+        time_range: YEAR_2003,
+        filters: location === 'native_filters' ? [filter] : [],
+        adhoc_filters: location === 'native_adhoc_filters' ? [adhoc] : [],
+      },
+    } as QueryFormData;
+    const formData = {
+      ...source,
+      adhoc_filters: [
+        { ...adhoc, subject: 'order_date', comparator: OCT_2003 },
+      ],
+    };
+    const query = buildQueryObject(
+      applyDrillByTimeRange(formData, OCT_2003, monthBucketFilter, source),
+    );
+    expect(query.time_range).toBeUndefined();
+    expect(query.filters).toContainEqual(
+      expect.objectContaining({ col: 'ship_date', val: YEAR_2003 }),
+    );
+    expect(query.filters).toContainEqual(
+      expect.objectContaining({ col: 'order_date', val: OCT_2003 }),
+    );
+    expect(source.extra_form_data?.time_range).toBe(YEAR_2003);
+    expect(filter.val).toBe(savedRange);
+    expect(adhoc.comparator).toBe(savedRange);
+  },
+);
+
+test('Mixed Timeseries resolves the outer range from the clicked query filter field', () => {
+  const source = {
+    datasource: '1__table',
+    viz_type: 'mixed_timeseries',
+    adhoc_filters: [],
+    adhoc_filters_b: [
+      {
+        clause: 'WHERE',
+        expressionType: 'SIMPLE',
+        subject: 'order_date',
+        operator: 'TEMPORAL_RANGE',
+        comparator: YEAR_2003,
+      },
+    ],
+  } as QueryFormData;
+  expect(
+    getDrillByOuterTimeRange(source, 'order_date', 'adhoc_filters_b'),
+  ).toBe(YEAR_2003);
+  expect(getDrillByOuterTimeRange(source, 'order_date')).toBeUndefined();
 });

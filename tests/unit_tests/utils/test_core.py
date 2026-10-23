@@ -2123,3 +2123,51 @@ def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
     df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
     result = extract_dataframe_dtypes(df)
     assert len(result) == 3
+
+
+@pytest.mark.parametrize("source", ["native", "legacy"])
+def test_drilled_temporal_ranges_survive_explore_filter_merge(source: str) -> None:
+    """Edit chart and save keep the materialized ranges displayed by filter pills."""
+    effective_range = "2003-01-01 : 2005-01-01"
+    outer_bucket = "2003-10-15T00:00:00 : 2003-11-01T00:00:00"
+    inner_bucket = "2004-01-01T00:00:00 : 2004-02-01T00:00:00"
+    form_data: dict[str, Any] = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": column,
+                "operator": "TEMPORAL_RANGE",
+                "comparator": value,
+            }
+            for column, value in [
+                ("ship_date", effective_range),
+                ("order_date", outer_bucket),
+                ("ship_date", inner_bucket),
+            ]
+        ],
+    }
+    extra_filter = {
+        "col": "delivery_date",
+        "op": "TEMPORAL_RANGE",
+        "val": effective_range,
+    }
+    if source == "native":
+        form_data["extra_form_data"] = {"filters": [extra_filter]}
+    else:
+        form_data["extra_filters"] = [extra_filter]
+
+    merge_extra_filters(form_data)
+
+    assert "time_range" not in form_data
+    assert "extra_filters" not in form_data
+    assert "extra_form_data" not in form_data
+    assert [
+        (filter_["subject"], filter_["comparator"])
+        for filter_ in form_data["adhoc_filters"]
+    ] == [
+        ("ship_date", effective_range),
+        ("order_date", outer_bucket),
+        ("ship_date", inner_bucket),
+        ("delivery_date", effective_range),
+    ]

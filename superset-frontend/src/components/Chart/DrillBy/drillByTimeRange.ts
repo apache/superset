@@ -77,10 +77,14 @@ export const getDrillByTimeRange = (
 export const getDrillByOuterTimeRange = (
   formData: QueryFormData,
   column?: BinaryQueryObjectFilterClause['col'],
+  adhocFilterFieldName = 'adhoc_filters',
 ): string | undefined => {
   let timeRange: unknown;
   try {
-    const queryObject = buildQueryObject(formData);
+    const queryObject = buildQueryObject({
+      ...formData,
+      adhoc_filters: formData[adhocFilterFieldName],
+    });
     const columnLabel =
       column === undefined ? undefined : getColumnLabel(column);
     timeRange =
@@ -181,8 +185,10 @@ export const fetchDrillByTimeRange = async (
  * bucket as the query's time_range keeps it. A dashboard time range arrives
  * through extra_form_data, which overrides time_range, so it is replaced
  * there as well. If another temporal column is filtered, omit these global
- * overrides instead and retain the resolved range on the clicked filter, so
- * the backend cannot overwrite the independent column or an outer drill.
+ * overrides instead. Materialize the chart's effective query-wide range on
+ * its saved temporal filters before removing it; otherwise their saved
+ * comparators would silently become active again. Drill bucket filters keep
+ * their separately resolved overlaps, including those of outer drills.
  *
  * TEMPORAL_RANGE is kept, rather than a >= / < pair, because only the
  * TEMPORAL_RANGE path applies the dataset's timezone or Hours offset to the
@@ -192,6 +198,7 @@ export const applyDrillByTimeRange = <T extends JsonObject>(
   formData: T,
   timeRange: string | undefined,
   timeFilter?: BinaryQueryObjectFilterClause,
+  sourceFormData: JsonObject = formData,
 ): T => {
   if (!timeRange) {
     return formData;
@@ -223,34 +230,60 @@ export const applyDrillByTimeRange = <T extends JsonObject>(
       ),
     );
   if (!hasQueryTimeRange || hasIndependentTimeFilter) {
-    // A query-wide range would overwrite independent temporal filters on the
-    // backend. Keep their values and put the resolved overlap on the bucket
-    // itself, including on mixed charts' second query.
+    // Match _apply_filters for the original chart only. Appended drill
+    // filters are additional constraints, not targets of its global override.
+    const sourceQuery = buildQueryObject(sourceFormData as QueryFormData);
+    const effectiveTimeRange = sourceQuery.time_range;
+    const materializeSimpleFilter = <F extends { op: string }>(filter: F): F =>
+      effectiveTimeRange && filter.op === 'TEMPORAL_RANGE'
+        ? { ...filter, val: effectiveTimeRange }
+        : filter;
+    const materializeAdhocFilter = (filter: AdhocFilter): AdhocFilter =>
+      effectiveTimeRange &&
+      isSimpleAdhocFilter(filter) &&
+      filter.operator === 'TEMPORAL_RANGE'
+        ? { ...filter, comparator: effectiveTimeRange }
+        : filter;
     const updatedFormData: JsonObject = { ...formData };
     delete updatedFormData.time_range;
     if (extraFormData) {
       const { time_range: _, ...remainingExtras } = extraFormData;
-      updatedFormData.extra_form_data = remainingExtras;
+      updatedFormData.extra_form_data = {
+        ...remainingExtras,
+        ...(extraFormData.filters && {
+          filters: extraFormData.filters.map(materializeSimpleFilter),
+        }),
+        ...(extraFormData.adhoc_filters && {
+          adhoc_filters: extraFormData.adhoc_filters.map(
+            materializeAdhocFilter,
+          ),
+        }),
+      };
     }
     if (extraFilters) {
-      updatedFormData.extra_filters = extraFilters.filter(
-        filter => filter.col !== '__time_range',
-      );
+      updatedFormData.extra_filters = extraFilters
+        .filter(filter => filter.col !== '__time_range')
+        .map(materializeSimpleFilter);
     }
-    if (timeFilter) {
-      adhocFilterFields.forEach(key => {
-        updatedFormData[key] = ensureIsArray(
-          formData[key] as AdhocFilter[],
-        ).map(filter =>
-          isSimpleAdhocFilter(filter) &&
-          filter.operator === 'TEMPORAL_RANGE' &&
-          getColumnLabel(filter.subject) === getColumnLabel(timeFilter.col) &&
-          filter.comparator === timeFilter.val
+    adhocFilterFields.forEach(key => {
+      const savedCount = ensureIsArray(
+        sourceFormData[key] as AdhocFilter[],
+      ).length;
+      updatedFormData[key] = ensureIsArray(formData[key] as AdhocFilter[]).map(
+        (filter, index) => {
+          if (index < savedCount) {
+            return materializeAdhocFilter(filter);
+          }
+          return timeFilter &&
+            isSimpleAdhocFilter(filter) &&
+            filter.operator === 'TEMPORAL_RANGE' &&
+            getColumnLabel(filter.subject) === getColumnLabel(timeFilter.col) &&
+            filter.comparator === timeFilter.val
             ? { ...filter, comparator: timeRange }
-            : filter,
-        );
-      });
-    }
+            : filter;
+        },
+      );
+    });
     return updatedFormData as T;
   }
 

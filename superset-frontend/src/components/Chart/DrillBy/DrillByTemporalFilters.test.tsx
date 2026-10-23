@@ -225,7 +225,7 @@ test.each([
     expect(body.queries[0].filters).toContainEqual({
       col: 'order_date',
       op: 'TEMPORAL_RANGE',
-      val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+      val: expectedRange,
     });
   },
 );

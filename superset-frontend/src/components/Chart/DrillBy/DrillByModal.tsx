@@ -33,6 +33,7 @@ import {
   QueryData,
   ensureIsArray,
   isDefined,
+  getColumnLabel,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
@@ -76,6 +77,7 @@ import {
   fetchDrillByTimeRange,
   getDrillByOuterTimeRange,
   getDrillByTimeFilter,
+  intersectTimeRanges,
 } from './drillByTimeRange';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
@@ -275,13 +277,19 @@ export default function DrillByModal({
   );
 
   const getFiltersFromConfigsByFieldName = useCallback(
-    () =>
+    (timeRanges: Map<BinaryQueryObjectFilterClause, string>) =>
       drillByConfigs.reduce<Record<string, AdhocFilter[]>>((acc, config) => {
         const adhocFilterFieldName =
           config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
         acc[adhocFilterFieldName] = [
           ...(acc[adhocFilterFieldName] || []),
-          ...config.filters.map(filter => simpleFilterToAdhoc(filter)),
+          ...config.filters.map(filter =>
+            simpleFilterToAdhoc(
+              timeRanges.has(filter)
+                ? { ...filter, val: timeRanges.get(filter) ?? filter.val }
+                : filter,
+            ),
+          ),
         ];
         return acc;
       }, {}),
@@ -362,42 +370,94 @@ export default function DrillByModal({
     [drillByConfigs],
   );
   const drillTimeRange = drillTimeFilter?.val as string | undefined;
-  const outerTimeRange = useMemo(
+  const temporalDrillFilters = useMemo(
     () =>
-      drillTimeFilter
-        ? getDrillByOuterTimeRange(formData, drillTimeFilter.col)
-        : undefined,
-    [drillTimeFilter, formData],
+      drillByConfigs
+        .flatMap(config => config.filters)
+        .filter(
+          filter =>
+            filter.op === 'TEMPORAL_RANGE' && typeof filter.val === 'string',
+        ),
+    [drillByConfigs],
   );
-  const timeRangeKey = `${drillTimeRange} | ${outerTimeRange}`;
-  const [resolvedTimeRange, setResolvedTimeRange] = useState<{
+  const outerTimeRanges = useMemo(
+    () =>
+      temporalDrillFilters.map(filter =>
+        getDrillByOuterTimeRange(
+          formData,
+          filter.col,
+          drillByConfigs.find(config => config.filters.includes(filter))
+            ?.adhocFilterFieldName,
+        ),
+      ),
+    [temporalDrillFilters, formData, drillByConfigs],
+  );
+  const timeRangeKey = JSON.stringify([temporalDrillFilters, outerTimeRanges]);
+  const [resolvedTimeRanges, setResolvedTimeRanges] = useState<{
     key: string;
-    value: string;
+    values: string[];
   }>();
+  const needsTimeRangeResolution = outerTimeRanges.some(Boolean);
   useEffect(() => {
-    if (!drillTimeRange || !outerTimeRange) {
+    if (!needsTimeRangeResolution) {
       return undefined;
     }
     let active = true;
-    fetchDrillByTimeRange(drillTimeRange, outerTimeRange).then(value => {
+    Promise.all(
+      temporalDrillFilters.map((filter, index) => {
+        const bucket = filter.val as string;
+        const outerTimeRange = outerTimeRanges[index];
+        return outerTimeRange
+          ? fetchDrillByTimeRange(bucket, outerTimeRange)
+          : bucket;
+      }),
+    ).then(values => {
       if (active) {
-        setResolvedTimeRange({ key: timeRangeKey, value });
+        setResolvedTimeRanges({ key: timeRangeKey, values });
       }
     });
     return () => {
       active = false;
     };
-  }, [drillTimeRange, outerTimeRange, timeRangeKey]);
-  // Wait for the chart's own range to resolve before querying, so the drill
-  // only returns the part of the bucket the chart displayed.
+  }, [
+    temporalDrillFilters,
+    outerTimeRanges,
+    needsTimeRangeResolution,
+    timeRangeKey,
+  ]);
+  // Every outer bucket retains its clip when a nested drill changes columns.
   const isTimeRangePending =
-    !!drillTimeRange &&
-    !!outerTimeRange &&
-    resolvedTimeRange?.key !== timeRangeKey;
-  const drilledTimeRange =
-    drillTimeRange && outerTimeRange && !isTimeRangePending
-      ? resolvedTimeRange?.value
-      : drillTimeRange;
+    needsTimeRangeResolution && resolvedTimeRanges?.key !== timeRangeKey;
+  const resolvedDrillRanges = useMemo(
+    () =>
+      new Map(
+        temporalDrillFilters.map((filter, index) => [
+          filter,
+          !isTimeRangePending && needsTimeRangeResolution
+            ? (resolvedTimeRanges?.values[index] ?? (filter.val as string))
+            : (filter.val as string),
+        ]),
+      ),
+    [
+      temporalDrillFilters,
+      isTimeRangePending,
+      needsTimeRangeResolution,
+      resolvedTimeRanges,
+    ],
+  );
+  const drilledTimeRange = drillTimeFilter
+    ? temporalDrillFilters.reduce((range, filter) => {
+        if (
+          getColumnLabel(filter.col) !== getColumnLabel(drillTimeFilter.col)
+        ) {
+          return range;
+        }
+        const bounds = resolvedDrillRanges.get(filter)?.split(' : ');
+        return range && bounds
+          ? intersectTimeRanges(range, bounds[0], bounds[1])
+          : range;
+      }, resolvedDrillRanges.get(drillTimeFilter))
+    : drillTimeRange;
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
@@ -405,7 +465,7 @@ export default function DrillByModal({
       updatedFormData[groupbyFieldName] = getNewGroupby(currentColumn);
     }
 
-    const adhocFilters = getFiltersFromConfigsByFieldName();
+    const adhocFilters = getFiltersFromConfigsByFieldName(resolvedDrillRanges);
     Object.keys(adhocFilters).forEach(adhocFilterFieldName => {
       updatedFormData = {
         ...updatedFormData,
@@ -419,7 +479,11 @@ export default function DrillByModal({
     updatedFormData = applyDrillByTimeRange(
       updatedFormData,
       drilledTimeRange,
-      drillTimeFilter,
+      drillTimeFilter && {
+        ...drillTimeFilter,
+        val: drilledTimeRange ?? drillTimeFilter.val,
+      },
+      formData,
     );
 
     updatedFormData.slice_id = 0;
@@ -435,6 +499,7 @@ export default function DrillByModal({
     formData,
     drilledTimeRange,
     drillTimeFilter,
+    resolvedDrillRanges,
   ]);
 
   const handleDownload = useCallback(

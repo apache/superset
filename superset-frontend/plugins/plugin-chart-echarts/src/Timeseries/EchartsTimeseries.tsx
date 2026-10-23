@@ -727,14 +727,7 @@ export default function EchartsTimeseries({
               (isTemporalCategory && eventParams.name) ||
               xAxisFilter.op === 'TEMPORAL_RANGE')
           ) {
-            xAxisFilters.push(
-              isTemporalCategory && xAxisFilter.op === '=='
-                ? {
-                    ...xAxisFilter,
-                    formattedVal: String(eventParams.name ?? xValue),
-                  }
-                : xAxisFilter,
-            );
+            xAxisFilters.push(xAxisFilter);
           }
         } else if (xAxis.type === AxisType.Category && xAxisCol) {
           const categoryAxisValue = getXAxisValue(data, eventParams.name);

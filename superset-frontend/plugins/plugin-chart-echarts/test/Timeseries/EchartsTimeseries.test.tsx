@@ -1059,7 +1059,7 @@ test('ungrained markerless Timeseries Drill by keeps its series-only scope', asy
   expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toBeUndefined();
 });
 
-test('ungrained forced-categorical temporal Drill by keeps the original label', async () => {
+test('ungrained forced-categorical temporal Drill by formats the timestamp label', async () => {
   const onContextMenu = jest.fn();
   const timestamp = Date.UTC(2003, 9, 1);
   renderTimeseries({
@@ -1087,7 +1087,7 @@ test('ungrained forced-categorical temporal Drill by keeps the original label', 
       col: 'order_date',
       op: '==',
       val: '2003-10-01T00:00:00',
-      formattedVal: String(timestamp),
+      formattedVal: '2003-10-01 00:00:00',
     },
   ]);
 });
