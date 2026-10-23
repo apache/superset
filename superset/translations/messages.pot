@@ -15,22 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
 # This file is distributed under the same license as the Superset project.
@@ -41,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3081,10 +3065,7 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
-msgid ""
-"Changing this setting may change the casing for all columns in this dataset, "
-"which may break any existing charts and dashboard filters that reference the "
-"current column names."
+msgid "Changing this setting may change the casing for all columns in this dataset, which may break any existing charts and dashboard filters that reference the current column names."
 msgstr ""
 
 msgid "Changing this task is forbidden"
@@ -3671,6 +3652,10 @@ msgstr ""
 msgid "Color scheme"
 msgstr ""
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid "Color used when the close value is greater than or equal to the open value."
 msgstr ""
 
@@ -4195,6 +4180,9 @@ msgid "Could not validate the user in the current session."
 msgstr ""
 
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
+msgstr ""
+
+msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -6869,15 +6857,11 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid ""
-"Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions. Select a dimension or remove the filter."
+msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions. Select a dimension or remove the filter."
 msgstr ""
 
 #, python-format
-msgid ""
-"Filter column '%(column)s' is not in this semantic view. Select a "
-"dimension or remove the filter."
+msgid "Filter column '%(column)s' is not in this semantic view. Select a dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -7863,6 +7847,9 @@ msgstr ""
 
 #, python-format
 msgid "Invalid metric object: %(metric)s"
+msgstr ""
+
+msgid "Invalid number format: must be a d3-format specifier or a supported named format"
 msgstr ""
 
 #, python-format
@@ -8995,6 +8982,9 @@ msgstr ""
 msgid "Minimum Font Size"
 msgstr ""
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr ""
 
@@ -9002,6 +8992,12 @@ msgid "Minimum Width"
 msgstr ""
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Only applies to numeric and time axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Useful to avoid fractional ticks on integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -9540,6 +9536,9 @@ msgstr ""
 
 #, python-format
 msgid "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -12376,9 +12375,7 @@ msgid "Semantic cache"
 msgstr ""
 
 #, python-format
-msgid ""
-"Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. "
-"Use one dimension per name and grain."
+msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
 msgstr ""
 
 msgid "Semantic layer"
@@ -12430,6 +12427,9 @@ msgid "Semantic view parameters are invalid."
 msgstr ""
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid "Semantic view validation timed out before this view was checked. Retry it in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -12640,6 +12640,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Show All/Invert buttons in legend"
+msgstr ""
 
 msgid "Show Bubbles"
 msgstr ""
@@ -14509,6 +14512,9 @@ msgstr ""
 msgid "The version of the service"
 msgstr ""
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr ""
 
@@ -15438,6 +15444,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
+
 msgid "Token Request URI"
 msgstr ""
 
@@ -15446,6 +15455,10 @@ msgstr ""
 
 #, python-format
 msgid "Too many sub-slices requested. The maximum allowed is %(max)s, but %(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
 msgstr ""
 
 msgid "Tool Panel"
@@ -16320,6 +16333,9 @@ msgstr ""
 msgid "Viewport"
 msgstr ""
 
+msgid "Views must be a list of objects"
+msgstr ""
+
 msgid "Virtual"
 msgstr ""
 
@@ -16805,6 +16821,9 @@ msgstr ""
 msgid "X Axis Label Interval"
 msgstr ""
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr ""
 
@@ -16849,6 +16868,9 @@ msgid "Y Axis Format"
 msgstr ""
 
 msgid "Y Axis Label"
+msgstr ""
+
+msgid "Y Axis Minimum Interval"
 msgstr ""
 
 msgid "Y Axis Title"
@@ -17258,9 +17280,7 @@ msgstr ""
 msgid "Your report could not be deleted"
 msgstr ""
 
-msgid ""
-"Your role does not have access to the profile page needed to change your "
-"password. Contact an administrator."
+msgid "Your role does not have access to the profile page needed to change your password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."
@@ -18267,12 +18287,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid ""
-"Couldn't validate this semantic view: it may not exist, or the semantic layer"
-" is unreachable."
-msgstr ""
-
-msgid "The view configuration must be a JSON object."
 msgstr ""
