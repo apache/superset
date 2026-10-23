@@ -152,6 +152,7 @@ jobs:
             superset/static/service-worker.js
           key: >-
             instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
+            '.github/workflows/bashlib.sh',
             'superset-frontend/package-lock.json',
             'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
             'superset-frontend/packages/**', 'superset-frontend/plugins/**',
@@ -406,6 +407,7 @@ jobs:
             superset/static/service-worker.js
           key: >-
             instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
+            '.github/workflows/bashlib.sh',
             'superset-frontend/package-lock.json',
             'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
             'superset-frontend/packages/**', 'superset-frontend/plugins/**',
