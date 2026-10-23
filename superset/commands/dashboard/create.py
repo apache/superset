@@ -27,7 +27,6 @@ from superset import db
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dashboard.exceptions import (
     DashboardCreateFailedError,
-    DashboardForbiddenError,
     DashboardInvalidError,
     DashboardSlugExistsValidationError,
 )
@@ -36,7 +35,6 @@ from superset.commands.soft_delete_collisions import (
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dashboard import DashboardDAO
-from superset.exceptions import SupersetSecurityException
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
@@ -93,13 +91,9 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
         # Every chart in the new dashboard's layout is a new member, so the
         # creator must be able to access each one's datasource (it can be served
         # through the dashboard).
-        if json_metadata := self._properties.get("json_metadata"):
-            try:
-                DashboardDAO.raise_for_added_member_datasource_access(
-                    json.loads(json_metadata)
-                )
-            except SupersetSecurityException as ex:
-                raise DashboardForbiddenError() from ex
+        DashboardDAO.raise_for_added_member_datasource_access(
+            self._properties.get("json_metadata")
+        )
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

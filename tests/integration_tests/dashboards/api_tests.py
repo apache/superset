@@ -2215,9 +2215,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     def test_dashboard_requires_datasource_access_for_added_chart(self):
         """Adding a chart to a dashboard requires the editor's access to that
         chart's datasource (it can be served through the dashboard). Without the
-        grant, create and update are refused with 403 and nothing is linked;
-        granting access lets the same save through.
+        grant, create, update (layout or ``slices``) and copy-with-layout are
+        refused with 403 and nothing is linked; granting access lets the same
+        saves through.
         """
+        from superset.commands.dashboard.exceptions import DashboardForbiddenError
+        from superset.commands.dashboard.update import UpdateDashboardCommand
         from superset.connectors.sqla.models import SqlaTable
 
         admin = self.get_user("admin")
@@ -2238,13 +2241,18 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "acc_added_dash", "acc-added-dash", [gamma.id]
         )
         put_uri = f"api/v1/dashboard/{dashboard.id}"
+        copy_uri = f"api/v1/dashboard/{dashboard.id}/copy/"
+        copy_body = {
+            "dashboard_title": "acc_added_copy",
+            "json_metadata": json_metadata,
+        }
         post_body = {
             "dashboard_title": "acc_added_create",
             "slug": "acc-added-create",
             "json_metadata": json_metadata,
             "position_json": json.dumps(positions),
         }
-        created_id: int | None = None
+        created_ids: list[int] = []
         try:
             self.login(GAMMA_USERNAME)
 
@@ -2254,9 +2262,20 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.expire_all()
             assert chart.id not in {slc.id for slc in dashboard.slices}
 
-            # Create is refused too.
+            # Create and copy-with-layout are refused too.
             rv = self.client.post("api/v1/dashboard/", json=post_body)
             assert rv.status_code == 403
+            rv = self.client.post(copy_uri, json=copy_body)
+            assert rv.status_code == 403
+
+            # Membership written through the command's ``slices`` key is
+            # checked the same way.
+            with override_user(gamma):
+                with pytest.raises(DashboardForbiddenError):
+                    UpdateDashboardCommand(dashboard.id, {"slices": [chart]}).run()
+            db.session.rollback()
+            db.session.expire_all()
+            assert chart.id not in {slc.id for slc in dashboard.slices}
 
             # With datasource access, both saves succeed.
             pvm = security_manager.add_permission_view_menu(
@@ -2269,16 +2288,18 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert rv.status_code == 200
             rv = self.client.post("api/v1/dashboard/", json=post_body)
             assert rv.status_code == 201
-            created_id = json.loads(rv.data.decode("utf-8")).get("id")
+            created_ids.append(json.loads(rv.data.decode("utf-8"))["id"])
+            rv = self.client.post(copy_uri, json=copy_body)
+            assert rv.status_code == 200
+            created_ids.append(json.loads(rv.data.decode("utf-8"))["result"]["id"])
         finally:
             pvm = security_manager.find_permission_view_menu(
                 "datasource_access", dataset.perm
             )
             if pvm:
                 security_manager.del_permission_role(gamma_role, pvm)
-            if created_id:
-                created = db.session.query(Dashboard).get(created_id)
-                if created:
+            for created_id in created_ids:
+                if created := db.session.query(Dashboard).get(created_id):
                     db.session.delete(created)
             db.session.delete(dashboard)
             db.session.delete(chart)

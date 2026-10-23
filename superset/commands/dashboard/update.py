@@ -156,7 +156,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 DashboardDAO.set_dash_metadata(dashboard, data=metadata)
         return dashboard
 
-    def validate(self) -> None:  # noqa: C901
+    def validate(self) -> None:
         exceptions: list[ValidationError] = []
         slug: Optional[str] = self._properties.get("slug")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
@@ -174,14 +174,13 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         # A chart added to the dashboard must be one whose datasource the editor
         # can access (its datasource can be served through the dashboard). Check
         # here, before ``run`` mutates anything, so a refusal is a 403 and no
-        # side effects (e.g. report deactivation) have fired yet.
-        if json_metadata := self._properties.get("json_metadata"):
-            try:
-                DashboardDAO.raise_for_added_member_datasource_access(
-                    json.loads(json_metadata), existing_dashboard=self._model
-                )
-            except SupersetSecurityException as ex:
-                raise DashboardForbiddenError() from ex
+        # side effects (e.g. report deactivation) have fired yet. Membership is
+        # written from the layout in ``json_metadata`` and from ``slices``.
+        DashboardDAO.raise_for_added_member_datasource_access(
+            self._properties.get("json_metadata"),
+            [slc.id for slc in self._properties.get("slices") or []],
+            existing_dashboard_id=self._model.id,
+        )
 
         if self._refuses_externally_managed and not (
             self._properties

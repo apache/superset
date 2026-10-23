@@ -23,7 +23,10 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
-from superset.commands.dashboard.exceptions import DashboardInvalidError
+from superset.commands.dashboard.exceptions import (
+    DashboardForbiddenError,
+    DashboardInvalidError,
+)
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
@@ -1730,13 +1733,9 @@ def _positions_for(chart: Slice) -> dict[str, dict[str, Any]]:
     }
 
 
-def _raise_added(
-    data: dict[str, Any],
-    existing: Dashboard | None = None,
-    old_to_new: dict[int, int] | None = None,
-) -> None:
+def _raise_added(data: dict[str, Any], existing: Dashboard | None = None) -> None:
     DashboardDAO.raise_for_added_member_datasource_access(
-        data, existing_dashboard=existing, old_to_new_slice_ids=old_to_new
+        json.dumps(data), existing_dashboard_id=existing.id if existing else None
     )
 
 
@@ -1748,7 +1747,7 @@ def test_added_member_datasource_access_requires_access(session: Session) -> Non
         patch.object(security_manager, "is_admin", return_value=False),
         patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
     ):
-        with pytest.raises(SupersetSecurityException):
+        with pytest.raises(DashboardForbiddenError):
             _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
 
 
@@ -1814,40 +1813,19 @@ def test_added_member_datasource_access_skips_existing_members(
         _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
 
 
-def test_added_member_datasource_access_skips_clone_path(session: Session) -> None:
-    """The clone path (a non-empty ``old_to_new_slice_ids`` map) is exempt."""
-    dashboard, chart = _dashboard_with_member(session, member=False)
-    with (
-        patch("superset.security.manager.get_user_id", return_value=1),
-        patch.object(security_manager, "is_admin", return_value=False),
-        patch.object(
-            security_manager,
-            "raise_for_access",
-            side_effect=AssertionError("clone path must not be access-checked"),
-        ),
-    ):
-        _raise_added(
-            {"positions": _positions_for(chart)},
-            existing=dashboard,
-            old_to_new={chart.id: chart.id},
-        )
-
-
 def test_added_member_datasource_access_checks_copy_with_layout(
     session: Session,
 ) -> None:
-    """A copy that rebuilds membership from a caller-supplied layout (no clone
-    map) is checked like create/update."""
+    """A copy that rebuilds membership from a caller-supplied layout (no
+    existing dashboard) is checked like create/update."""
     dashboard, chart = _dashboard_with_member(session, member=False)
     with (
         patch("superset.security.manager.get_user_id", return_value=1),
         patch.object(security_manager, "is_admin", return_value=False),
         patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
     ):
-        with pytest.raises(SupersetSecurityException):
-            _raise_added(
-                {"positions": _positions_for(chart)}, existing=None, old_to_new={}
-            )
+        with pytest.raises(DashboardForbiddenError):
+            _raise_added({"positions": _positions_for(chart)}, existing=None)
 
 
 @with_feature_flags(SOFT_DELETE=True)
@@ -1855,8 +1833,9 @@ def test_added_member_datasource_access_skips_soft_deleted_member(
     session: Session,
 ) -> None:
     """A soft-deleted member still referenced by the layout is recognised as an
-    existing member (prior membership is read with the visibility filter lifted),
-    so it is not treated as a new addition."""
+    existing member, so it is not treated as a new addition. The dashboard is
+    loaded through a query, as on the PUT path, so its ``slices`` relationship
+    carries the soft-delete loader criteria and hides the archived member."""
     Dashboard.metadata.create_all(session.get_bind())
     database = Database(database_name="acc_db", sqlalchemy_uri="sqlite://")
     dataset = SqlaTable(table_name="acc_table", database=database)
@@ -1877,7 +1856,9 @@ def test_added_member_datasource_access_skips_soft_deleted_member(
     db.session.flush()
     chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     db.session.flush()
-    db.session.expire(dashboard, ["slices"])
+    db.session.expunge_all()
+    loaded: Dashboard = db.session.query(Dashboard).filter_by(id=dashboard.id).one()
+    assert chart.id not in {slc.id for slc in loaded.slices}
 
     with (
         patch("superset.security.manager.get_user_id", return_value=1),
@@ -1888,7 +1869,7 @@ def test_added_member_datasource_access_skips_soft_deleted_member(
             side_effect=AssertionError("existing member must not be access-checked"),
         ),
     ):
-        _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+        _raise_added({"positions": _positions_for(chart)}, existing=loaded)
 
 
 def test_set_dash_metadata_no_longer_enforces_datasource_access(

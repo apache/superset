@@ -158,25 +158,17 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             # A chart's datasource can be served through a dashboard it belongs
             # to (drill access, and promiscuous-viewer access), so linking the
             # chart to a new dashboard must require access to that datasource.
-            # Use the datasource this request will leave on the chart: the
-            # incoming one when the same request repoints it, otherwise the
-            # stored one. (Admin and unresolvable-datasource exemptions live in
-            # ``raise_for_datasources_access``.)
-            datasource_type: str = self._properties.get("datasource_type", "")
-            effective_datasource: BaseDatasource | None
-            if datasource_type:
-                effective_id: int | None = self._properties.get(
-                    "datasource_id", self._model.datasource_id
-                )
-                effective_datasource = (
-                    get_datasource_by_id(effective_id, datasource_type)
-                    if effective_id is not None
-                    else None
-                )
-            else:
-                effective_datasource = self._model.resolved_datasource
+            # A request that repoints the chart has its incoming datasource
+            # resolved and access-checked by ``validate()`` (or reported there
+            # as 422), so only the stored one is left to check. Admin and
+            # unresolvable-datasource exemptions live in
+            # ``raise_for_datasources_access``.
+            if self._properties.get("datasource_type"):
+                return
             try:
-                security_manager.raise_for_datasources_access([effective_datasource])
+                security_manager.raise_for_datasources_access(
+                    [self._model.resolved_datasource]
+                )
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
 
