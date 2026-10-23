@@ -159,3 +159,62 @@ test('should render both leftIcon and rightIcon together', async () => {
   expect(await screen.findByTestId('mobile-left')).toBeInTheDocument();
   expect(await screen.findByTestId('mobile-right')).toBeInTheDocument();
 });
+
+// Spacing between a plain Button and a custom `component` entry (wrapped in a
+// <span>), which the Button adjacent-sibling margin rule cannot reach.
+const componentButtons = (): ButtonProps[] => [
+  {
+    name: 'Bulk select',
+    buttonStyle: 'secondary',
+    onClick: jest.fn(),
+  },
+  {
+    name: 'New',
+    buttonStyle: 'primary',
+    component: <button type="button">New component</button>,
+  },
+];
+
+const componentWrapper = () =>
+  screen.getByText('New component').parentElement as HTMLElement;
+
+test('adds a gap between a button and a following component entry', () => {
+  setup({ buttons: componentButtons(), dropDownLinks: undefined });
+  expect(getComputedStyle(componentWrapper()).marginLeft).toBe('8px');
+});
+
+test('adds the same gap in the collapsed layout', () => {
+  const original = window.innerWidth;
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: 700,
+  });
+  try {
+    setup({
+      buttons: [{ name: 'Import', buttonStyle: 'link' }, ...componentButtons()],
+      dropDownLinks: undefined,
+    });
+    expect(componentWrapper().parentElement).toHaveClass('nav-right-collapse');
+    expect(getComputedStyle(componentWrapper()).marginLeft).toBe('8px');
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: original,
+    });
+  }
+});
+
+test('does not add a gap to a lone component entry', () => {
+  setup({
+    buttons: [componentButtons()[1]],
+    dropDownLinks: undefined,
+  });
+  expect(getComputedStyle(componentWrapper()).marginLeft).not.toBe('8px');
+});
+
+test('does not add a gap to a component entry that follows a menu', () => {
+  setup({ buttons: [componentButtons()[1]] });
+  expect(getComputedStyle(componentWrapper()).marginLeft).not.toBe('8px');
+});

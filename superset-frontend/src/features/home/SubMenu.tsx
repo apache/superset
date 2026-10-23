@@ -85,6 +85,12 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     float: left;
     padding-left: 10px;
   }
+  /* Button's adjacent-sibling margin can't reach a custom component entry,
+     which is wrapped in a <span>; space it from a preceding Button here. */
+  .nav-right > .superset-button + span,
+  .nav-right-collapse > .superset-button + span {
+    margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  }
   .menu {
     align-items: center;
   }
