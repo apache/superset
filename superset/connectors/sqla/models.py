@@ -2608,7 +2608,13 @@ class SqlaTable(
         def column_expression(column_: Any) -> Any:
             """The templatable expression behind an adhoc or calculated column."""
             if utils.is_adhoc_column(column_):
-                return column_["sqlExpression"]
+                # ``adhoc_column_to_sqla`` looks the expression up against the
+                # dataset's columns before treating it as SQL of its own, so an
+                # adhoc column that only names a calculated column renders that
+                # column's expression instead of this string. The frontend
+                # builds that shape for an ``x_axis`` column reference.
+                expression = column_["sqlExpression"] or ""
+                return calculated_columns.get(expression.strip(), expression)
             if isinstance(column_, str):
                 return calculated_columns.get(column_)
             return None
@@ -2644,7 +2650,13 @@ class SqlaTable(
                 ) or metrics_by_name.get(col)
             return None
 
-        for column_ in query_obj.get("columns") or []:
+        # ``get_sqla_query`` resolves ``groupby`` through the same column lookup
+        # as ``columns``, and prefers it when both are set, so a calculated
+        # column grouped on is rendered exactly like a selected one.
+        for column_ in [
+            *(query_obj.get("columns") or []),
+            *(query_obj.get("groupby") or []),
+        ]:
             if expression := column_expression(column_):
                 templatable_statements.append(expression)
         for metric in query_obj.get("metrics") or []:
@@ -2660,6 +2672,7 @@ class SqlaTable(
         #     alias), via ``_get_series_orderby``
         #   - a filter whose ``col`` resolves to a calculated column or a saved
         #     metric
+        #   - the temporal column named by ``granularity``
         for order_by in query_obj.get("orderby") or []:
             entry = order_by[0] if isinstance(order_by, (list, tuple)) else order_by
             if expression := metric_expression(entry) or column_expression(entry):
@@ -2672,6 +2685,16 @@ class SqlaTable(
                 templatable_statements.append(expression)
         for flt in query_obj.get("filter") or []:
             if isinstance(flt, dict) and (expression := filter_expression(flt)):
+                templatable_statements.append(expression)
+        if granularity := query_obj.get("granularity"):
+            # The temporal column reaches the select list and the time filter
+            # through ``get_timestamp_expression``, which renders its
+            # expression. ``get_sqla_query`` falls back to ``main_dttm_col``
+            # when ``granularity`` is not one of the temporal columns, so the
+            # column whose expression is rendered is not always the named one.
+            if granularity not in self.dttm_cols:
+                granularity = self.main_dttm_col
+            if granularity and (expression := calculated_columns.get(granularity)):
                 templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [

@@ -1104,6 +1104,49 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
     assert extra_cache_keys == expected_cache_keys
 
 
+def templated_dataset(main_dttm_col: str = "ds") -> SqlaTable:
+    """
+    A dataset whose calculated columns, temporal column and metrics carry macros.
+
+    `mine` is a calculated temporal column and `ds` a plain one, so a query can
+    name either as its `granularity`. `main_dttm_col` is what `get_sqla_query`
+    falls back to when `granularity` is not one of the temporal columns.
+    """
+    return SqlaTable(
+        table_name="test_has_no_extra_cache_keys_table",
+        sql="SELECT 'abc' as user",
+        database=get_example_database(),
+        main_dttm_col=main_dttm_col,
+        columns=[
+            TableColumn(column_name="user", type="VARCHAR(255)"),
+            TableColumn(
+                column_name="username",
+                type="VARCHAR(255)",
+                verbose_name="Who am I",
+                expression="{{ current_username() }}",
+            ),
+            TableColumn(column_name="ds", type="TIMESTAMP", is_dttm=True),
+            TableColumn(
+                column_name="mine",
+                type="TIMESTAMP",
+                is_dttm=True,
+                expression="DATE('{{ current_username() }}')",
+            ),
+        ],
+        metrics=[
+            SqlMetric(
+                metric_name="variable_profit",
+                expression="SUM(price) * {{ url_param('multiplier') }}",
+            ),
+            SqlMetric(
+                metric_name="user_count",
+                expression="COUNT('{{ current_username() }}')",
+            ),
+            SqlMetric(metric_name="plain_total", expression="SUM(price)"),
+        ],
+    )
+
+
 @pytest.mark.usefixtures("app_context")
 @pytest.mark.parametrize(
     "query_obj_fragment,has_extra_cache_keys",
@@ -1127,6 +1170,15 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
         ({"filter": [{"col": "variable_profit", "op": "==", "val": 1}]}, True),
         ({"filter": [{"col": "plain_total", "op": "==", "val": 1}]}, False),
         ({"filter": [{"col": "user", "op": "==", "val": 1}]}, False),
+        ({"columns": [{"label": "username", "sqlExpression": "username"}]}, True),
+        ({"columns": [{"label": "username", "sqlExpression": " username "}]}, True),
+        ({"columns": [{"label": "upper", "sqlExpression": "UPPER(user)"}]}, False),
+        ({"granularity": "mine"}, True),
+        ({"granularity": "ds"}, False),
+        ({"granularity": "user"}, False),
+        ({"groupby": ["username"]}, True),
+        ({"groupby": ["user"]}, False),
+        ({"groupby": [{"label": "username", "sqlExpression": "username"}]}, True),
     ],
 )
 def test_extra_cache_keys_in_orderby_series_limit_and_filter(
@@ -1142,29 +1194,12 @@ def test_extra_cache_keys_in_orderby_series_limit_and_filter(
     Each field is resolved the way `get_sqla_query` resolves it: an adhoc
     expression, a SIMPLE adhoc metric's column, or a name looked up against the
     dataset's metrics and calculated columns. A filter column also resolves
-    against the columns' verbose names and the saved metrics.
+    against the columns' verbose names and the saved metrics. An adhoc column
+    whose `sqlExpression` only names a calculated column resolves to that
+    column's expression, and `granularity` follows the renderer's fallback to
+    `main_dttm_col`.
     """
-    table = SqlaTable(
-        table_name="test_has_no_extra_cache_keys_table",
-        sql="SELECT 'abc' as user",
-        database=get_example_database(),
-        columns=[
-            TableColumn(column_name="user", type="VARCHAR(255)"),
-            TableColumn(
-                column_name="username",
-                type="VARCHAR(255)",
-                verbose_name="Who am I",
-                expression="{{ current_username() }}",
-            ),
-        ],
-        metrics=[
-            SqlMetric(
-                metric_name="variable_profit",
-                expression="SUM(price) * {{ url_param('multiplier') }}",
-            ),
-            SqlMetric(metric_name="plain_total", expression="SUM(price)"),
-        ],
-    )
+    table = templated_dataset()
     query_obj: dict[str, Any] = {
         "granularity": None,
         "from_dttm": None,
@@ -1180,6 +1215,75 @@ def test_extra_cache_keys_in_orderby_series_limit_and_filter(
     assert (
         table.has_extra_cache_key_calls(cast(QueryObjectDict, query_obj))
         == has_extra_cache_keys
+    )
+
+
+@pytest.mark.usefixtures("app_context")
+@pytest.mark.parametrize(
+    "query_obj_fragment,main_dttm_col,expected_cache_keys",
+    [
+        ({"orderby": [["user_count", False]], "columns": ["user"]}, "ds", ["abc"]),
+        ({"orderby": [["plain_total", False]], "columns": ["user"]}, "ds", []),
+        (
+            {
+                "groupby": ["user"],
+                "granularity": "ds",
+                "is_timeseries": True,
+                "series_limit": 5,
+                "series_limit_metric": "user_count",
+            },
+            "ds",
+            ["abc"],
+        ),
+        ({"filter": [{"col": "username", "op": "==", "val": "x"}]}, "ds", ["abc"]),
+        (
+            {"columns": [{"label": "username", "sqlExpression": "username"}]},
+            "ds",
+            ["abc"],
+        ),
+        ({"granularity": "mine", "is_timeseries": True}, "ds", ["abc"]),
+        ({"granularity": "user", "is_timeseries": True}, "mine", ["abc"]),
+        ({"groupby": ["username"]}, "ds", ["abc"]),
+    ],
+)
+@patch("superset.jinja_context.get_username", return_value="abc")
+def test_extra_cache_keys_differ_once_the_gate_fires(
+    mock_username: Mock,
+    query_obj_fragment: dict[str, Any],
+    main_dttm_col: str,
+    expected_cache_keys: list[str],
+):
+    """
+    The key extraction yields a key for each field the gate covers, not just a
+    `True` from the gate itself.
+
+    The gate firing and the key differing are two separate claims, and only the
+    second one closes the leak, so these cases assert `get_extra_cache_keys`
+    rather than `has_extra_cache_key_calls`. Each query is shaped so the field
+    really is rendered: `series_limit_metric` only reaches
+    `_get_series_orderby` while `series_limit` is set and the query has series
+    columns, so a bare fragment would yield no key at all.
+
+    The last case names a column that is not temporal, which `get_sqla_query`
+    replaces with `main_dttm_col`, so the expression that gets rendered belongs
+    to a column the query never named.
+    """
+    table = templated_dataset(main_dttm_col)
+    query_obj: dict[str, Any] = {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": [],
+        "metrics": ["plain_total"],
+        "columns": [],
+        "is_timeseries": False,
+        "filter": [],
+        **query_obj_fragment,
+    }
+
+    assert (
+        table.get_extra_cache_keys(cast(QueryObjectDict, query_obj))
+        == expected_cache_keys
     )
 
 
