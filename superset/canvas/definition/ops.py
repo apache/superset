@@ -34,6 +34,7 @@ from typing import Any
 from superset_core.canvas import WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
+from superset.canvas.definition.grid import Rect, resolve_grid
 from superset.canvas.definition.placements import new_placement_id, placement_types
 from superset.canvas.definition.registry import (
     get_widget_resolver,
@@ -263,6 +264,7 @@ class _Applier:
             return AppliedOperation(logged, [Touch(SETTINGS_ID, FieldGroup(op.key))])
         assert isinstance(op, PlaceOp)  # noqa: S101
         self.node(op.id)["layout"] = op.layout
+        self.bring_forward(op.id, op.layout)
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
 
     def set_props(self, op: SetPropsOp, logged: dict[str, Any]) -> AppliedOperation:
@@ -275,6 +277,39 @@ class _Applier:
         node["props"] = current_props(widget, op.props, op.schema_version)
         node["schemaVersion"] = widget.schema_version
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.PROPS)])
+
+    def bring_forward(self, node_id: str, layout: dict[str, Any]) -> None:
+        """
+        Reorder ``node_id`` so a widget dropped onto others wins the spot.
+
+        Overlaps push the later child down, so without this a widget dropped
+        onto earlier siblings would be pushed under them. It goes before the
+        first sibling it overlaps or that starts after it in reading order.
+        """
+        parent_id = self.parent_of(node_id)
+        columns = self.grid_columns(parent_id)
+        if columns is None or layout.get("col") is None:
+            return
+        siblings = self._siblings(parent_id)
+        others = [child for child in siblings if child != node_id]
+        rects, _ = resolve_grid(
+            [self.nodes[child].get("layout") or {} for child in others], columns
+        )
+        col_span = min(layout.get("colSpan") or columns, columns)
+        target = Rect(
+            layout["col"], layout["row"], col_span, layout.get("rowSpan") or 1
+        )
+        index = next(
+            (
+                i
+                for i, rect in enumerate(rects)
+                if rect.cells() & target.cells()
+                or (rect.row, rect.col) >= (target.row, target.col)
+            ),
+            len(others),
+        )
+        others.insert(index, node_id)
+        siblings[:] = others
 
     def grid_columns(self, parent_id: str) -> int | None:
         """Columns of ``parent_id``'s grid, or ``None`` if it isn't a grid."""

@@ -389,7 +389,7 @@ def test_move_into_own_descendant_fails() -> None:
         apply(doc, {"op": "move", "id": "n0", "parent": "n1"})
 
 
-def test_place_updates_layout_and_resolves_collisions() -> None:
+def test_a_placed_node_wins_the_spot_it_lands_on() -> None:
     doc = build(
         add("chart-1", layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 2}),
         add("chart-2", layout={"col": 13, "row": 1, "colSpan": 12}),
@@ -399,8 +399,60 @@ def test_place_updates_layout_and_resolves_collisions() -> None:
         doc, {"op": "place", "id": "n1", "layout": {"col": 1, "row": 1, "colSpan": 24}}
     )
 
-    assert result["nodes"]["n1"]["layout"] == {"col": 1, "row": 3, "colSpan": 24}
+    assert result["root"]["children"] == ["n1", "n0"]
+    assert result["nodes"]["n1"]["layout"] == {"col": 1, "row": 1, "colSpan": 24}
+    assert result["nodes"]["n0"]["layout"]["row"] == 2
     assert applied[0].touched == [Touch("n1", FieldGroup.LAYOUT)]
+
+
+def test_a_node_dropped_between_two_others_pushes_only_the_lower_one() -> None:
+    doc = build(
+        add(
+            "chart-1",
+            id="top",
+            layout={"col": 1, "row": 1, "colSpan": 24, "rowSpan": 2},
+        ),
+        add(
+            "chart-2",
+            id="bottom",
+            layout={"col": 1, "row": 3, "colSpan": 24, "rowSpan": 2},
+        ),
+        add(
+            "chart-3",
+            id="last",
+            layout={"col": 1, "row": 5, "colSpan": 24, "rowSpan": 2},
+        ),
+    )
+
+    result, _ = apply(
+        doc,
+        {
+            "op": "place",
+            "id": "last",
+            "layout": {"col": 1, "row": 3, "colSpan": 24, "rowSpan": 2},
+        },
+    )
+
+    assert result["root"]["children"] == ["top", "last", "bottom"]
+    assert result["nodes"]["top"]["layout"]["row"] == 1
+    assert result["nodes"]["last"]["layout"]["row"] == 3
+    assert result["nodes"]["bottom"]["layout"]["row"] == 5
+
+
+def test_a_placed_node_keeps_its_order_when_it_lands_on_nothing() -> None:
+    doc = build(
+        add("chart-1", id="a", layout={"col": 1, "row": 1, "colSpan": 12}),
+        add("chart-2", id="b", layout={"col": 13, "row": 1, "colSpan": 12}),
+    )
+
+    result, _ = apply(
+        doc,
+        {"op": "place", "id": "a", "layout": {"col": 1, "row": 4, "colSpan": 12}},
+    )
+
+    assert result["root"]["children"] == ["b", "a"]
+    assert result["nodes"]["a"]["layout"]["row"] == 4
+    assert result["nodes"]["b"]["layout"]["row"] == 1
 
 
 def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
@@ -436,9 +488,10 @@ def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
         },
     )
 
-    # b lands under a, the group grows to hold it, and what was below the
-    # group is pushed down in turn instead of being drawn over.
-    assert result["nodes"]["b"]["layout"]["row"] == 5
+    # b takes a's spot and pushes it down, the group grows to hold a, and what
+    # was below the group is pushed down in turn instead of being drawn over.
+    assert result["nodes"]["b"]["layout"]["row"] == 1
+    assert result["nodes"]["a"]["layout"]["row"] == 5
     assert result["nodes"]["kpis"]["layout"]["rowSpan"] == 8
     assert result["nodes"]["below"]["layout"]["row"] == 9
 

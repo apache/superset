@@ -126,10 +126,11 @@ def apply_canvas_draft_ops(
     at 1. Leave ``col``/``row`` out to auto-place, and spans out for the
     widget's default size. ``place`` takes the whole layout.
 
-    Overlaps push the later placement (in ``children`` order) down; nothing
-    moves back up, so close gaps with ``place``. Containers grow to fit.
-    The response has every resolved ``placements`` and ``displaced``, what
-    got pushed without being named.
+    Overlaps push the later placement (in ``children`` order) down; a
+    ``place`` first moves its node ahead of whatever it lands on, so it wins
+    the spot. Nothing moves back up, so close gaps with ``place``.
+    Containers grow to fit. The response has every resolved ``placements``
+    and ``displaced``, what got pushed without being named.
     """
     return CanvasDraftResponse.model_validate(
         _apply_canvas_draft_ops_impl(token, revision, ops)
