@@ -32,7 +32,7 @@ from typing import Any
 
 from flask import g, request
 from flask.wrappers import Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
@@ -50,6 +50,7 @@ from superset.extensions.storage.persistent_dao import (
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.utils.decorators import transaction
+from superset.views.base_api import BaseSupersetApi
 
 
 def _decoded_result_for_wire(decoded: Any) -> tuple[Any, bool]:
@@ -85,7 +86,7 @@ def _wire_value_for_request(value: Any, is_binary: bool) -> Any:
     return value
 
 
-class ExtensionStorageRestApi(BaseApi):
+class ExtensionStorageRestApi(BaseSupersetApi):
     """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage.
 
     Docstring descriptions below use backticks rather than double quotes: FAB
@@ -95,9 +96,6 @@ class ExtensionStorageRestApi(BaseApi):
     """
 
     allow_browser_login = True
-    # FAB's BaseApi exempts its blueprint from CSRF; the write routes are
-    # cookie-authenticated, so keep the protection.
-    csrf_exempt = False
     route_base = "/api/v1/extensions"
 
     def response(self, status_code: int, **kwargs: Any) -> Response:

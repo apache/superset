@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -102,8 +103,10 @@ def test_storage_writes_require_csrf_token_for_every_credential(
     dao: MagicMock = mocker.patch(
         f"superset.extensions.storage.api.ExtensionStorageDAO.{dao_method}"
     )
+    client: Any
+    headers: dict[str, str]
     client, headers = _writer(app, mocker, auth)
-    write = getattr(client, method)
+    write: Callable[..., TestResponse] = getattr(client, method)
     # A JSON request gets the 400 CSRF_ERROR body; a non-JSON one is
     # redirected to the login page instead.
     body: dict[str, Any] = (
@@ -165,3 +168,47 @@ def test_apis_absent_when_flag_off_at_startup(
     that has the flag on gets a 404 here; the Extensions page explains it."""
     response: TestResponse = client.get(INFO)
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("app", [BOOT_ON], indirect=True)
+@pytest.mark.parametrize(
+    ("api_name", "permissions"),
+    [
+        ("ExtensionsRestApi", {"can_info", "can_get_list", "can_get", "can_content"}),
+        (
+            "ExtensionStorageRestApi",
+            {
+                "can_get_ephemeral",
+                "can_set_ephemeral",
+                "can_delete_ephemeral",
+                "can_get_persistent",
+                "can_set_persistent",
+                "can_delete_persistent",
+                "can_list_persistent",
+            },
+        ),
+    ],
+)
+def test_superset_base_preserves_extension_permissions(
+    app: Any, api_name: str, permissions: set[str]
+) -> None:
+    """Using the Superset base must preserve existing FAB role grants."""
+    from superset.extensions import appbuilder
+    from superset.views.base_api import BaseSupersetApi
+
+    registered: list[Any] = [
+        view
+        for view in appbuilder.baseviews
+        if type(view).__name__ == api_name
+        and view.blueprint is app.blueprints[api_name]
+    ]
+    assert len(registered) == 1, f"Expected one registered {api_name}"
+    api: Any = registered[0]
+    assert api.class_permission_name == api_name
+    assert set(api.base_permissions) == permissions
+    assert api.method_permission_name == {}
+    assert api.previous_class_permission_name is None
+    assert api.previous_method_permission_name is None
+    assert api.allow_browser_login is True
+    assert api.csrf_exempt is False
+    assert isinstance(api, BaseSupersetApi)

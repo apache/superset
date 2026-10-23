@@ -20,19 +20,17 @@ from typing import Any
 
 from flask import send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
+from superset.views.base_api import BaseSupersetApi
 
 
-class ExtensionsRestApi(BaseApi):
+class ExtensionsRestApi(BaseSupersetApi):
     allow_browser_login = True
-    # FAB's BaseApi exempts its blueprint from CSRF; keep the protection that
-    # other cookie-authenticated Superset APIs have.
-    csrf_exempt = False
     resource_name = "extensions"
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
