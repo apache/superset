@@ -1,0 +1,52 @@
+name: "UTSC 2026 Student Labeler"
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  label:
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-slim
+    steps:
+    - name: Label if author is a UTSC 2026 student
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: file } = await github.rest.repos.getContent({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            path: '.github/utsc2026-students.yml',
+          });
+          const students = Buffer.from(file.content, 'base64')
+            .toString('utf8')
+            .split('\n')
+            .map(line => line.replace(/#.*/, '').trim())
+            .filter(line => line.startsWith('- '))
+            .map(line => line.slice(2).trim().toLowerCase());
+
+          const target = context.payload.pull_request ?? context.payload.issue;
+          const author = target.user.login.toLowerCase();
+          if (!students.includes(author)) {
+            return;
+          }
+
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: target.number,
+            labels: ['utsc2026'],
+          });
