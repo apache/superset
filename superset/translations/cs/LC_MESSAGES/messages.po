@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -4306,6 +4306,10 @@ msgstr "Barva cílového umístění"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9206,6 +9210,11 @@ msgstr "Neplatná zeměpisná délka/šířka"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Neplatný objekt metriky: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Neplatná funkce numpy: %(operator)s"
@@ -11110,6 +11119,9 @@ msgid ""
 msgstr ""
 "Nebyl nalezen žádný validátor s názvem %(validator_name)s "
 "(nakonfigurovaný pro engine %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Pozice popisku uzlu"
@@ -14518,6 +14530,11 @@ msgstr "Parametry sady dat jsou neplatné."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Sémantický pohled byl aktualizován"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18510,6 +18527,12 @@ msgstr ""
 "Bylo vyžádáno příliš mnoho dílčích řezů. Maximální povolený počet je "
 "%(max)s, ale bylo vyžádáno %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Všechny panely"
@@ -19582,6 +19605,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Zobrazovací oblast"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtuální"

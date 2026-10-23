@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -4511,6 +4511,10 @@ msgstr "Culoarea locației țintă"
 
 msgid "Color scheme"
 msgstr "Schemă culori"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9657,6 +9661,11 @@ msgstr "Longitudine/latitudine invalidă"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Obiect de tip indicator nevalid: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Funcție numpy invalidă: %(operator)s"
@@ -11643,6 +11652,9 @@ msgid ""
 msgstr ""
 "Niciun validator numit %(validator_name)s găsit (configurat pentru "
 "motorul %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Poziție etichetă nod"
@@ -15177,6 +15189,11 @@ msgstr "Parametrii vizualizării semantice sunt invalizi."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Vizualizare semantică actualizată"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -19369,6 +19386,12 @@ msgstr ""
 "Au fost solicitate prea multe sub-secțiuni. Maximul permis este %(max)s, "
 "dar au fost solicitate %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "Panou instrumente"
 
@@ -20472,6 +20495,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Viewport"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtual"

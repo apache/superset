@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -6686,6 +6686,10 @@ msgstr "สีของตำแหน่งปลายทาง"
 #, fuzzy
 msgid "Color scheme"
 msgstr "ชุดสี"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -14652,6 +14656,11 @@ msgstr "ลองจิจูด/ละติจูดไม่ถูกต้�
 msgid "Invalid metric object: %(metric)s"
 msgstr "ออบเจกต์เมตริกไม่ถูกต้อง: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -17789,6 +17798,9 @@ msgid ""
 msgstr ""
 "ไม่พบตัวตรวจสอบชื่อ %(validator_name)s (ที่กำหนดค่าสำหรับเอ็นจิน "
 "%(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23321,6 +23333,11 @@ msgstr "พารามิเตอร์ชุดข้อมูลไม่ถ
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "อัปเดตมุมมองเชิงความหมายแล้ว"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -29301,6 +29318,12 @@ msgstr ""
 "มีการร้องขอซับสไลซ์มากเกินไป จำนวนสูงสุดที่อนุญาตคือ %(max)s "
 "แต่มีการร้องขอ %(count)s รายการ"
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -30965,6 +30988,9 @@ msgstr ""
 #, fuzzy
 msgid "Viewport"
 msgstr "วิวพอร์ต"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]

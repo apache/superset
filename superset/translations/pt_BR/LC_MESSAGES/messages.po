@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -4530,6 +4530,10 @@ msgstr "Cor do local de destino"
 
 msgid "Color scheme"
 msgstr "Esquema de cores"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9843,6 +9847,11 @@ msgstr "Longitude/latitude inválida"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Objeto de métrica inválido: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Função numpy inválida: %(operator)s"
@@ -11871,6 +11880,9 @@ msgid ""
 msgstr ""
 "Nenhum validador chamado%(validator_name)sencontrado (configurado para o "
 "mecanismo%(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Posição do rótulo do nó"
@@ -15532,6 +15544,11 @@ msgstr "Os parâmetros de visualização semântica são inválidos."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Visualização semântica atualizada"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19819,6 +19836,12 @@ msgstr ""
 "Muitas subfatias solicitadas. O máximo permitido é%(max)s, mas foram "
 "solicitados%(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Painel de ferramentas"
@@ -20977,6 +21000,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Porta de exibição"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtual"

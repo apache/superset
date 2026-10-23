@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -4626,6 +4626,10 @@ msgstr "لون الموقع المستهدف"
 
 msgid "Color scheme"
 msgstr "نظام الألوان"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9908,6 +9912,11 @@ msgstr "خط الطول/العرض غير صالح"
 msgid "Invalid metric object: %(metric)s"
 msgstr "كائن متري غير صالح: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "وظيفة numpy غير صالحة: %(operator)s"
@@ -11917,6 +11926,9 @@ msgid ""
 msgstr ""
 "لم يتم %(validator_name)s العثور على مدقق مسمى (تم تكوينه %(engine_spec)s"
 " للمحرك)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "موضع تسمية العقدة"
@@ -15494,6 +15506,11 @@ msgstr "معلمات مجموعة البيانات غير صالحة."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "تم تحديث العرض الدلالي"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19739,6 +19756,12 @@ msgstr ""
 "تم طلب عدد كبير جداً من الشرائح الفرعية. الحد الأقصى المسموح به هو "
 "%(max)s، لكن تم طلب %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "جميع اللوحات"
@@ -20877,6 +20900,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "منفذ العرض"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "افتراضية"

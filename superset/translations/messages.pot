@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3650,6 +3650,10 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+#, python-format
+msgid "Color scheme: %s"
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -7845,6 +7849,9 @@ msgstr ""
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
+msgid "Invalid number format: must be a d3-format specifier or a supported named format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr ""
@@ -8975,6 +8982,9 @@ msgstr ""
 msgid "Minimum Font Size"
 msgstr ""
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr ""
 
@@ -8982,6 +8992,12 @@ msgid "Minimum Width"
 msgstr ""
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Only applies to numeric and time axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Useful to avoid fractional ticks on integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -9520,6 +9536,9 @@ msgstr ""
 
 #, python-format
 msgid "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -12408,6 +12427,9 @@ msgid "Semantic view parameters are invalid."
 msgstr ""
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid "Semantic view validation timed out before this view was checked. Retry it in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -15429,6 +15451,10 @@ msgstr ""
 msgid "Too many sub-slices requested. The maximum allowed is %(max)s, but %(count)s were requested."
 msgstr ""
 
+#, python-format
+msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr ""
 
@@ -16301,6 +16327,9 @@ msgstr ""
 msgid "Viewport"
 msgstr ""
 
+msgid "Views must be a list of objects"
+msgstr ""
+
 msgid "Virtual"
 msgstr ""
 
@@ -16786,6 +16815,9 @@ msgstr ""
 msgid "X Axis Label Interval"
 msgstr ""
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr ""
 
@@ -16830,6 +16862,9 @@ msgid "Y Axis Format"
 msgstr ""
 
 msgid "Y Axis Label"
+msgstr ""
+
+msgid "Y Axis Minimum Interval"
 msgstr ""
 
 msgid "Y Axis Title"

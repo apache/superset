@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -4198,6 +4198,10 @@ msgstr "Цвет целевого местоположения"
 
 msgid "Color scheme"
 msgstr "Цветовая схема"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -8901,6 +8905,11 @@ msgstr "Недопустимые долгота/широта"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Некорректная мера: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Недопустимая numpy функция: %(operator)s"
@@ -10742,6 +10751,9 @@ msgid ""
 msgstr ""
 "Не найден валидатор с именем %(validator_name)s (сконфигурированный для "
 "драйвера %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Расположение меток"
@@ -13982,6 +13994,11 @@ msgstr "Параметры представления аннотаций нек�
 
 msgid "Semantic view updated"
 msgstr "Представление аннотаций обновлено"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 msgid "Semantic views"
 msgstr "Представления аннотаций"
@@ -17866,6 +17883,12 @@ msgstr ""
 "Запрошено слишком много срезов. Максимально допустимое количество: "
 "%(max)s, но запрошено %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "Панель инструментов"
 
@@ -18891,6 +18914,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Область просмотра"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Виртуальный"

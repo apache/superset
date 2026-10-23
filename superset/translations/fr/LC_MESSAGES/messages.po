@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -4306,6 +4306,10 @@ msgstr "Couleur de l'emplacement de la cible"
 
 msgid "Color scheme"
 msgstr "Schéma de couleurs"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9143,6 +9147,11 @@ msgstr "Longitude/latitude invalide"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Mesure non valide : %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Fonction numpy invalide : %(operator)s"
@@ -11015,6 +11024,9 @@ msgid ""
 msgstr ""
 "Aucun validateur nommé %(validator_name)s trouvé (configuré pour le "
 "moteur %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Position de l'étiquette du nœud"
@@ -14384,6 +14396,11 @@ msgstr "Les paramètres de la vue sémantique ne sont pas valides."
 # sr_Latn]
 msgid "Semantic view updated"
 msgstr "Vue sémantique mise à jour"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18477,6 +18494,12 @@ msgstr ""
 "Trop de sous-graphes demandées. Le maximum autorisé est de %(max)s, mais "
 "%(count)s ont été demandées."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "Panneau d'outils"
 
@@ -19538,6 +19561,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Viewport"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtuel"

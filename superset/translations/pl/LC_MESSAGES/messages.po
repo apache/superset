@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -4570,6 +4570,10 @@ msgstr "Kolor lokalizacji celu"
 
 msgid "Color scheme"
 msgstr "Schemat kolorów"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9956,6 +9960,11 @@ msgstr "Nieprawidłowa długość/szerokość geograficzna"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Nieprawidłowy obiekt miary: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Nieprawidłowa funkcja numpy: %(operator)s"
@@ -11980,6 +11989,9 @@ msgid ""
 msgstr ""
 "Nie znaleziono walidatora o nazwie %(validator_name)s (skonfigurowanego "
 "dla silnika %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Pozycja etykiety węzła"
@@ -15652,6 +15664,11 @@ msgstr "Parametry zestawu danych są nieprawidłowe."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Widok semantyczny zaktualizowany"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20040,6 +20057,12 @@ msgstr ""
 "Zażądano zbyt wielu podwykresów. Maksymalna dozwolona liczba to %(max)s, "
 "ale zażądano %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Wszystkie panele"
@@ -21212,6 +21235,9 @@ msgstr ""
 #, fuzzy
 msgid "Viewport"
 msgstr "Okno widoku"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 #, fuzzy
 msgid "Virtual"

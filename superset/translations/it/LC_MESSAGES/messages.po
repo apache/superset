@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -5202,6 +5202,10 @@ msgstr "Colore della posizione di destinazione"
 
 msgid "Color scheme"
 msgstr "Schema colore"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -11203,6 +11207,11 @@ msgstr "Longitudine/latitudine non valida"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Oggetto metrico non valido: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13569,6 +13578,9 @@ msgid ""
 msgstr ""
 "Nessun validatore denominato %(validator_name)s trovato (configurato per "
 "il motore %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Posizione etichetta nodo"
@@ -17712,6 +17724,11 @@ msgstr "I parametri della vista semantica non sono validi."
 # sr_Latn]
 msgid "Semantic view updated"
 msgstr "Vista semantica aggiornata"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -22674,6 +22691,12 @@ msgstr ""
 "Sono stati richiesti troppi sotto-grafici. Il massimo consentito è "
 "%(max)s, ma ne sono stati richiesti %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 msgid "Tool Panel"
@@ -24022,6 +24045,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Visualizzazione"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

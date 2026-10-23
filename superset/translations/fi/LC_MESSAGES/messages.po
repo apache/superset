@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -6817,6 +6817,10 @@ msgstr "Kohteen sijainnin väri"
 #, fuzzy
 msgid "Color scheme"
 msgstr "Värikaava"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -14848,6 +14852,11 @@ msgstr "Virheellinen pituus-/leveysaste"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Virheellinen metriikkaobjekti: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -18008,6 +18017,9 @@ msgid ""
 msgstr ""
 "Nimeltä %(validator_name)s olevaa validaattoria ei löydy (määritetty "
 "%(engine_spec)s-moottorille)"
+
+msgid "No views provided"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23573,6 +23585,11 @@ msgstr "Tietojoukon parametrit ovat virheelliset."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Semanttinen näkymä päivitetty"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -29648,6 +29665,12 @@ msgstr ""
 "Liian monta aliviipaletta pyydetty. Suurin sallittu määrä on %(max)s, "
 "mutta pyydettiin %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -31324,6 +31347,9 @@ msgstr ""
 #, fuzzy
 msgid "Viewport"
 msgstr "Näkymäalue"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]

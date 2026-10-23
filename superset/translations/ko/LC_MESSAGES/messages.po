@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -6097,6 +6097,10 @@ msgstr "대상 위치의 색상"
 #, fuzzy
 msgid "Color scheme"
 msgstr "색상 구성표"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -13270,6 +13274,11 @@ msgstr "잘못된 경도/위도"
 msgid "Invalid metric object: %(metric)s"
 msgstr "잘못된 측정 항목 개체: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16197,6 +16206,9 @@ msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s 엔진에 구성된 %(validator_name)s 이름의 유효성 검사기를 찾을 수 없습니다"
+
+msgid "No views provided"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21220,6 +21232,11 @@ msgstr "차트의 파라미터가 부적절합니다."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "시맨틱 뷰가 업데이트되었습니다"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -26875,6 +26892,12 @@ msgid ""
 "%(count)s were requested."
 msgstr "요청된 하위 슬라이스가 너무 많습니다. 허용되는 최대 수는 %(max)s이지만 %(count)s개가 요청되었습니다."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -28435,6 +28458,9 @@ msgstr ""
 #, fuzzy
 msgid "Viewport"
 msgstr "뷰포트"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -4316,6 +4316,10 @@ msgstr "目标位置的颜色"
 
 msgid "Color scheme"
 msgstr "配色方案"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9294,6 +9298,11 @@ msgstr "无效的经度/纬度"
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "无效的numpy函数：%(operator)s"
@@ -11272,6 +11281,9 @@ msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
 msgstr "未找到名为 %(validator_name)s 的验证器（为 %(engine_spec)s 引擎配置）"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "节点标签位置"
@@ -14685,6 +14697,11 @@ msgstr "语义视图参数无效。"
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "语义视图已更新"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18619,6 +18636,12 @@ msgid ""
 "%(count)s were requested."
 msgstr "请求的子切片数量过多。最大允许数量为 %(max)s，但实际请求了 %(count)s 个子切片。"
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "工具面板"
 
@@ -19721,6 +19744,9 @@ msgstr "查看者是指可以查看该看板的主体列表。如果未定义查
 
 msgid "Viewport"
 msgstr "视口"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 #, fuzzy
 msgid "Virtual"

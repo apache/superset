@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -4266,6 +4266,10 @@ msgstr "Колір цілі"
 
 msgid "Color scheme"
 msgstr "Кольорова схема"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9041,6 +9045,11 @@ msgstr "Некоректні координати"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Некоректний показник: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Некоректна функція numpy: %(operator)s"
@@ -10908,6 +10917,9 @@ msgid ""
 msgstr ""
 "Не знайдено перевірку із назвою %(validator_name)s , яку налаштовано для "
 "рушія %(engine_spec)s"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Розміщення кнопок"
@@ -14243,6 +14255,11 @@ msgstr "Параметри набору даних некоректні."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Семантичний вигляд оновлено"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18183,6 +18200,12 @@ msgstr ""
 "Запитано забагато підзрізів. Максимально дозволена кількість — %(max)s, "
 "але було запитано %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "Панель інструментів"
 
@@ -19219,6 +19242,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Перспектива"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Віртуальний"

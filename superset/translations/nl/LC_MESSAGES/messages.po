@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -4540,6 +4540,10 @@ msgstr "Kleur van de doellocatie"
 
 msgid "Color scheme"
 msgstr "Kleurenschema"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9797,6 +9801,11 @@ msgstr "Ongeldige longitude/latitude"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Ongeldig metriek object: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Ongeldige numpy functie: %(operator)s"
@@ -11812,6 +11821,9 @@ msgid ""
 msgstr ""
 "Geen validator gevonden met de naam %(validator_name)s (geconfigureerd "
 "voor de %(engine_spec)s engine)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Node label positie"
@@ -15388,6 +15400,11 @@ msgstr "Dataset parameters zijn ongeldig."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Semantische weergave bijgewerkt"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19714,6 +19731,12 @@ msgstr ""
 "Te veel subslices aangevraagd. Het maximaal toegestane aantal is %(max)s,"
 " maar %(count)s werden aangevraagd."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Alle panelen"
@@ -20858,6 +20881,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Weergavevenster"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtueel"

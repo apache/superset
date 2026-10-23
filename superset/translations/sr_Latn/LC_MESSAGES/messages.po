@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -5111,6 +5111,10 @@ msgstr "Boja ciljne lokacije"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Color scheme"
 msgstr "Šema boja"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -10951,6 +10955,11 @@ msgstr "Nevažeća geografska dužina/širina"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Nevažeći objekat mere: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
@@ -13204,6 +13213,9 @@ msgid ""
 msgstr ""
 "Nije pronađen validator pod nazivom %(validator_name)s (konfigurisan za "
 "mehanizam %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Node label position"
@@ -17210,6 +17222,11 @@ msgstr "Parametri semantičkog pregleda su nevažeći."
 
 msgid "Semantic view updated"
 msgstr "Semantički pregled je ažuriran"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 msgid "Semantic views"
 msgstr "Semantički pregledi"
@@ -21827,6 +21844,12 @@ msgstr ""
 "Zatraženo je previše pod-isečaka. Maksimalni dozvoljeni broj je %(max)s, "
 "ali je zatraženo %(count)s."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 # uk]
 msgid "Tool Panel"
 msgstr "Panel alatki"
@@ -23057,6 +23080,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Viewport"
 msgstr "Prikazni okvir"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Virtual"

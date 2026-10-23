@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -4215,6 +4215,10 @@ msgstr "இலக்கு இடத்தின் வண்ணம்"
 
 msgid "Color scheme"
 msgstr "வண்ணத் திட்டம்"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -8949,6 +8953,11 @@ msgstr "தவறான தீர்க்கரேகை/அட்சரேக�
 msgid "Invalid metric object: %(metric)s"
 msgstr "தவறான அளவீட்டு பொருள்: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "தவறான numpy சார்பு: %(operator)s"
@@ -10747,6 +10756,9 @@ msgstr "சரிபார்ப்பான் (validator) எதுவும�
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -13941,6 +13953,11 @@ msgid "Semantic view parameters are invalid."
 msgstr "தரவுத்தொகுப்பு அளவுருக்கள் செல்லாதவை."
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -17670,6 +17687,12 @@ msgid ""
 "%(count)s were requested."
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "கருவிப் பலகம்"
 
@@ -18662,6 +18685,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "வ்யூ-போர்ட் (Viewport)"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "மெய்நிகர் (Virtual)"

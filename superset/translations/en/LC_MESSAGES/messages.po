@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -3889,6 +3889,10 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+#, python-format
+msgid "Color scheme: %s"
 msgstr ""
 
 msgid ""
@@ -8356,6 +8360,11 @@ msgstr ""
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr ""
@@ -10120,6 +10129,9 @@ msgstr ""
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -13209,6 +13221,11 @@ msgid "Semantic view parameters are invalid."
 msgstr ""
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -16696,6 +16713,12 @@ msgid ""
 "%(count)s were requested."
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr ""
 
@@ -17649,6 +17672,9 @@ msgid ""
 msgstr ""
 
 msgid "Viewport"
+msgstr ""
+
+msgid "Views must be a list of objects"
 msgstr ""
 
 msgid "Virtual"

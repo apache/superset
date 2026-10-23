@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-21 12:32-0700\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -4392,6 +4392,10 @@ msgstr "Hedef yerin rengi"
 
 msgid "Color scheme"
 msgstr "Renk şeması"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -9417,6 +9421,11 @@ msgstr "Invalid longitude/latitude"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Invalid metric object:   %(metric)s "
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Invalid numpy işlevi:   %(operator)s "
@@ -11392,6 +11401,9 @@ msgid ""
 msgstr ""
 "%(engine_spec)s %(validator_name)s adında hiçbir doğrulama bulunamadı "
 "(foto 1   motoru için yapılandırıldı)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Node etiket pozisyonu"
@@ -14891,6 +14903,11 @@ msgstr "Semantik görünüm parametreleri geçersiz."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Semantik görünüm güncellendi"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18953,6 +18970,12 @@ msgstr ""
 "Çok fazla alt dilim istendi. İzin verilen maksimum sayı %(max)s, ancak "
 "%(count)s istendi."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Tüm paneller"
@@ -20037,6 +20060,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Viewport"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Sanal"
