@@ -204,8 +204,8 @@ jobs:
 
       - name: Build Storybook and Run Tests
         run: |
-          docker run --rm $TAG bash -c \
-          "npx playwright install-deps && npx playwright install chromium && npm run test-storybook"
+          docker run --rm -e CI=true $TAG bash -c \
+          "npx playwright install --with-deps chromium && npm run test-storybook"
 
   actions-timeline:
     needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
