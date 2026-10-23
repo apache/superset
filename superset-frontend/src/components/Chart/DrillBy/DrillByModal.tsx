@@ -416,7 +416,11 @@ export default function DrillByModal({
       };
     });
 
-    updatedFormData = applyDrillByTimeRange(updatedFormData, drilledTimeRange);
+    updatedFormData = applyDrillByTimeRange(
+      updatedFormData,
+      drilledTimeRange,
+      drillTimeFilter,
+    );
 
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
@@ -430,6 +434,7 @@ export default function DrillByModal({
     getNewGroupby,
     formData,
     drilledTimeRange,
+    drillTimeFilter,
   ]);
 
   const handleDownload = useCallback(

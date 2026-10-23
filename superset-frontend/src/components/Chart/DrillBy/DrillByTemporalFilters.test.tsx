@@ -296,3 +296,38 @@ test('Drill by drops the grain of an equality filter', async () => {
     val: 1727740800000,
   });
 });
+
+test('Sunburst Drill by preserves an independent date filter without a saved time range', async () => {
+  const filters = sunburstDrillByFilters('order_date');
+  const body = await drillByRequest(
+    {
+      ...sunburstFormData('order_date'),
+      adhoc_filters: [
+        {
+          clause: 'WHERE',
+          expressionType: 'SIMPLE',
+          operator: 'TEMPORAL_RANGE',
+          subject: 'ship_date',
+          comparator: '2025-01-01 : 2026-01-01',
+        },
+      ],
+    },
+    filters,
+    'columns',
+  );
+  expect(body.queries[0].time_range).toBeFalsy();
+  expect(body.queries[0].filters).toEqual(
+    expect.arrayContaining([
+      {
+        col: 'ship_date',
+        op: 'TEMPORAL_RANGE',
+        val: '2025-01-01 : 2026-01-01',
+      },
+      {
+        col: 'order_date',
+        op: 'TEMPORAL_RANGE',
+        val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+      },
+    ]),
+  );
+});

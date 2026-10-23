@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, omitBy } from 'lodash-es';
-import { QueryData, QueryObject } from '@superset-ui/core';
+import { buildQueryObject, QueryData, QueryObject } from '@superset-ui/core';
 import {
   act,
   render,
@@ -971,3 +971,87 @@ describe('Table view with pagination', () => {
     );
   });
 });
+
+test.each([undefined, 'No filter', '2003-01-01 : 2006-01-01'])(
+  'temporal drill preserves an independent date filter in query and CSV with saved range %s',
+  async timeRange => {
+    exportChartMock.mockClear();
+    fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+    fetchMock.post(CHART_DATA_ENDPOINT, {
+      result: [
+        {
+          data: [{ name: 'bucket', count: 67 }],
+          colnames: ['name', 'count'],
+          coltypes: [1, 0],
+        },
+      ],
+    });
+    if (timeRange && timeRange !== 'No filter') {
+      mockTimeRange('2003-01-01T00:00:00', '2006-01-01T00:00:00');
+    }
+    const shipRange = '2004-01-01 : 2005-01-01';
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      formData: {
+        ...omit(formData, 'time_range'),
+        ...(timeRange === undefined ? {} : { time_range: timeRange }),
+        adhoc_filters: [
+          {
+            clause: 'WHERE',
+            expressionType: 'SIMPLE',
+            operator: 'TEMPORAL_RANGE',
+            subject: 'ship_date',
+            comparator: shipRange,
+          },
+        ],
+      },
+      drillByConfig: {
+        filters: [oct2003BucketFilter],
+        groupbyFieldName: 'groupby',
+      },
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+    );
+    const query = getLastChartDataQuery();
+    // A query-wide range would cause _apply_filters to overwrite ship_date.
+    expect(query.time_range).toBeFalsy();
+    expect(query.filters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          col: 'ship_date',
+          op: 'TEMPORAL_RANGE',
+          val: shipRange,
+        }),
+        expect.objectContaining({
+          col: 'ds',
+          op: 'TEMPORAL_RANGE',
+          val: OCT_2003_BUCKET,
+        }),
+      ]),
+    );
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to CSV'));
+    const exported = exportChartMock.mock.lastCall[0];
+    expect(exported.resultFormat).toBe('csv');
+    expect(buildQueryObject(exported.formData).filters).toEqual(query.filters);
+    expect(buildQueryObject(exported.formData).time_range).toBeFalsy();
+    expect(exported.formData.adhoc_filters).toEqual(
+      getLastChartDataFormData().adhoc_filters,
+    );
+    const explorePayload = JSON.parse(
+      JSON.parse(
+        fetchMock.callHistory.lastCall(FORM_DATA_KEY_ENDPOINT)?.options
+          ?.body as string,
+      ).form_data,
+    );
+    expect(explorePayload.adhoc_filters).toEqual(
+      exported.formData.adhoc_filters,
+    );
+    expect(explorePayload.time_range).toBeUndefined();
+  },
+);

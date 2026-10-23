@@ -18,6 +18,7 @@
  */
 import rison from 'rison';
 import {
+  AdhocFilter,
   BinaryQueryObjectFilterClause,
   ContextMenuFilters,
   JsonObject,
@@ -27,6 +28,7 @@ import {
   buildQueryObject,
   ensureIsArray,
   getColumnLabel,
+  isSimpleAdhocFilter,
 } from '@superset-ui/core';
 
 type DrillByConfig = ContextMenuFilters['drillBy'];
@@ -178,8 +180,9 @@ export const fetchDrillByTimeRange = async (
  * widened to the chart's (or dashboard's) whole time range. Carrying the
  * bucket as the query's time_range keeps it. A dashboard time range arrives
  * through extra_form_data, which overrides time_range, so it is replaced
- * there as well. Legacy dashboard filters can also override the range
- * through extra_filters, so their reserved __time_range value is replaced.
+ * there as well. If another temporal column is filtered, omit these global
+ * overrides instead and retain the resolved range on the clicked filter, so
+ * the backend cannot overwrite the independent column or an outer drill.
  *
  * TEMPORAL_RANGE is kept, rather than a >= / < pair, because only the
  * TEMPORAL_RANGE path applies the dataset's timezone or Hours offset to the
@@ -188,12 +191,69 @@ export const fetchDrillByTimeRange = async (
 export const applyDrillByTimeRange = <T extends JsonObject>(
   formData: T,
   timeRange: string | undefined,
+  timeFilter?: BinaryQueryObjectFilterClause,
 ): T => {
   if (!timeRange) {
     return formData;
   }
   const extraFormData = formData.extra_form_data as JsonObject | undefined;
   const extraFilters = formData.extra_filters as QueryFormData['extra_filters'];
+  const hasQueryTimeRange =
+    formData.time_range ||
+    extraFormData?.time_range !== undefined ||
+    extraFilters?.some(filter => filter.col === '__time_range');
+  if (!hasQueryTimeRange && !timeFilter) {
+    return formData;
+  }
+  const adhocFilterFields = Object.keys(formData).filter(key =>
+    key.startsWith('adhoc_filters'),
+  );
+  const hasIndependentTimeFilter =
+    timeFilter &&
+    [undefined, ...adhocFilterFields].some(field =>
+      ensureIsArray(
+        buildQueryObject({
+          ...formData,
+          ...(field && { adhoc_filters: formData[field] }),
+        } as unknown as QueryFormData).filters,
+      ).some(
+        filter =>
+          filter.op === 'TEMPORAL_RANGE' &&
+          getColumnLabel(filter.col) !== getColumnLabel(timeFilter.col),
+      ),
+    );
+  if (!hasQueryTimeRange || hasIndependentTimeFilter) {
+    // A query-wide range would overwrite independent temporal filters on the
+    // backend. Keep their values and put the resolved overlap on the bucket
+    // itself, including on mixed charts' second query.
+    const updatedFormData: JsonObject = { ...formData };
+    delete updatedFormData.time_range;
+    if (extraFormData) {
+      const { time_range: _, ...remainingExtras } = extraFormData;
+      updatedFormData.extra_form_data = remainingExtras;
+    }
+    if (extraFilters) {
+      updatedFormData.extra_filters = extraFilters.filter(
+        filter => filter.col !== '__time_range',
+      );
+    }
+    if (timeFilter) {
+      adhocFilterFields.forEach(key => {
+        updatedFormData[key] = ensureIsArray(
+          formData[key] as AdhocFilter[],
+        ).map(filter =>
+          isSimpleAdhocFilter(filter) &&
+          filter.operator === 'TEMPORAL_RANGE' &&
+          getColumnLabel(filter.subject) === getColumnLabel(timeFilter.col) &&
+          filter.comparator === timeFilter.val
+            ? { ...filter, comparator: timeRange }
+            : filter,
+        );
+      });
+    }
+    return updatedFormData as T;
+  }
+
   return {
     ...formData,
     time_range: timeRange,

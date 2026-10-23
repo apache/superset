@@ -165,3 +165,49 @@ export const getTemporalXAxisDrillByFilter = (
     formattedVal,
   };
 };
+
+/** Resolve a markerless line/area click to a real bucket in that series. */
+export const getTimeAxisDrillByValue = (
+  data: unknown,
+  series: unknown,
+  coordinate: unknown,
+  valueIndex = 0,
+  categorical = false,
+): unknown => {
+  if (Array.isArray(data)) {
+    return data[valueIndex];
+  }
+  if (typeof data === 'number' || typeof data === 'string') {
+    return data;
+  }
+  const axisValue = Array.isArray(coordinate)
+    ? coordinate[valueIndex]
+    : coordinate;
+  if (
+    typeof axisValue !== 'number' ||
+    !Number.isFinite(axisValue) ||
+    typeof series !== 'object' ||
+    series === null ||
+    !('data' in series) ||
+    !Array.isArray(series.data)
+  ) {
+    return undefined;
+  }
+  if (categorical) {
+    const point: unknown = series.data[Math.round(axisValue)];
+    return Array.isArray(point) ? point[valueIndex] : undefined;
+  }
+  let nearest: number | undefined;
+  series.data.forEach((point: unknown) => {
+    const value = Array.isArray(point) ? point[valueIndex] : undefined;
+    if (
+      typeof value === 'number' &&
+      Number.isFinite(value) &&
+      (nearest === undefined ||
+        Math.abs(value - axisValue) < Math.abs(nearest - axisValue))
+    ) {
+      nearest = value;
+    }
+  });
+  return nearest;
+};

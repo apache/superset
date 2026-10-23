@@ -497,7 +497,10 @@ chart's entire time range. When the chart's or the dashboard's time range covers
 only part of the bucket, only that part is queried, so the drilled rows match the
 value that was clicked. A dashboard **Time grain** filter overrides the chart's
 saved grain when determining the clicked bucket. The breadcrumb uses the bucket's
-formatted label.
+formatted label, including when the temporal axis is forced categorical. Line and
+area charts can drill into a bucket without enabling markers, and Mixed Timeseries
+uses the clicked query's bucket. Filters on other date columns retain their own
+ranges in the drill, its downloads, and Edit chart.
 
 ### Sunburst cross-filtering
 

@@ -56,7 +56,11 @@ import {
   TimeseriesCustomLegend,
 } from './types';
 import { formatSeriesName } from '../utils/series';
-import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import {
+  getTemporalXAxisDrillByFilter,
+  getTimeAxisDrillByValue,
+  parseTemporalValue,
+} from '../utils/xAxisDrillByFilter';
 import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
@@ -679,41 +683,59 @@ export default function EchartsTimeseries({
         const xAxisCol =
           // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
           xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
-        if (data && xAxis.type === AxisType.Time && xAxisCol) {
-          // For horizontal orientation the [x, value] pair is swapped
-          const xValue = Array.isArray(data) ? data[xAxisValueIndex] : data;
+        const isTemporalCategory =
+          xAxis.type === AxisType.Category &&
+          coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+            GenericDataType.Temporal;
+        if ((xAxis.type === AxisType.Time || isTemporalCategory) && xAxisCol) {
+          // A markerless line/area event identifies the series but no point.
+          // Snap its pixel coordinate to an actual bucket in that series.
+          const series = ensureIsArray(echartOptions.series)[
+            eventParams.seriesIndex
+          ];
+          const xValue = getTimeAxisDrillByValue(
+            data ?? (isTemporalCategory ? eventParams.name : undefined),
+            series,
+            data
+              ? undefined
+              : echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex: eventParams.seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ]),
+            xAxisValueIndex,
+            isTemporalCategory,
+          );
           const xAxisFilter = getTemporalXAxisDrillByFilter(
             xAxisCol,
             xValue,
             resolvedTimeGrain,
-            String(xValueFormatter(xValue as number)),
+            isTemporalCategory
+              ? getTimeFormatter(
+                  undefined,
+                  resolvedTimeGrain,
+                )(parseTemporalValue(xValue))
+              : String(xValueFormatter(xValue as number)),
           );
-          if (xAxisFilter) {
+          if (
+            xAxisFilter &&
+            (data !== undefined ||
+              (isTemporalCategory && eventParams.name) ||
+              xAxisFilter.op === 'TEMPORAL_RANGE')
+          ) {
             xAxisFilters.push(xAxisFilter);
           }
         } else if (xAxis.type === AxisType.Category && xAxisCol) {
           const categoryAxisValue = getXAxisValue(data, eventParams.name);
           if (categoryAxisValue !== undefined) {
-            // A category axis can still sit on a temporal column when the
-            // axis is forced categorical; filter by time bucket in that case
-            const xAxisFilter =
-              coltypeMapping?.[getColumnLabel(xAxis.label)] ===
-              GenericDataType.Temporal
-                ? getTemporalXAxisDrillByFilter(
-                    xAxisCol,
-                    categoryAxisValue,
-                    resolvedTimeGrain,
-                    String(eventParams.name ?? categoryAxisValue),
-                  )
-                : {
-                    col: xAxisCol,
-                    op: '==' as const,
-                    val: categoryAxisValue,
-                    formattedVal: String(categoryAxisValue),
-                  };
-            if (xAxisFilter) {
-              xAxisFilters.push(xAxisFilter);
-            }
+            const xAxisFilter = {
+              col: xAxisCol,
+              op: '==' as const,
+              val: categoryAxisValue,
+              formattedVal: String(categoryAxisValue),
+            };
+            xAxisFilters.push(xAxisFilter);
           }
         }
 

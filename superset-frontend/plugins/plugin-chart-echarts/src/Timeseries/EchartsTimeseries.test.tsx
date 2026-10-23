@@ -1512,7 +1512,7 @@ test('drillBy filters by time bucket when a categorical axis is forced onto a te
       col: 'order_date',
       op: 'TEMPORAL_RANGE',
       val: '2021-02-01T00:00:00 : 2021-03-01T00:00:00',
-      formattedVal: '2021-02-01T00:00:00',
+      formattedVal: 'Feb 2021',
     },
   ]);
 });

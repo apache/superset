@@ -20,6 +20,7 @@ import { TimeGranularity } from '@superset-ui/core';
 import {
   formatNaiveDateTime,
   getTemporalXAxisDrillByFilter,
+  getTimeAxisDrillByValue,
   getTimeBucketRange,
 } from '../../src/utils/xAxisDrillByFilter';
 
@@ -234,5 +235,35 @@ test('getTemporalXAxisDrillByFilter returns undefined for unusable input', () =>
   ).toBeUndefined();
   expect(
     getTemporalXAxisDrillByFilter('', 1609459200000, TimeGranularity.DAY),
+  ).toBeUndefined();
+});
+
+test('markerless bucket lookup preserves point values and horizontal coordinates', () => {
+  expect(getTimeAxisDrillByValue([1000, 5], undefined, undefined)).toBe(1000);
+  expect(getTimeAxisDrillByValue(1000, undefined, undefined)).toBe(1000);
+  expect(getTimeAxisDrillByValue('2024-01-01', undefined, undefined)).toBe(
+    '2024-01-01',
+  );
+  expect(
+    getTimeAxisDrillByValue(
+      undefined,
+      {
+        data: [
+          [5, 1000],
+          [6, 2000],
+        ],
+      },
+      [5, 1800],
+      1,
+    ),
+  ).toBe(2000);
+  expect(
+    getTimeAxisDrillByValue(undefined, { data: [] }, [1800, 5]),
+  ).toBeUndefined();
+  expect(
+    getTimeAxisDrillByValue(undefined, { data: [[1000, 5]] }, [NaN, 5]),
+  ).toBeUndefined();
+  expect(
+    getTimeAxisDrillByValue(undefined, undefined, [1000, 5]),
   ).toBeUndefined();
 });
