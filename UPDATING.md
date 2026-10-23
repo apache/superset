@@ -45,7 +45,9 @@ assists people when migrating to a new version.
   cookie, a JWT bearer token or an API key, must first call
   `GET /api/v1/security/csrf_token/` with its credential, then send the
   returned token in the `X-CSRFToken` header together with the session cookie
-  set by that call (the token is bound to the session). Over HTTPS, Flask-WTF
+  set by that call (the token is bound to the session). The client's role must
+  also have `can_read` on `SecurityRestApi` (shown as `can read on SecurityRestApi`
+  in the role editor) to fetch the token. Over HTTPS, Flask-WTF
   also requires a same-origin `Referer` header on the write
   (`WTF_CSRF_SSL_STRICT`, on by default); browsers send one, scripted clients
   must add it.
