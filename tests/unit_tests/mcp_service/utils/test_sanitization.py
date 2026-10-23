@@ -1063,7 +1063,17 @@ def test_control_whitespace_warning_wrapper_keeps_slack_markup_inert(
     "sanitize", [sanitize_user_input, sanitize_user_input_with_changes]
 )
 @pytest.mark.parametrize("limit", [100, 200, 250, 255, 500, 1000, 5000])
-@pytest.mark.parametrize("wrapper", [("<b>", "</b>"), ("", "&#8203;"), ("", "&amp;")])
+@pytest.mark.parametrize(
+    "wrapper",
+    [
+        ("<b>", "</b>"),
+        ("<b> ", " </b>"),
+        ("<b>&#32;", "&#32;</b>"),
+        ("<b>\u00a0", "\u00a0</b>"),
+        ("", "&#8203;"),
+        ("", "&amp;"),
+    ],
+)
 def test_sanitized_length_budget(
     sanitize: Callable[..., object], limit: int, wrapper: tuple[str, str]
 ) -> None:

@@ -1271,12 +1271,14 @@ def test_title_control_whitespace_cannot_form_slack_markup(
 @pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
 @pytest.mark.parametrize("alias_index", range(4))
 @pytest.mark.parametrize("length_delta", [-5, 0, 1])
+@pytest.mark.parametrize("padding", ["", " ", "&#32;", "\u00a0"])
 def test_markup_title_length_uses_sanitized_text(
     model: type[BaseModel],
     payload: dict[str, Any],
     field: str,
     alias_index: int,
     length_delta: int,
+    padding: str,
 ) -> None:
     """Markup is not part of the persisted title's character budget."""
     aliases = (
@@ -1286,7 +1288,7 @@ def test_markup_title_length_uses_sanitized_text(
     )
     limit = 250 if field == "chart_name" else 500
     text = "x" * (limit + length_delta)
-    value = "<b>" + text + "</b>"
+    value = "<b>" + padding + text + padding + "</b>"
     if length_delta > 0:
         with pytest.raises(ValidationError) as exc:
             model.model_validate({**payload, aliases[alias_index]: value})
@@ -1302,8 +1304,13 @@ def test_markup_title_length_uses_sanitized_text(
     [case for case in _SIBLING_SANITIZATION_CASES if case[2] != "value"],
 )
 @pytest.mark.parametrize("extra", [0, 1])
+@pytest.mark.parametrize("padding", ["", " ", "&#32;", "\u00a0"])
 def test_sibling_sanitized_length_budget(
-    model: type[BaseModel], payload: dict[str, Any], field: str, extra: int
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    extra: int,
+    padding: str,
 ) -> None:
     """All callers of the shared text sanitizer enforce the final text cap."""
     limits = {
@@ -1322,7 +1329,7 @@ def test_sibling_sanitized_length_budget(
     if model is InteractivePivotChartConfig:
         payload = {**payload, "comparison_type": "values"}
     text = "x" * (limits[field] + extra)
-    value = "<b>" + text + "</b>"
+    value = "<b>" + padding + text + padding + "</b>"
     if extra:
         with pytest.raises(ValidationError) as exc:
             model.model_validate(

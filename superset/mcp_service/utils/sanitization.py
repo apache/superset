@@ -338,6 +338,9 @@ def sanitize_user_input(
     # has been intentionally stripped away.
     value = _strip_html_tags(value)
     value = _remove_dangerous_unicode(value)
+    # Tag removal and entity decoding can expose surrounding whitespace.
+    # Apply the text cap to the trimmed value that callers persist.
+    value = value.strip()
 
     # Reject rather than store tag-shaped text: a later sanitizer pass would
     # decode and strip it, so the stored value would not be stable.
