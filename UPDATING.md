@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Dashboard copies use the supplied metadata as their complete settings.**
+  `POST /api/v1/dashboard/{id}/copy/` no longer fills omitted `json_metadata`
+  settings from the source dashboard. This prevents a historical version copy
+  from inheriting newer settings. API clients that want to copy current settings
+  must include the source's full metadata, plus the intended `positions`, in
+  `json_metadata`. Omitted settings use defaults. Chart-specific settings are
+  restricted to charts retained in the copied layout and remapped to cloned IDs
+  when charts are duplicated. Ordinary dashboard updates retain their merge
+  behavior.
+
 - **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
   query (no post-processing or time offsets, and not a report's client-processed
   result), a dimension column of nullable integers that holds a value beyond
