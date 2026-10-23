@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -3338,6 +3338,9 @@ msgstr "Počítané sloupce"
 msgid "Calculation type"
 msgstr "Typ výpočtu"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Kalendářová teplotní mapa"
 
@@ -4595,6 +4598,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurovat pokročilý časový rozsah "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Konfigurovat časový rozsah: Aktuální..."
@@ -15494,6 +15500,9 @@ msgstr "Počáteční zeměpisná délka a šířka"
 #, fuzzy
 msgid "Start Time"
 msgstr "Počáteční čas"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Počáteční úhel"

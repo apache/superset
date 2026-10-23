@@ -17,6 +17,7 @@
  * under the License.
  */
 import dayjs from 'dayjs';
+import { guessFrame } from '../utils';
 import {
   formatCalendarRange,
   isCalendarRange,
@@ -100,4 +101,13 @@ test('resolvedRangeToCalendar flags a bound that carries a time of day', () => {
 test('resolvedRangeToCalendar returns no range for an open-ended or empty bound', () => {
   expect(resolvedRangeToCalendar('', '2024-01-08T00:00:00').range).toBeNull();
   expect(resolvedRangeToCalendar(null, null).range).toBeNull();
+});
+
+test('guessFrame opens a fixed whole-day range in the Calendar frame, and leaves other values alone', () => {
+  expect(guessFrame('2024-01-01 : 2024-02-01')).toBe('DateRange');
+  expect(guessFrame('Last week')).toBe('Common');
+  expect(guessFrame('Last week : tomorrow')).toBe('Advanced');
+  expect(guessFrame('2021-03-16T00:00:00 : 2021-03-17T00:00:00')).toBe(
+    'Custom',
+  );
 });

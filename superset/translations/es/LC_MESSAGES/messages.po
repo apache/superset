@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -3388,6 +3388,9 @@ msgstr "Columnas calculadas"
 msgid "Calculation type"
 msgstr "Tipo de cálculo"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Mapa de calor del calendario"
 
@@ -4690,6 +4693,9 @@ msgstr "Configurar %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "Configuración avanzada de rango de tiempo "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Configurar el intervalo de tiempo: actual..."
@@ -15861,6 +15867,9 @@ msgstr "Longitud y latitud iniciales"
 #, fuzzy
 msgid "Start Time"
 msgstr "Fecha de inicio"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Ángulo inicial"

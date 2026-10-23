@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -3304,6 +3304,9 @@ msgstr "Aprēķinātās kolonnas"
 msgid "Calculation type"
 msgstr "Aprēķina tips"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Kalendāra siltumkarte"
 
@@ -4548,6 +4551,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurēt papildu laika diapazonu "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Konfigurēt laika diapazonu: Pašreizējais..."
@@ -15194,6 +15200,9 @@ msgstr "Sākuma garums un platums"
 
 msgid "Start Time"
 msgstr "Sākuma laiks"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Sākuma leņķis"

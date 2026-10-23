@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -3283,6 +3283,9 @@ msgstr "Berechnete Spalten"
 msgid "Calculation type"
 msgstr "Berechnungstyp"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Kalender Heatmap"
 
@@ -4522,6 +4525,9 @@ msgstr "%s konfigurieren"
 
 msgid "Configure Advanced Time Range "
 msgstr "Erweiterten Zeitbereich konfigurieren "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Zeitraum konfigurieren: Letzte..."
@@ -15093,6 +15099,9 @@ msgstr "Start Längengrad & Breitengrad"
 
 msgid "Start Time"
 msgstr "Startzeit"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Startwinkel"

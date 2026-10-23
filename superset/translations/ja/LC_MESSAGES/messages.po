@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -3020,6 +3020,9 @@ msgstr "計算列"
 msgid "Calculation type"
 msgstr "計算種類"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "カレンダーヒートマップ"
 
@@ -4180,6 +4183,9 @@ msgstr "%s を設定"
 
 msgid "Configure Advanced Time Range "
 msgstr "高度な時間範囲設定 "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "時間範囲設定: 現在..."
@@ -14126,6 +14132,9 @@ msgstr "開始経度と緯度"
 
 msgid "Start Time"
 msgstr "開始時刻"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "開始角度"

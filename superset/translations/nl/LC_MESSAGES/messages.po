@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -3504,6 +3504,9 @@ msgstr "Berekende kolommen"
 msgid "Calculation type"
 msgstr "Soort berekening"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Kalender Heatmap"
 
@@ -4845,6 +4848,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Configureer geavanceerd tijdbereik "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Configureer Tijdbereik: Huidige..."
@@ -16429,6 +16435,9 @@ msgstr "Start Lengtegraad & Breedtegraad"
 #, fuzzy
 msgid "Start Time"
 msgstr "Start datum"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Start hoek"

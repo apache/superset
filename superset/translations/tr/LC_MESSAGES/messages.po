@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -3401,6 +3401,9 @@ msgstr "Hesaplamalı sütunlar"
 msgid "Calculation type"
 msgstr "Hesaplama türü"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Takvim Heatmappp"
 
@@ -4691,6 +4694,9 @@ msgstr "%s'yi yapılandır"
 
 msgid "Configure Advanced Time Range "
 msgstr "Gelişmiş Zaman Aralığı"
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Zaman Aralığı: Current..."
@@ -15873,6 +15879,9 @@ msgstr "Longitude & Pole"
 #, fuzzy
 msgid "Start Time"
 msgstr "Başlangıç tarihi"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Başlangıç açısı"

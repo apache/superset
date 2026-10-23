@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -3395,6 +3395,9 @@ msgstr "Tīwae tatau"
 msgid "Calculation type"
 msgstr "Momo tatauranga"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Mahere Wera Maramataka"
 
@@ -4713,6 +4716,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Whirihora Awhe Wā Aromatawai "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Whirihora Awhe Wā: Ināianei..."
@@ -15919,6 +15925,9 @@ msgstr "Longitude me Latitude Tīmata"
 #, fuzzy
 msgid "Start Time"
 msgstr "Rā tīmata"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Koki tīmata"

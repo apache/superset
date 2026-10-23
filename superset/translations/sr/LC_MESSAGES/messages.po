@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -3950,6 +3950,9 @@ msgstr "Израчунате колоне"
 msgid "Calculation type"
 msgstr "Тип израчунавања"
 
+msgid "Calendar"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Calendar Heatmap"
@@ -5446,6 +5449,9 @@ msgstr "Конфигуриши %s"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Configure Advanced Time Range "
 msgstr "Конфигуриши напредни временски опсег "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 # es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Configure Time Range: Current..."
@@ -18349,6 +18355,9 @@ msgstr "Почетна географска дужина и ширина"
 # ru, uk]
 msgid "Start Time"
 msgstr "Време почетка"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Start angle"

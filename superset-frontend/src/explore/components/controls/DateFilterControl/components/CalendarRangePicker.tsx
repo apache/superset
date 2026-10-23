@@ -36,6 +36,7 @@ export interface CalendarRangePickerProps {
   onChange: (timeRange: string) => void;
   onOpenChange?: (open: boolean) => void;
   status?: 'error' | 'warning';
+  getPopupContainer?: () => HTMLElement;
 }
 
 interface CalendarValue {
@@ -95,6 +96,7 @@ export function CalendarRangePicker({
   onChange,
   onOpenChange,
   status,
+  getPopupContainer,
 }: CalendarRangePickerProps) {
   const { range, hasTimeOfDay } = useCalendarValue(value);
 
@@ -106,6 +108,7 @@ export function CalendarRangePicker({
       style={{ width: '100%' }}
       status={hasTimeOfDay && !status ? 'warning' : status}
       onOpenChange={onOpenChange}
+      getPopupContainer={getPopupContainer}
       onChange={dates => onChange(formatCalendarRange(dates) ?? NO_TIME_RANGE)}
     />
   );

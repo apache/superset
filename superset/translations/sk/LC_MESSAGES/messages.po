@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -3335,6 +3335,9 @@ msgstr "Počítané stĺpce"
 msgid "Calculation type"
 msgstr "Typ výpočtu"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Kalendárová teplotná mapa"
 
@@ -4598,6 +4601,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurovať pokročilý časový rozsah "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Konfigurovať časový rozsah: Aktuálny..."
@@ -15493,6 +15499,9 @@ msgstr "Počáteční zemepisná dĺžka a šírka"
 #, fuzzy
 msgid "Start Time"
 msgstr "Počáteční čas"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Počáteční úhel"

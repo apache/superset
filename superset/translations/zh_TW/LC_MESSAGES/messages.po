@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -3501,6 +3501,9 @@ msgstr "計算列"
 msgid "Calculation type"
 msgstr "計算類型"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "時間热力圖"
 
@@ -4855,6 +4858,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "配置進階時間範圍"
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 #, fuzzy
 msgid "Configure Time Range: Current..."
@@ -16684,6 +16690,9 @@ msgstr "起始經度/緯度"
 #, fuzzy
 msgid "Start Time"
 msgstr "開始時間"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "開始角度"

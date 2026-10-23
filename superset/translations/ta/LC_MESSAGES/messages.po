@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -3254,6 +3254,9 @@ msgstr "கணக்கிடப்பட்ட நெடுவரிசைக�
 msgid "Calculation type"
 msgstr "கணக்கீட்டு வகை"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "காலண்டர் ஹீட்மேப் (Calendar Heatmap)"
 
@@ -4503,6 +4506,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "மேம்பட்ட நேர வரம்பை உள்ளமைக்கவும் "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "நேர வரம்பை உள்ளமைக்கவும்: தற்போதைய..."
@@ -14878,6 +14884,9 @@ msgstr "தொடக்க நெட்டாய்வு மற்றும் 
 
 msgid "Start Time"
 msgstr "தொடக்க நேரம்"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "தொடக்கக் கோணம்"

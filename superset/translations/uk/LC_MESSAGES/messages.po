@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -3312,6 +3312,9 @@ msgstr "Обчислювальний стовпець"
 msgid "Calculation type"
 msgstr "Тип обчислення"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Календарна теплова карта"
 
@@ -4553,6 +4556,9 @@ msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Налаштувати розширений часовий діапазон "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Налаштувати часовий діапазон: поточний..."
@@ -15201,6 +15207,9 @@ msgstr "Початкова довгота та широта"
 
 msgid "Start Time"
 msgstr "Час початку"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Початковий кут"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 11:48+0530\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -3258,6 +3258,9 @@ msgstr "Вычисляемые столбцы"
 msgid "Calculation type"
 msgstr "Тип расчета"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Календарная тепловая карта"
 
@@ -4484,6 +4487,9 @@ msgstr "Настроить %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "Установить особый временной интервал "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Установить временной интервал: текущий…"
@@ -14921,6 +14927,9 @@ msgstr "Начальные долгота и широта"
 
 msgid "Start Time"
 msgstr "Время начала"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Начальный угол"
