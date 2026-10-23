@@ -462,6 +462,12 @@ def get_version_endpoint(
         model_cls, entity_uuid, version_uuid, entity=entity
     )
     if snapshot is None:
+        logger.warning(
+            "Version snapshot not found: entity_type=%s entity_id=%s version_uuid=%s",
+            model_cls.__name__,
+            entity.id,
+            version_uuid,
+        )
         return api.response_404()
     # Normalize the version-level block through the schema; the entity
     # scalar fields stay as the DAO shaped them (their keys are
