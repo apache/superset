@@ -212,6 +212,16 @@ test.each([
     const body = await drillByRequest(
       {
         ...sunburstFormData('order_date'),
+        // The query-wide range limits order_date through its date filter.
+        adhoc_filters: [
+          {
+            clause: 'WHERE',
+            expressionType: 'SIMPLE',
+            operator: 'TEMPORAL_RANGE',
+            subject: 'order_date',
+            comparator: 'No filter',
+          },
+        ],
         time_range: source === 'chart' ? outerRange : 'No filter',
         ...(source === 'dashboard' && {
           extra_form_data: { time_range: outerRange },
@@ -229,6 +239,33 @@ test.each([
     });
   },
 );
+
+test('Sunburst Drill by keeps the whole bucket when the dashboard range does not limit order_date', async () => {
+  const timeRange = jest.fn(() => ({
+    result: [{ since: '2024-10-15T00:00:00', until: '2024-12-01T00:00:00' }],
+  }));
+  fetchMock.get('glob:*/api/v1/time_range/*', timeRange);
+  const filters = sunburstDrillByFilters('order_date');
+  // Without a date filter or a time column, the chart's query ignores the
+  // dashboard range, so its segments count the whole month.
+  const body = await drillByRequest(
+    {
+      ...sunburstFormData('order_date'),
+      time_range: 'No filter',
+      extra_form_data: {
+        time_range: '2024-10-15T00:00:00 : 2024-12-01T00:00:00',
+      },
+    },
+    filters,
+    'columns',
+  );
+  expect(body.queries[0].filters).toContainEqual({
+    col: 'order_date',
+    op: 'TEMPORAL_RANGE',
+    val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+  });
+  expect(timeRange).not.toHaveBeenCalled();
+});
 
 test('Sunburst Drill by on an adhoc temporal segment writes a quoted ISO datetime', async () => {
   const filters = sunburstDrillByFilters(ADHOC_ORDER_DATE);

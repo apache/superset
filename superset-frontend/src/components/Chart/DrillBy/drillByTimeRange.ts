@@ -19,15 +19,20 @@
 import rison from 'rison';
 import {
   AdhocFilter,
+  BinaryAdhocFilter,
   BinaryQueryObjectFilterClause,
   ContextMenuFilters,
   JsonObject,
   NO_TIME_RANGE,
+  QueryFormColumn,
   QueryFormData,
+  QueryObject,
+  QueryObjectFilterClause,
   SupersetClient,
   buildQueryObject,
   ensureIsArray,
   getColumnLabel,
+  isBinaryAdhocFilter,
   isSimpleAdhocFilter,
 } from '@superset-ui/core';
 
@@ -67,12 +72,74 @@ export const getDrillByTimeRange = (
 ): string | undefined =>
   getDrillByTimeFilter(configs)?.val as string | undefined;
 
+const isStringTemporalFilter = (
+  filter: QueryObjectFilterClause,
+): filter is BinaryQueryObjectFilterClause =>
+  filter.op === 'TEMPORAL_RANGE' && typeof filter.val === 'string';
+
+interface TimeColumnScope {
+  /** The column the time column filter limits: the x-axis, or itself. */
+  column: string;
+  /** The column whose TEMPORAL_RANGE filters the backend drops. */
+  removedColumn?: string;
+  /** The range the time column is filtered by. */
+  timeRange?: string;
+}
+
 /**
- * Return the time range the chart displayed before the drill, using the same
- * precedence as the chart's own query: a dashboard override, a legacy
- * dashboard time filter or the chart's time_range, and otherwise the chart's
- * TEMPORAL_RANGE filter on the drilled column. Returns undefined when the
- * chart is not limited in time.
+ * Mirror `_apply_granularity` in `query_context_factory.py` for a query with
+ * a time column (granularity). The backend drops every filter on the temporal
+ * x-axis (without an x-axis: on the time column, or else on the first
+ * temporal filter) and filters the time column by the query's time range,
+ * or else by its first x-axis TEMPORAL_RANGE filter, or else by its first
+ * TEMPORAL_RANGE filter. The time column replaces the x-axis column.
+ */
+const getTimeColumnScope = (
+  formData: JsonObject,
+  queryObject: QueryObject,
+): TimeColumnScope | undefined => {
+  const { granularity } = queryObject;
+  if (!granularity) {
+    return undefined;
+  }
+  const temporalFilters = ensureIsArray(queryObject.filters).filter(
+    isStringTemporalFilter,
+  );
+  const xAxis =
+    formData.x_axis === undefined || formData.x_axis === null
+      ? undefined
+      : getColumnLabel(formData.x_axis as QueryFormColumn);
+  const firstLabel =
+    temporalFilters[0] && getColumnLabel(temporalFilters[0].col);
+  return {
+    column: xAxis ?? granularity,
+    removedColumn:
+      xAxis ??
+      (temporalFilters.some(
+        filter => getColumnLabel(filter.col) === granularity,
+      )
+        ? granularity
+        : firstLabel),
+    timeRange:
+      queryObject.time_range ??
+      ((
+        (xAxis !== undefined &&
+          temporalFilters.find(
+            filter => getColumnLabel(filter.col) === xAxis,
+          )) ||
+        temporalFilters[0]
+      )?.val as string | undefined),
+  };
+};
+
+/**
+ * Return the time range the chart applies to a temporal column, following the
+ * backend's rules for the chart's own query:
+ * - with a time column, see `getTimeColumnScope`;
+ * - otherwise a column is limited only by its TEMPORAL_RANGE filter, whose
+ *   value the query-wide time range (saved, dashboard or legacy) replaces.
+ *   A query-wide range does not limit a column without such a filter.
+ * Returns undefined when the chart does not limit the column in time.
  */
 export const getDrillByOuterTimeRange = (
   formData: QueryFormData,
@@ -87,14 +154,19 @@ export const getDrillByOuterTimeRange = (
     });
     const columnLabel =
       column === undefined ? undefined : getColumnLabel(column);
-    timeRange =
-      queryObject.time_range ??
-      ensureIsArray(queryObject.filters).find(
-        (filter): filter is BinaryQueryObjectFilterClause =>
-          filter.op === 'TEMPORAL_RANGE' &&
-          (columnLabel === undefined ||
-            getColumnLabel(filter.col) === columnLabel),
-      )?.val;
+    const scope = getTimeColumnScope(formData, queryObject);
+    if (scope && columnLabel === scope.column) {
+      timeRange = scope.timeRange;
+    } else if (!scope || columnLabel !== scope.removedColumn) {
+      const columnFilter = ensureIsArray(queryObject.filters)
+        .filter(isStringTemporalFilter)
+        .find(
+          filter =>
+            columnLabel === undefined ||
+            getColumnLabel(filter.col) === columnLabel,
+        );
+      timeRange = columnFilter && (queryObject.time_range ?? columnFilter.val);
+    }
   } catch {
     return undefined;
   }
@@ -188,7 +260,9 @@ export const fetchDrillByTimeRange = async (
  * overrides instead. Materialize the chart's effective query-wide range on
  * its saved temporal filters before removing it; otherwise their saved
  * comparators would silently become active again. Drill bucket filters keep
- * their separately resolved overlaps, including those of outer drills.
+ * their separately resolved overlaps, including those of outer drills. With
+ * a time column, the backend replaces the x-axis filters by a time column
+ * filter built from the first of them, so each one carries the bucket.
  *
  * TEMPORAL_RANGE is kept, rather than a >= / < pair, because only the
  * TEMPORAL_RANGE path applies the dataset's timezone or Hours offset to the
@@ -269,20 +343,68 @@ export const applyDrillByTimeRange = <T extends JsonObject>(
       const savedCount = ensureIsArray(
         sourceFormData[key] as AdhocFilter[],
       ).length;
-      updatedFormData[key] = ensureIsArray(formData[key] as AdhocFilter[]).map(
-        (filter, index) => {
-          if (index < savedCount) {
-            return materializeAdhocFilter(filter);
-          }
-          return timeFilter &&
-            isSimpleAdhocFilter(filter) &&
-            filter.operator === 'TEMPORAL_RANGE' &&
-            getColumnLabel(filter.subject) === getColumnLabel(timeFilter.col) &&
-            filter.comparator === timeFilter.val
-            ? { ...filter, comparator: timeRange }
-            : filter;
-        },
+      const filters = ensureIsArray(formData[key] as AdhocFilter[]);
+      // With a time column, the backend drops the x-axis filters, outer
+      // buckets included, and filters the time column by the first x-axis
+      // filter (without an x-axis: the first temporal filter). Each of them
+      // therefore carries every bucket on that column, and filters the
+      // chart dropped stay dropped.
+      const scope = getTimeColumnScope(
+        sourceFormData,
+        buildQueryObject({
+          ...sourceFormData,
+          adhoc_filters: sourceFormData[key],
+        } as unknown as QueryFormData),
       );
+      const isScopeFilter = (
+        filter: AdhocFilter,
+        column?: string,
+      ): filter is BinaryAdhocFilter =>
+        column !== undefined &&
+        isSimpleAdhocFilter(filter) &&
+        filter.operator === 'TEMPORAL_RANGE' &&
+        isBinaryAdhocFilter(filter) &&
+        getColumnLabel(filter.subject) === column;
+      const axisRange = filters
+        .slice(savedCount)
+        .filter(filter => isScopeFilter(filter, scope?.column))
+        .map(filter => (filter as BinaryAdhocFilter).comparator)
+        .reduce<string | undefined>((range, bucket) => {
+          const [since, until] = bucket.split(TIME_RANGE_SEPARATOR);
+          return range === undefined
+            ? bucket
+            : intersectTimeRanges(range, since, until);
+        }, undefined);
+      const updatedFilters = filters.map((filter, index): AdhocFilter => {
+        if (axisRange !== undefined && isScopeFilter(filter, scope?.column)) {
+          return { ...filter, comparator: axisRange };
+        }
+        if (index < savedCount) {
+          return axisRange !== undefined &&
+            scope?.removedColumn !== scope?.column &&
+            isScopeFilter(filter, scope?.removedColumn)
+            ? { ...filter, comparator: NO_TIME_RANGE }
+            : materializeAdhocFilter(filter);
+        }
+        return timeFilter &&
+          isSimpleAdhocFilter(filter) &&
+          filter.operator === 'TEMPORAL_RANGE' &&
+          getColumnLabel(filter.subject) === getColumnLabel(timeFilter.col) &&
+          filter.comparator === timeFilter.val
+          ? { ...filter, comparator: timeRange }
+          : filter;
+      });
+      updatedFormData[key] =
+        axisRange !== undefined && sourceFormData.x_axis == null
+          ? [
+              ...updatedFilters.filter(filter =>
+                isScopeFilter(filter, scope?.column),
+              ),
+              ...updatedFilters.filter(
+                filter => !isScopeFilter(filter, scope?.column),
+              ),
+            ]
+          : updatedFilters;
     });
     return updatedFormData as T;
   }

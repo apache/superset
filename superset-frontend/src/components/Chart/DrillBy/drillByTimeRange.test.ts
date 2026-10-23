@@ -319,6 +319,169 @@ test('getDrillByOuterTimeRange returns undefined for an unlimited chart', () => 
   ).toBeUndefined();
 });
 
+const temporalFilter = (subject: string, comparator: string) => ({
+  clause: 'WHERE' as const,
+  expressionType: 'SIMPLE' as const,
+  operator: 'TEMPORAL_RANGE' as const,
+  subject,
+  comparator,
+});
+const SHIP_RANGE = '2003-01-01 : 2004-06-01';
+const ORDER_RANGE = '2003-10-15 : 2004-02-15';
+
+test('getDrillByOuterTimeRange ignores a query-wide range on a column without a date filter', () => {
+  const formData: QueryFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    x_axis: 'order_date',
+    time_range: 'Last year',
+    adhoc_filters: [temporalFilter('ship_date', SHIP_RANGE)],
+  };
+  // _apply_filters writes the range into TEMPORAL_RANGE filters only.
+  expect(getDrillByOuterTimeRange(formData, 'order_date')).toBeUndefined();
+  expect(getDrillByOuterTimeRange(formData, 'ship_date')).toBe('Last year');
+  expect(
+    getDrillByOuterTimeRange(
+      {
+        ...formData,
+        time_range: 'No filter',
+        extra_form_data: { time_range: 'Last week' },
+      },
+      'order_date',
+    ),
+  ).toBeUndefined();
+  expect(
+    getDrillByOuterTimeRange(
+      {
+        ...formData,
+        time_range: 'No filter',
+        extra_filters: [{ col: '__time_range', op: '==', val: 'Last week' }],
+      },
+      'order_date',
+    ),
+  ).toBeUndefined();
+});
+
+test.each([
+  ['saved', { granularity_sqla: 'order_date' }],
+  ['dashboard', { extra_form_data: { granularity_sqla: 'order_date' } }],
+  [
+    'legacy',
+    { extra_filters: [{ col: '__time_col', op: '==', val: 'order_date' }] },
+  ],
+])(
+  'getDrillByOuterTimeRange follows a %s time column on the x-axis',
+  (_, timeColumn) => {
+    const formData = {
+      datasource: '1__table',
+      viz_type: 'echarts_timeseries_bar',
+      x_axis: 'order_date',
+      ...timeColumn,
+    } as QueryFormData;
+    const withFilters = (...filters: ReturnType<typeof temporalFilter>[]) => ({
+      ...formData,
+      adhoc_filters: filters,
+    });
+    // The time column is filtered by the query range, even when the x-axis
+    // has no date filter of its own.
+    expect(
+      getDrillByOuterTimeRange(
+        {
+          ...withFilters(temporalFilter('ship_date', SHIP_RANGE)),
+          time_range: 'Last year',
+        },
+        'order_date',
+      ),
+    ).toBe('Last year');
+    // Otherwise by the first x-axis filter, or else the first date filter.
+    expect(
+      getDrillByOuterTimeRange(
+        withFilters(
+          temporalFilter('ship_date', SHIP_RANGE),
+          temporalFilter('order_date', ORDER_RANGE),
+        ),
+        'order_date',
+      ),
+    ).toBe(ORDER_RANGE);
+    expect(
+      getDrillByOuterTimeRange(
+        withFilters(temporalFilter('ship_date', SHIP_RANGE)),
+        'order_date',
+      ),
+    ).toBe(SHIP_RANGE);
+  },
+);
+
+test('getDrillByOuterTimeRange without an x-axis follows the time column and skips a dropped filter', () => {
+  const formData: QueryFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    granularity_sqla: 'order_date',
+    adhoc_filters: [temporalFilter('ship_date', SHIP_RANGE)],
+  };
+  expect(getDrillByOuterTimeRange(formData, 'order_date')).toBe(SHIP_RANGE);
+  // The backend drops the first date filter when the time column has none.
+  expect(getDrillByOuterTimeRange(formData, 'ship_date')).toBeUndefined();
+  expect(
+    getDrillByOuterTimeRange(
+      {
+        ...formData,
+        adhoc_filters: [
+          temporalFilter('ship_date', SHIP_RANGE),
+          temporalFilter('order_date', ORDER_RANGE),
+        ],
+      },
+      'ship_date',
+    ),
+  ).toBe(SHIP_RANGE);
+});
+
+test('with a time column every x-axis filter carries the intersected buckets', () => {
+  const source = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    x_axis: 'order_date',
+    granularity_sqla: 'order_date',
+    time_range: 'Last year',
+    adhoc_filters: [
+      temporalFilter('order_date', 'No filter'),
+      temporalFilter('ship_date', SHIP_RANGE),
+    ],
+  } as QueryFormData;
+  const formData = {
+    ...source,
+    adhoc_filters: [
+      ...source.adhoc_filters!,
+      temporalFilter('order_date', OCT_2003),
+      temporalFilter('ship_date', '2004-01-01T00:00:00 : 2004-02-01T00:00:00'),
+      temporalFilter('order_date', OCT_1_2003),
+    ],
+  };
+  const drilled = applyDrillByTimeRange(
+    formData,
+    '2004-01-01T00:00:00 : 2004-02-01T00:00:00',
+    {
+      col: 'ship_date',
+      op: 'TEMPORAL_RANGE',
+      val: '2004-01-01T00:00:00 : 2004-02-01T00:00:00',
+    },
+    source,
+  );
+  const query = buildQueryObject(drilled);
+  expect(query.time_range).toBeUndefined();
+  expect(query.granularity).toBe('order_date');
+  expect(query.filters).toEqual([
+    expect.objectContaining({ col: 'order_date', val: OCT_1_2003 }),
+    expect.objectContaining({ col: 'ship_date', val: 'Last year' }),
+    expect.objectContaining({ col: 'order_date', val: OCT_1_2003 }),
+    expect.objectContaining({
+      col: 'ship_date',
+      val: '2004-01-01T00:00:00 : 2004-02-01T00:00:00',
+    }),
+    expect.objectContaining({ col: 'order_date', val: OCT_1_2003 }),
+  ]);
+});
+
 test('fetchDrillByTimeRange intersects the bucket with the resolved outer range', async () => {
   fetchMock.get(TIME_RANGE_ENDPOINT, {
     result: [

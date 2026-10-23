@@ -493,9 +493,12 @@ These expressions are evaluated at query time, so saved charts always display da
 
 On time-series charts, **Drill by** from a grained temporal axis keeps the clicked
 time bucket, such as a day, week, month, quarter, or year, rather than querying the
-chart's entire time range. When the chart's or the dashboard's time range covers
-only part of the bucket, only that part is queried, so the drilled rows match the
-value that was clicked. A dashboard **Time grain** filter overrides the chart's
+chart's entire time range. The drilled rows match the value that was clicked:
+when the chart's or the dashboard's time range limits the drilled column and covers
+only part of the bucket, only that part is queried. A time range limits a column
+that has a Time Range filter, or the chart's Time Column (including a dashboard
+Time Column filter); a chart without either keeps the whole bucket, as its own query
+does. A dashboard **Time grain** filter overrides the chart's
 saved grain when determining the clicked bucket. The breadcrumb uses the bucket's
 formatted label, including when the temporal axis is forced categorical. Line and
 area charts can drill into a bucket without enabling markers, and Mixed Timeseries
