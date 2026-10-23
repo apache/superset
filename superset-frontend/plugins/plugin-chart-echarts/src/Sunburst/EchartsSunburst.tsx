@@ -20,14 +20,17 @@ import { useCallback } from 'react';
 import {
   BinaryQueryObjectFilterClause,
   getColumnLabel,
-  getNumberFormatter,
-  getTimeFormatter,
+  DataRecordValue,
 } from '@superset-ui/core';
-import { getSunburstTimeGrain } from './timeGrain';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
-import { formatSeriesName } from '../utils/series';
+import {
+  getSunburstDetailFilter,
+  getSunburstDrillByFilter,
+  getSunburstFilter,
+  getSunburstSelectionKey,
+} from './utils';
 
 export const extractTreePathInfo = (treePathInfo: TreePathInfo[] | undefined) =>
   (treePathInfo ?? [])
@@ -47,18 +50,25 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     emitCrossFilters,
     coltypeMapping,
   } = props;
-  const { columns } = formData;
+  const { columns = [] } = formData;
 
   const getCrossFilterDataMask = useCallback(
-    (treePathInfo: TreePathInfo[]) => {
+    (treePathInfo: TreePathInfo[], records: DataRecordValue[]) => {
       const treePath = extractTreePathInfo(treePathInfo);
-      const joinedTreePath = treePath.join(',');
+      const joinedTreePath = getSunburstSelectionKey(
+        records,
+        treePath,
+        columns,
+        coltypeMapping,
+      );
+      const index = records.length - 1;
       const value = treePath[treePath.length - 1];
 
       const isCurrentValueSelected =
-        Object.values(selectedValues).includes(joinedTreePath);
+        Object.values(selectedValues).includes(joinedTreePath) ||
+        Object.values(selectedValues).includes(treePath.join(','));
 
-      if (!columns?.length || isCurrentValueSelected) {
+      if (!columns?.length || !records.length || isCurrentValueSelected) {
         return {
           dataMask: {
             extraFormData: {
@@ -73,16 +83,21 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         };
       }
 
+      const filter = getSunburstFilter(
+        columns[index],
+        records[index],
+        formData,
+        coltypeMapping?.[getColumnLabel(columns[index])],
+      );
+
       return {
         dataMask: {
           extraFormData: {
-            filters: [
-              {
-                col: columns[treePath.length - 1],
-                op: '==' as const,
-                val: value,
-              },
-            ],
+            filters: [filter],
+            // Target queries rewrite temporal filter bounds from time_range.
+            ...(filter.op === 'TEMPORAL_RANGE' && {
+              time_range: String(filter.val),
+            }),
           },
           filterState: {
             value,
@@ -92,24 +107,24 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         isCurrentValueSelected,
       };
     },
-    [columns, selectedValues],
+    [columns, selectedValues, coltypeMapping, formData],
   );
 
   const handleChange = useCallback(
-    (treePathInfo: TreePathInfo[]) => {
+    (treePathInfo: TreePathInfo[], records: DataRecordValue[]) => {
       if (!emitCrossFilters || !columns?.length) {
         return;
       }
 
-      setDataMask(getCrossFilterDataMask(treePathInfo).dataMask);
+      setDataMask(getCrossFilterDataMask(treePathInfo, records).dataMask);
     },
     [emitCrossFilters, columns?.length, setDataMask, getCrossFilterDataMask],
   );
 
   const eventHandlers: EventHandlers = {
     click: props => {
-      const { treePathInfo } = props;
-      handleChange(treePathInfo);
+      const { treePathInfo, data } = props;
+      handleChange(treePathInfo, data.records);
     },
     contextmenu: async eventParams => {
       if (onContextMenu) {
@@ -121,53 +136,34 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
-          treePath.forEach((path, i) => {
-            const grain = getSunburstTimeGrain(formData, columns[i]);
-            // Equality plus grain survives time-range overrides in samples and
-            // chart-data queries, and delegates engine-specific grains to SQL.
-            const temporalFilter =
-              grain && records[i] != null
-                ? {
-                    col: columns[i],
-                    op: '==' as const,
-                    val: records[i],
-                    grain,
-                    formattedVal: path,
-                  }
-                : undefined;
+          records.forEach((record: DataRecordValue, i: number) => {
+            const coltype = coltypeMapping?.[getColumnLabel(columns[i])];
             drillToDetailFilters.push(
-              temporalFilter ?? {
-                col: columns[i],
-                op: '==',
-                val: records[i],
-                formattedVal: path,
-              },
+              getSunburstDetailFilter(
+                columns[i],
+                record,
+                formData,
+                coltype,
+                treePath[i],
+              ),
             );
-            if (temporalFilter && i === treePath.length - 1) {
-              drillByFilters.push(temporalFilter);
+            if (i === records.length - 1) {
+              drillByFilters.push(
+                getSunburstDrillByFilter(
+                  columns[i],
+                  record,
+                  formData,
+                  coltype,
+                  treePath[i],
+                ),
+              );
             }
           });
-          if (!drillByFilters.length) {
-            const val = treePath[treePath.length - 1];
-            drillByFilters.push({
-              col: columns[treePath.length - 1],
-              op: '==',
-              val,
-              formattedVal: formatSeriesName(val, {
-                timeFormatter: getTimeFormatter(formData.dateFormat),
-                numberFormatter: getNumberFormatter(formData.numberFormat),
-                coltype:
-                  coltypeMapping?.[
-                    getColumnLabel(columns[treePath.length - 1])
-                  ],
-              }),
-            });
-          }
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           crossFilter: columns?.length
-            ? getCrossFilterDataMask(treePathInfo)
+            ? getCrossFilterDataMask(treePathInfo, records)
             : undefined,
           drillBy: { filters: drillByFilters, groupbyFieldName: 'columns' },
         });

@@ -82,7 +82,7 @@
     "@docusaurus/module-type-aliases": "^3.10.2",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
-    "oxfmt": "^0.72.0",
+    "oxfmt": "^0.73.0",
     "oxlint": "^1.88.0",
     "oxlint-tsgolint": "^7.0.2004",
     "typescript": "7.0.2",

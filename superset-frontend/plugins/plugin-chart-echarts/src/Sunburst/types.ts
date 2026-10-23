@@ -35,13 +35,13 @@ import {
 
 export type EchartsSunburstFormData = QueryFormData & {
   groupby: QueryFormColumn[];
-  temporalColumnsLookup?: Record<string, boolean>;
-  granularitySqla?: string;
-  timeGrainSqla?: TimeGranularity;
   metric: QueryFormMetric;
   secondaryMetric?: QueryFormMetric;
   colorScheme?: string;
   linearColorScheme?: string;
+  timeGrainSqla?: TimeGranularity;
+  temporalColumnsLookup?: Record<string, boolean>;
+  granularitySqla?: string;
 };
 
 export enum EchartsSunburstLabelType {
