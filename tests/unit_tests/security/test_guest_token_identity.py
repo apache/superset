@@ -169,6 +169,19 @@ def test_valid_identity_resolves_through_request_flow(
     assert guest_user.username == "guest"
 
 
+def test_invalid_identity_still_resolves_under_default_config(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Warn-first default: a bad identity is minted and consumed, not rejected."""
+    assert current_app.config["GUEST_TOKEN_IDENTITY_ENFORCE"] is False
+    sm = SupersetSecurityManager(appbuilder)
+    raw_token = sm.create_guest_access_token({"username": "bob\nalice"}, RESOURCES, [])
+
+    guest_user = sm.get_guest_user_from_request(_guest_request(mocker, raw_token))
+    assert guest_user is not None
+    assert guest_user.username == "bob\nalice"
+
+
 def test_non_object_user_claim_rejected_through_request_flow(
     mocker: MockerFixture, app_context: None
 ) -> None:
