@@ -22,20 +22,15 @@ import { render } from '@testing-library/react';
 import EchartsWaterfall from '../../src/Waterfall/EchartsWaterfall';
 import transformProps from '../../src/Waterfall/transformProps';
 import { EchartsWaterfallChartProps } from '../../src/Waterfall/types';
+import Echart from '../../src/components/Echart';
+import { EventHandlers } from '../../src/types';
 
 jest.mock('../../src/components/Echart', () => ({
   __esModule: true,
-  default: ({
-    eventHandlers,
-  }: {
-    eventHandlers: Record<string, (event: unknown) => void>;
-  }) => {
-    mockEventHandlers = eventHandlers;
-    return <div data-test="echart" />;
-  },
+  default: jest.fn(() => null),
 }));
 
-let mockEventHandlers: Record<string, (event: unknown) => void> = {};
+const mockedEchart = jest.mocked(Echart);
 
 const rows = [
   { year: '2019', name: 'Sylvester', sum: 10 },
@@ -72,8 +67,14 @@ function renderChart(
     chartProps as unknown as EchartsWaterfallChartProps,
   );
   render(<EchartsWaterfall {...props} />);
-  return { setDataMask, onContextMenu };
+  const lastCall = mockedEchart.mock.calls[mockedEchart.mock.calls.length - 1];
+  const { eventHandlers } = lastCall[0] as { eventHandlers: EventHandlers };
+  return { eventHandlers, setDataMask, onContextMenu };
 }
+
+beforeEach(() => {
+  mockedEchart.mockClear();
+});
 
 function pointerEvent(dataIndex: number) {
   return {
@@ -86,8 +87,10 @@ function pointerEvent(dataIndex: number) {
 }
 
 test('clicking a breakdown bar filters the period and the breakdown', () => {
-  const { setDataMask } = renderChart({ emitCrossFilters: true });
-  mockEventHandlers.click!(pointerEvent(0));
+  const { eventHandlers, setDataMask } = renderChart({
+    emitCrossFilters: true,
+  });
+  eventHandlers.click(pointerEvent(0));
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
       extraFormData: {
@@ -101,8 +104,10 @@ test('clicking a breakdown bar filters the period and the breakdown', () => {
 });
 
 test('clicking a period total filters the period only', () => {
-  const { setDataMask } = renderChart({ emitCrossFilters: true });
-  mockEventHandlers.click!(pointerEvent(2));
+  const { eventHandlers, setDataMask } = renderChart({
+    emitCrossFilters: true,
+  });
+  eventHandlers.click(pointerEvent(2));
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
       extraFormData: {
@@ -113,11 +118,11 @@ test('clicking a period total filters the period only', () => {
 });
 
 test('clicking the same bar again clears the filter', () => {
-  const { setDataMask } = renderChart({
+  const { eventHandlers, setDataMask } = renderChart({
     emitCrossFilters: true,
     filterState: { selectedValues: [JSON.stringify(['2019', 'Sylvester'])] },
   });
-  mockEventHandlers.click!(pointerEvent(0));
+  eventHandlers.click(pointerEvent(0));
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
       extraFormData: { filters: [] },
@@ -126,24 +131,28 @@ test('clicking the same bar again clears the filter', () => {
 });
 
 test('does not emit a filter when cross-filtering is disabled', () => {
-  const { setDataMask } = renderChart({ emitCrossFilters: false });
-  mockEventHandlers.click!(pointerEvent(0));
+  const { eventHandlers, setDataMask } = renderChart({
+    emitCrossFilters: false,
+  });
+  eventHandlers.click(pointerEvent(0));
   expect(setDataMask).not.toHaveBeenCalled();
 });
 
 test('clicking the grand total does not change the current filter', () => {
-  const { setDataMask } = renderChart({
+  const { eventHandlers, setDataMask } = renderChart({
     emitCrossFilters: true,
     formData: { ...formData, groupby: undefined } as SqlaFormData,
   });
-  mockEventHandlers.click!(pointerEvent(2));
+  eventHandlers.click(pointerEvent(2));
   expect(setDataMask).not.toHaveBeenCalled();
 });
 
 test('a context menu carries the drill filters for the clicked bar', () => {
-  const { onContextMenu } = renderChart({ emitCrossFilters: true });
+  const { eventHandlers, onContextMenu } = renderChart({
+    emitCrossFilters: true,
+  });
   const event = pointerEvent(0);
-  mockEventHandlers.contextmenu!(event);
+  eventHandlers.contextmenu(event);
   expect(event.event.stop).toHaveBeenCalled();
   expect(onContextMenu).toHaveBeenCalledWith(
     12,
