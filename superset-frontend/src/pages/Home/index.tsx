@@ -226,7 +226,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     // its results are discarded instead of overwriting newer state.
     let isStale = false;
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
-    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
+    // Collapse state and the initial tab are only restored on first load, so
+    // later refreshes update the data without overriding user choices.
+    const isInitialLoad = refreshKey === 0;
+    if (isInitialLoad) {
+      setActiveState(
+        collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR,
+      );
+    }
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         if (isStale) return;
@@ -235,13 +242,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data[TableTab.Viewed] = filtered;
-          if (!activeTab && data[TableTab.Viewed]) {
-            setActiveChild(TableTab.Viewed);
-          } else if (!activeTab && !data[TableTab.Viewed]) {
-            setActiveChild(TableTab.Created);
-          } else setActiveChild(activeTab || TableTab.Created);
-        } else if (!activeTab) setActiveChild(TableTab.Created);
-        else setActiveChild(activeTab);
+        }
+        if (isInitialLoad) {
+          if (res.viewed) {
+            if (!activeTab) setActiveChild(TableTab.Viewed);
+            else setActiveChild(activeTab);
+          } else if (!activeTab) setActiveChild(TableTab.Created);
+          else setActiveChild(activeTab);
+        }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
@@ -402,6 +410,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         setActiveChild={setActiveChild}
                         activityData={activityData}
                         isFetchingActivityData={isFetchingActivityData}
+                        refreshKey={refreshKey}
                       />
                     ) : (
                       <LoadingCards />
