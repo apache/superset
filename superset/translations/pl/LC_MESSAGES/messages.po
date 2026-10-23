@@ -103,7 +103,6 @@ msgstr ""
 "                lepsze zrozumienie proporcji punktów danych w każdym "
 "przedziale."
 
-#, fuzzy
 msgid ""
 "\n"
 "                This filter was inherited from the dashboard's context.\n"
@@ -221,7 +220,6 @@ msgstr " aby edytować lub dodawać kolumny i miary."
 msgid " to mark a column as a time column"
 msgstr " aby oznaczyć kolumnę jako kolumnę czasową"
 
-#, fuzzy
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr " aby otworzyć SQL Lab. Tam możesz zapisać zapytanie jako zbiór danych."
 
@@ -659,7 +657,7 @@ msgstr[0] "%s s temu"
 msgstr[1] "%s s temu"
 msgstr[2] "%s s temu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s saved metric(s)"
 msgstr "Liczba zapisanych miar: %s"
 
@@ -1280,7 +1278,6 @@ msgstr ""
 "Mapa, która rysuje okręgi o zmiennym promieniu na współrzędnych "
 "szerokości/długości geograficznej."
 
-#, fuzzy
 msgid "A metric to use for color"
 msgstr "Miara do użycia jako kolor"
 
@@ -1335,7 +1332,6 @@ msgstr "Odwołanie do konfiguracji [Czas] uwzględniające krok czasu"
 msgid "A report named \"%(name)s\" already exists"
 msgstr "Raport o nazwie \"%(name)s\" już istnieje."
 
-#, fuzzy
 msgid "A reusable dataset will be saved with your chart."
 msgstr "Wraz z wykresem zostanie zapisany zbiór danych do ponownego wykorzystania."
 
@@ -1638,11 +1634,9 @@ msgstr "Dodaj warstwę adnotacji"
 msgid "Add another notification method"
 msgstr "Dodaj inną metodę powiadamiania"
 
-#, fuzzy
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
 msgstr "Dodaj kolumny obliczeniowe do zbioru danych w oknie „Edytuj źródło danych”"
 
-#, fuzzy
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
 msgstr ""
 "Dodaj czasowe kolumny obliczeniowe do zbioru danych w oknie „Edytuj "
@@ -1677,7 +1671,6 @@ msgstr "Dodaj filtr krzyżowy"
 msgid "Add custom scoping"
 msgstr "Dodaj niestandardowe zakresy"
 
-#, fuzzy
 msgid "Add dataset columns here to group the pivot table columns."
 msgstr ""
 "Dodaj tutaj kolumny zbioru danych, aby pogrupować kolumny tabeli "
@@ -1733,11 +1726,9 @@ msgstr "Dodaj grupę"
 msgid "Add item"
 msgstr "Dodaj element"
 
-#, fuzzy
 msgid "Add metric"
 msgstr "Dodaj miarę"
 
-#, fuzzy
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Dodaj miary do zbioru danych w oknie modalnym \"Edytuj źródło danych\""
 
@@ -2026,11 +2017,9 @@ msgstr ""
 msgid "Alert"
 msgstr "Alert"
 
-#, fuzzy
 msgid "Alert Triggered, In Grace Period"
 msgstr "Alert wyzwolony, w okresie wyciszenia"
 
-#, fuzzy
 msgid "Alert condition"
 msgstr "Warunek alertu"
 
@@ -2038,19 +2027,15 @@ msgstr "Warunek alertu"
 msgid "Alert contents"
 msgstr "Zawartość alertu"
 
-#, fuzzy
 msgid "Alert ended grace period."
 msgstr "Zakończył się okres wyciszenia alertu."
 
-#, fuzzy
 msgid "Alert failed"
 msgstr "Alert nie powiódł się"
 
-#, fuzzy
 msgid "Alert fired during grace period."
 msgstr "Alert wyzwolony w okresie wyciszenia."
 
-#, fuzzy
 msgid "Alert found an error while executing a query."
 msgstr "Alert wykrył błąd podczas wykonywania zapytania."
 
@@ -2062,11 +2047,9 @@ msgstr "Alert jest aktywny"
 msgid "Alert minimum interval"
 msgstr "Minimalny odstęp między alertami"
 
-#, fuzzy
 msgid "Alert name"
 msgstr "Nazwa alertu"
 
-#, fuzzy
 msgid "Alert on grace period"
 msgstr "Alert w okresie wyciszenia"
 
@@ -2109,23 +2092,18 @@ msgstr ""
 "Zapytanie alertu zwróciło więcej niż jeden wiersz. Liczba zwróconych "
 "wierszy: %(num_rows)s."
 
-#, fuzzy
 msgid "Alert running"
 msgstr "Alert w toku"
 
-#, fuzzy
 msgid "Alert triggered, notification sent"
 msgstr "Alert uruchomiony, powiadomienie wysłane"
 
-#, fuzzy
 msgid "Alert validator config error."
 msgstr "Błąd konfiguracji walidatora alertu."
 
-#, fuzzy
 msgid "Alerts"
 msgstr "Alerty"
 
-#, fuzzy
 msgid "Alerts & Reports"
 msgstr "Alerty i raporty"
 
@@ -2145,7 +2123,6 @@ msgstr "Parametry konfiguracji alertów i raportów są nieprawidłowe."
 msgid "Alerts & Reports configuration updated"
 msgstr "Zaktualizowano konfigurację alertów i raportów"
 
-#, fuzzy
 msgid "Alerts & reports"
 msgstr "Alerty i raporty"
 
@@ -2292,7 +2269,6 @@ msgstr "Alfabetyczny"
 msgid "Already at this version"
 msgstr "Ta wersja jest już używana"
 
-#, fuzzy
 msgid ""
 "Also known as a box and whisker plot, this visualization compares the "
 "distributions of a related metric across multiple groups. The box in the "
@@ -2355,7 +2331,6 @@ msgstr "Wystąpił błąd"
 msgid "An error occurred"
 msgstr "Wystąpił błąd"
 
-#, fuzzy
 msgid "An error occurred saving dataset"
 msgstr "Wystąpił błąd podczas zapisywania zbioru danych"
 
@@ -2484,7 +2459,6 @@ msgstr ""
 "Wystąpił błąd podczas pobierania listy uprawnionych do wyświetlania "
 "pulpitu: %s"
 
-#, fuzzy
 msgid "An error occurred while fetching dashboards"
 msgstr "Wystąpił błąd podczas pobierania pulpitów."
 
@@ -2504,7 +2478,7 @@ msgstr "Wystąpił błąd podczas pobierania wartości bazy danych: %s"
 msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "Wystąpił błąd podczas pobierania wartości źródła zbioru danych: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
 msgstr ""
 "Wystąpił błąd podczas pobierania listy uprawnionych do edycji zbioru "
@@ -2926,11 +2900,9 @@ msgstr "Zastosuj filtr"
 msgid "Apply another dashboard filter"
 msgstr "Zastosuj inny filtr pulpitu"
 
-#, fuzzy
 msgid "Apply conditional color formatting to metric"
 msgstr "Zastosuj warunkowe formatowanie kolorów do miary"
 
-#, fuzzy
 msgid "Apply conditional color formatting to metrics"
 msgstr "Zastosuj warunkowe formatowanie kolorów do miar"
 
@@ -2950,7 +2922,6 @@ msgstr ""
 msgid "Apply filters"
 msgstr "Zastosuj filtry"
 
-#, fuzzy
 msgid "Apply metrics on"
 msgstr "Zastosuj miary do"
 
@@ -3071,7 +3042,6 @@ msgstr "Czy na pewno chcesz usunąć wybrane motywy?"
 msgid "Are you sure you want to delete the selected users?"
 msgstr "Czy na pewno chcesz usunąć wybranych użytkowników?"
 
-#, fuzzy
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr "Czy na pewno chcesz nadpisać ten zbiór danych?"
 
@@ -3140,7 +3110,6 @@ msgstr "Wykres powierzchniowy"
 msgid "Area chart opacity"
 msgstr "Nieprzezroczystość wykresu powierzchniowego"
 
-#, fuzzy
 msgid ""
 "Area charts are similar to line charts in that they represent variables "
 "with the same scale, but area charts stack the metrics on top of each "
@@ -3326,7 +3295,6 @@ msgstr "Słupek"
 msgid "Bar Chart"
 msgstr "Wykres słupkowy"
 
-#, fuzzy
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Wykresy słupkowe służą do przedstawiania miar w formie serii słupków."
 
@@ -3370,7 +3338,6 @@ msgstr "Podstawowe nachylenie"
 msgid "Base width"
 msgstr "Szerokość podstawy"
 
-#, fuzzy
 msgid "Based on a metric"
 msgstr "Oparte na miarze"
 
@@ -3602,7 +3569,6 @@ msgstr "Według klucza: użyj nazw kolumn jako klucza sortowania"
 msgid "By key: use row names as sorting key"
 msgstr "Według klucza: użyj nazw wierszy jako klucza sortowania"
 
-#, fuzzy
 msgid "By value: use metric values as sorting key"
 msgstr "Według wartości: użyj wartości miar jako klucza sortowania"
 
@@ -3798,7 +3764,6 @@ msgstr ""
 msgid "Cannot access the query"
 msgstr "Nie można uzyskać dostępu do zapytania"
 
-#, fuzzy
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Nie można usunąć bazy danych, do której są przypisane zbiory danych"
 
@@ -4056,7 +4021,6 @@ msgstr "Zmienia wartość sortowania elementów tylko w legendzie"
 msgid "Changing one or more of these dashboards is forbidden"
 msgstr "Zmiana jednego lub więcej z tych pulpitów jest zabroniona"
 
-#, fuzzy
 msgid ""
 "Changing the dataset may break the chart if the chart relies on columns "
 "or metadata that does not exist in the target dataset"
@@ -4064,7 +4028,6 @@ msgstr ""
 "Zmiana zbioru danych może uszkodzić wykres, jeśli wykres opiera się na "
 "kolumnach lub metadanych, które nie istnieją w docelowym zbiorze danych."
 
-#, fuzzy
 msgid ""
 "Changing these settings will affect all charts using this dataset, "
 "including charts owned by other people."
@@ -4081,11 +4044,9 @@ msgstr "Zmiana tego wykresu jest zabroniona"
 msgid "Changing this control takes effect instantly"
 msgstr "Zmiana tego ustawienia działa natychmiast"
 
-#, fuzzy
 msgid "Changing this dataset is forbidden"
 msgstr "Zmiana tego zbioru danych jest zabroniona"
 
-#, fuzzy
 msgid "Changing this dataset is forbidden."
 msgstr "Zmiana tego zbioru danych jest zabroniona."
 
@@ -4145,7 +4106,7 @@ msgstr "Nie znaleziono wykresu %(id)s"
 msgid "Chart Data: %s"
 msgstr "Dane wykresu: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Chart Editor: %s"
 msgid_plural "Chart Editors: %s"
 msgstr[0] "Uprawniony do edycji wykresu: %s"
@@ -4493,7 +4454,6 @@ msgstr ""
 msgid "Choose where to display values relative to the bars"
 msgstr "Wybierz położenie wartości względem słupków"
 
-#, fuzzy
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
 "color based on a categorical color palette"
@@ -4855,7 +4815,6 @@ msgstr "Kolor słupków po prawej stronie wykresu"
 msgid "Color for breakpoint"
 msgstr "Kolor punktu granicznego"
 
-#, fuzzy
 msgid "Color metric"
 msgstr "Miara koloru"
 
@@ -5126,7 +5085,6 @@ msgstr "Wspólny (jednostka na piksel przy powiększeniu 0)"
 msgid "Comparator option"
 msgstr "Opcja porównania"
 
-#, fuzzy
 msgid ""
 "Compare multiple time series charts (as sparklines) and related metrics "
 "quickly."
@@ -5137,11 +5095,9 @@ msgstr ""
 msgid "Compare results with other time periods."
 msgstr "Porównaj wyniki z innymi okresami czasowymi."
 
-#, fuzzy
 msgid "Compare the same summarized metric across multiple groups."
 msgstr "Porównaj tę samą podsumowaną miarę w różnych grupach."
 
-#, fuzzy
 msgid ""
 "Compares how a metric changes over time between different groups. Each "
 "group is mapped to a row and change over time is visualized bar lengths "
@@ -5258,7 +5214,6 @@ msgstr "Skonfiguruj podstawy swojej warstwy adnotacji."
 msgid "Configure the chart size for each zoom level"
 msgstr "Skonfiguruj rozmiar wykresu dla każdego poziomu powiększenia"
 
-#, fuzzy
 msgid "Configure this dashboard to embed it into an external web application."
 msgstr "Skonfiguruj ten pulpit, aby osadzić go w zewnętrznej aplikacji webowej."
 
@@ -5682,7 +5637,6 @@ msgstr "Utwórz tag"
 msgid "Create a dataset"
 msgstr "Utwórz zbiór danych"
 
-#, fuzzy
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
@@ -5766,7 +5720,6 @@ msgstr "Karmazynowy"
 msgid "Cross-filter column"
 msgstr "Kolumna filtrowania krzyżowego"
 
-#, fuzzy
 msgid "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
 "Filtr krzyżowy zostanie zastosowany do wszystkich wykresów korzystających"
@@ -5861,7 +5814,6 @@ msgstr "Wtyczki niestandardowe"
 msgid "Custom SQL"
 msgstr "Niestandardowy SQL"
 
-#, fuzzy
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Niestandardowe miary SQL ad-hoc nie są włączone dla tego zbioru danych"
 
@@ -6068,7 +6020,6 @@ msgstr "Ciemny cyjan"
 msgid "Dark mode"
 msgstr "Tryb ciemny"
 
-#, fuzzy
 msgid "Dashboard"
 msgstr "Pulpit"
 
@@ -6121,7 +6072,6 @@ msgstr "Nie udało się zaktualizować dostosowań wykresów pulpitu."
 msgid "Dashboard color configuration could not be updated."
 msgstr "Nie udało się zaktualizować konfiguracji kolorów pulpitu."
 
-#, fuzzy
 msgid "Dashboard could not be deleted."
 msgstr "Nie można usunąć pulpitu."
 
@@ -6130,7 +6080,6 @@ msgstr "Nie można usunąć pulpitu."
 msgid "Dashboard could not be restored."
 msgstr "Nie udało się przywrócić pulpitu."
 
-#, fuzzy
 msgid "Dashboard could not be updated."
 msgstr "Nie można zaktualizować pulpitu."
 
@@ -6138,7 +6087,6 @@ msgstr "Nie można zaktualizować pulpitu."
 msgid "Dashboard data exported to Excel"
 msgstr "Wyeksportowano dane pulpitu do pliku Excel"
 
-#, fuzzy
 msgid "Dashboard does not exist"
 msgstr "Pulpit nie istnieje"
 
@@ -6172,11 +6120,9 @@ msgstr "Nazwa pulpitu jest wymagana"
 msgid "Dashboard native filters could not be patched."
 msgstr "Nie udało się zmodyfikować natywnych filtrów pulpitu."
 
-#, fuzzy
 msgid "Dashboard parameters are invalid."
 msgstr "Parametry pulpitu są nieprawidłowe."
 
-#, fuzzy
 msgid "Dashboard properties"
 msgstr "Właściwości pulpitu"
 
@@ -6196,7 +6142,6 @@ msgstr "Zmieniono nazwę pulpitu na „%s”"
 msgid "Dashboard scheme"
 msgstr "Schemat pulpitu"
 
-#, fuzzy
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
@@ -6223,7 +6168,6 @@ msgstr "Zaktualizowano pulpit: %s"
 msgid "Dashboard usage"
 msgstr "Użycie pulpitu"
 
-#, fuzzy
 msgid "Dashboards"
 msgstr "Pulpity"
 
@@ -6231,7 +6175,6 @@ msgstr "Pulpity"
 msgid "Dashboards could not be created."
 msgstr "Nie udało się utworzyć pulpitów."
 
-#, fuzzy
 msgid "Dashboards do not exist"
 msgstr "Pulpity nie istnieją"
 
@@ -6409,7 +6352,6 @@ msgstr ""
 msgid "Databases"
 msgstr "Bazy danych"
 
-#, fuzzy
 msgid "Dataset"
 msgstr "Zbiór danych"
 
@@ -6437,15 +6379,12 @@ msgstr ""
 msgid "Dataset changed since you opened it"
 msgstr "Zbiór danych zmienił się od momentu jego otwarcia"
 
-#, fuzzy
 msgid "Dataset column delete failed."
 msgstr "Usunięcie kolumny zbioru danych nie powiodło się."
 
-#, fuzzy
 msgid "Dataset column not found."
 msgstr "Kolumna zbioru danych nie została znaleziona."
 
-#, fuzzy
 msgid "Dataset could not be created."
 msgstr "Nie udało się utworzyć zbioru danych."
 
@@ -6458,31 +6397,24 @@ msgstr "Nie udało się zduplikować zbioru danych."
 msgid "Dataset could not be restored."
 msgstr "Nie można przywrócić zbioru danych."
 
-#, fuzzy
 msgid "Dataset could not be updated."
 msgstr "Nie udało się zaktualizować zbioru danych."
 
-#, fuzzy
 msgid "Dataset does not exist"
 msgstr "Zbiór danych nie istnieje"
 
-#, fuzzy
 msgid "Dataset is required"
 msgstr "Zbiór danych jest wymagany"
 
-#, fuzzy
 msgid "Dataset metric delete failed."
 msgstr "Nie udało się usunąć miary zbioru danych."
 
-#, fuzzy
 msgid "Dataset metric not found."
 msgstr "Miara zbioru danych nie została znaleziona."
 
-#, fuzzy
 msgid "Dataset name"
 msgstr "Nazwa zbioru danych"
 
-#, fuzzy
 msgid "Dataset parameters are invalid."
 msgstr "Parametry zbioru danych są nieprawidłowe."
 
@@ -6494,7 +6426,7 @@ msgstr "Zmieniono nazwę zbioru danych"
 msgid "Dataset renamed to '%s'"
 msgstr "Zmieniono nazwę zbioru danych na „%s”"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Schemat zbioru danych jest nieprawidłowy: %(error)s"
 
@@ -6509,11 +6441,9 @@ msgstr[0] "Zaktualizowano zbiór danych używany przez %s wykres: %s"
 msgstr[1] "Zaktualizowano zbiór danych używany przez %s wykresy: %s"
 msgstr[2] "Zaktualizowano zbiór danych używany przez %s wykresów: %s"
 
-#, fuzzy
 msgid "Datasets"
 msgstr "Zbiory danych"
 
-#, fuzzy
 msgid ""
 "Datasets can be created from database tables or SQL queries. Select a "
 "database table to the left or "
@@ -6525,7 +6455,6 @@ msgstr ""
 msgid "Datasets could not be deleted."
 msgstr "Nie udało się usunąć zbiorów danych."
 
-#, fuzzy
 msgid "Datasets do not contain a temporal column"
 msgstr "Zbiory danych nie zawierają kolumny czasowej"
 
@@ -6920,49 +6849,49 @@ msgstr "Usunąć rejestrację użytkownika?"
 msgid "Deleted"
 msgstr "Usunięto"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d annotation"
 msgid_plural "Deleted %(num)d annotations"
 msgstr[0] "Usunięto %(num)d adnotację"
 msgstr[1] "Usunięto %(num)d adnotacje"
 msgstr[2] "Usunięto %(num)d adnotacji"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Usunięto %(num)d warstwę adnotacji"
 msgstr[1] "Usunięto %(num)d warstwy adnotacji"
 msgstr[2] "Usunięto %(num)d warstw adnotacji"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
 msgstr[0] "Usunięto %(num)d wykres"
 msgstr[1] "Usunięto %(num)d wykresy"
 msgstr[2] "Usunięto %(num)d wykresów"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d css template"
 msgid_plural "Deleted %(num)d css templates"
 msgstr[0] "Usunięto %(num)d szablon CSS"
 msgstr[1] "Usunięto %(num)d szablony CSS"
 msgstr[2] "Usunięto %(num)d szablonów CSS"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d dashboard"
 msgid_plural "Deleted %(num)d dashboards"
 msgstr[0] "Usunięto %(num)d pulpit"
 msgstr[1] "Usunięto %(num)d pulpity"
 msgstr[2] "Usunięto %(num)d pulpitów"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d dataset"
 msgid_plural "Deleted %(num)d datasets"
 msgstr[0] "Usunięto %(num)d zbiór danych"
 msgstr[1] "Usunięto %(num)d zbiory danych"
 msgstr[2] "Usunięto %(num)d zbiorów danych"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d report schedule"
 msgid_plural "Deleted %(num)d report schedules"
 msgstr[0] "Usunięto %(num)d harmonogram raportu"
@@ -6976,7 +6905,7 @@ msgstr[0] "Usunięto %(num)d regułę"
 msgstr[1] "Usunięto %(num)d reguły"
 msgstr[2] "Usunięto %(num)d reguł"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
 msgstr[0] "Usunięto %(num)d zapisane zapytanie"
@@ -7144,7 +7073,6 @@ msgstr ""
 msgid "Determines how whiskers and outliers are calculated."
 msgstr "Określa sposób obliczania wąsów i wartości odstających."
 
-#, fuzzy
 msgid ""
 "Determines whether or not this dashboard is visible in the list of all "
 "dashboards"
@@ -7359,7 +7287,6 @@ msgstr "Wyświetl nagłówki każdej kolumny w górnej części macierzy"
 msgid "Display labels for each row on the left side of the matrix"
 msgstr "Wyświetl etykiety każdego wiersza po lewej stronie macierzy"
 
-#, fuzzy
 msgid ""
 "Display metrics side by side within each column, as opposed to each "
 "column being displayed side by side for each metric."
@@ -7493,7 +7420,6 @@ msgstr "Szkic"
 msgid "Drag %s folder"
 msgstr "Przeciągnij folder %s"
 
-#, fuzzy
 msgid "Drag and drop components and charts to the dashboard"
 msgstr "Przeciągnij i upuść komponenty i wykresy na pulpit"
 
@@ -7602,7 +7528,6 @@ msgstr[2] "Upuść kolumny/miary tutaj lub kliknij"
 msgid "Drop a temporal column here or click"
 msgstr "Upuść kolumnę czasową tutaj lub kliknij"
 
-#, fuzzy
 msgid "Drop columns/metrics here or click"
 msgstr "Upuść kolumny/miary tutaj lub kliknij"
 
@@ -7618,7 +7543,7 @@ msgstr "Duplikuj"
 msgid "Duplicate column name(s): %(columns)s"
 msgstr "Zduplikowane nazwy kolumn: %(columns)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "Duplicate column/metric labels: %(labels)s. Please make sure all columns "
 "and metrics have a unique label."
@@ -7789,7 +7714,6 @@ msgstr "Edytuj %s w oknie dialogowym"
 msgid "Edit CSS template properties"
 msgstr "Edytuj właściwości szablonu CSS"
 
-#, fuzzy
 msgid "Edit Dashboard"
 msgstr "Edytuj pulpit"
 
@@ -7843,7 +7767,6 @@ msgstr "Edytuj wykres"
 msgid "Edit chart properties"
 msgstr "Edytuj właściwości wykresu"
 
-#, fuzzy
 msgid "Edit dashboard"
 msgstr "Edytuj pulpit"
 
@@ -7885,7 +7808,6 @@ msgstr "Edytuj szablon"
 msgid "Edit template parameters"
 msgstr "Edytuj parametry szablonu"
 
-#, fuzzy
 msgid "Edit the dashboard"
 msgstr "Edytuj pulpit"
 
@@ -8427,7 +8349,7 @@ msgstr "Błąd pobierania ról"
 msgid "Error while rendering calculated column expression: %(msg)s"
 msgstr "Błąd podczas renderowania wyrażenia kolumny obliczeniowej: %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "Błąd podczas renderowania zapytania wirtualnego zbioru danych: %(msg)s"
 
@@ -8655,7 +8577,6 @@ msgstr "Eksportuj jako PDF"
 msgid "Export cancelled"
 msgstr "Eksport anulowany"
 
-#, fuzzy
 msgid "Export dashboards?"
 msgstr "Eksportować pulpity?"
 
@@ -8840,7 +8761,6 @@ msgstr "PIĄ"
 msgid "Factor"
 msgstr "Czynnik"
 
-#, fuzzy
 msgid "Factor to multiply the metric by"
 msgstr "Czynnik, przez który mnoży się miarę"
 
@@ -9557,7 +9477,6 @@ msgstr ""
 "Dane formularza nie zostały znalezione w pamięci podręcznej, przywracanie"
 " metadanych wykresu."
 
-#, fuzzy
 msgid "Form data not found in cache, reverting to dataset metadata."
 msgstr ""
 "Dane formularza nie zostały znalezione w pamięci podręcznej, przywracanie"
@@ -10094,7 +10013,6 @@ msgstr ""
 "zapytania będą wykonywane jako zalogowany użytkownik z użyciem jego "
 "własnych danych uwierzytelniających OAuth."
 
-#, fuzzy
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Jeśli określono miarę, sortowanie będzie oparte na jej wartości."
 
@@ -10215,7 +10133,6 @@ msgstr "Import bazy danych nie powiódł się z nieznanego powodu."
 msgid "Import database from file"
 msgstr "Importuj bazę danych z pliku"
 
-#, fuzzy
 msgid "Import dataset failed for an unknown reason"
 msgstr "Import zbioru danych nie powiódł się z nieznanego powodu."
 
@@ -10523,7 +10440,6 @@ msgstr ""
 msgid "Invalid cumulative operator: %(operator)s"
 msgstr "Nieprawidłowy operator obliczeń narastających: %(operator)s"
 
-#, fuzzy
 msgid "Invalid currency code in saved metrics"
 msgstr "Nieprawidłowy kod waluty w zapisanych miarach"
 
@@ -11323,7 +11239,6 @@ msgstr ""
 "Wyświetlaj wszystkie zakresy, znaczniki i linie znaczników w legendzie; "
 "kliknięcie pozycji przełącza jej widoczność na wykresie"
 
-#, fuzzy
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Lista n+1 wartości do podziału miary na n przedziałów."
 
@@ -11845,43 +11760,35 @@ msgstr ""
 "miar nieaddytywnych, takich jak stosunki, średnie lub liczby unikalne. "
 "Inne metody operują na punktach danych szeregów czasowych."
 
-#, fuzzy
 msgid "Metric"
 msgstr "Miara"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metric '%(metric)s' does not exist"
 msgstr "Miara „%(metric)s” nie istnieje"
 
-#, fuzzy
 msgid "Metric Key"
 msgstr "Klucz miary"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metric ``%(metric_name)s`` not found in %(dataset_name)s."
 msgstr "Miara „%(metric_name)s” nie została znaleziona w %(dataset_name)s."
 
-#, fuzzy
 msgid "Metric ascending"
 msgstr "Miara rosnąca"
 
-#, fuzzy
 msgid "Metric assigned to the [X] axis"
 msgstr "Miara przypisana do osi [X]"
 
-#, fuzzy
 msgid "Metric assigned to the [Y] axis"
 msgstr "Miara przypisana do osi [Y]"
 
-#, fuzzy
 msgid "Metric change in value from `since` to `until`"
 msgstr "Zmiana wartości miary od „since” do „until”"
 
-#, fuzzy
 msgid "Metric currency"
 msgstr "Waluta miary"
 
-#, fuzzy
 msgid "Metric descending"
 msgstr "Miara malejąca"
 
@@ -11893,11 +11800,9 @@ msgstr "Miara wyświetlana po lewej stronie wykresu motylkowego"
 msgid "Metric displayed on the right side of the butterfly chart"
 msgstr "Miara wyświetlana po prawej stronie wykresu motylkowego"
 
-#, fuzzy
 msgid "Metric factor change from `since` to `until`"
 msgstr "Zmiana współczynnika miary od „since” do „until”"
 
-#, fuzzy
 msgid "Metric for node values"
 msgstr "Miara dla wartości węzłów"
 
@@ -11905,23 +11810,19 @@ msgstr "Miara dla wartości węzłów"
 msgid "Metric for ordering"
 msgstr "Miara do sortowania"
 
-#, fuzzy
 msgid "Metric name"
 msgstr "Nazwa miary"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metric name [%s] is duplicated"
 msgstr "Nazwa miary [%s] jest zduplikowana"
 
-#, fuzzy
 msgid "Metric percent change in value from `since` to `until`"
 msgstr "Procentowa zmiana wartości miary od „since” do „until”"
 
-#, fuzzy
 msgid "Metric that defines the size of the bubble"
 msgstr "Miara definiująca rozmiar bąbelka"
 
-#, fuzzy
 msgid "Metric to display bottom title"
 msgstr "Miara do wyświetlenia w dolnym tytule"
 
@@ -11929,19 +11830,15 @@ msgstr "Miara do wyświetlenia w dolnym tytule"
 msgid "Metric to use for ordering Top N values"
 msgstr "Miara używana do sortowania N najwyższych wartości"
 
-#, fuzzy
 msgid "Metric used as a weight for the grid's coloring"
 msgstr "Miara używana jako waga do kolorowania siatki"
 
-#, fuzzy
 msgid "Metric used to calculate bubble size"
 msgstr "Miara używana do obliczania rozmiaru bąbelka"
 
-#, fuzzy
 msgid "Metric used to control height"
 msgstr "Miara używana do kontroli wysokości"
 
-#, fuzzy
 msgid ""
 "Metric used to define how the top series are sorted if a series or cell "
 "limit is present. If undefined reverts to the first metric (where "
@@ -11951,7 +11848,6 @@ msgstr ""
 "jest obecny limit serii lub komórek. Jeśli nieokreślona, używana jest "
 "pierwsza miara (jeśli to możliwe)."
 
-#, fuzzy
 msgid ""
 "Metric used to define how the top series are sorted if a series or row "
 "limit is present. If undefined reverts to the first metric (where "
@@ -11961,7 +11857,6 @@ msgstr ""
 "jest obecny limit serii lub wierszy. Jeśli nieokreślona, używana jest "
 "pierwsza miara (jeśli to możliwe)."
 
-#, fuzzy
 msgid "Metrics"
 msgstr "Miary"
 
@@ -12312,7 +12207,6 @@ msgstr "Moje piękne kolory"
 msgid "My column"
 msgstr "Moja kolumna"
 
-#, fuzzy
 msgid "My metric"
 msgstr "Moja miara"
 
@@ -12692,7 +12586,6 @@ msgstr "Nie zwrócono przykładowych danych dla tego elementu typu %s"
 msgid "No saved expressions found"
 msgstr "Nie znaleziono zapisanych wyrażeń"
 
-#, fuzzy
 msgid "No saved metrics found"
 msgstr "Nie znaleziono zapisanych miar"
 
@@ -13036,7 +12929,6 @@ msgstr ""
 msgid "On Grace"
 msgstr "W okresie wyciszenia"
 
-#, fuzzy
 msgid "On dashboards"
 msgstr "Na pulpitach"
 
@@ -13472,7 +13364,7 @@ msgstr "Zastąp"
 msgid "Overwrite & Explore"
 msgstr "Zastąp i analizuj dane"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Overwrite Dashboard [%s]"
 msgstr "Zastąp pulpit [%s]"
 
@@ -13939,7 +13831,6 @@ msgstr "Wpisz hasło ponownie."
 msgid "Please re-export your file and try importing again"
 msgstr "Wyeksportuj plik ponownie, a następnie ponów import"
 
-#, fuzzy
 msgid "Please reach out to the Chart Editor for assistance."
 msgid_plural "Please reach out to the Chart Editors for assistance."
 msgstr[0] "Skontaktuj się z osobą uprawnioną do edycji wykresu, aby uzyskać pomoc."
@@ -13949,7 +13840,6 @@ msgstr[2] "Skontaktuj się z osobą uprawnioną do edycji wykresu, aby uzyskać 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr "Zapisz najpierw wykres, a następnie spróbuj utworzyć nowy raport e-mail."
 
-#, fuzzy
 msgid "Please save your dashboard first, then try creating a new email report."
 msgstr "Zapisz najpierw pulpit, a następnie spróbuj utworzyć nowy raport e-mail."
 
@@ -13961,7 +13851,7 @@ msgstr "Wybierz co najmniej jedną rolę lub grupę"
 msgid "Please select both a %s and a Chart type to proceed"
 msgstr "Aby kontynuować, wybierz zarówno %s, jak i typ wykresu"
 
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja "
 "macro."
@@ -13984,7 +13874,6 @@ msgstr ""
 "Pokaż połączenia między punktami początkowymi a docelowymi (np. trasy "
 "lotów)."
 
-#, fuzzy
 msgid ""
 "Plots the individual metrics for each row in the data vertically and "
 "links them together as a line. This chart is useful for comparing "
@@ -15187,7 +15076,6 @@ msgstr "Miara prawej osi"
 msgid "Right Panel"
 msgstr "Prawy panel"
 
-#, fuzzy
 msgid "Right axis metric"
 msgstr "Miara prawej osi"
 
@@ -15595,7 +15483,6 @@ msgstr "Zapisz"
 msgid "Save & Explore"
 msgstr "Zapisz i analizuj dane"
 
-#, fuzzy
 msgid "Save & go to dashboard"
 msgstr "Zapisz i przejdź do pulpitu"
 
@@ -15644,7 +15531,6 @@ msgstr "Zapisz wykres"
 msgid "Save color breakpoint values"
 msgstr "Zapisz wartości progów kolorów"
 
-#, fuzzy
 msgid "Save dashboard"
 msgstr "Zapisz pulpit"
 
@@ -15655,7 +15541,6 @@ msgstr "Zapisz zbiór danych"
 msgid "Save for this session"
 msgstr "Zapisz dla tej sesji"
 
-#, fuzzy
 msgid "Save or Overwrite Dataset"
 msgstr "Zapisz lub nadpisz zbiór danych"
 
@@ -15676,7 +15561,6 @@ msgstr "Zapisz zapytanie"
 msgid "Save this API key securely"
 msgstr "Bezpiecznie zapisz ten klucz API"
 
-#, fuzzy
 msgid "Save this query as a virtual dataset to continue exploring"
 msgstr "Zapisz to zapytanie jako wirtualny zbiór danych, aby kontynuować analizę"
 
@@ -15693,7 +15577,6 @@ msgstr "Zapisane zmiany pojawią się tutaj"
 msgid "Saved expressions"
 msgstr "Zapisane wyrażenia"
 
-#, fuzzy
 msgid "Saved metric"
 msgstr "Zapisana miara"
 
@@ -15829,7 +15712,7 @@ msgstr "Przewiń na dół, aby umożliwić nadpisywanie zmian."
 msgid "Search"
 msgstr "Szukaj"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Search %s record"
 msgid_plural "Search %s records"
 msgstr[0] "Przeszukaj %s rekord"
@@ -15843,7 +15726,6 @@ msgstr "Szukaj / Filtruj"
 msgid "Search Dashboards"
 msgstr "Szukaj pulpitów"
 
-#, fuzzy
 msgid "Search Metrics & Columns"
 msgstr "Szukaj miar i kolumn"
 
@@ -16024,7 +15906,6 @@ msgstr "Wybierz szablon CSS"
 msgid "Select a column"
 msgstr "Wybierz kolumnę"
 
-#, fuzzy
 msgid "Select a dashboard"
 msgstr "Wybierz pulpit"
 
@@ -16067,7 +15948,6 @@ msgstr "Wybierz liniowy schemat kolorów"
 msgid "Select a metric to display on the right axis"
 msgstr "Wybierz miarę do wyświetlenia na prawej osi"
 
-#, fuzzy
 msgid ""
 "Select a metric to display. You can use an aggregation function on a "
 "column or write custom SQL to create a metric."
@@ -16287,7 +16167,6 @@ msgstr "Wybierz warstwy do ukrycia"
 msgid "Select object name"
 msgstr "Wybierz nazwę obiektu"
 
-#, fuzzy
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
 "percentages of total. Percentage metrics will be calculated only from "
@@ -16299,7 +16178,6 @@ msgstr ""
 " granicach limitu wierszy. Możesz użyć funkcji agregującej lub napisać "
 "własny SQL, aby utworzyć miarę procentową."
 
-#, fuzzy
 msgid ""
 "Select one or many metrics to display. You can use an aggregation "
 "function on a column or write custom SQL to create a metric."
@@ -16350,7 +16228,6 @@ msgstr "Wybierz uprawnienia"
 msgid "Select roles"
 msgstr "Wybierz role"
 
-#, fuzzy
 msgid "Select saved metrics"
 msgstr "Wybierz zapisane miary"
 
@@ -16398,7 +16275,6 @@ msgstr "Wybierz tabelę lub wpisz, aby przeszukać tabele"
 msgid "Select the Annotation Layer you would like to use."
 msgstr "Wybierz warstwę adnotacji, której chcesz użyć."
 
-#, fuzzy
 msgid ""
 "Select the charts to which you want to apply cross-filters in this "
 "dashboard. Deselecting a chart will exclude it from being filtered when "
@@ -16413,7 +16289,6 @@ msgstr ""
 "wykresów korzystających z tego samego zbioru danych lub zawierających "
 "taką samą nazwę kolumny na pulpicie."
 
-#, fuzzy
 msgid ""
 "Select the charts to which you want to apply cross-filters when "
 "interacting with this chart. You can select \"All charts\" to apply "
@@ -17211,7 +17086,6 @@ msgstr "Pokaż liczby wzdłuż osi wartości."
 msgid "Show total"
 msgstr "Pokaż sumę całkowitą"
 
-#, fuzzy
 msgid ""
 "Show total aggregations of selected metrics. Note that row limit does not"
 " apply to the result."
@@ -17235,7 +17109,6 @@ msgstr ""
 "Przedstawia miarę wraz z porównaniem wartości, zmiany i zmiany "
 "procentowej dla wybranego okresu."
 
-#, fuzzy
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
 "call attention to a KPI or the one thing you want your audience to focus "
@@ -17245,7 +17118,6 @@ msgstr ""
 " się do przyciągnięcia uwagi na KPI lub najważniejszy element dla "
 "odbiorców."
 
-#, fuzzy
 msgid ""
 "Showcases a single number accompanied by a simple line chart, to call "
 "attention to an important metric along with its change over time or other"
@@ -17254,7 +17126,6 @@ msgstr ""
 "Prezentuje pojedynczą liczbę z prostym wykresem liniowym, aby zwrócić "
 "uwagę na istotną miarę wraz ze zmianą w czasie lub innymi wymiarami."
 
-#, fuzzy
 msgid ""
 "Showcases how a metric changes as the funnel progresses. This classic "
 "chart is useful for visualizing drop-off between stages in a pipeline or "
@@ -17307,7 +17178,6 @@ msgstr "Poziom istotności"
 msgid "Simple"
 msgstr "Prosty"
 
-#, fuzzy
 msgid "Simple ad-hoc metrics are not enabled for this dataset"
 msgstr "Proste miary ad hoc nie są włączone dla tego zbioru danych"
 
@@ -17585,7 +17455,6 @@ msgstr "Sortuj rosnąco"
 msgid "Sort Descending"
 msgstr "Sortuj malejąco"
 
-#, fuzzy
 msgid "Sort Metric"
 msgstr "Miara do sortowania"
 
@@ -17650,7 +17519,6 @@ msgstr "Sortuj wartości filtra"
 msgid "Sort legend"
 msgstr "Sortuj legendę"
 
-#, fuzzy
 msgid "Sort metric"
 msgstr "Miara do sortowania"
 
@@ -18553,7 +18421,6 @@ msgstr "Odpowiedź API z %s nie pasuje do interfejsu IDatabaseTable."
 msgid "The CSRF token could not be validated."
 msgstr "Nie udało się zweryfikować tokena CSRF."
 
-#, fuzzy
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -18627,7 +18494,6 @@ msgstr ""
 "Klucz hosta serwera SSH nie mógł zostać zweryfikowany względem "
 "oczekiwanego klucza."
 
-#, fuzzy
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -18756,7 +18622,6 @@ msgstr "Kolor etykiet punktów"
 msgid "The color scheme for rendering chart"
 msgstr "Schemat kolorów do renderowania wykresu."
 
-#, fuzzy
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
@@ -18827,7 +18692,6 @@ msgstr ""
 "Nie udało się ustalić bieżącej wersji. Przywracanie jest tymczasowo "
 "niedostępne."
 
-#, fuzzy
 msgid "The dashboard has been saved"
 msgstr "Pulpit został zapisany."
 
@@ -18889,17 +18753,14 @@ msgstr "Baza danych została usunięta."
 msgid "The database was not found."
 msgstr "Nie znaleziono bazy danych."
 
-#, fuzzy
 msgid "The dataset associated with this chart no longer exists"
 msgstr "Zbiór danych powiązany z tym wykresem już nie istnieje."
 
-#, fuzzy
 msgid "The dataset column/metric that returns the values on your chart's x-axis."
 msgstr ""
 "Kolumna/miara zbioru danych, która zwraca wartości na osi X twojego "
 "wykresu."
 
-#, fuzzy
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr ""
 "Kolumna/miara zbioru danych, która zwraca wartości na osi Y twojego "
@@ -18919,7 +18780,6 @@ msgstr ""
 "              na podstawie zmian w zapytaniu SQL. Jeśli zmiany nie\n"
 "              wpływają na definicje kolumn, możesz pominąć ten krok."
 
-#, fuzzy
 msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
@@ -18933,7 +18793,6 @@ msgstr ""
 "                Zmiana ustawień tutaj\n"
 "                może niekorzystnie wpłynąć na inne wykresy."
 
-#, fuzzy
 msgid "The dataset has been saved"
 msgstr "Zbiór danych został zapisany."
 
@@ -19193,7 +19052,6 @@ msgstr ""
 "Maksymalna liczba podziałów dla każdej grupy; niższe wartości są usuwane "
 "w pierwszej kolejności"
 
-#, fuzzy
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Maksymalna wartość miar. Jest to opcjonalna konfiguracja."
 
@@ -19300,7 +19158,7 @@ msgstr "Liczba sekund przed wygaśnięciem pamięci podręcznej"
 msgid "The object does not exist in the given database."
 msgstr "Obiekt nie istnieje w podanej bazie danych."
 
-#, fuzzy, python-format
+#, python-format
 msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] "Parametr %(parameters)s w twoim zapytaniu jest niezdefiniowany."
@@ -19338,7 +19196,6 @@ msgstr ""
 "„Certyfikat” konfiguracji bazy danych nie są uwzględnione w plikach "
 "eksportu i powinny zostać dodane ręcznie po imporcie, jeśli są potrzebne."
 
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
 "together with the dashboards. Please note that the \"Secure Extra\" and "
@@ -19351,7 +19208,6 @@ msgstr ""
 "„Certyfikat” konfiguracji bazy danych nie są uwzględnione w plikach "
 "eksportu i powinny zostać dodane ręcznie po imporcie, jeśli są potrzebne."
 
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
 "together with the datasets. Please note that the \"Secure Extra\" and "
@@ -19429,7 +19285,6 @@ msgstr "Port jest zamknięty."
 msgid "The port number is invalid."
 msgstr "Numer portu jest nieprawidłowy."
 
-#, fuzzy
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Główna miara jest używana do określenia rozmiarów segmentów łuku."
 
@@ -20502,7 +20357,6 @@ msgstr ""
 "To ustawienie kontroluje, czy pole \"time_range\" z bieżącego widoku "
 "powinno zostać przekazane do wykresu zawierającego dane adnotacji."
 
-#, fuzzy
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
@@ -20662,7 +20516,6 @@ msgstr ""
 "To pole służy jako unikalny identyfikator do przypisania obliczonego "
 "wymiaru do wykresów. Jest również używane jako alias w zapytaniu SQL."
 
-#, fuzzy
 msgid ""
 "This field is used as a unique identifier to attach the metric to charts."
 " It is also used as the alias in the SQL query."
@@ -21351,7 +21204,6 @@ msgstr ""
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr "Aby filtrować według miary, użyj karty „Własny SQL”."
 
-#, fuzzy
 msgid "To get a readable URL for your dashboard"
 msgstr "Aby uzyskać czytelny URL dla swojego pulpitu"
 
@@ -21878,7 +21730,6 @@ msgstr "Nie udało się przetworzyć oszacowania kosztu zwróconego przez bazę 
 msgid "Unable to read the file, please refresh and try again."
 msgstr "Nie udało się odczytać pliku. Odśwież stronę i spróbuj ponownie."
 
-#, fuzzy
 msgid "Unable to retrieve dashboard colors"
 msgstr "Nie można pobrać kolorów pulpitu"
 
@@ -22393,7 +22244,6 @@ msgstr ""
 "Używa estymacji gęstości jądra Gaussa do wizualizacji przestrzennej "
 "dystrybucji danych."
 
-#, fuzzy
 msgid ""
 "Uses a gauge to showcase progress of a metric towards a target. The "
 "position of the dial represents the progress and the terminal value in "
@@ -22690,7 +22540,6 @@ msgstr "Formatowanie wizualne"
 msgid "Visualization Type"
 msgstr "Typ wizualizacji"
 
-#, fuzzy
 msgid ""
 "Visualize a parallel set of metrics across multiple groups. Each group is"
 " visualized using its own line of points and each metric is represented "
@@ -22700,7 +22549,6 @@ msgstr ""
 "wizualizowana za pomocą własnej linii punktów, a każda miara jest "
 "przedstawiana jako krawędź na wykresie."
 
-#, fuzzy
 msgid ""
 "Visualize a related metric across pairs of groups. Heatmaps excel at "
 "showcasing the correlation or strength between two groups. Color is used "
@@ -22732,7 +22580,6 @@ msgstr ""
 "Pokazuje dwie różne serie na wspólnej osi X. Każda seria może używać "
 "innego typu wykresu, np. jedna słupkowego, a druga liniowego."
 
-#, fuzzy
 msgid ""
 "Visualizes a metric across three dimensions of data in a single chart (X "
 "axis, Y axis, and bubble size). Bubbles from the same group can be "
@@ -22744,7 +22591,6 @@ msgstr ""
 msgid "Visualizes connected points, which form a path, on a map."
 msgstr "Wizualizuje połączone punkty, które tworzą ścieżkę na mapie."
 
-#, fuzzy
 msgid ""
 "Visualizes geographic areas from your data as polygons on a Mapbox "
 "rendered map. Polygons can be colored using a metric."
@@ -22752,7 +22598,6 @@ msgstr ""
 "Wizualizuje obszary geograficzne z twoich danych jako wielokąty na mapie "
 "Mapbox. Wielokąty mogą być kolorowane za pomocą miary."
 
-#, fuzzy
 msgid ""
 "Visualizes how a metric has changed over a time using a color scale and a"
 " calendar view. Gray values are used to indicate missing values and the "
@@ -22762,7 +22607,6 @@ msgstr ""
 "kalendarza. Szare wartości wskazują brakujące dane, a liniowy schemat "
 "kolorów koduje wielkość wartości każdego dnia."
 
-#, fuzzy
 msgid ""
 "Visualizes how a single metric varies across a country's principal "
 "subdivisions (states, provinces, etc) on a choropleth map. Each "
@@ -23286,7 +23130,6 @@ msgstr "Czy sortować rosnąco lub malejąco na podstawowej osi"
 msgid "Whether to sort descending or ascending"
 msgstr "Czy sortować malejąco lub rosnąco"
 
-#, fuzzy
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Czy sortować wyniki według wybranej miary w kolejności malejącej"
 
@@ -23298,7 +23141,6 @@ msgstr ""
 "Czy sortować podpowiedź malejąco według wybranej miary. Na wykresach "
 "skumulowanych wartości są wyświetlane rosnąco."
 
-#, fuzzy
 msgid "Whether to truncate metrics"
 msgstr "Czy obcinać wartości miar"
 
@@ -23529,7 +23371,6 @@ msgstr ""
 "Importujesz jeden lub więcej wykresów, które już istnieją. Nadpisanie "
 "może spowodować utratę części twojej pracy. Czy na pewno chcesz nadpisać?"
 
-#, fuzzy
 msgid ""
 "You are importing one or more dashboards that already exist. Overwriting "
 "might cause you to lose some of your work. Are you sure you want to "
@@ -23659,14 +23500,12 @@ msgstr ""
 msgid "You can enter a value that is not listed."
 msgstr "Możesz wpisać wartość spoza listy."
 
-#, fuzzy
 msgid "You can preview the list of dashboards in the chart settings dropdown."
 msgstr "Możesz podejrzeć listę pulpitów w rozwijanym menu ustawień wykresu."
 
 msgid "You can't apply cross-filter on this data point."
 msgstr "Nie możesz zastosować filtra krzyżowego do tego punktu danych."
 
-#, fuzzy
 msgid ""
 "You cannot delete the last temporal filter as it's used for time range "
 "filters in dashboards."
@@ -23693,7 +23532,6 @@ msgstr "Nie masz uprawnień do edycji tego %s"
 msgid "You do not have permission to edit this chart"
 msgstr "Nie masz uprawnień do edycji tego wykresu"
 
-#, fuzzy
 msgid "You do not have permission to edit this dashboard"
 msgstr "Nie masz uprawnień do edycji tego pulpitu"
 
@@ -23719,7 +23557,6 @@ msgstr "Nie masz uprawnień do wyświetlania danych tego wykresu."
 msgid "You do not have permission to view this data."
 msgstr "Nie masz uprawnień do wyświetlania tych danych."
 
-#, fuzzy
 msgid "You do not have permissions to edit this dashboard."
 msgstr "Nie masz uprawnień do edycji tego pulpitu."
 
@@ -23744,7 +23581,6 @@ msgstr "Nie masz dostępu do danych tego wykresu"
 msgid "You don't have access to this chart."
 msgstr "Nie masz dostępu do tego wykresu."
 
-#, fuzzy
 msgid "You don't have access to this dashboard."
 msgstr "Nie masz dostępu do tego pulpitu."
 
@@ -23918,7 +23754,6 @@ msgstr ""
 "zmiany lub dostęp do edycji, skontaktuj się z osobą uprawnioną do edycji "
 "zbioru danych."
 
-#, fuzzy
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
@@ -23932,7 +23767,6 @@ msgstr ""
 msgid "You must change your password before continuing."
 msgstr "Musisz zmienić hasło przed kontynuowaniem."
 
-#, fuzzy
 msgid "You must pick a name for the new dashboard"
 msgstr "Musisz wybrać nazwę dla nowego pulpitu"
 
@@ -23974,7 +23808,6 @@ msgstr ""
 "Usunięto cię z tego zadania. Zadanie będzie nadal wykonywane dla "
 "pozostałych subskrybentów (liczba: %s)."
 
-#, fuzzy
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
 "match this new dataset have been retained."
@@ -24143,7 +23976,6 @@ msgstr "Poziom powiększenia mapy"
 msgid "[ untitled dashboard ]"
 msgstr "[pulpit bez tytułu]"
 
-#, fuzzy
 msgid "[Missing Dataset]"
 msgstr "[Brakujący zbiór danych]"
 
@@ -24154,7 +23986,6 @@ msgstr "[Bez tytułu]"
 msgid "[asc]"
 msgstr "[rosnąco]"
 
-#, fuzzy
 msgid "[dashboard name]"
 msgstr "[nazwa pulpitu]"
 
@@ -24413,7 +24244,6 @@ msgstr "utwórz"
 msgid "create a new chart"
 msgstr "utwórz nowy wykres"
 
-#, fuzzy
 msgid "create dataset from SQL query"
 msgstr "utwórz zbiór danych z zapytania SQL"
 
@@ -24430,7 +24260,6 @@ msgstr "szablon_css"
 msgid "cumsum"
 msgstr "cumsum"
 
-#, fuzzy
 msgid "dashboard"
 msgstr "pulpit"
 
@@ -24453,7 +24282,6 @@ msgstr "baza danych"
 msgid "databases"
 msgstr "Bazy danych"
 
-#, fuzzy
 msgid "dataset"
 msgstr "zbiór danych"
 
