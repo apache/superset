@@ -37,6 +37,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import { init, type SeriesOption } from 'echarts';
 import type { GridComponentOption } from 'echarts/components';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -1464,6 +1465,36 @@ test('moves a visible horizontal Plain legend into a custom HTML legend and rest
   expect(customLegend?.items.every(item => item.selected)).toBe(true);
   expect(customLegend?.items.every(item => Boolean(item.color))).toBe(true);
   expect('contentHeight' in transformed).toBe(false);
+});
+
+test('hides legend selector buttons when showSelectorLegend is false', () => {
+  const plain = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(getCustomLegend(plain)?.showSelectors).toBe(false);
+
+  const scroll = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Scroll,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(
+    (scroll.echartOptions.legend as { selector?: false | unknown[] }).selector,
+  ).toBe(false);
 });
 
 test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
@@ -4642,6 +4673,42 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
 
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
+});
+
+test('uses authorized chart display labels in timeseries legends and tooltips', () => {
+  const datasource = withChartDisplayLabels(
+    { chart_display_labels: { '12': { sum__num: 'Population' } } },
+    12,
+  );
+  const normalizedProps = new ChartProps({ datasource, theme: supersetTheme });
+  const chartProps = createTestChartProps({
+    formData: { metrics: ['sum__num'], richTooltip: true },
+    queriesData: [
+      createTestQueryData([{ sum__num: 1000, __timestamp: BASE_TIMESTAMP }], {
+        label_map: { sum__num: ['sum__num'] },
+      }),
+    ],
+    datasource: normalizedProps.datasource,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect(echartOptions.series).toEqual(
+    expect.arrayContaining([expect.objectContaining({ name: 'Population' })]),
+  );
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+  expect(
+    tooltip.formatter([
+      {
+        seriesId: 'Population',
+        seriesName: 'Population',
+        value: [BASE_TIMESTAMP, 1000],
+      },
+    ]),
+  ).toContain('Population');
+  expect(chartProps.queriesData[0].data[0]).toEqual({
+    sum__num: 1000,
+    __timestamp: BASE_TIMESTAMP,
+  });
 });
 
 test('applies user-defined minimum interval to both axes', () => {
