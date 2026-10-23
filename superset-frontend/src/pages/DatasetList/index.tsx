@@ -842,11 +842,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const columns = useMemo(
     () => [
       {
-        Cell: () => null,
-        accessor: 'kind_icon',
-        disableSortBy: true,
-        size: 'xs',
+        accessor: 'id',
         id: 'id',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -872,7 +871,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreTo}>
+              <Link
+                data-test="internal-link"
+                to={exploreTo}
+                title={datasetTitle}
+              >
                 {datasetTitle}
               </Link>
             );
@@ -880,7 +883,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo} title={datasetTitle}>
+                {datasetTitle}
+              </GenericLink>
             );
           }
           try {
@@ -916,6 +921,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxxl',
         id: 'table_name',
       },
       {

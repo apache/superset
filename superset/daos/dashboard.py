@@ -20,7 +20,7 @@ import logging
 import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -56,6 +56,11 @@ from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
+from superset.utils.filters import is_excluded_by_extra_access
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -423,6 +428,12 @@ class DashboardDAO(BaseDAO[Dashboard]):
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
+            # This branch skips ``base_filter``, so an
+            # ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry -- which reaches the id
+            # branch below through it -- would otherwise leave the same
+            # dashboard absent by id and readable by uuid.
+            if dashboard and is_excluded_by_extra_access("dashboards", dashboard.id):
+                raise DashboardNotFoundError()
         else:
             query = (
                 db.session.query(Dashboard)
@@ -477,9 +488,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
         ).all()
 
     @staticmethod
-    def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
+    def get_datasets_for_dashboard(
+        id_or_slug: str,
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
+    ) -> list[tuple[Any, dict[str, Any]]]:
+        """Load datasets, sharing the endpoint's datasource authorization check."""
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
-        return dashboard.datasets_trimmed_for_slices()
+        return dashboard.datasets_trimmed_for_slices(
+            can_access_datasource=can_access_datasource
+        )
 
     @staticmethod
     def get_tabs_for_dashboard(id_or_slug: str) -> dict[str, Any]:

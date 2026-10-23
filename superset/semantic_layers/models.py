@@ -344,6 +344,9 @@ class SemanticView(AuditMixinNullable, Model):
     supports_samples: bool = False
     supports_drill_to_detail: bool = False
 
+    # Semantic views have no dataset-level SQL predicate for fetching filter values.
+    fetch_values_predicate: None = None
+
     # Use integer as the primary key for cross-database auto-increment
     # compatibility (sa.Identity() is not supported in MySQL or SQLite).
     # The uuid column is a secondary unique identifier used in URLs and perms.
