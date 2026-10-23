@@ -29,6 +29,7 @@ from mcp.types import ImageContent, TextContent
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.canvas.data import run_binding, RuntimeFilter
+from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.commands.canvas.draft import load_draft
@@ -182,13 +183,20 @@ def _preview_widget_impl(
         return {"error": f"No placement {placement_id!r} on this canvas"}, None
     widget_type = node.get("widgetType")
     props = node.get("props") or {}
+    if widget_id := node.get("widgetId"):
+        resolver = (
+            load_draft(draft_token).resolver() if draft_token else get_widget_resolver()
+        )
+        widget = resolver.widgets({widget_id}).get(widget_id)
+        if widget is None:
+            return {
+                "error": f"The widget {placement_id!r} holds no longer exists"
+            }, None
+        widget_type, props = widget.widget_type, widget.props
     result: dict[str, Any] = {
         "placement_id": placement_id,
         "widget_type": widget_type,
     }
-    if widget_type is None:
-        result["error"] = "Previews cover inline widgets; this placement is saved"
-        return result, None
     try:
         rows = _with_rows(result, props, runtime_filters)
     except Exception as ex:  # pylint: disable=broad-except

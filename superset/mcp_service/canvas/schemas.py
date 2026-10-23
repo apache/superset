@@ -62,6 +62,9 @@ class GetCanvasResponse(_Compact):
     placements: dict[str, dict[str, int]] | None = None
     widget_types: dict[str, str] | None = Field(default=None, alias="widgetTypes")
     grid_columns: dict[str, int] | None = Field(default=None, alias="gridColumns")
+    widgets: dict[str, dict[str, Any]] | None = Field(
+        default=None, description="The saved widgets placements hold, by UUID."
+    )
     error: str | None = None
 
 
@@ -168,6 +171,13 @@ class CanvasDraftResponse(_Compact):
         default=None, description="Placements pushed down without being named."
     )
     widget_types: dict[str, str] | None = Field(default=None, alias="widgetTypes")
+    widgets: dict[str, dict[str, Any]] | None = Field(
+        default=None, description="The saved widgets placements hold, by UUID."
+    )
+    changed_widgets: list[str] | None = Field(
+        default=None,
+        description="Commit was rejected because these widgets changed meanwhile.",
+    )
     canvas_revision: int | None = Field(
         default=None, description="The canvas revision after a commit."
     )

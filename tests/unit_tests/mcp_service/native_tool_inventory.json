@@ -24,13 +24,13 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 292,
-      "description_chars": 2089,
+      "description_chars": 2326,
       "entry_bytes": {
-        "structured": 5077,
-        "text_only": 2758
+        "structured": 5699,
+        "text_only": 2999
       },
       "input_schema_bytes": 232,
-      "output_schema_bytes": 2303
+      "output_schema_bytes": 2684
     },
     "apply_dashboard_filters": {
       "annotations": {
@@ -58,11 +58,11 @@
       "compact_description_chars": 257,
       "description_chars": 327,
       "entry_bytes": {
-        "structured": 3073,
+        "structured": 3454,
         "text_only": 754
       },
       "input_schema_bytes": 149,
-      "output_schema_bytes": 2303
+      "output_schema_bytes": 2684
     },
     "create_canvas": {
       "annotations": {
@@ -90,11 +90,11 @@
       "compact_description_chars": 291,
       "description_chars": 362,
       "entry_bytes": {
-        "structured": 3104,
+        "structured": 3485,
         "text_only": 785
       },
       "input_schema_bytes": 147,
-      "output_schema_bytes": 2303
+      "output_schema_bytes": 2684
     },
     "create_dataset": {
       "annotations": {
@@ -170,11 +170,11 @@
       "compact_description_chars": 51,
       "description_chars": 51,
       "entry_bytes": {
-        "structured": 2751,
+        "structured": 3132,
         "text_only": 432
       },
       "input_schema_bytes": 108,
-      "output_schema_bytes": 2303
+      "output_schema_bytes": 2684
     },
     "delete_chart": {
       "annotations": {
@@ -376,13 +376,13 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 209,
-      "description_chars": 589,
+      "description_chars": 620,
       "entry_bytes": {
-        "structured": 2348,
-        "text_only": 1025
+        "structured": 2579,
+        "text_only": 1056
       },
       "input_schema_bytes": 201,
-      "output_schema_bytes": 1307
+      "output_schema_bytes": 1507
     },
     "get_canvas_draft": {
       "annotations": {
@@ -394,11 +394,11 @@
       "compact_description_chars": 181,
       "description_chars": 194,
       "entry_bytes": {
-        "structured": 2920,
+        "structured": 3301,
         "text_only": 601
       },
       "input_schema_bytes": 162,
-      "output_schema_bytes": 2303
+      "output_schema_bytes": 2684
     },
     "get_catalog": {
       "annotations": {
@@ -848,6 +848,22 @@
       "input_schema_bytes": 415,
       "output_schema_bytes": 571
     },
+    "get_widget_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 253,
+      "description_chars": 496,
+      "entry_bytes": {
+        "structured": 3091,
+        "text_only": 1112
+      },
+      "input_schema_bytes": 362,
+      "output_schema_bytes": 1963
+    },
     "health_check": {
       "annotations": {
         "destructiveHint": false,
@@ -1144,13 +1160,29 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 299,
-      "description_chars": 796,
+      "description_chars": 906,
       "entry_bytes": {
-        "structured": 1888,
-        "text_only": 1132
+        "structured": 1999,
+        "text_only": 1243
       },
       "input_schema_bytes": 62,
       "output_schema_bytes": 740
+    },
+    "list_widgets": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 224,
+      "description_chars": 327,
+      "entry_bytes": {
+        "structured": 7207,
+        "text_only": 2744
+      },
+      "input_schema_bytes": 2189,
+      "output_schema_bytes": 4447
     },
     "manage_dashboard_certification": {
       "annotations": {
@@ -1459,12 +1491,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 555131,
-      "text_only": 228646
+      "structured": 567919,
+      "text_only": 232887
     },
     "compact_catalog_bytes": {
-      "structured": 496974,
-      "text_only": 170489
+      "structured": 509015,
+      "text_only": 173983
     },
     "largest_entry": {
       "structured": {
@@ -1476,6 +1508,6 @@
         "name": "manage_native_filters"
       }
     },
-    "tool_count": 91
+    "tool_count": 93
   }
 }

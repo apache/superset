@@ -236,6 +236,10 @@ Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
+Widgets (requires CANVAS feature flag):
+- list_widgets: List saved widgets with filtering and search (1-based pagination)
+- get_widget_info: Get a saved widget's type, description and props by ID or UUID
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -944,6 +948,10 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+from superset.mcp_service.widget.tool import (  # noqa: F401, E402
+    get_widget_info,
+    list_widgets,
+)
 from superset.mcp_service.widgets.tool import (  # noqa: F401, E402
     get_widget_control_schema,
     list_widget_types,
@@ -1055,6 +1063,8 @@ CANVAS_TOOLS = (
     "preview_widget",
     "list_widget_types",
     "get_widget_control_schema",
+    "list_widgets",
+    "get_widget_info",
 )
 
 

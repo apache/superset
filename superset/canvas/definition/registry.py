@@ -18,12 +18,12 @@
 Where the canvas looks up widget types and persisted widgets.
 
 Widget types come from the registry, which built-ins and extensions register
-into with ``@widget``; persisted widgets through a ``WidgetResolver``.
+into with ``@widget``; widget entities through a ``WidgetResolver``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 
 from superset_core.canvas import WidgetResolver
 from superset_core.widgets import Widget
@@ -37,21 +37,18 @@ def get_widget_types() -> WidgetTypes:
     return registry
 
 
-class _NoWidgets:
-    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
-        return {}
-
-    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
-        return set()
+_resolver: WidgetResolver | None = None
 
 
-_resolver: WidgetResolver = _NoWidgets()
-
-
-def set_widget_resolver(resolver: WidgetResolver) -> None:
+def set_widget_resolver(resolver: WidgetResolver | None) -> None:
     global _resolver
     _resolver = resolver
 
 
 def get_widget_resolver() -> WidgetResolver:
-    return _resolver
+    """The configured resolver, by default the ``widgets`` table."""
+    if _resolver is not None:
+        return _resolver
+    from superset.canvas.widgets import DatabaseWidgetResolver
+
+    return DatabaseWidgetResolver()

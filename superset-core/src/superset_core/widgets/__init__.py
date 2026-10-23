@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+Widget Framework API for superset-core.
 
-"""Public contract for registering Dashboard V2 widgets.
-
-Re-exported with the redundant-alias form so these are recognized as
-intentional re-exports (this codebase does not use ``__all__``).
+A widget is anything placed on a Canvas, such as a chart, a filter or a markdown
+block. Each saved widget is an occurrence of a registered widget type, with
+props that are valid against that type's schema.
 """
 
 from superset_core.widgets.base import (

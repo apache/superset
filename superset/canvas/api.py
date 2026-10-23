@@ -173,6 +173,7 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
         "name": widget.name,
         "schemaVersion": widget.schema_version,
         "container": behavior.container,
+        "structural": behavior.structural,
         "acceptedChildren": names(behavior.accepted_children),
         "allowedParents": names(behavior.allowed_parents),
         "gridColumns": behavior.grid_columns,
@@ -453,9 +454,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         delete:
           summary: Delete a canvas
           description: >-
-            Deletes the canvas, its inline widget instances and its operation
-            log. Persisted widget instances it placed are separate entities and
-            are not deleted.
+            Deletes the canvas and its operation log. The widgets it placed
+            are separate entities and are not deleted.
           parameters:
           - in: path
             schema:
@@ -593,6 +593,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                             description: >-
                               The span limits each node's widget declares, for
                               a client that lets the user resize
+                          widgets:
+                            type: object
+                            description: >-
+                              The widgets placements hold by UUID, with their
+                              widgetType, schemaVersion, name and props
                           canEdit:
                             type: boolean
                             description: >-

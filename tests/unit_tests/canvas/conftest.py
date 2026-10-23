@@ -29,8 +29,7 @@ def widget_types() -> Iterator[FakeResolver]:
     from superset.widgets.registry import registry as widget_registry
 
     resolver = FakeResolver(hidden={"chart-secret"})
-    previous_resolver = registry.get_widget_resolver()
     registry.set_widget_resolver(resolver)
     with patch.dict(widget_registry, canvas_widget_types(), clear=True):
         yield resolver
-    registry.set_widget_resolver(previous_resolver)
+    registry.set_widget_resolver(None)

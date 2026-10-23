@@ -50,7 +50,10 @@ def _apply_canvas_draft_ops_impl(
             ],
         }
     try:
-        before = render_context(load_draft(token).definition)["placements"]
+        start = load_draft(token)
+        before = render_context(start.definition, resolver=start.resolver())[
+            "placements"
+        ]
         draft, applied = ApplyCanvasDraftOperationsCommand(
             token, request.revision, request.ops
         ).run()
@@ -58,7 +61,7 @@ def _apply_canvas_draft_ops_impl(
         if (result := error_result(ex)) is None:
             raise
         return result
-    context = render_context(draft.definition)
+    context = render_context(draft.definition, resolver=draft.resolver())
     after = context["placements"]
     targeted = {op.get("id") for op in applied}
     return {
@@ -103,11 +106,12 @@ def apply_canvas_draft_ops(
 
     - ``{"op": "add", "widgetType": "<widget type>", "props": {...},
       "layout": {...}, "parent": "<id>", "index": n, "id": "<optional id>"}``
-      adds an inline widget; get its props schema with
-      ``get_widget_control_schema``. Use ``"widgetId": "<uuid>"`` instead of
-      ``widgetType``/``props`` to place a saved widget.
-    - ``{"op": "set_props", "id": "<id>", "props": {...}}`` replaces an inline
-      widget's props.
+      adds a widget; get its props schema with ``get_widget_control_schema``.
+      A chart, table or filter becomes a saved widget (``"name"`` optional),
+      created when the draft is published. Use ``"widgetId": "<uuid>"``
+      instead of ``widgetType``/``props`` to place an existing one.
+    - ``{"op": "set_props", "id": "<id>", "props": {...}}`` replaces the
+      props of a placement's widget, on every canvas that places it.
     - ``{"op": "place", "id": "<id>", "layout": {"col", "row", "colSpan",
       "rowSpan"}}`` moves or resizes within the parent's grid.
 
@@ -126,10 +130,11 @@ def apply_canvas_draft_ops(
     at 1. Leave ``col``/``row`` out to auto-place, and spans out for the
     widget's default size. ``place`` takes the whole layout.
 
-    Overlaps push the later placement (in ``children`` order) down; nothing
-    moves back up, so close gaps with ``place``. Containers grow to fit.
-    The response has every resolved ``placements`` and ``displaced``, what
-    got pushed without being named.
+    Overlaps push the later placement (in ``children`` order) down; a
+    ``place`` first moves its node ahead of whatever it lands on, so it wins
+    the spot. Nothing moves back up, so close gaps with ``place``.
+    Containers grow to fit. The response has every resolved ``placements``
+    and ``displaced``, what got pushed without being named.
     """
     return CanvasDraftResponse.model_validate(
         _apply_canvas_draft_ops_impl(token, revision, ops)

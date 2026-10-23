@@ -18,17 +18,18 @@
 """
 What a canvas needs from the widget side beyond the widget registry.
 
-A canvas places widget instances. An inline instance is stored on its
-placement, as a widget type, schema version and props; a persisted widget is
-its own entity (a ``widgets`` row), referenced by UUID. The widget type
-registry (``superset_core.widgets``) describes each type's behavior;
-``WidgetResolver`` looks up persisted widgets.
+A canvas places widgets. Structural widgets (containers and text) are part of
+the canvas and stored on their placement, as a widget type, schema version and
+props; every other widget is its own entity (a ``widgets`` row), referenced by
+UUID. The widget type registry (``superset_core.widgets``) describes each
+type's behavior; ``WidgetResolver`` looks up the widget entities.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Protocol
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
@@ -59,8 +60,20 @@ class GridPlacement(BaseModel):
         return self
 
 
+@dataclass
+class StoredWidget:
+    """A widget entity's content, as a canvas renders and edits it."""
+
+    widget_type: str
+    schema_version: int
+    name: str
+    props: dict[str, Any] = field(default_factory=dict)
+    # The stored revision; ``None`` for a widget not saved yet.
+    revision: int | None = None
+
+
 class WidgetResolver(Protocol):
-    """Looks up the persisted widgets a canvas references."""
+    """Looks up the widget entities a canvas references."""
 
     def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
         """
@@ -74,4 +87,17 @@ class WidgetResolver(Protocol):
 
     def placeable(self, widget_ids: Iterable[str]) -> set[str]:
         """The widgets the current user may place on a canvas."""
+        ...
+
+    def widgets(self, widget_ids: Iterable[str]) -> dict[str, StoredWidget]:
+        """
+        Return ``{widget UUID: content}`` for the widgets that exist.
+
+        Not filtered by access: a canvas grants read access to the widgets it
+        places, as a dashboard does to its charts.
+        """
+        ...
+
+    def editable(self, widget_ids: Iterable[str]) -> set[str]:
+        """The widgets the current user may change."""
         ...

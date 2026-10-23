@@ -64,7 +64,7 @@ export interface CanvasChild {
   nodeId: string;
   /** The child's widget type, when its widget still resolves. */
   widgetType?: string;
-  /** The child's props, when it is an inline instance. */
+  /** The child's props, valid against its widget's schema. */
   props?: Record<string, unknown>;
   /** The child's stored layout within this container. */
   layout: Record<string, unknown>;
@@ -79,11 +79,11 @@ export interface CanvasWidgetProps {
   nodeId: string;
   /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
-  /** For a persisted widget: its UUID. */
+  /** For a widget entity (anything but a container or text): its UUID. */
   widgetId?: string;
   /**
-   * For an inline instance: its props, valid against the widget's schema at
-   * `schemaVersion`. Only explicitly set values; defaults come from the schema.
+   * The widget's props, valid against its schema at `schemaVersion`. Only
+   * explicitly set values; defaults come from the schema.
    */
   props?: Record<string, unknown>;
   schemaVersion?: number;

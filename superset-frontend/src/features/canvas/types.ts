@@ -52,7 +52,7 @@ interface CanvasNodeBase {
   children?: string[];
 }
 
-/** A placement of a persisted widget, by UUID. */
+/** A placement of a widget entity, by UUID. */
 export interface PersistedCanvasNode extends CanvasNodeBase {
   widgetId: string;
   widgetType?: never;
@@ -60,7 +60,7 @@ export interface PersistedCanvasNode extends CanvasNodeBase {
   props?: never;
 }
 
-/** A placement holding an inline widget instance. */
+/** A placement holding a structural widget (a container or text). */
 export interface InlineCanvasNode extends CanvasNodeBase {
   widgetType: string;
   schemaVersion: number;
@@ -119,8 +119,18 @@ export interface CanvasDefinitionResult {
   gridColumns: Record<string, number>;
   /** Node id -> its widget's span limits, for nodes that declare any. */
   layoutConstraints: Record<string, SpanConstraints>;
+  /** Widget UUID -> the content of each widget entity placements hold. */
+  widgets?: Record<string, StoredWidget>;
   /** Whether the current user may apply operations to this canvas. */
   canEdit: boolean;
+}
+
+/** A widget entity's content, as a canvas renders it. */
+export interface StoredWidget {
+  widgetType: string;
+  schemaVersion: number;
+  name: string;
+  props: Record<string, unknown>;
 }
 
 /**

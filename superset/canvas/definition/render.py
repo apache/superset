@@ -25,7 +25,9 @@ placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
 children's placements are in its own grid units. ``layoutConstraints`` gives
 the span limits a widget declares, so a client that lets the user drag and
-resize clamps to the same bounds the server validates against.
+resize clamps to the same bounds the server validates against. ``widgets``
+holds the content of the widget entities placements hold, keyed by UUID:
+whoever can read the canvas can read the widgets it places.
 
 ``layouts`` gives each node's *stored* layout, which is what placement is
 resolved from and is not recoverable from ``placements``: an auto-placed node
@@ -43,6 +45,7 @@ from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.widgets import WidgetUi
 
 from superset.canvas.definition.grid import resolve_grid
+from superset.canvas.definition.pending import widget_payload
 from superset.canvas.definition.placements import placement_types
 from superset.canvas.definition.registry import (
     get_widget_resolver,
@@ -57,10 +60,14 @@ def render_context(
     resolver: WidgetResolver | None = None,
 ) -> dict[str, Any]:
     nodes = definition["nodes"]
+    resolver = resolver or get_widget_resolver()
     node_types = placement_types(
         nodes,
         get_widget_types() if widget_types is None else widget_types,
-        resolver or get_widget_resolver(),
+        resolver,
+    )
+    widgets = resolver.widgets(
+        {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
     )
     type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 
@@ -97,6 +104,7 @@ def render_context(
             for node_id, widget in node_types.items()
             if node_id in placements and (constraints := _span_constraints(widget.ui))
         },
+        "widgets": widget_payload(widgets),
     }
 
 

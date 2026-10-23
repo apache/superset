@@ -100,27 +100,41 @@ class CanvasPlacementUnboundError(CommandException):
 class DraftConflictError(CommandException):
     """
     A draft write based on an older draft revision, or a commit of a draft
-    whose canvas changed since the draft started.
+    whose canvas, or a widget it changed, changed since the draft started.
     """
 
     status = 409
 
-    def __init__(self, revision: int, canvas_changed: bool = False) -> None:
+    def __init__(
+        self,
+        revision: int,
+        canvas_changed: bool = False,
+        widgets: list[str] | None = None,
+    ) -> None:
         self.revision = revision
         self.canvas_changed = canvas_changed
-        message = (
-            _("The canvas changed since this draft started; start a new draft.")
-            if canvas_changed
-            else _("The draft changed since your revision; reload it.")
-        )
+        self.widgets = widgets or []
+        if canvas_changed:
+            message = _(
+                "The canvas changed since this draft started; start a new draft."
+            )
+        elif self.widgets:
+            message = _(
+                "Widgets this draft changes were changed since; start a new draft."
+            )
+        else:
+            message = _("The draft changed since your revision; reload it.")
         super().__init__(message)
 
     def to_payload(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "message": str(self.message),
             "revision": self.revision,
             "canvasChanged": self.canvas_changed,
         }
+        if self.widgets:
+            payload["widgets"] = self.widgets
+        return payload
 
 
 class DefinitionInvalidError(CommandException):

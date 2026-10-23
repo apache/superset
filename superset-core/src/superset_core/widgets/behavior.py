@@ -54,6 +54,9 @@ class WidgetBehavior:
     grid_columns: int | None = None
     child_layout_model: type[BaseModel] | None = None
     bounds_filter_scope: bool = True
+    # Part of the canvas's own structure (a container or text): stored on its
+    # placement. Every other widget is its own entity, placed by reference.
+    structural: bool = False
 
     # Sets runtime filters for the widgets in its scope.
     filter: bool = False

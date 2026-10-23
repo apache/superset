@@ -17,6 +17,6 @@
 
 """Dashboard canvas contracts for widget providers."""
 
-from superset_core.canvas.base import GridPlacement, WidgetResolver
+from superset_core.canvas.base import GridPlacement, StoredWidget, WidgetResolver
 
-__all__ = ["GridPlacement", "WidgetResolver"]
+__all__ = ["GridPlacement", "StoredWidget", "WidgetResolver"]

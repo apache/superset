@@ -730,8 +730,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
-    # Canvas: the AI-first successor to dashboards, whose widgets are placed on
-    # a canvas. When off, its APIs and pages answer 404; existing canvases are kept.
+    # Enables Canvas, the next generation of dashboards, and the Widget Framework
+    # it places: schema-driven, extension-delivered widgets and saved widget
+    # instances (SIPs: apache/superset#44989 and apache/superset#44875)
     # @lifecycle: development
     "CANVAS": False,
     # Enables experimental chart plugins
@@ -3487,6 +3488,7 @@ SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = [
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_THEMES: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_CANVASES: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_WIDGETS: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown

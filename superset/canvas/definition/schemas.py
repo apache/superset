@@ -19,10 +19,11 @@ The dashboard canvas and the operations that change it.
 
 A canvas is a tree of placements: a flat ``nodes`` map keyed by placement id,
 with the tree expressed through ``children`` id lists. A placement shows one
-widget instance, either persisted (referenced by UUID) or inline (its widget,
-schema version and props stored on the placement), and holds its layout; its
-filter scope lives in ``interactions``. The root is not a node: it always
-exists, is always a grid, and is addressed as ``"root"`` in operations.
+widget: a widget entity referenced by UUID, or a structural widget (a
+container or text) whose type, schema version and props are stored on the
+placement. It holds its layout; its filter scope lives in ``interactions``.
+The root is not a node: it always exists, is always a grid, and is addressed
+as ``"root"`` in operations.
 """
 
 from __future__ import annotations
@@ -65,8 +66,8 @@ class Root(_Model):
 
 class Node(_Model):
     """
-    A placement: a persisted widget by UUID (``widgetId``), or an inline
-    instance of a widget type (``widgetType``, ``schemaVersion``, ``props``).
+    A placement: a widget entity by UUID (``widgetId``), or a structural
+    widget stored here (``widgetType``, ``schemaVersion``, ``props``).
     """
 
     widget_id: str | None = Field(default=None, min_length=1)
@@ -87,10 +88,10 @@ class Node(_Model):
         if self.widget_id is not None:
             if self.schema_version is not None or self.props is not None:
                 raise ValueError(
-                    "a persisted widget's schemaVersion and props live with the widget"
+                    "a widget entity's schemaVersion and props live with the widget"
                 )
         elif self.schema_version is None:
-            raise ValueError("an inline instance needs its schemaVersion")
+            raise ValueError("a structural widget needs its schemaVersion")
         elif self.props is None:
             self.props = {}
         return self
@@ -198,13 +199,16 @@ def empty_definition() -> dict[str, Any]:
 
 class AddOp(_Model):
     """
-    Place a persisted widget (``widgetId``) or a new inline instance
-    (``widgetType`` and ``props``) under ``parent``; how a committed draft of a
-    new inline instance lands on a canvas.
+    Place a saved widget (``widgetId``) or a new one (``widgetType`` and
+    ``props``) under ``parent``.
+
+    A new structural widget (a container or text) is stored on its placement.
+    Any other new widget is created as its own entity, saved with the canvas,
+    and the placement holds it by UUID; ``name`` names it.
 
     The placement id is the caller's ``id`` when given, so later operations in
     the same request can reference it; otherwise the server derives one from
-    the widget's name. Inline props are stored at the widget's current schema
+    the widget's name. Props are stored at the widget's current schema
     version.
     """
 
@@ -212,6 +216,7 @@ class AddOp(_Model):
     id: NodeId | None = None
     widget_id: str | None = Field(default=None, min_length=1)
     widget_type: str | None = Field(default=None, min_length=1)
+    name: str | None = Field(default=None, min_length=1, max_length=250)
     props: dict[str, Any] | None = None
     # The schema version ``props`` were written at, e.g. by a draft; older
     # props are migrated. Defaults to the widget's current version.
@@ -226,9 +231,11 @@ class AddOp(_Model):
         if (self.widget_id is None) == (self.widget_type is None):
             raise ValueError("add takes either widgetId or widgetType")
         if self.widget_id is not None and (
-            self.props is not None or self.schema_version is not None
+            self.props is not None
+            or self.schema_version is not None
+            or self.name is not None
         ):
-            raise ValueError("props are only for an inline widget type")
+            raise ValueError("props and name are only for a new widget")
         if self.id in RESERVED_IDS:
             raise ValueError(f"{self.id!r} is reserved")
         return self
@@ -262,8 +269,8 @@ class PlaceOp(_Model):
 
 class SetPropsOp(_Model):
     """
-    Replace an inline instance's props, stored at its widget's current schema
-    version; how a committed draft of an inline instance is written back.
+    Replace the props of the widget a placement holds, stored at its current
+    schema version. A widget entity changes everywhere it is placed.
     """
 
     op: Literal["set_props"]

@@ -284,6 +284,32 @@ def test_preview_without_a_renderer_returns_rows_only() -> None:
     assert result["columns"] == ["revenue"]
 
 
+def test_preview_reads_the_widget_a_placement_holds() -> None:
+    from superset_core.canvas import StoredWidget
+
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    binding = {"datasetId": 13, "metrics": [REVENUE]}
+    resolver = MagicMock()
+    resolver.widgets.return_value = {
+        "w1": StoredWidget("echarts", 1, "Revenue", {"dataBinding": binding})
+    }
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}.get_widget_resolver", return_value=resolver),
+        patch(
+            f"{PREVIEW}.run_binding", return_value=PlacementData([], None, None)
+        ) as run,
+        patch(f"{PREVIEW}.current_app") as app,
+    ):
+        dao.load.return_value = _preview_canvas({"widgetId": "w1"})
+        app.config = {"CANVAS_WIDGET_RENDERER_URL": None}
+        result, _ = _preview_widget_impl(1, "chart", dark=False)
+
+    assert result["widget_type"] == "echarts"
+    assert run.call_args.args[0] == binding
+
+
 def test_preview_merges_renderer_warnings_and_image() -> None:
     from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
 

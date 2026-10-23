@@ -63,10 +63,21 @@ def test_a_persisted_instance_placement_holds_no_props() -> None:
     assert found[0][0] == "/nodes/a"
 
 
-def test_inline_props_are_validated_against_the_widget() -> None:
-    found = issues(canvas({"a": inline("chart", {"metric": 3})}))
+def test_stored_props_are_validated_against_the_widget() -> None:
+    found = issues(canvas({"a": inline("markdown", {"title": 3})}))
 
-    assert found == [("/nodes/a/props/metric", "Input should be a valid string")]
+    assert found == [("/nodes/a/props/title", "Input should be a valid string")]
+
+
+def test_only_structural_widgets_are_stored_on_a_placement() -> None:
+    found = issues(canvas({"a": inline("chart")}))
+
+    assert found == [
+        (
+            "/nodes/a/widgetType",
+            "a chart widget is its own entity: place it by widgetId",
+        )
+    ]
 
 
 def test_unknown_inline_widget_is_rejected_on_write() -> None:
@@ -90,21 +101,21 @@ def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
 
 def test_inline_props_are_migrated_to_the_widget_version() -> None:
     rules = canvas_widget_types()
-    chart = rules["chart"]
-    rules["chart"] = type(
-        "ChartV2",
-        (chart,),
+    markdown = rules["markdown"]
+    rules["markdown"] = type(
+        "MarkdownV2",
+        (markdown,),
         {
             "schema_version": 2,
-            "migrators": {1: lambda props: {"metric": props["measure"]}},
+            "migrators": {1: lambda props: {"title": props["heading"]}},
         },
     )
-    raw = canvas({"a": inline("chart", {"measure": "sum"})})
+    raw = canvas({"a": inline("markdown", {"heading": "Sales"})})
 
     result = normalize_definition(raw, rules, FakeResolver())
 
     assert result["nodes"]["a"]["schemaVersion"] == 2
-    assert result["nodes"]["a"]["props"] == {"metric": "sum"}
+    assert result["nodes"]["a"]["props"] == {"title": "Sales"}
 
 
 def test_reserved_placement_ids_are_rejected() -> None:

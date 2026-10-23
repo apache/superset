@@ -36,6 +36,7 @@ def _canvas_facts(cls: Any) -> Dict[str, Any]:
     behavior, ui = cls.behavior, cls.ui
     facts: Dict[str, Any] = {
         "container": behavior.container,
+        "structural": behavior.structural,
         "acceptedChildren": sorted(behavior.accepted_children)
         if behavior.accepted_children is not None
         else None,
@@ -93,7 +94,8 @@ def list_widget_types() -> ListWidgetTypesResponse:
     out on a grid, its ``gridColumns``; a type that must sit inside another
     lists ``allowedParents``, filters are ``filter``, widgets that filters
     narrow are ``filterable``, and ``defaultSize`` is ``[columns, rows]`` in
-    the parent's grid.
+    the parent's grid. ``structural`` types (containers, text) live in the
+    canvas; adding any other type creates a saved widget.
     """
     return ListWidgetTypesResponse.model_validate(
         {"widget_types": _list_widget_types_impl()}

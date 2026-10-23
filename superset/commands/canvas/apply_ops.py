@@ -19,11 +19,14 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Any
+from uuid import UUID
 
-from superset import security_manager
+from superset_core.canvas import StoredWidget, WidgetResolver
+
+from superset import db, security_manager
 from superset.canvas.definition.ops import (
     AppliedOperation,
     apply_operations,
@@ -33,6 +36,7 @@ from superset.canvas.definition.ops import (
     overlapping,
     Touch,
 )
+from superset.canvas.definition.pending import PendingWidgetResolver
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import AddOp, Operation
@@ -53,10 +57,12 @@ from superset.commands.canvas.exceptions import (
 )
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.canvas import Canvas
 from superset.realtime.publish import publish_realtime
 from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
+from superset.widgets.models import Widget
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +81,14 @@ class ApplyResult:
     scopes: dict[str, dict[str, list[str]]]
     # Resolved placements and widget types after the write.
     render_context: dict[str, Any]
+    # UUIDs of the widgets the write created or changed.
+    widgets: list[str] = field(default_factory=list)
 
 
-def placement_issues(ops: list[Operation]) -> list[Issue]:
-    """Persisted instances being added that the current user may not place."""
+def placement_issues(
+    ops: list[Operation], resolver: WidgetResolver | None = None
+) -> list[Issue]:
+    """Widgets being added by UUID that the current user may not place."""
     added = [
         (index, op.widget_id)
         for index, op in enumerate(ops)
@@ -86,7 +96,8 @@ def placement_issues(ops: list[Operation]) -> list[Issue]:
     ]
     if not added:
         return []
-    allowed = get_widget_resolver().placeable({widget_id for _, widget_id in added})
+    resolver = resolver or get_widget_resolver()
+    allowed = resolver.placeable({widget_id for _, widget_id in added})
     return [
         Issue(
             pointer("ops", index, "widgetId"),
@@ -98,11 +109,16 @@ def placement_issues(ops: list[Operation]) -> list[Issue]:
 
 
 def apply_or_raise(
-    definition: dict[str, Any], ops: list[Operation]
+    definition: dict[str, Any],
+    ops: list[Operation],
+    pending: dict[str, StoredWidget] | None = None,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
-    """Apply ``ops`` to a copy of ``definition``, as one atomic batch."""
+    """
+    Apply ``ops`` to a copy of ``definition``, as one atomic batch; widgets
+    they create or change are added to ``pending``.
+    """
     try:
-        return apply_operations(definition, ops)
+        return apply_operations(definition, ops, pending=pending)
     except OperationError as ex:
         raise DefinitionInvalidError(
             str(ex),
@@ -120,7 +136,8 @@ def apply_or_raise(
 class ApplyCanvasOperationsCommand(BaseCommand):
     """
     Apply operations to the latest definition, as long as no change made since
-    ``base_revision`` touched the same nodes and field groups.
+    ``base_revision`` touched the same nodes and field groups, and save the
+    widgets they create or change in the same transaction.
     """
 
     def __init__(
@@ -129,6 +146,7 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         base_revision: int,
         ops: list[Operation],
         strict: bool = False,
+        widgets: dict[str, StoredWidget] | None = None,
     ) -> None:
         self._canvas_ref = str(canvas_id_or_uuid)
         self._canvas_id = 0
@@ -136,6 +154,8 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self._ops = ops
         # A draft commit: any change since ``base_revision`` rejects it.
         self._strict = strict
+        # Widgets a draft created or changed, saved with the canvas.
+        self._widgets = dict(widgets or {})
 
     def run(self) -> ApplyResult:
         canvas = CanvasDAO.find_by_id_or_uuid(self._canvas_ref)
@@ -156,22 +176,27 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         if self._base_revision != current:
             self._check_overlap(current, named_touches(self._ops))
 
-        definition, applied = apply_or_raise(CanvasDAO.load(canvas), self._ops)
+        pending = dict(self._widgets)
+        definition, applied = apply_or_raise(CanvasDAO.load(canvas), self._ops, pending)
 
         if self._base_revision != current:
             self._check_overlap(current, applied_touches(applied))
 
+        save_widgets(pending, canvas)
         revision = current + 1
         canvas.definition = json.dumps(definition)
         canvas.definition_version = definition["version"]
         canvas.revision = revision
-        CanvasDAO.log(canvas.id, revision, applied, get_user_id())
+        CanvasDAO.log(
+            canvas.id, revision, [a for a in applied if a.replay], get_user_id()
+        )
         CanvasDAO.prune(canvas.id, revision - OP_LOG_RETAINED_REVISIONS)
         return ApplyResult(
             revision=revision,
             ops=[a.op for a in applied],
             scopes=resolve_scopes(definition),
             render_context=render_context(definition),
+            widgets=sorted(pending),
         )
 
     def _check_overlap(self, current: int, touches: list[Touch]) -> None:
@@ -196,10 +221,52 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             security_manager.raise_for_editorship(canvas)
         except SupersetSecurityException as ex:
             raise CanvasForbiddenError() from ex
-        if issues := placement_issues(self._ops):
+        resolver = PendingWidgetResolver(get_widget_resolver(), self._widgets)
+        if issues := placement_issues(self._ops, resolver):
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
+
+
+def save_widgets(pending: dict[str, StoredWidget], canvas: Canvas) -> None:
+    """
+    Create the new widgets in ``pending`` and write the changed ones, each only
+    if nobody saved it since it was loaded. A new widget is edited by the
+    canvas's editors and read through the canvases that place it.
+    """
+    changed: list[str] = []
+    for widget_id, widget in pending.items():
+        if widget.revision is None:
+            db.session.add(
+                Widget(
+                    uuid=UUID(widget_id),
+                    widget_type=widget.widget_type,
+                    schema_version=widget.schema_version,
+                    name=widget.name,
+                    props=widget.props,
+                    revision=1,
+                    editors=list(canvas.editors),
+                )
+            )
+            continue
+        row = (
+            db.session.query(Widget)
+            .filter(Widget.uuid == UUID(widget_id))
+            .one_or_none()
+        )
+        if row is None or row.revision != widget.revision:
+            changed.append(widget_id)
+            continue
+        try:
+            security_manager.raise_for_editorship(row)
+        except SupersetSecurityException as ex:
+            raise CanvasForbiddenError() from ex
+        row.props = widget.props
+        row.schema_version = widget.schema_version
+        row.revision = widget.revision + 1
+    if changed:
+        raise DraftConflictError(canvas.revision, widgets=sorted(changed))
+    db.session.flush()
 
 
 def applied_touches(applied: list[AppliedOperation]) -> list[Touch]:
