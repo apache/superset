@@ -24,6 +24,30 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
+  query (no post-processing or time offsets, and not a report's client-processed
+  result), a dimension column of nullable integers that holds a value beyond
+  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
+  strings (the existing contract for large integers), and CSV, Excel and Arrow
+  exports carry the exact integer. Consumers that parsed these values as JSON
+  numbers receive a string for them. Metric columns are unchanged, and results
+  cached before the upgrade keep the old values until they expire.
+
+- **Bulk semantic view creation is capped and time-bounded.** With
+  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
+  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
+  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
+  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
+  up. Clients adding more views should split them across requests and retry
+  timed-out views.
+
+- `superset-frontend` type-checks with TypeScript 7, whose native compiler no
+  longer ships the JavaScript compiler API. The webpack dev server therefore
+  no longer runs `fork-ts-checker-webpack-plugin`, and the `DISABLE_TS_CHECKER`
+  environment variable is gone; run `npm run type` (or `npm run type -- --watch`)
+  for type errors and `npm run plugins:build` to refresh package `.d.ts` output.
+  Storybook's prop tables now come from `react-docgen` instead of
+  `react-docgen-typescript`.
 - MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
   row-collapsing post-processing leaves input coverage unverified, not only when
   truncation is observed. Output row counts do not prove complete input coverage.
@@ -878,14 +902,17 @@ them had no effect and they can be deleted from custom configs.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
+This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
+(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
+releases, it is the same minimal image.
 
 **What operators should expect:**
 

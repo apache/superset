@@ -140,10 +140,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
 
             if sql:
                 try:
+                    # Render with the params chart execution exposes, so the
+                    # derived schema comes from the SQL the access check sees.
                     parse_result = process_jinja_sql(
                         sql,
                         database,
-                        template_params,
+                        template_params_for_access_check(template_params),
                     )
                 except Exception:  # pylint: disable=broad-exception-caught
                     logger.debug(
