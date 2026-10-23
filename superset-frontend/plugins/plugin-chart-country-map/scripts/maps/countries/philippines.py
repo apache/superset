@@ -14,23 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Philippines regions: dissolves provinces into regions, with two
-renamed to their current official names.
+"""Philippines: a province-level community source replaces the raw,
+outdated Natural Earth boundaries, plus a dissolve of the (unrelated,
+Natural-Earth-sourced) regions.
 
-NOTE - a bug found while porting this, deliberately NOT fixed here:
-the notebook this replaces also builds a corrected province-level
-"philippines" map (merging highly-urbanized cities into their home
-province, splitting Maguindanao/Davao, renaming Compostela Valley) from
-a pinned community source - but never actually wires that result into
-its output. The plain "philippines" entry Superset ships today is still
-built from raw, outdated Natural Earth data; the corrected GeoDataFrame
-the notebook computes is silently discarded. Confirmed against the
-currently-committed philippines.geojson, which still has "Compostela
-Valley" and an undivided "Maguindanao" - this conversion preserves that
-same (buggy) output for byte-for-byte fidelity rather than silently
-changing shipped data. Fixing it is a separate, visible decision for a
-follow-up PR, not something to bundle into a scripts-vs-notebook
-refactor.
+The notebook this replaces fetched this same community source, renamed
+its columns, and then never wired the result into its output - the
+plain "philippines" entry it shipped was actually still raw Natural
+Earth data (highly-urbanized cities split out as their own polygons, an
+undivided "Maguindanao", "Compostela Valley" instead of "Davao de
+Oro"). Confirmed against the previously-committed philippines.geojson.
+This fixes that: the corrected 83-province source is now the
+"philippines" output.
 """
 
 from __future__ import annotations
@@ -41,8 +36,31 @@ from maps.context import BuildContext
 
 NAME = "philippines"
 
+_URL = (
+    "https://raw.githubusercontent.com/jdruii/phgeojson/"
+    "098399b6f27ca10e31c8f304e4148b3a56431ec2/philippines.geojson"
+)
+
 
 def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
+    try:
+        source = gpd.read_file(_URL)
+    except Exception as exc:  # noqa: BLE001 - re-raised with context below
+        raise RuntimeError(
+            f"Unable to download or load the GeoJSON file for Philippines: {exc}"
+        ) from exc
+
+    required_columns = {"NAME_1", "ISO", "geometry"}
+    if missing_columns := required_columns - set(source.columns):
+        raise ValueError(
+            f"Philippines source is missing columns: {sorted(missing_columns)}. "
+            f"Available columns: {sorted(source.columns)}"
+        )
+
+    philippines = source.rename(columns={"NAME_1": "name", "ISO": "iso_3166_2"})[
+        ["geometry", "iso_3166_2", "name"]
+    ].copy()
+
     philippines_regions = ctx.df[ctx.df.admin == "Philippines"][
         ["geometry", "region_cod", "region"]
     ]
@@ -63,4 +81,4 @@ def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
         }
     )
 
-    return {"philippines_regions": philippines_regions}
+    return {NAME: philippines, "philippines_regions": philippines_regions}
