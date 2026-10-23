@@ -240,7 +240,10 @@ anything.
 Some activity entries, such as adding a chart to a dashboard without changing
 the dashboard's saved properties, have no corresponding version snapshot.
 They remain visible in history, but cannot be previewed, restored, or opened
-as a new chart or dashboard.
+as a new chart or dashboard. These rows show “No saved version to preview”
+and are not interactive. You can still expand their save group to read the
+changes. Preview and version actions are available only when a saved snapshot
+exists; the current version does not offer Restore because it is already live.
 
 <img
   src={useBaseUrl('/img/version-history/version-history-preview.jpg')}
@@ -301,8 +304,10 @@ and would overwrite the restore on the next sync.
 ## Opening a version as something new
 
 Use the **… (actions)** menu on a save-group header to open that version as
-a new chart or dashboard. Individual field-change rows preview the version;
-they do not have separate action menus.
+a new chart or dashboard. Individual field-change rows with a saved snapshot
+select that version; selecting the current version exits a historical preview.
+Rows without a saved snapshot cannot be selected. Field-change rows do not
+have separate action menus.
 
 **Open as new** creates a brand-new chart or dashboard from the selected
 version and leaves the original untouched. This is the safer option when you
