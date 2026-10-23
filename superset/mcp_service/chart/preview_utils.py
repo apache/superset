@@ -2512,6 +2512,7 @@ def resolve_bullet_render_model(  # noqa: C901
             measures = [0.0]
 
     ranges = _bullet_numeric_control_tokens(dict.get(form_data, "ranges"), "ranges")
+    ranges_user_entered = bool(ranges)
     if not ranges:
         # Match Bullet/transformProps.ts: the largest measure drives one
         # qualitative band whose upper threshold is 110% of that measure.
@@ -2530,10 +2531,12 @@ def resolve_bullet_render_model(  # noqa: C901
         raise BulletOutputError("Bullet label and legend controls must be booleans")
 
     range_labels = _bullet_string_tokens(dict.get(form_data, "range_labels"))
+    # Hidden `range_colors` left over from cleared Ranges must not tint the
+    # synthesized band; Explore ignores them unless `ranges` is user-entered.
     raw_range_colors = dict.get(form_data, "range_colors")
     range_colors = (
         [color if type(color) is str else "" for color in raw_range_colors]
-        if type(raw_range_colors) is list
+        if type(raw_range_colors) is list and ranges_user_entered
         else []
     )
     marker_labels = _bullet_string_tokens(dict.get(form_data, "marker_labels"))

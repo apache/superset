@@ -198,6 +198,12 @@ export default function ColorPickerControl({
       return customPresets.map(item => ({
         label: item.label,
         colors: item.colors.map(color => {
+          if (resolveThemeTokens && color in SPECIAL_COLORS) {
+            // Share the trigger's lookup so the preset chip matches it.
+            return (
+              toDisplayHex(color as string, themeColors, true) ?? String(color)
+            );
+          }
           if (color in SPECIAL_COLORS) {
             return rgbaToHex(
               SPECIAL_COLORS[color as SpecialColorKey],
