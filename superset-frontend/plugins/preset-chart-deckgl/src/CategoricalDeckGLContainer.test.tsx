@@ -328,13 +328,15 @@ test('null-dimension rows reach the layer with the N/A color and toggle with the
         width={400}
         height={300}
         setControlValue={jest.fn()}
+        datasource={{} as CategoricalDeckGLContainerProps['datasource']}
+        filterState={{}}
+        setDataMask={jest.fn()}
+        onContextMenu={jest.fn()}
+        emitCrossFilters={false}
         payload={
           {
             data: {
-              features: [
-                { cat_color: 'A' },
-                { cat_color: NULL_CATEGORY_KEY },
-              ],
+              features: [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }],
             },
           } as unknown as CategoricalDeckGLContainerProps['payload']
         }
