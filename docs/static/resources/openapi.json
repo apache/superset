@@ -17035,6 +17035,10 @@
                   "properties": {
                     "result": {
                       "properties": {
+                        "canEdit": {
+                          "description": "Whether the current user may apply operations to this canvas",
+                          "type": "boolean"
+                        },
                         "crossFilterScopes": {
                           "description": "The node ids each cross-filter source drives; empty while cross-filters are turned off",
                           "type": "object"
@@ -17052,6 +17056,14 @@
                         },
                         "gridColumns": {
                           "description": "The column count of each grid container",
+                          "type": "object"
+                        },
+                        "layoutConstraints": {
+                          "description": "The span limits each node's widget declares, for a client that lets the user resize",
+                          "type": "object"
+                        },
+                        "layouts": {
+                          "description": "The stored layout of every node on a grid, which placement is resolved from, for a client that previews a drag before writing it",
                           "type": "object"
                         },
                         "placements": {

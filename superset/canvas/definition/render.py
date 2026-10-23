@@ -23,9 +23,17 @@ without re-implementing auto-placement and collision push-down.
 ``widgetTypes`` maps placements to their widget so clients pick a renderer;
 placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
-children's placements are in its own grid units. ``widgets`` holds the content
-of the widget entities placements hold, keyed by UUID: whoever can read the
-canvas can read the widgets it places.
+children's placements are in its own grid units. ``layoutConstraints`` gives
+the span limits a widget declares, so a client that lets the user drag and
+resize clamps to the same bounds the server validates against. ``widgets``
+holds the content of the widget entities placements hold, keyed by UUID:
+whoever can read the canvas can read the widgets it places.
+
+``layouts`` gives each node's *stored* layout, which is what placement is
+resolved from and is not recoverable from ``placements``: an auto-placed node
+has no stored ``col``/``row`` at all, and validation writes a collided node's
+pushed-down ``row`` back to its layout. A client previewing a drag has to
+resolve from these to reach the same answer the server will.
 """
 
 from __future__ import annotations
@@ -34,6 +42,7 @@ from typing import Any
 
 from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
+from superset_core.widgets import WidgetUi
 
 from superset.canvas.definition.grid import resolve_grid
 from superset.canvas.definition.pending import widget_payload
@@ -73,22 +82,41 @@ def render_context(
             grid_columns[node_id] = columns
 
     placements: dict[str, dict[str, int]] = {}
+    stored_layouts: dict[str, dict[str, Any]] = {}
     for children, columns in grids:
         layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
         rects, _ = resolve_grid(layouts, columns)
-        for child, rect in zip(children, rects, strict=True):
+        for child, rect, layout in zip(children, rects, layouts, strict=True):
             placements[child] = {
                 "col": rect.col,
                 "row": rect.row,
                 "colSpan": rect.col_span,
                 "rowSpan": rect.row_span,
             }
+            stored_layouts[child] = layout
     return {
         "widgetTypes": type_ids,
         "placements": placements,
+        "layouts": stored_layouts,
         "gridColumns": grid_columns,
+        "layoutConstraints": {
+            node_id: constraints
+            for node_id, widget in node_types.items()
+            if node_id in placements and (constraints := _span_constraints(widget.ui))
+        },
         "widgets": widget_payload(widgets),
     }
+
+
+def _span_constraints(ui: WidgetUi) -> dict[str, int]:
+    """A widget's declared span limits, omitting the ones it leaves open."""
+    limits = {
+        "minColSpan": ui.min_col_span,
+        "maxColSpan": ui.max_col_span,
+        "minRowSpan": ui.min_row_span,
+        "maxRowSpan": ui.max_row_span,
+    }
+    return {name: limit for name, limit in limits.items() if limit is not None}
 
 
 def _grid_layout(layout: dict[str, Any]) -> dict[str, Any]:

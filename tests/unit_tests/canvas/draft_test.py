@@ -235,6 +235,35 @@ def test_drafts_are_stored_as_json_strings(store: Store) -> None:
     assert isinstance(value, str)
 
 
+def test_draft_payload_reports_whether_the_caller_may_edit(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    A client gates drag and resize on ``canEdit`` on either surface, so the
+    draft payload carries it too. Object editorship is already settled by
+    ``load_draft``; what's left to report is the route-level permission.
+    """
+    from superset.commands.canvas.draft import CreateCanvasDraftCommand, draft_payload
+
+    draft = CreateCanvasDraftCommand(7).run()
+
+    # Granting every permission would pass whichever one production checks, so
+    # each case allows exactly one.
+    allowed = mocker.patch(f"{DRAFT}.security_manager.can_access")
+    allowed.side_effect = lambda permission, view: (
+        permission == "can_write" and view == "Canvas"
+    )
+    assert draft_payload(draft)["canEdit"] is True
+    # Also present on the unresolved payload the create response returns.
+    assert draft_payload(draft, resolved=False)["canEdit"] is True
+
+    # Read-only on Canvas: enough to open the draft, not to change it.
+    allowed.side_effect = lambda permission, view: (
+        permission == "can_read" and view == "Canvas"
+    )
+    assert draft_payload(draft)["canEdit"] is False
+
+
 def test_a_draft_holds_the_widgets_it_creates_and_commits_them(
     store: Store, mocker: MockerFixture
 ) -> None:

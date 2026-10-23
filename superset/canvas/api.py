@@ -191,6 +191,24 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
     }
 
 
+def _can_edit(canvas: Canvas) -> bool:
+    """
+    Whether the current user may change ``canvas``.
+
+    Both gates the write route applies: the route-level ``can_write`` on
+    Canvas that ``@protect()`` enforces, and the object-level editorship
+    ``ApplyCanvasOperationsCommand.validate`` enforces. Checking only
+    editorship would advertise editing to a role the route itself refuses.
+    """
+    if not security_manager.can_access("can_write", "Canvas"):
+        return False
+    try:
+        security_manager.raise_for_editorship(canvas)
+    except SupersetSecurityException:
+        return False
+    return True
+
+
 def _get_canvas(id_or_uuid: str) -> Canvas:
     canvas = CanvasDAO.find_by_id_or_uuid(id_or_uuid)
     if canvas is None:
@@ -558,17 +576,33 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                             description: >-
                               Resolved grid position of every node on a grid,
                               auto-placed nodes included
+                          layouts:
+                            type: object
+                            description: >-
+                              The stored layout of every node on a grid, which
+                              placement is resolved from, for a client that
+                              previews a drag before writing it
                           widgetTypes:
                             type: object
                             description: The widget type of each resolvable node
                           gridColumns:
                             type: object
                             description: The column count of each grid container
+                          layoutConstraints:
+                            type: object
+                            description: >-
+                              The span limits each node's widget declares, for
+                              a client that lets the user resize
                           widgets:
                             type: object
                             description: >-
                               The widgets placements hold by UUID, with their
                               widgetType, schemaVersion, name and props
+                          canEdit:
+                            type: boolean
+                            description: >-
+                              Whether the current user may apply operations to
+                              this canvas
             401:
               $ref: '#/components/responses/401'
             404:
@@ -582,6 +616,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 "version": canvas.definition_version,
                 "revision": canvas.revision,
                 "definition": definition,
+                "canEdit": _can_edit(canvas),
                 **resolve_scopes(definition),
                 **render_context(definition),
             },

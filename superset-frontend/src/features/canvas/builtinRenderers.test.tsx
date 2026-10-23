@@ -55,6 +55,7 @@ const result: CanvasDefinitionResult = {
   crossFilterScopes: {},
   customizationScopes: {},
   placements: {},
+  layouts: {},
   widgetTypes: {
     overview: 'tabs',
     emea: 'tab',
@@ -63,6 +64,8 @@ const result: CanvasDefinitionResult = {
     kpis: 'group',
   },
   gridColumns: { emea: 24, apac: 24, kpis: 12 },
+  layoutConstraints: {},
+  canEdit: false,
 };
 
 test('renders core containers and markdown without extensions', async () => {
@@ -73,6 +76,15 @@ test('renders core containers and markdown without extensions', async () => {
       result={result}
       values={emptyScopeValues()}
       onValueChange={jest.fn()}
+      layout={{
+        placements: result.placements,
+        layouts: result.layouts,
+        revision: result.revision,
+        saving: false,
+        place: jest.fn(),
+        dismissError: jest.fn(),
+      }}
+      editable={false}
     />,
   );
 

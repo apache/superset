@@ -211,6 +211,17 @@ def test_update_canvas_needs_editorship() -> None:
 
 
 PREVIEW = "superset.mcp_service.canvas.tool.preview_widget"
+
+
+def _writable() -> Any:
+    """
+    A draft payload reports whether the caller may write canvases, which reads
+    the security context. These tests call the tool implementations directly,
+    with no request behind them, so there is none to read.
+    """
+    return patch("superset.commands.canvas.draft.security_manager")
+
+
 REVENUE = {"expressionType": "SQL", "sqlExpression": "SUM(sales)", "label": "revenue"}
 
 
@@ -356,6 +367,7 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
         definition={"version": 1, "root": {}, "nodes": {}},
     )
     with (
+        _writable(),
         patch(
             "superset.mcp_service.canvas.tool.create_canvas_draft."
             "CreateCanvasDraftCommand"
@@ -465,6 +477,7 @@ def test_apply_draft_ops_returns_placements_and_what_got_pushed() -> None:
     b = {"col": 13, "row": 1, "colSpan": 12, "rowSpan": 4}
     pushed = {**b, "row": 5}
     with (
+        _writable(),
         patch(f"{DRAFT_TOOL}.load_draft"),
         patch(f"{DRAFT_TOOL}.ApplyCanvasDraftOperationsCommand") as command,
         patch(
@@ -508,6 +521,7 @@ def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
     )
     op = {"op": "add", "widgetType": "markdown", "props": {"content": "Hi"}}
     with (
+        _writable(),
         patch(f"{DRAFT_TOOL}.load_draft"),
         patch(f"{DRAFT_TOOL}.ApplyCanvasDraftOperationsCommand") as command,
         patch(
