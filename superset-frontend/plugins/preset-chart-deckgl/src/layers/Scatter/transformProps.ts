@@ -156,17 +156,19 @@ function processScatterData(
       }
     }
 
-    if (categoryColumn) {
-      const categoryValue = getSourceValue(categoryColumn);
-      scatterPoint.cat_color =
-        categoryValue != null ? String(categoryValue) : NULL_CATEGORY_KEY;
-    }
-
     scatterPoint = addPropertiesToFeature(
       scatterPoint,
       feature as DataRecord,
       excludeKeys,
     );
+
+    // Assigned after the property copy so a column named `cat_color` cannot
+    // overwrite the selected dimension's category.
+    if (categoryColumn) {
+      const categoryValue = getSourceValue(categoryColumn);
+      scatterPoint.cat_color =
+        categoryValue != null ? String(categoryValue) : NULL_CATEGORY_KEY;
+    }
     return scatterPoint;
   });
 }

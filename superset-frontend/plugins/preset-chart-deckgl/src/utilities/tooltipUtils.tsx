@@ -291,6 +291,9 @@ export function createHandlebarsTooltipData(
 ): Record<string, any> {
   const initialData: Record<string, any> = {
     ...o.object,
+    ...(o.object?.cat_color != null && {
+      cat_color: formatNullCategory(`${o.object.cat_color}`),
+    }),
     coordinate: o.coordinate,
     index: o.index,
     picked: o.picked,

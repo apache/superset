@@ -146,14 +146,16 @@ function processPathData(
       }
     }
 
+    feature = addPropertiesToFeature(feature, record, excludeKeys);
+
+    // Assigned after the property copy so a column named `cat_color` cannot
+    // overwrite the selected dimension's category.
     if (categoryColumn) {
       feature.cat_color =
         record[categoryColumn] != null
           ? String(record[categoryColumn])
           : NULL_CATEGORY_KEY;
     }
-
-    feature = addPropertiesToFeature(feature, record, excludeKeys);
     return feature;
   });
 }
