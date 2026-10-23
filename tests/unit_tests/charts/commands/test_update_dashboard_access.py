@@ -96,23 +96,20 @@ def test_new_dashboard_link_allowed_with_datasource_access(
 @patch("superset.commands.chart.update.get_datasource_by_id")
 @patch("superset.commands.chart.update.DashboardDAO")
 @patch("superset.commands.chart.update.security_manager")
-def test_new_dashboard_link_uses_effective_datasource_on_repoint(
+def test_new_dashboard_link_defers_to_validate_on_repoint(
     security_manager: MagicMock,
     dashboard_dao: MagicMock,
     get_datasource_by_id: MagicMock,
 ) -> None:
-    """When the same request repoints the chart, the check uses the incoming
-    (effective) datasource, not the stale stored one."""
-    new_datasource = MagicMock(name="new_datasource")
-    get_datasource_by_id.return_value = new_datasource
-    command, chart, dashboard = _setup(
+    """When the same request repoints the chart, ``validate()`` resolves and
+    access-checks the incoming datasource (or reports a missing one as 422), so
+    the link check neither resolves it again nor checks the stale stored one."""
+    command, _, dashboard = _setup(
         security_manager,
         dashboard_dao,
         properties={"datasource_id": 9, "datasource_type": "table"},
     )
 
     command._validate_new_dashboard_access([dashboard], [])
-    get_datasource_by_id.assert_called_once_with(9, "table")
-    security_manager.raise_for_datasources_access.assert_called_once_with(
-        [new_datasource]
-    )
+    get_datasource_by_id.assert_not_called()
+    security_manager.raise_for_datasources_access.assert_not_called()
