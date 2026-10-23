@@ -96,16 +96,14 @@ class SemanticDeleteDependentsError(CommandException):
         self.dependents: list[dict[str, str | int]] = dependents
         self.inaccessible_count: int = inaccessible_count
         message: str = ngettext(
-            "Semantic source is used by %(count)s dependent asset "
+            "This semantic layer or view is used by %(count)s dependent asset "
             "and cannot be deleted.",
-            "Semantic source is used by %(count)s dependent assets "
+            "This semantic layer or view is used by %(count)s dependent assets "
             "and cannot be deleted.",
             total,
             count=total,
         )
-        message += " " + _(
-            "Remove or repoint these assets before deleting the semantic source."
-        )
+        message += " " + _("Remove or repoint these assets before deleting it.")
         if archived_count:
             message += " " + ngettext(
                 "%(count)s dependent asset is archived.",

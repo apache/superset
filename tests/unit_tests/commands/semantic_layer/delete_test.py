@@ -264,7 +264,7 @@ def test_bulk_delete_semantic_views_refuses_all_on_one_dependency(
 
 
 @pytest.mark.parametrize("orm_execution", [False, True])
-def test_semantic_delete_counts_archived_dependents_without_listing_them(
+def test_semantic_delete_counts_and_names_archived_dependents(
     session: Session, mocker: MockerFixture, orm_execution: bool
 ) -> None:
     """Charts, dashboard membership and active schedules form the dependency set."""
@@ -363,9 +363,13 @@ def test_semantic_delete_counts_archived_dependents_without_listing_them(
 
     assert total == 6
     assert archived_count == 1
-    assert inaccessible_count == 1
+    assert inaccessible_count == 0
+    assert {item["name"] for item in dependents if item["archived"]} == {
+        "Deleted chart"
+    }
     assert {item["name"] for item in dependents} == {
         "Live chart",
+        "Deleted chart",
         "Live dashboard",
         "Live alert",
         "Live report",
@@ -387,10 +391,20 @@ def test_semantic_delete_counts_archived_dependents_without_listing_them(
     assert capped_total == 6
     assert len(capped_dependents) == 2
     assert [item["type"] for item in capped_dependents] == ["chart", "chart"]
-    assert capped_inaccessible_count == 1
+    assert capped_inaccessible_count == 0
     mocker.patch(
         "superset.commands.semantic_layer.delete.ChartFilter.apply",
         return_value=session.query(Slice.id).filter(sa.false()),
+    )
+    # A user who cannot see the charts is not an admin or their editor either.
+    mocker.patch("superset.security_manager.is_admin", return_value=False)
+    for access_filter in ("DashboardAccessFilter", "ReportScheduleFilter"):
+        mocker.patch(
+            f"superset.commands.semantic_layer.delete.{access_filter}.apply",
+            side_effect=lambda query, value: query,
+        )
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.get_user_id", return_value=None
     )
     hidden_total: int
     hidden_dependents: list[dict[str, str | int]]
@@ -547,13 +561,14 @@ def test_semantic_delete_finds_native_filter_dashboards(
         )
         assert total == 6
         assert archived_count == 1
-        assert inaccessible_count == 1
+        assert inaccessible_count == 0
         assert {item["name"] for item in dependents} == {
             "Typed integer",
             "Typed string",
             "Filter and chart",
             "Member chart",
             "Native report",
+            "Deleted",
         }
         dao: MagicMock = mocker.patch(
             "superset.commands.semantic_layer.delete.SemanticViewDAO"
@@ -570,6 +585,10 @@ def test_semantic_delete_finds_native_filter_dashboards(
         mocker.patch(
             "superset.commands.semantic_layer.delete.DashboardAccessFilter.apply",
             return_value=session.query(Dashboard.id).filter(sa.false()),
+        )
+        mocker.patch("superset.security_manager.is_admin", return_value=False)
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.get_user_id", return_value=None
         )
         hidden_total: int
         hidden_dependents: list[dict[str, str | int]]
@@ -654,7 +673,7 @@ def test_semantic_layer_delete_finds_dashboard_target(
             DeleteSemanticLayerCommand(str(layer_uuid)).run()
         assert exc_info.value.total == 1
         assert exc_info.value.dependents == [
-            {"type": "dashboard", "id": 741, "name": "Filter-only"}
+            {"type": "dashboard", "id": 741, "name": "Filter-only", "archived": False}
         ]
         dao.delete.assert_not_called()
     finally:
@@ -1180,3 +1199,93 @@ def test_bulk_delete_names_only_the_blocked_views(
     assert exc_info.value.total == 1
     assert exc_info.value.blocked_view_ids == [42]
     view_dao.delete.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("viewer", "named"),
+    [
+        ("admin", {"Live chart": False, "Archived chart": True}),
+        ("editor", {"Live chart": False, "Archived chart": True}),
+        ("reader", {"Live chart": False}),
+        ("guest", {"Live chart": False}),
+        ("hidden-editor", {"Archived chart": True}),
+    ],
+)
+def test_semantic_delete_names_archived_dependents_to_restore_audience(
+    session: Session, mocker: MockerFixture, viewer: str, named: dict[str, bool]
+) -> None:
+    """Archived blockers are named to whoever Recently Archived would show them."""
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import _dependent_assets
+    from superset.models.slice import Slice
+    from superset.subjects.models import chart_editors, Subject
+
+    Slice.metadata.create_all(session.get_bind())
+    session.execute(Subject.__table__.insert().values(id=1, label="editor", type=1))
+    session.execute(
+        Slice.__table__.insert(),
+        [
+            {
+                "id": 961,
+                "slice_name": "Live chart",
+                "datasource_type": "semantic_view",
+                "datasource_id": 42,
+                "deleted_at": None,
+            },
+            {
+                "id": 962,
+                "slice_name": "Archived chart",
+                "datasource_type": "semantic_view",
+                "datasource_id": 42,
+                "deleted_at": datetime(2026, 1, 1),
+            },
+        ],
+    )
+    session.execute(chart_editors.insert().values(chart_id=962, subject_id=1))
+    # Prove the session listener is active; do not substitute Connection.execute.
+    assert session.scalar(sa.select(Slice.id).where(Slice.id == 962)) is None
+    mocker.patch("superset.security_manager.can_access", return_value=True)
+    for access_filter in (
+        "ChartFilter",
+        "DashboardAccessFilter",
+        "ReportScheduleFilter",
+    ):
+        mocker.patch(
+            f"superset.commands.semantic_layer.delete.{access_filter}.apply",
+            side_effect=lambda query, value: query,
+        )
+    if viewer == "hidden-editor":
+        # Editorship names archived rows only: a live row the base filter hides
+        # stays hidden even from its editor.
+        session.execute(chart_editors.insert().values(chart_id=961, subject_id=1))
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.ChartFilter.apply",
+            side_effect=lambda query, value: query.filter(sa.false()),
+        )
+    mocker.patch(
+        "superset.security_manager.is_admin",
+        return_value=viewer in ("admin", "guest"),
+    )
+    mocker.patch(
+        "superset.security_manager.is_guest_user", return_value=viewer == "guest"
+    )
+    mocker.patch("superset.commands.semantic_layer.delete.get_user_id", return_value=7)
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.get_user_subject_ids_subquery",
+        return_value=sa.select(
+            sa.literal(1 if viewer in ("editor", "hidden-editor") else 2)
+        ),
+    )
+
+    total: int
+    dependents: list[dict[str, str | int | bool]]
+    inaccessible_count: int
+    archived_count: int
+    total, dependents, inaccessible_count, archived_count = _dependent_assets(
+        sa.select(sa.literal(42))
+    )
+
+    assert (total, archived_count) == (2, 1)
+    assert {str(item["name"]): item["archived"] for item in dependents} == named
+    assert inaccessible_count == 2 - len(named)

@@ -46,7 +46,10 @@ from superset.models.slice import Slice
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.subjects.models import chart_editors, dashboard_editors
+from superset.subjects.utils import get_user_subject_ids_subquery
 from superset.utils import json
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -115,6 +118,25 @@ def _dashboard_target_ids(view_ids: sa.Select) -> set[int]:
         if _dashboard_targets_view(metadata, selected_ids, dashboard_id):
             matched_ids.add(dashboard_id)
     return matched_ids
+
+
+def _archived_audience_ids(table: sa.Table, editors: sa.Table, fk: str) -> sa.Select:
+    """Archived ids the user could restore from Recently Archived.
+
+    Mirrors ``BaseDeletedStateFilter``: admins see every archived row, others
+    only rows they edit. Core tables keep the soft-delete listener out of it.
+    """
+    # A guest token never restores archived assets, whatever its role.
+    if security_manager.is_guest_user():
+        return sa.select(table.c.id).where(sa.false())
+    if security_manager.is_admin():
+        return sa.select(table.c.id)
+    user_id: int | None = get_user_id()
+    if not user_id:
+        return sa.select(table.c.id).where(sa.false())
+    return sa.select(editors.c[fk]).where(
+        editors.c.subject_id.in_(get_user_subject_ids_subquery(user_id))
+    )
 
 
 def _dependent_assets(
@@ -209,14 +231,30 @@ def _dependent_assets(
         if security_manager.can_access("can_read", "ReportSchedule")
         else sa.select(ReportSchedule.id).where(sa.false())
     )
+    archived_chart_ids: sa.Select = (
+        _archived_audience_ids(Slice.__table__, chart_editors, "chart_id")
+        if security_manager.can_access("can_read", "Chart")
+        else sa.select(Slice.__table__.c.id).where(sa.false())
+    )
+    archived_dashboard_ids: sa.Select = (
+        _archived_audience_ids(Dashboard.__table__, dashboard_editors, "dashboard_id")
+        if security_manager.can_access("can_read", "Dashboard")
+        else sa.select(Dashboard.__table__.c.id).where(sa.false())
+    )
     visibility: sa.ColumnElement[bool] = sa.or_(
         sa.and_(
             dependents.c.type == "chart",
-            dependents.c.id.in_(visible_chart_ids),
+            sa.or_(
+                dependents.c.id.in_(visible_chart_ids),
+                dependents.c.archived & dependents.c.id.in_(archived_chart_ids),
+            ),
         ),
         sa.and_(
             dependents.c.type == "dashboard",
-            dependents.c.id.in_(visible_dashboard_ids),
+            sa.or_(
+                dependents.c.id.in_(visible_dashboard_ids),
+                dependents.c.archived & dependents.c.id.in_(archived_dashboard_ids),
+            ),
         ),
         sa.and_(
             dependents.c.type.notin_(("chart", "dashboard")),
@@ -239,10 +277,10 @@ def _dependent_assets(
         return 0, [], 0, 0
     visible_total: int = int(counts[1] or 0)
     visible: sa.Subquery = sa.select(dependents).where(visibility).subquery()
-    rows: list[tuple[str, int, str]] = cast(
-        list[tuple[str, int, str]],
+    rows: list[tuple[str, int, str, bool]] = cast(
+        list[tuple[str, int, str, bool]],
         db.session.execute(
-            sa.select(visible.c.type, visible.c.id, visible.c.name)
+            sa.select(visible.c.type, visible.c.id, visible.c.name, visible.c.archived)
             .order_by(
                 sa.case(
                     (visible.c.type == "chart", 0),
@@ -258,8 +296,8 @@ def _dependent_assets(
     return (
         total,
         [
-            {"type": asset_type, "id": asset_id, "name": name}
-            for asset_type, asset_id, name in rows
+            {"type": asset_type, "id": asset_id, "name": name, "archived": archived}
+            for asset_type, asset_id, name, archived in rows
         ],
         total - visible_total,
         int(counts[2] or 0),

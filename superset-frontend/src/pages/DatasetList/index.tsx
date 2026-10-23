@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
@@ -110,6 +109,10 @@ import {
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import SemanticDeleteBlockers, {
+  SemanticDeleteError,
+} from 'src/features/semanticLayers/SemanticDeleteBlockers';
 import type {
   BootstrapData,
   UserWithPermissionsAndRoles,
@@ -637,11 +640,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
-  const [svDeleteError, setSVDeleteError] = useState<{
-    error: string;
-    total?: number;
-    archived_count?: number;
-  } | null>(null);
+  const [svDeleteError, setSVDeleteError] =
+    useState<SemanticDeleteError | null>(null);
   const [svDeleting, setSVDeleting] = useState(false);
   const svDeleteRequest = useRef(0);
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
@@ -1682,31 +1682,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               <p>
-                {t(
-                  'Are you sure you want to delete %s? This cannot be undone.',
-                  svCurrentlyDeleting.table_name,
-                )}
+                {t('Are you sure you want to delete')}{' '}
+                <b>{svCurrentlyDeleting.table_name}</b>?{' '}
+                {t('This cannot be undone.')}
               </p>
               {svDeleteError && (
-                <Alert
-                  type="error"
-                  showIcon
-                  message={
-                    <>
-                      {typeof svDeleteError.total === 'number' &&
-                      typeof svDeleteError.archived_count === 'number'
-                        ? t(
-                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
-                            svDeleteError.total,
-                            svDeleteError.archived_count,
-                          )
-                        : svDeleteError.error}{' '}
-                      <a href={ensureAppRoot('/archived/')}>
-                        {t('Recently Archived')}
-                      </a>
-                    </>
-                  }
-                />
+                <SemanticDeleteBlockers error={svDeleteError} />
               )}
             </>
           }
@@ -1716,7 +1697,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             setSvCurrentlyDeleting(null);
           }}
           open
-          title={t('Delete Semantic View?')}
+          title={
+            <ModalTitleWithIcon
+              icon={<Icons.DeleteOutlined />}
+              title={t('Delete Semantic View?')}
+            />
+          }
         />
       )}
       {unblockedRetry && (

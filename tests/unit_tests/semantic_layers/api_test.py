@@ -1055,8 +1055,8 @@ def test_semantic_delete_reports_dependents_as_conflict(
     # Only bulk deletes name which selected views are blocked.
     assert response.json.get("blocked_view_ids") == ([2] if bulk else None)
     assert response.json["message"] == (
-        "Semantic source is used by 25 dependent assets and cannot be deleted. "
-        "Remove or repoint these assets before deleting the semantic source. "
+        "This semantic layer or view is used by 25 dependent assets and cannot "
+        "be deleted. Remove or repoint these assets before deleting it. "
         "3 dependent assets are archived. "
         "Go to Recently Archived to restore and repoint archived assets, "
         "or delete them permanently, or ask an admin for help."
