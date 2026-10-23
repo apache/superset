@@ -35,6 +35,9 @@
  *   pushed straight down until it clears anything resolved before it.
  * - An auto-placed child (`col`/`row` omitted) takes the first free slot that
  *   fits its span, scanning from a cursor that only moves forward.
+ *
+ * Reading order decides who yields, so a drop also moves the dragged widget
+ * within it: see `previewGrid`.
  */
 
 import type { GridLayout, GridPlacement } from './types';
@@ -112,8 +115,14 @@ export function resolveGrid(
 /**
  * The placements a grid would settle on if `moving` were dropped at `target`.
  *
- * Children keep their reading order, so the dragged widget pushes the ones
- * after it down exactly as the server will once the drop is written.
+ * The dragged widget takes `target` and is moved in reading order to sit ahead
+ * of the first sibling it overlaps, or that starts after it (by row, then
+ * column). Reading order is what decides who yields, so without the reorder a
+ * widget dropped onto an earlier sibling would lose and be pushed back under
+ * it -- making it impossible to drop anything between two others.
+ *
+ * This mirrors the reorder the server's `place` operation performs, so the
+ * preview and the write agree.
  */
 export function previewGrid(
   childIds: string[],
@@ -124,16 +133,33 @@ export function previewGrid(
   target: GridPlacement,
   columns: number,
 ): Record<string, GridPlacement> {
+  const others = childIds.filter(nodeId => nodeId !== moving);
   // Stored layouts, not resolved rectangles: an auto-placed child has no
   // `col`/`row` of its own, and feeding back the rectangle it happens to
   // occupy would make it explicit here while the server still auto-places
   // it. The preview would then disagree with the drop.
-  const toResolve = childIds.map(nodeId =>
-    nodeId === moving ? target : layouts[nodeId],
-  );
+  const otherLayouts = others.map(nodeId => layouts[nodeId]);
   // A child the caller knows nothing about cannot take part in the preview.
-  if (toResolve.some(layout => layout === undefined)) return placements;
+  if (otherLayouts.some(layout => layout === undefined)) return placements;
 
-  const resolved = resolveGrid(toResolve as GridLayout[], columns);
-  return Object.fromEntries(childIds.map((id, index) => [id, resolved[index]]));
+  // Where the others sit on their own, which is the order the dropped widget
+  // is inserted into.
+  const before = resolveGrid(otherLayouts as GridLayout[], columns);
+  const targetCells = new Set(cells(target));
+  const found = before.findIndex(
+    rect =>
+      cells(rect).some(cell => targetCells.has(cell)) ||
+      rect.row > target.row ||
+      (rect.row === target.row && rect.col >= target.col),
+  );
+  const ordered = [...others];
+  ordered.splice(found === -1 ? others.length : found, 0, moving);
+
+  const resolved = resolveGrid(
+    ordered.map(nodeId =>
+      nodeId === moving ? target : (layouts[nodeId] as GridLayout),
+    ),
+    columns,
+  );
+  return Object.fromEntries(ordered.map((id, index) => [id, resolved[index]]));
 }

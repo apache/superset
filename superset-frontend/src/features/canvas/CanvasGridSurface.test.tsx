@@ -1106,3 +1106,79 @@ test('the handles are not inside the scrolling area', () => {
 
   expect(handle.parentElement).toHaveClass('canvas-interactive');
 });
+
+test('a widget being dragged is opaque enough to read as lifted', () => {
+  // At 0.85 opacity over nothing, the neighbours and the drop outline showed
+  // through the dragged widget and it read as sliding underneath them. A
+  // widget draws no background of its own, so the lift has to supply one.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  const item = onPlace.container.querySelector(
+    '[data-node-id="kpi"]',
+  ) as HTMLElement;
+  const style = getComputedStyle(item);
+
+  expect(style.background).not.toBe('');
+  expect(style.boxShadow).not.toBe('');
+});
+
+test('only the widget being dragged is marked as such', () => {
+  // The marker an ancestor's scroll box keys on to stop clipping.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+  const item = (nodeId: string) =>
+    onPlace.container.querySelector(`[data-node-id="${nodeId}"]`);
+
+  expect(item('kpi')).not.toHaveAttribute('data-dragging');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(item('kpi')).toHaveAttribute('data-dragging', 'true');
+  expect(item('trend')).not.toHaveAttribute('data-dragging');
+
+  pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(item('kpi')).not.toHaveAttribute('data-dragging');
+});
+
+test("a container's scroll box stops clipping while a widget inside it drags", () => {
+  // A child dragged towards its container's edge is leaving the container's
+  // box. Clipping would cut it off there and grow a scrollbar, which is the
+  // opposite of what the gesture means. jsdom does not evaluate `:has()`, so
+  // the rule itself is asserted rather than its effect.
+  const { container } = render(
+    surface(placements, true, jest.fn(), {}, Object.keys(placements)),
+  );
+  const content = container.querySelector(
+    '[data-node-id="kpi"] .canvas-interactive > div',
+  ) as HTMLElement;
+  // Emotion inserts its rules through the CSSOM rather than as text.
+  const rules = Array.from(document.styleSheets)
+    .flatMap(sheet => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .map(rule => rule.cssText)
+    .join('\n');
+
+  // Scoped to the content box's own class, so the rule is on the element that
+  // does the clipping rather than merely present somewhere.
+  const override = rules
+    .split('\n')
+    .filter(
+      rule =>
+        rule.includes('data-dragging') &&
+        Array.from(content.classList).some(name => rule.includes(`.${name}`)),
+    );
+
+  expect(override).not.toHaveLength(0);
+  expect(override.join('\n')).toMatch(/overflow:\s*visible/);
+});

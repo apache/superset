@@ -134,3 +134,116 @@ test('an auto-placed sibling is previewed as the server will resolve it', () => 
   expect(preview.first).toEqual({ col: 1, row: 3, colSpan: 24, rowSpan: 1 });
   expect(preview.second).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 1 });
 });
+
+/**
+ * Three full-width widgets stacked in reading order, which is the shape the
+ * reorder matters for: who yields is decided by position in `children`, not
+ * by where the pointer is.
+ */
+const STACK = {
+  a: { col: 1, row: 1, colSpan: 24, rowSpan: 4 },
+  b: { col: 1, row: 5, colSpan: 24, rowSpan: 4 },
+  c: { col: 1, row: 9, colSpan: 24, rowSpan: 4 },
+};
+
+test('a widget dropped on an earlier sibling wins the spot', () => {
+  // Without the reorder `a` keeps row 1 because it comes first in `children`,
+  // and `c` is pushed back under it -- so dragging a widget upwards looked
+  // like it bounced back.
+  const preview = previewGrid(
+    ['a', 'b', 'c'],
+    STACK,
+    STACK,
+    'c',
+    { ...STACK.c, row: 1 },
+    24,
+  );
+
+  expect(preview.c).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 4 });
+  expect(preview.a).toEqual({ col: 1, row: 5, colSpan: 24, rowSpan: 4 });
+  expect(preview.b).toEqual({ col: 1, row: 9, colSpan: 24, rowSpan: 4 });
+});
+
+test('a widget can be dropped between two others', () => {
+  // `c` lands on `b`, so it goes ahead of `b` and behind `a`.
+  const preview = previewGrid(
+    ['a', 'b', 'c'],
+    STACK,
+    STACK,
+    'c',
+    { ...STACK.c, row: 5 },
+    24,
+  );
+
+  expect(preview.a).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 4 });
+  expect(preview.c).toEqual({ col: 1, row: 5, colSpan: 24, rowSpan: 4 });
+  expect(preview.b).toEqual({ col: 1, row: 9, colSpan: 24, rowSpan: 4 });
+});
+
+test('a widget dropped past every sibling goes last and pushes nobody', () => {
+  // The insert-at-the-end path: nothing starts after row 13, so `a` goes to
+  // the back of reading order and the others keep the rows they hold. They
+  // are not compacted upwards -- an explicitly placed child is only ever
+  // pushed down.
+  const preview = previewGrid(
+    ['a', 'b', 'c'],
+    STACK,
+    STACK,
+    'a',
+    { ...STACK.a, row: 13 },
+    24,
+  );
+
+  expect(preview.b).toEqual({ col: 1, row: 5, colSpan: 24, rowSpan: 4 });
+  expect(preview.c).toEqual({ col: 1, row: 9, colSpan: 24, rowSpan: 4 });
+  expect(preview.a).toEqual({ col: 1, row: 13, colSpan: 24, rowSpan: 4 });
+});
+
+test('a drop onto an auto-placed sibling moves it aside, not down', () => {
+  // The reorder and auto placement together. Going first, the auto-placed
+  // sibling takes the slot and the drop is pushed under it; going second it
+  // flows into the next free slot instead, which is beside the drop rather
+  // than below it.
+  const layouts = {
+    auto: { colSpan: 12, rowSpan: 2 },
+    dropped: { col: 13, row: 1, colSpan: 12, rowSpan: 2 },
+  };
+  const placements = {
+    auto: { col: 1, row: 1, colSpan: 12, rowSpan: 2 },
+    dropped: { col: 13, row: 1, colSpan: 12, rowSpan: 2 },
+  };
+
+  const preview = previewGrid(
+    ['auto', 'dropped'],
+    layouts,
+    placements,
+    'dropped',
+    { col: 1, row: 1, colSpan: 12, rowSpan: 2 },
+    24,
+  );
+
+  expect(preview.dropped).toEqual({ col: 1, row: 1, colSpan: 12, rowSpan: 2 });
+  expect(preview.auto).toEqual({ col: 13, row: 1, colSpan: 12, rowSpan: 2 });
+});
+
+test('a side-by-side drop goes ahead of the sibling to its right', () => {
+  // Same row, so the column breaks the tie: dropping into the left half puts
+  // the widget ahead of the one already on the right.
+  const pair = {
+    left: { col: 1, row: 1, colSpan: 12, rowSpan: 4 },
+    right: { col: 13, row: 1, colSpan: 12, rowSpan: 4 },
+  };
+
+  const preview = previewGrid(
+    ['left', 'right'],
+    pair,
+    pair,
+    'right',
+    { col: 1, row: 1, colSpan: 12, rowSpan: 4 },
+    24,
+  );
+
+  expect(preview.right).toEqual({ col: 1, row: 1, colSpan: 12, rowSpan: 4 });
+  // `left` lost its spot and is pushed down rather than sideways.
+  expect(preview.left).toEqual({ col: 1, row: 5, colSpan: 12, rowSpan: 4 });
+});

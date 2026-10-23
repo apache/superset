@@ -181,7 +181,7 @@ const GridItem = styled.div<{
   dragging?: boolean;
   offset?: { x: number; y: number };
 }>`
-  ${({ placement, dragging, offset }) => css`
+  ${({ theme, placement, dragging, offset }) => css`
     min-width: 0;
     min-height: 0;
     position: relative;
@@ -200,6 +200,15 @@ const GridItem = styled.div<{
         transform: translate(${offset.x}px, ${offset.y}px);
         z-index: 2;
         opacity: 0.85;
+        /*
+         * A widget draws no background of its own, so at less than full
+         * opacity the neighbours and the drop outline show through the one
+         * being dragged and it reads as sliding underneath them. The fill and
+         * the shadow are what make it read as lifted.
+         */
+        background: ${theme.colorBgContainer};
+        box-shadow: ${theme.boxShadowSecondary};
+        border-radius: ${theme.borderRadius}px;
       `
     }
   `}
@@ -307,6 +316,18 @@ const Content = styled.div<{ editable: boolean }>`
        * and the published canvas selects normally.
        */
         user-select: none;
+
+        /*
+         * While a widget inside this one is being dragged, stop clipping. A
+         * child dragged towards the edge of its container is leaving the
+         * container's box, and scrolling it back into view is the opposite of
+         * what the gesture means -- it would cut the widget off at the edge
+         * and grow a scrollbar. Only an ancestor matches: the dragged widget's
+         * own content does not contain its grid cell.
+         */
+        &:has([data-dragging='true']) {
+          overflow: visible;
+        }
       `
     }
   `}
@@ -738,6 +759,7 @@ export default function CanvasGridSurface({
             key={childId}
             placement={dragging && gesture ? gesture.origin : placed}
             dragging={dragging && gesture?.kind === 'move'}
+            data-dragging={dragging ? 'true' : undefined}
             offset={dragging ? { x: gesture.dx, y: gesture.dy } : undefined}
             data-test="canvas-node"
             data-node-id={childId}
