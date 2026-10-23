@@ -423,11 +423,25 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         onDescriptionHoverChange={setIsDescriptionHovered}
       />
       {/* The glyph sits outside the popover trigger so clicking it opens the
-          tooltip rather than the time-range editor. */}
-      <Flex align="center" gap={theme.sizeUnit}>
-        {popoverContent}
-        <PartitionPruningIndicator mapping={props.partitionMapping} />
-      </Flex>
+          tooltip rather than the time-range editor. Only with a mapping: the
+          wrapper makes the trigger a flex item, so without one the markup stays
+          exactly what it was and the Time Range box keeps filling its
+          container. With one, the trigger is told to fill the row too. */}
+      {props.partitionMapping ? (
+        <Flex align="center" gap={theme.sizeUnit}>
+          <div
+            css={css`
+              flex: 1;
+              min-width: 0;
+            `}
+          >
+            {popoverContent}
+          </div>
+          <PartitionPruningIndicator mapping={props.partitionMapping} />
+        </Flex>
+      ) : (
+        popoverContent
+      )}
     </>
   );
 }
