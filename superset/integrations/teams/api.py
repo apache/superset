@@ -111,9 +111,16 @@ def _persist_event(config: TeamsConfig, event: TeamsInstallationEvent) -> None:
                 config.application_id,
                 event.team_id,
                 event.service_url,
+                event.event_at,
             )
         else:
-            store.remove(config.tenant_id, config.application_id, event.team_id)
+            store.remove(
+                config.tenant_id,
+                config.application_id,
+                event.team_id,
+                event.service_url,
+                event.event_at,
+            )
 
 
 def register_teams_api(app: Flask) -> None:

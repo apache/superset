@@ -40,6 +40,7 @@ def upgrade() -> None:
         sa.Column("team_id", sa.String(255), nullable=False),
         sa.Column("service_url", sa.String(2048), nullable=False),
         sa.Column("active", sa.Boolean(), nullable=False),
+        sa.Column("event_at", sa.DateTime(), nullable=False),
         sa.Column("created_on", sa.DateTime(), nullable=False),
         sa.Column("changed_on", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),

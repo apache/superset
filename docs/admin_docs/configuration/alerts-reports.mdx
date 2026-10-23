@@ -1008,6 +1008,9 @@ approve any destinations. Configure the allowlist separately. Uninstalling marks
 the installation inactive; reinstalling refreshes its verified service URL and
 reactivates the same record. If an initial installation happened before callback
 routing was ready, remove and reinstall the app to deliver a fresh event.
+Lifecycle events require a timezone-qualified source timestamp. Older events are
+acknowledged without changing installation state, and removal wins timestamp ties.
+Removal records are retained even when the installation event has not arrived.
 
 ### Route the callback
 

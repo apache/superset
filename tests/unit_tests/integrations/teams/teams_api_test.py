@@ -106,6 +106,7 @@ def installation() -> dict[str, Any]:
         "type": "installationUpdate",
         "action": "add",
         "id": "event-1",
+        "timestamp": "2026-10-01T12:00:00Z",
         "serviceUrl": SERVICE_URL,
         "channelId": "msteams",
         "from": {"id": "29:installer"},
@@ -331,6 +332,7 @@ def test_repeated_events_removal_and_reinstallation(
         assert removed.id == identity
         assert not removed.active
     installation["action"] = "add"
+    installation["timestamp"] = "2026-10-01T12:01:00Z"
     refreshed = "https://smba.trafficmanager.net/emea/"
     installation["serviceUrl"] = refreshed
     for _ in range(2):
@@ -346,7 +348,7 @@ def test_repeated_events_removal_and_reinstallation(
         assert reinstalled.service_url == refreshed
 
 
-def test_removal_does_not_create_unknown_installation(
+def test_removal_retains_unknown_installation_tombstone(
     teams_client: FlaskClient,
     teams_engine: Engine,
     installation: dict[str, Any],
@@ -358,7 +360,7 @@ def test_removal_does_not_create_unknown_installation(
         == 200
     )
     with Session(teams_engine) as session:
-        assert session.query(TeamsInstallation).count() == 0
+        assert not session.query(TeamsInstallation).one().active
 
 
 @pytest.mark.parametrize(
@@ -651,3 +653,39 @@ def test_body_limit_applies_only_to_teams_callback(teams_client: FlaskClient) ->
     assert response.status_code == 200
     assert response.data == str(len(body)).encode()
     assert app.config["MAX_CONTENT_LENGTH"] is None
+
+
+@pytest.mark.parametrize(
+    "timestamp", [None, "missing", "invalid", "2026-10-01T12:00:00"]
+)
+def test_callback_requires_source_timestamp(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    timestamp: str | None,
+) -> None:
+    if timestamp == "missing":
+        installation.pop("timestamp")
+    else:
+        installation["timestamp"] = timestamp
+    assert (
+        teams_client.post(PATH, json=installation, headers=auth_headers()).status_code
+        == 400
+    )
+    with Session(teams_engine) as session:
+        assert session.query(TeamsInstallation).count() == 0
+
+
+def test_delayed_install_callback_cannot_undo_removal(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+) -> None:
+    headers = auth_headers()
+    removal = {**installation, "action": "remove", "timestamp": "2026-10-01T12:01:00Z"}
+    for body in (removal, installation, removal, installation):
+        assert teams_client.post(PATH, json=body, headers=headers).status_code == 200
+    with Session(teams_engine) as session:
+        assert not session.query(TeamsInstallation).one().active

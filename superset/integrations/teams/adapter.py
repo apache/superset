@@ -62,6 +62,7 @@ class TeamsInstallationEvent:
     team_id: str
     service_url: str
     active: bool
+    event_at: datetime
 
 
 @dataclass(frozen=True)
@@ -134,8 +135,6 @@ def _installation_event(
         "remove",
     ):
         return TeamsEventResult(400)
-    if body.get("attachments"):
-        return TeamsEventResult(400)
     # Require the wire-format fields used by SDK authentication. Do not allow
     # model defaults or snake_case aliases to bypass missing channel/service data.
     if body.get("channelId") != "msteams" or not isinstance(
@@ -174,8 +173,19 @@ def _installation_event(
     approved_teams = {destination.team_id for destination in config.destinations}
     if data.team.id not in approved_teams:
         return TeamsEventResult(403)
+    event_at = activity.timestamp
+    if (
+        body.get("attachments")
+        or event_at is None
+        or event_at.tzinfo is None
+        or event_at.utcoffset() is None
+    ):
+        return TeamsEventResult(400)
     return TeamsEventResult(
-        200, TeamsInstallationEvent(data.team.id, service_url, body["action"] == "add")
+        200,
+        TeamsInstallationEvent(
+            data.team.id, service_url, body["action"] == "add", event_at
+        ),
     )
 
 

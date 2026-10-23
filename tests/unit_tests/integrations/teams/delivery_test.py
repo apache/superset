@@ -108,7 +108,7 @@ def notification_context(
     engine = teams_engine
     with Session(engine) as session:
         TeamsInstallationStore(session).install(
-            TENANT, APPLICATION, "team-1", SERVICE_URL
+            TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
         )
         session.commit()
     monkeypatch.setattr(notifications, "db", SimpleNamespace(engine=engine))
@@ -160,7 +160,9 @@ def test_installation_must_be_active_for_exact_identity(
     with Session(notification_context.engine) as session:
         store = TeamsInstallationStore(session)
         if mode == "inactive":
-            store.remove(TENANT, APPLICATION, "team-1")
+            store.remove(
+                TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+            )
         else:
             session.query(TeamsInstallation).delete()
             other = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
@@ -170,6 +172,7 @@ def test_installation_must_be_active_for_exact_identity(
                     other if mode == "other-application" else APPLICATION,
                     "team-1",
                     SERVICE_URL,
+                    datetime.now(timezone.utc),
                 )
         session.commit()
     with pytest.raises(NotificationAuthorizationException):

@@ -4923,3 +4923,90 @@ test('Teams saved recipients stay visible and replaceable when the optional SDK 
     fetchMock.removeRoute('teams-sdk-missing');
   }
 });
+
+test.each(['PNG', 'CSV'])(
+  'Teams edits normalize saved %s format when attachments are globally disabled',
+  async reportFormat => {
+    mockNotificationMethods = ['Email', 'Teams'];
+    fetchMock.removeRoute(configurationEndpoint);
+    fetchMock.get(
+      configurationEndpoint,
+      {
+        result: { ...mockReportConfiguration, alerts_attach_reports: false },
+      },
+      { name: configurationEndpoint },
+    );
+    fetchMock.get('glob:*/api/v1/report/96', {
+      result: {
+        ...generateMockPayload(true),
+        id: 96,
+        report_format: reportFormat,
+        recipients: [
+          {
+            id: 1,
+            type: 'Email',
+            recipient_config_json: { target: 'test@example.com' },
+          },
+        ],
+      },
+    });
+    fetchMock.get(
+      'glob:*/api/v1/report/teams_destinations/',
+      {
+        result: [{ key: 'ops', label: 'Operations', available: true }],
+      },
+      { name: 'teams-hidden-attachments' },
+    );
+    fetchMock.put(
+      'glob:*/api/v1/report/96',
+      { id: 96, result: {} },
+      { name: 'save-teams-hidden' },
+    );
+    try {
+      render(
+        <AlertReportModal
+          {...generateMockedProps(false, true)}
+          alert={{ ...validAlert, id: 96 }}
+        />,
+        {
+          useRedux: true,
+          initialState: { user: adminUser },
+        },
+      );
+      await userEvent.click(screen.getByTestId('notification-method-panel'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: /^Delivery method/ }),
+      );
+      await userEvent.click(await screen.findByText('Teams'));
+      await userEvent.click(
+        screen.getByRole('combobox', { name: 'Teams destination' }),
+      );
+      await userEvent.click(await screen.findByText('Operations'));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+      );
+      await userEvent.click(screen.getByRole('button', { name: /save/i }));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls('save-teams-hidden')).toHaveLength(
+          1,
+        ),
+      );
+      const [call] = fetchMock.callHistory.calls('save-teams-hidden');
+      expect(JSON.parse(call.options.body as string)).toMatchObject({
+        report_format: 'NONE',
+        recipients: [
+          { type: 'Teams', recipient_config_json: { target: 'ops' } },
+        ],
+      });
+    } finally {
+      fetchMock.removeRoute('teams-hidden-attachments');
+      fetchMock.removeRoute('save-teams-hidden');
+      fetchMock.removeRoute(configurationEndpoint);
+      fetchMock.get(
+        configurationEndpoint,
+        { result: mockReportConfiguration },
+        { name: configurationEndpoint },
+      );
+    }
+  },
+);

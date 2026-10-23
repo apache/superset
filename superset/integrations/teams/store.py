@@ -72,7 +72,7 @@ class TeamsInstallationStore:
     Callers must authenticate events, enforce the deployment tenant/application,
     and verify service URLs before invoking this store. This layer stores no
     credentials or channels and never makes a team selectable on its own.
-    Events are applied in processing order; duplicate installs/removals are safe.
+    Events are ordered by their source timestamp, with removal winning ties.
     """
 
     def __init__(self, session: Session) -> None:
@@ -99,23 +99,54 @@ class TeamsInstallationStore:
         application_id: str,
         team_id: str,
         verified_service_url: str,
+        event_at: datetime,
     ) -> TeamsInstallation:
-        """Create, refresh, or reactivate an installation, including insert races."""
+        """Apply an installation only if it is newer than the stored event."""
+        return self._apply(
+            tenant_id, application_id, team_id, verified_service_url, event_at, True
+        )
+
+    def remove(
+        self,
+        tenant_id: str,
+        application_id: str,
+        team_id: str,
+        verified_service_url: str,
+        event_at: datetime,
+    ) -> None:
+        """Retain a removal tombstone, including when the install has not arrived."""
+        self._apply(
+            tenant_id, application_id, team_id, verified_service_url, event_at, False
+        )
+
+    def _apply(
+        self,
+        tenant_id: str,
+        application_id: str,
+        team_id: str,
+        verified_service_url: str,
+        event_at: datetime,
+        active: bool,
+    ) -> TeamsInstallation:
+        """Serialize writes per identity and ignore stale or duplicate events."""
         tenant, application, team = _identity(tenant_id, application_id, team_id)
         service_url = _service_url(verified_service_url)
+        if event_at.tzinfo is None or event_at.utcoffset() is None:
+            raise ValueError("Teams event timestamp must include a timezone")
+        event_at = event_at.astimezone(timezone.utc).replace(tzinfo=None)
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         table = TeamsInstallation.__table__
-        update = (
+        identity = (
             table.update()
             .where(table.c.tenant_id == tenant)
             .where(table.c.application_id == application)
             .where(table.c.team_id == team)
-            .values(service_url=service_url, active=True, changed_on=now)
         )
-        # Flush unrelated pending work outside the savepoint and exception handler.
+        # Lock through a write so repeatable-read databases also see insert races.
+        lock = identity.values(team_id=team)
         self.session.flush()
         connection = self.session.connection()
-        if not connection.execute(update).rowcount:
+        if not connection.execute(lock).rowcount:
             try:
                 with connection.begin_nested():
                     connection.execute(
@@ -124,36 +155,29 @@ class TeamsInstallationStore:
                             application_id=application,
                             team_id=team,
                             service_url=service_url,
-                            active=True,
+                            active=active,
+                            event_at=event_at,
                             created_on=now,
                             changed_on=now,
                         )
                     )
             except IntegrityError:
-                # A concurrent event may have inserted this identity. Use a write
-                # to see that row even on repeatable-read databases. Do not hide
-                # unrelated integrity failures if no matching identity exists.
-                if not connection.execute(update).rowcount:
+                if not connection.execute(lock).rowcount:
                     raise
+        newer = table.c.event_at < event_at
+        if not active:
+            newer |= (table.c.event_at == event_at) & table.c.active
+        connection.execute(
+            identity.where(newer).values(
+                service_url=service_url,
+                active=active,
+                event_at=event_at,
+                changed_on=now,
+            )
+        )
         return (
             self.session.query(TeamsInstallation)
             .populate_existing()
             .filter_by(tenant_id=tenant, application_id=application, team_id=team)
             .one()
-        )
-
-    def remove(self, tenant_id: str, application_id: str, team_id: str) -> None:
-        """Deactivate an existing row; repeated or unknown removals are harmless."""
-        tenant, application, team = _identity(tenant_id, application_id, team_id)
-        self.session.flush()
-        (
-            self.session.query(TeamsInstallation)
-            .filter_by(tenant_id=tenant, application_id=application, team_id=team)
-            .update(
-                {
-                    "active": False,
-                    "changed_on": datetime.now(timezone.utc).replace(tzinfo=None),
-                },
-                synchronize_session="fetch",
-            )
         )
