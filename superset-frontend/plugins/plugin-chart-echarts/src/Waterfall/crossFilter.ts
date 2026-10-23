@@ -41,12 +41,19 @@ export type WaterfallCategory = {
   breakdownValue?: DataRecordValue;
 };
 
-function toKeyPart(value: DataRecordValue): string | number | boolean | null {
+/**
+ * Selection-key part. `bigint` is wrapped so it does not share a key with the
+ * decimal string of the same digits (`42n` vs `'42'`). `JSON.stringify` cannot
+ * encode a bare `bigint`.
+ */
+function toKeyPart(
+  value: DataRecordValue,
+): string | number | boolean | null | { bigint: string } {
   if (value == null) {
     return null;
   }
   if (typeof value === 'bigint') {
-    return value.toString();
+    return { bigint: value.toString() };
   }
   return value instanceof Date ? value.toISOString() : value;
 }

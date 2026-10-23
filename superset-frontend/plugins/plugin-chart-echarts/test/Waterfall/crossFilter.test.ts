@@ -156,15 +156,35 @@ test('keeps a numeric category unabbreviated', () => {
   expect(mask.filterState.label).toBe('2024');
 });
 
-test('stringifies bigint filter values so the mask stays JSON-serializable', () => {
+test('a bigint category does not share a selection key with the same decimal string', () => {
+  const bigintBar: WaterfallCategory = { ...yearBar, xValue: BigInt(42) };
+  const stringBar: WaterfallCategory = { ...yearBar, xValue: '42' };
+  const bigintKey = getWaterfallCrossFilterKey(bigintBar);
+  const stringKey = getWaterfallCrossFilterKey(stringBar);
+
+  expect(bigintKey).not.toBe(stringKey);
+
   const mask = getWaterfallCrossFilterDataMask({
-    category: { ...yearBar, xValue: BigInt(42) },
+    category: bigintBar,
     selectedKeys: [],
   }).dataMask;
   expect(mask.extraFormData.filters).toEqual([
     { col: 'year', op: 'IN', val: ['42'] },
   ]);
+  expect(mask.filterState.selectedValues).toEqual([bigintKey]);
   expect(() => JSON.stringify(mask)).not.toThrow();
+
+  const stringMask = getWaterfallCrossFilterDataMask({
+    category: stringBar,
+    selectedKeys: bigintKey ? [bigintKey] : [],
+  }).dataMask;
+  expect(stringMask.extraFormData.filters).not.toEqual([]);
+  expect(isWaterfallBarDimmed(stringBar, bigintKey ? [bigintKey] : [])).toBe(
+    true,
+  );
+  expect(isWaterfallBarDimmed(bigintBar, bigintKey ? [bigintKey] : [])).toBe(
+    false,
+  );
 });
 
 test('formats a temporal X value with the axis time format', () => {
