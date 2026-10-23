@@ -58,9 +58,12 @@ def _quote_if_formula(text: str) -> str:
     Prefix formula-like text with an apostrophe so spreadsheet apps treat it as
     literal text (defense against formula injection).
 
-    Leading whitespace is ignored when detecting a formula, because spreadsheet
-    apps still evaluate a cell whose formula prefix is preceded by spaces or
-    tabs (e.g. ``" =cmd"`` or ``"\\t=cmd"``).
+    Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
+    quoted like ``"=cmd"``. Every string goes out through ``write_string``, so
+    this writer never produces a formula cell for the workbook to evaluate; the
+    quote is there for how a downstream viewer or a re-import reads the text.
+    The other two export paths strip before reading the prefix as well, so the
+    three of them agree on which cells are quoted.
     """
     stripped = text.lstrip()
     return f"'{text}" if stripped and stripped[0] in FORMULA_PREFIXES else text

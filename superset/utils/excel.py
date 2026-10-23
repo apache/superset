@@ -51,11 +51,19 @@ FORMULA_PREFIXES = {"=", "+", "-", "@"}
 def _quote_formula(value: Any) -> Any:
     """Prefix a string with a quote when it would parse as a formula.
 
-    Leading whitespace is ignored when detecting a formula, because spreadsheet
-    apps still evaluate a cell whose formula prefix is preceded by spaces or
-    tabs (e.g. ``" =cmd"`` or ``"\t=cmd"``). This matches the streaming writer
-    in ``superset.utils.excel_streaming``, which the comment on
-    ``FORMULA_PREFIXES`` says both export paths agree with.
+    Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
+    quoted like ``"=cmd"``. That is for consistency across the export paths
+    rather than to stop the workbook evaluating it: XlsxWriter builds a formula
+    cell only from a string whose first character is ``=``, so a value with
+    anything in front of the prefix is written as a plain string cell either
+    way. The CSV writer (``_starts_like_spreadsheet_formula``) and the
+    streaming writer both strip before reading the prefix, so without this the
+    same cell exports quoted from two of the three paths and bare from this
+    one. What the quote guards against is how a downstream viewer or a
+    re-import reads the text, not how XlsxWriter stored it.
+
+    The value is quoted as it arrived rather than stripped, so the cell keeps
+    whatever spacing came with it.
     """
     if not isinstance(value, str):
         return value
