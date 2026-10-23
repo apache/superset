@@ -537,6 +537,8 @@ export default function transformProps(
   // tuples no longer follow the [metric, ...dimensions] shape. Truncation is
   // skipped in that case to keep current and historical series distinct.
   const hasTimeComparison = array.length > 0;
+  const hasTimeComparisonB =
+    ensureIsArray(chartProps.rawFormData?.time_compare_b).length > 0;
   const hasMultipleMetricsA = ensureIsArray(metrics).length > 1;
   const hasMultipleMetricsB = ensureIsArray(metricsB).length > 1;
   const inverted = invert(verboseMap);
@@ -582,7 +584,7 @@ export default function transformProps(
 
     if (!hasTimeComparison && truncateMetric && groupby.length > 0) {
       displayName = getTruncatedSeriesName({
-        labelMapValues: labelMapValues,
+        labelMapValues,
         hasMultipleMetrics: hasMultipleMetricsA,
         entryName,
         queryLabel: showQueryIdentifiers ? 'Query A' : undefined,
@@ -694,7 +696,7 @@ export default function transformProps(
 
     let displayName: string;
 
-    if (!hasTimeComparison && truncateMetricB && groupbyB.length > 0) {
+    if (!hasTimeComparisonB && truncateMetricB && groupbyB.length > 0) {
       displayName = getTruncatedSeriesName({
         labelMapValues: labelMapValuesB,
         hasMultipleMetrics: hasMultipleMetricsB,

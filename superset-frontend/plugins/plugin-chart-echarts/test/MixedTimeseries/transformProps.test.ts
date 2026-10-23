@@ -2017,6 +2017,18 @@ describe('truncateMetric / truncateMetricB', () => {
     expect(seriesNames).toContain('girl');
   });
 
+  test('attributes the truncated name to the correct query', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetricB: true,
+      showQueryIdentifiers: true,
+    });
+
+    expect(seriesNames).toContain('sum__num (Query A), boy');
+    expect(seriesNames).toContain('boy (Query B)');
+    expect(seriesNames).not.toContain('boy (Query A)');
+    expect(seriesNames).not.toContain('sum__num (Query B), boy');
+  });
+
   test('still appends the query identifier when truncating, so Query A and B stay distinguishable (#38451)', () => {
     const seriesNames = getSeriesNames({
       truncateMetric: true,
