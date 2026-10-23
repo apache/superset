@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-20 09:56+0000\n"
+"POT-Creation-Date: 2026-10-23 16:51+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1065,6 +1065,9 @@ msgid ""
 "the filter bound being mirrored."
 msgstr ""
 
+msgid "A SQL expression using :value"
+msgstr ""
+
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
 
@@ -1411,6 +1414,9 @@ msgstr "Отменяется"
 
 msgid "About"
 msgstr "О программе"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "Доступ"
@@ -1843,6 +1849,9 @@ msgstr "Агрегация"
 
 msgid "Aggregation Method"
 msgstr "Метод агрегации"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3680,6 +3689,12 @@ msgstr "Изменять этот слой аннотаций запрещено
 msgid "Changing this semantic view is forbidden"
 msgstr "Изменять это представление аннотаций запрещено"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "Изменять эту задачу запрещено"
 
@@ -4323,6 +4338,10 @@ msgstr "Цвет целевого местоположения"
 msgid "Color scheme"
 msgstr "Цветовая схема"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -4921,8 +4940,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Количество"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Страна"
@@ -7149,6 +7185,13 @@ msgstr "Одинаковые размеры дат"
 msgid "Equal to (=)"
 msgstr "Равно (=)"
 
+#, python-format
+msgid ""
+"Equality and list filters on %(mapped)s will automatically apply an "
+"equivalent filter to %(partition)s. Time ranges and other range filters "
+"are not mirrored until \"Transform preserves ordering\" is on."
+msgstr ""
+
 msgid "Equals"
 msgstr "Равно"
 
@@ -7610,6 +7653,10 @@ msgstr "Ошибка"
 msgid "Failed at retrieving results"
 msgstr "Невозможно выполнить запрос"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Не удалось применить тему из-за некорректного JSON"
 
@@ -7893,7 +7940,13 @@ msgstr "Поиск"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9029,6 +9082,11 @@ msgstr "Недопустимые долгота/широта"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Некорректная мера: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Недопустимая numpy функция: %(operator)s"
@@ -9382,6 +9440,9 @@ msgstr "Последний год"
 msgid "Lat"
 msgstr "Широта"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Широта"
 
@@ -9654,6 +9715,9 @@ msgstr "Список групп"
 
 msgid "List Roles"
 msgstr "Список ролей"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "Список пользователей"
@@ -10046,6 +10110,9 @@ msgstr "Среднее значений за указанный период"
 
 msgid "Mean values"
 msgstr "Средние значения"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10913,6 +10980,9 @@ msgstr ""
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -14200,6 +14270,11 @@ msgstr "Параметры представления аннотаций нек�
 msgid "Semantic view updated"
 msgstr "Представление аннотаций обновлено"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 msgid "Semantic views"
 msgstr "Представления аннотаций"
 
@@ -14441,6 +14516,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Показать пузыри"
 
@@ -14539,11 +14617,11 @@ msgstr "Показывать метки времени запросов диаг
 msgid "Show column headers"
 msgstr "Показывать заголовки столбцов"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показать подытоги по столбцам"
-
-msgid "Show columns total"
-msgstr "Показать итог по столбцам"
 
 msgid "Show empty columns"
 msgstr "Показывать пустые столбцы"
@@ -14623,11 +14701,11 @@ msgstr "Показать идентификаторы запросов"
 msgid "Show row labels"
 msgstr "Показывать подписи строк"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показать подытоги по строкам"
-
-msgid "Show rows total"
-msgstr "Показать общий итог по строкам"
 
 msgid "Show series values on the chart"
 msgstr "Показать значения категорий на диаграмме"
@@ -14860,6 +14938,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Некоторые обязательные фильтры на других вкладках имеют значения и не "
 "будут очищены"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -15336,6 +15417,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сумма"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сумма значений за обозначенный период"
@@ -16927,6 +17017,9 @@ msgstr "Указанные значения пересекаются с уже �
 msgid "The version of the service"
 msgstr "Версия используемого сервиса"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Отображаемое название слоя"
 
@@ -17411,6 +17504,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17551,6 +17647,12 @@ msgstr ""
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr "Этот датасет управляется извне и не может быть изменена в Superset"
+
+msgid ""
+"This dataset is partitioned. Listing filter values without a time range "
+"reads every partition, so a time range is set by default. Clear it to "
+"list values from all time."
+msgstr ""
 
 msgid "This defines the element to be plotted on the chart"
 msgstr "Элемент, который будет отражен на диаграмме"
@@ -17749,6 +17851,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18146,6 +18255,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
+
 msgid "Token Request URI"
 msgstr "URI запроса токена"
 
@@ -18162,6 +18274,12 @@ msgid ""
 msgstr ""
 "Запрошено слишком много срезов. Максимально допустимое количество: "
 "%(max)s, но запрошено %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Панель инструментов"
@@ -18875,6 +18993,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Отформатировать как дату, даже если мера представлена другим типом данных"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -18882,6 +19007,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Использовать градиент"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Использовать меры как группы верхнего уровня для столбцов или строк"
@@ -19190,6 +19318,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Область просмотра"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Виртуальный"
@@ -20436,6 +20567,11 @@ msgstr "Ваш запрос был сохранен"
 msgid "Your report could not be deleted"
 msgstr "Не удается удалить рассылку"
 
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
+
 msgid "Your session has ended. Please sign in again."
 msgstr "Ваша сессия завершена. Пожалуйста, войдите в систему снова."
 
@@ -21435,9 +21571,6 @@ msgstr "сверху"
 
 msgid "undo"
 msgstr "отмены"
-
-msgid "unix_timestamp(:value)"
-msgstr ""
 
 msgid "unknown type icon"
 msgstr "иконка для типа `unknown`"

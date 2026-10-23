@@ -200,6 +200,17 @@ def test_create_dataset_schema_uses_template_params() -> None:
     assert command._properties["schema"] == "secret"
 
 
+def test_create_dataset_schema_ignores_reserved_template_params() -> None:
+    """Reserved processor names are not variables when deriving the schema."""
+    command = _validate_virtual_dataset(
+        "{% if removed_filters is defined %}SELECT * FROM decoy.t"
+        "{% else %}SELECT * FROM actual.t{% endif %}",
+        template_params='{"removed_filters": []}',
+    )
+
+    assert command._properties["schema"] == "actual"
+
+
 def test_create_dataset_keeps_dropdown_schema_for_show_statement() -> None:
     """A metadata statement has no meaningful virtual-dataset schema."""
     command = _validate_virtual_dataset(

@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-20 09:56+0000\n"
+"POT-Creation-Date: 2026-10-23 16:51+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -32,7 +32,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1127,6 +1127,9 @@ msgid ""
 "the filter bound being mirrored."
 msgstr ""
 
+msgid "A SQL expression using :value"
+msgstr ""
+
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
 
@@ -1513,6 +1516,9 @@ msgstr "Anulare"
 
 msgid "About"
 msgstr "Despre"
+
+msgid "Accept"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -1986,6 +1992,9 @@ msgstr "Agregare"
 
 msgid "Aggregation Method"
 msgstr "Metodă de Agregare"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3937,6 +3946,12 @@ msgstr "Modificarea acestui strat semantic este interzisă"
 msgid "Changing this semantic view is forbidden"
 msgstr "Modificarea acestei vizualizări semantice este interzisă"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
@@ -4636,6 +4651,10 @@ msgstr "Culoarea locației țintă"
 msgid "Color scheme"
 msgstr "Schemă culori"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -5269,8 +5288,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Numără"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Țară"
@@ -7729,6 +7765,13 @@ msgstr "Dimensiuni Date Egate"
 msgid "Equal to (=)"
 msgstr "Egal cu (=)"
 
+#, python-format
+msgid ""
+"Equality and list filters on %(mapped)s will automatically apply an "
+"equivalent filter to %(partition)s. Time ranges and other range filters "
+"are not mirrored until \"Transform preserves ordering\" is on."
+msgstr ""
+
 msgid "Equals"
 msgstr "Egal"
 
@@ -8222,6 +8265,10 @@ msgstr "Eșuat"
 msgid "Failed at retrieving results"
 msgstr "Eșuat la preluarea rezultatelor"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Eșuat la aplicarea temei: JSON Invalid"
 
@@ -8540,7 +8587,13 @@ msgstr "Filtrează grafice"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9785,6 +9838,11 @@ msgstr "Longitudine/latitudine invalidă"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Obiect de tip indicator nevalid: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Funcție numpy invalidă: %(operator)s"
@@ -10168,6 +10226,9 @@ msgstr "Anul trecut"
 msgid "Lat"
 msgstr "Lat"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Latitudine"
 
@@ -10454,6 +10515,9 @@ msgstr "Listează Grupuri"
 
 msgid "List Roles"
 msgstr "Listează Roluri"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "Listează Utilizatori"
@@ -10882,6 +10946,9 @@ msgstr "Media valorilor pe perioada specificată"
 
 msgid "Mean values"
 msgstr "Valori medii"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11814,6 +11881,9 @@ msgstr ""
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -15395,6 +15465,11 @@ msgstr "Parametrii vizualizării semantice sunt invalizi."
 msgid "Semantic view updated"
 msgstr "Vizualizare semantică actualizată"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
@@ -15655,6 +15730,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Afișează bule"
 
@@ -15764,11 +15842,11 @@ msgstr "Afișați marcajele de timp ale interogărilor graficului"
 msgid "Show column headers"
 msgstr "Afișează antetele coloanelor"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Afișează subtotal coloane"
-
-msgid "Show columns total"
-msgstr "Afișează total coloane"
 
 msgid "Show empty columns"
 msgstr "Afișează coloane goale"
@@ -15848,11 +15926,11 @@ msgstr "Afișează identificatori interogare"
 msgid "Show row labels"
 msgstr "Afișează etichete rânduri"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Afișează subtotal rânduri"
-
-msgid "Show rows total"
-msgstr "Afișează total rânduri"
 
 msgid "Show series values on the chart"
 msgstr "Afișează valori serie pe grafic"
@@ -16093,6 +16171,9 @@ msgstr "Unele permisiuni nu au putut fi rezolvate și sunt afișate ca ID-uri."
 #, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "Unele filtre obligatorii de pe alte file au valori și nu vor fi șterse"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -16611,6 +16692,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Sumă"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Suma valorilor pe perioada specificată"
@@ -18317,6 +18407,9 @@ msgstr "Valorile se suprapun cu alte valori de prag"
 msgid "The version of the service"
 msgstr "Versiunea serviciului"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Titlul vizibil al stratului"
 
@@ -18836,6 +18929,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18990,6 +19086,12 @@ msgstr ""
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr "Acest set de date este gestionat extern și nu poate fi editat în Superset"
+
+msgid ""
+"This dataset is partitioned. Listing filter values without a time range "
+"reads every partition, so a time range is set by default. Clear it to "
+"list values from all time."
+msgstr ""
 
 msgid "This defines the element to be plotted on the chart"
 msgstr "Aceasta definește elementul de reprezentat pe grafic"
@@ -19226,6 +19328,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -19645,6 +19754,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19665,6 +19777,12 @@ msgid ""
 msgstr ""
 "Au fost solicitate prea multe sub-secțiuni. Maximul permis este %(max)s, "
 "dar au fost solicitate %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Panou instrumente"
@@ -20428,6 +20546,13 @@ msgstr ""
 " este un marcaj temporal"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -20435,6 +20560,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Folosește gradient"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -20771,6 +20899,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Viewport"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtual"
@@ -22088,6 +22219,11 @@ msgstr "Interogarea dvs. a fost actualizată"
 msgid "Your report could not be deleted"
 msgstr "Raportul dvs. nu a putut fi șters"
 
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Your session has ended. Please sign in again."
@@ -23186,9 +23322,6 @@ msgstr "sus"
 
 msgid "undo"
 msgstr "anulează"
-
-msgid "unix_timestamp(:value)"
-msgstr ""
 
 msgid "unknown type icon"
 msgstr "iconiță tip necunoscut"
