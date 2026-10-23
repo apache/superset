@@ -70,15 +70,21 @@ def purged_countries(
 
 
 def resolve_all(
-    ctx: BuildContext, built: dict[str, gpd.GeoDataFrame]
+    ctx: BuildContext,
+    built: dict[str, gpd.GeoDataFrame],
+    include_plain: bool = True,
 ) -> dict[str, gpd.GeoDataFrame]:
     """Returns the final {name: GeoDataFrame} map to save: every plain
     catalog entry with more than one subdivision (others are dropped -
     they'd be useless as a choropleth), plus every registered module
     output (region-variant maps included, even though they aren't in
-    the plain catalog at all).
+    the plain catalog at all). With `include_plain=False` only the
+    registered module outputs are returned, so a partial build never
+    re-resolves (and overwrites) plain catalog maps it didn't build.
     """
     purged = set(purged_countries(ctx, built))
-    kept_plain = [name for name in COUNTRIES if name not in purged]
+    kept_plain = (
+        [name for name in COUNTRIES if name not in purged] if include_plain else []
+    )
     all_names = sorted(set(kept_plain) | set(built.keys()))
     return {name: get_gdf(ctx, built, name) for name in all_names}
