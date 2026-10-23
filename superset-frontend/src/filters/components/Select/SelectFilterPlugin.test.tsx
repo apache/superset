@@ -25,6 +25,7 @@ import {
   type FilterState,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { Drawer } from '@superset-ui/core/components';
 import {
   act,
   fireEvent,
@@ -2494,4 +2495,48 @@ test('vertical filter bar shows every selected value without an overflow indicat
   expect(screen.getByText('boy')).toBeVisible();
   expect(screen.getByText('girl')).toBeVisible();
   expect(screen.queryByText(/^\+ \d+ \.\.\.$/)).not.toBeInTheDocument();
+});
+
+test('renders select dropdown popup inside the mobile filters drawer', async () => {
+  const setDataMask = jest.fn();
+  render(
+    <Drawer open title="Filters" placement="left">
+      <SelectFilterPlugin {...buildSelectFilterProps({ setDataMask })} />
+    </Drawer>,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: ['boy'] },
+          },
+        },
+      },
+    },
+  );
+
+  const [filterSelect] = screen.getAllByRole('combobox');
+  await userEvent.click(filterSelect);
+
+  let dropdown: Element | undefined;
+  await waitFor(() => {
+    dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    ).find(
+      element => !element.classList.contains('ant-select-dropdown-hidden'),
+    );
+    expect(dropdown).toBeDefined();
+  });
+
+  const drawerBody = document.querySelector('.ant-drawer-body');
+  expect(dropdown?.parentElement).toBe(drawerBody);
+
+  await userEvent.click(screen.getByTitle('girl'));
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: ['boy', 'girl'] }),
+    }),
+  );
 });
