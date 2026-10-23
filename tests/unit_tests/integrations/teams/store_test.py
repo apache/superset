@@ -18,7 +18,7 @@
 
 from collections.abc import Iterator
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from importlib import import_module
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -66,7 +66,9 @@ def session(engine: Engine) -> Iterator[Session]:
 
 def test_installation_is_persisted(engine: Engine, session: Session) -> None:
     store = TeamsInstallationStore(session)
-    installation = store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    installation = store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     identity = installation.id
     assert isinstance(identity, UUID)
     assert installation.tenant_id == UUID(TENANT)
@@ -84,10 +86,16 @@ def test_installation_is_persisted(engine: Engine, session: Session) -> None:
 
 def test_duplicate_install_refreshes_same_record(session: Session) -> None:
     store = TeamsInstallationStore(session)
-    original = store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    original = store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     identity, created_on = original.id, original.created_on
-    refreshed = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL)
-    repeated = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL)
+    refreshed = store.install(
+        TENANT, APPLICATION, "team-1", REFRESHED_URL, datetime.now(timezone.utc)
+    )
+    repeated = store.install(
+        TENANT, APPLICATION, "team-1", REFRESHED_URL, datetime.now(timezone.utc)
+    )
     assert refreshed is original
     assert repeated.id == identity
     assert repeated.created_on == created_on
@@ -98,14 +106,18 @@ def test_duplicate_install_refreshes_same_record(session: Session) -> None:
 
 def test_remove_and_reinstall_preserves_identity(session: Session) -> None:
     store = TeamsInstallationStore(session)
-    original = store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    original = store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     identity, created_on = original.id, original.created_on
-    store.remove(TENANT, APPLICATION, "team-1")
-    store.remove(TENANT, APPLICATION, "team-1")
+    store.remove(TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc))
+    store.remove(TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc))
     assert not original.active
     assert store.get_active(TENANT, APPLICATION, "team-1") is None
     assert session.query(TeamsInstallation).count() == 1
-    reinstalled = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL)
+    reinstalled = store.install(
+        TENANT, APPLICATION, "team-1", REFRESHED_URL, datetime.now(timezone.utc)
+    )
     assert reinstalled.id == identity
     assert reinstalled.created_on == created_on
     assert reinstalled.active
@@ -113,12 +125,16 @@ def test_remove_and_reinstall_preserves_identity(session: Session) -> None:
     assert store.get_active(TENANT, APPLICATION, "team-1") is reinstalled
 
 
-def test_unknown_removal_does_not_create_installation(session: Session) -> None:
+def test_unknown_removal_retains_tombstone(session: Session) -> None:
     store = TeamsInstallationStore(session)
-    store.remove(TENANT, APPLICATION, "unknown")
-    store.remove(TENANT, APPLICATION, "unknown")
+    store.remove(
+        TENANT, APPLICATION, "unknown", SERVICE_URL, datetime.now(timezone.utc)
+    )
+    store.remove(
+        TENANT, APPLICATION, "unknown", SERVICE_URL, datetime.now(timezone.utc)
+    )
     assert store.get_active(TENANT, APPLICATION, "unknown") is None
-    assert session.query(TeamsInstallation).count() == 0
+    assert session.query(TeamsInstallation).count() == 1
 
 
 @pytest.mark.parametrize(
@@ -133,11 +149,13 @@ def test_identity_is_scoped_to_all_three_fields(
     session: Session, identity: tuple[str, str, str]
 ) -> None:
     store = TeamsInstallationStore(session)
-    first = store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    first = store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     assert store.get_active(*identity) is None
-    second = store.install(*identity, REFRESHED_URL)
+    second = store.install(*identity, REFRESHED_URL, datetime.now(timezone.utc))
     assert second.id != first.id
-    store.remove(*identity)
+    store.remove(*identity, SERVICE_URL, datetime.now(timezone.utc))
     assert first.active
     assert not second.active
     assert session.query(TeamsInstallation).count() == 2
@@ -145,7 +163,9 @@ def test_identity_is_scoped_to_all_three_fields(
 
 def test_database_enforces_identity_uniqueness(session: Session) -> None:
     store = TeamsInstallationStore(session)
-    original = store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    original = store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     with pytest.raises(IntegrityError), session.begin_nested():
         session.execute(
             TeamsInstallation.__table__.insert().values(
@@ -157,6 +177,7 @@ def test_database_enforces_identity_uniqueness(session: Session) -> None:
                 active=True,
                 created_on=original.created_on,
                 changed_on=original.changed_on,
+                event_at=original.event_at,
             )
         )
     assert session.query(TeamsInstallation).count() == 1
@@ -164,7 +185,9 @@ def test_database_enforces_identity_uniqueness(session: Session) -> None:
 
 def test_insert_collision_recovers_inside_savepoint(session: Session) -> None:
     store = TeamsInstallationStore(session)
-    winner = store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    winner = store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     identity = winner.id
     connection = session.connection()
     execute = connection.execute
@@ -175,12 +198,16 @@ def test_insert_collision_recovers_inside_savepoint(session: Session) -> None:
             if mocked.call_count == 1
             else execute(statement, *args, **kwargs)
         )
-        refreshed = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL)
+        refreshed = store.install(
+            TENANT, APPLICATION, "team-1", REFRESHED_URL, datetime.now(timezone.utc)
+        )
     assert refreshed.id == identity
     assert refreshed.service_url == REFRESHED_URL
     assert session.query(TeamsInstallation).count() == 1
     # The insert error did not invalidate the caller's transaction.
-    assert store.install(TENANT, APPLICATION, "team-2", SERVICE_URL).active
+    assert store.install(
+        TENANT, APPLICATION, "team-2", SERVICE_URL, datetime.now(timezone.utc)
+    ).active
     session.commit()
 
 
@@ -197,19 +224,27 @@ def test_unrelated_integrity_error_is_not_swallowed(session: Session) -> None:
 
     with patch.object(connection, "execute", side_effect=fail_insert):
         with pytest.raises(IntegrityError, match="unrelated constraint"):
-            store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+            store.install(
+                TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+            )
     assert session.query(TeamsInstallation).count() == 0
-    assert store.install(TENANT, APPLICATION, "team-2", SERVICE_URL).active
+    assert store.install(
+        TENANT, APPLICATION, "team-2", SERVICE_URL, datetime.now(timezone.utc)
+    ).active
 
 
 def test_caller_can_roll_back_install_and_remove(session: Session) -> None:
     store = TeamsInstallationStore(session)
-    store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     session.rollback()
     assert session.query(TeamsInstallation).count() == 0
-    store.install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    store.install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     session.commit()
-    store.remove(TENANT, APPLICATION, "team-1")
+    store.remove(TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc))
     session.rollback()
     assert store.get_active(TENANT, APPLICATION, "team-1") is not None
 
@@ -229,7 +264,9 @@ def test_caller_can_roll_back_install_and_remove(session: Session) -> None:
 )
 def test_rejects_invalid_service_url(session: Session, url: str) -> None:
     with pytest.raises(ValueError, match="HTTPS URL"):
-        TeamsInstallationStore(session).install(TENANT, APPLICATION, "team-1", url)
+        TeamsInstallationStore(session).install(
+            TENANT, APPLICATION, "team-1", url, datetime.now(timezone.utc)
+        )
     assert session.query(TeamsInstallation).count() == 0
 
 
@@ -242,9 +279,15 @@ def test_installation_does_not_authorize_destinations(
     config = parse_teams_config(raw_config)
     assert config is not None
     store = TeamsInstallationStore(session)
-    store.install(TENANT, APPLICATION, "unapproved", SERVICE_URL)
-    store.remove(TENANT, APPLICATION, "unapproved")
-    store.install(TENANT, APPLICATION, "unapproved", REFRESHED_URL)
+    store.install(
+        TENANT, APPLICATION, "unapproved", SERVICE_URL, datetime.now(timezone.utc)
+    )
+    store.remove(
+        TENANT, APPLICATION, "unapproved", SERVICE_URL, datetime.now(timezone.utc)
+    )
+    store.install(
+        TENANT, APPLICATION, "unapproved", REFRESHED_URL, datetime.now(timezone.utc)
+    )
     assert raw_config == before
     assert config.get_destination("ops").team_id == "approved"
     assert set(TeamsInstallation.__table__.columns.keys()) == {
@@ -256,11 +299,14 @@ def test_installation_does_not_authorize_destinations(
         "active",
         "created_on",
         "changed_on",
+        "event_at",
     }
 
 
 def test_migration_downgrade_and_reupgrade(engine: Engine, session: Session) -> None:
-    TeamsInstallationStore(session).install(TENANT, APPLICATION, "team-1", SERVICE_URL)
+    TeamsInstallationStore(session).install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
     session.commit()
     with engine.begin() as connection:
         connection.exec_driver_sql("CREATE TABLE teams_migration_sentinel (id INTEGER)")
@@ -282,10 +328,76 @@ def test_store_rejects_invalid_team_ids_consistently(
 ) -> None:
     """Authenticated event persistence shares the deployment identifier validator."""
     store = TeamsInstallationStore(session)
-    args: tuple[str, ...] = (TENANT, APPLICATION, team_id)
-    if operation == "install":
-        args = (*args, SERVICE_URL)
+    args: tuple[Any, ...] = (TENANT, APPLICATION, team_id)
+    if operation != "get_active":
+        args = (*args, SERVICE_URL, datetime.now(timezone.utc))
     method = getattr(store, operation)
     with pytest.raises(ValueError, match="Teams team ID"):
         method(*args)
     assert session.query(TeamsInstallation).count() == 0
+
+
+def test_migration_preserves_bootstrapped_installations(
+    engine: Engine, session: Session
+) -> None:
+    """Fresh database bootstrap may create the model table before Alembic runs."""
+    installation = TeamsInstallationStore(session).install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, datetime.now(timezone.utc)
+    )
+    session.commit()
+    installation_id = installation.id
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            assert connection.execute(select(TeamsInstallation.id)).scalars().all() == [
+                installation_id
+            ]
+
+
+@pytest.mark.parametrize("install_first", [False, True])
+@pytest.mark.parametrize("equal_timestamp", [False, True])
+def test_stale_events_do_not_override_removal(
+    engine: Engine, install_first: bool, equal_timestamp: bool
+) -> None:
+    installed = datetime(2026, 10, 1, 12, tzinfo=timezone.utc)
+    removed = installed.replace(minute=0 if equal_timestamp else 1)
+    reinstalled = installed.replace(minute=2)
+    with Session(engine) as session:
+        store = TeamsInstallationStore(session)
+        if install_first:
+            store.install(TENANT, APPLICATION, "team-1", SERVICE_URL, installed)
+        store.remove(TENANT, APPLICATION, "team-1", SERVICE_URL, removed)
+        session.commit()
+    with Session(engine) as session:
+        store = TeamsInstallationStore(session)
+        original = session.query(TeamsInstallation).one()
+        identity, changed_on = original.id, original.changed_on
+        stale = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL, installed)
+        assert not stale.active
+        assert stale.service_url == SERVICE_URL
+        assert stale.changed_on == changed_on
+        fresh = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL, reinstalled)
+        store.remove(TENANT, APPLICATION, "team-1", SERVICE_URL, removed)
+        assert fresh.active
+        assert fresh.id == identity
+        assert fresh.service_url == REFRESHED_URL
+        assert fresh.event_at == reinstalled.replace(tzinfo=None)
+
+
+def test_insert_race_preserves_newer_removal(session: Session) -> None:
+    store = TeamsInstallationStore(session)
+    installed = datetime(2026, 10, 1, 12, tzinfo=timezone.utc)
+    store.remove(
+        TENANT, APPLICATION, "team-1", SERVICE_URL, installed.replace(minute=1)
+    )
+    connection = session.connection()
+    execute = connection.execute
+    with patch.object(connection, "execute") as mocked:
+        mocked.side_effect = lambda statement, *args, **kwargs: (
+            MagicMock(rowcount=0)
+            if mocked.call_count == 1
+            else execute(statement, *args, **kwargs)
+        )
+        stale = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL, installed)
+    assert not stale.active
+    assert session.query(TeamsInstallation).count() == 1

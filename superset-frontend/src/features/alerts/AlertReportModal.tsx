@@ -1152,7 +1152,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
-    if (!isReport && !attachmentControlsVisible && !isEditMode) {
+    if (
+      !isReport &&
+      !attachmentControlsVisible &&
+      (!isEditMode ||
+        notificationSettings.some(
+          setting => setting.method === NotificationMethodOption.Teams,
+        ))
+    ) {
       data.report_format = 'NONE';
     }
     if (!attachmentControlsVisible && isEditMode) {

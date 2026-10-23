@@ -17,6 +17,7 @@
 """Browser discovery only projects approved keys and active-installation status."""
 
 from collections.abc import Iterator
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -80,25 +81,40 @@ def test_removal_and_reinstallation_update_availability(configured_app: Flask) -
     with Session(destinations.db.engine) as session:
         store = TeamsInstallationStore(session)
         store.install(
-            TENANT, APPLICATION, "team-1", "https://smba.trafficmanager.net/amer/"
+            TENANT,
+            APPLICATION,
+            "team-1",
+            "https://smba.trafficmanager.net/amer/",
+            datetime.now(timezone.utc),
         )
         store.install(
             TENANT,
             APPLICATION,
             "unapproved-team",
             "https://smba.trafficmanager.net/amer/",
+            datetime.now(timezone.utc),
         )
         session.commit()
         assert [
             item["available"] for item in destinations.list_teams_destinations()
         ] == [True, True, False]
-        store.remove(TENANT, APPLICATION, "team-1")
+        store.remove(
+            TENANT,
+            APPLICATION,
+            "team-1",
+            "https://smba.trafficmanager.net/amer/",
+            datetime.now(timezone.utc),
+        )
         session.commit()
         assert not any(
             item["available"] for item in destinations.list_teams_destinations()
         )
         store.install(
-            TENANT, APPLICATION, "team-1", "https://smba.trafficmanager.net/emea/"
+            TENANT,
+            APPLICATION,
+            "team-1",
+            "https://smba.trafficmanager.net/emea/",
+            datetime.now(timezone.utc),
         )
         session.commit()
         assert [
@@ -113,7 +129,11 @@ def test_other_identity_cannot_make_destination_available(
 ) -> None:
     with Session(destinations.db.engine) as session:
         TeamsInstallationStore(session).install(
-            tenant, application, "team-1", "https://smba.trafficmanager.net/amer/"
+            tenant,
+            application,
+            "team-1",
+            "https://smba.trafficmanager.net/amer/",
+            datetime.now(timezone.utc),
         )
         session.commit()
     assert not any(item["available"] for item in destinations.list_teams_destinations())

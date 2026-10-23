@@ -49,5 +49,6 @@ class TeamsInstallation(Model):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # Naive UTC, matching Superset metadata timestamps.
     # changed_on records the last event processing time.
+    event_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     changed_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
