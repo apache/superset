@@ -26,7 +26,7 @@ from sqlalchemy.dialects.oracle.base import OracleDialect
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
-from superset.sql.parse import LimitMethod
+from superset.sql.parse import LimitMethod, ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
@@ -40,8 +40,11 @@ logger = logging.getLogger(__name__)
 # Oracle 12c introduced `FETCH FIRST n ROWS ONLY`.
 FETCH_FIRST_MAJOR_VERSION = 12
 
-# Server major versions read from the database, keyed by database id and URI.
-_server_major_versions: dict[str, int] = {}
+# Oracle 12.2 raised the identifier limit from 30 to 128 bytes.
+LONG_IDENTIFIERS_VERSION = (12, 2)
+
+# Server versions read from the database, keyed by database id and URI.
+_server_versions: dict[str, tuple[int, ...]] = {}
 
 
 class OracleEngineSpec(BaseEngineSpec):
@@ -64,7 +67,8 @@ class OracleEngineSpec(BaseEngineSpec):
             "Previously used cx_Oracle, now uses oracledb. Legacy LONG columns are "
             "treated as text, not numeric data, so Explore does not select SUM as "
             "their default aggregate. On Oracle 11g and older, which reject FETCH "
-            "FIRST, row limits use ROWNUM. The server version is detected on "
+            "FIRST, row limits use ROWNUM. On 12.1 and older, labels longer than "
+            "30 bytes are replaced with a hash. The server version is detected on "
             "first use, or can be set under Advanced > Other > Version."
         ),
         "docs_url": "https://python-oracledb.readthedocs.io/en/latest/user_guide/installation.html",
@@ -88,23 +92,56 @@ class OracleEngineSpec(BaseEngineSpec):
         return cls.limit_method
 
     @classmethod
+    def get_max_column_name_length(cls, database: Database) -> int | None:
+        """
+        Cap labels at 30 bytes on Oracle releases before 12.2.
+
+        Those releases reject longer labels with "ORA-00972: identifier is too
+        long". A version given only as "12c" is treated as 12.1, since 30 bytes
+        is accepted by every release.
+        """
+        version = cls.get_server_version(database)
+        if version is not None and version < LONG_IDENTIFIERS_VERSION:
+            return ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH
+
+        return cls.max_column_name_length
+
+    @staticmethod
+    def _label_length(label: str) -> int:
+        """
+        Oracle limits identifiers in bytes, so count the label's UTF-8 bytes.
+
+        A label of non-ASCII characters can be too long with fewer characters
+        than the limit.
+        """
+        return len(label.encode())
+
+    @classmethod
     def get_server_major_version(cls, database: Database) -> int | None:
         """
         Return the major version of the Oracle server, or `None` if unknown.
+        """
+        version = cls.get_server_version(database)
+        return version[0] if version is not None else None
+
+    @classmethod
+    def get_server_version(cls, database: Database) -> tuple[int, ...] | None:
+        """
+        Return the version of the Oracle server, or `None` if unknown.
 
         A version specified in the DB extra wins. Oracle names its releases
         "11g", "12c" or "23ai", or by a dotted number like "11.2.0.4", so only
-        the leading major number is read. Otherwise the version is read from the
-        server once and cached per database. SQLAlchemy already knows it if the
-        engine has connected before; if not, this costs one connection per
+        the leading dotted numbers are read. Otherwise the version is read from
+        the server once and cached per database. SQLAlchemy already knows it if
+        the engine has connected before; if not, this costs one connection per
         process.
         """
         version = database.get_extra().get("version")
-        if match := re.match(r"\s*(\d+)", str(version or "")):
-            return int(match.group(1))
+        if match := re.match(r"\s*(\d+(?:\.\d+)*)", str(version or "")):
+            return tuple(int(part) for part in match.group(1).split("."))
 
         key = f"{database.id}:{database.sqlalchemy_uri}"
-        if key not in _server_major_versions:
+        if key not in _server_versions:
             try:
                 with database.get_sqla_engine() as engine:
                     version_info = engine.dialect.server_version_info
@@ -120,9 +157,9 @@ class OracleEngineSpec(BaseEngineSpec):
                 return None
             if not version_info:
                 return None
-            _server_major_versions[key] = int(version_info[0])
+            _server_versions[key] = tuple(int(part) for part in version_info)
 
-        return _server_major_versions[key]
+        return _server_versions[key]
 
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
