@@ -32,7 +32,6 @@ import {
   WebpackManifestPlugin,
   getCompilerHooks,
 } from 'webpack-manifest-plugin';
-import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -79,9 +78,6 @@ const devserverHost =
 
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
-
-// TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 8192;
 
 const defaultEntryFilename = isDevMode
   ? '[name].[contenthash:8].entry.js'
@@ -247,40 +243,11 @@ if (!isDevMode) {
   );
 }
 
-// TypeScript type checking and .d.ts generation
-// SWC handles transpilation; this plugin handles type checking separately.
-// build: true enables project references so .d.ts files are auto-generated
-// across the monorepo when editing plugins/packages.
-// mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
-// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
-// Type errors are still caught by pre-commit and CI.
-const disableTsChecker = ['true', '1'].includes(
-  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
-);
-if (isDevMode && !disableTsChecker) {
-  plugins.push(
-    new ForkTsCheckerWebpackPlugin({
-      async: true,
-      typescript: {
-        build: true,
-        mode: 'write-references',
-        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-        configOverwrite: {
-          compilerOptions: {
-            skipLibCheck: true,
-            incremental: true,
-          },
-          exclude: [
-            'src/**/*.js',
-            'src/**/*.jsx',
-            '**/*.test.*',
-            '**/*.stories.*',
-          ],
-        },
-      },
-    }),
-  );
-}
+// Type checking does not run inside webpack: SWC only transpiles, and the
+// native TypeScript compiler is fast enough to run on its own. Use
+// `npm run type` (or `npm run type -- --watch`) for type errors, and
+// `npm run plugins:build` (or `npx tsc --build --watch`) to refresh the
+// packages' .d.ts output while editing plugins/packages.
 
 // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
 const PREAMBLE = isDevMode

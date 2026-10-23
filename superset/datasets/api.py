@@ -115,7 +115,6 @@ from superset.exceptions import (
 from superset.extensions import cache_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils import json
 from superset.utils.core import (
     FilterOperator,
     get_user_id,
@@ -144,6 +143,7 @@ from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -1855,28 +1855,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         sync_columns = request.form.get("sync_columns") == "true"
         sync_metrics = request.form.get("sync_metrics") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDatasetsCommand(

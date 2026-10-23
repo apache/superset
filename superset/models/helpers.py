@@ -26,7 +26,7 @@ import dataclasses
 import logging
 import re
 import uuid
-from collections.abc import Hashable, Iterator
+from collections.abc import Hashable, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -75,7 +75,13 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.sql import visitors
-from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
+from sqlalchemy.sql.elements import (
+    ColumnClause,
+    ColumnElement,
+    Grouping,
+    literal_column,
+    TextClause,
+)
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
@@ -136,7 +142,13 @@ from superset.exceptions import (
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql.metric_normalization import normalize_custom_metric
-from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import (
+    has_aggregate,
+    is_constant_expression,
+    sanitize_clause,
+    SQLScript,
+    SQLStatement,
+)
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -2141,6 +2153,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dataset_timezone = extra.get("timezone")
         return dataset_timezone if isinstance(dataset_timezone, str) else None
 
+    def _has_valid_dataset_timezone(self) -> bool:
+        """
+        Whether the dataset timezone resolves. ``normalize_dttm_col`` applies the
+        Hours offset instead when it does not, so filters must invert it too.
+        """
+        if not (dataset_timezone := self.get_dataset_timezone()):
+            return False
+        try:
+            ZoneInfo(dataset_timezone)
+        except (ZoneInfoNotFoundError, ValueError):
+            return False
+        return True
+
     def get_fetch_values_predicate(
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
@@ -2830,6 +2855,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         query_object: QueryObject,
         sql_shifted_temporal_labels: set[str] | None = None,
+        *,
+        keep_exact_integers: bool = False,
     ) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -2838,6 +2865,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param df: The dataframe to normalize
         :param query_object: The query object with metadata about columns
         :param sql_shifted_temporal_labels: labels already shifted in generated SQL
+        :param keep_exact_integers: leave nullable integer dimension columns holding
+            values beyond ``JS_MAX_INTEGER`` as exact Python integers instead of
+            rounding them to float64; only for frames that are not processed further
         :return: Normalized dataframe
         """
         sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
@@ -2898,9 +2928,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
+        # Nullable integer dimensions beyond JS_MAX_INTEGER are set aside and put
+        # back below: ``infer_objects`` would round them to float64.
+        exact_columns = (
+            {
+                col: df[col]
+                for col in dataframe_utils.lossy_integer_columns(df, query_object)
+            }
+            if keep_exact_integers
+            else {}
+        )
+
         # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
         # FutureWarning about deprecated silent downcasting on object columns.
         df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
+        for col, series in exact_columns.items():
+            df[col] = series
 
         return df
 
@@ -2929,6 +2972,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df,
                 query_object,
                 result.sql_shifted_temporal_labels,
+                keep_exact_integers=dataframe_utils.can_keep_exact_integers(
+                    query_object
+                ),
             )
 
             # Process time offsets if requested
@@ -4263,6 +4309,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             builtins.type["BaseEngineSpec"]
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
+        temporal_offset_hours: int = 0,
     ) -> Optional[FilterValues]:
         if values is None:
             return None
@@ -4308,9 +4355,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return literal_column(temporal_sql) if temporal_sql is not None else value
 
+        def shift_temporal_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+            """Undo the display-only offset before comparing an unshifted bucket."""
+            if (
+                not temporal_offset_hours
+                or target_generic_type != GenericDataType.TEMPORAL
+            ):
+                return value
+            if isinstance(value, bool) or value is None:
+                return value
+            if isinstance(value, (int, float)):
+                return value - temporal_offset_hours * 60 * 60 * 1000
+            delta = timedelta(hours=temporal_offset_hours)
+            if isinstance(value, datetime):
+                return value - delta
+            if re.fullmatch(r"[+-]?\d+", value):
+                return str(int(value) - temporal_offset_hours * 60 * 60 * 1000)
+            try:
+                return (datetime.fromisoformat(value) - delta).isoformat(sep=" ")
+            except ValueError:
+                return value
+
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
+            value = shift_temporal_value(value)
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
@@ -4460,6 +4529,40 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             groups.append(and_(*group))
 
         return or_(*groups)
+
+    def _groupby_clause_exprs(self, groupby_exprs: Iterable[Any]) -> list[Any]:
+        """
+        Return the expressions to emit in the GROUP BY clause.
+
+        A bare constant (e.g. a Custom SQL dimension of ``'Other'``) never changes
+        how rows are grouped, and several engines reject it as a GROUP BY key
+        (PostgreSQL: ``non-integer constant in GROUP BY``; an integer constant is
+        read as a select-list ordinal). Such keys are omitted here; the SELECT
+        list still carries them under their label.
+
+        Constants are only omitted while at least one other key remains. If every
+        key is constant the keys are left untouched: whether GROUP BY can be
+        dropped then depends on the query aggregating, which is not known here.
+        """
+        keys = list(groupby_exprs)
+        non_constant = [key for key in keys if not self._is_constant_groupby_expr(key)]
+        return non_constant or keys
+
+    def _is_constant_groupby_expr(self, expr: Any) -> bool:
+        """
+        Whether a GROUP BY key is provably a bare constant.
+
+        Only raw SQL text (``literal_column``, as built for Custom SQL and
+        calculated columns) is inspected; any other SQLAlchemy construct is
+        reported as non-constant without being compiled.
+        """
+        while isinstance(expr, (Label, Grouping)):
+            expr = expr.element
+        return (
+            isinstance(expr, ColumnClause)
+            and expr.is_literal
+            and is_constant_expression(expr.name, self.database.backend)
+        )
 
     def _apply_series_others_grouping(
         self,
@@ -6260,7 +6363,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ]
                 qry = qry.group_by(grouping_sets_clause(gs_levels))
             else:
-                qry = qry.group_by(*groupby_all_columns.values())
+                qry = qry.group_by(
+                    *self._groupby_clause_exprs(groupby_all_columns.values())
+                )
 
         where_clause_and: list[ColumnElement] = []
         having_clause_and: list[ColumnElement] = []
@@ -6271,6 +6376,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             flt_col = flt["col"]
             val = flt.get("val")
             flt_grain = flt.get("grain")
+            filter_grain = flt_grain
+            adhoc_filter_column: AdhocColumn | None = None
             op = utils.FilterOperator(flt["op"].upper())
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
@@ -6285,11 +6392,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
+                adhoc_filter_column = cast(AdhocColumn, flt_col)
+                if flt_col.get("columnType") == "BASE_AXIS":
+                    filter_grain = flt_col.get("timeGrain")
                 try:
                     sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
                         cast("AdhocColumn", flt_col),
                         force_type_check=True,
                         template_processor=template_processor,
+                        apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
                     is_adhoc_sqla_col = True
@@ -6324,15 +6435,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and isinstance(flt_col, str)
                     and flt_col in adhoc_columns_by_label
                 ):
+                    adhoc_filter_column = adhoc_columns_by_label[flt_col]
+                    if adhoc_filter_column.get("columnType") == "BASE_AXIS":
+                        filter_grain = adhoc_filter_column.get("timeGrain")
                     sqla_col, _unused = self.adhoc_column_to_sqla(
-                        col=adhoc_columns_by_label[flt_col],
+                        col=adhoc_filter_column,
                         template_processor=template_processor,
+                        apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
                     )
                     if isinstance(sqla_col, ColumnElement):
                         applied_adhoc_filters_columns.append(flt_col)
                         is_adhoc_sqla_col = True
-
-            filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
             # template. Special handling for __timestamp alias: check both the
@@ -6359,7 +6472,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     pass
                 elif col_obj and filter_grain:
                     sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
+                        time_grain=filter_grain,
+                        template_processor=template_processor,
+                        # Bucket comparisons must use the grouping expression.
+                        # Range bounds are shifted separately by get_time_filter.
+                        apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
                     )
                 elif col_obj:
                     sqla_col = self.convert_tbl_column_to_sqla_col(
@@ -6412,6 +6529,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
+                # Adhoc aliases absent from dataset metadata are not normalized
+                # by _collect_dttm_labels, so their buckets have no pandas offset.
+                offset_column = (
+                    columns_by_name.get(utils.get_column_name(adhoc_filter_column))
+                    if adhoc_filter_column
+                    else col_obj
+                )
                 eq = self.filter_values_handler(
                     values=val,
                     operator=op,
@@ -6420,6 +6544,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
+                    # Engines without SQL shifts group raw timestamps, then add
+                    # Hours offset in pandas. Invert that display-only shift on
+                    # each selected bucket, not on the underlying column.
+                    temporal_offset_hours=(
+                        (self.offset or 0)
+                        if filter_grain
+                        and offset_column is not None
+                        and offset_column.is_dttm
+                        and op
+                        in {
+                            utils.FilterOperator.EQUALS,
+                            utils.FilterOperator.NOT_EQUALS,
+                            utils.FilterOperator.IN,
+                            utils.FilterOperator.NOT_IN,
+                            utils.FilterOperator.GREATER_THAN,
+                            utils.FilterOperator.LESS_THAN,
+                            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                            utils.FilterOperator.LESS_THAN_OR_EQUALS,
+                        }
+                        # A SQL-shifted grouping already matches the label.
+                        and not (
+                            db_engine_spec.supports_temporal_column_shift
+                            and not self.get_dataset_timezone()
+                        )
+                        # pandas skips the offset only for a valid timezone.
+                        and not self._has_valid_dataset_timezone()
+                        else 0
+                    ),
                 )
                 if op in {
                     utils.FilterOperator.IN,
@@ -6989,7 +7141,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     )
                 )
-                subq = subq.group_by(*inner_groupby_exprs)
+                subq = subq.group_by(*self._groupby_clause_exprs(inner_groupby_exprs))
 
                 ob = inner_main_metric_expr
                 if series_limit_metric:
@@ -7043,7 +7195,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # Reconstruct query with modified expressions
                     qry = sa.select(*select_exprs)
                     if groupby_all_columns:
-                        qry = qry.group_by(*groupby_all_columns.values())
+                        qry = qry.group_by(
+                            *self._groupby_clause_exprs(groupby_all_columns.values())
+                        )
 
                     # Re-apply WHERE and HAVING clauses lost during query reconstruction
                     qry = self._reapply_query_filters(
@@ -7117,7 +7271,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # Reconstruct query with modified expressions
                     qry = sa.select(*select_exprs)
                     if groupby_all_columns:
-                        qry = qry.group_by(*groupby_all_columns.values())
+                        qry = qry.group_by(
+                            *self._groupby_clause_exprs(groupby_all_columns.values())
+                        )
 
                     # Re-apply WHERE and HAVING clauses lost during query reconstruction
                     qry = self._reapply_query_filters(

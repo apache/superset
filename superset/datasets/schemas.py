@@ -41,6 +41,7 @@ from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
 from superset.utils.core import FilterOperator
+from superset.utils.number_format import is_valid_d3_format
 from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
@@ -83,6 +84,16 @@ def validate_python_date_format(dt_format: str) -> bool:
     except ValueError as ex:
         raise ValidationError([_("Invalid date/timestamp format")]) from ex
     return True
+
+
+def validate_d3format(value: str | None) -> None:
+    if not is_valid_d3_format(value):
+        raise ValidationError(
+            _(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
+            )
+        )
 
 
 class ResolveIsCertifiedMixin(Schema):
@@ -187,7 +198,9 @@ class DatasetMetricsPutSchema(ResolveIsCertifiedMixin, Schema):
 
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
-    d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    d3format = fields.String(
+        allow_none=True, validate=[Length(1, 128), validate_d3format]
+    )
     currency = CurrencyField(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
@@ -459,7 +472,7 @@ class ImportV1MetricSchema(Schema):
     metric_type = fields.String(allow_none=True)
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
-    d3format = fields.String(allow_none=True)
+    d3format = fields.String(allow_none=True, validate=validate_d3format)
     currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
