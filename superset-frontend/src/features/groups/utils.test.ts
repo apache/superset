@@ -41,7 +41,7 @@ const mockUsersResponse = (
 const decodeQuery = () => {
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
   const q = new URLSearchParams(endpoint.split('?')[1]).get('q') ?? '';
-  return rison.decode(q);
+  return rison.decode(q) as Record<string, unknown>;
 };
 
 afterEach(() => {
