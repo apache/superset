@@ -96,6 +96,12 @@ jobs:
               for output in cell.get("outputs", []):
                   if output.get("output_type") == "error":
                       errors.append(f"cell {i}: {output.get('ename')}: {output.get('evalue')}")
+                  elif output.get("output_type") == "stream":
+                      # Some cells catch download failures and print them
+                      # instead of raising, so they never emit an error output.
+                      for line in "".join(output.get("text", [])).splitlines():
+                          if line.startswith("Unable to download"):
+                              errors.append(f"cell {i}: {line}")
 
           if errors:
               print("had_errors=true")
@@ -161,7 +167,7 @@ jobs:
           fi
 
       - name: Close stale sync PR when no drift remains
-        if: steps.diff.outputs.has_changes == 'false'
+        if: steps.diff.outputs.has_changes == 'false' && steps.notebook.outputs.had_errors != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: chore/update-country-maps-automated
