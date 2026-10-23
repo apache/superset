@@ -25,7 +25,7 @@ import type { TimeseriesCustomLegend } from './types';
 const LegendViewport = styled.div<{ maxHeight: number }>`
   ${({ maxHeight, theme }) => `
     box-sizing: border-box;
-    color: ${theme.colorText};
+    color: ${theme.colorTextSecondary};
     font-size: ${theme.fontSizeSM}px;
     max-height: ${maxHeight}px;
     overflow-x: hidden;
@@ -87,7 +87,8 @@ const ItemButton = styled.button<{ selected: boolean }>`
     appearance: none;
     background: none;
     border: none;
-    color: ${selected ? theme.colorText : theme.colorTextDisabled};
+    // Same tokens the ECharts legend theme uses for its labels (Echart.tsx).
+    color: ${selected ? theme.colorTextSecondary : theme.colorTextDisabled};
     cursor: pointer;
     display: inline-flex;
     font: inherit;

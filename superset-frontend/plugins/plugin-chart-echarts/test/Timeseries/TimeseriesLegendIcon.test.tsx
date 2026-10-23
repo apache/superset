@@ -261,3 +261,44 @@ test('TimeseriesLegend draws one icon per item and none for row breaks', () => {
   );
   expect(icons[1].querySelector('rect')).toHaveAttribute('fill', DISABLED);
 });
+
+test('TimeseriesLegend labels use the colours the ECharts legend theme uses', () => {
+  const { getByRole } = render(
+    <ThemeProvider theme={supersetTheme}>
+      <TimeseriesLegend
+        grid={{ bottom: 20, top: 20 }}
+        items={[
+          {
+            color: COLOR,
+            icon: { shape: 'box', opacity: 1 },
+            interactive: true,
+            name: 'Shown',
+            selected: true,
+          },
+          {
+            color: COLOR,
+            icon: { shape: 'box', opacity: 1 },
+            interactive: true,
+            name: 'Hidden',
+            selected: false,
+          },
+        ]}
+        maxHeight={100}
+        onAll={jest.fn()}
+        onInverse={jest.fn()}
+        onToggle={jest.fn()}
+        orientation={LegendOrientation.Top}
+        showSelectors={false}
+      />
+    </ThemeProvider>,
+  );
+
+  // Echart.tsx themes legend.textStyle with colorTextSecondary and inactive
+  // items with colorTextDisabled; the HTML legend must read the same.
+  expect(getByRole('button', { name: 'Shown' })).toHaveStyle({
+    color: supersetTheme.colorTextSecondary,
+  });
+  expect(getByRole('button', { name: 'Hidden' })).toHaveStyle({
+    color: DISABLED,
+  });
+});
