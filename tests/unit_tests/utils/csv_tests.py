@@ -545,3 +545,37 @@ def test_get_chart_csv_data_closes_response(
             == b"csv"
         )
     response.close.assert_called_once()
+
+
+@pytest.mark.parametrize("copy_on_write", [False, True])
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (["=1+1", "safe", None], ["'=1+1", "safe", ""]),
+        (["=1+1", "'=1+1", 7], ["'=1+1", "'=1+1", "7"]),
+        ([10, 20, None], ["10", "20", ""]),
+    ],
+)
+def test_df_to_escaped_csv_categorical_duplicate_labels(
+    values: list[Any], expected: list[str], copy_on_write: bool
+) -> None:
+    df = pd.concat(
+        [
+            pd.Series(pd.Categorical(values, ordered=True)),
+            pd.Series(["left", "middle", "right"]),
+        ],
+        axis=1,
+    )
+    df.index = [7, 7, 7]
+    df.columns = ["value", "value"]
+    original = df.copy(deep=True)
+
+    with pd.option_context("mode.copy_on_write", copy_on_write):
+        result = df_to_escaped_csv(df, index=False, header=False)
+
+    assert list(reader(StringIO(result))) == [
+        [expected[0], "left"],
+        [expected[1], "middle"],
+        [expected[2], "right"],
+    ]
+    pd.testing.assert_frame_equal(df, original)

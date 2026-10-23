@@ -106,7 +106,9 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # escaping column names can turn distinct labels into duplicates. Only
     # string cells are reassigned to preserve numeric and nullable dtypes.
     for column_index, (_, column) in enumerate(df.items()):
-        if pd.api.types.is_string_dtype(column.dtype):
+        if isinstance(column.dtype, pd.CategoricalDtype):
+            df.isetitem(column_index, column.map(escape_values))
+        elif pd.api.types.is_string_dtype(column.dtype):
             for row_index, value in enumerate(column):
                 if isinstance(value, str):
                     df.iat[row_index, column_index] = escape_value(value)
