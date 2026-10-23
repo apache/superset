@@ -2814,10 +2814,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             rounding them to float64; only for frames that are not processed further
         :return: Normalized dataframe
         """
+        # Only discovery's internal opt-in (exactly True) restores raw columns.
+        preserve_literal = query_object.extras.get("preserve_literal_values") is True
         literal_columns = {
             name: df[name].copy()
             for name in query_object.column_names
-            if query_object.extras.get("preserve_literal_values") and name in df
+            if preserve_literal and name in df
         }
         sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         labels = self._collect_dttm_labels(query_object)
