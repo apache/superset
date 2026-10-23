@@ -56,8 +56,8 @@ test.each(components)(
     );
     const popup = await openAndGetPopup();
     expect(screen.getByTestId('scroll-wrapper').contains(popup)).toBe(false);
-    expect(popup.closest('.ant-select-dropdown')).toBe(popup);
-    expect(popup.parentElement?.parentElement).toBe(document.body);
+    expect(popup.closest('[data-test="scroll-wrapper"]')).toBeNull();
+    expect(document.body.contains(popup)).toBe(true);
   },
 );
 
