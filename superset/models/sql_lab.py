@@ -319,18 +319,25 @@ class Query(
         """
         Raise an exception if the user cannot access the resource.
 
-        Re-validation of a SQL Lab query uses the same strict scoping as the
-        initial execute path (``force_dataset_match=True``) so that fetching
-        results, exporting CSV, and streaming-exporting all enforce the same
-        per-table dataset-match requirement. ``raise_for_access`` parses
-        ``executed_sql`` (the Jinja-rendered query that actually ran) when
-        set, keeping the table set aligned with execution even though the
-        original ``template_params`` are not persisted on the query record.
+        Re-validation of a SQL Lab query uses the same scoping as the initial
+        execute path, so fetching results, exporting CSV, and
+        streaming-exporting all honor ``SQLLAB_REQUIRE_DATASET_MATCH``.
+        ``raise_for_access`` parses ``executed_sql`` (the Jinja-rendered
+        query that actually ran) when set, keeping the table set aligned
+        with execution even though the original ``template_params`` are not
+        persisted on the query record.
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
+        # Lazy import avoids a cycle: sqllab.utils imports this module.
+        from superset.sqllab.utils import (  # pylint: disable=import-outside-toplevel
+            requires_dataset_match,
+        )
 
-        security_manager.raise_for_access(query=self, force_dataset_match=True)
+        security_manager.raise_for_access(
+            query=self,
+            force_dataset_match=requires_dataset_match(),
+        )
 
     @property
     def db_engine_spec(
