@@ -17,6 +17,7 @@
 
 """Tests for celery_task.py - async SQL execution via Celery."""
 
+import base64
 from collections.abc import Callable
 from decimal import Decimal
 from pathlib import Path
@@ -24,7 +25,7 @@ from typing import Any
 from unittest.mock import MagicMock, PropertyMock
 
 import msgpack
-import pandas as pd
+import pyarrow as pa
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
@@ -772,6 +773,96 @@ def test_store_results_in_backend_payload_too_large(
     assert exc_info.value.error.error_type == SupersetErrorType.RESULT_TOO_LARGE_ERROR
 
 
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("nested_column_present", [True, False])
+@pytest.mark.parametrize("nested_value", [{"value": "x"}, [b"\xff" * 17]])
+@pytest.mark.parametrize("text_length", [1, 9, 17])
+@pytest.mark.parametrize("bytes_over_limit", [0, 1])
+def test_store_results_in_backend_raw_arrow_size_boundary(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    mock_result_set: MagicMock,
+    use_msgpack: bool,
+    text_length: int,
+    nested_column_present: bool,
+    nested_value: Any,
+    bytes_over_limit: int,
+) -> None:
+    """Count raw IPC plus all metadata, with exact limits and Base64 padding."""
+    from superset.sql.execution.celery_task import (
+        _serialize_payload,
+        _serialize_result_set,
+        _store_results_in_backend,
+        BYTES_IN_MB,
+    )
+    from superset.sql.execution.serialization import serialize_nested_columns
+    from superset.utils.core import zlib_decompress
+
+    backend = mocker.patch("superset.sql.execution.celery_task.results_backend")
+    backend.set.return_value = True
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    mocker.patch("superset.sql.execution.celery_task.uuid.uuid4", return_value="key")
+    table_data = {"text": ["x" * text_length]}
+    if nested_column_present:
+        table_data["nested"] = [
+            superset_json.dumps(nested_value, default=superset_json.json_iso_dttm_ser)
+        ]
+    mock_result_set.pa_table = pa.table(table_data)
+    data, columns = _serialize_result_set(mock_result_set)
+    payload: dict[str, Any] = {
+        "query": {"resultsKey": "key"},
+        "statements": [
+            {"data": None, "columns": []},
+            {
+                "data": data,
+                "columns": columns,
+                "nested_columns_arrow_nbytes": (
+                    {"nested": mock_result_set.pa_table.column("nested").nbytes}
+                    if nested_column_present
+                    else {}
+                ),
+                "nested_columns_msgpack": serialize_nested_columns(
+                    {"nested": [nested_value]}, use_msgpack=use_msgpack
+                ),
+            },
+            {"data": data, "columns": columns},
+        ],
+        "metadata": "x" * 1000,
+    }
+    serialized = _serialize_payload(payload)
+    sidecar = payload["statements"][1]["nested_columns_msgpack"]["nested"]
+    raw_sidecar_size = len(sidecar if use_msgpack else base64.b64decode(sidecar))
+    expected_size = len(serialized) - (len(sidecar) - raw_sidecar_size)
+    if nested_column_present:
+        expected_size -= min(
+            raw_sidecar_size, mock_result_set.pa_table.column("nested").nbytes
+        )
+    if isinstance(data, str):
+        expected_size -= 2 * (len(data) - len(base64.b64decode(data)))
+    mocker.patch.dict(
+        current_app.config,
+        {"SQLLAB_PAYLOAD_MAX_MB": (expected_size - bytes_over_limit) / BYTES_IN_MB},
+    )
+
+    if bytes_over_limit:
+        with pytest.raises(SupersetErrorException) as exc_info:
+            _store_results_in_backend(mock_query, payload, mock_database)
+        assert (
+            exc_info.value.error.error_type == SupersetErrorType.RESULT_TOO_LARGE_ERROR
+        )
+        backend.set.assert_not_called()
+        assert mock_query.results_key is None
+    else:
+        _store_results_in_backend(mock_query, payload, mock_database)
+        backend.set.assert_called_once()
+        assert (
+            zlib_decompress(backend.set.call_args.args[1], decode=False) == serialized
+        )
+        assert mock_query.results_key == "key"
+
+
 def test_store_results_in_backend_default_cache_timeout(
     mocker: MockerFixture,
     app_context: None,
@@ -861,14 +952,11 @@ def test_serialize_result_set_json(
     from superset.sql.execution.celery_task import _serialize_result_set
 
     mocker.patch("superset.results_backend_use_msgpack", False)
-    mocker.patch(
-        "superset.dataframe.df_to_records",
-        return_value=[{"id": 1, "name": "Alice"}],
-    )
-
     data, columns = _serialize_result_set(mock_result_set)
 
-    assert data == [{"id": 1, "name": "Alice"}]
+    assert isinstance(data, str)
+    table = pa.ipc.open_stream(base64.b64decode(data)).read_all()
+    assert table.equals(mock_result_set.pa_table)
     assert columns == mock_result_set.columns
 
 
@@ -883,30 +971,19 @@ def test_serialize_result_set_json_normalizes_decimal_nonfinite(
 
     finite = Decimal("0.10000000000000000001")
     mocker.patch("superset.results_backend_use_msgpack", False)
-    mock_result_set.to_pandas_df.return_value = pd.DataFrame(
-        {
-            "value": pd.Series(
-                [
-                    Decimal("NaN"),
-                    Decimal("sNaN"),
-                    Decimal("Infinity"),
-                    Decimal("-Infinity"),
-                    finite,
-                ],
-                dtype=object,
-            )
-        }
+    # SupersetResultSet normalizes non-finite decimals before exposing its table.
+    mock_result_set.pa_table = pa.table(
+        {"value": [None, None, None, None, str(finite)]}
     )
-
     data, _ = _serialize_result_set(mock_result_set)
-    assert isinstance(data, list)
-    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
+    assert isinstance(data, str)
+    table = pa.ipc.open_stream(base64.b64decode(data)).read_all()
+    assert table.to_pydict()["value"] == [None, None, None, None, str(finite)]
 
-    payload = _serialize_payload({"data": data})
-    payload_text = payload.decode() if isinstance(payload, bytes) else payload
+    payload_text = _serialize_payload({"data": data}).decode()
     assert "NaN" not in payload_text
     assert "Infinity" not in payload_text
-    assert superset_json.loads(payload_text)["data"][:4] == [{"value": None}] * 4
+    assert superset_json.loads(payload_text)["data"] == data
 
 
 # =============================================================================
@@ -1417,6 +1494,53 @@ def test_execute_sql_task_unhandled_exception(
     result = execute_sql_task(123, "SELECT * FROM users")
 
     assert result["status"] == QueryStatusEnum.FAILED
+
+
+def test_execute_sql_task_preserves_stopped_status_despite_dispatch_exception(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+) -> None:
+    """
+    Regression guard, not a characterization of a gap: an exception that
+    reaches `execute_sql_task`'s outer handler while `query.status` is
+    already STOPPED must not get overwritten to FAILED -- regardless of
+    engine, and regardless of why the exception was raised (a real
+    cancel-induced driver error for any engine whose cancellation mechanism
+    can make a subsequent/concurrent `cursor.execute()` fail, not something
+    specific to ClickHouse).
+
+    This used to be a real, disclosed gap in `_handle_query_error`, which
+    only special-cased TIMED_OUT and had no equivalent STOPPED check. It is
+    now fixed upstream on master (independently of this PR, picked up via
+    merge): `_handle_query_error` checks
+    `_make_check_stopped_fn(query, preserve_pending=True)()` first and
+    returns the recorded STOPPED outcome via `_stopped_query_payload()`
+    instead of overwriting it. Kept as a regression guard for this
+    property, since it's exactly the invariant this PR's own
+    `ClickHouseQueryStoppedBeforeDispatchError` (see
+    `db_engine_specs/clickhouse.py::execute_with_cursor`) relies on holding
+    on the Celery path too.
+    """
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    mock_query.status = QueryStatusEnum.STOPPED
+
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task._execute_sql_statements",
+        side_effect=Exception("driver raised during dispatch"),
+    )
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch("superset.sql.execution.celery_task.security_manager")
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    result = execute_sql_task(123, "SELECT * FROM users")
+
+    assert result["status"] == QueryStatusEnum.STOPPED
+    assert mock_query.status == QueryStatusEnum.STOPPED
 
 
 def test_execute_sql_task_success_final_commit(

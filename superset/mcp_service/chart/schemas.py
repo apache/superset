@@ -84,7 +84,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import (
     ExactJsonSafeMapping,
     ExactJsonSafeRows,
@@ -883,7 +886,7 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
 
 class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     name: str | None = Field(
         None,
@@ -1021,7 +1024,14 @@ class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
-    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
+    format: str | None = Field(
+        None,
+        description=(
+            "D3 format, e.g. ,.2f; currency symbols require verified "
+            "currency metadata or user instructions"
+        ),
+        max_length=50,
+    )
 
 
 class LegendConfig(UnknownFieldCheckMixin):
@@ -1038,7 +1048,12 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 
     symbol: str = Field(
         ...,
-        description="Currency code or symbol (e.g. 'USD', 'EUR', '$', '€')",
+        description=(
+            "Currency code or symbol established by user instructions "
+            "or verified source metadata. Do not infer currency from "
+            "CPC, sales, revenue or other metric names. "
+            "Omit currency_format when unknown."
+        ),
         max_length=20,
     )
     symbol_position: Literal["prefix", "suffix"] = Field(
@@ -1055,7 +1070,7 @@ LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
 class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -1175,7 +1190,7 @@ class SortByConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 class GanttSortByConfig(UnknownFieldCheckMixin):
     """One physical-column ordering applied before Gantt rendering."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -2926,6 +2941,7 @@ class PivotTableChartConfig(BaseChartConfig):
         "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
+        "Metric",
         "Sum",
         "Average",
         "Median",
@@ -2935,9 +2951,21 @@ class PivotTableChartConfig(BaseChartConfig):
         "Maximum",
         "Count",
         "Count Unique Values",
+        "List Unique Values",
         "First",
         "Last",
-    ] = "Sum"
+        "Sum as Fraction of Total",
+        "Sum as Fraction of Rows",
+        "Sum as Fraction of Columns",
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
+    ] = Field(
+        "Metric",
+        description="Totals aggregation. 'Metric' keeps the database-computed "
+        "totals (correct for non-additive metrics such as COUNT_DISTINCT); the "
+        "other values re-aggregate the displayed cells.",
+    )
     show_row_totals: bool = True
     show_column_totals: bool = True
     transpose: bool = False
@@ -3483,7 +3511,7 @@ class BigNumberChartConfig(BaseChartConfig):
         None,
         description=(
             "Number format string for the metric value "
-            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "(e.g., ',.2f' for decimals, ',.0f' for integers, "
             "'.2%' for percentages)"
         ),
         max_length=50,
@@ -3608,7 +3636,7 @@ class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     d3_number_format: str | None = Field(
         None,
         alias="d3NumberFormat",
-        description="D3 number format, for example ',.2f', '$,.2f', or '.1%'.",
+        description="D3 number format, for example ',.2f', ',.0f', or '.1%'.",
         min_length=1,
         max_length=100,
     )
@@ -3675,7 +3703,7 @@ class TableChartConfig(BaseChartConfig):
             "its label). Use columnWidth for minimum width in pixels, "
             "d3NumberFormat for D3 number formats such as ',.2f' or '.1%', and "
             "d3TimeFormat for D3 time formats such as '%Y-%m-%d'. Example: "
-            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': '$,.2f'}, "
+            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': ',.2f'}, "
             "'Order Date': {'d3TimeFormat': '%Y-%m-%d'}}."
         ),
     )
@@ -4589,9 +4617,10 @@ class BulletChartConfig(BaseChartConfig):
         result: list[str] = []
         for label in labels:
             if "," in label:
-                raise ValueError(
+                raise PydanticCustomError(
+                    "bullet_label_comma",
                     "Bullet labels cannot contain commas because the frontend "
-                    "comma-separated controls have no escaping"
+                    "comma-separated controls have no escaping",
                 )
             if label == "":
                 result.append("")
@@ -6195,12 +6224,15 @@ class ChartRequestNormalizerMixin(BaseModel):
 
 
 class ListChartsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[ChartFilter],
 ):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -6343,16 +6375,17 @@ class GenerateChartRequest(
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Chart name", max_length=255, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "chart_name contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a chart_name with plain text, or "
-                "omit it to auto-generate one."
+        with field_validation_error("chart_name"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Chart name", max_length=255, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "chart_name contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a chart_name with plain text, or "
+                    "omit it to auto-generate one."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "chart_name was modified during sanitization to remove "
@@ -6365,7 +6398,14 @@ class GenerateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        try:
+            return sanitize_user_input(
+                v, "Chart name", max_length=255, allow_empty=True
+            )
+        except ValueError as ex:
+            raise PydanticCustomError(
+                "unsafe_text", "{error}", {"error": str(ex)}
+            ) from ex
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6411,7 +6451,7 @@ class GenerateExploreLinkRequest(
 class UpdateChartRequest(
     ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
 ):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
@@ -6504,7 +6544,14 @@ class UpdateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        try:
+            return sanitize_user_input(
+                v, "Chart name", max_length=255, allow_empty=True
+            )
+        except ValueError as ex:
+            raise PydanticCustomError(
+                "unsafe_text", "{error}", {"error": str(ex)}
+            ) from ex
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
@@ -6690,6 +6737,10 @@ class ChartData(BaseModel):
     chart_name: str
     chart_type: str
 
+    # Internal handoff to the dashboard tool; not part of the public chart payload.
+    _query_row_limits: list[int | None] = PrivateAttr(default_factory=list)
+    _query_post_processing: list[list[str]] = PrivateAttr(default_factory=list)
+
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")
     data: ExactJsonSafeRows = Field(description="Actual data rows")
@@ -6719,7 +6770,12 @@ class ChartData(BaseModel):
 
     # LLM-friendly summaries
     summary: str = Field(description="Human-readable data summary")
-    insights: List[str] = Field(description="Key patterns discovered in the data")
+    insights: List[str] = Field(
+        description=(
+            "Key patterns discovered in the data, plus any accuracy caveats "
+            "about how the data was retrieved (e.g. a missing query_context)"
+        )
+    )
     data_quality: Dict[str, Any] = Field(
         description=(
             "Data quality assessment. Sampled completeness includes "
@@ -6791,22 +6847,24 @@ class GetChartPreviewRequest(QueryCacheControl):
             )
         return self
 
-    format: Literal["url", "ascii", "table", "vega_lite"] = Field(
+    format: Literal["url", "ascii", "table", "vega_lite", "png"] = Field(
         default="ascii",
         description=(
             "Preview format: 'ascii' for text art (default), "
             "'url' for explore link, "
             "'table' for data table, "
-            "'vega_lite' for interactive JSON specification"
+            "'vega_lite' for interactive JSON specification, "
+            "'png' for a rendered saved chart (authenticated users only; "
+            "no unsaved state or extra filters)"
         ),
     )
     width: int | None = Field(
         default=800,
-        description="Preview width in pixels (for url and vega_lite formats)",
+        description="Preview width in pixels (for url, vega_lite, and png formats)",
     )
     height: int | None = Field(
         default=600,
-        description="Preview height in pixels (for url and vega_lite formats)",
+        description="Preview height in pixels (for url, vega_lite, and png formats)",
     )
     ascii_width: int | None = Field(
         default=80, description="ASCII chart width in characters (for ascii format)"
@@ -6823,6 +6881,16 @@ class GetChartPreviewRequest(QueryCacheControl):
             'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
+
+
+class PNGPreview(BaseModel):
+    """Rendered chart image, encoded without a shared thumbnail cache."""
+
+    type: Literal["png"] = "png"
+    mime_type: Literal["image/png"] = "image/png"
+    data: str = Field(..., description="Base64-encoded PNG image")
+    width: int = Field(..., description="Rendered PNG width in pixels")
+    height: int = Field(..., description="Rendered PNG height in pixels")
 
 
 # Discriminated union preview formats for type safety
@@ -6888,7 +6956,12 @@ class TablePreview(BaseModel):
 
 # Modern discriminated union using | syntax
 ChartPreviewContent = Annotated[
-    URLPreview | InteractivePreview | ASCIIPreview | VegaLitePreview | TablePreview,
+    URLPreview
+    | InteractivePreview
+    | ASCIIPreview
+    | VegaLitePreview
+    | TablePreview
+    | PNGPreview,
     Field(discriminator="type"),
 ]
 
