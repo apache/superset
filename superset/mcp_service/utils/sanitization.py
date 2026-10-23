@@ -273,7 +273,7 @@ def sanitize_user_input(
     Args:
         value: The input string to sanitize
         field_name: Name of the field (for error messages)
-        max_length: Maximum allowed length
+        max_length: Maximum allowed sanitized length; raw input is bounded separately
         check_sql_keywords: Whether to check for SQL injection keywords
         allow_empty: Whether to allow empty/None values
 
@@ -303,12 +303,14 @@ def sanitize_user_input(
             return None
         raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
-    # Length check first to prevent ReDoS attacks
-    if len(value) > max_length:
+    # Bound parser/regex work independently of the persisted text budget.
+    # Markup and entities can be longer than the text they sanitize to.
+    raw_max_length = max(10000, max_length)
+    if len(value) > raw_max_length:
         raise PydanticCustomError(
             "string_too_long",
             f"{field_name} too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters.",
+            f"Maximum allowed length is {raw_max_length} characters.",
         )
 
     # Remove dangerous Unicode characters BEFORE any check so zero-widths

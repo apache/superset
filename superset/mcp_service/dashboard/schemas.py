@@ -1384,11 +1384,13 @@ class ManageDashboardCertificationRequest(BaseModel):
             raise ValueError("identifier must be an integer ID, UUID, or slug string")
         return value
 
-    @field_validator("certified_by")
+    @field_validator("certified_by", mode="before")
     @classmethod
     def sanitize_certified_by(cls, v: str | None) -> str | None:
         """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
-        if v is None or v == "":
+        if not isinstance(v, str):
+            return v
+        if v == "":
             return v
         sanitized: str | None = sanitize_user_input(
             v, "certified_by", max_length=500, allow_empty=True
@@ -1404,12 +1406,14 @@ class ManageDashboardCertificationRequest(BaseModel):
             )
         return sanitized
 
-    @field_validator("certification_details")
+    @field_validator("certification_details", mode="before")
     @classmethod
     def sanitize_certification_details(cls, v: str | None) -> str | None:
         """Sanitize certification_details to prevent XSS; it renders in the
         same CertifiedBadge tooltip as certified_by."""
-        if v is None or v == "":
+        if not isinstance(v, str):
+            return v
+        if v == "":
             return v
         sanitized: str | None = sanitize_user_input(
             v, "certification_details", max_length=5000, allow_empty=True

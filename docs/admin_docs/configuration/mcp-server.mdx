@@ -2466,6 +2466,10 @@ MCP object names must fit their persisted model columns: chart and dataset names
 and theme names allow 250 characters, dashboard titles allow 500, saved-query
 labels and SQL Lab tab titles allow 256, and dashboard slugs allow 255.
 For fields that trim whitespace, length validation applies after trimming.
+For fields using the shared user-text sanitizer (including chart names, dashboard
+titles, column names, labels, and certification text), the limit applies to the
+sanitized text, not removed markup or entity encoding. Raw user-text sanitizer
+input has a separate 10,000-character resource bound (or the field limit, if larger).
 Theme names retain their whitespace and count it toward the limit.
 
 Blank saved-query labels and explicit blank dashboard renames return

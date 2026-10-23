@@ -1057,3 +1057,31 @@ def test_control_whitespace_warning_wrapper_keeps_slack_markup_inert(
     assert result is not None
     assert sanitize_title(result) == "Q3 &lt;!channel>"
     assert changed is True
+
+
+@pytest.mark.parametrize(
+    "sanitize", [sanitize_user_input, sanitize_user_input_with_changes]
+)
+@pytest.mark.parametrize("limit", [100, 200, 250, 255, 500, 1000, 5000])
+@pytest.mark.parametrize("wrapper", [("<b>", "</b>"), ("", "&#8203;"), ("", "&amp;")])
+def test_sanitized_length_budget(
+    sanitize: Callable[..., object], limit: int, wrapper: tuple[str, str]
+) -> None:
+    """Tag removal, Unicode removal and entity decoding precede the text cap."""
+    prefix, suffix = wrapper
+    text = "x" * (limit - (1 if suffix == "&amp;" else 0))
+    expected = text + ("&" if suffix == "&amp;" else "")
+    result = sanitize(prefix + text + suffix, "Text", max_length=limit)
+    assert result == (
+        (expected, True) if sanitize is sanitize_user_input_with_changes else expected
+    )
+
+
+def test_raw_sanitization_input_is_bounded_before_html_parsing() -> None:
+    """Keep a separate resource bound even if all markup would be stripped."""
+    from unittest.mock import patch
+
+    with patch("superset.mcp_service.utils.sanitization._strip_html_tags") as strip:
+        with pytest.raises(ValueError, match="10000"):
+            sanitize_user_input("<b></b>" * 1429, "Text", max_length=250)
+    strip.assert_not_called()

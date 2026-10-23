@@ -1266,3 +1266,73 @@ def test_title_control_whitespace_cannot_form_slack_markup(
     stored = getattr(request, field)
     assert "<" not in sanitize_title(stored)
     assert getattr(model.model_validate(request.model_dump()), field) == stored
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("alias_index", range(4))
+@pytest.mark.parametrize("length_delta", [-5, 0, 1])
+def test_markup_title_length_uses_sanitized_text(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    alias_index: int,
+    length_delta: int,
+) -> None:
+    """Markup is not part of the persisted title's character budget."""
+    aliases = (
+        ("chart_name", "name", "title", "slice_name")
+        if field == "chart_name"
+        else ("dashboard_title", "title", "name", "dashboard_title")
+    )
+    limit = 250 if field == "chart_name" else 500
+    text = "x" * (limit + length_delta)
+    value = "<b>" + text + "</b>"
+    if length_delta > 0:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, aliases[alias_index]: value})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+    else:
+        request = model.model_validate({**payload, aliases[alias_index]: value})
+        assert getattr(request, field) == text
+        assert len(request.sanitization_warnings) == 1
+
+
+@pytest.mark.parametrize(
+    "model,payload,field",
+    [case for case in _SIBLING_SANITIZATION_CASES if case[2] != "value"],
+)
+@pytest.mark.parametrize("extra", [0, 1])
+def test_sibling_sanitized_length_budget(
+    model: type[BaseModel], payload: dict[str, Any], field: str, extra: int
+) -> None:
+    """All callers of the shared text sanitizer enforce the final text cap."""
+    limits = {
+        "certified_by": 500,
+        "certification_details": 5000,
+        "temporal_column": 255,
+        "name": 255,
+        "label": 500,
+        "column": 255,
+        "time_range": 1000,
+        "comparison_period": 100,
+        "range_labels": 200,
+        "marker_labels": 200,
+        "marker_line_labels": 200,
+    }
+    if model is InteractivePivotChartConfig:
+        payload = {**payload, "comparison_type": "values"}
+    text = "x" * (limits[field] + extra)
+    value = "<b>" + text + "</b>"
+    if extra:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate(
+                {**payload, field: [value] if field.endswith("_labels") else value}
+            )
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+    else:
+        request = model.model_validate(
+            {**payload, field: [value] if field.endswith("_labels") else value}
+        )
+        assert getattr(request, field) == (
+            [text] if field.endswith("_labels") else text
+        )

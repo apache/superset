@@ -872,10 +872,12 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
         max_length=255,
     )
 
-    @field_validator("temporal_column")
+    @field_validator("temporal_column", mode="before")
     @classmethod
     def sanitize_temporal_column(cls, v: str | None) -> str | None:
         """Sanitize temporal column names to prevent SQL injection."""
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(
             v,
             "Temporal column",
@@ -994,20 +996,22 @@ class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
             self.aggregate = None
         return self
 
-    @field_validator("name")
+    @field_validator("name", mode="before")
     @classmethod
     def sanitize_name(cls, v: str | None) -> str | None:
         """Sanitize column name to prevent XSS and SQL injection."""
-        if v is None:
-            return None
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(
             v, "Column name", max_length=255, check_sql_keywords=True
         )
 
-    @field_validator("label")
+    @field_validator("label", mode="before")
     @classmethod
     def sanitize_label(cls, v: str | None) -> str | None:
         """Sanitize display label to prevent XSS attacks."""
+        if not isinstance(v, str):
+            return v
         return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
 
     @field_validator("sql_expression")
@@ -1123,10 +1127,12 @@ class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
             raise ValueError(f"Filter operator {self.op!r} requires 'value'.")
         return self
 
-    @field_validator("column")
+    @field_validator("column", mode="before")
     @classmethod
     def sanitize_column(cls, v: str) -> str:
         """Sanitize filter column name to prevent injection attacks."""
+        if not isinstance(v, str):
+            return v
         # sanitize_user_input raises ValueError when allow_empty=False (default)
         # so the return value is guaranteed to be a non-None str
         return sanitize_user_input(
@@ -1204,10 +1210,12 @@ class GanttSortByConfig(UnknownFieldCheckMixin):
         description="Sort this column ascending when true, descending when false",
     )
 
-    @field_validator("column")
+    @field_validator("column", mode="before")
     @classmethod
     def sanitize_column(cls, value: str) -> str:
         """Sanitize the order column like every other dimension name."""
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value,
             "Gantt order column",
@@ -2754,10 +2762,12 @@ class SunburstChartConfig(BaseChartConfig):
         # typos and stale type-specific payload rather than silently dropping it.
         return data
 
-    @field_validator("time_range")
+    @field_validator("time_range", mode="before")
     @classmethod
     def sanitize_time_range(cls, value: str | None) -> str | None:
         """Sanitize a human-readable Superset time-range expression."""
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value,
             "Time range",
@@ -3146,12 +3156,12 @@ class InteractivePivotChartConfig(BaseChartConfig):
             data["time_compare"] = periods[0] if periods else None
         return data
 
-    @field_validator("comparison_period")
+    @field_validator("comparison_period", mode="before")
     @classmethod
     def sanitize_comparison_period(cls, value: str | None) -> str | None:
         """Sanitize the relative time-shift label."""
-        if value is None:
-            return None
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value,
             "Comparison period",
@@ -4631,9 +4641,12 @@ class BulletChartConfig(BaseChartConfig):
             result.append(sanitized or "")
         return result
 
-    @field_validator("time_range")
+    @field_validator("time_range", mode="before")
     @classmethod
     def sanitize_time_range(cls, value: str | None) -> str | None:
+        """Sanitize the time range before enforcing its text length limit."""
+        if not isinstance(value, str):
+            return value
         return sanitize_user_input(
             value, "Time range", max_length=1000, allow_empty=True
         )
