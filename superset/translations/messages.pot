@@ -2267,10 +2267,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr ""
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr ""
 
@@ -11017,9 +11013,6 @@ msgstr ""
 msgid "Remove or repoint these assets before deleting it."
 msgstr ""
 
-msgid "Remove or repoint these assets before deleting the semantic source."
-msgstr ""
-
 msgid "Remove query from log"
 msgstr ""
 
@@ -15171,9 +15164,6 @@ msgid "This section contains options that allow for advanced analytical post pro
 msgstr ""
 
 msgid "This section contains validation errors"
-msgstr ""
-
-msgid "This semantic layer has no dependent semantic views. This cannot be undone."
 msgstr ""
 
 msgid "This semantic layer has no semantic views. This cannot be undone."
