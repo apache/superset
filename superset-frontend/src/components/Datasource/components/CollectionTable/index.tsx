@@ -204,39 +204,6 @@ export default function CRUDCollection({
     [onChange],
   );
 
-  const changeCollection = useCallback(
-    (
-      newCollection: Record<PropertyKey, CollectionItem>,
-      currentCollectionArray: CollectionItem[],
-    ) => {
-      // Preserve existing order instead of recreating from Object.keys()
-      const existingIds = new Set(currentCollectionArray.map(item => item.id));
-      const newCollectionArray: CollectionItem[] = [];
-
-      // First pass: preserve existing order and update items
-      for (const existingItem of currentCollectionArray) {
-        if (newCollection[existingItem.id]) {
-          newCollectionArray.push(newCollection[existingItem.id]);
-        }
-      }
-
-      // Second pass: add new items
-      for (const item of Object.values(newCollection)) {
-        if (!existingIds.has(item.id)) {
-          newCollectionArray.push(item);
-        }
-      }
-
-      setCollection(newCollection);
-      setCollectionArray(newCollectionArray);
-
-      if (onChange) {
-        onChange(newCollectionArray);
-      }
-    },
-    [onChange],
-  );
-
   const deleteItem = useCallback(
     (id: string | number) => {
       setCollection(prevCollection => {
@@ -292,15 +259,31 @@ export default function CRUDCollection({
 
   const onFieldsetChange = useCallback(
     (item: CollectionItem) => {
-      changeCollection(
-        {
-          ...collection,
-          [item.id]: item,
-        },
-        collectionArray,
-      );
+      // Functional updaters: fieldset edits commit on a debounce and each
+      // expanded row has its own Fieldset, so a captured collection may be
+      // stale by the time it lands and would revert another row's edit.
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [item.id]: item,
+      }));
+
+      setCollectionArray(prevCollectionArray => {
+        const newCollectionArray = prevCollectionArray.some(
+          existing => existing.id === item.id,
+        )
+          ? prevCollectionArray.map(existing =>
+              existing.id === item.id ? item : existing,
+            )
+          : [...prevCollectionArray, item];
+
+        if (onChange) {
+          onChange(newCollectionArray);
+        }
+
+        return newCollectionArray;
+      });
     },
-    [changeCollection, collection, collectionArray],
+    [onChange],
   );
 
   const getLabel = useCallback(
