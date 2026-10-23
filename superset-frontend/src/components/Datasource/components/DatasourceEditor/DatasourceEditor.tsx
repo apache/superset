@@ -1705,12 +1705,32 @@ function DatasourceEditor({
         newCols,
         addSuccessToast,
       );
+      // Merging against the live rows means a column deleted this session but
+      // still in the source comes back as "added", with a fresh id -- and the
+      // save then tries to create a name the dataset already has ("One or more
+      // columns already exist"). Such a column is restored from its saved row
+      // instead, so the save updates it, as merging against the saved columns
+      // used to.
+      const added = new Set(columnChanges.added);
+      const savedColumns = new Map(
+        (liveDatasource.columns ?? [])
+          .filter(col => !col.expression)
+          .map(col => [col.column_name, col]),
+      );
+      const syncedColumns = columnChanges.finalColumns.map(col => {
+        const saved = added.has(col.column_name)
+          ? savedColumns.get(col.column_name)
+          : undefined;
+        return saved
+          ? { ...saved, type: col.type, is_dttm: saved.is_dttm || col.is_dttm }
+          : col;
+      });
       // A sync can remove the partition column at the source. Leave the editor
       // showing a mapping that points at a column the table no longer has and
       // the owner has no way to tell why pruning stopped.
       const clearedMapping = clearDanglingPartitionMapping(
         liveDatasource,
-        columnChanges.finalColumns,
+        syncedColumns,
       );
       // A sync can move which column the mapping mirrors, so the one-transform
       // invariant has to be enforced against the mapping on *both* sides of it
@@ -1730,9 +1750,9 @@ function DatasourceEditor({
         ? clearUnmappedTransformsAcrossMove(
             liveDatasource,
             syncedDatasource,
-            columnChanges.finalColumns,
+            syncedColumns,
           )
-        : columnChanges.finalColumns;
+        : syncedColumns;
       setColumns({
         databaseColumns: finalColumns.filter(
           col => !col.expression,
