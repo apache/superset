@@ -424,6 +424,7 @@ module = [
     "superset.daos.datasource",
     "superset.commands.security.reset",
     "tests.unit_tests.commands.deletion_retention.test_purge_chart_detach",
+    "tests.unit_tests.commands.chart.export_test",
 ]
 warn_unused_ignores = false
 
