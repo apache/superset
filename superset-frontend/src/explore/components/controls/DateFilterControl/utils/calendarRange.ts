@@ -28,7 +28,7 @@ export type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 // stored end date is the day AFTER the one the user picked — otherwise the
 // entire selected end day would be excluded from query results. Displaying
 // it back to the user reverses that offset so round-tripping stays exact.
-export function parseTimeRange(value?: string | null): DateRangeValue {
+export function parseCalendarRange(value?: string | null): DateRangeValue {
   if (!value) return null;
   const parts = value.split(RANGE_SEPARATOR);
   if (parts.length !== 2) return null;
@@ -39,9 +39,38 @@ export function parseTimeRange(value?: string | null): DateRangeValue {
   return [startDate, endDate.subtract(1, 'day')];
 }
 
-export function formatTimeRange(dates: DateRangeValue): string | undefined {
+export function formatCalendarRange(dates: DateRangeValue): string | undefined {
   const [start, end] = dates ?? [null, null];
   if (!start || !end) return undefined;
   const exclusiveEnd = end.add(1, 'day');
   return `${start.format(DATE_FORMAT)}${RANGE_SEPARATOR}${exclusiveEnd.format(DATE_FORMAT)}`;
+}
+
+const CALENDAR_RANGE_PATTERN = /^\d{4}-\d{2}-\d{2} : \d{4}-\d{2}-\d{2}$/;
+
+/** True for a fixed, whole-day range as produced by the calendar picker. */
+export const isCalendarRange = (value?: string | null): boolean =>
+  !!value && CALENDAR_RANGE_PATTERN.test(value);
+
+/**
+ * Turns the since/until the backend resolves for any time range expression
+ * (e.g. "Last week") into the dates the calendar shows. `until` is exclusive,
+ * so a midnight bound is shown as the previous day. A bound that carries a
+ * time of day cannot be shown as whole days, so it is flagged.
+ */
+export function resolvedRangeToCalendar(
+  since?: string | null,
+  until?: string | null,
+): { range: DateRangeValue; hasTimeOfDay: boolean } {
+  if (!since || !until) return { range: null, hasTimeOfDay: false };
+  const start = dayjs(since);
+  const end = dayjs(until);
+  if (!start.isValid() || !end.isValid()) {
+    return { range: null, hasTimeOfDay: false };
+  }
+  const endsAtMidnight = end.isSame(end.startOf('day'));
+  return {
+    range: [start, endsAtMidnight ? end.subtract(1, 'day') : end],
+    hasTimeOfDay: !start.isSame(start.startOf('day')) || !endsAtMidnight,
+  };
 }

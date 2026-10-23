@@ -71,7 +71,6 @@ import {
   Input,
   InputNumber,
   Loading,
-  RangePicker,
   Select,
   Switch,
   Tooltip,
@@ -114,11 +113,6 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import {
-  DATE_FORMAT,
-  parseTimeRange,
-  formatTimeRange,
-} from 'src/filters/components/DateRange/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { StandardModal, ModalFormField } from 'src/components/Modal';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -852,7 +846,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     vizType = 'filter_select',
     adhocFilters: any[] = [],
   ) => {
-    if (vizType === 'filter_time' || vizType === 'filter_date_range') {
+    if (vizType === 'filter_time') {
       return;
     }
 
@@ -1007,7 +1001,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       const dashboardId = currentAlert?.dashboard?.value;
       const { filterType } = filter;
 
-      if (filterType === 'filter_time' || filterType === 'filter_date_range') {
+      if (filterType === 'filter_time') {
         return;
       }
 
@@ -1804,7 +1798,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let columnName: string;
     if (
       filterType === 'filter_time' ||
-      filterType === 'filter_date_range' ||
       filterType === 'filter_timecolumn' ||
       filterType === 'filter_timegrain'
     ) {
@@ -1860,7 +1853,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     loadNativeFilterOptions(nativeFilterId, () => {
       if (
         filterType === 'filter_time' ||
-        filterType === 'filter_date_range' ||
         filterType === 'filter_timecolumn' ||
         filterType === 'filter_timegrain'
       ) {
@@ -2035,28 +2027,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             );
           }}
           value={filterValues?.[0]} // only showing first value in the array for filter_time
-        />
-      );
-    }
-    if (filterType === 'filter_date_range') {
-      return (
-        <RangePicker
-          value={parseTimeRange(filterValues?.[0])}
-          format={DATE_FORMAT}
-          allowClear
-          onChange={dates => {
-            const timeRange = formatTimeRange(dates);
-            setNativeFilterData(
-              nativeFilterData.map((f: any) =>
-                filter.nativeFilterId === f.nativeFilterId
-                  ? {
-                      ...f,
-                      filterValues: timeRange ? [timeRange] : [],
-                    }
-                  : f,
-              ),
-            );
-          }}
         />
       );
     }
