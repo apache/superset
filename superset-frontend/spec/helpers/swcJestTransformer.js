@@ -43,18 +43,33 @@ import { createTransformer as createSwcTransformer } from '@swc/jest';
 // block comment before the name.
 const EXPORT_GETTER_DESCRIPTOR =
   /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,)(\s*)(get:)/g;
-// `get name () { return binding; }` inside `_export(exports, {...})`, and the
-// `get: function() { return binding; }` form SWC uses for a single export.
-const EXPORT_GETTER_BODY =
-  /(get(?: \w+ \(\)|: function\(\)) \{\s*)return (\w+|from\[k\]);/g;
+// `_export(exports, { get name () { return binding; }, ... });` is how SWC
+// declares named exports; the leniency below is scoped to this block and to
+// the `Object.defineProperty(exports, ...)` descriptors, never to getters in
+// application code.
+const EXPORT_BLOCK = /_export\(exports, \{[\s\S]*?\n\}\);/g;
+const EXPORT_BLOCK_GETTER = /(get \w+ \(\) \{\s*)return (\w+);/g;
+// The `get: function() { return binding; }` form SWC uses for a single export
+// or a re-export (`from[k]`), matched together with its descriptor.
+const EXPORT_DESCRIPTOR_GETTER =
+  /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,\s*)(get: function\(\) \{\s*)return (\w+|from\[k\]);/g;
+
+// Only a TDZ ReferenceError is swallowed; any other error still propagates.
+const lenient = binding =>
+  `try { return ${binding}; } catch (e) { if (!(e instanceof ReferenceError)) throw e; return undefined; }`;
 
 function mirrorBabelExportSemantics(code) {
   return code
-    .replace(EXPORT_GETTER_DESCRIPTOR, '$1$2configurable: true,$2$3')
-    .replace(
-      EXPORT_GETTER_BODY,
-      '$1try { return $2; } catch (e) { return undefined; }',
-    );
+    .replace(EXPORT_DESCRIPTOR_GETTER, (_m, head, getter, binding) =>
+      `${head}${getter}${lenient(binding)}`,
+    )
+    .replace(EXPORT_BLOCK, block =>
+      block.replace(
+        EXPORT_BLOCK_GETTER,
+        (_m, head, binding) => `${head}${lenient(binding)}`,
+      ),
+    )
+    .replace(EXPORT_GETTER_DESCRIPTOR, '$1$2configurable: true,$2$3');
 }
 
 function patch(result) {
@@ -72,7 +87,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v2';
+const CACHE_SALT = 'babel-export-semantics-v3';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);
