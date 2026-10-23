@@ -300,7 +300,7 @@ const config: ControlPanelConfig = {
               type: 'IntervalColorsControl',
               label: t('Interval colors'),
               description: t(
-                'Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed "Interval colors" text field are automatically resolved against the chosen color scheme the first time this panel is opened.',
+                'Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed "Interval colors" text field keep following the chosen color scheme until an interval color is edited.',
               ),
               renderTrigger: true,
               default: DEFAULT_FORM_DATA.intervalColors,

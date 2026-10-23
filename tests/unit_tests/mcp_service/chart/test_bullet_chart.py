@@ -2253,6 +2253,26 @@ def test_bullet_vega_preview_honors_range_colors() -> None:
         assert color["scale"]["domain"] == [color["datum"]]
 
 
+def test_bullet_vega_preview_ignores_range_colors_without_ranges() -> None:
+    """Hidden `range_colors` left over from cleared Ranges must not tint the
+    synthesized band, matching Explore."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 100}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "ranges": "",
+            "range_colors": ["#ff0000", "#00ff00"],
+        },
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    assert range_layers
+    for layer in range_layers:
+        assert "scale" not in layer["encoding"]["color"]
+
+
 def test_bullet_vega_preview_custom_range_colors_keep_legend_entries() -> None:
     """A custom `range_colors` entry must not cost the range its legend
     entry: with `show_legend` on, every range still carries the same legend
