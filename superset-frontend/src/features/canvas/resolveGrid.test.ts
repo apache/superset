@@ -37,12 +37,25 @@ interface Case {
   expected: GridPlacement[];
 }
 
+/** A drop: where the grid settles when `moving` is let go at `target`. */
+interface PreviewCase {
+  name: string;
+  columns: number;
+  childIds: string[];
+  layouts: Record<string, GridLayout>;
+  moving: string;
+  target: GridPlacement;
+  /** Reading order after the drop, which is what decides who yields. */
+  order: string[];
+  expected: Record<string, GridPlacement>;
+}
+
 // Read rather than imported: `tsconfig.json`'s `include` does not take
 // `.json` files into the program, and widening it for one test fixture would
 // pull every JSON under `src` in with it.
-const { cases } = JSON.parse(
+const { cases, previewCases } = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'gridCases.json'), 'utf8'),
-) as { cases: Case[] };
+) as { cases: Case[]; previewCases: PreviewCase[] };
 
 test('the shared cases are present, so this file cannot pass vacuously', () => {
   expect(cases.length).toBeGreaterThan(5);
@@ -54,6 +67,32 @@ test.each(cases.map(c => [c.name, c] as const))(
     expect(resolveGrid(testCase.layouts, testCase.columns)).toEqual(
       testCase.expected,
     );
+  },
+);
+
+test('the shared preview cases are present too', () => {
+  expect(previewCases.length).toBeGreaterThan(5);
+});
+
+test.each(previewCases.map(c => [c.name, c] as const))(
+  'matches the server on a drop: %s',
+  (_name, testCase) => {
+    const preview = previewGrid(
+      testCase.childIds,
+      testCase.layouts,
+      // No prior placements to fall back to: every case resolves.
+      {},
+      testCase.moving,
+      testCase.target,
+      testCase.columns,
+    );
+
+    expect(preview).toEqual(testCase.expected);
+    // The reorder itself, not only where everything ended up: two different
+    // orders can settle on the same placements, so asserting the geometry
+    // alone would let the rule drift. `previewGrid` builds its result in
+    // reading order, which string keys preserve.
+    expect(Object.keys(preview)).toEqual(testCase.order);
   },
 );
 
