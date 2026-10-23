@@ -151,7 +151,11 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             # number. ``escape_value`` prepends a quote, so two distinct labels
             # can escape to the same text, and ``factorize`` folds those onto a
             # single code, which the level values of a ``MultiIndex`` have to
-            # be unique for.
+            # be unique for. It reads the level's row values rather than
+            # ``levels``, which is sorted rather than in row order, so reusing
+            # the original codes against escaped ``levels`` would put each
+            # label on the wrong row as soon as a hostile one did not sort
+            # first.
             rebuilt = [
                 pd.factorize(index.get_level_values(position).map(escape_values))
                 if needs_escaping(level)

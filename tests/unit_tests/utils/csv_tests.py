@@ -389,6 +389,29 @@ def test_df_to_escaped_csv_escapes_colliding_index_labels():
     )
 
 
+def test_df_to_escaped_csv_escapes_a_label_that_is_not_first_in_row_order():
+    """
+    A hostile label is escaped on its own row, not on the row it sorts to.
+
+    ``levels`` holds a level's distinct values in sorted order, which is not
+    the row order. Escaping those values and keeping the original codes reads
+    correctly only while the hostile label happens to sort first, and
+    otherwise puts every label on the wrong row, so the escaped level is built
+    from the row values instead.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("safe", "x"), ("=cmd()", "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\nsafe,x,1\n'=cmd(),y,2\n"
+    )
+
+
 def test_df_to_escaped_csv_keeps_a_numeric_index_dtype():
     """
     Escaping row labels does not widen a numeric row dimension.
