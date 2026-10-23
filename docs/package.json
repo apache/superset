@@ -59,7 +59,7 @@
     "@storybook/addon-docs": "^10.6.2",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.16.18",
-    "antd": "^6.6.5",
+    "antd": "^6.6.6",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-theme-openapi-docs": "^5.2.0",
     "js-yaml": "^5.4.3",

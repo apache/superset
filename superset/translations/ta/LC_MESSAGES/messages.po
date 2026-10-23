@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1255,6 +1255,9 @@ msgstr "வடிவமைத்தல்"
 msgid "About"
 msgstr "பற்றி"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "வெற்றி"
@@ -1703,6 +1706,9 @@ msgstr "திரட்டுதல் (Aggregation)"
 
 msgid "Aggregation Method"
 msgstr "திரட்டுதல் முறை"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3547,6 +3553,12 @@ msgstr "இந்தத் தரவுத்தொகுப்பை மாற�
 msgid "Changing this semantic view is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
@@ -3697,6 +3709,10 @@ msgstr "சார்ட் தலைப்பு"
 
 msgid "Chart type"
 msgstr "சார்ட் வகை"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
@@ -4199,6 +4215,10 @@ msgstr "இலக்கு இடத்தின் வண்ணம்"
 
 msgid "Color scheme"
 msgstr "வண்ணத் திட்டம்"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4809,8 +4829,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "நாடு"
@@ -5276,6 +5313,10 @@ msgstr "டேஷ்போர்டு தலைப்பு"
 msgid "Dashboard updated %s"
 msgstr ""
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "டேஷ்போர்டு பயன்பாடு"
 
@@ -5510,6 +5551,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "தரவுத்தொகுப்பு ஸ்கீமா செல்லாது, காரணம்: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7497,6 +7542,10 @@ msgstr "தோல்வியுற்றது"
 msgid "Failed at retrieving results"
 msgstr "முடிவுகளைப் பெறுவதில் தோல்வி"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "தீமைப் பயன்படுத்துவதில் தோல்வி: தவறான JSON"
 
@@ -7790,7 +7839,13 @@ msgstr "சார்ட்டுகளை வடிகட்டு"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -8898,6 +8953,11 @@ msgstr "தவறான தீர்க்கரேகை/அட்சரேக�
 msgid "Invalid metric object: %(metric)s"
 msgstr "தவறான அளவீட்டு பொருள்: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "தவறான numpy சார்பு: %(operator)s"
@@ -9240,6 +9300,9 @@ msgstr "கடந்த ஆண்டு"
 msgid "Lat"
 msgstr "அட்ச"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "அட்சரேகை (Latitude)"
 
@@ -9511,6 +9574,9 @@ msgstr "குழுக்களைப் பட்டியலிடு"
 
 msgid "List Roles"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "பயனர்களைப் பட்டியலிடு"
@@ -9879,6 +9945,9 @@ msgstr "குறிப்பிட்ட காலத்தில் மதி�
 
 msgid "Mean values"
 msgstr "சராசரி மதிப்புகள்"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10687,6 +10756,9 @@ msgstr "சரிபார்ப்பான் (validator) எதுவும�
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -13808,6 +13880,12 @@ msgstr ""
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "சிறுகுறிப்பு அடுக்கு"
@@ -13875,6 +13953,11 @@ msgid "Semantic view parameters are invalid."
 msgstr "தரவுத்தொகுப்பு அளவுருக்கள் செல்லாதவை."
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -14217,11 +14300,11 @@ msgstr "சார்ட் வினவல் நேர முத்திரை
 msgid "Show column headers"
 msgstr "நெடுவரிசை தலைப்புகளைக் காண்பி"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "நெடுவரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show columns total"
-msgstr "நெடுவரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show empty columns"
 msgstr "வெற்று நெடுவரிசைகளைக் காண்பி"
@@ -14300,11 +14383,11 @@ msgstr "வினவல் அடையாளங்காட்டிகளை�
 msgid "Show row labels"
 msgstr "வரிசை லேபிள்களைக் காண்பி"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "வரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show rows total"
-msgstr "வரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show series values on the chart"
 msgstr "சார்ட்டில் தொடர் மதிப்புகளைக் காண்பி"
@@ -14523,6 +14606,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 #, fuzzy
@@ -15010,6 +15096,15 @@ msgstr ""
 msgid "Sum"
 msgstr "கூட்டுத்தொகை"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "குறிப்பிட்ட காலப்பகுதியில் மதிப்புகளின் கூட்டுத்தொகை"
 
@@ -15316,6 +15411,9 @@ msgstr "செல் தலைப்புகளுக்கான டெம்�
 
 msgid "Template parameters"
 msgstr "டெம்ப்ளேட் அளவுருக்கள்"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -16398,6 +16496,9 @@ msgstr "மதிப்புகள் மற்ற இடைவெளி மத
 msgid "The version of the service"
 msgstr "சேவையின் பதிப்பு"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "அடுக்கின் காணக்கூடிய தலைப்பு"
 
@@ -16875,6 +16976,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17179,6 +17283,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -17574,6 +17685,12 @@ msgstr ""
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
 msgstr ""
 
 msgid "Tool Panel"
@@ -18255,6 +18372,13 @@ msgstr ""
 "பயன்படுத்தவும்"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -18262,6 +18386,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "கிரேடியண்ட் (Gradient) பயன்படுத்தவும்"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -18558,6 +18685,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "வ்யூ-போர்ட் (Viewport)"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "மெய்நிகர் (Virtual)"
@@ -19793,6 +19923,11 @@ msgstr "உங்கள் வினவல் புதுப்பிக்க�
 
 msgid "Your report could not be deleted"
 msgstr "உங்கள் அறிக்கையை நீக்க முடியவில்லை"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 msgid "Your session has ended. Please sign in again."
 msgstr ""
