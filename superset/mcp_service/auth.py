@@ -612,19 +612,24 @@ def _reverify_guest_bearer(access_token: Any) -> dict[str, Any]:
     """
     raw_token = getattr(access_token, "token", None)
     parsed: Any = None
-    if isinstance(raw_token, str) and raw_token:
-        try:
+    try:
+        if isinstance(raw_token, str) and raw_token:
             parsed = security_manager.parse_jwt_guest_token(raw_token)
-        except Exception:  # noqa: BLE001 — bad signature / audience / expiry
+        if (
+            not isinstance(parsed, dict)
+            or parsed.get("type") != "guest"
+            or parsed.get("user") is None
+            or parsed.get("resources") is None
+            or parsed.get("rls_rules") is None
+            or not parsed.get("exp")
+            or security_manager._is_guest_token_revoked(parsed)  # noqa: SLF001
+        ):
             parsed = None
-    if (
-        not isinstance(parsed, dict)
-        or parsed.get("type") != "guest"
-        or parsed.get("user") is None
-        or parsed.get("resources") is None
-        or parsed.get("rls_rules") is None
-        or security_manager._is_guest_token_revoked(parsed)  # noqa: SLF001
-    ):
+    except Exception:  # noqa: BLE001 — verification or revocation backend failure
+        # Discovery must treat backend failures as rejected credentials, not
+        # unexpected setup errors that can expose public tools.
+        parsed = None
+    if parsed is None:
         logger.warning("Guest-marked token is not a valid guest token; rejecting")
         raise ValueError("Guest-marked token is not a valid guest token")
     return parsed

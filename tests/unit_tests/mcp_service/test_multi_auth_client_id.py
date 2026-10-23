@@ -35,6 +35,7 @@ import jwt
 import pytest
 from fastmcp.server.auth import AccessToken, MultiAuth
 from fastmcp.server.auth.providers.jwt import TokenVerifier
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import security_manager
 from superset.app import SupersetApp
@@ -52,6 +53,7 @@ from superset.mcp_service.guest_token_verifier import (
     GuestTokenVerifier,
 )
 from superset.mcp_service.mcp_config import default_user_resolver
+from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
 
 GUEST_SECRET = "a-strong-guest-token-secret-for-tests"  # noqa: S105
 
@@ -479,7 +481,7 @@ def test_crafted_original_client_id_is_not_validation_evidence(
         build.assert_not_called()
 
 
-@pytest.mark.parametrize("missing", ["user", "resources", "rls_rules"])
+@pytest.mark.parametrize("missing", ["user", "resources", "rls_rules", "exp"])
 def test_guest_reverification_requires_core_structure(
     guest_app: SupersetApp, missing: str
 ) -> None:
@@ -494,6 +496,94 @@ def test_guest_reverification_requires_core_structure(
     )
     with pytest.raises(ValueError, match="not a valid guest token"):
         _resolve_guest(guest_app, token)
+
+
+@pytest.mark.parametrize("token_type", [None, "access"])
+def test_guest_reverification_rejects_non_guest_type(
+    guest_app: SupersetApp, token_type: str | None
+) -> None:
+    """A correctly signed non-guest JWT must not enter the guest identity path."""
+    claims = _guest_claims()
+    claims["type"] = token_type
+    token = AccessToken(
+        token=_mint_guest_token(claims),
+        client_id="guest",
+        scopes=[],
+        claims={GUEST_TOKEN_CLAIM: True, **claims},
+    )
+    with pytest.raises(ValueError, match="not a valid guest token"):
+        _resolve_guest(guest_app, token)
+
+
+@pytest.mark.parametrize("entrypoint", ["resolve", "tool_list", "tool_search"])
+def test_guest_reverification_observes_later_dashboard_revocation(
+    guest_app: SupersetApp, entrypoint: str
+) -> None:
+    """A prior successful resolution must not mask a later dashboard cutoff."""
+    from superset.mcp_service.server import _tool_allowed_for_current_user
+
+    claims = _guest_claims()
+    token = AccessToken(
+        token=_mint_guest_token(claims),
+        client_id="guest",
+        scopes=[],
+        claims={GUEST_TOKEN_CLAIM: True, **claims},
+    )
+    embedded = SimpleNamespace(guest_token_revoked_before=None)
+    guest_app.config["GUEST_TOKEN_REVOCATION_ENABLED"] = False
+    with (
+        patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+        patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=embedded,
+        ) as lookup,
+        patch.object(security_manager, "get_guest_user_from_token") as build,
+    ):
+        assert _resolve_user_from_jwt_context(guest_app) is build.return_value
+        embedded.guest_token_revoked_before = claims["iat"] + 1
+        public_tool = SimpleNamespace(fn=lambda: None)
+        if entrypoint == "resolve":
+            with pytest.raises(ValueError, match="not a valid guest token"):
+                _resolve_user_from_jwt_context(guest_app)
+        elif entrypoint == "tool_list":
+            assert RBACToolVisibilityMiddleware._visible_tools([public_tool]) == []
+        else:
+            assert not _tool_allowed_for_current_user(public_tool)
+        assert lookup.call_count == 2
+        build.assert_called_once()
+
+
+@pytest.mark.parametrize("entrypoint", ["resolve", "tool_list", "tool_search"])
+def test_guest_reverification_backend_failure_is_credential_failure(
+    guest_app: SupersetApp, entrypoint: str
+) -> None:
+    """Revocation backend errors reject guest credentials at every entry point."""
+    from superset.mcp_service.server import _tool_allowed_for_current_user
+
+    token = AccessToken(
+        token=_mint_guest_token(_guest_claims()),
+        client_id="guest",
+        scopes=[],
+        claims={GUEST_TOKEN_CLAIM: True},
+    )
+    with (
+        patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+        patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+        patch.object(
+            security_manager, "_is_guest_token_revoked", side_effect=SQLAlchemyError
+        ),
+        patch.object(security_manager, "get_guest_user_from_token") as build,
+    ):
+        public_tool = SimpleNamespace(fn=lambda: None)
+        if entrypoint == "resolve":
+            with pytest.raises(ValueError, match="not a valid guest token"):
+                _resolve_user_from_jwt_context(guest_app)
+        elif entrypoint == "tool_list":
+            assert RBACToolVisibilityMiddleware._visible_tools([public_tool]) == []
+        else:
+            assert not _tool_allowed_for_current_user(public_tool)
+        build.assert_not_called()
 
 
 @pytest.mark.parametrize("fallback", ["dev", "middleware"])
@@ -568,7 +658,6 @@ def test_disabled_api_key_assertion_hides_tools(
     app: SupersetApp, entrypoint: str
 ) -> None:
     """Discovery distinguishes rejected credentials from absent authentication."""
-    from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
     from superset.mcp_service.server import _tool_allowed_for_current_user
 
     token = AccessToken(
