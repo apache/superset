@@ -18,7 +18,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import date, datetime
 from decimal import Decimal
 from importlib import import_module
 from typing import Any, cast
@@ -2569,6 +2570,200 @@ def test_the_same_probe_result_still_mirrors_where_the_engine_agrees(
 
     assert len(predicates) == 1
     assert "us\\b" in _render_predicate(table, predicates[0])
+
+
+def _temporal_partition_table(uri: str, partition_type: str) -> SqlaTable:
+    """The module's epoch mapping, re-pointed at a temporal partition key."""
+    table = _mapped_table(partition_column="part")
+    table.columns.append(TableColumn(column_name="part", type=partition_type))
+    table.database = Database(database_name="probe_db", sqlalchemy_uri=uri)
+    return table
+
+
+def _mirror_temporal(
+    table: SqlaTable,
+    operator: FilterOperator,
+    probed: Any,
+    type_errors: list[str] | None = None,
+) -> list[Any]:
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    value: Any = ["2026-01-01"] if operator == FilterOperator.IN else "2026-01-01"
+    with patch(
+        "superset.connectors.sqla.partition_mapping.evaluate_transform",
+        return_value=[probed],
+    ):
+        return build_mirrored_predicates(
+            table, mapping, [(operator, value)], type_errors=type_errors
+        )
+
+
+@pytest.mark.parametrize(
+    "uri, partition_type, probed, literal",
+    [
+        ("trino://localhost:8080/hive", "DATE", date(2026, 1, 1), "DATE '2026-01-01'"),
+        (
+            "trino://localhost:8080/hive",
+            "TIMESTAMP",
+            datetime(2026, 1, 1, 12, 30, 15, 500000),
+            "TIMESTAMP '2026-01-01 12:30:15.500000'",
+        ),
+        # A day answered for a timestamp key is that day's midnight, in the
+        # key's own type.
+        (
+            "trino://localhost:8080/hive",
+            "TIMESTAMP",
+            date(2026, 1, 1),
+            "TIMESTAMP '2026-01-01 00:00:00.000000'",
+        ),
+        ("presto://localhost:8080/hive", "DATE", date(2026, 1, 1), "DATE '2026-01-01'"),
+        (
+            # Presto's own spec writes milliseconds; a sub-millisecond
+            # answer would decline, as SQLite's sub-second one does below.
+            "presto://localhost:8080/hive",
+            "TIMESTAMP",
+            datetime(2026, 1, 1),
+            "TIMESTAMP '2026-01-01 00:00:00.000'",
+        ),
+        (
+            "hive+hive://localhost:10000/default",
+            "DATE",
+            date(2026, 1, 1),
+            "CAST('2026-01-01' AS DATE)",
+        ),
+        (
+            "bigquery://project/dataset",
+            "DATE",
+            date(2026, 1, 1),
+            "CAST('2026-01-01' AS DATE)",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "operator",
+    [
+        FilterOperator.GREATER_THAN_OR_EQUALS,
+        FilterOperator.EQUALS,
+        FilterOperator.IN,
+    ],
+)
+def test_a_temporal_probe_result_is_written_as_the_engines_own_literal(
+    app: Flask,
+    uri: str,
+    partition_type: str,
+    probed: Any,
+    literal: str,
+    operator: FilterOperator,
+) -> None:
+    """
+    SQLAlchemy's literal processor writes a `date` or a `datetime` as plain
+    quoted text on every one of these dialects, and Trino and Presto have no
+    implicit coercion from ``varchar`` to a temporal type: the mirror came out
+    as ``part >= '2026-01-01'``, which Trino refuses with "Cannot apply
+    operator: date >= varchar(10)" -- and because the mirror is ANDed onto the
+    chart query, the chart failed rather than its pruning.
+
+    So the value is written the way every other temporal bound in a chart query
+    is, through the engine spec's `convert_dttm`.
+    """
+    table = _temporal_partition_table(uri, partition_type)
+
+    with app.app_context():
+        predicates = _mirror_temporal(table, operator, probed)
+
+    assert len(predicates) == 1
+    rendered = _render_predicate(table, predicates[0])
+    assert literal in rendered
+    # Never the bare quoted text the driver's literal processor would write.
+    assert not re.search(r"(?:[<>=]|IN \() ?'", rendered)
+
+
+def test_a_trino_date_mirror_is_the_predicate_the_engine_accepts(app: Flask) -> None:
+    """The whole predicate, as View query shows it on Trino."""
+    table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.GREATER_THAN_OR_EQUALS, date(2026, 1, 1)
+        )
+
+    assert _render_predicate(table, predicates[0]) == (
+        "part >= DATE '2026-01-01' OR part IS NULL"
+    )
+
+
+def test_a_timestamp_the_engine_would_floor_is_not_mirrored(app: Flask) -> None:
+    """
+    SQLite writes a timestamp literal to the second. An upper bound floored
+    past what the probe answered is a mirror narrower than the filter -- it
+    drops the rows between the two -- so the mirror is declined, and the
+    preview is told why rather than shown a predicate.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    type_errors: list[str] = []
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+            datetime(2026, 1, 1, 12, 30, 15, 500000),
+            type_errors,
+        )
+
+    assert predicates == []
+    assert type_errors
+    assert "part" in type_errors[0]
+
+
+def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None:
+    """Not a refusal of SQLite: a whole second loses nothing to its literal."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+            datetime(2026, 1, 1, 12, 30, 15),
+        )
+
+    assert len(predicates) == 1
+    assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
+
+
+def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
+    """
+    Flooring to the day is the column's own resolution, so a `DATE` key takes a
+    timestamp answer as its day: every comparison against a column of days
+    reads the same either way.
+    """
+    table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.LESS_THAN_OR_EQUALS, datetime(2026, 1, 1, 12, 30)
+        )
+
+    assert "part <= DATE '2026-01-01'" in _render_predicate(table, predicates[0])
+
+
+def test_an_engine_with_no_temporal_literal_declines_a_temporal_answer() -> None:
+    """
+    Where the engine spec has no `convert_dttm` rendering for the column, the
+    only way left to write the value is the driver's plain text, which is what
+    fails on Trino. An engine Superset has not confirmed declines, which costs
+    only the pruning -- the same answer `_reads_as_temporal` gives for text.
+    """
+    column = _partition_column("DATE")
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: BaseEngineSpec),
+    ):
+        error = probed_value_type_error(column, [date(2026, 1, 1)])
+
+    assert error is not None
+    assert "dt_epoch" in error
 
 
 def test_one_unspellable_answer_costs_only_its_own_request(app: Flask) -> None:

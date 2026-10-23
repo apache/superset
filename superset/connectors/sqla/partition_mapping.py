@@ -184,7 +184,7 @@ import numbers
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
@@ -3247,7 +3247,7 @@ def build_mirrored_predicates(
     sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
     predicates = _predicates_from_probe(
         sqla_col,
-        datasource.database,
+        partition_column,
         evaluated,
         spans,
         escaping_errors=escaping_errors,
@@ -3266,7 +3266,7 @@ def build_mirrored_predicates(
 
 def _predicates_from_probe(
     sqla_col: ColumnElement[Any],
-    database: Database,
+    partition_column: TableColumn,
     evaluated: list[Any],
     spans: list[tuple[FilterOperator, int, int]],
     *,
@@ -3290,8 +3290,13 @@ def _predicates_from_probe(
     no row is in, and because it is ``AND``-ed onto the query the chart loses
     every row the filter keeps rather than losing its pruning.
 
+    A request whose probe answered with a date or a timestamp is emitted with
+    the engine's own temporal literal -- see `_temporal_literal_sql` -- and
+    skipped where the engine has none, as for `None`.
+
     :param escaping_errors: optional sink; see `build_mirrored_predicates`.
     """
+    database = partition_column.table.database
     # Once for the whole call, not once per value: `_dialect_for` asks the
     # `Database` for a dialect, and a 200-member `IN` would otherwise ask 200
     # times. The same reading `evaluate_transform` takes on the way in.
@@ -3327,6 +3332,13 @@ def _predicates_from_probe(
                     )
                 )
             continue
+        if any(isinstance(value, date) for value in chunk):
+            rendered = [_temporal_clause(partition_column, value) for value in chunk]
+            if any(clause is None for clause in rendered):
+                # `probed_value_type_error` refuses these before this point;
+                # this is the backstop for a column type it could not resolve.
+                continue
+            chunk = rendered
         if operator == FilterOperator.IN:
             # The probe answers per value, so a transform over a mixed-number
             # filter can answer with a mixed-number partition key -- and
@@ -3441,6 +3453,65 @@ def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool
     return False
 
 
+def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | None:
+    """
+    A probed date or timestamp as the engine's own literal for the column.
+
+    The probe answers a temporal transform with a `date` or a `datetime`, and
+    SQLAlchemy's literal processor writes either one as plain quoted text --
+    ``part_date >= '2026-01-01'`` -- whatever the dialect. Trino and Presto
+    have no implicit coercion from ``varchar`` to ``date`` or ``timestamp``, so
+    they refuse that comparison outright, and because the mirror is ``AND``-ed
+    onto the chart query the whole chart fails rather than its pruning.
+
+    `BaseEngineSpec.convert_dttm` is how every other temporal bound in a chart
+    query is written (see `ExploreMixin.dttm_sql_literal`), so the mirror
+    writes its values the same way: ``DATE '2026-01-01'`` on Trino,
+    ``CAST('2026-01-01' AS DATE)`` on Hive.
+
+    `None` where that cannot be done faithfully, and the caller declines:
+
+    * The engine has no literal for the column's type. An engine Superset has
+      no rendering for is one it has not confirmed, the same answer
+      `_reads_as_temporal` gives for text.
+    * The literal throws part of the value away -- SQLite's, for one, stops at
+      the second. A bound floored past what the probe answered is a mirror
+      narrower than the filter, which drops rows. Detected the way
+      `ExploreMixin._engine_literal_resolution` detects it, by rendering a
+      second instant and comparing the text: a value one microsecond earlier
+      writes differently from this one exactly when nothing of it is lost.
+      A column holding only days is exempt, because flooring to the day is
+      the column's own resolution and every comparison against it reads the
+      same either way.
+    """
+    instant = (
+        value if isinstance(value, datetime) else datetime.combine(value, time.min)
+    )
+    spec = partition_column.db_engine_spec
+    column_type = partition_column.type or ""
+    db_extra = partition_column.db_extra
+    rendered = spec.convert_dttm(column_type, instant, db_extra=db_extra)
+    if rendered is None:
+        return None
+    holds_days_only = isinstance(spec.get_sqla_column_type(column_type), sa.Date)
+    if not holds_days_only and rendered == spec.convert_dttm(
+        column_type, instant - timedelta(microseconds=1), db_extra=db_extra
+    ):
+        return None
+    return rendered
+
+
+def _temporal_clause(partition_column: TableColumn, value: Any) -> Any:
+    """`_temporal_literal_sql` as a clause, or `None` where it declines."""
+    if not isinstance(value, date):
+        return value
+    if (rendered := _temporal_literal_sql(partition_column, value)) is None:
+        return None
+    # Not `get_text_clause`: a `TextClause` is not a column expression, so
+    # `in_` refuses it, and the literal has no bind parameter to parse.
+    return sa.literal_column(rendered)
+
+
 def probed_value_type_error(
     partition_column: "TableColumn",
     values: Sequence[Any],
@@ -3532,6 +3603,26 @@ def probed_value_type_error(
             and not _reads_as_temporal(value, partition_column.db_engine_spec)
         ):
             held = False
+        # And a real date or timestamp only where the engine can write it as
+        # a literal of the column's type: SQLAlchemy writes it as plain text,
+        # which Trino and Presto refuse to compare. See `_temporal_literal_sql`.
+        if (
+            held
+            and generic_type == utils.GenericDataType.TEMPORAL
+            and isinstance(value, date)
+            and _temporal_literal_sql(partition_column, value) is None
+        ):
+            return str(
+                _(
+                    "The transform returned %(returned)s for %(column)s, which "
+                    "this database cannot write into a query as a %(type)s "
+                    "value without changing it. Filters on this mapping will "
+                    "not be mirrored.",
+                    returned=repr(value),
+                    column=partition_column.column_name,
+                    type=partition_column.type,
+                )
+            )
         if not held:
             return str(
                 _(
