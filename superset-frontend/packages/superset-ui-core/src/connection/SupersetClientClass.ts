@@ -42,7 +42,9 @@ import {
 
 const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
   if (!window.location.pathname.startsWith(`${appRoot}/login`)) {
-    window.location.href = `${appRoot}/login?next=${window.location.href}`;
+    window.location.href = `${appRoot}/login?next=${encodeURIComponent(
+      window.location.href,
+    )}`;
   }
 };
 

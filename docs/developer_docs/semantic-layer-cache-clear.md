@@ -58,7 +58,7 @@ def from_configuration(
 ```
 
 The context and reserved credentials channel are described in the
-[execution contract](extensions/semantic-execution-context.md). The host captures a database/workspace-scoped layer UUID and version
+[execution contract](extensions/extension-points/semantic-layers.md#execution-context). The host captures a database/workspace-scoped layer UUID and version
 once per metadata session (the ordinary request/task session); this is the layer's
 **metadata generation**, passed to providers as `cache_token`. The namespace is
 an opaque digest of the metadata database backend, host, port and database name;
