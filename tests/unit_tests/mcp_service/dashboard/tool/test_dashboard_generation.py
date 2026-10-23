@@ -24,10 +24,11 @@ from collections.abc import Iterator
 from datetime import datetime
 from functools import partial
 from importlib import import_module
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.client.client import CallToolResult
 
 from superset import security_manager
@@ -58,6 +59,47 @@ add_chart_to_existing_dashboard_module = import_module(
 generate_dashboard_module = import_module(
     "superset.mcp_service.dashboard.tool.generate_dashboard"
 )
+
+
+@pytest.mark.parametrize("variant", ["int", "string", "float", "nested", "detached"])
+@pytest.mark.asyncio
+async def test_generate_dashboard_refuses_unlisted_layout_chart(
+    variant: str, mcp_server: FastMCP
+) -> None:
+    """Every persisted layout reference must belong to the checked chart list."""
+    chart_ids: dict[str, int | str | float] = {"string": "999", "float": 999.0}
+    chart_id: int | str | float = chart_ids.get(variant, 999)
+    layout: dict[str, Any] = {
+        "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+        "GRID_ID": {"type": "GRID", "children": ["ROW"]},
+        "ROW": {"type": "ROW", "children": ["CHART-1", "CHART-extra"]},
+        "CHART-1": {"type": "CHART", "meta": {"chartId": 1}},
+        "CHART-extra": {"type": "CHART", "meta": {"chartId": chart_id}},
+    }
+    if variant == "nested":
+        layout["GRID_ID"]["children"] = ["TABS"]
+        layout["TABS"] = {"type": "TABS", "children": ["TAB"]}
+        layout["TAB"] = {"type": "TAB", "children": ["ROW"]}
+    elif variant == "detached":
+        layout["ROW"]["children"] = ["CHART-1"]
+    with (
+        patch("superset.db.session") as session,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.models.dashboard.Dashboard") as dashboard_cls,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, dashboard_cls, [_mock_chart(id=1)], _mock_dashboard()
+        )
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "generate_dashboard",
+                {"request": {"chart_ids": [1], "position_json": layout}},
+            )
+        assert result.structured_content["error"] is not None
+        assert "chart_ids" in result.structured_content["error"]
+        assert result.structured_content["dashboard"] is None
+        dashboard_cls.assert_not_called()
+        session.add.assert_not_called()
 
 
 @pytest.fixture

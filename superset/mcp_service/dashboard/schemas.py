@@ -733,8 +733,9 @@ class AddChartToDashboardResponse(DashboardMutationErrorFields):
         description=(
             "True when the operation failed because the current user does not "
             "have edit rights on the target dashboard or access to the chart. "
-            "Ask the user to grant access; do not retry or create another "
-            "dashboard to bypass the denial."
+            "Do not retry or create another dashboard to bypass denied chart "
+            "access. For a dashboard-edit denial, ask the user before creating "
+            "a new dashboard; chart access must still be checked."
         ),
     )
 
