@@ -19,7 +19,7 @@
 
 import uuid
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
 from io import BytesIO
 from time import sleep, time as now_epoch
@@ -5637,6 +5637,150 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 db.session.rollback()
                 db.session.delete(db.session.get(ReportSchedule, report_id))
                 db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("own_chart", ("own",), 201),
+            ("readable_not_edited", ("readable",), 201),
+            ("unreadable_chart", ("own", "foreign"), 422),
+        ]
+    )
+    def test_create_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """POST links a layout chart only if the caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.post(
+                "/api/v1/dashboard/",
+                json={
+                    "dashboard_title": "layout-access-new",
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert rv.status_code == status, rv.data
+            created: list[Dashboard] = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.dashboard_title == "layout-access-new")
+                .all()
+            )
+            assert len(created) == (1 if status == 201 else 0)
+            if status == 201:
+                assert self._member_names({**ids, "dashboard": created[0].id}) == set(
+                    layout
+                )
+
+    @parameterized.expand([("string", str), ("float", float)])
+    def test_update_dashboard_layout_chart_access_coerced_ids(
+        self, case: str, coerce: type
+    ) -> None:
+        """A foreign chart ID sent as a string or a float is refused like an
+        integer one."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(
+                ids["member"], ids["archived"]
+            )
+            positions["CHART-foreign"] = {
+                "id": "CHART-foreign",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": coerce(ids["foreign"]), "width": 4, "height": 50},
+            }
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 422, rv.data
+            # Refused by the access check, not as a malformed node.
+            assert rv.json["message"]["json_metadata"] == [
+                f"The layout references charts that are not available: {ids['foreign']}"
+            ]
+            assert self._member_names(ids) == {"member", "archived"}
+
+    @parameterized.expand([("readable_clones", False), ("chart_reads_denied", True)])
+    def test_copy_dashboard_duplicate_slices_layout_chart_access(
+        self, case: str, deny_chart_reads: bool
+    ) -> None:
+        """A copy with ``duplicate_slices`` links the clones of the source's
+        charts, even ones the caller cannot read in the source.
+
+        The caller edits every clone, so the access check passes them anyway.
+        Denying every chart read shows the clones are accepted as the copy's
+        own charts rather than through the caller's access.
+        """
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(ids["member"])
+            with (
+                patch(
+                    "superset.daos.dashboard.security_manager.can_access_chart",
+                    return_value=False,
+                )
+                if deny_chart_reads
+                else nullcontext()
+            ):
+                rv: TestResponse = self.client.post(
+                    f"/api/v1/dashboard/{ids['dashboard']}/copy/",
+                    json={
+                        "dashboard_title": "layout-access-copy",
+                        "duplicate_slices": True,
+                        "json_metadata": json.dumps({"positions": positions}),
+                    },
+                )
+            assert rv.status_code == 200, rv.data
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, rv.json["result"]["id"])
+            assert [chart.slice_name for chart in copied.slices] == [
+                "layout-access-member"
+            ]
+            assert copied.slices[0].id != ids["member"]
+            assert self._member_names(ids) == {"member", "archived"}
+
+    def test_update_dashboard_layout_detached_chart(self) -> None:
+        """A chart detached from the dashboard but still in its stored layout
+        is a new chart to the next layout save.
+
+        Only ``dashboard_slices`` rows count as membership, so the tile
+        neither keeps the chart a member nor lets a save re-attach it: a
+        caller who cannot read the chart gets a 422 until the tile is
+        removed, and a caller who can read it re-attaches it.
+        """
+        with self._layout_access_fixture() as ids:
+            self.login(ADMIN_USERNAME)
+            rv: TestResponse = self.client.put(
+                f"/api/v1/chart/{ids['member']}", json={"dashboards": []}
+            )
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"archived"}
+
+            stale: dict[str, Any] = {
+                "json_metadata": json.dumps(
+                    {"positions": self._chart_layout(ids["member"], ids["archived"])}
+                )
+            }
+            trimmed: dict[str, Any] = {
+                "json_metadata": json.dumps(
+                    {"positions": self._chart_layout(ids["archived"])}
+                )
+            }
+            self.logout()
+            self.login(GAMMA_USERNAME)
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
+            assert rv.status_code == 422, rv.data
+            assert str(ids["member"]) in rv.json["message"]["json_metadata"][0]
+            assert self._member_names(ids) == {"archived"}
+
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=trimmed)
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"archived"}
+
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"member", "archived"}
 
     @staticmethod
     def _member_names(ids: dict[str, int]) -> set[str]:
