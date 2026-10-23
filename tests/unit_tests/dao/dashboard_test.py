@@ -1836,24 +1836,7 @@ def test_added_member_datasource_access_skips_soft_deleted_member(
     existing member, so it is not treated as a new addition. The dashboard is
     loaded through a query, as on the PUT path, so its ``slices`` relationship
     carries the soft-delete loader criteria and hides the archived member."""
-    Dashboard.metadata.create_all(session.get_bind())
-    database = Database(database_name="acc_db", sqlalchemy_uri="sqlite://")
-    dataset = SqlaTable(table_name="acc_table", database=database)
-    db.session.add(dataset)
-    db.session.flush()
-    chart = Slice(
-        slice_name="acc_chart",
-        datasource_id=dataset.id,
-        datasource_type="table",
-    )
-    dashboard = Dashboard(
-        dashboard_title="acc_dash",
-        slug="acc_dash",
-        published=True,
-        slices=[chart],
-    )
-    db.session.add_all([chart, dashboard])
-    db.session.flush()
+    dashboard, chart = _dashboard_with_member(session, member=True)
     chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     db.session.flush()
     db.session.expunge_all()
@@ -1870,6 +1853,25 @@ def test_added_member_datasource_access_skips_soft_deleted_member(
         ),
     ):
         _raise_added({"positions": _positions_for(chart)}, existing=loaded)
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_added_member_datasource_access_checks_soft_deleted_non_member(
+    session: Session,
+) -> None:
+    """A soft-deleted chart that is not yet a member is still checked: the
+    visibility filter is lifted when resolving the incoming charts, since
+    ``set_dash_metadata`` links archived charts too."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    db.session.flush()
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
+    ):
+        with pytest.raises(DashboardForbiddenError):
+            _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
 
 
 def test_set_dash_metadata_no_longer_enforces_datasource_access(
