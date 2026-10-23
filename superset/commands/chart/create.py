@@ -33,8 +33,8 @@ from superset.commands.chart.exceptions import (
     DashboardsNotFoundValidationError,
 )
 from superset.commands.chart.utils import (
-    touch_dashboards,
     raise_for_saved_query_ownership,
+    touch_dashboards,
     validate_chart_datasource_type,
     validate_query_context_datasource,
 )
