@@ -2899,12 +2899,101 @@ def _preview_probe(
     Split out from `preview_partition_mapping` so that the gates which answer
     from the stored mapping alone stay readable as the single run of guard
     clauses they are. Everything here has either run a query or decided not to.
+
+    A chart hands the transform a temporal value in two shapes. A simple filter
+    binds the text the author typed; a time range binds a `datetime`, which the
+    dialect writes as a typed literal (``TO_DATE(...)`` on Oracle). A
+    transform can read the two differently -- ``TO_DATE(:value, fmt)`` parses
+    the text, but converts the typed value back to text through the session's
+    ``NLS_DATE_FORMAT`` first and lands in year 0012 -- and previewing only the
+    text said valid for a mapping whose every time range came back empty. So a
+    temporal sample is previewed as the time range sends it, and the text shape
+    is probed too: where the two answer with different partition values, the
+    mapping cannot be right for both, and the preview says so.
     """
-    value = datasource.mirror_probe_request(
-        operator,
-        _probe_input(datasource, mapped_col, operator, sample_values),
+    probe_input = _probe_input(datasource, mapped_col, operator, sample_values)
+    range_input = _as_range_bound(mapped_col, operator, probe_input)
+    if range_input is None:
+        return _preview_probe_value(
+            datasource,
+            mapping,
+            mapped_col,
+            operator,
+            datasource.mirror_probe_request(operator, probe_input, mapped_col),
+            sample_input,
+        )
+
+    as_range = _preview_probe_value(
+        datasource,
+        mapping,
         mapped_col,
+        operator,
+        datasource.mirror_probe_request(operator, range_input, mapped_col),
+        sample_input,
     )
+    if not as_range["valid"]:
+        return as_range
+    as_text = _preview_probe_value(
+        datasource,
+        mapping,
+        mapped_col,
+        operator,
+        datasource.mirror_probe_request(operator, probe_input, mapped_col),
+        sample_input,
+    )
+    if as_text["valid"] and (
+        as_text["emitted_predicate"] != as_range["emitted_predicate"]
+    ):
+        return {
+            "valid": False,
+            "reason": "shape",
+            "sample_input": sample_input,
+            "error": _(
+                "The transform gives a different partition value for a time "
+                "range (%(as_range)s) than for a filter typed as text "
+                "(%(as_text)s) at the same instant, so one of the two would "
+                "drop rows. Write the transform so it reads :value the same "
+                "way as a timestamp and as text.",
+                as_range=as_range["emitted_predicate"],
+                as_text=as_text["emitted_predicate"],
+            ),
+        }
+    return as_range
+
+
+def _as_range_bound(
+    column: "TableColumn",
+    operator: FilterOperator,
+    probe_input: Any,
+) -> datetime | None:
+    """
+    The `datetime` a time range would hand the transform for this sample, or
+    `None` where the sample is not a temporal bound a time range could carry.
+    """
+    # Imported here: `superset.models.helpers` imports this module.
+    from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+        _instant_from_filter_value,
+    )
+
+    if not column.is_dttm or operator == FilterOperator.IN:
+        return None
+    if not isinstance(probe_input, str):
+        return None
+    instant = _instant_from_filter_value(probe_input)
+    if instant is None or instant.tzinfo is not None:
+        return None
+    return instant
+
+
+def _preview_probe_value(
+    datasource: SqlaTable,
+    mapping: PartitionMapping,
+    mapped_col: "TableColumn",
+    operator: FilterOperator,
+    value: Any,
+    sample_input: str,
+) -> dict[str, Any]:
+    """`_preview_probe` for one shape of the probe input."""
     if is_unmirrorable(value):
         # The same step the chart path applies, so the preview cannot promise a
         # mirror the query declines -- and it reports the reason that step
@@ -3453,6 +3542,42 @@ def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool
     return False
 
 
+#: The leading type name of a declared column type: ``DATE`` from ``DATE``,
+#: ``TIMESTAMP`` from ``TIMESTAMP(6) WITH TIME ZONE``.
+_TYPE_NAME_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)")
+
+
+def _holds_days_only(partition_column: TableColumn) -> bool:
+    """
+    Whether the column's values carry no time of day.
+
+    The engine spec's mapping is not the answer on its own: Superset maps
+    Oracle's ``DATE`` to `sa.Date`, but an Oracle ``DATE`` stores the time of
+    day, and its own SQLAlchemy dialect says so by making ``DATE`` a
+    `DateTime`. Exempting it from the precision check let
+    ``TO_DATE('2026-01-12', 'YYYY-MM-DD')`` stand in for 06:30, so a mirrored
+    range on a ``CAST(:value AS DATE)`` key asked for midnight and the chart
+    lost every row after it. So the database's own dialect has the last word
+    where it names the type.
+    """
+    spec_type = partition_column.db_engine_spec.get_sqla_column_type(
+        partition_column.type or ""
+    )
+    if not isinstance(spec_type, sa.Date):
+        return False
+    match = _TYPE_NAME_RE.match(partition_column.type or "")
+    dialect = _dialect_for(partition_column.table.database)
+    if match and dialect is not None:
+        names = getattr(dialect, "ischema_names", {}) or {}
+        name = match.group(1)
+        dialect_type = (
+            names.get(name) or names.get(name.upper()) or names.get(name.lower())
+        )
+        if isinstance(dialect_type, type) and issubclass(dialect_type, sa.DateTime):
+            return False
+    return True
+
+
 def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | None:
     """
     A probed date or timestamp as the engine's own literal for the column.
@@ -3482,7 +3607,7 @@ def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | N
       writes differently from this one exactly when nothing of it is lost.
       A column holding only days is exempt, because flooring to the day is
       the column's own resolution and every comparison against it reads the
-      same either way.
+      same either way -- see `_holds_days_only` for what "only days" means.
     """
     instant = (
         value if isinstance(value, datetime) else datetime.combine(value, time.min)
@@ -3493,7 +3618,7 @@ def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | N
     rendered = spec.convert_dttm(column_type, instant, db_extra=db_extra)
     if rendered is None:
         return None
-    holds_days_only = isinstance(spec.get_sqla_column_type(column_type), sa.Date)
+    holds_days_only = _holds_days_only(partition_column)
     if not holds_days_only and rendered == spec.convert_dttm(
         column_type, instant - timedelta(microseconds=1), db_extra=db_extra
     ):

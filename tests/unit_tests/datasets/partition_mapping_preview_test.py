@@ -1402,3 +1402,80 @@ def test_preview_declines_a_temporal_answer_the_engine_would_floor(
     assert result["valid"] is False
     assert result["reason"] == "type"
     assert "emitted_predicate" not in result
+
+
+def _probe_by_shape(text_answer: Any, typed_answer: Any) -> Any:
+    """
+    A `get_df` that answers by how the probe wrote ``:value``: as the text a
+    simple filter binds, or as the typed literal a time range's `datetime`
+    renders to. Oracle reads the two differently under ``TO_DATE(:value,
+    fmt)``; this stands in for that without an Oracle server.
+    """
+    import pandas as pd
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        text = "'2026-01-15 10:47:23'" in sql
+        return pd.DataFrame([[text_answer if text else typed_answer]], columns=["v0"])
+
+    return answer
+
+
+def test_preview_refuses_a_transform_that_reads_a_time_range_differently(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    On Oracle ``TO_DATE(:value, 'YYYY-MM-DD HH24:MI:SS')`` parses the text a
+    simple filter sends, but a time range sends a typed ``TO_DATE(...)``, which
+    is converted back to text through ``NLS_DATE_FORMAT`` and lands in year
+    0012. Previewing only the text said valid while every time range came back
+    empty, so both shapes are probed and a disagreement is refused.
+    """
+    with patch(
+        "superset.models.core.Database.get_df",
+        side_effect=_probe_by_shape(1768474043, -61755000000),
+    ) as get_df:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 10:47:23"],
+                "operator": ">=",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "shape"
+    # Both shapes reached the engine, written differently.
+    probes = [call.kwargs.get("sql") or call.args[0] for call in get_df.call_args_list]
+    assert any("'2026-01-15 10:47:23'" in sql for sql in probes)
+    assert any("'2026-01-15 10:47:23'" not in sql for sql in probes)
+
+
+def test_preview_accepts_a_transform_that_reads_both_shapes_alike(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """The ordinary case: both shapes answer with the same key, so it mirrors."""
+    with patch(
+        "superset.models.core.Database.get_df",
+        side_effect=_probe_by_shape(1768474043, 1768474043),
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 10:47:23"],
+                "operator": ">=",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.json["result"] == {
+        "valid": True,
+        "sample_input": "event_time >= '2026-01-15 10:47:23'",
+        "emitted_predicate": "dt_epoch >= 1768474043 OR dt_epoch IS NULL",
+    }

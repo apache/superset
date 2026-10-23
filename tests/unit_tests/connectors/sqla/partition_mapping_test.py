@@ -2746,6 +2746,46 @@ def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None
     assert "part <= DATE '2026-01-01'" in _render_predicate(table, predicates[0])
 
 
+def test_an_oracle_date_key_is_not_floored_to_its_day(app: Flask) -> None:
+    """
+    An Oracle ``DATE`` keeps the time of day -- its SQLAlchemy dialect makes
+    ``DATE`` a `DateTime` -- but Superset maps it to `sa.Date`, so the
+    days-only exemption wrote 06:30 as ``TO_DATE('2026-01-12', 'YYYY-MM-DD')``.
+    A range mirrored that way asked for midnight and a ``CAST(:value AS DATE)``
+    chart lost every row after it. Oracle's literal drops the time, so the
+    mirror is declined and only the pruning is lost.
+    """
+    table = _temporal_partition_table("oracle+oracledb://u:p@host:1521/svc", "DATE")
+    type_errors: list[str] = []
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table,
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+            datetime(2026, 1, 12, 6, 30),
+            type_errors,
+        )
+
+    assert predicates == []
+    assert type_errors
+
+
+def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
+    """Not a refusal of Oracle: an answer at midnight loses nothing to the
+    day-only literal, so it still mirrors."""
+    table = _temporal_partition_table("oracle+oracledb://u:p@host:1521/svc", "DATE")
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12)
+        )
+
+    assert len(predicates) == 1
+    assert "TO_DATE('2026-01-12', 'YYYY-MM-DD')" in _render_predicate(
+        table, predicates[0]
+    )
+
+
 def test_an_engine_with_no_temporal_literal_declines_a_temporal_answer() -> None:
     """
     Where the engine spec has no `convert_dttm` rendering for the column, the

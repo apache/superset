@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-23 16:51+0000\n"
+"POT-Creation-Date: 2026-10-23 20:10+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -17922,6 +17922,14 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform gives a different partition value for a time range "
+"(%(as_range)s) than for a filter typed as text (%(as_text)s) at the same "
+"instant, so one of the two would drop rows. Write the transform so it "
+"reads :value the same way as a timestamp and as text."
 msgstr ""
 
 #, python-format
