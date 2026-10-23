@@ -238,7 +238,9 @@ async def _collect_external_metrics(
             logger.warning(
                 "Could not load metrics for view id=%s", view.id, exc_info=True
             )
-            await ctx.warning("Unable to retrieve metrics for a semantic view.")
+            await ctx.warning(
+                "Unable to retrieve metrics for semantic view id=%s." % view.id
+            )
     return results
 
 

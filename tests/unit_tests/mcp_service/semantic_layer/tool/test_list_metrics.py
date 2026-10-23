@@ -871,7 +871,7 @@ async def test_list_metrics_partial_failure_keeps_only_safe_warning(
         )
     else:
         warning.assert_awaited_once_with(
-            "Unable to retrieve metrics for a semantic view."
+            "Unable to retrieve metrics for semantic view id=5."
         )
         assert "provider-private-detail" not in str(result)
         assert f"{error_class.__name__}: provider-private-detail" in caplog.text
