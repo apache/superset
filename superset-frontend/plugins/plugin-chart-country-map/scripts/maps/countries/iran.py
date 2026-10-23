@@ -16,7 +16,7 @@
 # under the License.
 """Iran: Tehran and Alborz share the same Natural Earth `iso_3166_2` code
 (IR-07), and Razavi Khorasan is mislabeled with Alborz's real code
-(IR-30), leaving IR-09 unused. See ISO 3166-2:IR.
+(IR-30), leaving IR-09 unused; Alborz is reassigned to IR-32. See ISO 3166-2:IR.
 """
 
 from __future__ import annotations
@@ -31,7 +31,9 @@ NAME = "iran"
 def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
     iran = ctx.df[ctx.df.admin == "Iran"]
     iran_copy = iran.copy()
-    iran_copy.loc[iran_copy["name"] == "Alborz", "iso_3166_2"] = "IR-30"
+    # Alborz keeps its pre-2020 ISO 3166-2 code (IR-32); the Country Map
+    # data and iran.geojson.test.ts pin this value.
+    iran_copy.loc[iran_copy["name"] == "Alborz", "iso_3166_2"] = "IR-32"
     iran_copy.loc[iran_copy["name"] == "Razavi Khorasan", "iso_3166_2"] = "IR-09"
 
     return {NAME: iran_copy}
