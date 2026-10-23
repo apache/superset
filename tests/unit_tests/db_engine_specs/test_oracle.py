@@ -243,9 +243,9 @@ def server_versions() -> Any:
     """Start each test with no cached Oracle server versions."""
     from superset.db_engine_specs import oracle as oracle_spec
 
-    oracle_spec._server_major_versions.clear()
-    yield oracle_spec._server_major_versions
-    oracle_spec._server_major_versions.clear()
+    oracle_spec._server_versions.clear()
+    yield oracle_spec._server_versions
+    oracle_spec._server_versions.clear()
 
 
 def mock_oracle_database(
@@ -348,6 +348,104 @@ def test_get_limit_method_reuses_connected_engine(server_versions: Any) -> None:
 
     assert OracleEngineSpec.get_limit_method(database) == LimitMethod.WRAP_ROWNUM
     engine.connect.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "version, expected",
+    [
+        ("11g", 30),
+        ("11.2.0.4", 30),
+        ("12c", 30),
+        ("12.1.0.2", 30),
+        (12.1, 30),
+        ("12.2", 128),
+        ("12.2.0.1", 128),
+        ("19c", 128),
+        ("23ai", 128),
+    ],
+)
+def test_get_max_column_name_length_configured_version(
+    version: Any, expected: int, server_versions: Any
+) -> None:
+    """
+    A version set in the DB extra decides the label length without connecting.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    assert OracleEngineSpec.get_max_column_name_length(database) == expected
+    database.get_sqla_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "server_version_info, expected",
+    [
+        ((11, 2, 0, 2, 0), 30),
+        ((12, 1, 0, 2, 0), 30),
+        ((12, 2, 0, 1, 0), 128),
+        ((23, 26, 3, 0, 0), 128),
+        (None, 128),
+    ],
+)
+def test_get_max_column_name_length_detected_version(
+    server_version_info: tuple[int, ...] | None,
+    expected: int,
+    server_versions: Any,
+) -> None:
+    """
+    Without a configured version, the server version decides the label length,
+    and an unknown version keeps the 12.2 limit.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(server_version_info=server_version_info)
+    assert OracleEngineSpec.get_max_column_name_length(database) == expected
+
+
+@pytest.mark.parametrize(
+    "label, version, expected",
+    [
+        # SHA-256 hashes cut to 30 characters
+        (
+            "Sum of total revenue by region and quarter",
+            "11.2.0.2",
+            "66587cc95746f636b1fe5cbe4df726",
+        ),
+        # 28 characters, but 33 bytes in UTF-8
+        ("Bölge başına toplam satışlar", "11.2.0.2", "46245818dfd88012eecdf81eff9621"),
+        ("a" * 30, "11.2.0.2", "a" * 30),
+        (
+            "Sum of total revenue by region and quarter",
+            "23ai",
+            "Sum of total revenue by region and quarter",
+        ),
+        ("Bölge başına toplam satışlar", "23ai", "Bölge başına toplam satışlar"),
+    ],
+)
+def test_make_label_compatible_version_dependent_length(
+    label: str, version: str, expected: str, server_versions: Any
+) -> None:
+    """
+    Labels longer than 30 bytes are hashed on Oracle before 12.2, which rejects
+    them with "ORA-00972: identifier is too long".
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    result = OracleEngineSpec.make_label_compatible(label, database)
+    assert isinstance(result, quoted_name)
+    assert result.quote is True
+    assert result == expected
+
+
+def test_make_label_compatible_counts_bytes() -> None:
+    """
+    Without a database the 128 byte limit applies, counted in UTF-8 bytes.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert OracleEngineSpec.make_label_compatible("ü" * 64) == "ü" * 64
+    assert len(OracleEngineSpec.make_label_compatible("ü" * 65)) == 64
 
 
 def test_register_engine_events_compiles_rownum_until_connected() -> None:
