@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from unittest.mock import Mock, patch
 
@@ -462,6 +462,34 @@ def test_get_since_until_sub_day_next_with_explicit_relative_bounds() -> None:
         result = get_since_until("Next 2 hours", **kwargs)
         expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 2, 0))
         assert result == expected
+
+
+@pytest.mark.parametrize("month", range(1, 13))
+@pytest.mark.parametrize("offset", [None, 0, 480, -330])
+def test_datetrunc_quarter_preserves_timezone(
+    month: int, offset: Optional[int]
+) -> None:
+    """Quarter truncation retains the offset and resets all smaller fields."""
+    tz = timezone(timedelta(minutes=offset)) if offset is not None else None
+    value = datetime(2024, month, 28, 12, 34, 56, 123456, tzinfo=tz)
+    result = datetime_eval(f"DATETRUNC(DATETIME('{value.isoformat()}'), QUARTER)")
+    expected = datetime(2024, 3 * ((month - 1) // 3) + 1, 1, tzinfo=tz)
+    assert result == expected
+    assert result is not None
+    assert result.utcoffset() == expected.utcoffset()
+
+
+@pytest.mark.parametrize("offset", [0, 480, -330])
+def test_get_since_until_with_timezone_aware_quarter(offset: int) -> None:
+    """A quarter boundary can be compared with an offset-aware range end."""
+    tz = timezone(timedelta(minutes=offset))
+    start = datetime(2024, 5, 31, 12, 34, 56, tzinfo=tz)
+    end = datetime(2024, 7, 1, tzinfo=tz)
+    result = get_since_until(
+        f"DATETRUNC(DATETIME('{start.isoformat()}'), QUARTER) : "
+        f"DATETIME('{end.isoformat()}')"
+    )
+    assert result == (datetime(2024, 4, 1, tzinfo=tz), end)
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)

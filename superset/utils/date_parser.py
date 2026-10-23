@@ -23,7 +23,6 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 from time import struct_time
 
-import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -846,8 +845,13 @@ class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
                 month=1, day=1, hour=0, minute=0, second=0, microsecond=0
             )
         if unit == "quarter":
-            dttm = (
-                pd.Period(pd.Timestamp(dttm), freq="Q").to_timestamp().to_pydatetime()
+            dttm = dttm.replace(
+                month=3 * ((dttm.month - 1) // 3) + 1,
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
         elif unit == "month":
             dttm = dttm.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
