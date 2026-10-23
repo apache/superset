@@ -5284,3 +5284,40 @@ def test_public_provider_completeness_error_becomes_host_error(
         get_results(query)
     assert excinfo.value.reason == reason
     assert excinfo.value.__cause__ is failure
+
+
+@pytest.mark.parametrize(
+    "value", [1072915200000, "1072915200000", "2004-01-01T00:00:00"]
+)
+def test_convert_query_object_filter_grained_equality_selects_the_bucket(
+    value: int | str,
+) -> None:
+    """A Drill by or Drill to detail bucket compares the raw time dimension."""
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.EQUALS.value,
+        "col": "order_date",
+        "val": value,
+        "grain": "P1M",
+    }
+
+    assert _convert_query_object_filter(filter_, {"order_date": order_date}) == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2004, 1, 1),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.LESS_THAN,
+            value=datetime(2004, 2, 1),
+        ),
+    }
