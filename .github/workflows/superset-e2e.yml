@@ -125,12 +125,17 @@ jobs:
       # config, and this workflow (it pins the Postgres image). The post-job
       # save only happens on a miss; `playwright_testdata` in bashlib.sh
       # restores the dump on a hit and writes it on a miss.
+      # hashFiles digests contents only, so renaming or removing an example
+      # file would otherwise leave the key unchanged.
+      - name: Fingerprint example file paths
+        id: examples-paths
+        run: echo "hash=$(find superset/examples -type f | LC_ALL=C sort | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
       - name: Restore cached examples dump
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /tmp/superset-playwright-testdata
           key: >-
-            playwright-testdata-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
+            playwright-testdata-${{ steps.examples-paths.outputs.hash }}-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
             'superset/examples/**', 'superset/migrations/**', 'requirements/*.txt',
             'pyproject.toml', 'tests/integration_tests/superset_test_config.py',
             '.github/workflows/superset-e2e.yml', '.github/workflows/bashlib.sh') }}
@@ -374,12 +379,17 @@ jobs:
       # config, and this workflow (it pins the Postgres image). The post-job
       # save only happens on a miss; `playwright_testdata` in bashlib.sh
       # restores the dump on a hit and writes it on a miss.
+      # hashFiles digests contents only, so renaming or removing an example
+      # file would otherwise leave the key unchanged.
+      - name: Fingerprint example file paths
+        id: examples-paths
+        run: echo "hash=$(find superset/examples -type f | LC_ALL=C sort | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
       - name: Restore cached examples dump
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /tmp/superset-playwright-testdata
           key: >-
-            playwright-testdata-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
+            playwright-testdata-${{ steps.examples-paths.outputs.hash }}-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
             'superset/examples/**', 'superset/migrations/**', 'requirements/*.txt',
             'pyproject.toml', 'tests/integration_tests/superset_test_config.py',
             '.github/workflows/superset-e2e.yml', '.github/workflows/bashlib.sh') }}
