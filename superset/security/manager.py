@@ -5031,9 +5031,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ``schema_access`` / ``datasource_access`` checks still apply).
             The paths that define or repoint a dataset over a table -- dataset
             create, update, v1 import, and the legacy ``/datasource/save/``
-            repoint -- and query-backed chart-data set this to False so that
-            binding a dataset to (or reading a stored query against) a table
-            requires real data access to that table, not editorship of a
+            repoint -- and the SQL Lab query paths (query-backed chart-data,
+            the Explore GET and the explore form-data step) set this to False
+            so that binding a dataset to (or reading a stored query against) a
+            table requires real data access to that table, not editorship of a
             same-named dataset -- otherwise a no-table decoy dataset named
             after the table would let its editor define a second dataset that
             reads it. Unlike ``force_dataset_match`` this keeps the
@@ -5411,8 +5412,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     #   * ``allow_editorship=False`` -- the paths that define
                     #     or repoint a dataset over a table (create, update, v1
                     #     import, and the legacy ``/datasource/save/`` repoint)
-                    #     and query-backed chart-data (which runs a stored
-                    #     query's raw SQL) -- which keep the catalog/schema
+                    #     and the SQL Lab query paths (query-backed
+                    #     chart-data, Explore) -- which keep the catalog/schema
                     #     fallthroughs but refuse editorship.
                     # Both must follow the user's live data-access grants, not
                     # editorship of a same-named dataset: any principal able to
