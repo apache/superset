@@ -19,6 +19,14 @@ instead of 23) and reuse province codes as region codes. Replaced
 wholesale from a live W.H.O. AFRO GDB query (CC BY-NC-SA 3.0 IGO) - this
 is the one source in the whole catalog that can't be pinned to a
 commit, since it's a live service rather than a repo.
+
+The service this originally queried ("AFROGDB_PUBLIC_DATA") has since
+been retired/renamed on WHO's end and now 404s. The replacement below
+("AFROGDB_published_boundary", layer 2 = "latest_boundary_adm1") is the
+current public hosted service with the same field names
+(level_id/display_name/boundary_type_id/iso3_code) and returns the same
+23 Madagascar regions this module expects - confirmed by comparing
+region names against the previously-committed madagascar.geojson.
 """
 
 from __future__ import annotations
@@ -31,8 +39,9 @@ from maps.context import BuildContext
 NAME = "madagascar"
 
 _URL = (
-    "https://maps.afro.who.int/server/rest/services/Hosted/AFROGDB_PUBLIC_DATA/"
-    "FeatureServer/0/query?where=iso3_code+%3D+%27MDG%27+and+boundary_type_id+%3D+1"
+    "https://maps.afro.who.int/server/rest/services/Hosted/"
+    "AFROGDB_published_boundary/FeatureServer/2/query"
+    "?where=iso3_code+%3D+%27MDG%27+and+boundary_type_id+%3D+1"
     "&geometryType=esriGeometryEnvelope&defaultSR=&spatialRel=esriSpatialRelIntersects"
     "&units=esriSRUnit_Foot&outFields=level_id%2Cdisplay_name&returnGeometry=true&f=geojson"
 )
