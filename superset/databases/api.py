@@ -2167,32 +2167,6 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (DatabaseOAuth2TokensDeleteSchema,)
     allow_browser_login = True
     openapi_spec_tag = "Database"
-    openapi_spec_methods = {
-        "get_list": {
-            "get": {
-                "summary": "List OAuth2 credential metadata for a database",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "pk",
-                        "required": True,
-                        "schema": {"type": "integer"},
-                    },
-                    {
-                        "in": "query",
-                        "name": "q",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/get_list_schema"
-                                }
-                            }
-                        },
-                    },
-                ],
-            },
-        },
-    }
     list_columns = [
         "id",
         "user.username",
@@ -2216,7 +2190,53 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
     def get_list(  # pylint: disable=arguments-differ
         self, pk: int, **kwargs: Any
     ) -> FlaskResponse:
-        """List OAuth2 token metadata scoped to the accessible database."""
+        """List OAuth2 token metadata scoped to the accessible database.
+        ---
+        get:
+          summary: List OAuth2 credential metadata for a database
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Paginated OAuth2 credential metadata
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatabaseOAuth2TokensRestApi.get_list'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """  # noqa: E501
         database = DatabaseDAO.find_by_id(pk)
         if database is None:
             return self.response_404()
