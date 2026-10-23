@@ -28,6 +28,7 @@ from superset.charts.client_processing import (
     apply_client_processing,
     apply_pivot_number_formats,
     format_column,
+    payload_coltypes,
     pivot_df,
     pivot_table_v2,
     table,
@@ -2518,6 +2519,83 @@ def test_table_applies_time_format_alongside_number_format() -> None:
     assert formatted["SUM(num)"].tolist() == ["1,234,567.00", "42.00"]
 
 
+@pytest.mark.parametrize(
+    ("time_format", "expected"),
+    [
+        ("%d", "01"),
+        ("%G", "2020"),
+        ("%H", "13"),
+        ("%I", "01"),
+        ("%j", "001"),
+        ("%m", "01"),
+        ("%M", "05"),
+        ("%S", "09"),
+        ("%u", "5"),
+        ("%U", "00"),
+        ("%V", "53"),
+        ("%w", "5"),
+        ("%W", "00"),
+        ("%y", "21"),
+        ("%Y", "2021"),
+        ("%%", "%"),
+        ("%G-W%V-%u", "2020-W53-5"),
+    ],
+)
+def test_table_time_format_matches_d3_for_each_shared_directive(
+    time_format: str, expected: str
+) -> None:
+    """
+    Every directive in ``SHARED_TIME_DIRECTIVES`` is held to d3's own output.
+
+    The expected strings are what ``utcFormat`` from ``d3-time-format`` returns
+    for this timestamp, so taking a directive out of the allowlist fails the
+    case that names it rather than passing unnoticed. 1 January 2021 is a
+    Friday in ISO week 53 of 2020, which is what separates ``%G`` from ``%Y``
+    and ``%V`` from ``%U`` and ``%W``; 13:05:09 separates ``%I`` from ``%H``.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2021-01-01 13:05:09")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [expected]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%Y%",
+        "%d/%m/%Y%",
+        "%%%",
+        "%Y%%%",
+    ],
+)
+def test_table_skips_a_time_format_with_an_unconsumed_percent(
+    time_format: str,
+) -> None:
+    """
+    A ``%`` that no directive consumes is dropped by d3 and copied by
+    ``strftime``.
+
+    ``%Y%`` is ``2021`` in the chart and would be ``2021%`` in the report, and
+    ``%%%`` is ``%`` against ``%%``. Every directive in these is shared, so the
+    allowlist alone accepts them and the column has to be left to the browser
+    on the stray ``%`` instead.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2021-01-01 13:05:09")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2021-01-01 13:05:09")]
+
+
 def test_table_leaves_adaptive_time_format_alone() -> None:
     """
     ``smart_date`` ("Adaptive formatting") is an alias the browser resolves to a
@@ -2806,6 +2884,29 @@ def test_table_report_time_format_survives_a_null_in_the_column() -> None:
     values = list(query["data"]["ds"].values())
     assert values[0] == "02/01/2024"
     assert pd.isna(values[1])
+
+
+def test_payload_coltypes_reads_repeated_labels_positionally() -> None:
+    """
+    Two columns sharing a label are typed one at a time, not together.
+
+    ``extract_dataframe_dtypes`` walks the frame by position, so the types it
+    returns are read back the same way. Addressing the frame by label instead
+    would hand a repeated label every column that carries it, type them all
+    from the first one's values, and cost a real timestamp column its
+    ``TEMPORAL`` in the payload.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    df = pd.DataFrame(
+        [["02/01/2024", pd.Timestamp("2024-02-01")]], columns=["ds", "ds"]
+    )
+
+    assert payload_coltypes(df, datasource) == [
+        GenericDataType.STRING,
+        GenericDataType.TEMPORAL,
+    ]
 
 
 def test_report_payload_keeps_an_unformatted_temporal_column_temporal() -> None:

@@ -864,7 +864,7 @@ pivot_v2_aggfunc_map = {
 
 
 def is_strftime_expressible(d3_time_format: str) -> bool:
-    """Whether every directive in a d3 time format means the same to strftime."""
+    """Whether ``strftime`` renders a d3 time format the way the browser does."""
     if LOCAL_TIME_PREFIX in d3_time_format:
         # ``TimeFormatterRegistry.get`` strips the marker before building the
         # formatter, so leaving it in would render it as literal text.
@@ -878,6 +878,12 @@ def is_strftime_expressible(d3_time_format: str) -> bool:
         # rather than to a format string: ``smart_date`` ("Adaptive
         # formatting", ``SMART_DATE_ID`` in ``superset-ui-core/time-format``)
         # among them.
+        return False
+    if "%" in re.sub(r"%.", "", d3_time_format):
+        # A ``%`` no directive consumed, as the trailing one in ``%Y%``. d3
+        # drops it (``2021``) and ``strftime`` copies it (``2021%``), so the
+        # two disagree even where every directive is shared. ``%%`` is not
+        # this case: both read it as one escaped ``%``.
         return False
     return all(directive in SHARED_TIME_DIRECTIVES for directive in directives)
 
