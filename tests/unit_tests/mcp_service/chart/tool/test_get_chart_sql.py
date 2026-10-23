@@ -2194,4 +2194,7 @@ class TestDetachedInstanceError:
 
         data = json.loads(response.content[0].text)
         assert data["error_type"] == "DatabaseError"
-        assert "database session error" in data["error"].lower()
+        assert data["error"] == (
+            "Chart SQL retrieval failed due to a database session error: "
+            "DetachedInstanceError"
+        )
