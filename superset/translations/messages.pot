@@ -15,22 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
 # This file is distributed under the same license as the Superset project.
@@ -41,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -205,6 +189,12 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -402,6 +392,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -2271,6 +2267,10 @@ msgid "Are you sure you want to delete %s?"
 msgstr ""
 
 #, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
+#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr ""
 
@@ -3081,10 +3081,7 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
-msgid ""
-"Changing this setting may change the casing for all columns in this dataset, "
-"which may break any existing charts and dashboard filters that reference the "
-"current column names."
+msgid "Changing this setting may change the casing for all columns in this dataset, which may break any existing charts and dashboard filters that reference the current column names."
 msgstr ""
 
 msgid "Changing this task is forbidden"
@@ -3665,6 +3662,7 @@ msgstr ""
 msgid "Color scheme"
 msgstr ""
 
+#, python-format
 msgid "Color scheme: %s"
 msgstr ""
 
@@ -4192,6 +4190,9 @@ msgid "Could not validate the user in the current session."
 msgstr ""
 
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
+msgstr ""
+
+msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
 msgstr ""
 
 msgid "Count"
@@ -5257,6 +5258,16 @@ msgid "Deleting a tab will remove all content within it and will deactivate any 
 msgstr ""
 
 msgid "Deleting this dataset is permanent. The affected charts and dashboards will remain, but they may no longer work."
+msgstr ""
+
+msgid "Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed."
+msgstr ""
+
+#, python-format
+msgid "Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting."
+msgstr ""
+
+msgid "Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -6863,15 +6874,11 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid ""
-"Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions. Select a dimension or remove the filter."
+msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions. Select a dimension or remove the filter."
 msgstr ""
 
 #, python-format
-msgid ""
-"Filter column '%(column)s' is not in this semantic view. Select a "
-"dimension or remove the filter."
+msgid "Filter column '%(column)s' is not in this semantic view. Select a dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -7246,6 +7253,9 @@ msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
+msgstr ""
+
+msgid "Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Go to Welcome Page"
@@ -7857,6 +7867,9 @@ msgstr ""
 
 #, python-format
 msgid "Invalid metric object: %(metric)s"
+msgstr ""
+
+msgid "Invalid number format: must be a d3-format specifier or a supported named format"
 msgstr ""
 
 #, python-format
@@ -9545,6 +9558,9 @@ msgstr ""
 msgid "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)"
 msgstr ""
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr ""
 
@@ -10998,6 +11014,12 @@ msgstr ""
 msgid "Remove notification method"
 msgstr ""
 
+msgid "Remove or repoint these assets before deleting it."
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
+msgstr ""
+
 msgid "Remove query from log"
 msgstr ""
 
@@ -12379,9 +12401,7 @@ msgid "Semantic cache"
 msgstr ""
 
 #, python-format
-msgid ""
-"Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. "
-"Use one dimension per name and grain."
+msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
 msgstr ""
 
 msgid "Semantic layer"
@@ -12411,12 +12431,6 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
-#, python-format
-msgid "This semantic layer or view is used by %(count)s dependent asset and cannot be deleted."
-msgid_plural "This semantic layer or view is used by %(count)s dependent assets and cannot be deleted."
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "Semantic view could not be created."
 msgstr ""
 
@@ -12433,6 +12447,9 @@ msgid "Semantic view parameters are invalid."
 msgstr ""
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid "Semantic view validation timed out before this view was checked. Retry it in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -14512,6 +14529,9 @@ msgstr ""
 msgid "The version of the service"
 msgstr ""
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr ""
 
@@ -14891,6 +14911,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
@@ -15150,6 +15173,18 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
+msgid "This semantic layer has no dependent semantic views. This cannot be undone."
+msgstr ""
+
+msgid "This semantic layer has no semantic views. This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid "This semantic layer or view is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "This semantic layer or view is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
 msgstr ""
 
@@ -15215,6 +15250,12 @@ msgstr[1] ""
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr ""
+
+#, python-format
+msgid "This will also permanently delete its %s semantic view. This cannot be undone."
+msgid_plural "This will also permanently delete its %s semantic views. This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "This will be applied to the whole table. Arrows (↑ and ↓) will be added to main columns for increase and decrease. Basic conditional formatting can be overwritten by conditional formatting below."
 msgstr ""
@@ -15440,6 +15481,10 @@ msgstr ""
 
 #, python-format
 msgid "Too many sub-slices requested. The maximum allowed is %(max)s, but %(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
 msgstr ""
 
 msgid "Tool Panel"
@@ -16312,6 +16357,9 @@ msgid "Viewers is a list of subjects who can view the dashboard. If no viewers a
 msgstr ""
 
 msgid "Viewport"
+msgstr ""
+
+msgid "Views must be a list of objects"
 msgstr ""
 
 msgid "Virtual"
@@ -17258,9 +17306,7 @@ msgstr ""
 msgid "Your report could not be deleted"
 msgstr ""
 
-msgid ""
-"Your role does not have access to the profile page needed to change your "
-"password. Contact an administrator."
+msgid "Your role does not have access to the profile page needed to change your password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."
@@ -17364,6 +17410,9 @@ msgstr ""
 msgid "aggregate"
 msgstr ""
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr ""
 
@@ -17379,6 +17428,10 @@ msgstr ""
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr ""
 
@@ -17386,6 +17439,10 @@ msgid "annotation_layer"
 msgstr ""
 
 msgid "apple"
+msgstr ""
+
+#, python-format
+msgid "archived %s"
 msgstr ""
 
 msgid "asfreq"
@@ -18267,98 +18324,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid ""
-"Couldn't validate this semantic view: it may not exist, or the semantic layer"
-" is unreachable."
-msgstr ""
-
-msgid "The view configuration must be a JSON object."
-msgstr ""
-
-#, python-format
-msgid "%(count)s dependent asset is archived."
-msgid_plural "%(count)s dependent assets are archived."
-msgstr[0] ""
-msgstr[1] ""
-
-
-
-msgid ""
-"Deleting this semantic layer also permanently deletes any semantic views it "
-"contains. This cannot be undone. The affected views could not be listed."
-msgstr ""
-
-
-msgid "Remove or repoint these assets before deleting it."
-msgstr ""
-
-
-#, python-format
-msgid ""
-"This will also permanently delete its %s semantic view. This cannot be "
-"undone."
-msgid_plural ""
-"This will also permanently delete its %s semantic views. This cannot be "
-"undone."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid ""
-"Deletion is blocked while any assets depend on the selected semantic views, "
-"including archived assets. Remove or repoint them first. Use Recently "
-"Archived to restore and repoint archived assets, or delete them permanently,"
-" or ask an admin for help."
-msgstr ""
-
-msgid ""
-"Go to Recently Archived to restore and repoint archived assets, or delete "
-"them permanently, or ask an admin for help."
-msgstr ""
-
-msgid "This semantic layer has no semantic views. This cannot be undone."
-msgstr ""
-
-msgid "Views must be a list of objects"
-msgstr ""
-
-msgid "No views provided"
-msgstr ""
-
-#, python-format
-msgid ""
-"Deletion is blocked by %s dependent assets (%s archived). Remove or repoint "
-"them before deleting."
-msgstr ""
-
-msgid "This cannot be undone."
-msgstr ""
-
-msgid "alert"
-msgstr ""
-
-#, python-format
-msgid "archived %s"
-msgstr ""
-
-#, python-format
-msgid "and %s more"
-msgstr ""
-
-#, python-format
-msgid "%s dependent asset is one you can't see. Ask an admin for help."
-msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid ""
-"Too many views in one request: %(count)s provided, at most %(limit)s "
-"allowed."
-msgstr ""
-
-msgid ""
-"Semantic view validation timed out before this view was checked. Retry it"
-" in a separate request."
 msgstr ""
