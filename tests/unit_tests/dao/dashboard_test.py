@@ -133,6 +133,11 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
         "set_dash_metadata must bypass the visibility filter when "
         "resolving incoming chart ids"
     )
+    # An archived chart that has a layout slot is listed once, not twice.
+    assert [chart.id for chart in dashboard.slices] == [
+        live_chart.id,
+        trashed_chart.id,
+    ]
     # And the position slot kept its UUID rather than being nulled.
     assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
 
