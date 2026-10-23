@@ -24,10 +24,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 292,
-      "description_chars": 2089,
+      "description_chars": 2178,
       "entry_bytes": {
-        "structured": 5077,
-        "text_only": 2758
+        "structured": 5167,
+        "text_only": 2848
       },
       "input_schema_bytes": 232,
       "output_schema_bytes": 2303
@@ -848,6 +848,22 @@
       "input_schema_bytes": 415,
       "output_schema_bytes": 571
     },
+    "get_widget_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 253,
+      "description_chars": 496,
+      "entry_bytes": {
+        "structured": 3091,
+        "text_only": 1112
+      },
+      "input_schema_bytes": 362,
+      "output_schema_bytes": 1963
+    },
     "health_check": {
       "annotations": {
         "destructiveHint": false,
@@ -1151,6 +1167,22 @@
       },
       "input_schema_bytes": 62,
       "output_schema_bytes": 740
+    },
+    "list_widgets": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 224,
+      "description_chars": 327,
+      "entry_bytes": {
+        "structured": 7207,
+        "text_only": 2744
+      },
+      "input_schema_bytes": 2189,
+      "output_schema_bytes": 4447
     },
     "manage_dashboard_certification": {
       "annotations": {
@@ -1459,12 +1491,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 555131,
-      "text_only": 228646
+      "structured": 565521,
+      "text_only": 232594
     },
     "compact_catalog_bytes": {
-      "structured": 496974,
-      "text_only": 170489
+      "structured": 506910,
+      "text_only": 173983
     },
     "largest_entry": {
       "structured": {
@@ -1476,6 +1508,6 @@
         "name": "manage_native_filters"
       }
     },
-    "tool_count": 91
+    "tool_count": 93
   }
 }

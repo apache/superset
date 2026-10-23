@@ -28,3 +28,9 @@ live (and the registry populated) first. The injection needs no app context.
 from superset.core.api.core_api_injection import inject_widget_implementations
 
 inject_widget_implementations()
+
+from tests.unit_tests.widgets.fixtures import (  # noqa: E402, F401
+    make_user,
+    make_widget,
+    tables,
+)

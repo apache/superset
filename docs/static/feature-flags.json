@@ -25,7 +25,7 @@
         "name": "CANVAS",
         "default": false,
         "lifecycle": "development",
-        "description": "Canvas: the AI-first successor to dashboards, whose widgets are placed on a canvas. When off, its APIs and pages answer 404; existing canvases are kept."
+        "description": "Enables Canvas, the next generation of dashboards, and the Widget Framework it places: schema-driven, extension-delivered widgets and saved widget instances (SIPs: apache/superset#44989 and apache/superset#44875)"
       },
       {
         "name": "CHART_PLUGINS_EXPERIMENTAL",

@@ -93,6 +93,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "get_task_info": "task_type",
     "get_theme_info": "theme_name",
     "get_user_info": "username",
+    "get_widget_info": "widget_type",
     "health_check": "status",
     "list_annotation_layers": "annotation_layers",
     "list_charts": "charts",
@@ -110,6 +111,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_tasks": "tasks",
     "list_themes": "themes",
     "list_users": "users",
+    "list_widgets": "widgets",
     "manage_dashboard_certification": "changed_fields",
     "manage_dashboard_markdown": "components",
     "manage_dashboard_owners": "owners",
@@ -709,6 +711,8 @@ def test_no_disabled_tools_returns_full_instructions() -> None:
     assert "- health_check:" in full
     assert "- list_tasks:" in full
     assert "- get_task_info:" in full
+    assert "- list_widgets:" in full
+    assert "- get_widget_info:" in full
     assert full == also_full
 
 
@@ -766,6 +770,8 @@ def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
         "preview_widget",
         "list_widget_types",
         "get_widget_control_schema",
+        "list_widgets",
+        "get_widget_info",
     } <= removed
     assert "list_tasks" not in removed
 
@@ -800,6 +806,8 @@ def test_config_guard_tools_excluded_from_instructions(
     assert len(captured) == 1
     assert "list_tasks" in captured[0]
     assert "get_task_info" in captured[0]
+    assert "list_widgets" in captured[0]
+    assert "get_widget_info" in captured[0]
 
 
 def test_instructions_generated_after_disabled_tools_removed() -> None:
