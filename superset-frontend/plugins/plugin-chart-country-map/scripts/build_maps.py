@@ -141,7 +141,7 @@ def main() -> None:
         validate_catalog(ctx, built)
         _purge_stale_files(ctx, built, args.out_dir)
 
-    resolved = resolve_all(ctx, built)
+    resolved = resolve_all(ctx, built, include_plain=selected is None)
     print(f"Resolved {len(resolved)} maps to save")
 
     manifest = _save_all(ctx, resolved, args.out_dir, args.preview)
