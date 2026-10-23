@@ -18,7 +18,11 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11-slim-trixie
+# Base images are pinned by digest so builds are reproducible and cached
+# stages don't silently outlive base image updates; bump the digest along
+# with the tag. PY_VER carries its digest, so overriding it (e.g. the
+# py311/py312 presets) replaces both.
+ARG PY_VER=3.11-slim-trixie@sha256:b7a9e5f6a93d6d4a31f129bbd4bdee69efccb6ded0fb230d78aafaf37af98377
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -34,7 +38,7 @@ ARG BUILD_TRANSLATIONS="false"
 # Docker cannot COPY a glob while keeping the directory structure, hence
 # the copy-then-prune stage.
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-manifests
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS superset-node-manifests
 WORKDIR /app/superset-frontend
 COPY superset-frontend /app/superset-frontend
 RUN find . -type f ! -name package.json ! -name package-lock.json ! -name .npmrc -delete \
@@ -43,7 +47,7 @@ RUN find . -type f ! -name package.json ! -name package-lock.json ! -name .npmrc
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -120,7 +124,7 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 # superset-websocket builds the realtime WebSocket (Node) server that
 # ships in the official image, launched via docker/entrypoints/run-websocket.sh
 ######################################################################
-FROM node:24-trixie-slim AS superset-websocket
+FROM node:24-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea AS superset-websocket
 
 # Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET).
 ENV npm_config_fetch_retries=5 \
@@ -155,10 +159,6 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
-
-# Bring the system CA store up to date before the first download, rather than
-# relying on whatever the base image was built with
-RUN /app/docker/apt-install.sh ca-certificates
 
 # Have pip use the system CA store instead of its vendored copy
 RUN PIP_CERT=/etc/ssl/certs/ca-certificates.crt \

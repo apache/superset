@@ -133,6 +133,8 @@ jobs:
             command="$(docker_command "$preset" "$extra_flags")"
             # docker buildx keeps the LAST value of a repeated --build-arg key.
             actual="$(grep -oE -- '--build-arg PY_VER=[^[:space:]]+' <<<"$command" | tail -1)"
+            # The Dockerfile default pins a digest (tag@sha256:...); compare tags.
+            actual="${actual%%@*}"
             if [ "$actual" != "--build-arg PY_VER=$expected" ]; then
               echo "::error::preset '$preset' expected effective --build-arg PY_VER=$expected, got: ${actual:-<none>} (full command: $command)"
               exit 1
