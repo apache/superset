@@ -978,6 +978,7 @@ test.each(['line', 'area', 'categorical line'])(
       componentType: 'series',
       seriesIndex: 0,
       seriesName: 'Sales',
+      name: '',
       event: {
         stop: jest.fn(),
         offsetX: 100,
@@ -1056,4 +1057,37 @@ test('ungrained markerless Timeseries Drill by keeps its series-only scope', asy
     },
   });
   expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toBeUndefined();
+});
+
+test('ungrained forced-categorical temporal Drill by keeps the original label', async () => {
+  const onContextMenu = jest.fn();
+  const timestamp = Date.UTC(2003, 9, 1);
+  renderTimeseries({
+    onContextMenu,
+    groupby: [],
+    resolvedTimeGrain: undefined,
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      timeGrainSqla: undefined,
+      xAxisForceCategorical: true,
+    },
+    xAxis: { label: 'order_date', type: AxisType.Category },
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+  });
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesIndex: 0,
+    seriesName: 'Sales',
+    data: [timestamp, 158],
+    name: String(timestamp),
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+    {
+      col: 'order_date',
+      op: '==',
+      val: '2003-10-01T00:00:00',
+      formattedVal: String(timestamp),
+    },
+  ]);
 });

@@ -694,7 +694,10 @@ export default function EchartsTimeseries({
             eventParams.seriesIndex
           ];
           const xValue = getTimeAxisDrillByValue(
-            data ?? (isTemporalCategory ? eventParams.name : undefined),
+            data ??
+              (isTemporalCategory && eventParams.name
+                ? eventParams.name
+                : undefined),
             series,
             data
               ? undefined
@@ -724,7 +727,14 @@ export default function EchartsTimeseries({
               (isTemporalCategory && eventParams.name) ||
               xAxisFilter.op === 'TEMPORAL_RANGE')
           ) {
-            xAxisFilters.push(xAxisFilter);
+            xAxisFilters.push(
+              isTemporalCategory && xAxisFilter.op === '=='
+                ? {
+                    ...xAxisFilter,
+                    formattedVal: String(eventParams.name ?? xValue),
+                  }
+                : xAxisFilter,
+            );
           }
         } else if (xAxis.type === AxisType.Category && xAxisCol) {
           const categoryAxisValue = getXAxisValue(data, eventParams.name);
