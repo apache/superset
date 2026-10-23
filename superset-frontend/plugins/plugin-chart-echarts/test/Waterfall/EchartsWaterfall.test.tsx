@@ -55,7 +55,7 @@ function renderChart(
   const setDataMask = jest.fn();
   const onContextMenu = jest.fn();
   const chartProps = new ChartProps({
-    formData: formData as SqlaFormData,
+    formData: formData as unknown as SqlaFormData,
     width: 800,
     height: 600,
     queriesData: [{ data: rows }],
@@ -141,7 +141,7 @@ test('does not emit a filter when cross-filtering is disabled', () => {
 test('clicking the grand total does not change the current filter', () => {
   const { eventHandlers, setDataMask } = renderChart({
     emitCrossFilters: true,
-    formData: { ...formData, groupby: undefined } as SqlaFormData,
+    formData: { ...formData, groupby: undefined } as unknown as SqlaFormData,
   });
   eventHandlers.click(pointerEvent(2));
   expect(setDataMask).not.toHaveBeenCalled();

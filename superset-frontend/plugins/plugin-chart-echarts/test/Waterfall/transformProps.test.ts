@@ -227,7 +227,7 @@ test('renders an empty chart when the query result is missing', () => {
   expect(() =>
     transformProps(
       new ChartProps({
-        formData: formData as SqlaFormData,
+        formData: formData as unknown as SqlaFormData,
         width: 800,
         height: 600,
         queriesData: [],
@@ -240,7 +240,7 @@ test('renders an empty chart when the query result is missing', () => {
 test('dims bars outside the selected period and uses a pointer cursor', () => {
   const transformedProps = transformProps(
     new ChartProps({
-      formData: formData as SqlaFormData,
+      formData: formData as unknown as SqlaFormData,
       width: 800,
       height: 600,
       queriesData: [{ data }],
