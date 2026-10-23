@@ -880,8 +880,9 @@ class TestDashboardRestoreConcurrentPurge(SupersetTestCase, InsertChartMixin):
         self, case: str, unlink: bool, purge: bool
     ) -> None:
         """Purging a chart the restore links or unlinks makes the restore a
-        retryable 409. A foreign key failure while no such chart is missing
-        stays the ordinary 422, because retrying would not help."""
+        retryable 409. A simulated foreign key failure injected by the audit
+        stamp while no such chart is missing stays the ordinary 422, because
+        retrying would not help."""
         import sqlite3
 
         from sqlalchemy.exc import IntegrityError

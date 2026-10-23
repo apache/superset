@@ -532,9 +532,10 @@ def restore_version_endpoint(
         # non-SQLAlchemy exceptions as-is).
         return api.response_422(message=str(ex))
     except ChartPurgedDuringRestoreError as ex:
-        # A chart the restore was reattaching was purged concurrently; the
-        # restore rolled back. Retrying the same request is safe (the purged
-        # chart is then reported as not reattached), so this is the retryable
+        # A chart the restore was linking or unlinking was purged concurrently;
+        # the restore rolled back. Retrying is safe: the purge also removes the
+        # chart's membership history, so the retry no longer lists that chart
+        # as a snapshot member or in skipped_slice_ids. Return the retryable
         # 409 rather than a 422. The exception's message is user-facing.
         return api.response(409, message=str(ex))
     except command_cls.failed_exc as ex:

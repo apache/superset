@@ -17,21 +17,24 @@
 """Unit-level coverage for the version-restore engine control flow.
 
 The happy path is exercised end-to-end in the per-entity integration
-suites (``version_restore_tests.py``); here we pin the cheap, DB-free
-guard branches with mocks: unknown entity, missing target transaction,
-DELETE-row target, unregistered model, and the ``single_flush_scope``
-flush contract.
+suites (``version_restore_tests.py``); here we pin guard branches with mocks:
+unknown entity, missing target transaction, DELETE-row target, unregistered
+model, and the ``single_flush_scope`` flush contract. An isolated in-memory
+SQLAlchemy session covers logging after a failed flush.
 """
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
-from sqlalchemy.exc import IntegrityError
+import sqlalchemy as sa
+from sqlalchemy.exc import IntegrityError, PendingRollbackError
+from sqlalchemy.orm import registry, Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
@@ -125,6 +128,78 @@ def test_restore_version_rejects_entity_uuid_mismatch(
             123,
             entity=MagicMock(id=1, uuid=other_uuid),
         )
+
+
+def test_restore_logs_original_error_after_failed_flush(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Logging an expired entity must preserve the non-race flush failure."""
+    mapper_registry: registry = registry()
+    engine: sa.Engine = sa.create_engine("sqlite:///:memory:")
+
+    class Entity:
+        """A minimal persisted entity whose id expires when a flush fails."""
+
+        id: int
+        uuid: UUID = _UUID
+        name: str | None
+
+    table: sa.Table = sa.Table(
+        "restore_log_entity",
+        mapper_registry.metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("name", sa.String, nullable=False),
+    )
+    mapper_registry.map_imperatively(Entity, table)
+    mapper_registry.metadata.create_all(engine)
+    try:
+        with Session(engine) as session:
+            entity: Entity = Entity()
+            entity.id = 7
+            entity.name = "before"
+            session.add(entity)
+            session.commit()
+            target: MagicMock = MagicMock()
+
+            def revert(*, relations: list[str]) -> None:
+                """Trigger a real NOT NULL violation in the final flush."""
+                entity.name = None
+
+            target.revert.side_effect = revert
+            with (
+                patch("superset.versioning.restore.db") as mock_db,
+                patch(
+                    "superset.versioning.restore._find_target_version",
+                    return_value=target,
+                ),
+                patch(
+                    "superset.versioning.restore._restore_dashboard_membership",
+                    return_value=([], []),
+                ),
+                patch("superset.versioning.restore._stamp_audit_fields_for_restore"),
+            ):
+                mock_db.session = session
+                with pytest.raises(IntegrityError) as failure:
+                    restore_version(
+                        MagicMock(__name__="Dashboard"), _UUID, 123, entity=entity
+                    )
+
+            assert sa.inspect(entity).expired
+            with pytest.raises(PendingRollbackError):
+                assert entity.id == 7
+            records: list[logging.LogRecord] = [
+                record
+                for record in caplog.records
+                if record.name == "superset.versioning.restore"
+                and record.getMessage().startswith("Continuum revert() failed")
+            ]
+            assert len(records) == 1
+            assert "Dashboard id=7 tx=123" in records[0].getMessage()
+            assert records[0].exc_info is not None
+            assert records[0].exc_info[1] is failure.value
+    finally:
+        mapper_registry.dispose()
+        engine.dispose()
 
 
 def test_single_flush_scope_flushes_once_on_clean_exit() -> None:
