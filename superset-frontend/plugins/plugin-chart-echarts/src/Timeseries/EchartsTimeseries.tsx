@@ -57,7 +57,7 @@ import {
 } from './types';
 import { formatSeriesName } from '../utils/series';
 import {
-  getTemporalXAxisDrillByFilter,
+  getTemporalBucketDrillByFilter,
   getTimeAxisDrillByValue,
   parseTemporalValue,
 } from '../utils/xAxisDrillByFilter';
@@ -710,8 +710,10 @@ export default function EchartsTimeseries({
             xAxisValueIndex,
             isTemporalCategory,
           );
-          const xAxisFilter = getTemporalXAxisDrillByFilter(
-            xAxisCol,
+          const xAxisFilter = getTemporalBucketDrillByFilter(
+            // A grained '__timestamp' bucket resolves to the time column the
+            // query groups by, including a dashboard Time Column override.
+            resolvedTimeGrain ? xAxis.label : xAxisCol,
             xValue,
             resolvedTimeGrain,
             isTemporalCategory
@@ -725,7 +727,7 @@ export default function EchartsTimeseries({
             xAxisFilter &&
             (data !== undefined ||
               (isTemporalCategory && eventParams.name) ||
-              xAxisFilter.op === 'TEMPORAL_RANGE')
+              xAxisFilter.grain)
           ) {
             xAxisFilters.push(xAxisFilter);
           }

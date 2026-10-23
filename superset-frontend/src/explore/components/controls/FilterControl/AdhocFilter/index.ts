@@ -45,6 +45,7 @@ interface AdhocFilterInput {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  timeGrain?: string;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra?: boolean;
@@ -63,6 +64,8 @@ export default class AdhocFilter {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  // Compares time buckets of the subject, e.g. a Drill by from a chart bar.
+  timeGrain?: string;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra: boolean;
@@ -79,6 +82,9 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
+      if (adhocFilter.timeGrain) {
+        this.timeGrain = adhocFilter.timeGrain;
+      }
       if (
         adhocFilter.operatorId &&
         DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
@@ -140,6 +146,11 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
+      // A grain belongs to its subject's time buckets.
+      timeGrain:
+        nextFields.subject === undefined || nextFields.subject === this.subject
+          ? this.timeGrain
+          : undefined,
       clause: this.clause,
       sqlExpression: this.sqlExpression,
       isExtra: this.isExtra,
@@ -161,6 +172,7 @@ export default class AdhocFilter {
       adhocFilter.operator === this.operator &&
       adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
+      adhocFilter.timeGrain === this.timeGrain &&
       adhocFilter.subject === this.subject
     );
   }
@@ -196,12 +208,26 @@ export default class AdhocFilter {
   }
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
-    const label = this.translateToSql({ columns });
+    const label = translateToSql(this.getDisplayFilter(), { columns });
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
   getTooltipTitle(): string {
-    return this.translateToSql();
+    return translateToSql(this.getDisplayFilter());
+  }
+
+  // A grained filter compares epoch-millisecond buckets: show them as UTC
+  // datetimes, the form the chart's temporal values take.
+  private getDisplayFilter(): CoreAdhocFilter {
+    const { comparator, timeGrain } = this;
+    return (timeGrain &&
+    typeof comparator === 'number' &&
+    Number.isFinite(comparator)
+      ? {
+          ...this,
+          comparator: new Date(comparator).toISOString().slice(0, 19),
+        }
+      : this) as unknown as CoreAdhocFilter;
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {

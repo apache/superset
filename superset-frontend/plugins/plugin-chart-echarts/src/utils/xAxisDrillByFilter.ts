@@ -166,6 +166,29 @@ export const getTemporalXAxisDrillByFilter = (
   };
 };
 
+/**
+ * Build the Drill by filter for a clicked temporal bucket. With a time grain
+ * it matches the grained column, like Drill to detail: the backend compares
+ * the bucket the chart grouped by (same grain, Hours offset and Time Column)
+ * and, unlike a TEMPORAL_RANGE, never replaces it with a query time range, so
+ * the drill keeps every other filter of the chart as the chart applied it.
+ * Without a grain it falls back to an exact match on the timestamp.
+ */
+export const getTemporalBucketDrillByFilter = (
+  col: QueryFormColumn,
+  value: unknown,
+  grain?: TimeGranularity,
+  formattedVal?: string,
+): BinaryQueryObjectFilterClause | undefined => {
+  const bucket = parseTemporalValue(value);
+  if (!col || !bucket) {
+    return undefined;
+  }
+  return grain
+    ? { col, op: '==', val: bucket.getTime(), grain, formattedVal }
+    : { col, op: '==', val: formatNaiveDateTime(bucket), formattedVal };
+};
+
 /** Resolve a markerless line/area click to a real bucket in that series. */
 export const getTimeAxisDrillByValue = (
   data: unknown,

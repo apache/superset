@@ -431,3 +431,37 @@ describe('AdhocFilter', () => {
     expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
   });
 });
+
+const bucketFilter = () =>
+  new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'order_date',
+    operator: '==',
+    operatorId: Operators.Equals,
+    comparator: Date.UTC(2004, 0, 1),
+    timeGrain: 'P1M',
+    clause: Clauses.Where,
+  });
+
+test('a drilled bucket filter keeps its time grain through Explore edits', () => {
+  const filter = bucketFilter();
+  expect(filter.timeGrain).toBe('P1M');
+  expect(filter.duplicateWith({ clause: Clauses.Having }).timeGrain).toBe(
+    'P1M',
+  );
+  expect(filter.duplicateWith({ comparator: 0 }).timeGrain).toBe('P1M');
+  expect(filter.equals(filter.duplicateWith({}))).toBe(true);
+  // A grain belongs to the time buckets of its subject.
+  expect(
+    filter.duplicateWith({ subject: 'ship_date' }).timeGrain,
+  ).toBeUndefined();
+  expect(
+    filter.equals(new AdhocFilter({ ...filter, timeGrain: undefined })),
+  ).toBe(false);
+});
+
+test('a drilled bucket filter shows its bucket as a datetime', () => {
+  const filter = bucketFilter();
+  expect(filter.getDefaultLabel()).toBe("order_date = '2004-01-01T00:00:00'");
+  expect(filter.getTooltipTitle()).toBe("order_date = '2004-01-01T00:00:00'");
+});

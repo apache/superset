@@ -255,6 +255,8 @@ def adhoc_filters_to_query_filters(
                 "col": flt.get("subject"),
                 "op": flt.get("operator"),
                 "val": flt.get("comparator"),
+                # A grained filter compares time buckets (e.g. from Drill by).
+                **({"grain": flt["timeGrain"]} if flt.get("timeGrain") else {}),
             }
         )
     return result

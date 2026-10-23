@@ -989,8 +989,9 @@ test.each(['line', 'area', 'categorical line'])(
     expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
       expect.objectContaining({
         col: 'order_date',
-        op: 'TEMPORAL_RANGE',
-        val: '2003-10-01T00:00:00 : 2003-11-01T00:00:00',
+        op: '==',
+        val: timestamp,
+        grain: TimeGranularity.MONTH,
       }),
     ]);
   },
@@ -1017,8 +1018,9 @@ test('forced categorical temporal Drill by formats the bucket instead of an epoc
   });
   expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters[0]).toEqual({
     col: 'order_date',
-    op: 'TEMPORAL_RANGE',
-    val: '2003-10-01T00:00:00 : 2003-11-01T00:00:00',
+    op: '==',
+    val: timestamp,
+    grain: TimeGranularity.MONTH,
     formattedVal: 'Oct 2003',
   });
 });

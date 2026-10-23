@@ -20,7 +20,12 @@
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, omitBy } from 'lodash-es';
-import { buildQueryObject, QueryData, QueryObject } from '@superset-ui/core';
+import {
+  buildQueryObject,
+  QueryData,
+  QueryFormData,
+  QueryObject,
+} from '@superset-ui/core';
 import {
   act,
   render,
@@ -35,7 +40,6 @@ import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridRea
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import * as chartActions from '../chartAction';
 import * as contextMenu from '../ChartContextMenu/useContextMenu';
-import * as timeRangeUtils from './drillByTimeRange';
 import * as resultsTableView from './useResultsTableView';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
@@ -250,12 +254,23 @@ test('should generate Explore url', async () => {
   ).toHaveAttribute('href', '/explore/?form_data_key=123&dashboard_page_id=1');
 });
 
-const OCT_2003_BUCKET = '2003-10-01T00:00:00 : 2003-11-01T00:00:00';
+const OCT_2003 = Date.UTC(2003, 9, 1);
+// The filter the Timeseries plugin sends for a click on the Oct 2003 bar.
 const oct2003BucketFilter = {
   col: 'ds',
-  op: 'TEMPORAL_RANGE' as const,
-  val: OCT_2003_BUCKET,
+  op: '==' as const,
+  val: OCT_2003,
+  grain: 'P1M' as const,
   formattedVal: 'Oct 2003',
+};
+const oct2003AdhocFilter = {
+  expressionType: 'SIMPLE',
+  clause: 'WHERE',
+  operator: '==',
+  operatorId: 'EQUALS',
+  subject: 'ds',
+  comparator: OCT_2003,
+  timeGrain: 'P1M',
 };
 
 const getLastChartDataFormData = () =>
@@ -264,182 +279,239 @@ const getLastChartDataFormData = () =>
       ?.body as string,
   ).form_data;
 
-const TIME_RANGE_ENDPOINT = 'glob:*/api/v1/time_range/*';
-const mockTimeRange = (since: string, until: string) =>
-  fetchMock.get(
-    TIME_RANGE_ENDPOINT,
-    { result: [{ since, until }] },
-    { name: TIME_RANGE_ENDPOINT },
-  );
-
 const getLastChartDataQuery = (): QueryObject =>
   JSON.parse(
     fetchMock.callHistory.lastCall(CHART_DATA_ENDPOINT)?.options
       ?.body as string,
   ).queries[0];
 
-test('Drill by from a grained temporal bucket queries that bucket as the time range', async () => {
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    formData: { ...formData, time_range: 'No filter' },
-    drillByConfig: {
-      filters: [oct2003BucketFilter],
-      groupbyFieldName: 'groupby',
-    },
-  });
-  await waitFor(() =>
-    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
-  );
-
-  const drilledFormData = getLastChartDataFormData();
-  // The backend replaces every TEMPORAL_RANGE filter value with time_range,
-  // so the bucket only survives if it is the query's time range.
-  expect(drilledFormData.time_range).toEqual(OCT_2003_BUCKET);
-  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
-  expect(drilledFormData.adhoc_filters).toContainEqual(
-    expect.objectContaining({
-      operator: 'TEMPORAL_RANGE',
-      subject: 'ds',
-      comparator: OCT_2003_BUCKET,
-    }),
-  );
+const temporalAdhocFilter = (subject: string, comparator: string) => ({
+  clause: 'WHERE' as const,
+  expressionType: 'SIMPLE' as const,
+  operator: 'TEMPORAL_RANGE' as const,
+  subject,
+  comparator,
 });
 
-test('Drill by from a grained temporal bucket overrides a dashboard time range', async () => {
-  mockTimeRange('2003-01-01T00:00:00', '2005-01-01T00:00:00');
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    formData: {
-      ...formData,
-      time_range: 'No filter',
-      extra_form_data: { time_range: '2003-01-01 : 2005-01-01' },
-    },
-    drillByConfig: {
-      filters: [oct2003BucketFilter],
-      groupbyFieldName: 'groupby',
-    },
-  });
-  await waitFor(() =>
-    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
-  );
-
-  const drilledFormData = getLastChartDataFormData();
-  expect(drilledFormData.time_range).toEqual(OCT_2003_BUCKET);
-  expect(drilledFormData.extra_form_data.time_range).toEqual(OCT_2003_BUCKET);
-  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
-});
-
-test('Drill by from a grained temporal bucket overrides a legacy dashboard time range', async () => {
-  mockTimeRange('2003-01-01T00:00:00', '2005-01-01T00:00:00');
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    formData: {
-      ...formData,
-      time_range: 'No filter',
-      extra_filters: [
-        { col: '__time_range', op: '==', val: '2003-01-01 : 2005-01-01' },
-      ],
-    },
-    drillByConfig: {
-      filters: [oct2003BucketFilter],
-      groupbyFieldName: 'groupby',
-    },
-  });
-  await waitFor(() =>
-    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
-  );
-  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
-});
-
-const YEAR_2003_BUCKET = '2003-01-01T00:00:00 : 2004-01-01T00:00:00';
-const year2003BucketFilter = {
+const RANGE = '2003-10-15 : 2005-01-01';
+const shipFilter = temporalAdhocFilter('ship_date', '2003-01-01 : 2004-06-01');
+const xAxisNoFilter = {
   col: 'ds',
   op: 'TEMPORAL_RANGE' as const,
-  val: YEAR_2003_BUCKET,
-  formattedVal: '2003',
+  val: 'No filter',
 };
 
-test('Drill by with a dashboard grain keeps only the cross-filtered part of the bucket', async () => {
-  mockTimeRange('2003-10-01T00:00:00', '2003-11-01T00:00:00');
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    formData: {
-      ...formData,
+// Time setups whose rules the backend applies to the chart and the drill.
+const timeSetups: [string, Partial<QueryFormData>][] = [
+  ['no time range', {}],
+  ['a saved time range', { time_range: RANGE }],
+  [
+    'a dashboard time range',
+    { time_range: 'No filter', extra_form_data: { time_range: RANGE } },
+  ],
+  [
+    'a legacy dashboard time range',
+    {
       time_range: 'No filter',
-      time_grain_sqla: 'P1M',
-      extra_form_data: {
-        time_grain_sqla: 'P1Y',
-        time_range: '2003-10-01 : 2003-11-01',
-        filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+      extra_filters: [{ col: '__time_range', op: '==', val: RANGE }],
+    },
+  ],
+  [
+    'a time column and a dashboard x-axis filter',
+    {
+      time_range: RANGE,
+      granularity_sqla: 'ds',
+      extra_form_data: { filters: [xAxisNoFilter] },
+    },
+  ],
+  [
+    'a time column and a legacy x-axis filter',
+    {
+      time_range: RANGE,
+      granularity_sqla: 'ds',
+      extra_filters: [xAxisNoFilter],
+    },
+  ],
+  [
+    'a dashboard time column',
+    { extra_form_data: { time_range: RANGE, granularity_sqla: 'ship_date' } },
+  ],
+  [
+    'a custom SQL x-axis',
+    {
+      x_axis: { expressionType: 'SQL', sqlExpression: 'ds', label: 'ds' },
+      time_range: RANGE,
+    },
+  ],
+];
+
+test.each(timeSetups)(
+  'Drill by from a temporal bucket keeps the time filters of %s and adds the bucket',
+  async (_, setup) => {
+    const chartFormData = {
+      ...omit(formData, 'time_range', 'granularity'),
+      x_axis: 'ds',
+      adhoc_filters: [shipFilter],
+      ...setup,
+    } as QueryFormData;
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      formData: chartFormData,
+      drillByConfig: {
+        filters: [oct2003BucketFilter],
+        groupbyFieldName: 'groupby',
       },
-    },
-    drillByConfig: {
-      filters: [year2003BucketFilter],
-      groupbyFieldName: 'groupby',
-    },
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+    );
+
+    const drilledFormData = getLastChartDataFormData();
+    // Every time setting of the chart is passed through untouched, so the
+    // backend applies the same time rules to the drill as to the chart.
+    [
+      'x_axis',
+      'time_range',
+      'granularity_sqla',
+      'extra_form_data',
+      'extra_filters',
+    ].forEach(key => expect(drilledFormData[key]).toEqual(chartFormData[key]));
+    expect(drilledFormData.adhoc_filters).toEqual([
+      shipFilter,
+      oct2003AdhocFilter,
+    ]);
+    const chartQuery = buildQueryObject(chartFormData);
+    const query = getLastChartDataQuery();
+    expect(query.time_range).toEqual(chartQuery.time_range);
+    expect(query.granularity).toEqual(chartQuery.granularity);
+    // The bucket is a grained equality, which no query time range replaces.
+    expect(query.filters).toEqual([
+      ...(chartQuery.filters ?? []),
+      { col: 'ds', op: '==', val: OCT_2003, grain: 'P1M' },
+    ]);
+  },
+);
+
+test('temporal drill sends the same bucket filter to the query, CSV and Explore', async () => {
+  exportChartMock.mockClear();
+  fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+  fetchMock.post(CHART_DATA_ENDPOINT, {
+    result: [
+      {
+        data: [{ name: 'bucket', count: 67 }],
+        colnames: ['name', 'count'],
+        coltypes: [1, 0],
+      },
+    ],
   });
-  await waitFor(() =>
-    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
-  );
-
-  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
-  expect(getLastChartDataQuery().extras?.time_grain_sqla).toEqual('P1Y');
-  expect(getLastChartDataQuery().filters).toContainEqual(
-    expect.objectContaining({ col: 'gender', op: 'IN', val: ['boy'] }),
-  );
-  expect(fetchMock.callHistory.calls(CHART_DATA_ENDPOINT)).toHaveLength(1);
-  const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
-  await waitFor(() =>
-    expect(within(breadcrumbItems[0]).getByText(/\(2003\)$/)).toBeVisible(),
-  );
-});
-
-test('Drill by from a grained temporal bucket keeps only the part inside a narrower dashboard time range', async () => {
-  mockTimeRange('2003-06-01T00:00:00', '2004-01-01T00:00:00');
   await renderModal({
     column: { column_name: 'name', verbose_name: null },
     formData: {
       ...formData,
-      time_range: 'No filter',
-      extra_form_data: { time_range: '2003-06-01 : 2004-01-01' },
+      x_axis: 'ds',
+      time_range: RANGE,
+      adhoc_filters: [shipFilter],
     },
     drillByConfig: {
-      filters: [year2003BucketFilter],
+      filters: [oct2003BucketFilter],
       groupbyFieldName: 'groupby',
     },
   });
   await waitFor(() =>
     expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
   );
-
-  // The bar only counted Jun-Dec 2003, so the drill must not return Jan-May.
-  expect(getLastChartDataQuery().time_range).toEqual(
-    '2003-06-01T00:00:00 : 2004-01-01T00:00:00',
+  const drilledFormData = getLastChartDataFormData();
+  const tableRadio = await screen.findByRole('radio', { name: /table/i });
+  await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Download' }),
   );
-  expect(fetchMock.callHistory.calls(CHART_DATA_ENDPOINT)).toHaveLength(1);
+  await userEvent.click(await screen.findByText('Export to CSV'));
+  const exported = exportChartMock.mock.lastCall[0];
+  expect(exported.resultFormat).toBe('csv');
+  expect(exported.formData.adhoc_filters).toEqual(
+    drilledFormData.adhoc_filters,
+  );
+  expect(buildQueryObject(exported.formData).filters).toEqual(
+    getLastChartDataQuery().filters,
+  );
+  const explorePayload = JSON.parse(
+    JSON.parse(
+      fetchMock.callHistory.lastCall(FORM_DATA_KEY_ENDPOINT)?.options
+        ?.body as string,
+    ).form_data,
+  );
+  expect(explorePayload.adhoc_filters).toEqual([
+    shipFilter,
+    oct2003AdhocFilter,
+  ]);
+  expect(explorePayload.time_range).toBe(RANGE);
 });
 
-test("Drill by from a grained temporal bucket keeps only the part inside the chart's own time range", async () => {
-  mockTimeRange('2003-06-01T00:00:00', '2004-01-01T00:00:00');
+test('nested temporal drills keep the outer bucket beside the new filters', async () => {
+  const selection = jest.spyOn(contextMenu, 'useContextMenu');
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: { ...formData, x_axis: 'ds', time_range: RANGE },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+  const shipBucket = {
+    col: 'ship_date',
+    op: '==' as const,
+    val: Date.UTC(2004, 0, 1),
+    grain: 'P1M' as const,
+    formattedVal: 'Jan 2004',
+  };
+  act(() =>
+    selection.mock.lastCall?.[2]?.(
+      { column_name: 'gender', verbose_name: null },
+      {
+        filters: [shipBucket, { col: 'name', op: '==', val: 'Joe' }],
+        groupbyFieldName: 'groupby',
+      },
+    ),
+  );
+  await waitFor(() =>
+    expect(getLastChartDataFormData().groupby).toEqual(['gender']),
+  );
+  expect(getLastChartDataQuery().time_range).toBe(RANGE);
+  expect(getLastChartDataQuery().filters).toEqual([
+    { col: 'ds', op: '==', val: OCT_2003, grain: 'P1M' },
+    { col: 'ship_date', op: '==', val: Date.UTC(2004, 0, 1), grain: 'P1M' },
+    { col: 'name', op: '==', val: 'Joe' },
+  ]);
+});
+
+test('Mixed Timeseries query B drills add the bucket to its own filters', async () => {
+  const request = jest
+    .spyOn(chartActions, 'requestChartDataResolved')
+    .mockResolvedValue([]);
+  const savedB = temporalAdhocFilter('ds', RANGE);
   await renderModal({
     column: { column_name: 'name', verbose_name: null },
     formData: {
-      ...formData,
-      time_range: '2003-06-01 : 2004-01-01',
+      ...omit(formData, 'time_range'),
+      adhoc_filters: [],
+      groupby_b: ['ds'],
+      adhoc_filters_b: [savedB],
     },
     drillByConfig: {
-      filters: [year2003BucketFilter],
-      groupbyFieldName: 'groupby',
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby_b',
+      adhocFilterFieldName: 'adhoc_filters_b',
     },
   });
-  await waitFor(() =>
-    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
-  );
-
-  expect(getLastChartDataQuery().time_range).toEqual(
-    '2003-06-01T00:00:00 : 2004-01-01T00:00:00',
-  );
-  expect(fetchMock.callHistory.calls(CHART_DATA_ENDPOINT)).toHaveLength(1);
+  await waitFor(() => expect(request).toHaveBeenCalled());
+  const drilled = request.mock.lastCall?.[0].formData;
+  expect(drilled?.adhoc_filters_b).toEqual([savedB, oct2003AdhocFilter]);
+  expect(drilled?.adhoc_filters).toEqual([]);
+  expect(drilled?.time_range).toBeUndefined();
 });
 
 test('Drill by from a grained temporal bucket shows one bucket label in the breadcrumb', async () => {
@@ -456,7 +528,7 @@ test('Drill by from a grained temporal bucket shows one bucket label in the brea
     expect(within(breadcrumbItems[0]).getByText(/\(Oct 2003\)$/)).toBeVisible(),
   );
   expect(screen.getAllByText(/\(Oct 2003\)$/)).toHaveLength(1);
-  expect(breadcrumbItems[0]).not.toHaveTextContent(OCT_2003_BUCKET);
+  expect(breadcrumbItems[0]).not.toHaveTextContent(String(OCT_2003));
 });
 
 test('categorical Drill by keeps the chart and dashboard time range', async () => {
@@ -483,7 +555,7 @@ test('categorical Drill by keeps the chart and dashboard time range', async () =
   );
 });
 
-/** Exercise a superseded request while the next drill bucket is unresolved. */
+/** A response for a superseded drill must not replace the current one. */
 async function assertLateRequestIgnored(
   requestKind: 'initial' | 'reload',
   outcome: 'success' | 'error',
@@ -494,10 +566,6 @@ async function assertLateRequestIgnored(
     resolveOldRequest = resolve;
     rejectOldRequest = reject;
   });
-  let resolveRange!: (value: string) => void;
-  const pendingRange = new Promise<string>(resolve => {
-    resolveRange = resolve;
-  });
   let resolveNewRequest!: (value: QueryData[]) => void;
   const newRequest = new Promise<QueryData[]>(resolve => {
     resolveNewRequest = resolve;
@@ -507,9 +575,6 @@ async function assertLateRequestIgnored(
     request.mockResolvedValueOnce([]);
   }
   request.mockReturnValueOnce(oldRequest).mockReturnValueOnce(newRequest);
-  jest
-    .spyOn(timeRangeUtils, 'fetchDrillByTimeRange')
-    .mockReturnValue(pendingRange);
   const selection = jest.spyOn(contextMenu, 'useContextMenu');
   const results = jest.spyOn(resultsTableView, 'useResultsTableView');
 
@@ -530,10 +595,13 @@ async function assertLateRequestIgnored(
   act(() =>
     selection.mock.lastCall?.[2]?.(
       { column_name: 'gender', verbose_name: null },
-      { filters: [year2003BucketFilter], groupbyFieldName: 'groupby' },
+      { filters: [oct2003BucketFilter], groupbyFieldName: 'groupby' },
     ),
   );
-  expect(timeRangeUtils.fetchDrillByTimeRange).toHaveBeenCalled();
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledTimes(requestKind === 'reload' ? 3 : 2),
+  );
+  expect(oldSignal?.aborted).toBe(true);
 
   await act(async () => {
     if (outcome === 'success') {
@@ -545,34 +613,34 @@ async function assertLateRequestIgnored(
   expect(screen.getByLabelText('Loading')).toBeInTheDocument();
   expect(results.mock.lastCall?.[0]).toBeUndefined();
   expect(screen.queryByTestId('drill-by-chart')).not.toBeInTheDocument();
-  expect(oldSignal?.aborted).toBe(true);
 
-  await act(async () => resolveRange(YEAR_2003_BUCKET));
-  expect(request.mock.lastCall?.[0].formData.time_range).toBe(YEAR_2003_BUCKET);
+  expect(request.mock.lastCall?.[0].formData.adhoc_filters).toContainEqual(
+    oct2003AdhocFilter,
+  );
   await act(async () => resolveNewRequest([]));
   expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
   expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
 }
 
-test('ignores stale initial success during bucket resolution', async () => {
+test('ignores a stale initial success after a further drill', async () => {
   await expect(
     assertLateRequestIgnored('initial', 'success'),
   ).resolves.toBeUndefined();
 });
 
-test('ignores stale initial error during bucket resolution', async () => {
+test('ignores a stale initial error after a further drill', async () => {
   await expect(
     assertLateRequestIgnored('initial', 'error'),
   ).resolves.toBeUndefined();
 });
 
-test('ignores stale reload success during bucket resolution', async () => {
+test('ignores a stale reload success after a further drill', async () => {
   await expect(
     assertLateRequestIgnored('reload', 'success'),
   ).resolves.toBeUndefined();
 });
 
-test('ignores stale reload error during bucket resolution', async () => {
+test('ignores a stale reload error after a further drill', async () => {
   await expect(
     assertLateRequestIgnored('reload', 'error'),
   ).resolves.toBeUndefined();
@@ -970,363 +1038,4 @@ describe('Table view with pagination', () => {
       }),
     );
   });
-});
-
-test.each([
-  { timeRange: undefined, extraFormData: undefined, extraFilters: undefined },
-  { timeRange: 'No filter', extraFormData: undefined, extraFilters: undefined },
-  {
-    timeRange: '2003-10-15 : 2006-01-01',
-    extraFormData: undefined,
-    extraFilters: undefined,
-  },
-  {
-    timeRange: 'No filter',
-    extraFormData: { time_range: '2003-10-15 : 2006-01-01' },
-    extraFilters: undefined,
-  },
-  {
-    timeRange: 'No filter',
-    extraFormData: undefined,
-    extraFilters: [
-      {
-        col: '__time_range',
-        op: '==' as const,
-        val: '2003-10-15 : 2006-01-01',
-      },
-    ],
-  },
-])(
-  'temporal drill retains the effective independent date range in query CSV and Explore: %j',
-  async ({ timeRange, extraFormData, extraFilters }) => {
-    const effectiveRange =
-      extraFormData?.time_range ?? extraFilters?.[0].val ?? timeRange;
-    exportChartMock.mockClear();
-    fetchMock.removeRoute(CHART_DATA_ENDPOINT);
-    fetchMock.post(CHART_DATA_ENDPOINT, {
-      result: [
-        {
-          data: [{ name: 'bucket', count: 67 }],
-          colnames: ['name', 'count'],
-          coltypes: [1, 0],
-        },
-      ],
-    });
-    if (effectiveRange && effectiveRange !== 'No filter') {
-      mockTimeRange('2003-10-15T00:00:00', '2006-01-01T00:00:00');
-    }
-    const shipRange = '2004-01-01 : 2005-01-01';
-    await renderModal({
-      column: { column_name: 'name', verbose_name: null },
-      // An x-axis chart without a time column or a date filter on its x-axis.
-      formData: {
-        ...omit(formData, 'time_range', 'granularity'),
-        x_axis: 'ds',
-        ...(timeRange === undefined ? {} : { time_range: timeRange }),
-        extra_form_data: extraFormData,
-        extra_filters: extraFilters,
-        adhoc_filters: [
-          {
-            clause: 'WHERE',
-            expressionType: 'SIMPLE',
-            operator: 'TEMPORAL_RANGE',
-            subject: 'ship_date',
-            comparator: shipRange,
-          },
-        ],
-      },
-      drillByConfig: {
-        filters: [oct2003BucketFilter],
-        groupbyFieldName: 'groupby',
-      },
-    });
-    await waitFor(() =>
-      expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
-    );
-    const query = getLastChartDataQuery();
-    // The chart's query-wide range also applies to ship_date, even No filter,
-    // but not to ds, which the chart does not filter: the bucket stays whole.
-    expect(query.time_range).toBeFalsy();
-    expect(query.filters).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          col: 'ship_date',
-          op: 'TEMPORAL_RANGE',
-          val: effectiveRange ?? shipRange,
-        }),
-        expect.objectContaining({
-          col: 'ds',
-          op: 'TEMPORAL_RANGE',
-          val: OCT_2003_BUCKET,
-        }),
-      ]),
-    );
-    const tableRadio = await screen.findByRole('radio', { name: /table/i });
-    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Download' }),
-    );
-    await userEvent.click(await screen.findByText('Export to CSV'));
-    const exported = exportChartMock.mock.lastCall[0];
-    expect(exported.resultFormat).toBe('csv');
-    expect(buildQueryObject(exported.formData).filters).toEqual(query.filters);
-    expect(buildQueryObject(exported.formData).time_range).toBeFalsy();
-    expect(exported.formData.adhoc_filters).toEqual(
-      getLastChartDataFormData().adhoc_filters,
-    );
-    const explorePayload = JSON.parse(
-      JSON.parse(
-        fetchMock.callHistory.lastCall(FORM_DATA_KEY_ENDPOINT)?.options
-          ?.body as string,
-      ).form_data,
-    );
-    expect(explorePayload.adhoc_filters).toEqual(
-      exported.formData.adhoc_filters,
-    );
-    expect(explorePayload.time_range).toBeUndefined();
-  },
-);
-
-test.each(['saved', 'unbounded', 'native', 'legacy'])(
-  'nested temporal drills keep an unfiltered x-axis bucket whole beside independent date filters: %s',
-  async shape => {
-    const selection = jest.spyOn(contextMenu, 'useContextMenu');
-    mockTimeRange('2003-10-15T00:00:00', '2005-01-01T00:00:00');
-    await renderModal({
-      column: { column_name: 'name', verbose_name: null },
-      // The query-wide range applies to ship_date only: ds has no date
-      // filter and the chart has no time column.
-      formData: {
-        ...omit(formData, 'granularity'),
-        x_axis: 'ds',
-        time_range:
-          shape === 'unbounded' ? 'No filter' : '2003-10-15 : 2005-01-01',
-        ...(shape === 'native' && {
-          extra_form_data: { time_range: '2003-10-15 : 2005-01-01' },
-        }),
-        ...(shape === 'legacy' && {
-          extra_filters: [
-            { col: '__time_range', op: '==', val: '2003-10-15 : 2005-01-01' },
-          ],
-        }),
-        adhoc_filters: [
-          {
-            clause: 'WHERE',
-            expressionType: 'SIMPLE',
-            operator: 'TEMPORAL_RANGE',
-            subject: 'ship_date',
-            comparator: '2004-01-01 : 2005-01-01',
-          },
-        ],
-      },
-      drillByConfig: {
-        filters: [oct2003BucketFilter],
-        groupbyFieldName: 'groupby',
-      },
-    });
-    await waitFor(() =>
-      expect(getLastChartDataQuery().filters).toContainEqual(
-        expect.objectContaining({
-          col: 'ds',
-          val: OCT_2003_BUCKET,
-        }),
-      ),
-    );
-    act(() =>
-      selection.mock.lastCall?.[2]?.(
-        { column_name: 'gender', verbose_name: null },
-        {
-          filters: [
-            {
-              col: 'ship_date',
-              op: 'TEMPORAL_RANGE',
-              val: '2004-01-01T00:00:00 : 2004-02-01T00:00:00',
-            },
-          ],
-          groupbyFieldName: 'groupby',
-        },
-      ),
-    );
-    await waitFor(() =>
-      expect(getLastChartDataQuery().filters).toContainEqual(
-        expect.objectContaining({
-          col: 'ship_date',
-          val: '2004-01-01T00:00:00 : 2004-02-01T00:00:00',
-        }),
-      ),
-    );
-    expect(getLastChartDataQuery().filters).toContainEqual(
-      expect.objectContaining({ col: 'ds', val: OCT_2003_BUCKET }),
-    );
-    expect(getLastChartDataQuery().filters).toContainEqual(
-      expect.objectContaining({
-        col: 'ship_date',
-        val: shape === 'unbounded' ? 'No filter' : '2003-10-15 : 2005-01-01',
-      }),
-    );
-  },
-);
-
-const OCT_15_2003_BUCKET = '2003-10-15T00:00:00 : 2003-11-01T00:00:00';
-const temporalAdhocFilter = (subject: string, comparator: string) => ({
-  clause: 'WHERE' as const,
-  expressionType: 'SIMPLE' as const,
-  operator: 'TEMPORAL_RANGE' as const,
-  subject,
-  comparator,
-});
-
-test.each(['saved', 'dashboard', 'legacy'])(
-  'a %s time column filters the drill by the clipped bucket beside an independent date filter',
-  async source => {
-    const range = '2003-10-15 : 2005-01-01';
-    mockTimeRange('2003-10-15T00:00:00', '2005-01-01T00:00:00');
-    await renderModal({
-      column: { column_name: 'name', verbose_name: null },
-      formData: {
-        ...omit(formData, 'granularity'),
-        x_axis: 'ds',
-        time_range: source === 'saved' ? range : 'No filter',
-        ...(source === 'saved' && { granularity_sqla: 'ds' }),
-        ...(source === 'dashboard' && {
-          extra_form_data: { time_range: range, granularity_sqla: 'ds' },
-        }),
-        ...(source === 'legacy' && {
-          extra_filters: [
-            { col: '__time_range', op: '==', val: range },
-            { col: '__time_col', op: '==', val: 'ds' },
-          ],
-        }),
-        adhoc_filters: [
-          temporalAdhocFilter('ds', 'No filter'),
-          temporalAdhocFilter('ship_date', '2003-01-01 : 2004-06-01'),
-        ],
-      },
-      drillByConfig: {
-        filters: [oct2003BucketFilter],
-        groupbyFieldName: 'groupby',
-      },
-    });
-    await waitFor(() =>
-      expect(getLastChartDataQuery().filters).toContainEqual(
-        expect.objectContaining({ col: 'ds', val: OCT_15_2003_BUCKET }),
-      ),
-    );
-    const query = getLastChartDataQuery();
-    // The backend drops every ds filter and filters the time column by the
-    // first one, so each ds filter carries the clipped bucket.
-    expect(query.granularity).toBe('ds');
-    expect(query.time_range).toBeFalsy();
-    expect(
-      query.filters
-        ?.filter(filter => filter.col === 'ds')
-        .map(filter => ('val' in filter ? filter.val : undefined)),
-    ).toEqual([OCT_15_2003_BUCKET, OCT_15_2003_BUCKET]);
-    expect(query.filters).toContainEqual(
-      expect.objectContaining({ col: 'ship_date', val: range }),
-    );
-  },
-);
-
-test('a time column without an x-axis filters the drill by the bucket, not an independent date filter', async () => {
-  const range = '2003-10-15 : 2005-01-01';
-  mockTimeRange('2003-10-15T00:00:00', '2005-01-01T00:00:00');
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    // The fixture has a time column (granularity) and no x-axis. Without a
-    // filter on the time column, the chart drops the first temporal filter.
-    formData: {
-      ...formData,
-      time_range: range,
-      adhoc_filters: [
-        temporalAdhocFilter('ship_date', '2003-01-01 : 2004-06-01'),
-      ],
-    },
-    drillByConfig: {
-      filters: [oct2003BucketFilter],
-      groupbyFieldName: 'groupby',
-    },
-  });
-  await waitFor(() =>
-    expect(getLastChartDataQuery().filters?.[0]).toEqual(
-      expect.objectContaining({ col: 'ds', val: OCT_15_2003_BUCKET }),
-    ),
-  );
-  expect(getLastChartDataQuery().time_range).toBeFalsy();
-  expect(getLastChartDataQuery().filters).toContainEqual(
-    expect.objectContaining({ col: 'ship_date', val: 'No filter' }),
-  );
-});
-
-test('nested same-column temporal drills cannot widen the outer bucket', async () => {
-  const selection = jest.spyOn(contextMenu, 'useContextMenu');
-  mockTimeRange('2003-10-15T00:00:00', '2005-01-01T00:00:00');
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    formData: {
-      ...formData,
-      time_range: '2003-10-15 : 2005-01-01',
-      adhoc_filters: [],
-    },
-    drillByConfig: {
-      filters: [oct2003BucketFilter],
-      groupbyFieldName: 'groupby',
-    },
-  });
-  await waitFor(() =>
-    expect(getLastChartDataQuery().time_range).toBe(
-      '2003-10-15T00:00:00 : 2003-11-01T00:00:00',
-    ),
-  );
-  act(() =>
-    selection.mock.lastCall?.[2]?.(
-      { column_name: 'gender', verbose_name: null },
-      { filters: [year2003BucketFilter], groupbyFieldName: 'groupby' },
-    ),
-  );
-  await waitFor(() =>
-    expect(getLastChartDataFormData().groupby).toEqual(['gender']),
-  );
-  expect(getLastChartDataQuery().time_range).toBe(
-    '2003-10-15T00:00:00 : 2003-11-01T00:00:00',
-  );
-});
-
-test('Mixed Timeseries query B drills clip against its own saved temporal range', async () => {
-  const request = jest
-    .spyOn(chartActions, 'requestChartDataResolved')
-    .mockResolvedValue([]);
-  mockTimeRange('2003-10-15T00:00:00', '2005-01-01T00:00:00');
-  await renderModal({
-    column: { column_name: 'name', verbose_name: null },
-    formData: {
-      ...omit(formData, 'time_range'),
-      adhoc_filters: [],
-      groupby_b: ['ds'],
-      adhoc_filters_b: [
-        {
-          clause: 'WHERE',
-          expressionType: 'SIMPLE',
-          operator: 'TEMPORAL_RANGE',
-          subject: 'ds',
-          comparator: '2003-10-15 : 2005-01-01',
-        },
-      ],
-    },
-    drillByConfig: {
-      filters: [oct2003BucketFilter],
-      groupbyFieldName: 'groupby_b',
-      adhocFilterFieldName: 'adhoc_filters_b',
-    },
-  });
-  await waitFor(() => expect(request).toHaveBeenCalled());
-  const drilled = request.mock.lastCall?.[0].formData;
-  expect(drilled?.adhoc_filters_b).toContainEqual(
-    expect.objectContaining({
-      subject: 'ds',
-      comparator: '2003-10-15T00:00:00 : 2003-11-01T00:00:00',
-    }),
-  );
-  expect(drilled?.adhoc_filters).toEqual([]);
-  expect(drilled?.time_range).toBeUndefined();
 });

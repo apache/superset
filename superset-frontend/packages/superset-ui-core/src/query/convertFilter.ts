@@ -37,12 +37,14 @@ export default function convertFilter(
     };
   }
   if (isBinaryAdhocFilter(filter)) {
-    const { operator } = filter;
+    const { operator, timeGrain } = filter;
 
     return {
       col: subject,
       op: operator,
       val: filter.comparator,
+      // A grained filter compares time buckets of the column.
+      ...(timeGrain && { grain: timeGrain }),
     };
   }
 

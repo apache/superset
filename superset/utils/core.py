@@ -1548,6 +1548,12 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            # a grained filter compares time buckets (Drill by)
+                            **(
+                                {"grain": adhoc_filter["timeGrain"]}
+                                if adhoc_filter.get("timeGrain")
+                                else {}
+                            ),
                             # keep dashboard provenance for semantic-view reporting
                             **(
                                 {"isExtra": True} if adhoc_filter.get("isExtra") else {}

@@ -5443,8 +5443,44 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # (inline dict or referenced by label), so it can be parenthesized
             # to guard operator precedence regardless of how it was referenced.
             is_adhoc_sqla_col = False
+            # Native type of a dataset column an adhoc filter column refers to,
+            # used to write temporal filter values as engine literals.
+            adhoc_native_type: str | None = None
+            axis_column = (
+                adhoc_columns_by_label.get(flt_col)
+                if flt_grain and isinstance(flt_col, str)
+                else None
+            )
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
+            elif (
+                axis_column
+                and axis_column.get("columnType") == "BASE_AXIS"
+                and axis_column.get("timeGrain") == flt_grain
+            ):
+                # A filter on the x-axis label with the axis grain selects a
+                # bucket of that axis. Compare against the axis column of this
+                # query, which carries any Time Column override, so the filter
+                # matches exactly the rows the axis groups into the bucket.
+                adhoc_filter_column = axis_column
+                sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
+                    col=axis_column,
+                    template_processor=template_processor,
+                    apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
+                )
+                if axis_tbl_column := columns_by_name.get(axis_column["sqlExpression"]):
+                    adhoc_native_type = axis_tbl_column.type
+                elif isinstance(val, (int, float)) and not isinstance(val, bool):
+                    # An expression axis has no native type to write an engine
+                    # literal for: compare the naive ISO datetime instead of
+                    # the epoch milliseconds of the bucket.
+                    val = (
+                        datetime.fromtimestamp(val / 1000, tz=timezone.utc)
+                        .replace(tzinfo=None)
+                        .isoformat()
+                    )
+                applied_adhoc_filters_columns.append(flt_col)
+                is_adhoc_sqla_col = True
             elif is_adhoc_column(flt_col):
                 adhoc_filter_column = cast(AdhocColumn, flt_col)
                 if flt_col.get("columnType") == "BASE_AXIS":
@@ -5551,7 +5587,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and not _is_parenthesized(sqla_col)
                 ):
                     sqla_col = Grouping(sqla_col)
-                col_type = col_obj.type if col_obj else None
+                col_type = col_obj.type if col_obj else adhoc_native_type
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_multivalue_col = bool(
                     col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE

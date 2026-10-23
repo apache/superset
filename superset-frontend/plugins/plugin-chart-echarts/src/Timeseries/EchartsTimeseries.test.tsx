@@ -1510,8 +1510,9 @@ test('drillBy filters by time bucket when a categorical axis is forced onto a te
   expect(drillBy.xAxisFilters).toEqual([
     {
       col: 'order_date',
-      op: 'TEMPORAL_RANGE',
-      val: '2021-02-01T00:00:00 : 2021-03-01T00:00:00',
+      op: '==',
+      val: Date.UTC(2021, 1, 1),
+      grain: TimeGranularity.MONTH,
       formattedVal: 'Feb 2021',
     },
   ]);
@@ -1592,11 +1593,14 @@ test('Drill by uses the dashboard time grain for the clicked time-axis bucket', 
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
   const { drillBy, drillToDetail } = onContextMenu.mock.calls[0][2];
+  // A legacy '__timestamp' bucket resolves to the time column the query
+  // groups by, including a dashboard Time Column override.
   expect(drillBy.xAxisFilters).toEqual([
     {
-      col: 'order_date',
-      op: 'TEMPORAL_RANGE',
-      val: '2003-01-01T00:00:00 : 2004-01-01T00:00:00',
+      col: DTTM_ALIAS,
+      op: '==',
+      val: Date.UTC(2003, 0, 1),
+      grain: TimeGranularity.YEAR,
       formattedVal: '2003',
     },
   ]);
@@ -1651,8 +1655,9 @@ test.each([
     expect(onContextMenu.mock.calls[0][2].drillBy.xAxisFilters).toEqual([
       {
         col: 'order_date',
-        op: 'TEMPORAL_RANGE',
-        val: '2003-01-01T00:00:00 : 2004-01-01T00:00:00',
+        op: '==',
+        val: Date.UTC(2003, 0, 1),
+        grain: TimeGranularity.YEAR,
         formattedVal: '2003',
       },
     ]);

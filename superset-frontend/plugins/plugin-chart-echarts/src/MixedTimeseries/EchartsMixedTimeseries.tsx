@@ -32,7 +32,7 @@ import Echart from '../components/Echart';
 import { EchartsHandler, EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
 import {
-  getTemporalXAxisDrillByFilter,
+  getTemporalBucketDrillByFilter,
   getTimeAxisDrillByValue,
   parseTemporalValue,
 } from '../utils/xAxisDrillByFilter';
@@ -248,8 +248,10 @@ export default function EchartsMixedTimeseries({
             0,
             isTemporalCategory,
           );
-          const filter = getTemporalXAxisDrillByFilter(
-            xAxisColumn,
+          const filter = getTemporalBucketDrillByFilter(
+            // A grained '__timestamp' bucket resolves to the time column the
+            // query groups by, including a dashboard Time Column override.
+            xAxis.label,
             xValue,
             resolvedTimeGrain,
             getTimeFormatter(
@@ -257,7 +259,7 @@ export default function EchartsMixedTimeseries({
               resolvedTimeGrain,
             )(parseTemporalValue(xValue)),
           );
-          if (filter?.op === 'TEMPORAL_RANGE') {
+          if (filter?.grain) {
             xAxisFilters.push(filter);
           }
         }

@@ -33,7 +33,6 @@ import {
   QueryData,
   ensureIsArray,
   isDefined,
-  getColumnLabel,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
@@ -72,13 +71,6 @@ import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { requestChartDataResolved } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
-import {
-  applyDrillByTimeRange,
-  fetchDrillByTimeRange,
-  getDrillByOuterTimeRange,
-  getDrillByTimeFilter,
-  intersectTimeRanges,
-} from './drillByTimeRange';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
@@ -277,19 +269,13 @@ export default function DrillByModal({
   );
 
   const getFiltersFromConfigsByFieldName = useCallback(
-    (timeRanges: Map<BinaryQueryObjectFilterClause, string>) =>
+    () =>
       drillByConfigs.reduce<Record<string, AdhocFilter[]>>((acc, config) => {
         const adhocFilterFieldName =
           config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
         acc[adhocFilterFieldName] = [
           ...(acc[adhocFilterFieldName] || []),
-          ...config.filters.map(filter =>
-            simpleFilterToAdhoc(
-              timeRanges.has(filter)
-                ? { ...filter, val: timeRanges.get(filter) ?? filter.val }
-                : filter,
-            ),
-          ),
+          ...config.filters.map(filter => simpleFilterToAdhoc(filter)),
         ];
         return acc;
       }, {}),
@@ -365,107 +351,13 @@ export default function DrillByModal({
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
-  const drillTimeFilter = useMemo(
-    () => getDrillByTimeFilter(drillByConfigs),
-    [drillByConfigs],
-  );
-  const drillTimeRange = drillTimeFilter?.val as string | undefined;
-  const temporalDrillFilters = useMemo(
-    () =>
-      drillByConfigs
-        .flatMap(config => config.filters)
-        .filter(
-          filter =>
-            filter.op === 'TEMPORAL_RANGE' && typeof filter.val === 'string',
-        ),
-    [drillByConfigs],
-  );
-  const outerTimeRanges = useMemo(
-    () =>
-      temporalDrillFilters.map(filter =>
-        getDrillByOuterTimeRange(
-          formData,
-          filter.col,
-          drillByConfigs.find(config => config.filters.includes(filter))
-            ?.adhocFilterFieldName,
-        ),
-      ),
-    [temporalDrillFilters, formData, drillByConfigs],
-  );
-  const timeRangeKey = JSON.stringify([temporalDrillFilters, outerTimeRanges]);
-  const [resolvedTimeRanges, setResolvedTimeRanges] = useState<{
-    key: string;
-    values: string[];
-  }>();
-  const needsTimeRangeResolution = outerTimeRanges.some(Boolean);
-  useEffect(() => {
-    if (!needsTimeRangeResolution) {
-      return undefined;
-    }
-    let active = true;
-    Promise.all(
-      temporalDrillFilters.map((filter, index) => {
-        const bucket = filter.val as string;
-        const outerTimeRange = outerTimeRanges[index];
-        return outerTimeRange
-          ? fetchDrillByTimeRange(bucket, outerTimeRange)
-          : bucket;
-      }),
-    ).then(values => {
-      if (active) {
-        setResolvedTimeRanges({ key: timeRangeKey, values });
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [
-    temporalDrillFilters,
-    outerTimeRanges,
-    needsTimeRangeResolution,
-    timeRangeKey,
-  ]);
-  // Every outer bucket retains its clip when a nested drill changes columns.
-  const isTimeRangePending =
-    needsTimeRangeResolution && resolvedTimeRanges?.key !== timeRangeKey;
-  const resolvedDrillRanges = useMemo(
-    () =>
-      new Map(
-        temporalDrillFilters.map((filter, index) => [
-          filter,
-          !isTimeRangePending && needsTimeRangeResolution
-            ? (resolvedTimeRanges?.values[index] ?? (filter.val as string))
-            : (filter.val as string),
-        ]),
-      ),
-    [
-      temporalDrillFilters,
-      isTimeRangePending,
-      needsTimeRangeResolution,
-      resolvedTimeRanges,
-    ],
-  );
-  const drilledTimeRange = drillTimeFilter
-    ? temporalDrillFilters.reduce((range, filter) => {
-        if (
-          getColumnLabel(filter.col) !== getColumnLabel(drillTimeFilter.col)
-        ) {
-          return range;
-        }
-        const bounds = resolvedDrillRanges.get(filter)?.split(' : ');
-        return range && bounds
-          ? intersectTimeRanges(range, bounds[0], bounds[1])
-          : range;
-      }, resolvedDrillRanges.get(drillTimeFilter))
-    : drillTimeRange;
-
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
     if (currentColumn && groupbyFieldName) {
       updatedFormData[groupbyFieldName] = getNewGroupby(currentColumn);
     }
 
-    const adhocFilters = getFiltersFromConfigsByFieldName(resolvedDrillRanges);
+    const adhocFilters = getFiltersFromConfigsByFieldName();
     Object.keys(adhocFilters).forEach(adhocFilterFieldName => {
       updatedFormData = {
         ...updatedFormData,
@@ -475,16 +367,6 @@ export default function DrillByModal({
         ],
       };
     });
-
-    updatedFormData = applyDrillByTimeRange(
-      updatedFormData,
-      drilledTimeRange,
-      drillTimeFilter && {
-        ...drillTimeFilter,
-        val: drilledTimeRange ?? drillTimeFilter.val,
-      },
-      formData,
-    );
 
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
@@ -497,9 +379,6 @@ export default function DrillByModal({
     getFiltersFromConfigsByFieldName,
     getNewGroupby,
     formData,
-    drilledTimeRange,
-    drillTimeFilter,
-    resolvedDrillRanges,
   ]);
 
   const handleDownload = useCallback(
@@ -534,9 +413,6 @@ export default function DrillByModal({
     chartDataController.current?.abort();
     setChartDataResult(undefined);
     setIsChartDataLoading(true);
-    if (isTimeRangePending) {
-      return;
-    }
 
     const controller = new AbortController();
     chartDataController.current = controller;
@@ -565,7 +441,7 @@ export default function DrillByModal({
           setIsChartDataLoading(false);
         }
       });
-  }, [addDangerToast, asyncModeOverride, drilledFormData, isTimeRangePending]);
+  }, [addDangerToast, asyncModeOverride, drilledFormData]);
 
   const resultsTable = useResultsTableView(
     chartDataResult,

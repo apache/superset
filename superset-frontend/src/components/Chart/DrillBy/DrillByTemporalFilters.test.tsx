@@ -36,7 +36,7 @@ import {
   EchartsSunburstChartProps,
   EchartsSunburstFormData,
 } from '../../../../plugins/plugin-chart-echarts/src/Sunburst/types';
-import { getTemporalXAxisDrillByFilter } from '../../../../plugins/plugin-chart-echarts/src/utils/xAxisDrillByFilter';
+import { getTemporalBucketDrillByFilter } from '../../../../plugins/plugin-chart-echarts/src/utils/xAxisDrillByFilter';
 import type { EchartsProps } from '../../../../plugins/plugin-chart-echarts/src/types';
 import DrillByModal from './DrillByModal';
 
@@ -169,50 +169,30 @@ afterEach(() => {
   mockEchart.mockClear();
 });
 
-test('Sunburst Drill by on a grained segment queries the whole bucket', async () => {
+test('Sunburst Drill by on a grained segment queries the grained bucket', async () => {
   const filters = sunburstDrillByFilters('order_date');
   const body = await drillByRequest(
     sunburstFormData('order_date'),
     filters,
     'columns',
   );
-  // A grain on an equality filter would not survive simpleFilterToAdhoc and
-  // convertFilter, leaving `order_date = <month start>`.
+  // The grain survives simpleFilterToAdhoc and convertFilter, so the backend
+  // compares the bucket the chart grouped by, not `order_date = <month start>`.
   expect(body.queries[0].filters).toContainEqual({
     col: 'order_date',
-    op: 'TEMPORAL_RANGE',
-    val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+    op: '==',
+    val: Date.UTC(2024, 9, 1),
+    grain: TimeGranularity.MONTH,
   });
-  expect(body.queries[0].filters).not.toContainEqual(
-    expect.objectContaining({ col: 'order_date', op: '==' }),
-  );
 });
 
-test.each([
-  [
-    'chart',
-    '2024-01-01T00:00:00',
-    '2025-01-01T00:00:00',
-    '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
-  ],
-  [
-    'dashboard',
-    '2024-10-15T00:00:00',
-    '2024-12-01T00:00:00',
-    '2024-10-15T00:00:00 : 2024-11-01T00:00:00',
-  ],
-])(
-  'Sunburst Drill by intersects its bucket with the %s time range',
-  async (source, since, until, expectedRange) => {
-    const outerRange = `${since} : ${until}`;
-    fetchMock.get('glob:*/api/v1/time_range/*', {
-      result: [{ since, until, timeRange: outerRange }],
-    });
-    const filters = sunburstDrillByFilters('order_date');
+test.each(['chart', 'dashboard'])(
+  'Sunburst Drill by keeps the %s time range beside its grained bucket',
+  async source => {
+    const range = '2024-10-15 : 2024-12-01';
     const body = await drillByRequest(
       {
         ...sunburstFormData('order_date'),
-        // The query-wide range limits order_date through its date filter.
         adhoc_filters: [
           {
             clause: 'WHERE',
@@ -222,50 +202,28 @@ test.each([
             comparator: 'No filter',
           },
         ],
-        time_range: source === 'chart' ? outerRange : 'No filter',
+        time_range: source === 'chart' ? range : 'No filter',
         ...(source === 'dashboard' && {
-          extra_form_data: { time_range: outerRange },
+          extra_form_data: { time_range: range },
         }),
       },
-      filters,
+      sunburstDrillByFilters('order_date'),
       'columns',
     );
-
-    expect(body.queries[0].time_range).toBe(expectedRange);
-    expect(body.queries[0].filters).toContainEqual({
-      col: 'order_date',
-      op: 'TEMPORAL_RANGE',
-      val: expectedRange,
-    });
+    // The backend applies the range to the chart's own date filter as it
+    // does for the chart, and the bucket narrows that result.
+    expect(body.queries[0].time_range).toBe(range);
+    expect(body.queries[0].filters).toEqual([
+      { col: 'order_date', op: 'TEMPORAL_RANGE', val: 'No filter' },
+      {
+        col: 'order_date',
+        op: '==',
+        val: Date.UTC(2024, 9, 1),
+        grain: TimeGranularity.MONTH,
+      },
+    ]);
   },
 );
-
-test('Sunburst Drill by keeps the whole bucket when the dashboard range does not limit order_date', async () => {
-  const timeRange = jest.fn(() => ({
-    result: [{ since: '2024-10-15T00:00:00', until: '2024-12-01T00:00:00' }],
-  }));
-  fetchMock.get('glob:*/api/v1/time_range/*', timeRange);
-  const filters = sunburstDrillByFilters('order_date');
-  // Without a date filter or a time column, the chart's query ignores the
-  // dashboard range, so its segments count the whole month.
-  const body = await drillByRequest(
-    {
-      ...sunburstFormData('order_date'),
-      time_range: 'No filter',
-      extra_form_data: {
-        time_range: '2024-10-15T00:00:00 : 2024-12-01T00:00:00',
-      },
-    },
-    filters,
-    'columns',
-  );
-  expect(body.queries[0].filters).toContainEqual({
-    col: 'order_date',
-    op: 'TEMPORAL_RANGE',
-    val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
-  });
-  expect(timeRange).not.toHaveBeenCalled();
-});
 
 test('Sunburst Drill by on an adhoc temporal segment writes a quoted ISO datetime', async () => {
   const filters = sunburstDrillByFilters(ADHOC_ORDER_DATE);
@@ -283,7 +241,7 @@ test('Sunburst Drill by on an adhoc temporal segment writes a quoted ISO datetim
   );
 });
 
-test('Timeseries Drill by on an adhoc x-axis label sends an ISO datetime, not an epoch', async () => {
+test('Timeseries Drill by on an adhoc x-axis label sends its grained bucket', async () => {
   const xAxis: QueryFormColumn = {
     expressionType: 'SQL',
     sqlExpression: "DATE_TRUNC('day', order_date)",
@@ -291,8 +249,8 @@ test('Timeseries Drill by on an adhoc x-axis label sends an ISO datetime, not an
   };
   // Both Timeseries Drill by callers use this helper with the axis label.
   const filters = [
-    getTemporalXAxisDrillByFilter('order_day', Date.UTC(2024, 9, 7)),
-    getTemporalXAxisDrillByFilter(
+    getTemporalBucketDrillByFilter('order_day', Date.UTC(2024, 9, 7)),
+    getTemporalBucketDrillByFilter(
       'order_day',
       Date.UTC(2024, 9, 7, 6),
       'PT6H' as TimeGranularity,
@@ -311,60 +269,39 @@ test('Timeseries Drill by on an adhoc x-axis label sends an ISO datetime, not an
     filters,
     'groupby',
   );
-  // The backend writes an adhoc label comparator without coercion, so an
-  // epoch integer would reach SQL as `<timestamp expr> = 1728259200000`.
+  // Without a grain the backend writes an adhoc label comparator as is, so
+  // an exact match uses the ISO datetime. A grained bucket on the axis label
+  // is compared to the axis column, and the backend writes its value.
   expect(body.queries[0].filters).toEqual(
     expect.arrayContaining([
       { col: 'order_day', op: '==', val: '2024-10-07T00:00:00' },
-      { col: 'order_day', op: '==', val: '2024-10-07T06:00:00' },
+      {
+        col: 'order_day',
+        op: '==',
+        val: Date.UTC(2024, 9, 7, 6),
+        grain: 'PT6H',
+      },
     ]),
   );
 });
 
-test('Drill by drops the grain of an equality filter', async () => {
+test('Drill by keeps the grain of an equality filter', async () => {
   const body = await drillByRequest(
     sunburstFormData('order_date'),
     [{ col: 'order_date', op: '==', val: 1727740800000, grain: 'P1M' }],
     'columns',
   );
+  expect(body.form_data.adhoc_filters).toContainEqual(
+    expect.objectContaining({
+      subject: 'order_date',
+      comparator: 1727740800000,
+      timeGrain: 'P1M',
+    }),
+  );
   expect(body.queries[0].filters).toContainEqual({
     col: 'order_date',
     op: '==',
     val: 1727740800000,
+    grain: 'P1M',
   });
-});
-
-test('Sunburst Drill by preserves an independent date filter without a saved time range', async () => {
-  const filters = sunburstDrillByFilters('order_date');
-  const body = await drillByRequest(
-    {
-      ...sunburstFormData('order_date'),
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          expressionType: 'SIMPLE',
-          operator: 'TEMPORAL_RANGE',
-          subject: 'ship_date',
-          comparator: '2025-01-01 : 2026-01-01',
-        },
-      ],
-    },
-    filters,
-    'columns',
-  );
-  expect(body.queries[0].time_range).toBeFalsy();
-  expect(body.queries[0].filters).toEqual(
-    expect.arrayContaining([
-      {
-        col: 'ship_date',
-        op: 'TEMPORAL_RANGE',
-        val: '2025-01-01 : 2026-01-01',
-      },
-      {
-        col: 'order_date',
-        op: 'TEMPORAL_RANGE',
-        val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
-      },
-    ]),
-  );
 });

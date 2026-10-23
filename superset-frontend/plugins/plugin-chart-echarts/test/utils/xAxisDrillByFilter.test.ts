@@ -19,6 +19,7 @@
 import { TimeGranularity } from '@superset-ui/core';
 import {
   formatNaiveDateTime,
+  getTemporalBucketDrillByFilter,
   getTemporalXAxisDrillByFilter,
   getTimeAxisDrillByValue,
   getTimeBucketRange,
@@ -265,5 +266,43 @@ test('markerless bucket lookup preserves point values and horizontal coordinates
   ).toBeUndefined();
   expect(
     getTimeAxisDrillByValue(undefined, undefined, [1000, 5]),
+  ).toBeUndefined();
+});
+
+test.each([
+  TimeGranularity.MONTH,
+  TimeGranularity.WEEK_ENDING_SATURDAY,
+  'PT6H' as TimeGranularity,
+])(
+  'getTemporalBucketDrillByFilter matches the %s bucket of the clicked label',
+  grain => {
+    const label = Date.UTC(2024, 9, 5, 6);
+    // Epoch milliseconds, a naive UTC string and a Date are the same bucket.
+    [label, '2024-10-05T06:00:00', new Date(label)].forEach(value =>
+      expect(
+        getTemporalBucketDrillByFilter('order_date', value, grain, 'Oct'),
+      ).toEqual({
+        col: 'order_date',
+        op: '==',
+        val: label,
+        grain,
+        formattedVal: 'Oct',
+      }),
+    );
+  },
+);
+
+test('getTemporalBucketDrillByFilter falls back to the exact timestamp without a grain', () => {
+  expect(
+    getTemporalBucketDrillByFilter('order_date', Date.UTC(2024, 9, 5, 6)),
+  ).toEqual({ col: 'order_date', op: '==', val: '2024-10-05T06:00:00' });
+});
+
+test('getTemporalBucketDrillByFilter returns undefined for unusable input', () => {
+  expect(
+    getTemporalBucketDrillByFilter('order_date', 'not a date', 'P1M'),
+  ).toBeUndefined();
+  expect(
+    getTemporalBucketDrillByFilter('', Date.UTC(2024, 9, 5), 'P1M'),
   ).toBeUndefined();
 });

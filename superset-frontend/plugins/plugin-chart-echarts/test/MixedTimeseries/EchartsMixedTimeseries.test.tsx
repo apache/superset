@@ -249,8 +249,9 @@ test.each([0, 2])(
     expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
       expect.objectContaining({
         col: 'ds',
-        op: 'TEMPORAL_RANGE',
-        val: '2024-01-01T00:00:00 : 2024-02-01T00:00:00',
+        op: '==',
+        val: Date.UTC(2024, 0, 1),
+        grain: TimeGranularity.MONTH,
       }),
     ]);
     expect(onContextMenu.mock.lastCall[2].drillBy.adhocFilterFieldName).toBe(
@@ -279,8 +280,9 @@ test.each([0, 2])(
     expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
       expect.objectContaining({
         col: 'ds',
-        op: 'TEMPORAL_RANGE',
-        val: '2024-01-01T00:00:00 : 2024-02-01T00:00:00',
+        op: '==',
+        val: Date.UTC(2024, 0, 1),
+        grain: TimeGranularity.MONTH,
       }),
     ]);
   },
@@ -305,8 +307,9 @@ test('Mixed Timeseries forced categorical temporal Drill by keeps a readable buc
   expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
     {
       col: 'ds',
-      op: 'TEMPORAL_RANGE',
-      val: '2024-01-01T00:00:00 : 2024-02-01T00:00:00',
+      op: '==',
+      val: Date.UTC(2024, 0, 1),
+      grain: TimeGranularity.MONTH,
       formattedVal: 'Jan 2024',
     },
   ]);
