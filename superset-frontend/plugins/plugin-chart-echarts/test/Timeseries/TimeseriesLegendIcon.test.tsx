@@ -25,6 +25,7 @@ import { LegendOrientation } from '../../src/types';
 import type {
   TimeseriesLegendIcon as LegendIcon,
   TimeseriesLegendItem,
+  TimeseriesLegendLineType,
 } from '../../src/Timeseries/types';
 
 const COLOR = '#1f77b4';
@@ -107,7 +108,7 @@ test('draws filled symbols without an outline', () => {
   expect(symbol).not.toHaveAttribute('stroke');
 });
 
-test.each<[LegendIcon extends { lineType: infer T } ? T : never, string]>([
+test.each<[TimeseriesLegendLineType, string]>([
   ['dashed', '8 4'],
   ['dotted', '2'],
   [[6, 15], '6 15'],
