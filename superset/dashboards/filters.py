@@ -35,6 +35,7 @@ from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import (
+    apply_extra_access_exclusions,
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
     semantic_layer_grant_clause,
@@ -129,6 +130,12 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         # the role paths below (mirrors ChartFilter).
         if (guest_condition := guest_embedded_dashboard_filter()) is not None:
             return query.filter(guest_condition)
+
+        # Applied before the short-circuit below: an exclusion has to hold for
+        # admins too, since that is precisely the principal the role paths stop
+        # narrowing. Guests are excepted above -- their token already scopes
+        # them.
+        query = apply_extra_access_exclusions(query, "dashboards", Dashboard.id)
 
         if security_manager.is_admin():
             return query

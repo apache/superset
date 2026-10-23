@@ -31,6 +31,7 @@ rather than rendering plausible but unfiltered data.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from operator import itemgetter
 from typing import Any
 
@@ -55,6 +56,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     Operator,
     OrderDirection,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticRequest,
@@ -124,11 +126,13 @@ def _matches(row: dict[str, Any], filter_: Filter) -> bool:
     return actual not in values
 
 
-def _filtered_rows(filters: set[Filter] | None) -> list[dict[str, Any]]:
-    predicates: set[Filter] = filters or set()
-    filter_: Filter
-    for filter_ in predicates:
+def _filtered_rows(filters: Iterable[Filter | OrFilter] | None) -> list[dict[str, Any]]:
+    predicates: list[Filter] = []
+    for filter_ in filters or ():
+        if isinstance(filter_, OrFilter):
+            raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
         _validate_filter(filter_)
+        predicates.append(filter_)
     return [row for row in ROWS if all(_matches(row, f) for f in predicates)]
 
 

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1333,6 +1333,9 @@ msgstr "Опрацьовується"
 msgid "About"
 msgstr "Про програму"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Доступ"
 
@@ -1767,6 +1770,9 @@ msgstr "Агрегація"
 
 msgid "Aggregation Method"
 msgstr "Спосіб агрегації даних"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3599,6 +3605,12 @@ msgstr "Редагування цієї діаграми заборонено"
 msgid "Changing this semantic view is forbidden"
 msgstr "Редагування цього набору даних заборонено"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "Редагування цього набору даних заборонено"
@@ -3752,6 +3764,10 @@ msgstr "Назва діаграми"
 
 msgid "Chart type"
 msgstr "Тип діаграми"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Діаграму збережено, але не вдалося додати її до вибраної вкладки."
@@ -4250,6 +4266,10 @@ msgstr "Колір цілі"
 
 msgid "Color scheme"
 msgstr "Кольорова схема"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4853,8 +4873,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Кількість"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Країна"
@@ -5324,6 +5361,10 @@ msgstr "Заголовок звіту"
 msgid "Dashboard updated %s"
 msgstr "Востаннє оновлено %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Використання звіту"
 
@@ -5571,6 +5612,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Схема набору даних некоректна, через помилку: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7582,6 +7627,10 @@ msgstr "Помилка"
 msgid "Failed at retrieving results"
 msgstr "Не вдалось одержати результати"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Не вдалося застосувати тему: неправильний JSON"
 
@@ -7876,7 +7925,13 @@ msgstr "Відфільтрувати діаграми"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -8990,6 +9045,11 @@ msgstr "Некоректні координати"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Некоректний показник: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Некоректна функція numpy: %(operator)s"
@@ -9339,6 +9399,9 @@ msgstr "Рік тому"
 msgid "Lat"
 msgstr "Широта"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Широта"
 
@@ -9618,6 +9681,9 @@ msgstr "Перелік груп"
 
 msgid "List Roles"
 msgstr "Перелік ролей"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "Перелік користувачів"
@@ -10007,6 +10073,9 @@ msgstr "Середнє значення за вказаний період"
 msgid "Mean values"
 msgstr "Середні значення"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10243,6 +10312,9 @@ msgstr "Мінімум"
 msgid "Minimum Font Size"
 msgstr "Найменший розмір шрифту"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Найменший радіус"
 
@@ -10251,6 +10323,16 @@ msgid "Minimum Width"
 msgstr "Мінімальна ширина"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -10835,6 +10917,9 @@ msgid ""
 msgstr ""
 "Не знайдено перевірку із назвою %(validator_name)s , яку налаштовано для "
 "рушія %(engine_spec)s"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Розміщення кнопок"
@@ -14091,6 +14176,12 @@ msgstr "Семантичні вигляди"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Анотаційний шар"
@@ -14164,6 +14255,11 @@ msgstr "Параметри набору даних некоректні."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Семантичний вигляд оновлено"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14509,11 +14605,11 @@ msgstr "Показати час запиту діаграми"
 msgid "Show column headers"
 msgstr "Показати заголовки стовпців"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показати проміжні підсумки стовпців"
-
-msgid "Show columns total"
-msgstr "Показати підсумки стовпців"
 
 msgid "Show empty columns"
 msgstr "Показати порожні стовпці"
@@ -14594,11 +14690,11 @@ msgstr "Показати ідентифікатори запитів"
 msgid "Show row labels"
 msgstr "Показати мітки рядків"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показати проміжні підсумки рядків"
-
-msgid "Show rows total"
-msgstr "Показати проміжки рядків"
 
 msgid "Show series values on the chart"
 msgstr "Показати значення ряду на діаграмі"
@@ -14837,6 +14933,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Деякі обов'язкові фільтри на інших вкладках мають значення і не будуть "
 "очищені"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -15323,6 +15422,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Сума"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Сума значень протягом вказаного періоду"
 
@@ -15644,6 +15752,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Параметри шаблону"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -16846,6 +16957,9 @@ msgstr "Значення перетинаються з іншими порога
 msgid "The version of the service"
 msgstr "Версія служби"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Видима назва шару"
 
@@ -17331,6 +17445,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17658,6 +17775,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18075,6 +18199,12 @@ msgid ""
 msgstr ""
 "Запитано забагато підзрізів. Максимально дозволена кількість — %(max)s, "
 "але було запитано %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Панель інструментів"
@@ -18793,6 +18923,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Форматувати як дату, навіть коли показник не є часовою міткою"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -18800,6 +18937,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Використовувати градієнт"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Використовуйте показники як групу вищого рівня для стовпців або рядків"
@@ -19102,6 +19242,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Перспектива"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Віртуальний"
@@ -19779,6 +19922,9 @@ msgstr "Мітка осі X"
 msgid "X Axis Label Interval"
 msgstr "Інтервал міток осі X"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Формат чисел осі X"
 
@@ -19824,6 +19970,9 @@ msgstr "Формат осі Y"
 
 msgid "Y Axis Label"
 msgstr "Мітка осі Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Заголовок осі Y"
@@ -20363,6 +20512,11 @@ msgstr "Запит оновлено"
 
 msgid "Your report could not be deleted"
 msgstr "Доповідь неможливо вилучити"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
