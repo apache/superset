@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { BarSeriesOption } from 'echarts/charts';
+import { OpacityEnum } from '../../src/constants';
+import { getWaterfallCrossFilterKey } from '../../src/Waterfall/crossFilter';
 import {
   EchartsWaterfallChartProps,
   WaterfallChartTransformedProps,
@@ -218,4 +221,51 @@ test('reclaims the left grid margin when the Y axis is hidden', () => {
   const { grid: hidden } = buildAxes({ showYAxis: false });
   expect(hidden.left).toBeLessThan(shown.left);
   expect(hidden.bottom).toBe(shown.bottom);
+});
+
+test('renders an empty chart when the query result is missing', () => {
+  expect(() =>
+    transformProps(
+      new ChartProps({
+        formData: formData as SqlaFormData,
+        width: 800,
+        height: 600,
+        queriesData: [],
+        theme: supersetTheme,
+      }) as unknown as EchartsWaterfallChartProps,
+    ),
+  ).not.toThrow();
+});
+
+test('dims bars outside the selected period and uses a pointer cursor', () => {
+  const transformedProps = transformProps(
+    new ChartProps({
+      formData: formData as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [{ data }],
+      filterState: { selectedValues: [JSON.stringify(['2019'])] },
+      emitCrossFilters: true,
+      theme: supersetTheme,
+    }) as unknown as EchartsWaterfallChartProps,
+  );
+  const series = transformedProps.echartOptions.series as BarSeriesOption[];
+  expect(series[0]?.cursor).toBe('pointer');
+  const increase = series[1]?.data as Array<{
+    value: number | string;
+    itemStyle?: { opacity?: number };
+  }>;
+  expect(transformedProps.categories[0]).toBeDefined();
+  expect(getWaterfallCrossFilterKey(transformedProps.categories[0]!)).toBe(
+    JSON.stringify(['2019']),
+  );
+  expect(increase[0]?.itemStyle?.opacity).toBeUndefined();
+  const decrease = series[2]?.data as Array<{
+    itemStyle?: { opacity?: number };
+  }>;
+  expect(decrease[1]?.itemStyle?.opacity).toBe(OpacityEnum.SemiTransparent);
+  const total = series[3]?.data as Array<{
+    itemStyle?: { opacity?: number };
+  }>;
+  expect(total[2]?.itemStyle?.opacity).toBe(OpacityEnum.SemiTransparent);
 });
