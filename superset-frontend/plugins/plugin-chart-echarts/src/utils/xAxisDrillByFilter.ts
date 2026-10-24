@@ -116,6 +116,24 @@ const parseAsUtc = (value: string): Date =>
   new Date(TIMEZONE_SUFFIX_RE.test(value) ? value : `${value}Z`);
 
 /**
+ * Convert a temporal record value (epoch milliseconds, naive UTC datetime
+ * string or Date) to a Date. Returns undefined for anything else.
+ */
+export const parseTemporalValue = (value: unknown): Date | undefined => {
+  let date: Date;
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === 'string') {
+    date = parseAsUtc(value);
+  } else if (typeof value === 'number') {
+    date = new Date(value);
+  } else {
+    return undefined;
+  }
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+/**
  * Build a drill-by filter clause matching the clicked value on a temporal
  * x-axis. When a known time grain is active, the clause is a TEMPORAL_RANGE
  * covering the clicked bucket; otherwise it falls back to an exact match on
@@ -127,23 +145,8 @@ export const getTemporalXAxisDrillByFilter = (
   grain?: TimeGranularity,
   formattedVal?: string,
 ): BinaryQueryObjectFilterClause | undefined => {
-  if (
-    !col ||
-    (typeof value !== 'number' &&
-      typeof value !== 'string' &&
-      !(value instanceof Date))
-  ) {
-    return undefined;
-  }
-  let bucketLabel: Date;
-  if (value instanceof Date) {
-    bucketLabel = value;
-  } else if (typeof value === 'string') {
-    bucketLabel = parseAsUtc(value);
-  } else {
-    bucketLabel = new Date(value);
-  }
-  if (Number.isNaN(bucketLabel.getTime())) {
+  const bucketLabel = parseTemporalValue(value);
+  if (!col || !bucketLabel) {
     return undefined;
   }
   const range = grain ? getTimeBucketRange(bucketLabel, grain) : undefined;

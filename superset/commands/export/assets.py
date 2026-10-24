@@ -154,7 +154,7 @@ class ExportAssetsCommand(BaseCommand):
                 list(candidate_ids), skip_visibility_filter=True
             )
         }
-        return sorted(referenced - set(dataset_ids))
+        return sorted(referenced.difference(dataset_ids))
 
     def validate(self) -> None:
         pass
