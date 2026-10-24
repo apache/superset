@@ -399,7 +399,7 @@ sqlglot==30.21.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-sshtunnel==0.4.0
+sshtunnel==0.5.1
     # via apache-superset (pyproject.toml)
 tabulate==0.10.0
     # via apache-superset (pyproject.toml)
