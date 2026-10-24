@@ -154,11 +154,11 @@ def main() -> None:
 
     if selected is None:
         countries_combined = sorted(resolved.keys())
-        os.makedirs(os.path.dirname(args.countries_ts_path), exist_ok=True)
+        os.makedirs(os.path.dirname(args.countries_ts_path) or ".", exist_ok=True)
         write_countries_ts(countries_combined, args.countries_ts_path)
         print(f"Wrote {args.countries_ts_path}")
 
-        os.makedirs(os.path.dirname(args.docs_json_path), exist_ok=True)
+        os.makedirs(os.path.dirname(args.docs_json_path) or ".", exist_ok=True)
         write_docs_json(countries_combined, args.docs_json_path)
         print(f"Wrote {args.docs_json_path}")
     else:
