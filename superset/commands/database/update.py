@@ -36,6 +36,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.utils import (
+    encrypted_extra_secrets_reused,
     engine_params_changed,
     oauth2_endpoint_rebind_unsafe,
     ssh_tunnel_rebind_unsafe,
@@ -332,21 +333,18 @@ class UpdateDatabaseCommand(BaseCommand):
                 None,
                 PASSWORD_MASK,
             )
-            # encrypted_extra is a blob with per-field masks, so "reused"
-            # means unmasking the submission against the stored value
-            # changes nothing -- including not submitting it at all, which
-            # leaves the old (real) value attached unchanged.
-            encrypted_extra_reused = model.encrypted_extra not in (
-                None,
-                "",
-                "{}",
-            ) and (
-                "masked_encrypted_extra" not in self._properties
-                or model.db_engine_spec.unmask_encrypted_extra(
-                    model.encrypted_extra,
-                    self._properties["masked_encrypted_extra"],
-                )
-                == model.encrypted_extra
+            # encrypted_extra is a blob with per-field masks, so "reused" is
+            # judged per stored secret: one the submission leaves masked (or
+            # leaves out entirely) rides along. Comparing whole blobs missed a
+            # masked secret whenever any other field changed in the same save,
+            # and refused a move where every secret was re-entered unchanged.
+            encrypted_extra_reused = bool(
+                model.encrypted_extra
+            ) and encrypted_extra_secrets_reused(
+                model.db_engine_spec.encrypted_extra_sensitive_field_paths(),
+                model.encrypted_extra,
+                self._properties.get("masked_encrypted_extra"),
+                submitted="masked_encrypted_extra" in self._properties,
             )
             if uri_password_reused or encrypted_extra_reused:
                 raise DatabaseInvalidError(
