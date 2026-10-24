@@ -324,7 +324,7 @@
     "tsx": "^4.23.15",
     "typescript": "7.0.2",
     "unzipper": "^0.12.5",
-    "webpack": "^5.111.1",
+    "webpack": "^5.112.0",
     "webpack-bundle-analyzer": "^5.4.0",
     "webpack-cli": "^7.2.3",
     "webpack-dev-server": "^6.0.0",
@@ -369,7 +369,7 @@
     },
     "dompurify": "^3.4.16",
     "esbuild": "^0.28.1",
-    "fast-uri": "^3.1.8",
+    "fast-uri": "^3.1.9",
     "fast-xml-parser": "^5.8.0",
     "http-proxy-middleware": "^2.0.10",
     "js-yaml-loader": {
