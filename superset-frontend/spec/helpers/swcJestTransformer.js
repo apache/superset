@@ -60,6 +60,21 @@ const EXPORT_DESCRIPTOR_GETTER =
 const lenient = binding =>
   `/* istanbul ignore next */ try { return ${binding}; } catch (e) { if (!(e instanceof ReferenceError)) throw e; return undefined; }`;
 
+function rewriteExports(code) {
+  return code
+    .replace(
+      EXPORT_DESCRIPTOR_GETTER,
+      (_m, head, getter, binding) => `${head}${getter}${lenient(binding)}`,
+    )
+    .replace(EXPORT_BLOCK, block =>
+      block.replace(
+        EXPORT_BLOCK_GETTER,
+        (_m, head, binding) => `${head}${lenient(binding)}`,
+      ),
+    )
+    .replace(EXPORT_GETTER_DESCRIPTOR, '$1 configurable: true,$2$3');
+}
+
 export function mirrorBabelExportSemantics(code) {
   const patched = rewriteExports(code);
   // A shape change in SWC's export helpers would otherwise leave exports
@@ -76,21 +91,6 @@ export function mirrorBabelExportSemantics(code) {
     );
   }
   return patched;
-}
-
-function rewriteExports(code) {
-  return code
-    .replace(
-      EXPORT_DESCRIPTOR_GETTER,
-      (_m, head, getter, binding) => `${head}${getter}${lenient(binding)}`,
-    )
-    .replace(EXPORT_BLOCK, block =>
-      block.replace(
-        EXPORT_BLOCK_GETTER,
-        (_m, head, binding) => `${head}${lenient(binding)}`,
-      ),
-    )
-    .replace(EXPORT_GETTER_DESCRIPTOR, '$1 configurable: true,$2$3');
 }
 
 function patch(result) {
