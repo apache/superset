@@ -3580,6 +3580,84 @@ def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
     assert df[("sales",)].tolist() == ["1,234.50"]
 
 
+def test_apply_client_processing_formats_an_ag_grid_table() -> None:
+    """
+    An AG Grid table report is formatted, not sent out with raw numbers.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"name": "a", "SUM(amount)": 1234567.0, "%SUM(amount)": 0.9},
+                    {"name": "b", "SUM(amount)": 42.0, "%SUM(amount)": 0.1},
+                ],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "ag-grid-table",
+        "metrics": ["SUM(amount)"],
+        "percent_metrics": ["SUM(amount)"],
+        "column_config": {"SUM(amount)": {"d3NumberFormat": ",.2f"}},
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == {
+        "name": {0: "a", 1: "b"},
+        "SUM(amount)": {0: "1,234,567.00", 1: "42.00"},
+        "%SUM(amount)": {0: "90.000%", 1: "10.000%"},
+    }
+
+
+def test_apply_client_processing_ag_grid_table_matches_table() -> None:
+    """
+    The two table viz types agree on the number and currency formats.
+
+    The AG Grid plugin's column meta block is the Table plugin's, and its
+    ``valueFormatter`` applies the column's own formatter, so a configured
+    format, a saved format and an AUTO currency all land the same way. The
+    agreement is per format rather than wholesale: the plugins read the same
+    ``column_config`` but paint cells through different code, so a key one of
+    them acts on alone belongs in its own test rather than in a blanket
+    comparison.
+    """
+
+    def payload() -> dict[str, Any]:
+        return {
+            "queries": [
+                {
+                    "result_format": ChartDataResultFormat.JSON,
+                    "detected_currency": "USD",
+                    "data": [{"dim": "x", "amount": 1234.5, "count": 7.0}],
+                }
+            ]
+        }
+
+    def form_data(viz_type: str) -> dict[str, Any]:
+        return {
+            "viz_type": viz_type,
+            "metrics": ["amount", "count"],
+            "column_config": {
+                "amount": {
+                    "d3NumberFormat": ",.2f",
+                    "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+                }
+            },
+        }
+
+    as_table = apply_client_processing(payload(), form_data("table"))
+    as_ag_grid = apply_client_processing(payload(), form_data("ag-grid-table"))
+
+    assert as_ag_grid["queries"][0]["data"] == as_table["queries"][0]["data"]
+    assert as_ag_grid["queries"][0]["data"] == {
+        "dim": {0: "x"},
+        "amount": {0: "$ 1,234.50"},
+        "count": {0: "7"},
+    }
+
+
 def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
@@ -4796,6 +4874,66 @@ def test_table_export_preserves_selected_dimension(
     )
     pd.testing.assert_frame_equal(output_df, source_df)
     assert query["colnames"] == source_df.columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+@pytest.mark.parametrize("selection", ["groupby", "all_columns"])
+def test_ag_grid_table_export_is_left_unchanged(
+    result_format: ChartDataResultFormat,
+    selection: str,
+) -> None:
+    """
+    An AG Grid report attachment comes back byte for byte as it arrived.
+
+    Registering the viz type for post-processing is what makes these formats
+    reach the parser at all; before that they hit the early return and went out
+    untouched. `table` cannot change them, since `apply_number_format` is false
+    for every format but JSON, so parsing and rewriting them buys nothing and
+    costs data.
+
+    The frame carries the two values that a round trip through the reader loses:
+    a zero-padded code, which `pd.read_csv` reads as `1234`, and an `NA` label,
+    which it reads as an empty cell under the default `REPORTS_CSV_NA_NAMES`.
+    Both selection keys are covered because the XLSX reader decides whether to
+    move the first column into the index by looking for it among them.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"code": ["01234", "00077"], "label": ["NA", "ok"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        selection: ["code", "label"],
+        "metrics": ["total_amount"],
+    }
+    attachment: bytes | str = (
+        excel.df_to_excel(source_df, index=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else source_df.to_csv(index=False)
+    )
+    result: dict[str, Any] = {
+        "queries": [{"result_format": result_format, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
+    # Read back with the coercions turned off, so the assertion is about what
+    # the attachment holds rather than about what the reader does to it.
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]), dtype=str, keep_default_na=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]), dtype=str, keep_default_na=False)
+    )
+    assert output_df["code"].tolist() == ["01234", "00077"]
+    assert output_df["label"].tolist() == ["NA", "ok"]
+    assert list(output_df.columns) == ["code", "label", "total_amount"]
 
 
 @pytest.mark.parametrize(
