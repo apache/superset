@@ -538,6 +538,8 @@ ECharts option overrides bypass Superset's validation layer. Invalid option keys
 
 When the **Search Box** is visible in a Table chart, the **Download** action exports only the rows currently visible after the search filter is applied — not the full underlying dataset. This matches the visual output and is intentional. To export the full dataset regardless of search state, use the **Download as CSV** option from the chart's three-dot menu in the dashboard or from the Explore chart toolbar before applying a search filter.
 
+CSV exports preserve separate cell values when row labels or column names repeat. Text values that resemble spreadsheet formulas receive an escape prefix.
+
 ### Exporting a Chart as an Image or PDF
 
 Alongside the raw-data export options (CSV, JSON, Excel), a chart's three-dot menu — in a dashboard or from the Explore chart toolbar — offers a few ways to export a visual snapshot of the chart:
