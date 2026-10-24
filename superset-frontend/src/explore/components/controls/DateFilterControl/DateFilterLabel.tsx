@@ -52,6 +52,7 @@ import {
 import {
   CommonFrame,
   CalendarFrame,
+  DateRangeFrame,
   CustomFrame,
   AdvancedFrame,
   DateLabel,
@@ -200,13 +201,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           /*
             HRT == human readable text
             ADR == actual datetime range
-            +--------------+------+----------+--------+----------+-----------+
-            |              | Last | Previous | Custom | Advanced | No Filter |
-            +--------------+------+----------+--------+----------+-----------+
-            | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
-            +--------------+------+----------+--------+----------+-----------+
-            | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
-            +--------------+------+----------+--------+----------+-----------+
+            +--------------+------+----------+----------+--------+----------+-----------+
+            |              | Last | Previous | Calendar | Custom | Advanced | No Filter |
+            +--------------+------+----------+----------+--------+----------+-----------+
+            | control pill | HRT  | HRT      | ADR      | ADR    | ADR      |   HRT     |
+            +--------------+------+----------+----------+--------+----------+-----------+
+            | tooltip      | ADR  | ADR      | HRT      | HRT    | HRT      |   ADR     |
+            +--------------+------+----------+----------+--------+----------+-----------+
           */
           if (
             guessedFrame === 'Common' ||
@@ -318,6 +319,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           value={timeRangeValue}
           onChange={setTimeRangeValue}
         />
+      )}
+      {frame === 'DateRange' && (
+        <DateRangeFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />

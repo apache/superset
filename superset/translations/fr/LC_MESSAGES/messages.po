@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -3334,8 +3334,14 @@ msgstr "Colonnes calculées"
 msgid "Calculation type"
 msgstr "Choisir un type de calcul"
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
 msgstr "Carte thermique du calendrier"
+
+msgid "Calendar date picker"
+msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
 msgstr ""
@@ -4596,6 +4602,9 @@ msgstr "Configurer %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "Configuration de la plage horaire avancée "
+
+msgid "Configure Time Range: Calendar..."
+msgstr ""
 
 msgid "Configure Time Range: Current..."
 msgstr "Configurer l'intervalle de temps : actuel..."
@@ -14724,6 +14733,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr "Afficher un curseur déplaçable pour contrôler la plage visible de l'axe Y."
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -15354,6 +15369,9 @@ msgstr "Début (longitude et latitude)"
 
 msgid "Start Time"
 msgstr "Date de début"
+
+msgid "Start and end date (end date included)"
+msgstr ""
 
 msgid "Start angle"
 msgstr "Angle de départ"
@@ -18074,6 +18092,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""

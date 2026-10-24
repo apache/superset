@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE } from '@superset-ui/core';
-import { act, render } from 'spec/helpers/testing-library';
+import { AppSection, NO_TIME_RANGE } from '@superset-ui/core';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import TimeFilterPlugin from './TimeFilterPlugin';
 import { PluginFilterTimeProps } from './types';
 
@@ -130,4 +130,49 @@ test('clearing the time range emits an empty value through setDataMask', () => {
     extraFormData: {},
     filterState: { value: undefined },
   });
+});
+
+test('the default (no calendar picker) renders the full date filter control', () => {
+  render(<TimeFilterPlugin {...defaultProps} />);
+  expect(capturedProps).toHaveLength(1);
+  expect(screen.queryByPlaceholderText('Start date')).not.toBeInTheDocument();
+});
+
+test('the calendar picker option renders only the date range picker', () => {
+  render(
+    <TimeFilterPlugin
+      {...defaultProps}
+      formData={{ ...defaultProps.formData, calendarPicker: true }}
+      filterState={{ value: '2024-01-01 : 2024-02-01' }}
+    />,
+  );
+  expect(capturedProps).toHaveLength(0);
+  expect(screen.getByPlaceholderText('Start date')).toHaveValue('2024-01-01');
+  expect(screen.getByPlaceholderText('End date')).toHaveValue('2024-01-31');
+});
+
+test('the calendar picker option emits the fixed range through setDataMask', () => {
+  render(
+    <TimeFilterPlugin
+      {...defaultProps}
+      formData={{ ...defaultProps.formData, calendarPicker: true }}
+      filterState={{ value: '2024-01-01 : 2024-02-01' }}
+    />,
+  );
+  expect(mockSetDataMask).toHaveBeenCalledWith({
+    extraFormData: { time_range: '2024-01-01 : 2024-02-01' },
+    filterState: { value: '2024-01-01 : 2024-02-01' },
+  });
+});
+
+test('the settings dialog default value always uses the full control, even with the calendar picker option on', () => {
+  render(
+    <TimeFilterPlugin
+      {...defaultProps}
+      appSection={AppSection.FilterConfigModal}
+      formData={{ ...defaultProps.formData, calendarPicker: true }}
+    />,
+  );
+  expect(capturedProps).toHaveLength(1);
+  expect(screen.queryByPlaceholderText('Start date')).not.toBeInTheDocument();
 });

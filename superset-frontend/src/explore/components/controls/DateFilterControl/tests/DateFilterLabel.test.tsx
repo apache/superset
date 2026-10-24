@@ -382,6 +382,7 @@ const FRAME_MARKERS = {
   Common: () => screen.queryByTestId(DateFilterTestKey.CommonFrame),
   Calendar: () => screen.queryByText('Configure Time Range: Previous...'),
   Current: () => screen.queryByText('Configure Time Range: Current...'),
+  DateRange: () => screen.queryByText('Configure Time Range: Calendar...'),
   Custom: () => screen.queryByText('Configure custom time range'),
   Advanced: () => screen.queryByText('Configure Advanced Time Range'),
   'No filter': () => screen.queryByTestId(DateFilterTestKey.NoFilter),
@@ -405,6 +406,7 @@ test.each<[string, FrameName, string]>([
   ['Last week', 'Common', 'Last'],
   ['previous calendar month', 'Calendar', 'Previous'],
   ['Current quarter', 'Current', 'Current'],
+  ['2021-03-16 : 2021-03-18', 'DateRange', 'Calendar'],
   ['2021-03-16T00:00:00 : 2021-03-17T00:00:00', 'Custom', 'Custom'],
   ['Last week : tomorrow', 'Advanced', 'Advanced'],
 ])(
@@ -422,6 +424,7 @@ test.each<[string, FrameName, string]>([
 test.each<[string, FrameName]>([
   ['Previous', 'Calendar'],
   ['Current', 'Current'],
+  ['Calendar', 'DateRange'],
   ['Custom', 'Custom'],
   ['Advanced', 'Advanced'],
   ['No filter', 'No filter'],

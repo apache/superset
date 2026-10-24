@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 12:10+0530\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -2992,7 +2992,13 @@ msgstr ""
 msgid "Calculation type"
 msgstr ""
 
+msgid "Calendar"
+msgstr ""
+
 msgid "Calendar Heatmap"
+msgstr ""
+
+msgid "Calendar date picker"
 msgstr ""
 
 msgid "Can not move top level tab into nested tabs"
@@ -4149,6 +4155,9 @@ msgid "Configure %s"
 msgstr ""
 
 msgid "Configure Advanced Time Range "
+msgstr ""
+
+msgid "Configure Time Range: Calendar..."
 msgstr ""
 
 msgid "Configure Time Range: Current..."
@@ -13518,6 +13527,12 @@ msgid "Show a draggable slider to control the visible range of the Y-axis."
 msgstr ""
 
 msgid ""
+"Show a plain date range picker that selects whole days, with the end date"
+" included, instead of all time range options. The default value is still "
+"set with all options."
+msgstr ""
+
+msgid ""
 "Show a summary row of total aggregations: the selected metrics in "
 "aggregate mode, or an aggregation of numeric columns in raw records mode."
 " Note that row limit does not apply to the result."
@@ -14086,6 +14101,9 @@ msgid "Start Longitude & Latitude"
 msgstr ""
 
 msgid "Start Time"
+msgstr ""
+
+msgid "Start and end date (end date included)"
 msgstr ""
 
 msgid "Start angle"
@@ -16341,6 +16359,11 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This range includes a time of day, so it is not made of whole days. Pick "
+"dates to use whole days."
 msgstr ""
 
 msgid ""
