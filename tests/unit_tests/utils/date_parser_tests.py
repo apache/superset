@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from unittest.mock import Mock, patch
 
@@ -462,6 +462,102 @@ def test_get_since_until_sub_day_next_with_explicit_relative_bounds() -> None:
         result = get_since_until("Next 2 hours", **kwargs)
         expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 2, 0))
         assert result == expected
+
+
+@pytest.mark.parametrize("month", range(1, 13))
+@pytest.mark.parametrize("offset", [None, 0, 480, -330])
+def test_datetrunc_quarter_preserves_timezone(
+    month: int, offset: Optional[int]
+) -> None:
+    """Quarter truncation retains the offset and resets all smaller fields."""
+    tz = timezone(timedelta(minutes=offset)) if offset is not None else None
+    value = datetime(2024, month, 28, 12, 34, 56, 123456, tzinfo=tz)
+    result = datetime_eval(f"DATETRUNC(DATETIME('{value.isoformat()}'), QUARTER)")
+    expected = datetime(2024, 3 * ((month - 1) // 3) + 1, 1, tzinfo=tz)
+    assert result == expected
+    assert result is not None
+    assert result.utcoffset() == expected.utcoffset()
+
+
+@pytest.mark.parametrize("offset", [0, 480, -330])
+def test_get_since_until_with_timezone_aware_quarter(offset: int) -> None:
+    """A quarter boundary can be compared with an offset-aware range end."""
+    tz = timezone(timedelta(minutes=offset))
+    start = datetime(2024, 5, 31, 12, 34, 56, tzinfo=tz)
+    end = datetime(2024, 7, 1, tzinfo=tz)
+    result = get_since_until(
+        f"DATETRUNC(DATETIME('{start.isoformat()}'), QUARTER) : "
+        f"DATETIME('{end.isoformat()}')"
+    )
+    assert result == (datetime(2024, 4, 1, tzinfo=tz), end)
+
+
+@pytest.mark.parametrize("offset", [0, 480, -330])
+@pytest.mark.parametrize("aware_start", [True, False])
+def test_get_since_until_with_mixed_quarter_bounds(
+    offset: int, aware_start: bool
+) -> None:
+    """Mixed bounds retain their offsets and legacy wall-clock ordering."""
+    tz = timezone(timedelta(minutes=offset))
+    with freezegun.freeze_time("2024-06-01 12:00:00"):
+        if aware_start:
+            start = datetime(2024, 5, 31, 12, tzinfo=tz).isoformat()
+            result = get_since_until(f"DATETRUNC(DATETIME('{start}'), QUARTER) : now")
+            expected = (datetime(2024, 4, 1, tzinfo=tz), datetime(2024, 6, 1, 12))
+        else:
+            result = get_since_until(
+                "DATETRUNC(DATETIME('2024-05-31T12:00:00'), QUARTER) : "
+                f"DATETIME('{datetime(2024, 6, 1, 12, tzinfo=tz).isoformat()}')"
+            )
+            expected = (datetime(2024, 4, 1), datetime(2024, 6, 1, 12, tzinfo=tz))
+    assert result == expected
+    assert result[0] is not None
+    assert result[1] is not None
+    assert result[0].utcoffset() == expected[0].utcoffset()
+    assert result[1].utcoffset() == expected[1].utcoffset()
+
+
+@pytest.mark.parametrize(
+    "start,end",
+    [
+        ("2024-07-01T00:00:00+08:00", "2024-06-30T23:00:00"),
+        ("2024-07-01T00:00:00", "2024-06-30T23:00:00-05:30"),
+    ],
+)
+def test_get_since_until_rejects_reversed_mixed_quarter_bounds(
+    start: str, end: str
+) -> None:
+    """Mixed ranges still reject reversed wall-clock boundaries."""
+    with pytest.raises(ValueError, match="From date cannot be larger than to date"):
+        get_since_until(f"DATETRUNC(DATETIME('{start}'), QUARTER) : DATETIME('{end}')")
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+def test_get_since_until_inherited_comparison_with_mixed_quarter_bounds() -> None:
+    """Inherited duration accepts the same mixed bounds as range validation."""
+    with freezegun.freeze_time("2024-06-01 12:00:00"):
+        result = get_since_until(
+            "DATETRUNC(DATETIME('2024-05-31T12:00:00+08:00'), QUARTER) : now",
+            instant_time_comparison_range="r",
+        )
+    assert result == (datetime(2024, 1, 31), datetime(2024, 4, 1, 12))
+
+
+def test_get_since_until_compares_aware_quarter_bounds_as_instants() -> None:
+    """Two explicit offsets are ordered by instant rather than wall time."""
+    result = get_since_until(
+        "DATETRUNC(DATETIME('2024-05-31T12:00:00+08:00'), QUARTER) : "
+        "DATETIME('2024-03-31T23:00:00+00:00')"
+    )
+    assert result == (
+        datetime(2024, 4, 1, tzinfo=timezone(timedelta(hours=8))),
+        datetime(2024, 3, 31, 23, tzinfo=timezone.utc),
+    )
+    with pytest.raises(ValueError, match="From date cannot be larger than to date"):
+        get_since_until(
+            "DATETRUNC(DATETIME('2024-05-31T12:00:00-05:30'), QUARTER) : "
+            "DATETIME('2024-04-01T00:00:00+00:00')"
+        )
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
