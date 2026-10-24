@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, VizType } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatterRegistry,
+  NumberFormatter,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/Rose/transformProps';
 import { EchartsRoseChartProps } from '../../src/Rose/types';
@@ -201,10 +207,22 @@ test.each([true, false])(
   'escapes literal series text in Rose tooltips (rich=%s)',
   richTooltip => {
     const name = 'Love <3 charts & <img src=x>';
+    const period = '<b>period</b>';
+    const value = '<b>30</b>';
+    const numberFormat = 'rose-tooltip-markup';
+    getNumberFormatterRegistry().registerValue(
+      numberFormat,
+      new NumberFormatter({ id: numberFormat, formatFunc: () => value }),
+    );
     const props = new ChartProps({
       width: 800,
       height: 600,
-      formData: { ...formData, richTooltip },
+      formData: {
+        ...formData,
+        richTooltip,
+        dateTimeFormat: period,
+        numberFormat,
+      },
       theme: supersetTheme,
       queriesData: [{ data: [{ __timestamp: T1, [`sum__num, ${name}`]: 30 }] }],
       hooks: {},
@@ -215,8 +233,9 @@ test.each([true, false])(
     };
     const element = document.createElement('div');
     element.innerHTML = tooltip.formatter({ dataIndex: 0, seriesName: name });
-    expect(element.textContent).toContain(`${name}: 30`);
+    getNumberFormatterRegistry().remove(numberFormat);
+    expect(element.textContent).toBe(`${period}${name}: ${value}`);
     expect(element.querySelector('img')).toBeNull();
-    expect(element.querySelector('b')).not.toBeNull();
+    expect(element.querySelectorAll('b')).toHaveLength(1);
   },
 );

@@ -20,6 +20,8 @@ import { act, render } from '@testing-library/react';
 import {
   CategoricalColorNamespace,
   getLabelsColorMap,
+  getNumberFormatterRegistry,
+  NumberFormatter,
 } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import EchartsRose from '../../src/Rose/EchartsRose';
@@ -188,9 +190,16 @@ test('clicking a different period while drilled returns to the rose view', () =>
 test('drilled Rose tooltips preserve literal series and period text', () => {
   const name = 'Love <3 charts & <img src=x>';
   const label = 'Users <30 & <b>period</b>';
+  const value = '<b>30</b>';
+  const numberFormat = 'drilled-rose-tooltip-markup';
+  getNumberFormatterRegistry().registerValue(
+    numberFormat,
+    new NumberFormatter({ id: numberFormat, formatFunc: () => value }),
+  );
   renderRose({
     ...baseProps,
     seriesNames: [name],
+    numberFormat,
     periods: [
       {
         time: 1,
@@ -207,9 +216,10 @@ test('drilled Rose tooltips preserve literal series and period text', () => {
     value: 30,
     percent: 100,
   });
+  getNumberFormatterRegistry().remove(numberFormat);
   const element = document.createElement('div');
   element.innerHTML = html;
-  expect(element.textContent).toBe(`${label}${name}: 30 (100%)`);
+  expect(element.textContent).toBe(`${label}${name}: ${value} (100%)`);
   expect(element.querySelector('img')).toBeNull();
   expect(element.querySelectorAll('b')).toHaveLength(1);
 });

@@ -16,10 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, VizType } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatterRegistry,
+  NumberFormatter,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/Bullet/transformProps';
 import { EchartsBulletChartProps } from '../../src/Bullet/types';
+
+jest.mock('@apache-superset/core/translation', () => {
+  const translation = jest.requireActual<
+    typeof import('@apache-superset/core/translation')
+  >('@apache-superset/core/translation');
+  return { ...translation, t: jest.fn(translation.t) };
+});
 
 const formData: SqlaFormData = {
   datasource: '5__table',
@@ -427,10 +441,19 @@ test('keeps exact-case dimensions and uses per-index fallbacks for short labels'
 
 test('escapes literal comparison text in every Bullet tooltip', () => {
   const label = 'Users <30 & <img src=x>';
-  const metric = 'Total <3';
+  const metric = '<b>Total <3</b>';
+  const range = '<b>Range</b>';
+  jest.mocked(t).mockReturnValueOnce(range);
+  const value = '<b>120</b>';
+  const yAxisFormat = 'bullet-tooltip-markup';
+  getNumberFormatterRegistry().registerValue(
+    yAxisFormat,
+    new NumberFormatter({ id: yAxisFormat, formatFunc: () => value }),
+  );
   const props = chartProps(
     {
       metric,
+      yAxisFormat,
       rangeLabels: label,
       ranges: '200',
       markerLabels: label,
@@ -448,14 +471,18 @@ test('escapes literal comparison text in every Bullet tooltip', () => {
     series[0].tooltip!.formatter(),
     ...series.slice(1).flatMap(s => s.data.map(d => d.tooltip!.formatter())),
   ];
+  getNumberFormatterRegistry().remove(yAxisFormat);
   tips.forEach(html => {
     const element = document.createElement('div');
     element.innerHTML = html;
     expect(element.textContent).toContain(label);
+    expect(element.textContent).toContain(value);
+    expect(element.querySelectorAll('b')).toHaveLength(1);
     expect(element.querySelector('img')).toBeNull();
   });
   const element = document.createElement('div');
   element.innerHTML = tips[0];
   expect(element.textContent).toContain(metric);
+  expect(element.textContent).toContain(`${range}: ${label}`);
   expect(element.querySelector('b')).not.toBeNull();
 });
