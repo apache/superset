@@ -1383,7 +1383,11 @@ def test_builtin_name_validation_documented_for_administrators() -> None:
     for heading in ("Chart and dashboard titles", "Object-name validation"):
         assert heading in admin
         assert heading not in extensions
-    assert "Theme names retain their whitespace" in admin
+    assert (
+        "Nonblank theme names, saved-metric names, and dataset renames retain their "
+        "whitespace and count it toward the limit."
+    ) in " ".join(admin.split())
+    assert "Blank-name checks precede length checks" in admin
     assert "length validation applies after trimming" in admin
 
 
