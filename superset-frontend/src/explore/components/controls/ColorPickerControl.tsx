@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -27,14 +27,28 @@ import {
 import ControlHeader from '../ControlHeader';
 import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
-const SPECIAL_COLORS = {
+export const SPECIAL_COLORS = {
   Red: { r: 150, g: 0, b: 0, a: 0.2 },
   Green: { r: 0, g: 150, b: 0, a: 0.2 },
 } as const;
 
-type SpecialColorKey = keyof typeof SPECIAL_COLORS;
+export type SpecialColorKey = keyof typeof SPECIAL_COLORS;
 export type ColorPickerValue = RGBColor | SpecialColorKey | string;
 export type ColorOutputFormat = 'hex' | 'rgb';
+
+// `SPECIAL_COLORS` are legacy 2-choice sentinel names that also happen to
+// name a live semantic theme token (BigNumberPeriodOverPeriod's
+// `increase_color`/`decrease_color` resolve 'Green'/'Red' to
+// `theme.colorSuccess`/`theme.colorError` at render time -- see
+// `getComparisonColorTokens`). When a theme token is available, showing the
+// token's actual current color here keeps the picker's own preview honest
+// about what the chart will render, instead of `SPECIAL_COLORS`' fixed,
+// muted stand-in going stale the moment the theme's real success/error
+// colors differ from it.
+const SPECIAL_COLOR_THEME_TOKENS: Partial<Record<SpecialColorKey, string>> = {
+  Green: 'colorSuccess',
+  Red: 'colorError',
+};
 
 export interface ColorPickerControlProps {
   onChange?: (color: ColorPickerValue) => void;
@@ -49,6 +63,7 @@ export interface ColorPickerControlProps {
   ariaLabel?: string;
   resolveThemeTokens?: boolean;
   outputFormat?: ColorOutputFormat;
+  disabled?: boolean;
 }
 
 const normalizeColorToHex = (color: string): string => {
@@ -95,19 +110,38 @@ const getReverseThemeColorMap = (
   return reverseMap;
 };
 
-function toDisplayHex(
+export function toDisplayHex(
   value: ColorPickerValue | undefined,
   themeColors: Record<string, string>,
+  resolveThemeTokens: boolean,
 ): string | undefined {
   if (!value) return undefined;
 
   if (typeof value === 'string') {
+    // Theme-token / SPECIAL_COLORS resolution is opt-in via
+    // `resolveThemeTokens`: callers that store arbitrary literal strings
+    // (e.g. ThemeColorPickers, which never sets this flag) must not have a
+    // string that happens to collide with a theme key or a SPECIAL_COLORS
+    // name (a numeric antd token like `fontSize`, or the literal CSS color
+    // "Red") silently reinterpreted into something else -- or, for a
+    // non-string theme value, thrown on.
+    if (!resolveThemeTokens) return value.toLowerCase();
+
+    const themeToken = SPECIAL_COLOR_THEME_TOKENS[value as SpecialColorKey];
+    if (
+      themeToken &&
+      Object.prototype.hasOwnProperty.call(themeColors, themeToken) &&
+      typeof themeColors[themeToken] === 'string'
+    ) {
+      return themeColors[themeToken].toLowerCase();
+    }
     if (value in SPECIAL_COLORS) {
       return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
     }
     if (
       themeColors &&
-      Object.prototype.hasOwnProperty.call(themeColors, value)
+      Object.prototype.hasOwnProperty.call(themeColors, value) &&
+      typeof themeColors[value] === 'string'
     ) {
       return themeColors[value as string].toLowerCase();
     }
@@ -142,6 +176,7 @@ export default function ColorPickerControl({
   ariaLabel,
   resolveThemeTokens = false,
   outputFormat = 'rgb',
+  disabled = false,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -163,6 +198,12 @@ export default function ColorPickerControl({
       return customPresets.map(item => ({
         label: item.label,
         colors: item.colors.map(color => {
+          if (resolveThemeTokens && color in SPECIAL_COLORS) {
+            // Share the trigger's lookup so the preset chip matches it.
+            return (
+              toDisplayHex(color as string, themeColors, true) ?? String(color)
+            );
+          }
           if (color in SPECIAL_COLORS) {
             return rgbaToHex(
               SPECIAL_COLORS[color as SpecialColorKey],
@@ -193,10 +234,21 @@ export default function ColorPickerControl({
     const rgb = color.toRgb();
     const hex = rgbaToHex(rgb).toLowerCase();
 
+    // Match against the same hex the preset chip and trigger display, so a
+    // special color picked from a theme-resolved chip maps back to its key.
+    // Only keys the caller actually offered as presets are candidates;
+    // otherwise an ordinary theme swatch that shares a hex with Green/Red
+    // (e.g. `colorSuccess`) would be misread as the special key.
+    const offeredSpecialKeys = new Set(
+      (customPresets ?? []).flatMap(item =>
+        item.colors.filter(color => color in SPECIAL_COLORS),
+      ),
+    );
     const specialEntry = resolveThemeTokens
-      ? Object.entries(SPECIAL_COLORS).find(
-          ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
-        )
+      ? Object.keys(SPECIAL_COLORS)
+          .filter(key => offeredSpecialKeys.has(key))
+          .map(key => [key, toDisplayHex(key, themeColors, true)] as const)
+          .find(([, displayHex]) => displayHex === hex)
       : undefined;
 
     if (specialEntry) {
@@ -215,16 +267,44 @@ export default function ColorPickerControl({
     else onChange(hex);
   };
 
-  const hexValue = toDisplayHex(value, themeColors);
+  const hexValue = toDisplayHex(value, themeColors, resolveThemeTokens);
+
+  // AntD renders the swatch trigger as a plain div with no tab stop, so
+  // keyboard-only users could not reach or open it. Make the trigger
+  // focusable and let Enter/Space open the popup like a click would.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const trigger = containerRef.current?.querySelector<HTMLElement>(
+      '.ant-color-picker-trigger',
+    );
+    if (!trigger) return;
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', disabled ? '-1' : '0');
+    if (ariaLabel && !trigger.hasAttribute('aria-label'))
+      trigger.setAttribute('aria-label', ariaLabel);
+  });
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (
+      !disabled &&
+      target.classList?.contains('ant-color-picker-trigger') &&
+      (event.key === 'Enter' || event.key === ' ')
+    ) {
+      event.preventDefault();
+      target.click();
+    }
+  };
 
   return (
-    <div>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div ref={containerRef} onKeyDown={handleTriggerKeyDown}>
       <ControlHeader {...headerProps} />
       <ColorPicker
         aria-label={ariaLabel}
         value={hexValue}
         onChangeComplete={handleChange}
         presets={presets}
+        disabled={disabled}
         showText
       />
     </div>

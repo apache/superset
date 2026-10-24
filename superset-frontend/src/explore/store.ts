@@ -22,9 +22,14 @@ import {
   getChartControlPanelRegistry,
   VizType,
 } from '@superset-ui/core';
+import { ColorSchemeEnum } from '@superset-ui/chart-controls';
 import type { QueryFormData } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
+import {
+  parseIntervalBounds,
+  resolveLegacyIntervalColors,
+} from './components/controls/IntervalColorsControl/legacyColors';
 
 interface ExploreState {
   common?: {
@@ -48,9 +53,25 @@ type FormData = QueryFormData & {
   // persisted form_data for charts that actually used matrixify)
   matrixify_enable_vertical_layout?: boolean;
   matrixify_enable_horizontal_layout?: boolean;
+  // Legacy BigNumberPeriodOverPeriod 2-choice comparison scheme, replaced by
+  // the increase_color/decrease_color ColorPickerControls.
+  comparison_color_scheme?: string;
+  increase_color?: string;
+  decrease_color?: string;
+  // Legacy Gauge 1-indexed interval color positions, replaced by
+  // interval_colors.
+  interval_color_indices?: string;
+  interval_colors?: string[];
+  intervals?: string;
+  color_scheme?: string;
 };
 
-export function handleDeprecatedControls(formData: FormData): void {
+export function handleDeprecatedControls(
+  formData: FormData,
+  {
+    resolveLegacyGaugeColors = false,
+  }: { resolveLegacyGaugeColors?: boolean } = {},
+): void {
   // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
@@ -87,6 +108,60 @@ export function handleDeprecatedControls(formData: FormData): void {
       // Never used matrixify — reset stale defaults
       formData.matrixify_mode_rows = 'disabled';
       formData.matrixify_mode_columns = 'disabled';
+    }
+  }
+
+  // #42910: migrate the legacy BigNumberPeriodOverPeriod
+  // `comparison_color_scheme` ('Green' | 'Red', where 'Red' reverses
+  // increase/decrease colors) into the `increase_color` / `decrease_color`
+  // ColorPickerControls that replaced it. `comparison_color_scheme` is no
+  // longer a registered control, so `getFormDataFromControls` drops it the
+  // next time the chart is saved -- without this migration, that silently
+  // discards a reversed-color choice the first time an old chart is resaved.
+  if (
+    formData.viz_type === VizType.BigNumberPeriodOverPeriod &&
+    formData.comparison_color_scheme &&
+    formData.increase_color === undefined &&
+    formData.decrease_color === undefined
+  ) {
+    const legacyReversed =
+      formData.comparison_color_scheme === ColorSchemeEnum.Red;
+    formData.increase_color = legacyReversed
+      ? ColorSchemeEnum.Red
+      : ColorSchemeEnum.Green;
+    formData.decrease_color = legacyReversed
+      ? ColorSchemeEnum.Green
+      : ColorSchemeEnum.Red;
+  }
+
+  // #42910: on request, migrate the legacy Gauge `interval_color_indices`
+  // (comma-separated, 1-indexed positions into `color_scheme`) into real hex
+  // colors stored by `interval_colors`, which replaced it. Defaults to off,
+  // unlike the comparison_color_scheme migration above: the Gauge control
+  // panel keeps `interval_color_indices` registered as a hidden control, so
+  // Explore (which builds the chart's query and save form data from
+  // registered controls) still hands an untouched legacy string to the
+  // renderer and keeps it on save, where it stays palette-relative. Eagerly
+  // freezing it into literal colors merely from opening the chart would
+  // silently break a dashboard override of this chart's `color_scheme`
+  // applied afterward -- the exact hazard the dashboard hydration path
+  // below was already written to avoid. `IntervalColorsControl` shows the
+  // resolved colors for display on its own (see its
+  // `legacyIntervalColorIndices` prop), and only the user's first edit of
+  // an interval color makes them literal.
+  if (
+    resolveLegacyGaugeColors &&
+    formData.viz_type === VizType.Gauge &&
+    formData.interval_color_indices &&
+    (!formData.interval_colors || formData.interval_colors.length === 0)
+  ) {
+    const resolved = resolveLegacyIntervalColors(
+      parseIntervalBounds(formData.intervals).length,
+      formData.interval_color_indices,
+      formData.color_scheme,
+    );
+    if (resolved.some(color => color !== '')) {
+      formData.interval_colors = resolved;
     }
   }
 }
@@ -131,7 +206,9 @@ export function applyDefaultFormData(
   // stale matrixify modes are cleaned on the dashboard hydration path too,
   // not just the explore path (getControlsState).
   const cleanedFormData = { ...inputFormData };
-  handleDeprecatedControls(cleanedFormData);
+  handleDeprecatedControls(cleanedFormData, {
+    resolveLegacyGaugeColors: false,
+  });
 
   const datasourceType = cleanedFormData.datasource?.split('__')[1] ?? '';
   const vizType = cleanedFormData.viz_type;

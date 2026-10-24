@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -26,7 +27,9 @@ import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
+import ColorPickerControl, {
+  toDisplayHex,
+} from 'src/explore/components/controls/ColorPickerControl';
 
 const defaultProps = {
   value: { r: 0, g: 122, b: 135, a: 1 },
@@ -126,6 +129,36 @@ test('calls onChange with string key "Green" when resolveThemeTokens is true', a
   await userEvent.click(greenPreset);
 
   expect(onChange).toHaveBeenCalledWith('Green');
+});
+
+test('stores the theme token, not "Green", when Green is not among the presets', async () => {
+  const onChange = jest.fn();
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens
+      presets={[{ label: 'Theme', colors: ['colorSuccess'] }]}
+    />,
+  );
+
+  const colorPickerTrigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  );
+  await userEvent.click(colorPickerTrigger!);
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    document.querySelectorAll('.ant-color-picker-presets-color')[0],
+  );
+
+  expect(onChange).toHaveBeenCalledWith('colorSuccess');
 });
 
 test('calls onChange with RGB object when resolveThemeTokens is false', async () => {
@@ -237,4 +270,97 @@ test('handles undefined theme gracefully', () => {
     .mockReturnValue(undefined);
 
   expect(() => render(<ColorPickerControl {...defaultProps} />)).not.toThrow();
+});
+
+test('trigger is exposed as a focusable button for keyboard users', () => {
+  const { container } = render(<ColorPickerControl {...defaultProps} />);
+  const trigger = container.querySelector('.ant-color-picker-trigger');
+  expect(trigger).toHaveAttribute('tabindex', '0');
+  expect(trigger).toHaveAttribute('role', 'button');
+});
+
+test('opens the popup on Enter when the trigger has focus', async () => {
+  render(<ColorPickerControl {...defaultProps} />);
+  const trigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  ) as HTMLElement;
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: 'Enter' });
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+});
+
+test('opens the popup on Space when the trigger has focus', async () => {
+  render(<ColorPickerControl {...defaultProps} />);
+  const trigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  ) as HTMLElement;
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: ' ' });
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+});
+
+test('a disabled trigger does not open on Enter or Space', () => {
+  render(<ColorPickerControl {...defaultProps} disabled />);
+  const trigger = document.querySelector(
+    '.ant-color-picker-trigger',
+  ) as HTMLElement;
+  expect(trigger).toHaveAttribute('tabindex', '-1');
+
+  fireEvent.keyDown(trigger, { key: 'Enter' });
+  fireEvent.keyDown(trigger, { key: ' ' });
+
+  expect(
+    document.querySelector('.ant-color-picker-presets-color'),
+  ).not.toBeInTheDocument();
+});
+
+describe('toDisplayHex', () => {
+  test('never resolves theme tokens or SPECIAL_COLORS when resolveThemeTokens is false', () => {
+    // A raw string that happens to match a numeric antd theme key (e.g.
+    // `fontSize`) must not be looked up -- doing so returns a number, and
+    // calling `.toLowerCase()` on it throws during render.
+    const themeWithNumericToken = { fontSize: 14 } as unknown as Record<
+      string,
+      string
+    >;
+    expect(toDisplayHex('fontSize', themeWithNumericToken, false)).toBe(
+      'fontsize',
+    );
+
+    // A literal CSS color name that happens to collide with a
+    // SPECIAL_COLORS preset name (e.g. "Red") must render as itself, not
+    // as the muted preset color, when this caller never opted into
+    // SPECIAL_COLORS/theme-token resolution.
+    expect(toDisplayHex('Red', {}, false)).toBe('red');
+  });
+
+  test('resolves SPECIAL_COLORS and theme tokens only when resolveThemeTokens is true', () => {
+    expect(toDisplayHex('Red', {}, true)).toBe('#96000033');
+    expect(
+      toDisplayHex('colorSuccess', { colorSuccess: '#52C41A' }, true),
+    ).toBe('#52c41a');
+  });
+
+  test('prefers the live theme token over the fixed SPECIAL_COLORS stand-in for Green/Red', () => {
+    // BigNumberPeriodOverPeriod's increase/decrease pickers render 'Green'
+    // through `theme.colorSuccess` at chart-render time (see
+    // getComparisonColorTokens), so the picker's own preview must show that
+    // same color, not SPECIAL_COLORS' fixed, muted stand-in.
+    expect(toDisplayHex('Green', { colorSuccess: '#52C41A' }, true)).toBe(
+      '#52c41a',
+    );
+    // With no matching theme token available, SPECIAL_COLORS is still the
+    // fallback.
+    expect(toDisplayHex('Green', {}, true)).toBe('#00960033');
+  });
 });
