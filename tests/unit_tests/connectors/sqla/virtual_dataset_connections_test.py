@@ -27,7 +27,9 @@ from sqlalchemy.pool import NullPool
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 
 
 @pytest.mark.parametrize(
@@ -35,6 +37,7 @@ from superset.models.core import Database
 )
 @pytest.mark.parametrize("cached", [False, True])
 @pytest.mark.parametrize("with_rls", [False, True])
+@pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
 def test_virtual_dataset_avoids_schema_connections(
     mocker: MockerFixture,
     tmp_path: Path,
@@ -42,6 +45,7 @@ def test_virtual_dataset_avoids_schema_connections(
     cached: bool,
     with_rls: bool,
     sql: str,
+    datasource_class: type[SqlaTable] | type[Query],
 ) -> None:
     """Configured schemas need no introspection on cache hits or query execution."""
     uri = f"sqlite:///{tmp_path / 'analytic.db'}"
@@ -54,14 +58,19 @@ def test_virtual_dataset_avoids_schema_connections(
     database = Database(id=1, database_name="analytic", sqlalchemy_uri=uri)
     mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
     physical = SqlaTable(id=1, table_name="physical", schema="main", database=database)
-    virtual = SqlaTable(
+    virtual = datasource_class(
         id=2,
-        table_name="virtual",
         sql=sql,
         schema="main",
         database=database,
-        columns=[TableColumn(column_name="col1", type="INTEGER")],
     )
+    if isinstance(virtual, SqlaTable):
+        virtual.table_name = "virtual"
+        virtual.columns = [TableColumn(column_name="col1", type="INTEGER")]
+    else:
+        virtual.extra = {
+            "columns": [{"column_name": "col1", "type": "INTEGER", "is_dttm": False}]
+        }
     rule = MagicMock(clause="col1 = 1", group_key=None)
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_rls_filters",
@@ -107,16 +116,17 @@ def test_virtual_dataset_avoids_schema_connections(
 
 
 @pytest.mark.parametrize("schema", [None, ""])
+@pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
 def test_virtual_dataset_preserves_default_schema_fallback(
     mocker: MockerFixture,
     app_context: None,
     schema: str | None,
+    datasource_class: type[SqlaTable] | type[Query],
 ) -> None:
     """Datasets without a schema still resolve the default for both RLS paths."""
     database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
-    virtual = SqlaTable(
+    virtual = datasource_class(
         id=2,
-        table_name="virtual",
         sql="SELECT col1 FROM physical",
         schema=schema,
         database=database,
@@ -134,3 +144,43 @@ def test_virtual_dataset_preserves_default_schema_fallback(
     virtual.get_from_clause()
     assert apply.call_args.args[2] == "main"
     assert default_schema.call_count == 2
+
+
+@pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
+@pytest.mark.parametrize("rls_required", [False, True])
+def test_virtual_dataset_rls_retry_uses_configured_schema(
+    mocker: MockerFixture,
+    app_context: None,
+    datasource_class: type[SqlaTable] | type[Query],
+    rls_required: bool,
+) -> None:
+    """Failed RLS injection retains schema scoping and fails closed when needed."""
+    database = Database(database_name="analytic", sqlalchemy_uri="sqlite://")
+    virtual = datasource_class(
+        id=2,
+        sql="SELECT col1 FROM physical",
+        schema="configured",
+        database=database,
+    )
+    default_schema = mocker.patch.object(
+        database, "get_default_schema", return_value="other"
+    )
+    apply = mocker.patch(
+        "superset.models.helpers.apply_rls", side_effect=ValueError("cannot apply RLS")
+    )
+    predicates = mocker.patch(
+        "superset.models.helpers.get_predicates_for_table",
+        return_value=["col1 = 1"] if rls_required else [],
+    )
+    rollback = mocker.patch("superset.models.helpers.db.session.rollback")
+
+    if rls_required:
+        with pytest.raises(QueryObjectValidationError):
+            virtual.get_from_clause()
+    else:
+        virtual.get_from_clause()
+
+    default_schema.assert_not_called()
+    assert apply.call_args.args[2] == "configured"
+    assert predicates.call_args.args[0].schema == "configured"
+    rollback.assert_called_once_with()

@@ -410,7 +410,7 @@ class Query(
             collect_rls_predicates_for_sql,
         )
 
-        default_schema = self.database.get_default_schema(self.catalog)
+        default_schema = self.schema or self.database.get_default_schema(self.catalog)
         return list(
             collect_rls_predicates_for_sql(
                 self.sql,
