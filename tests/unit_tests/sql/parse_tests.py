@@ -1781,6 +1781,15 @@ on $left.Day1 == $right.Day
             """,
             ],
         ),
+        # text preceding a multi-line string literal must be kept
+        (
+            "print x = ```a;b```",
+            ["print x = ```a;b```"],
+        ),
+        (
+            "T | where Name == ```O'Brien``` | take 10; print 2",
+            ["T | where Name == ```O'Brien``` | take 10", " print 2"],
+        ),
     ],
 )
 def test_split_kql(kql: str, expected: list[str]) -> None:
