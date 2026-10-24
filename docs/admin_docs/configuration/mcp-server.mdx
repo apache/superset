@@ -2447,7 +2447,10 @@ requires a non-blank title and reports "Text must not be empty" for blank or
 whitespace-only input. A title containing only removed HTML/script content
 (such as `<script>alert(1)</script>`) reports "Contains disallowed content"
 (`unsafe_text`), not an empty-text error. Optional titles on creation retain
-their existing empty-value behavior. `update_dashboard` rejects explicit blank
+their existing empty-value behavior, including whitespace-only values longer
+than the title limit. On creation, blank chart names fall back to generated
+names; whitespace-only dashboard titles fall back to chart-based titles, while
+an explicit empty string is preserved. `update_dashboard` rejects explicit blank
 or whitespace-only dashboard renames with "Text must not be empty"; omitting
 `dashboard_title` leaves the stored title unchanged.
 
@@ -2464,7 +2467,9 @@ MCP chart names and dashboard titles preserve literal comparisons such as
 script-only names, dangerous URL schemes, and entity-encoded markup that would
 leave tag-shaped text or rebuild entities that would change on resubmission
 are rejected. A title altered by sanitization
-includes a warning. Names are sanitized once before persistence, including by
+includes a warning. Python callers supplying UTF-8 bytes or bytearrays receive
+the same title normalization as string inputs. Names are sanitized once before
+persistence, including by
 `generate_chart`'s schema revalidation, so a stored name does not change when
 it is sent back.
 

@@ -568,6 +568,8 @@ class CreateDatasetRequest(BaseModel):
     @classmethod
     def _strip_table_name(cls, v: object) -> object:
         """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             return v.strip()
         return v
@@ -629,6 +631,8 @@ class CreateVirtualDatasetRequest(BaseModel):
     @classmethod
     def dataset_name_must_not_be_empty(cls, v: object) -> object:
         """Trim names and reject blanks before checking their length."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             if not v.strip():
                 raise PydanticCustomError(

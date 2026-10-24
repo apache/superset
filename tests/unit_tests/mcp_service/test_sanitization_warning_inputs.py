@@ -46,12 +46,13 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetMetricRequest,
+    CreateDatasetRequest,
     CreateVirtualDatasetRequest,
     UpdateDatasetMetricRequest,
     UpdateDatasetRequest,
 )
 from superset.mcp_service.middleware import ToolResultCompatibilityMiddleware
-from superset.mcp_service.sql_lab.schemas import SaveSqlQueryRequest
+from superset.mcp_service.sql_lab.schemas import OpenSqlLabRequest, SaveSqlQueryRequest
 from superset.mcp_service.theme.schemas import CreateThemeRequest
 from superset.utils import json
 
@@ -1347,7 +1348,8 @@ def test_sibling_sanitized_length_budget(
 
 @pytest.mark.parametrize(
     "model,payload,field",
-    [
+    _TITLE_SANITIZATION_CASES
+    + [
         case
         for case in _SIBLING_SANITIZATION_CASES
         if case[2] != "value" and not case[2].endswith("_labels")
@@ -1365,3 +1367,114 @@ def test_sibling_byte_strings_are_sanitized_before_coercion(
         payload = {**payload, "comparison_type": "values"}
     request = model.model_validate({**payload, field: value})
     assert getattr(request, field) == "Safe"
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("alias_index", range(4))
+@pytest.mark.parametrize("input_type", [str, bytes, bytearray])
+@pytest.mark.parametrize("length", [0, 251, 501, 10001])
+def test_blank_titles_normalize_before_length(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    alias_index: int,
+    input_type: type[str] | type[bytes] | type[bytearray],
+    length: int,
+) -> None:
+    """Blank fallback or required-title errors precede the persisted length cap."""
+    aliases = (
+        ("chart_name", "name", "title", "slice_name")
+        if field == "chart_name"
+        else ("dashboard_title", "title", "name", "dashboard_title")
+    )
+    blank = " " * length
+    value = blank if input_type is str else input_type(blank.encode())
+    if model in (UpdateDashboardRequest, DuplicateDashboardRequest):
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, aliases[alias_index]: value})
+        assert exc.value.errors()[0]["type"] == "empty_text"
+        assert exc.value.errors()[0]["loc"] == (field,)
+    else:
+        request = model.model_validate({**payload, aliases[alias_index]: value})
+        expected = "" if model is GenerateDashboardRequest and length == 0 else None
+        assert getattr(request, field) == expected
+        assert request.sanitization_warnings == []
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("alias_index", range(4))
+@pytest.mark.parametrize("as_bytearray", [False, True])
+@pytest.mark.parametrize("extra", [0, 1])
+def test_byte_title_sanitized_length_boundary(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    alias_index: int,
+    as_bytearray: bool,
+    extra: int,
+) -> None:
+    """Decoded title aliases sanitize before their final text length is checked."""
+    aliases = (
+        ("chart_name", "name", "title", "slice_name")
+        if field == "chart_name"
+        else ("dashboard_title", "title", "name", "dashboard_title")
+    )
+    limit = 250 if field == "chart_name" else 500
+    text = "x" * (limit + extra)
+    encoded = f"<b> {text} </b>".encode()
+    value = bytearray(encoded) if as_bytearray else encoded
+    if extra:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, aliases[alias_index]: value})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+    else:
+        request = model.model_validate({**payload, aliases[alias_index]: value})
+        assert getattr(request, field) == text
+        assert len(request.sanitization_warnings) == 1
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("as_bytearray", [False, True])
+def test_byte_title_removed_content_is_rejected(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    as_bytearray: bool,
+) -> None:
+    """Byte decoding cannot bypass the stripped-only title guard."""
+    encoded = b"<script>alert(1)</script>"
+    value = bytearray(encoded) if as_bytearray else encoded
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, field: value})
+    assert exc.value.errors()[0]["type"] == "unsafe_text"
+    assert exc.value.errors()[0]["loc"] == (field,)
+
+
+@pytest.mark.parametrize(
+    "model,payload,field,limit",
+    [
+        (CreateDatasetRequest, {"database_id": 1}, "table_name", 250),
+        (
+            CreateVirtualDatasetRequest,
+            {"database_id": 1, "sql": "select 1"},
+            "dataset_name",
+            250,
+        ),
+        (SaveSqlQueryRequest, {"database_id": 1, "sql": "select 1"}, "label", 256),
+        (OpenSqlLabRequest, {"database_id": 1}, "title", 256),
+    ],
+)
+@pytest.mark.parametrize("as_bytearray", [False, True])
+def test_byte_object_name_trims_before_length(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    limit: int,
+    as_bytearray: bool,
+) -> None:
+    """Literal-name models also normalize decoded whitespace before their cap."""
+    text = "x" * limit
+    encoded = f" {text} ".encode()
+    value = bytearray(encoded) if as_bytearray else encoded
+    request = model.model_validate({**payload, field: value})
+    assert getattr(request, field) == text

@@ -6390,7 +6390,12 @@ class ChartNameMixin(BaseModel):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
+        if isinstance(raw, (bytes, bytearray)):
+            raw = raw.decode()
+        if not isinstance(raw, str):
+            return data
+        if not raw.strip():
+            data[key] = None
             return data
         with field_validation_error("chart_name"):
             sanitized, was_modified = sanitize_user_input_with_changes(

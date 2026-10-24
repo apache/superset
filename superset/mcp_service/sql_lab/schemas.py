@@ -269,6 +269,8 @@ class SaveSqlQueryRequest(BaseModel):
     @classmethod
     def label_not_empty(cls, v: object) -> object:
         """Trim labels and reject blanks before checking their length."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
         if not v.strip():
@@ -332,6 +334,8 @@ class OpenSqlLabRequest(BaseModel):
     @classmethod
     def title_strip_or_none(cls, v: object) -> object:
         """Normalize tab titles before enforcing the persisted length cap."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         # Whitespace-only would render as a blank tab label; fall back to
         # SQL Lab's default "Untitled Query N" naming instead.
         if not isinstance(v, str):
