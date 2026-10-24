@@ -1206,13 +1206,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
         statement = script.statements[-1]
+        limit_method = self.db_engine_spec.get_limit_method(self)
         if force or (
             self.db_engine_spec.engine == "mssql"
             and statement.get_limit_value() is None
         ):
-            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.set_limit_value(limit, limit_method)
         else:
-            statement.cap_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.cap_limit_value(limit, limit_method)
 
         return script.format()
 
@@ -1602,7 +1603,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         label_expected = label or sqla_col.name
         # add quotes to tables
         if self.db_engine_spec.get_allows_alias_in_select(self):
-            label = self.db_engine_spec.make_label_compatible(label_expected)
+            label = self.db_engine_spec.make_label_compatible(label_expected, self)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
