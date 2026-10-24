@@ -234,10 +234,12 @@ export default function ColorPickerControl({
     const rgb = color.toRgb();
     const hex = rgbaToHex(rgb).toLowerCase();
 
+    // Match against the same hex the preset chip and trigger display, so a
+    // special color picked from a theme-resolved chip maps back to its key.
     const specialEntry = resolveThemeTokens
-      ? Object.entries(SPECIAL_COLORS).find(
-          ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
-        )
+      ? Object.keys(SPECIAL_COLORS)
+          .map(key => [key, toDisplayHex(key, themeColors, true)] as const)
+          .find(([, displayHex]) => displayHex === hex)
       : undefined;
 
     if (specialEntry) {
