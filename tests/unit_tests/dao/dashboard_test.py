@@ -16,7 +16,7 @@
 # under the License.
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy import event, inspect, select
@@ -26,6 +26,7 @@ from superset import db, security_manager
 from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.daos import dashboard as dashboard_dao
 from superset.daos.dashboard import (
     _install_membership_baseline,
     _layout_chart_id,
@@ -897,6 +898,64 @@ def test_prefetch_before_the_main_get_access_loop_reads_no_extra_sql(
         n = _count_statements(session, narrow_like_the_get)
 
     assert n == 0, f"the GET access loop issued {n} statements after the prefetch"
+
+
+@pytest.mark.parametrize("duplicate_slices", [False, True])
+def test_copy_dashboard_leaves_source_audit_fields_alone(
+    session: Session, duplicate_slices: bool
+) -> None:
+    """Save As must not write to the source dashboard (#45218).
+
+    Only the copy (and, with ``duplicate_slices``, the cloned charts) is new;
+    the source row must not be updated, so its ``changed_on`` and
+    ``changed_by_fk`` keep pointing at the last real edit.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    source = _make_dashboard("copy-source", 2)
+    positions = {
+        f"CHART-{slc.id}": {
+            "type": "CHART",
+            "id": f"CHART-{slc.id}",
+            "children": [],
+            "meta": {"chartId": slc.id, "width": 4, "height": 50},
+        }
+        for slc in source.slices
+    }
+    source.position_json = json.dumps(positions)
+    session.commit()
+    changed_on, changed_by_fk = source.changed_on, source.changed_by_fk
+
+    updates: list[Any] = []
+
+    def before(conn, cursor, statement, params, ctx, many):  # noqa: PLR0913
+        if statement.startswith("UPDATE dashboards "):
+            updates.append(params)
+
+    bind = session.get_bind()
+    event.listen(bind, "before_cursor_execute", before)
+    try:
+        with (
+            patch.object(security_manager, "is_editor", return_value=True),
+            patch.object(dashboard_dao, "g", MagicMock(user=None)),
+        ):
+            new_dashboard = DashboardDAO.copy_dashboard(
+                source,
+                {
+                    "dashboard_title": "copy",
+                    "json_metadata": json.dumps({"positions": positions}),
+                    "duplicate_slices": duplicate_slices,
+                },
+            )
+            session.commit()
+    finally:
+        event.remove(bind, "before_cursor_execute", before)
+
+    assert all(params[-1] == new_dashboard.id for params in updates)
+    session.expire_all()
+    source = session.query(Dashboard).filter_by(slug="copy-source").one()
+    assert source.changed_on == changed_on
+    assert source.changed_by_fk == changed_by_fk
 
 
 def test_set_dash_metadata_malformed_default_filters(session: Session) -> None:
