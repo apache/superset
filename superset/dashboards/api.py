@@ -3713,6 +3713,18 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                A chart the restore was linking or unlinking was permanently
+                deleted while the restore ran. Nothing was changed; retry the
+                same request.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
         """
