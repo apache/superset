@@ -35,7 +35,7 @@ from superset.commands.dataset.exceptions import (
     TemplateParamsInvalidValidationError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlFilter, SqlMetric, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -128,6 +128,20 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         ]
         db.session.add_all(metrics)
         table.metrics = metrics
+
+        filters = [
+            SqlFilter(
+                filter_name=f.filter_name,
+                verbose_name=f.verbose_name,
+                expression=f.expression,
+                description=f.description,
+                warning_text=f.warning_text,
+                extra=f.extra,
+            )
+            for f in self._base_model.filters
+        ]
+        db.session.add_all(filters)
+        table.filters = filters
 
         return table
 
