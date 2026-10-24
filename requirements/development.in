@@ -61,3 +61,7 @@ testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4
 # raises `zope.interface.exceptions.InvalidInterface` outright on 3.13.
 # 7.2 is the first release with explicit handling for it.
 zope.interface>=7.2
+
+# Security: CVE-2026-23949 (Zip Slip path traversal in jaraco.context.tarball)
+# jaraco.context is a transitive dependency (via keyring); 6.1.0 is the first fixed release.
+jaraco.context>=6.1.0
