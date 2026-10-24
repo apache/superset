@@ -130,6 +130,5 @@ run(`${babelCommand} --out-dir esm`, {
 console.log('--- Run tsc ---');
 // only run tsc for packages with ts files
 scope = getPackages(glob, true);
-// Referenced projects share declaration outputs, so avoid concurrent writers.
-run(`lerna exec --stream --concurrency 1 --scope ${scope} \
+run(`lerna exec --stream --concurrency 3 --scope ${scope} \
       -- ../../scripts/tsc.sh --build`);
