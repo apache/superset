@@ -142,7 +142,9 @@ jobs:
             local preset="$1" expected="$2" extra_flags command
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(docker_command "$preset" "$extra_flags")"
-            if ! grep -Fq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected" <<<"$command"; then
+            # Match the whole flag, so a ref with extra trailing text (e.g. a
+            # digest) doesn't pass on its prefix.
+            if ! grep -oE -- '--cache-from=[^[:space:]]+' <<<"$command" | grep -Fxq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected"; then
               echo "::error::preset '$preset' expected cache-from apache/superset-cache:$expected (full command: $command)"
               exit 1
             fi
@@ -196,7 +198,7 @@ jobs:
             load_build_plan push refs/heads/master master
             extra_flags="$(PUBLISH_DOCKER_CACHE=true DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
-            if ! grep -Fq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected" <<<"$command"; then
+            if ! grep -oE -- '--cache-to=[^[:space:]]+' <<<"$command" | grep -Fxq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected"; then
               echo "::error::preset '$preset' expected cache-to apache/superset-cache:$expected for master publish (full command: $command)"
               exit 1
             fi

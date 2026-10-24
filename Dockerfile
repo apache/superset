@@ -161,9 +161,12 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
-# Have pip use the system CA store instead of its vendored copy
-RUN PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
-    pip install --no-cache-dir --upgrade "uv>=0.13.5"
+# Use the system CA store for every download in the Python stages, rather than
+# the CA lists pip and uv bundle. UV_SYSTEM_CERTS needs uv>=0.11.0.
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
+    UV_SYSTEM_CERTS=true
+
+RUN pip install --no-cache-dir --upgrade "uv>=0.11.0"
 
 # Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
