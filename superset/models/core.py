@@ -498,6 +498,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def engine_information(self) -> dict[str, Any]:
         try:
             engine_information = self.db_engine_spec.get_public_information()
+            engine_information["oauth2_enabled"] = self.is_oauth2_enabled()
         except Exception:  # pylint: disable=broad-except
             engine_information = {}
         return engine_information
@@ -1759,6 +1760,7 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     __tablename__ = "database_user_oauth2_tokens"
     __table_args__ = (
         sqla.Index("idx_user_id_database_id", "user_id", "database_id", unique=True),
+        sqla.Index("idx_oauth2_tokens_database_id", "database_id"),
     )
 
     id = Column(Integer, primary_key=True)

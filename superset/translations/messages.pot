@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 17:00-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -303,6 +303,10 @@ msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
+msgstr ""
+
+#, python-format
+msgid "%s Select"
 msgstr ""
 
 #, python-format
@@ -5047,6 +5051,12 @@ msgid "Delete %s"
 msgstr ""
 
 #, python-format
+msgid "Delete %s stored credential pair for \"%s\"? Affected users must authorize this connection again."
+msgid_plural "Delete %s stored credential pairs for \"%s\"? Affected users must authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr ""
 
@@ -5057,6 +5067,13 @@ msgid "Delete Group?"
 msgstr ""
 
 msgid "Delete Layer?"
+msgstr ""
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
 msgstr ""
 
 msgid "Delete Query?"
@@ -5083,7 +5100,16 @@ msgstr ""
 msgid "Delete User?"
 msgstr ""
 
+#, python-format
+msgid "Delete all %s stored credential pair for \"%s\", including users outside this page and search? Affected users must authorize this connection again."
+msgid_plural "Delete all %s stored credential pairs for \"%s\", including users outside this page and search? Affected users must authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Delete all Really?"
+msgstr ""
+
+msgid "Delete all tokens"
 msgstr ""
 
 msgid "Delete annotation"
@@ -5118,6 +5144,9 @@ msgid "Delete query"
 msgstr ""
 
 msgid "Delete role"
+msgstr ""
+
+msgid "Delete selected"
 msgstr ""
 
 msgid "Delete template"
@@ -5248,6 +5277,9 @@ msgid "Deleted: %s"
 msgstr ""
 
 msgid "Deleting a tab will remove all content within it and will deactivate any related alerts or reports. You may still reverse this action with the"
+msgstr ""
+
+msgid "Deleting credentials removes both access and refresh tokens from Superset. Affected users must authorize this connection again. Tokens are not revoked at the OAuth2 provider."
 msgstr ""
 
 msgid "Deleting this dataset is permanent. The affected charts and dashboards will remain, but they may no longer work."
@@ -6403,6 +6435,9 @@ msgstr ""
 msgid "Expired"
 msgstr ""
 
+msgid "Expires on"
+msgstr ""
+
 msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
@@ -6619,6 +6654,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -6638,6 +6676,9 @@ msgstr ""
 
 #, python-format
 msgid "Failed to generate download: %s"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -8615,6 +8656,13 @@ msgstr ""
 msgid "Manage"
 msgstr ""
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr ""
 
@@ -9745,6 +9793,12 @@ msgstr ""
 msgid "OAuth2 client information"
 msgstr ""
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid "OAuth2 tokens deleted. Affected users must authorize this connection again."
+msgstr ""
+
 msgid "OCT"
 msgstr ""
 
@@ -9789,6 +9843,9 @@ msgid "One or many controls to pivot as columns"
 msgstr ""
 
 msgid "One or many metrics to display"
+msgstr ""
+
+msgid "One or more OAuth2 tokens were not found for this database."
 msgstr ""
 
 msgid "One or more annotation layers failed loading."
@@ -11900,6 +11957,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr ""
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -11919,6 +11979,9 @@ msgid "Search by"
 msgstr ""
 
 msgid "Search by query text"
+msgstr ""
+
+msgid "Search by username, name, or email"
 msgstr ""
 
 msgid "Search calculated columns by name"

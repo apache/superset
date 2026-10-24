@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 17:00-0300\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -425,6 +425,10 @@ msgstr "%s CHIAVE PRIVATA TUNNEL SSH"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s PASSWORD CHIAVE PRIVATA TUNNEL SSH"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -7224,6 +7228,16 @@ msgid "Delete %s"
 msgstr "Cancella %s"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "Cancellare %s?"
 
@@ -7235,6 +7249,13 @@ msgstr "Cancellre gruppo?"
 
 msgid "Delete Layer?"
 msgstr "Cancella Layer?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "Cancella Query?"
@@ -7260,8 +7281,23 @@ msgstr "Eliminare tema?"
 msgid "Delete User?"
 msgstr "Cancellare Utente?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Delete all Really?"
 msgstr "Cancellare tutto?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "Cancellare annotazione"
@@ -7298,6 +7334,9 @@ msgstr "Cancella query"
 
 msgid "Delete role"
 msgstr "Cancella profilo"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "Cancella template"
@@ -7434,6 +7473,12 @@ msgid ""
 msgstr ""
 "L'eliminazione di una scheda rimuoverà tutti i contenuti al suo interno e"
 " disattiverà eventuali avvisi o rapporti correlati. "
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -9082,6 +9127,9 @@ msgstr "Sperimentale"
 msgid "Expired"
 msgstr "Scaduto"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -9361,6 +9409,9 @@ msgstr "Impossibile eliminare %(name)s"
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr "Impossibile eliminare %(name)s: %(errMsg)s"
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr "Impossibile stabilire un tunnel SSH verso il database: %(reason)s"
@@ -9392,6 +9443,9 @@ msgstr "Impossibile generare l'URL di modifica del grafico"
 #, python-format
 msgid "Failed to generate download: %s"
 msgstr "Impossibile generare il download: %s"
+
+msgid "Failed to load OAuth2 tokens."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12302,6 +12356,13 @@ msgstr ""
 msgid "Manage"
 msgstr "Gestisci"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "Gestisci editor della dashboard e autorizzazioni di accesso"
 
@@ -13864,6 +13925,14 @@ msgstr "Intervallo numerico"
 msgid "OAuth2 client information"
 msgstr "Informazioni client OAuth2"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13938,6 +14007,9 @@ msgstr "Uno o più controlli da ruotare come colonne"
 
 msgid "One or many metrics to display"
 msgstr "Una o più metriche da mostrare"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -16988,6 +17060,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "Cerca Metriche & Colonne"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr "Cerca un canale per nome o incolla un ID canale"
 
@@ -17008,6 +17083,9 @@ msgstr "Cerca per"
 
 msgid "Search by query text"
 msgstr "Ricerca testo query"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 msgid "Search calculated columns by name"
 msgstr "Cerca colonne calcolate per nome"
@@ -18064,6 +18142,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Show All/Invert buttons in legend"
+msgstr ""
 
 msgid "Show Bubbles"
 msgstr "Mostra Bolle"
@@ -22673,6 +22754,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
