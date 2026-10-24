@@ -65,6 +65,10 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install optional Teams SDK for authentication and delivery tests
+        run: |
+          uv pip install --system -e '.[teams]'
+          python -c "import microsoft_teams.apps"
       - name: SDK unit tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"

@@ -209,6 +209,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         self.validate_report_format(
             report_type, self._properties.get("report_format"), exceptions
         )
+        self.validate_teams_recipients(exceptions)
         self.validate_recipients_policy(exceptions)
         self._validate_executors(report_type, exceptions)
 
