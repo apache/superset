@@ -25,6 +25,7 @@ import exampleDark from './images/example-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: t(
