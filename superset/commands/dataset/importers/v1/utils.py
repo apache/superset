@@ -35,7 +35,7 @@ from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.types import TypeEngine
 
-from superset import db, is_feature_enabled, security_manager
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
@@ -52,7 +52,6 @@ from superset.commands.importers.v1.utils import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
-    FEATURE_FLAG as PARTITION_FILTER_MAPPING,
     is_unfinished,
     stored_expression_error,
     validate_transform,
@@ -420,6 +419,25 @@ def _default_omitted_monotonic_declarations(columns: list[dict[str, Any]]) -> No
             column.setdefault("partition_transform_is_monotonic", False)
 
 
+def _default_omitted_partition_fields(config: dict[str, Any]) -> None:
+    """
+    Read an omitted partition mapping field as its default.
+
+    `ExportDatasetsCommand` leaves these fields out of a bundle while they hold
+    their defaults, so that a dataset that does not use the feature exports a
+    bundle an older Superset -- whose import schemas refuse a field they do not
+    know -- can still import. Omitted therefore has to mean "the default", not
+    "keep what is stored": the import applies the raw config, so on an overwrite
+    an omitted key would otherwise keep a mapping the source dataset does not
+    have.
+    """
+    config.setdefault("partition_column", None)
+    config.setdefault("partition_mapped_column", None)
+    for column in config.get("columns") or []:
+        column.setdefault("partition_value_transform", None)
+        column.setdefault("partition_transform_is_monotonic", False)
+
+
 def drop_unusable_partition_transforms(
     config: dict[str, Any], database: Database | None = None
 ) -> None:
@@ -439,14 +457,12 @@ def drop_unusable_partition_transforms(
     `DatasetDAO.clear_dangling_partition_mapping` already strikes for a mapping
     whose column went away.
 
-    Two kinds of check, and only one of them answers to the feature flag. The
-    usability checks ask whether a transform will ever mirror a filter, which
-    is a question about a live feature; with the flag off nothing mirrors, so
-    rewriting the bundle would discard configuration for no gain. The
-    structural check asks whether the expression is one this product stores at
-    all, and that answer does not change with a flag -- an import written while
-    the flag was off would otherwise sit in the metadata DB fully armed,
-    waiting for an operator to turn the flag on.
+    Neither check answers to the feature flag. The structural check asks
+    whether the expression is one this product stores at all; the blocking
+    tier of `validate_transform` asks the same question `UpdateDatasetCommand`
+    asks of every save, flag on or off. Skipped while the flag was off, a
+    transform no save would accept was imported, stored, and waiting for an
+    operator to turn the flag on.
 
     ``database`` is accepted already resolved for the v0 importer, whose bundles
     nest a dataset under the connection being imported and so carry no
@@ -467,7 +483,6 @@ def drop_unusable_partition_transforms(
     if database is None:
         return
 
-    check_usability = is_feature_enabled(PARTITION_FILTER_MAPPING)
     catalog = config.get("catalog")
     schema = config.get("schema")
 
@@ -489,12 +504,11 @@ def drop_unusable_partition_transforms(
         if not is_unfinished(transform, database.backend):
             if reason := stored_expression_error(database, catalog, schema, transform):
                 reasons.append(reason)
-        if check_usability:
-            reasons.extend(
-                str(issue.message)
-                for issue in validate_transform(transform, database.backend)
-                if issue.blocking
-            )
+        reasons.extend(
+            str(issue.message)
+            for issue in validate_transform(transform, database.backend)
+            if issue.blocking
+        )
 
         if reasons:
             logger.warning(
@@ -761,6 +775,7 @@ def import_dataset(  # noqa: C901
                     )
                     attributes["extra"] = None
 
+    _default_omitted_partition_fields(config)
     drop_unusable_partition_transforms(config)
     # And the mapping's one-transform invariant, against the columns this bundle
     # writes. `DatasetDAO.clear_unmapped_partition_transforms` runs on both
@@ -772,18 +787,13 @@ def import_dataset(  # noqa: C901
     # same bargain the sanitizer above strikes and for the same reason: a bundle
     # is imported whole.
     #
-    # Each reference falls back to the stored dataset, because an overwrite
-    # keeps whatever the bundle omits -- so a bundle that says nothing about
-    # `partition_column` is still mapping onto the stored one.
+    # The mapping's own references are always in `config` by now, but
+    # `main_dttm_col` falls back to the stored dataset, because an overwrite
+    # keeps whatever the bundle omits.
     if cleared := drop_unmapped_value_transforms(
         config.get("columns"),
-        partition_column=config.get(
-            "partition_column", getattr(existing, "partition_column", None)
-        ),
-        partition_mapped_column=config.get(
-            "partition_mapped_column",
-            getattr(existing, "partition_mapped_column", None),
-        ),
+        partition_column=config["partition_column"],
+        partition_mapped_column=config["partition_mapped_column"],
         main_dttm_col=config.get(
             "main_dttm_col", getattr(existing, "main_dttm_col", None)
         ),

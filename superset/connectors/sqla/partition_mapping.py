@@ -2454,6 +2454,55 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     return issues
 
 
+def follow_partition_column_renames(
+    model: SqlaTable, attributes: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Point the partition mapping at the new name of a column renamed in place.
+
+    `partition_column` and `partition_mapped_column` store column *names*,
+    while `DatasetDAO._upsert_columns` identifies a column by its primary key
+    and lets the same request rename it. Without this, renaming either end of
+    the mapping reads as deleting it: `DatasetDAO.clear_dangling_partition_mapping`
+    drops the whole mapping for the partition column, and for the mapped column
+    it drops the override, which re-points the mapping at `main_dttm_col` and
+    takes the renamed column's transform with it.
+
+    A reference is followed when the request leaves it alone -- either by
+    omitting it or by echoing the stored name back, which is what the
+    dataset editor does on every save. A request that names a different
+    column has said what it wants, and is left to say it.
+
+    Not for `override_columns=true`, which matches columns by name: there a
+    rename is a different column, and the mapping going with the old one is
+    correct.
+
+    Returns a new dict rather than mutating the caller's, and is idempotent:
+    once followed, the reference no longer matches the stored name.
+    """
+    columns = attributes.get("columns")
+    if not columns or attributes.get("override_columns"):
+        return attributes
+
+    names_by_id = {column.id: column.column_name for column in model.columns}
+    renames = {
+        names_by_id[column["id"]]: column["column_name"]
+        for column in columns
+        if column.get("id") in names_by_id
+        and column.get("column_name")
+        and column["column_name"] != names_by_id[column["id"]]
+    }
+    if not renames:
+        return attributes
+
+    followed = dict(attributes)
+    for field in ("partition_column", "partition_mapped_column"):
+        stored = getattr(model, field)
+        if stored in renames and followed.get(field, stored) == stored:
+            followed[field] = renames[stored]
+    return followed
+
+
 def drop_unmapped_value_transforms(
     columns: list[dict[str, Any]] | None,
     *,
