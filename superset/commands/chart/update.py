@@ -35,6 +35,7 @@ from superset.commands.chart.exceptions import (
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.commands.chart.utils import (
+    raise_for_saved_query_ownership,
     touch_dashboards,
     validate_chart_datasource_type,
     validate_query_context_datasource,
@@ -259,6 +260,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                     effective_id, datasource_type
                 )
                 self._properties["datasource_name"] = datasource.name
+                raise_for_saved_query_ownership(datasource)
                 security_manager.raise_for_access(datasource=datasource)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
