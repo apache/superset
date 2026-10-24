@@ -30,8 +30,14 @@
  *
  * The transport is strictly best-effort: it is only an acceleration layer over
  * each feature's own authorized fetch/poll, so a socket outage costs latency,
- * not correctness. Connection auth is the `superset-ws-token` JWT cookie, which
- * rides the handshake automatically (same-host requirement).
+ * not correctness.
+ *
+ * Authentication is in-band. Every connection attempt first fetches a short-lived
+ * ticket from `/api/v1/realtime/token/`, opens the socket, and sends it as the
+ * first `auth` frame; the socket is reported `open` only once the server has
+ * acknowledged it (`realtime.auth`). Before the ticket expires, a fresh one is
+ * sent on the open socket, so a long-lived connection never tears down to
+ * re-authenticate. No credential rides the handshake or the URL.
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
@@ -50,7 +56,6 @@ type RealtimeHandler = (payload: unknown) => void;
 type RealtimeConfig = {
   WEBSOCKET_ENABLE?: boolean;
   WEBSOCKET_URL?: string;
-  WEBSOCKET_JWT_EXPIRATION_SECONDS?: number;
 };
 
 // Reconnect backoff after the socket closes. The socket is a first-class
@@ -63,41 +68,51 @@ const RECONNECT_MAX_MS = 30000;
 // reported `unhealthy` so waiters can stop waiting on it (bounded, rather than a
 // silent multi-minute hang) instead of assuming a message is merely in flight.
 const UNHEALTHY_AFTER_ATTEMPTS = 3;
-const WS_CONNECTING = 0;
 const WS_OPEN = 1;
 
-// Fraction of the token lifetime after which the client proactively refreshes the
-// channel cookie and reconnects, so the socket rides a fresh token before the
-// server terminates it at expiry (see Finding 6 / superset/websocket/channel.py's
-// sliding-window re-mint). Past the 0.5 sliding-window boundary (and clear of it,
-// so timer jitter can't land exactly on the boundary and miss the re-mint), while
-// still leaving ample margin before expiry.
-const KEEPALIVE_FRACTION = 0.6;
-// An authed, same-origin GET whose response passes through the Flask
-// `after_request` hook that (re)mints the ws cookie. Any authed endpoint works;
-// `me` is the cheapest stable one.
-const COOKIE_REFRESH_ENDPOINT = '/api/v1/me/';
+const TICKET_ENDPOINT = '/api/v1/realtime/token/';
+// Topic of the server's acknowledgement of an `auth` frame.
+const AUTH_TOPIC = 'realtime.auth';
+// The server closes with this code when the connection never authenticated, its
+// ticket was invalid, or its ticket expired; a fresh ticket fixes it, so the
+// client reconnects immediately rather than backing off.
+const AUTH_CLOSE_CODE = 4401;
+// The server closes with this code when a refresh named another principal.
+const FORBIDDEN_CLOSE_CODE = 4403;
+// How long to wait for the server to acknowledge the first `auth` frame.
+const AUTH_ACK_TIMEOUT_MS = 10000;
+// Fraction of the ticket lifetime after which a fresh ticket is sent on the open
+// socket, leaving the remaining quarter as margin for retries.
+const REFRESH_FRACTION = 0.75;
+const REFRESH_RETRY_BASE_MS = 1000;
+const REFRESH_RETRY_MAX_MS = 30000;
 
 let socket: WebSocket | undefined;
 let reconnectTimeoutId: number;
-let keepaliveTimeoutId: number;
-// Token lifetime (ms) from bootstrap config; 0 disables the proactive keepalive.
-let tokenLifetimeMs = 0;
+let refreshTimeoutId: number;
+let authTimeoutId: number;
+// When the ticket the server last acknowledged expires (epoch ms).
+let ticketExpiresAtMs = 0;
 let enabled = false;
 let url: string | undefined;
 let started = false;
-// Bumped on every (re)configuration so an in-flight reconnect scheduled against
-// a superseded socket detects it is stale and stops.
+// Bumped on every (re)configuration so an in-flight reconnect, ticket fetch, or
+// refresh scheduled against a superseded socket detects it is stale and stops.
 let generation = 0;
+// Identifies the latest connection attempt within a generation. Every attempt
+// takes a new value, so a ticket fetch, ack, timer or close event belonging to an
+// earlier attempt can tell it has been superseded and must not touch the
+// current connection.
+let attemptSeq = 0;
 const handlersByTopic = new Map<string, Set<RealtimeHandler>>();
-// Fired every time a socket transitions to OPEN (initial connect and each
-// reconnect), so a feature can reconcile state it may have missed while the
-// socket was down (see asyncEvent's reconnect catch-up).
+
 // Why a socket became OPEN, passed to open-listeners so a consumer can decide
 // whether to reconcile: `initial` (first connect), `reconnect` (recovered from a
-// drop — a message may have been missed), or `keepalive` (a planned pre-expiry
-// token refresh — seamless, so an expensive reconcile isn't warranted).
-export type RealtimeOpenReason = 'initial' | 'reconnect' | 'keepalive';
+// drop — a message may have been missed), or `rebind` (the server acknowledged a
+// changed tab id on the open socket — a message sent to the old per-tab channel
+// may have been missed). Ordinary ticket refreshes happen on the open socket and
+// raise no event.
+export type RealtimeOpenReason = 'initial' | 'reconnect' | 'rebind';
 
 type RealtimeOpenListener = (reason: RealtimeOpenReason) => void;
 
@@ -107,16 +122,28 @@ const openListeners = new Set<RealtimeOpenListener>();
 
 // Connection health, surfaced so a feature can reconcile via its authorized REST
 // API on a reconnect and, crucially, stop waiting on a genuinely-down socket
-// (`unhealthy`) instead of hanging until a long give-up timeout.
+// (`unhealthy`) instead of hanging until a long give-up timeout. `unauthorized`
+// is terminal: the ticket endpoint refused this session (logged out, or the
+// realtime permission was removed), so the client stops connecting.
 export type RealtimeConnectionState =
   | 'connecting'
   | 'open'
   | 'reconnecting'
-  | 'unhealthy';
+  | 'unhealthy'
+  | 'unauthorized';
 
 type RealtimeStateListener = (state: RealtimeConnectionState) => void;
 
 const stateListeners = new Set<RealtimeStateListener>();
+
+let currentState: RealtimeConnectionState = 'connecting';
+
+/**
+ * The current connection state. Consumers that register after a transition
+ * (e.g. a chart request started while the transport is `unauthorized`) read it
+ * here instead of relying on having observed the transition.
+ */
+export const getRealtimeState = (): RealtimeConnectionState => currentState;
 
 // Consecutive socket closes (or connect failures) with no intervening OPEN. Reset
 // to 0 on OPEN. Drives the reconnect backoff and the `unhealthy` transition.
@@ -124,9 +151,9 @@ let reconnectAttempts = 0;
 
 /**
  * Register a listener fired on every connection-state transition
- * (`connecting`/`open`/`reconnecting`/`unhealthy`); returns an unsubscribe
- * function. Use it to reconcile on reconnect and to give up promptly when the
- * socket is `unhealthy` rather than waiting out a long timeout.
+ * (`connecting`/`open`/`reconnecting`/`unhealthy`/`unauthorized`); returns an
+ * unsubscribe function. Use it to reconcile on reconnect and to give up promptly
+ * when the socket is `unhealthy` rather than waiting out a long timeout.
  */
 export const subscribeRealtimeState = (
   listener: RealtimeStateListener,
@@ -138,6 +165,7 @@ export const subscribeRealtimeState = (
 };
 
 const emitState = (state: RealtimeConnectionState): void => {
+  currentState = state;
   stateListeners.forEach(listener => {
     try {
       listener(state);
@@ -178,8 +206,8 @@ const scheduleReconnect = (thisGeneration: number): void => {
 /**
  * Register a listener fired when the socket (re)connects (transitions to OPEN);
  * returns an unsubscribe function. The listener receives a `RealtimeOpenReason` so
- * it can skip an expensive reconcile on a seamless `keepalive` reconnect and only
- * reconcile on a real `reconnect` after a drop.
+ * it can skip an expensive reconcile on the `initial` connect and only reconcile
+ * on a real `reconnect` after a drop.
  */
 export const subscribeRealtimeOpen = (
   listener: RealtimeOpenListener,
@@ -190,27 +218,23 @@ export const subscribeRealtimeOpen = (
   };
 };
 
-/**
- * Parse a raw socket message and dispatch the `{topic, payload}` envelope to the
- * handlers registered for its topic. Exported for tests. Strictly best-effort:
- * malformed data and a throwing handler are logged and swallowed, never
- * propagated.
- */
-export const dispatchRealtimeMessage = (rawData: string): void => {
-  let message: RealtimeMessage;
+const parseRealtimeMessage = (rawData: string): RealtimeMessage | null => {
   try {
     const parsed: unknown = JSON.parse(rawData) ?? {};
-    if (!parsed || typeof parsed !== 'object') return;
+    if (!parsed || typeof parsed !== 'object') return null;
     const { topic, payload } = parsed as {
       topic?: unknown;
       payload?: unknown;
     };
-    if (typeof topic !== 'string') return;
-    message = { topic, payload };
+    if (typeof topic !== 'string') return null;
+    return { topic, payload };
   } catch (err) {
     logging.warn('Failed to parse realtime message', err);
-    return;
+    return null;
   }
+};
+
+const deliverRealtimeMessage = (message: RealtimeMessage): void => {
   const topicHandlers = handlersByTopic.get(message.topic);
   if (!topicHandlers) return;
   topicHandlers.forEach(handler => {
@@ -222,12 +246,22 @@ export const dispatchRealtimeMessage = (rawData: string): void => {
   });
 };
 
+/**
+ * Parse a raw socket message and dispatch the `{topic, payload}` envelope to the
+ * handlers registered for its topic. Exported for tests. Strictly best-effort:
+ * malformed data and a throwing handler are logged and swallowed, never
+ * propagated.
+ */
+export const dispatchRealtimeMessage = (rawData: string): void => {
+  const message = parseRealtimeMessage(rawData);
+  if (message) deliverRealtimeMessage(message);
+};
+
 // Build the per-connection ws URL. The configured endpoint may be absolute
 // (`ws://host/`) or root-relative (`/superset-ws`, behind a same-origin proxy),
 // so resolve it against the page URL and normalize an http(s) result to ws(s).
-// The tab id is advertised as a query param so the server binds a per-tab channel
-// for tab-targeted delivery. The stored base `url` is left untouched so
-// connectRealtime's idempotency compare stays stable.
+// The stored base `url` is left untouched so connectRealtime's idempotency
+// compare stays stable.
 const buildConnectUrl = (baseUrl: string): string => {
   try {
     const base =
@@ -235,22 +269,22 @@ const buildConnectUrl = (baseUrl: string): string => {
     const parsed = new URL(baseUrl, base);
     if (parsed.protocol === 'http:') parsed.protocol = 'ws:';
     else if (parsed.protocol === 'https:') parsed.protocol = 'wss:';
-    parsed.searchParams.set('tab_id', getTabId());
     return parsed.toString();
   } catch {
-    // Last resort (unparseable and no page URL): still advertise the tab id so
-    // per-tab delivery works rather than silently falling back to polling.
-    const sep = baseUrl.includes('?') ? '&' : '?';
-    return `${baseUrl}${sep}tab_id=${encodeURIComponent(getTabId())}`;
+    return baseUrl;
   }
 };
 
-const hasActiveSocket = (): boolean =>
-  socket?.readyState === WS_CONNECTING || socket?.readyState === WS_OPEN;
+const hasActiveSocket = (): boolean => socket?.readyState === WS_OPEN;
+
+const clearTimers = (): void => {
+  if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+  if (refreshTimeoutId) clearTimeout(refreshTimeoutId);
+  if (authTimeoutId) clearTimeout(authTimeoutId);
+};
 
 const teardownSocket = (): void => {
-  if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
-  if (keepaliveTimeoutId) clearTimeout(keepaliveTimeoutId);
+  clearTimers();
   if (socket) {
     // Detach handlers first so the closing socket can't schedule a reconnect
     // against the superseded generation.
@@ -267,16 +301,132 @@ const teardownSocket = (): void => {
   }
 };
 
+interface Ticket {
+  token: string;
+  expiresInMs: number;
+}
+
+/** Fetch a fresh connection ticket for the current session. */
+const fetchTicket = async (): Promise<Ticket> => {
+  const { json } = await SupersetClient.get({ endpoint: TICKET_ENDPOINT });
+  const { token, expires_in: expiresIn } = (json ?? {}) as {
+    token?: unknown;
+    expires_in?: unknown;
+  };
+  if (typeof token !== 'string' || typeof expiresIn !== 'number') {
+    throw new Error('Malformed realtime ticket response');
+  }
+  return { token, expiresInMs: expiresIn * 1000 };
+};
+
+/**
+ * Whether a ticket request failed because the session may not use the transport
+ * (no session, or no realtime permission). Retrying cannot succeed.
+ */
+const isUnauthorizedError = (err: unknown): boolean => {
+  const status = (err as { status?: unknown } | null)?.status;
+  return status === 401 || status === 403;
+};
+
+// Tab ids carried by `auth` frames the server has not acknowledged yet, oldest
+// first, and the tab id the server last acknowledged. The server answers every
+// frame in order, so comparing the two tells whether an ack rebound the tab.
+let unackedTabIds: string[] = [];
+let ackedTabId: string | undefined;
+
+const sendAuthFrame = (ws: WebSocket, token: string): void => {
+  const tabId = getTabId();
+  ws.send(JSON.stringify({ type: 'auth', token, tab_id: tabId }));
+  unackedTabIds.push(tabId);
+};
+
+const notifyOpen = (reason: RealtimeOpenReason): void => {
+  openListeners.forEach(listener => {
+    try {
+      listener(reason);
+    } catch (err) {
+      logging.warn('Realtime open-listener error', err);
+    }
+  });
+};
+
+// Stop connecting after the server refused this session. Closes any live socket
+// without scheduling a reconnect.
+const enterUnauthorized = (): void => {
+  teardownSocket();
+  emitState('unauthorized');
+};
+
+const refreshRetryDelayMs = (attempt: number): number =>
+  Math.min(REFRESH_RETRY_BASE_MS * 2 ** attempt, REFRESH_RETRY_MAX_MS);
+
+// Send a fresh ticket on the open socket `ws`. A transient ticket failure is
+// retried with backoff until the current ticket expires; past it the server closes the socket
+// with AUTH_CLOSE_CODE and the reconnect path takes over. The server's
+// `realtime.auth` reply schedules the next refresh.
+function refreshTicket(
+  thisGeneration: number,
+  ws: WebSocket,
+  attempt = 0,
+): void {
+  fetchTicket().then(
+    ({ token }) => {
+      if (thisGeneration !== generation || socket !== ws) return;
+      if (ws.readyState !== WS_OPEN) return;
+      try {
+        sendAuthFrame(ws, token);
+      } catch (err) {
+        logging.warn('Failed to send realtime auth refresh', err);
+      }
+    },
+    err => {
+      if (thisGeneration !== generation || socket !== ws) return;
+      if (isUnauthorizedError(err)) {
+        enterUnauthorized();
+        return;
+      }
+      const delay = refreshRetryDelayMs(attempt);
+      if (Date.now() + delay >= ticketExpiresAtMs) return;
+      refreshTimeoutId = window.setTimeout(
+        () => refreshTicket(thisGeneration, ws, attempt + 1),
+        delay,
+      );
+    },
+  );
+}
+
 // Declared as a hoisted function so scheduleReconnect (above) can reference it
 // for the mutual reconnect recursion without a use-before-define cycle.
-function openSocket(thisGeneration: number, reason: RealtimeOpenReason): void {
+async function openSocket(
+  thisGeneration: number,
+  reason: RealtimeOpenReason,
+): Promise<void> {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
-  const connectUrl = buildConnectUrl(url);
+  attemptSeq += 1;
+  const attempt = attemptSeq;
+  const isCurrent = () =>
+    thisGeneration === generation && attempt === attemptSeq;
   emitState('connecting');
+
+  let ticket: Ticket;
+  try {
+    ticket = await fetchTicket();
+  } catch (err) {
+    if (!isCurrent()) return;
+    if (isUnauthorizedError(err)) {
+      enterUnauthorized();
+      return;
+    }
+    logging.warn('Failed to fetch realtime ticket', err);
+    scheduleReconnect(thisGeneration);
+    return;
+  }
+  if (!isCurrent()) return;
+
   let ws: WebSocket;
   try {
-    ws = new WebSocket(connectUrl);
+    ws = new WebSocket(buildConnectUrl(url));
   } catch (err) {
     logging.warn('Failed to open realtime WebSocket', err);
     // A synchronous constructor throw would otherwise dead-end this generation
@@ -287,67 +437,83 @@ function openSocket(thisGeneration: number, reason: RealtimeOpenReason): void {
     return;
   }
   socket = ws;
-
-  // Proactively refresh the channel cookie and reconnect before this
-  // connection's token expires, so an idle realtime surface (one making no other
-  // HTTP requests, e.g. a quiet list view) does not silently lose the socket at
-  // JWT expiry. The GET re-mints the httponly cookie via the Flask after_request
-  // hook (inside its sliding window); the reconnect then rides the fresh token.
-  // Best-effort: reconnect regardless of the GET's outcome (a stale cookie just
-  // fails the handshake, and onclose retries). This reconnect is `keepalive` (a
-  // seamless handover), so open-listeners can skip an expensive reconcile.
-  if (enabled && tokenLifetimeMs > 0) {
-    keepaliveTimeoutId = window.setTimeout(() => {
-      // Only hand off a socket that is still OPEN. Besides a superseded
-      // generation or a replaced socket, guard on readyState: `onclose` merely
-      // *schedules* a delayed reconnect (it doesn't clear `socket` or bump the
-      // generation), so a just-closed socket still satisfies `socket === ws`. A
-      // seamless keepalive handoff of a closed socket would cancel that real
-      // `reconnect` and reopen as `keepalive` — and list views skip reconcile on
-      // `keepalive`, so they'd miss entity changes from the actual outage.
-      if (
-        thisGeneration !== generation ||
-        socket !== ws ||
-        ws.readyState !== WS_OPEN
-      ) {
-        return;
-      }
-      SupersetClient.get({ endpoint: COOKIE_REFRESH_ENDPOINT })
-        .catch(() => {})
-        .finally(() => {
-          if (
-            thisGeneration !== generation ||
-            socket !== ws ||
-            ws.readyState !== WS_OPEN
-          ) {
-            return;
-          }
-          generation += 1;
-          teardownSocket();
-          openSocket(generation, 'keepalive');
-        });
-    }, tokenLifetimeMs * KEEPALIVE_FRACTION);
-  }
+  unackedTabIds = [];
+  ackedTabId = undefined;
+  // Set once the server acknowledges the first `auth` frame.
+  let authenticated = false;
 
   ws.onopen = () => {
-    if (thisGeneration !== generation) return;
+    if (thisGeneration !== generation || socket !== ws) return;
+    try {
+      sendAuthFrame(ws, ticket.token);
+    } catch (err) {
+      logging.warn('Failed to send realtime auth frame', err);
+    }
+    // A connection the server never acknowledges (a proxy that swallows frames,
+    // an overloaded server) is abandoned and retried rather than reported open.
+    authTimeoutId = window.setTimeout(() => {
+      if (thisGeneration !== generation || socket !== ws || authenticated) {
+        return;
+      }
+      teardownSocket();
+      scheduleReconnect(thisGeneration);
+    }, AUTH_ACK_TIMEOUT_MS);
+  };
+
+  const handleAuthAck = (payload: unknown): void => {
+    const { status, expires_in: expiresIn } = (payload ?? {}) as {
+      status?: unknown;
+      expires_in?: unknown;
+    };
+    if (status !== 'ok' || typeof expiresIn !== 'number') return;
+    if (refreshTimeoutId) clearTimeout(refreshTimeoutId);
+    ticketExpiresAtMs = Date.now() + expiresIn * 1000;
+    refreshTimeoutId = window.setTimeout(
+      () => refreshTicket(thisGeneration, ws),
+      expiresIn * 1000 * REFRESH_FRACTION,
+    );
+    const tabId = unackedTabIds.shift();
+    if (authenticated) {
+      if (tabId !== undefined && tabId !== ackedTabId) {
+        ackedTabId = tabId;
+        notifyOpen('rebind');
+      }
+      return;
+    }
+    authenticated = true;
+    ackedTabId = tabId;
+    if (authTimeoutId) clearTimeout(authTimeoutId);
     // Recovered: reset the failure counter and report a healthy connection.
     reconnectAttempts = 0;
     emitState('open');
-    openListeners.forEach(listener => {
-      try {
-        listener(reason);
-      } catch (err) {
-        logging.warn('Realtime open-listener error', err);
-      }
-    });
+    notifyOpen(reason);
   };
+
   ws.onmessage = (event: MessageEvent) => {
-    if (thisGeneration === generation)
-      dispatchRealtimeMessage(String(event.data));
+    if (thisGeneration !== generation || socket !== ws) return;
+    const message = parseRealtimeMessage(String(event.data));
+    if (!message) return;
+    if (message.topic === AUTH_TOPIC) {
+      handleAuthAck(message.payload);
+    } else if (authenticated) {
+      deliverRealtimeMessage(message);
+    }
   };
-  ws.onclose = () => {
-    if (thisGeneration !== generation) return;
+
+  ws.onclose = (event: CloseEvent) => {
+    if (thisGeneration !== generation || socket !== ws) return;
+    clearTimers();
+    socket = undefined;
+    if (
+      authenticated &&
+      (event.code === AUTH_CLOSE_CODE || event.code === FORBIDDEN_CLOSE_CODE)
+    ) {
+      // The ticket expired (or was refused) on a socket that had been healthy:
+      // reconnect right away with a fresh ticket instead of backing off.
+      emitState('reconnecting');
+      openSocket(thisGeneration, 'reconnect');
+      return;
+    }
     scheduleReconnect(thisGeneration);
   };
   // Errors surface as a subsequent close; let onclose own the reconnect and
@@ -383,7 +549,6 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
   started = true;
   enabled = nextEnabled;
   url = nextUrl;
-  tokenLifetimeMs = (conf?.WEBSOCKET_JWT_EXPIRATION_SECONDS ?? 0) * 1000;
   openSocket(generation, 'initial');
 };
 
@@ -422,13 +587,13 @@ export const subscribeRealtime = (
 // Keep the socket's per-tab channel in sync with the tab id. If this tab's id is
 // reassigned (a duplicated tab resolving a TAB_ID_DENIED collision), the live
 // socket stays bound to the old per-tab channel while new subscriptions use the
-// new id, so tab-targeted status events would miss it. Reconnect to re-register
-// under the current id (openSocket re-reads getTabId). No-op unless active.
+// new id, so tab-targeted status events would miss it. Re-authenticate on the
+// open socket so the server rebinds the tab channel; no reconnect is needed.
+// A socket still connecting reads the current id when it sends its first frame.
 subscribeTabIdChange(() => {
-  if (!enabled || !hasActiveSocket()) return;
-  generation += 1;
-  teardownSocket();
-  openSocket(generation, 'reconnect');
+  if (!enabled || !socket || socket.readyState !== WS_OPEN) return;
+  if (refreshTimeoutId) clearTimeout(refreshTimeoutId);
+  refreshTicket(generation, socket);
 });
 
 // Test-only: reset module state between cases.
@@ -437,6 +602,7 @@ export const resetRealtimeForTests = (): void => {
   handlersByTopic.clear();
   openListeners.clear();
   stateListeners.clear();
+  currentState = 'connecting';
   reconnectAttempts = 0;
   started = false;
   enabled = false;
