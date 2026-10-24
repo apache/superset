@@ -22,17 +22,22 @@ import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { LayoutItem, RootState } from 'src/dashboard/types';
+import { DynamicTitleConfig, LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import ChartTitleEditor from 'src/dashboard/components/ChartTitleEditor';
+import IconButton from 'src/dashboard/components/IconButton';
+import { useDynamicChartTitle } from 'src/dashboard/util/useDynamicChartTitle';
+import { getChartBaseTitle } from 'src/dashboard/util/dynamicTitle';
+import { t } from '@apache-superset/core/translation';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import { ConnectDragSource } from 'react-dnd';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 import useFilterFocusHighlightStyles from 'src/dashboard/util/useFilterFocusHighlightStyles';
-import { AntdThemeProvider } from '@superset-ui/core/components';
+import { AntdThemeProvider, Icons } from '@superset-ui/core/components';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_BASE_UNIT,
@@ -113,6 +118,24 @@ const ChartHolder = ({
     }
   `;
   const { chartId } = component.meta;
+  const [isTitleEditorOpen, setTitleEditorOpen] = useState(false);
+  const titleEditorButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isTitleEditorOpen) {
+      return undefined;
+    }
+    // Restore focus after the dialog has unmounted, outside its focus trap.
+    return () => titleEditorButtonRef.current?.focus();
+  }, [isTitleEditorOpen]);
+  const baseTitle = getChartBaseTitle(
+    component.meta.sliceNameOverride,
+    component.meta.sliceName,
+  );
+  const { title: displayTitle } = useDynamicChartTitle(
+    chartId ?? 0,
+    baseTitle,
+    component.meta.dynamicTitle,
+  );
   const isFullSize = fullSizeChartId === chartId;
   const chartHolderRef = useRef<HTMLDivElement | null>(null);
 
@@ -282,6 +305,23 @@ const ChartHolder = ({
     [component, updateComponents],
   );
 
+  const handleHideTitleEditor = () => {
+    setTitleEditorOpen(false);
+  };
+
+  const handleApplyTitle = (
+    nextTitle: string,
+    dynamicTitle?: DynamicTitleConfig,
+  ) => {
+    updateComponents({
+      [component.id]: {
+        ...component,
+        meta: { ...component.meta, sliceNameOverride: nextTitle, dynamicTitle },
+      },
+    });
+    handleHideTitleEditor();
+  };
+
   const handleToggleFullSize = useCallback(() => {
     setFullSizeChartId(isFullSize ? null : (chartId ?? null));
   }, [chartId, isFullSize, setFullSizeChartId]);
@@ -369,11 +409,7 @@ const ChartHolder = ({
               dashboardId={dashboardId}
               width={chartWidth}
               height={chartHeight}
-              sliceName={
-                component.meta.sliceNameOverride ||
-                component.meta.sliceName ||
-                ''
-              }
+              sliceName={editMode ? baseTitle : displayTitle}
               updateSliceName={(_sliceId: number, name: string) =>
                 handleUpdateSliceName(name)
               }
@@ -387,6 +423,13 @@ const ChartHolder = ({
             />
             {editMode && (
               <HoverMenu position="top">
+                <IconButton
+                  ref={titleEditorButtonRef}
+                  label={t('Configure chart title')}
+                  hideVisibleLabel
+                  icon={<Icons.EditOutlined iconSize="l" />}
+                  onClick={() => setTitleEditorOpen(true)}
+                />
                 <div data-test="dashboard-delete-component-button">
                   <DeleteComponentButton onDelete={handleDeleteComponent} />
                 </div>
@@ -399,8 +442,8 @@ const ChartHolder = ({
     [
       component.id,
       component.meta.chartId,
-      component.meta.sliceNameOverride,
-      component.meta.sliceName,
+      baseTitle,
+      displayTitle,
       parentComponent.type,
       columnWidth,
       heightMultiple,
@@ -430,18 +473,30 @@ const ChartHolder = ({
   );
 
   return (
-    <Draggable
-      component={component}
-      parentComponent={parentComponent}
-      orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
-      index={index}
-      depth={depth}
-      onDrop={handleComponentDrop}
-      disableDragDrop={false}
-      editMode={editMode}
-    >
-      {renderChild}
-    </Draggable>
+    <>
+      <Draggable
+        component={component}
+        parentComponent={parentComponent}
+        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
+        index={index}
+        depth={depth}
+        onDrop={handleComponentDrop}
+        disableDragDrop={false}
+        editMode={editMode}
+      >
+        {renderChild}
+      </Draggable>
+      {editMode && isTitleEditorOpen && (
+        <ChartTitleEditor
+          chartId={chartId ?? 0}
+          baseTitle={baseTitle}
+          originalTitle={component.meta.sliceName || ''}
+          config={component.meta.dynamicTitle}
+          onApply={handleApplyTitle}
+          onHide={handleHideTitleEditor}
+        />
+      )}
+    </>
   );
 };
 

@@ -2957,6 +2957,9 @@ msgstr "Orientacija stolpcev"
 msgid "Base"
 msgstr "Osnoven"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Osnovni eksponent"
 
@@ -2981,6 +2984,9 @@ msgstr "Slog zemljevida osnovne plasti. Oglejte si dokumentacijo MapLibre: %s"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Base slope"
 msgstr "Osnovni nagib"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Osnovna širina"
@@ -3900,6 +3906,9 @@ msgstr "Izberite podatkovno bazo..."
 msgid "Choose a delimiter"
 msgstr "Izberite ločilnik"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Izberite mero za desno os"
 
@@ -4617,6 +4626,9 @@ msgstr "Konfigurirajte samodejno osveževanje nadzorne plošče"
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Configure caching and performance settings"
 msgstr "Konfigurirajte predpomnjenje in nastavitve delovanja"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Nastavi prilagojeno časovno obdobje"
@@ -7159,6 +7171,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Vnesite del imena predmeta"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Vnesite naslov opozorila"
 
@@ -7411,6 +7426,9 @@ msgid "Example"
 msgstr "Primer"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -8992,6 +9010,9 @@ msgstr "Vstavite URL plasti"
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Insert Layer title"
 msgstr "Vstavite naslov plasti"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "V notranjosti"
@@ -10977,6 +10998,9 @@ msgstr "Ni ustreznih rezultatov"
 
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na to nadzorno ploščo trenutno ni dodanih večplastnih grafikonov deck.gl."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -13585,6 +13609,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Shrani poizvedbo"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Save this API key securely"
@@ -16109,6 +16136,11 @@ msgid "The background color of the charts."
 msgstr "Barva ozadja grafikonov."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -18349,6 +18381,9 @@ msgstr "Naslov je obvezen"
 msgid "Title or Slug"
 msgstr "Naslov ali `Slug`"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -19025,6 +19060,10 @@ msgstr "Posodobite samodejno osveževanje"
 msgid "Update chart"
 msgstr "Posodobi grafikon"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Posodabljanje grafikona je bilo ustavljeno"
 
@@ -19105,6 +19144,9 @@ msgstr ""
 "Razpoložljive spremenljivke temeljijo na vaši zgornji izbiri vsebine "
 "orodnih namigov."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Uporabi logaritemsko skalo"
 
@@ -19170,6 +19212,9 @@ msgstr "Ta sklop uporabite, če želite poizvedbo za posamezne vrstice"
 
 msgid "Use this to define a static color for all circles"
 msgstr "S tem definirate določeno barvo za vse kroge"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -20778,6 +20823,9 @@ msgstr "Stopnja povečave"
 
 msgid "Zoom level of the map"
 msgstr "Stopnja povečave zemljevida"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ neimenovana nadzorna plošča ]"

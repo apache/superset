@@ -2886,6 +2886,9 @@ msgstr "Balken-Ausrichtung"
 msgid "Base"
 msgstr "Basis"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Basisexponent"
 
@@ -2906,6 +2909,9 @@ msgstr "Kartenstil der Basisebene. Siehe MapLibre-Dokumentation: %s"
 
 msgid "Base slope"
 msgstr "Steigung"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Basisbreite"
@@ -3821,6 +3827,9 @@ msgstr "Wählen Sie eine Datenbank..."
 msgid "Choose a delimiter"
 msgstr "Wählen Sie ein Trennzeichen"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Wählen Sie eine Metrik für die rechte Achse"
 
@@ -4534,6 +4543,9 @@ msgstr "Konfigurieren Sie die automatische Aktualisierung des Dashboards"
 
 msgid "Configure caching and performance settings"
 msgstr "Konfigurieren Sie Caching- und Leistungseinstellungen"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Benutzerdefinierten Zeitraum konfigurieren"
@@ -7042,6 +7054,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Name des Alarms eingeben"
 
@@ -7280,6 +7295,9 @@ msgid "Example"
 msgstr "Beispiel"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -8820,6 +8838,9 @@ msgstr "Ebenen-URL einfügen"
 
 msgid "Insert Layer title"
 msgstr "Ebenentitel einfügen"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "Innerhalb"
@@ -10754,6 +10775,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "Derzeit sind keine mehrschichtigen Deck.gl-Diagramme zu diesem Dashboard "
 "hinzugefügt."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -13352,6 +13376,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Abfrage speichern"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "Diesen API-Schlüssel sicher abspeichern"
 
@@ -15831,6 +15858,11 @@ msgid "The background color of the charts."
 msgstr "Die Hintergrundfarbe der Diagramme."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -18111,6 +18143,9 @@ msgstr "Titel ist erforderlich"
 msgid "Title or Slug"
 msgstr "Titel oder Kopfzeile"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -18769,6 +18804,10 @@ msgstr "Automatische Aktualisierung aktualisieren"
 msgid "Update chart"
 msgstr "Diagramm aktualisieren"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Aktualisierung des Diagramms wurde abgebrochen"
 
@@ -18847,6 +18886,9 @@ msgstr ""
 "erstellen. Die verfügbaren Variablen richten sich nach der oben "
 "getroffenen Auswahl für den Tooltip-Inhalt."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Verwendung einer logarithmischen Skala"
 
@@ -18921,6 +18963,9 @@ msgid "Use this to define a static color for all circles"
 msgstr ""
 "Verwenden Sie diese Option, um eine statische Farbe für alle Kreise zu "
 "definieren"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -20532,6 +20577,9 @@ msgstr "Zoomstufe"
 
 msgid "Zoom level of the map"
 msgstr "Zoomstufe der Karte"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ unbenanntes Dashboard ]"

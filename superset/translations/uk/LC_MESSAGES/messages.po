@@ -2927,6 +2927,9 @@ msgstr "Напрямок стовпчика"
 msgid "Base"
 msgstr "Основа"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Основний ступінь"
 
@@ -2948,6 +2951,9 @@ msgstr "Стиль карти основного шару. Переглянут�
 
 msgid "Base slope"
 msgstr "Основний нахил"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Основна ширина"
@@ -3853,6 +3859,9 @@ msgstr "Вибрати базу даних..."
 msgid "Choose a delimiter"
 msgstr "Вибрати розділювач"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Вибрати показник для правої осі"
 
@@ -4565,6 +4574,9 @@ msgstr "Налаштувати автоматичне оновлення зві�
 
 msgid "Configure caching and performance settings"
 msgstr "Налаштувати кеш та швидкодію"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Налаштувати власний часовий діапазон"
@@ -7079,6 +7091,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Введіть частину назви об’єкта"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Введіть назву оповіщення"
 
@@ -7320,6 +7335,9 @@ msgid "Example"
 msgstr "Приклад"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -8861,6 +8879,9 @@ msgstr "Вставте посилання на шар"
 
 msgid "Insert Layer title"
 msgstr "Введіть назву шару"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "Всередині"
@@ -10825,6 +10846,9 @@ msgstr "Не знайдено відповідних результатів"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Наразі до цього звіту не додано жодного фільтра."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -13413,6 +13437,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Зберегти запит"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15951,6 +15978,11 @@ msgid "The background color of the charts."
 msgstr "Колір тла діаграм."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -18150,6 +18182,9 @@ msgstr "Заголовок обовʼязковий"
 msgid "Title or Slug"
 msgstr "Назва або посилання-хвостик"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -18816,6 +18851,10 @@ msgstr "Встановити автоматичне оновлення"
 msgid "Update chart"
 msgstr "Оновити діаграму"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Зупинено оновлення діаграми"
 
@@ -18893,6 +18932,9 @@ msgstr ""
 "Використовуйте синтаксис Handlebars для створення своїх підказок. "
 "Доступні змінні залежать від вибраного вмісту підказок вище."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Використати логарифмічну шкалу"
 
@@ -18958,6 +19000,9 @@ msgstr "Використовуйте цей розділ, якщо не бажа
 
 msgid "Use this to define a static color for all circles"
 msgstr "Використовуйте це для визначення статичного кольору для всіх кіл"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -20547,6 +20592,9 @@ msgstr "Масштаб"
 
 msgid "Zoom level of the map"
 msgstr "Рівень масштабу карти"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ звіт без назви ]"

@@ -4462,6 +4462,9 @@ msgstr "การวางแนวแท่ง"
 msgid "Base"
 msgstr "ฐาน"
 
+msgid "Base chart title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -4494,6 +4497,9 @@ msgstr "รูปแบบแผนที่เลเยอร์ฐาน ด�
 #, fuzzy
 msgid "Base slope"
 msgstr "ความลาดชันฐาน"
+
+msgid "Base title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -5997,6 +6003,9 @@ msgstr "เลือกฐานข้อมูล..."
 msgid "Choose a delimiter"
 msgstr "เลือกตัวคั่น"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -7160,6 +7169,9 @@ msgstr "กำหนดค่าการรีเฟรชแดชบอร์
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "กำหนดค่าการแคชและการตั้งค่าประสิทธิภาพ"
+
+msgid "Configure chart title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11367,6 +11379,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "ป้อนส่วนหนึ่งของชื่อออบเจ็กต์"
 
+msgid "Enter a title template."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -11779,6 +11794,9 @@ msgid "Example"
 msgstr "ตัวอย่าง"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -14348,6 +14366,9 @@ msgstr "แทรก URL ของเลเยอร์"
 #, fuzzy
 msgid "Insert Layer title"
 msgstr "แทรกชื่อเลเยอร์"
+
+msgid "Insert token"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -17652,6 +17673,9 @@ msgstr "ไม่พบผลลัพธ์ที่ตรงกัน"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "ไม่มีตัวกรองที่เพิ่มเข้ามาในแดชบอร์ดนี้ในขณะนี้"
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -21969,6 +21993,9 @@ msgstr ""
 msgid "Save query"
 msgstr "บันทึกคำค้นหา"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -26060,6 +26087,11 @@ msgstr "อัปเดตคำอธิบายประกอบแล้ว
 msgid "The background color of the charts."
 msgstr "สีพื้นหลังของแผนภูมิ"
 
+msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29255,6 +29287,9 @@ msgstr "จำเป็นต้องมีชื่อเรื่อง"
 msgid "Title or Slug"
 msgstr "ชื่อเรื่องหรือ Slug"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -30270,6 +30305,10 @@ msgstr "ตั้งค่าการรีเฟรชอัตโนมัต
 msgid "Update chart"
 msgstr "อัปเดตแผนภูมิ"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30409,6 +30448,9 @@ msgstr ""
 "ใช้ไวยากรณ์ Handlebars เพื่อสร้างคำแนะนำเครื่องมือที่กำหนดเอง "
 "ตัวแปรที่ใช้ได้จะขึ้นอยู่กับการเลือกเนื้อหาคำแนะนำเครื่องมือของคุณด้านบน"
 
+msgid "Use a dynamic title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30519,6 +30561,9 @@ msgstr "ใช้ส่วนนี้หากคุณต้องการส
 #, fuzzy
 msgid "Use this to define a static color for all circles"
 msgstr "ใช้สิ่งนี้เพื่อกำหนดสีคงที่สำหรับทุกวงกลม"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -32965,6 +33010,9 @@ msgstr "ระดับซูม"
 #, fuzzy
 msgid "Zoom level of the map"
 msgstr "ระดับซูมของแผนที่"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]

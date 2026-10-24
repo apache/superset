@@ -3077,6 +3077,9 @@ msgstr "方向"
 msgid "Base"
 msgstr "基礎"
 
+msgid "Base chart title"
+msgstr ""
+
 #, fuzzy
 msgid "Base exponent"
 msgstr "資料庫端口"
@@ -3108,6 +3111,9 @@ msgstr "底圖層地圖樣式。請參閱 MapLibre 文件：%s"
 #, fuzzy
 msgid "Base slope"
 msgstr "基礎斜率"
+
+msgid "Base title"
+msgstr ""
 
 #, fuzzy
 msgid "Base width"
@@ -4099,6 +4105,9 @@ msgstr "選擇資料庫"
 msgid "Choose a delimiter"
 msgstr "選擇數據源"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "為右軸選擇一個指標"
 
@@ -4874,6 +4883,9 @@ msgstr "設定儀表板自動更新"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "設定快取與效能設定"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "配置自定義時間範圍"
@@ -7629,6 +7641,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "是否填充對象"
 
+msgid "Enter a title template."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "告警名稱"
@@ -7910,6 +7925,9 @@ msgid "Example"
 msgstr "例子"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9686,6 +9704,9 @@ msgstr "隐藏 Layer"
 #, fuzzy
 msgid "Insert Layer title"
 msgstr "插入圖層標題"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -11908,6 +11929,9 @@ msgstr "没有找到任何紀錄"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "此看板中没有過濾條件。"
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -14749,6 +14773,9 @@ msgstr ""
 msgid "Save query"
 msgstr "保存查詢"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -17503,6 +17530,11 @@ msgid "The background color of the charts."
 msgstr "給圖表增加名稱"
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr "用於分配颜色的源節點類别。如果一個節點與多個類别關聯，则只使用第一個類别"
@@ -19792,6 +19824,9 @@ msgstr "標題是必填項"
 msgid "Title or Slug"
 msgstr "標題或者 Slug"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20533,6 +20568,10 @@ msgstr "設定自動刷新"
 msgid "Update chart"
 msgstr "圖表保存"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "更新圖表已停止"
 
@@ -20623,6 +20662,9 @@ msgid ""
 "based on your tooltip contents selection above."
 msgstr "使用 Handlebars 語法建立自訂工具提示。可用的變數基於上方工具提示內容的選擇。"
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "使用對數刻度"
 
@@ -20702,6 +20744,9 @@ msgstr "如果您想要查詢原子列，請使用此區段"
 
 msgid "Use this to define a static color for all circles"
 msgstr "使用此定義所有圆圈的静態颜色"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -22349,6 +22394,9 @@ msgstr "縮放面積"
 
 msgid "Zoom level of the map"
 msgstr "地圖縮放等級"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 #, fuzzy
 msgid "[ untitled dashboard ]"

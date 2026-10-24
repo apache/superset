@@ -2676,6 +2676,9 @@ msgstr "棒の向き"
 msgid "Base"
 msgstr "ベース"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "基本の指数"
 
@@ -2694,6 +2697,9 @@ msgstr "ベースレイヤーのマップスタイル。MapLibre のドキュメ
 
 msgid "Base slope"
 msgstr "基本の勾配"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "基本の幅"
@@ -3532,6 +3538,9 @@ msgstr "データベースを選択..."
 msgid "Choose a delimiter"
 msgstr "区切り文字を選択"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "右軸に使用するメトリックを選択"
 
@@ -4192,6 +4201,9 @@ msgstr "ダッシュボードの自動更新を設定"
 
 msgid "Configure caching and performance settings"
 msgstr "キャッシュとパフォーマンス設定"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "カスタム時間範囲の構成"
@@ -6501,6 +6513,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "オブジェクト名の一部を入力"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "アラート名を入力"
 
@@ -6737,6 +6752,9 @@ msgid "Example"
 msgstr "例"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -8202,6 +8220,9 @@ msgstr "レイヤーのURLを挿入"
 
 msgid "Insert Layer title"
 msgstr "レイヤーのタイトルを挿入"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "内側"
@@ -10069,6 +10090,9 @@ msgstr "一致する結果が見つかりません"
 
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -12521,6 +12545,9 @@ msgstr ""
 msgid "Save query"
 msgstr "クエリを保存"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "この API キーを安全に保管してください"
 
@@ -14814,6 +14841,11 @@ msgid "The background color of the charts."
 msgstr "チャートの背景色"
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr "色の割り当てに使用されるソースノードのカテゴリ。ノードが複数のカテゴリに関連付けられている場合、最初のカテゴリのみが使用されます。"
@@ -16755,6 +16787,9 @@ msgstr "タイトルは必須です"
 msgid "Title or Slug"
 msgstr "タイトルまたはスラッグ"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -17361,6 +17396,10 @@ msgstr "自動更新の設定を更新"
 msgid "Update chart"
 msgstr "チャートを更新"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "チャートの更新が停止されました"
 
@@ -17436,6 +17475,9 @@ msgid ""
 "based on your tooltip contents selection above."
 msgstr "Handlebars 構文を使用してカスタムツールチップを作成できます。利用可能な変数は上記で選択したツールチップの内容に基づきます。"
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "対数スケールを使用"
 
@@ -17501,6 +17543,9 @@ msgstr "最小単位の行をクエリする場合はこのセクションを使
 
 msgid "Use this to define a static color for all circles"
 msgstr "すべての円に固定色を指定する場合に使用します"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -18918,6 +18963,9 @@ msgstr "ズームレベル"
 
 msgid "Zoom level of the map"
 msgstr "マップのズームレベル"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ 無題のダッシュボード ]"

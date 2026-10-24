@@ -3092,6 +3092,9 @@ msgstr "Orientare bară"
 msgid "Base"
 msgstr "Bază"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Exponent bază"
 
@@ -3122,6 +3125,9 @@ msgstr "Stilul hărții stratului de bază. Consultați documentația MapLibre: 
 
 msgid "Base slope"
 msgstr "Pantă bază"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Lățime bază"
@@ -4064,6 +4070,9 @@ msgstr "Alege o bază de date..."
 msgid "Choose a delimiter"
 msgstr "Alege un delimitator"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Alege un indicator pentru axa din dreapta"
 
@@ -4829,6 +4838,9 @@ msgstr "Configurează reîmprospătare automată a panoului de control"
 
 msgid "Configure caching and performance settings"
 msgstr "Configurează setările de cache și performanță"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Configurează interval timp personalizat"
@@ -7534,6 +7546,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Introduceți o parte din numele obiectului"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Introduceți numele alertei"
 
@@ -7784,6 +7799,9 @@ msgid "Example"
 msgstr "Exemplu"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9442,6 +9460,9 @@ msgstr "Inserează URL Strat"
 
 msgid "Insert Layer title"
 msgstr "Inserează Titlu Strat"
+
+msgid "Insert token"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
@@ -11554,6 +11575,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "Nu există diagrame deck.gl cu mai multe straturi adăugate în prezent la "
 "acest tablou de bord."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -14254,6 +14278,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Salvează interogare"
+
+msgid "Save the dashboard to persist these changes."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -16975,6 +17002,11 @@ msgid "The background color of the charts."
 msgstr "Culoarea de fundal a graficelor."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -19330,6 +19362,9 @@ msgstr "Titlul este obligatoriu"
 msgid "Title or Slug"
 msgstr "Titlu sau Slug"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20037,6 +20072,10 @@ msgstr "Actualizare reîmprospătare automată"
 msgid "Update chart"
 msgstr "Actualizează grafic"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Actualizarea graficului a fost oprită"
 
@@ -20115,6 +20154,9 @@ msgstr ""
 "Variabilele disponibile se bazează pe selecția conținutului tooltip-ului "
 "de mai sus."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Folosește o scală logaritmică"
 
@@ -20185,6 +20227,9 @@ msgstr "Folosește această secțiune dacă vrei să interoghezi rânduri atomic
 
 msgid "Use this to define a static color for all circles"
 msgstr "Folosește aceasta pentru a defini o culoare statică pentru toate cercurile"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -21854,6 +21899,9 @@ msgstr "Nivel zoom"
 
 msgid "Zoom level of the map"
 msgstr "Nivelul de zoom al hărții"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ panou fără titlu ]"

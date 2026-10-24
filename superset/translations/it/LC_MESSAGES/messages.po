@@ -3517,6 +3517,9 @@ msgstr "Orientamento barra"
 msgid "Base"
 msgstr "Base"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Esponente base"
 
@@ -3549,6 +3552,9 @@ msgstr ""
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Base slope"
 msgstr "Pendenza di base"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Larghezza base"
@@ -4655,6 +4661,9 @@ msgstr "Seleziona un database..."
 msgid "Choose a delimiter"
 msgstr "Seleziona un delimitatore"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Seleziona una metrica per l'asse destro"
 
@@ -5601,6 +5610,9 @@ msgstr "Configura il refresh automatico del pannello"
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Configure caching and performance settings"
 msgstr "Configura le impostazioni di cache e prestazioni"
+
+msgid "Configure chart title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8643,6 +8655,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Inserire una parte del nome oggetto"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Immettere il nome dell'avviso"
 
@@ -8954,6 +8969,9 @@ msgid "Example"
 msgstr "Esempio"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10961,6 +10979,9 @@ msgstr "Inserisci l'URL del livello"
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Insert Layer title"
 msgstr "Inserisci il titolo del livello"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "Min"
@@ -13480,6 +13501,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "Nessun grafico deck.gl multistrato è attualmente aggiunto a questa "
 "dashboard."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -16783,6 +16807,9 @@ msgstr ""
 msgid "Save query"
 msgstr "query condivisa"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Save this API key securely"
@@ -19833,6 +19860,11 @@ msgstr "L'annotazione è stata aggiornata"
 msgid "The background color of the charts."
 msgstr "Colore sfondo del grafico"
 
+msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -22636,6 +22668,9 @@ msgstr "Titolo obbligatorio"
 msgid "Title or Slug"
 msgstr "Titolo o Slug"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -23488,6 +23523,10 @@ msgstr "Aggiorna aggiornamento automatico"
 msgid "Update chart"
 msgstr "Aggiorna grafico"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "L'aggiornamento del grafico è stato fermato"
 
@@ -23589,6 +23628,9 @@ msgstr ""
 "Usa la sintassi Handlebars per creare tooltip personalizzati. Le "
 "variabili disponibili si basano sulla selezione del contenuto del tooltip"
 " sopra."
+
+msgid "Use a dynamic title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23696,6 +23738,9 @@ msgstr "Utilizza questa sezione se desideri eseguire query su righe atomiche"
 # uk, zh, zh_TW]
 msgid "Use this to define a static color for all circles"
 msgstr "Usalo per definire un colore statico per tutti i cerchi"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25765,6 +25810,9 @@ msgstr "Livello di zoom"
 # uk, zh, zh_TW]
 msgid "Zoom level of the map"
 msgstr "Livello di zoom della mappa"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ dashboard senza titolo ]"

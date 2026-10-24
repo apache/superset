@@ -2942,6 +2942,9 @@ msgstr "Orientace stĺpcov"
 msgid "Base"
 msgstr "Základna"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Exponent základu"
 
@@ -2965,6 +2968,9 @@ msgstr "Styl mapy základný vrstvy. Viz dokumentaci Mapbox: %s"
 
 msgid "Base slope"
 msgstr "Sklon základu"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Šírka základu"
@@ -3883,6 +3889,9 @@ msgstr "Vyberte databázy..."
 msgid "Choose a delimiter"
 msgstr "Vyberte oddelovač"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Vyberte metriku pre pravou osu"
 
@@ -4610,6 +4619,9 @@ msgstr "Konfigurovať automatické obnovenie nástenky"
 
 msgid "Configure caching and performance settings"
 msgstr "Konfigurovať nastavenie cache a výkonu"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Konfigurovať vlastný časový rozsah"
@@ -7187,6 +7199,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Zadejte názov upozornenie"
 
@@ -7436,6 +7451,9 @@ msgid "Example"
 msgstr "Príklad"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9018,6 +9036,9 @@ msgstr "Vložiť URL vrstvy"
 
 msgid "Insert Layer title"
 msgstr "Vložiť názov vrstvy"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -11037,6 +11058,9 @@ msgstr "Žiadne zodpovedajúci výsledky"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na tejto nástenke nesú v současné dobe pridanýy žiadne filtre."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -13672,6 +13696,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Uložiť dotaz"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -16248,6 +16275,11 @@ msgid "The background color of the charts."
 msgstr "Farba pozadí grafů."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -18488,6 +18520,9 @@ msgstr "Názov je povinný"
 msgid "Title or Slug"
 msgstr "Názov alebo Slug"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -19172,6 +19207,10 @@ msgstr "Nastaviť interval automatického obnovenie"
 msgid "Update chart"
 msgstr "Aktualizovať graf"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Aktualizácia grafu bola zastavena"
 
@@ -19249,6 +19288,9 @@ msgstr ""
 "Použijte Handlebars syntaxi pre vytvorenie vlastnéch nápoved. Dostupné "
 "promenné sú založené na výberu výpisů nápovedy výše."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Použít logaritmickou stupnici"
 
@@ -19316,6 +19358,9 @@ msgstr "Použijte tuto sekci, pokiaľ chcete dotazovať atomické riadky"
 
 msgid "Use this to define a static color for all circles"
 msgstr "Použijte toto k definovanie statické farby pre všetky kruhy"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -20917,6 +20962,9 @@ msgstr "Úroveň priblíženie"
 
 msgid "Zoom level of the map"
 msgstr "Úroveň priblíženie mapy"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ nepojmenovaná nástenka ]"
