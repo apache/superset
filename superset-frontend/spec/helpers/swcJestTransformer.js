@@ -60,8 +60,9 @@ const lenient = binding =>
 
 function mirrorBabelExportSemantics(code) {
   return code
-    .replace(EXPORT_DESCRIPTOR_GETTER, (_m, head, getter, binding) =>
-      `${head}${getter}${lenient(binding)}`,
+    .replace(
+      EXPORT_DESCRIPTOR_GETTER,
+      (_m, head, getter, binding) => `${head}${getter}${lenient(binding)}`,
     )
     .replace(EXPORT_BLOCK, block =>
       block.replace(
@@ -69,7 +70,7 @@ function mirrorBabelExportSemantics(code) {
         (_m, head, binding) => `${head}${lenient(binding)}`,
       ),
     )
-    .replace(EXPORT_GETTER_DESCRIPTOR, '$1$2configurable: true,$2$3');
+    .replace(EXPORT_GETTER_DESCRIPTOR, '$1 configurable: true,$2$3');
 }
 
 function patch(result) {
@@ -87,7 +88,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v3';
+const CACHE_SALT = 'babel-export-semantics-v4';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);
