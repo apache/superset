@@ -71,6 +71,7 @@ import {
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
+  ConditionFilterPlugin,
   TimeFilterPlugin,
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
@@ -175,6 +176,9 @@ export default class MainPreset extends Preset {
         new EchartsHistogramChartPlugin().configure({ key: VizType.Histogram }),
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),
         new RangeFilterPlugin().configure({ key: FilterPlugins.Range }),
+        new ConditionFilterPlugin().configure({
+          key: FilterPlugins.Condition,
+        }),
         new TimeFilterPlugin().configure({ key: FilterPlugins.Time }),
         new TimeColumnFilterPlugin().configure({
           key: FilterPlugins.TimeColumn,
