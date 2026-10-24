@@ -639,6 +639,45 @@ def test_datetime_eval() -> None:
     assert result == expected
 
 
+def test_holiday_reads_a_country_given_without_a_datetime() -> None:
+    """
+    Both arguments after the holiday name are optional, so the country can be
+    the second one. Boxing Day tells the calendars apart: the UK has it and the
+    default US calendar does not.
+    """
+    with freezegun.freeze_time("2026-06-15"):
+        assert datetime_eval("holiday('Boxing Day', 'UK')") == datetime(2026, 12, 26)
+
+        with pytest.raises(ValueError, match="Unable to find such a holiday"):
+            datetime_eval("holiday('Boxing Day')")
+
+
+def test_holiday_reads_a_country_past_an_empty_datetime_slot() -> None:
+    with freezegun.freeze_time("2026-06-15"):
+        assert datetime_eval("holiday('Boxing Day', , 'UK')") == datetime(2026, 12, 26)
+
+
+@pytest.mark.parametrize(
+    "country",
+    [
+        "ZZ",
+        "United Kingdom",  # written out in full rather than as the ISO code
+        "us",  # the right code in the wrong case
+    ],
+)
+def test_holiday_rejects_a_country_without_a_calendar(country: str) -> None:
+    """
+    A country the holidays package has no calendar for is the caller's to
+    correct, so it has to arrive as a ValueError rather than as whatever the
+    package raises.
+    """
+    expression = (
+        f"holiday('Christmas Day', datetime('2019-01-01T00:00:00'), '{country}')"
+    )
+    with pytest.raises(ValueError, match=f"Unable to find such a country: .{country}."):
+        datetime_eval(expression)
+
+
 @patch("superset.utils.date_parser.datetime")
 def test_parse_human_timedelta(mock_datetime: Mock) -> None:
     mock_datetime.now.return_value = datetime(2019, 4, 1)
