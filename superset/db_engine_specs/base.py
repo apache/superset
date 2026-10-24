@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
 import warnings
 from datetime import datetime, timedelta
@@ -386,6 +387,63 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     # Advanced features documentation
     ssl_configuration: dict[str, Any]
     advanced_features: dict[str, str]
+
+
+class QueryCostWarningMetric(NamedTuple):
+    """Native units and threshold requirements for a supported warning metric."""
+
+    label: str
+    unit: str
+    requires_whole_bytes: bool
+
+
+QUERY_COST_WARNING_METRICS: dict[str, QueryCostWarningMetric] = {
+    "bytes_processed": QueryCostWarningMetric(
+        _("Estimated bytes processed"), _("bytes"), True
+    ),
+    "total_cost": QueryCostWarningMetric(
+        _("Estimated planner cost"), _("planner cost units"), False
+    ),
+}
+
+
+class QueryCostEstimate(NamedTuple):
+    """An unrounded estimate and the information needed to interpret its bounds."""
+
+    value: int | float | None = None
+    accuracy: str | None = None
+    row_level_security_applied: bool | None = None
+
+    @classmethod
+    def from_value(
+        cls,
+        value: object,
+        accuracy: str | None = "PRECISE",
+        row_level_security_applied: bool | None = None,
+    ) -> QueryCostEstimate:
+        """Preserve usable numeric values without coercion or display rounding."""
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or value < 0
+            or (isinstance(value, float) and not math.isfinite(value))
+        ):
+            value = None
+        return cls(value, accuracy, row_level_security_applied)
+
+    def compare(self, threshold: int | float) -> str:
+        """Compare bounds on the server without treating an unknown bound as safe."""
+        if (
+            self.value is None
+            or self.row_level_security_applied is True
+            or self.accuracy not in {"PRECISE", "LOWER_BOUND", "UPPER_BOUND"}
+        ):
+            return "unavailable"
+        if self.value > threshold:
+            return "above_threshold"
+        if self.accuracy == "LOWER_BOUND":
+            return "unavailable"
+        return "within_threshold"
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
@@ -2459,6 +2517,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    def get_query_cost_warning_metric(cls) -> str | None:
+        """Return a metric only for an explicitly verified warning implementation."""
+        return None
+
+    @classmethod
+    def estimate_query_cost_for_warning(
+        cls,
+        database: Database,
+        catalog: str | None,
+        schema: str,
+        sql: str,
+    ) -> QueryCostEstimate:
+        """Leave unsupported engines unavailable without contacting the warehouse."""
+        return QueryCostEstimate()
+
+    @classmethod
     def process_statement(
         cls,
         statement: BaseSQLStatement[Any],
@@ -3165,6 +3239,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return {
             "supports_file_upload": cls.supports_file_upload,
+            "query_cost_warning_metric": cls.get_query_cost_warning_metric(),
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,

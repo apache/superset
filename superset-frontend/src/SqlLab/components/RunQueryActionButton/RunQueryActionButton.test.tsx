@@ -185,6 +185,44 @@ test('renders the caret icon with a color that contrasts with the primary button
   expect(caretIcon).toHaveStyle({ color: supersetTheme.colorTextLightSolid });
 });
 
+test('a pending cost check disables repeated Run and offers a separate Cancel action', () => {
+  const runQuery = jest.fn();
+  const cancelCostCheck = jest.fn();
+  const { getByRole } = setup(
+    { checkingCost: true, runQuery, cancelCostCheck },
+    mockStore(initialState),
+  );
+  const run = getByRole('button', { name: /Checking cost…/ });
+  expect(run).toBeDisabled();
+  fireEvent.click(run);
+  expect(runQuery).not.toHaveBeenCalled();
+  fireEvent.click(getByRole('button', { name: 'Cancel' }));
+  expect(cancelCostCheck).toHaveBeenCalledTimes(1);
+});
+
+test('confirmation disables Run without adding extra toolbar labels', () => {
+  const { getByRole } = setup(
+    { awaitingConfirmation: true },
+    mockStore(initialState),
+  );
+  expect(getByRole('button', { name: /Run$/ })).toBeDisabled();
+});
+
+test('Stop and cancellation remain separate while a query is already running', () => {
+  const stopQuery = jest.fn();
+  const cancelCostCheck = jest.fn();
+  const { getByRole } = setup(
+    { queryState: 'running', checkingCost: true, stopQuery, cancelCostCheck },
+    mockStore(initialState),
+  );
+  fireEvent.click(getByRole('button', { name: /Stop$/ }));
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+  expect(cancelCostCheck).not.toHaveBeenCalled();
+  fireEvent.click(getByRole('button', { name: 'Cancel' }));
+  expect(cancelCostCheck).toHaveBeenCalledTimes(1);
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+});
+
 const renderGestureButton = (props: Partial<RunQueryActionButtonProps>) => {
   const runQuery = jest.fn();
   const stopQuery = jest.fn();

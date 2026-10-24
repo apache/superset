@@ -77,6 +77,10 @@ import {
   DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
+import {
+  getQueryCostWarning,
+  getQueryCostWarningError,
+} from '../queryCostWarning';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
@@ -673,6 +677,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   );
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const queryCostWarningHasError = !!getQueryCostWarningError(
+    getQueryCostWarning(JSON.parse(db?.extra || '{}')),
+    db?.engine_information?.query_cost_warning_metric,
+  );
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -967,7 +975,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
     // Clone DB object
     const dbToUpdate = { ...db };
-
     if (dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm) {
       // Validate DB before saving
       if (dbToUpdate?.parameters?.catalog) {
@@ -1398,6 +1405,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 !!(
                   !hasValidated ||
                   isValidating ||
+                  queryCostWarningHasError ||
                   (validationErrors && Object.keys(validationErrors).length > 0)
                 )
               }
@@ -1418,6 +1426,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             buttonStyle="primary"
             onClick={onSave}
             data-test="modal-confirm-button"
+            disabled={queryCostWarningHasError}
             loading={isLoading}
           >
             {t('Finish')}
@@ -1458,14 +1467,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         key="submit"
         buttonStyle="primary"
         onClick={onSave}
-        disabled={db?.is_managed_externally}
+        disabled={db?.is_managed_externally || queryCostWarningHasError}
         loading={isLoading}
         tooltip={
           db?.is_managed_externally
             ? t(
                 "This database is managed externally, and can't be edited in Superset",
               )
-            : ''
+            : queryCostWarningHasError
+              ? t('Fix the query cost warning settings in Advanced.')
+              : ''
         }
       >
         {t('Finish')}

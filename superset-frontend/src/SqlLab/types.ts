@@ -57,6 +57,8 @@ export interface QueryEditor {
   catalog?: string | null;
   schema?: string;
   autorun: boolean;
+  /** Distinguish deliberate history reruns from ordinary automatic startup. */
+  autorunSource?: 'history';
   sql: string;
   remoteId: number | null;
   hideLeftBar?: boolean;

@@ -172,14 +172,23 @@ class SqlLabRestApi(BaseSupersetApi):
                   $ref: '#/components/schemas/EstimateQueryCostSchema'
           responses:
             200:
-              description: Query estimation result
+              description: >-
+                Formatted manual estimate, or an advisory status object when
+                check_warning is true. Warning statuses are disabled, unsupported,
+                within_threshold, exceeded, and unavailable. Active rules also return
+                metric, label, unit, value, threshold, and a short message. BigQuery
+                results retain accuracy and row_level_security_applied metadata.
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
                       result:
-                        type: object
+                        oneOf:
+                          - type: array
+                            items:
+                              type: object
+                          - type: object
             400:
               $ref: '#/components/responses/400'
             401:

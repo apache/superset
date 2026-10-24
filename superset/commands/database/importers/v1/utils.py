@@ -30,6 +30,7 @@ from superset.commands.database.utils import (
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
+from superset.databases.schemas import normalize_query_cost_warning
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
@@ -134,15 +135,18 @@ def import_database(  # noqa: C901
                 _sync_permissions_best_effort(existing)
             return existing
         config["id"] = existing.id
-        # Stored secrets must not be rebound to a different endpoint: without
-        # fresh credentials, an overwrite that changes where the database (or
-        # its SSH tunnel) connects would exfiltrate the stored secret to the
-        # new endpoint on the next connection.
-        _refuse_stored_secret_reuse(existing, config)
     elif not can_write:
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
+    incoming_extra = config.get("extra", {})
+    config["extra"] = incoming_extra
+    if existing:
+        # Check the replacement settings before normalizing the warning rule.
+        _refuse_stored_secret_reuse(existing, config)
+    config["extra"] = normalize_query_cost_warning(
+        incoming_extra, config["sqlalchemy_uri"]
+    )
     # Check if this URI is allowed (skip for system imports like examples)
     if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and not ignore_permissions:
         try:

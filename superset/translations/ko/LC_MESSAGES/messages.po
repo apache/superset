@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -2746,6 +2746,9 @@ msgstr "오류가 발생했습니다"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "데이터셋 %(name)s 은 이미 존재합니다"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -4438,6 +4441,9 @@ msgstr "키 기준: 행 이름을 정렬 키로 사용"
 msgid "By value: use metric values as sorting key"
 msgstr "값 기준: 지표 값을 정렬 키로 사용"
 
+msgid "Bytes"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, uk]
 #, fuzzy
@@ -4694,6 +4700,9 @@ msgstr "취소"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "취소"
+
+msgid "Cancel cost check"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5418,6 +5427,9 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -8969,6 +8981,9 @@ msgstr "세부 정보 드릴다운 비활성화"
 msgid "Disable embedding?"
 msgstr "임베딩을 비활성화하시겠습니까?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 #, fuzzy
 msgid "Disabled"
 msgstr "테이블 수정"
@@ -10080,12 +10095,20 @@ msgstr "matrixify 활성화"
 msgid "Enable node dragging"
 msgstr "노드 드래그 활성화"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy
 msgid "Enable query cost estimation"
 msgstr "쿼리 비용 추정 활성화"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10226,9 +10249,20 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "차트 유형"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "테이블 명"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 #, fuzzy
 msgid "Enter duration in seconds"
@@ -10313,6 +10347,9 @@ msgid "Enter theme name"
 msgstr "테이블 명"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -10555,6 +10592,20 @@ msgstr "선택한 쿼리 비용 추정"
 #, fuzzy
 msgid "Estimate the cost before running a query"
 msgstr "쿼리 실행 전 비용 추정"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 #, fuzzy
 msgid "Event"
@@ -11694,6 +11745,9 @@ msgid "Fit data"
 msgstr "데이터 맞추기"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -17723,6 +17777,9 @@ msgstr "픽셀"
 msgid "Plain"
 msgstr "일반"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18392,6 +18449,12 @@ msgstr "Query 실행 이력"
 #, fuzzy
 msgid "Query State"
 msgstr "Query 공유"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 #, fuzzy
 msgid "Query data in SQL Lab"
@@ -19737,6 +19800,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -19760,6 +19826,10 @@ msgstr "Query 실행"
 msgid "Run query (Ctrl + Return)"
 msgstr "쿼리 실행 (Ctrl + Return)"
 
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
+
 msgid "Run query in a new tab"
 msgstr "새로운 탭에서 Query실행"
 
@@ -19769,6 +19839,9 @@ msgstr "새로운 탭에서 Query실행"
 #, fuzzy
 msgid "Run selection"
 msgstr "선택 실행"
+
+msgid "Run without estimate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20158,6 +20231,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -24124,6 +24202,17 @@ msgid ""
 "call."
 msgstr "engine_params 객체는 sqlalchemy.create_engine 호출로 언패킹됩니다."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -24668,6 +24757,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -24827,6 +24936,14 @@ msgstr "차트에 설정된 행 제한에 도달했습니다. 차트에 일부 �
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -25180,6 +25297,9 @@ msgstr ""
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "레이어의 표시 제목"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26048,6 +26168,9 @@ msgid ""
 "one."
 msgstr "이 이메일은 이미 계정과 연결되어 있습니다. 다른 이메일을 선택하세요."
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -26512,6 +26635,9 @@ msgstr "유의성 결정을 위한 임계 알파 수준"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "기타 임계값"
+
+msgid "Threshold size unit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28684,6 +28810,24 @@ msgstr "웨어하우스"
 msgid "Warning"
 msgstr "경고"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -28707,6 +28851,12 @@ msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr "경고: ILIKE 쿼리는 인덱스를 효과적으로 사용할 수 없어 대용량 데이터셋에서 느릴 수 있습니다."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -30752,6 +30902,9 @@ msgstr "버튼(cmd + z)을 변경 사항을 저장할 때까지 누르세요."
 msgid "by using"
 msgstr "을(를) 사용하여"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -31480,6 +31633,9 @@ msgstr "레이블"
 msgid "log"
 msgstr "로그"
 
+msgid "lower bound"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -31723,6 +31879,9 @@ msgstr "테이블 수정"
 #, fuzzy
 msgid "pixels"
 msgstr "픽셀"
+
+msgid "planner cost units"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -32042,6 +32201,9 @@ msgstr "컬럼 추가"
 #, fuzzy
 msgid "updated"
 msgstr "분기"
+
+msgid "upper bound"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

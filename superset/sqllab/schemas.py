@@ -16,7 +16,7 @@
 # under the License.
 from marshmallow import fields, Schema, validate
 
-from superset.databases.schemas import EngineInformationSchema
+from superset.databases.schemas import EngineInformationSchema, QueryCostWarningSchema
 
 # Restricts the optional CTAS target name to a bare SQL identifier. Shared by the
 # SQL Lab execute payload schemas so both request paths validate it identically.
@@ -49,6 +49,15 @@ class EstimateQueryCostSchema(Schema):
     )
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
+    )
+    check_warning = fields.Boolean(
+        load_default=False,
+        metadata={"description": "Check the connection's advisory warning threshold"},
+    )
+    query_limit = fields.Integer(
+        allow_none=True,
+        strict=True,
+        metadata={"description": "The SQL Lab dropdown row limit"},
     )
 
 
@@ -175,6 +184,7 @@ class SQLLabBootstrapDatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_multi_catalog = fields.Boolean()
     allows_cost_estimate = fields.Boolean(allow_none=True)
+    query_cost_warning = fields.Nested(QueryCostWarningSchema, allow_none=True)
     allows_subquery = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean()
     disable_data_preview = fields.Boolean()

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2033,6 +2033,9 @@ msgstr "Bir Hata Oluştu"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "\"  %(name)s \" isimli bir uyarı zaten var"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -3256,6 +3259,9 @@ msgstr "Anahtarla: satır isimleri anahtar sıralama olarak kullanın"
 msgid "By value: use metric values as sorting key"
 msgstr "Değere göre: anahtar sıralama olarak metrik değerleri kullanın"
 
+msgid "Bytes"
+msgstr ""
+
 #, fuzzy
 msgid "CC recipients"
 msgstr "son kullanılanlar"
@@ -3418,6 +3424,9 @@ msgstr "İptal"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Görevi İptal Et"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Pencere boşaltma olayı hakkında Cancel query"
@@ -3928,6 +3937,9 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -6500,6 +6512,9 @@ msgstr "Detaylı matkap"
 msgid "Disable embedding?"
 msgstr "Disable gömülme?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Engelliler"
 
@@ -7243,8 +7258,16 @@ msgstr "Matrixify'ı etkinleştir"
 msgid "Enable node dragging"
 msgstr "Düğüm sürüklemeyi etkinleştir"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Sorgu maliyeti tahminini etkinleştir"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Şemalarda satır genişletmeyi etkinleştir"
@@ -7337,9 +7360,20 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Rapor ismi"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "Alarm adı"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Saniyede süresi girin"
@@ -7404,6 +7438,9 @@ msgid "Enter theme name"
 msgstr "Alarm adı"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7575,6 +7612,20 @@ msgstr "Tahmin edilen sorgu maliyeti"
 
 msgid "Estimate the cost before running a query"
 msgstr "Bir sorgulamadan önce maliyet tahmini"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Event"
@@ -8387,6 +8438,9 @@ msgid "Fit data"
 msgstr "Verilere sığdır"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -12380,6 +12434,9 @@ msgstr "Pixels"
 msgid "Plain"
 msgstr "Ova"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12794,6 +12851,12 @@ msgstr "Sorgu Geçmişi"
 #, fuzzy
 msgid "Query State"
 msgstr "Sorgu ismi"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 #, fuzzy
 msgid "Query data in SQL Lab"
@@ -13717,6 +13780,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -13735,11 +13801,18 @@ msgstr "Çalıştır"
 msgid "Run query (Ctrl + Return)"
 msgstr "Çalıştır (Ctrl + Return)"
 
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
+
 msgid "Run query in a new tab"
 msgstr "Sorguyu yeni sekmede çalıştır"
 
 msgid "Run selection"
 msgstr "Seçimi çalıştır"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "Çalışıyor"
@@ -14016,6 +14089,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 #, fuzzy
@@ -16924,6 +17002,17 @@ msgid ""
 "call."
 msgstr "Motor params nesnesi relalchemy'ye paketlenmez. create engine call."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Tüm boyutları hesaplamak için exponent. \"EXP\" sadece"
 
@@ -17320,6 +17409,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Soru yüklenemez"
 
@@ -17428,6 +17537,14 @@ msgstr "Grafik için sıra sınırı ulaştı. Grafik kısmi verileri gösterebi
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -17683,6 +17800,9 @@ msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "tabakanın görünür başlığı"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "İşaretlerin X-aksi üzerinde ortaya çıkmasının yolu"
@@ -18364,6 +18484,9 @@ msgid ""
 "one."
 msgstr "Bu e-posta zaten bir hesapla ilişkilendirilir. Lütfen başka birini seçin."
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -18723,6 +18846,9 @@ msgstr "Threshold alfa seviyesi önemini belirlemek için"
 
 msgid "Threshold for Other"
 msgstr "Threshold for Other"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Threshold:"
@@ -20223,6 +20349,24 @@ msgstr "Depo"
 msgid "Warning"
 msgstr "Uyarı"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Uyarı!"
 
@@ -20242,6 +20386,12 @@ msgid ""
 msgstr ""
 "Uyarı: ILIKE sorguları, dizinleri etkin biçimde kullanamadıkları için "
 "büyük veri kümelerinde yavaş olabilir."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "Sorunuzu kontrol edemiyordu"
@@ -21555,6 +21705,9 @@ msgstr "Değişikliklerinizi kurtarıncaya kadar düğme (cmd + z)."
 msgid "by using"
 msgstr "kullanarak"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -22035,6 +22188,9 @@ msgstr "locale_key"
 msgid "log"
 msgstr "log"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22209,6 +22365,9 @@ msgstr "1."
 
 msgid "pixels"
 msgstr "piksel"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "Önceki takvim ay"
@@ -22434,6 +22593,9 @@ msgstr "Haziran"
 #, fuzzy
 msgid "updated"
 msgstr "Güncelle"
+
+msgid "upper bound"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

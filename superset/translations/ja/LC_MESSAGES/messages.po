@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1847,6 +1847,9 @@ msgstr "エラーが発生しました"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "「%(name)s」という名前のアラートは既に存在します"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2889,6 +2892,9 @@ msgstr "キー指定: 行名を並べ替えキーとして使用"
 msgid "By value: use metric values as sorting key"
 msgstr "値指定: メトリック値を並べ替えキーとして使用"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "CC受信者"
 
@@ -3034,6 +3040,9 @@ msgstr "キャンセル"
 
 msgid "Cancel Task"
 msgstr "タスクをキャンセル"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "ウィンドウのアンロード時にクエリをキャンセル"
@@ -3508,6 +3517,9 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5766,6 +5778,9 @@ msgstr "詳細表示(ドリルスルー)を無効にする"
 msgid "Disable embedding?"
 msgstr "埋め込みを無効にしますか？"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "無効"
 
@@ -6419,8 +6434,16 @@ msgstr "マトリックス化を有効にする"
 msgid "Enable node dragging"
 msgstr "ノードのドラッグを有効にする"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "クエリコスト見積もりを有効にする"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "スキーマ内の行展開を有効にする"
@@ -6501,8 +6524,19 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "オブジェクト名の一部を入力"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "アラート名を入力"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "所要時間を秒単位で入力"
@@ -6559,6 +6593,9 @@ msgid "Enter theme name"
 msgstr "テーマ名を入力"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -6714,6 +6751,20 @@ msgstr "選択したクエリのコストを見積もる"
 
 msgid "Estimate the cost before running a query"
 msgstr "実行前にクエリのコストを見積もる"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "イベント"
@@ -7445,6 +7496,9 @@ msgid "Fit data"
 msgstr "フィットデータ"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -11037,6 +11091,9 @@ msgstr "ピクセル"
 msgid "Plain"
 msgstr "プレーン"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -11415,6 +11472,12 @@ msgstr "クエリ履歴"
 
 msgid "Query State"
 msgstr "クエリの状態"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 msgid "Query data in SQL Lab"
 msgstr "SQL Labでデータをクエリする"
@@ -12278,6 +12341,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -12296,11 +12362,18 @@ msgstr "クエリを実行"
 msgid "Run query (Ctrl + Return)"
 msgstr "クエリを実行 (Ctrl + Return)"
 
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
+
 msgid "Run query in a new tab"
 msgstr "新しいタブでクエリを実行"
 
 msgid "Run selection"
 msgstr "選択範囲を実行"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "実行中"
@@ -12560,6 +12633,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -15042,6 +15120,17 @@ msgid ""
 "call."
 msgstr "engine_params オブジェクトは sqlalchemy.create_engine 呼び出し時に展開されます。"
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "すべてのサイズを計算するための指数。「EXP」タイプのみで使用"
 
@@ -15376,6 +15465,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "クエリを読み込めませんでした"
 
@@ -15465,6 +15574,14 @@ msgstr "チャートに設定された行数制限に達しました。データ
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -15682,6 +15799,9 @@ msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "表示されるレイヤーのタイトル"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X軸の目盛りの配置方法"
@@ -16272,6 +16392,9 @@ msgid ""
 "one."
 msgstr "このメールアドレスは既にアカウントに登録されています。別のものを選択してください。"
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -16572,6 +16695,9 @@ msgstr "有意性を判断するためのしきい値(アルファレベル)"
 
 msgid "Threshold for Other"
 msgstr "「その他」にまとめるしきい値"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "しきい値:"
@@ -17894,6 +18020,24 @@ msgstr "倉庫"
 msgid "Warning"
 msgstr "警告"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "警告！"
 
@@ -17906,6 +18050,12 @@ msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr "警告: ILIKEクエリはインデックスを効果的に使用できないため、大規模なデータセットでは処理が遅くなる場合があります。"
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "クエリをチェックできませんでした"
@@ -19082,6 +19232,9 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 msgid "by using"
 msgstr "以下を使用して"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -19507,6 +19660,9 @@ msgstr "ロケールキー"
 msgid "log"
 msgstr "対数"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -19662,6 +19818,9 @@ msgstr "ピボットエクセル"
 
 msgid "pixels"
 msgstr "ピクセル"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "前月"
@@ -19862,6 +20021,9 @@ msgstr "未設定"
 
 msgid "updated"
 msgstr "更新済み"
+
+msgid "upper bound"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

@@ -215,11 +215,73 @@ class TestDatabaseApi(SupersetTestCase):
             "extra",
             "force_ctas_schema",
             "id",
+            "query_cost_warning",
             "uuid",
         ]
 
         assert response["count"] > 0
         assert list(response["result"][0].keys()) == expected_columns
+        assert isinstance(response["result"][0]["query_cost_warning"], dict)
+
+    def test_get_items_serializes_cost_warning_rule(self) -> None:
+        """Database responses distinguish disabled settings from invalid saved rules."""
+        cases: list[tuple[dict[str, object], dict[str, object] | None]] = [
+            ({}, {"enabled": False}),
+            (
+                {"query_cost_warning": {"enabled": False}},
+                {"enabled": False},
+            ),
+            (
+                {
+                    "query_cost_warning": {
+                        "enabled": True,
+                        "metric": "total_cost",
+                        "threshold": 10,
+                    }
+                },
+                {"enabled": True, "metric": "total_cost", "threshold": 10},
+            ),
+            ({"query_cost_warning": None}, None),
+            ({"query_cost_warning": {"enabled": False, "threshold": -1}}, None),
+            (
+                {
+                    "query_cost_warning": {
+                        "enabled": True,
+                        "metric": "bytes_processed",
+                        "threshold": 10,
+                    }
+                },
+                None,
+            ),
+        ]
+        self.login(ADMIN_USERNAME)
+        for extra, expected in cases:
+            with self.subTest(extra=extra):
+                database = self.insert_database(
+                    f"warning-response-{shortid()}",
+                    "postgresql://",
+                    extra=json.dumps(extra),
+                )
+                try:
+                    arguments = {
+                        "filters": [
+                            {
+                                "col": "database_name",
+                                "opr": "eq",
+                                "value": database.database_name,
+                            }
+                        ]
+                    }
+                    response = self.client.get(
+                        f"api/v1/database/?q={rison.dumps(arguments)}"
+                    )
+                    assert response.status_code == 200
+                    result = response.json
+                    assert result["count"] == 1
+                    assert result["result"][0]["query_cost_warning"] == expected
+                finally:
+                    db.session.delete(database)
+                    db.session.commit()
 
     def test_get_items_with_jwt_auth(self):
         """
@@ -3665,6 +3727,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "query_cost_warning_metric": "total_cost",
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
@@ -3700,6 +3763,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
+                        "query_cost_warning_metric": "bytes_processed",
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
@@ -3765,6 +3829,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "query_cost_warning_metric": None,
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -3817,6 +3882,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
+                        "query_cost_warning_metric": None,
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
@@ -3882,6 +3948,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "query_cost_warning_metric": None,
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -3903,6 +3970,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "query_cost_warning_metric": None,
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -3944,6 +4012,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "query_cost_warning_metric": None,
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -3965,6 +4034,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "query_cost_warning_metric": None,
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,

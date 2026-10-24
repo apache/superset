@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2031,6 +2031,9 @@ msgstr "Došlo k chybe"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Upozornenie s názvom \"%(name)s\" již existuje"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -3192,6 +3195,9 @@ msgstr "Podľa kľúča: použiť názvy riadkov ako kľúč pre radenie"
 msgid "By value: use metric values as sorting key"
 msgstr "Podľa hodnoty: použiť hodnoty metrík ako kľúč pre radenie"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "Príjemcovia kópie"
 
@@ -3350,6 +3356,9 @@ msgstr "Zrušiť"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Zrušiť"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Zrušiť dotaz pri události uvolnie je okna"
@@ -3859,6 +3868,9 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -6365,6 +6377,9 @@ msgstr "Zakázat prechod na detail"
 msgid "Disable embedding?"
 msgstr "Zakázat vkládanie?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Zakázáno"
 
@@ -7098,8 +7113,16 @@ msgstr "Povolit Matrixify"
 msgid "Enable node dragging"
 msgstr "Povolit přetahovanie uzlov"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Povolit odhad nákladů dotazu"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Povolit rozbalenie riadkov ve schématech"
@@ -7187,8 +7210,19 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Zadejte názov upozornenie"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Zadejte dobu trvanie v sekundách"
@@ -7249,6 +7283,9 @@ msgid "Enter theme name"
 msgstr "Zadejte názov tématu"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7410,6 +7447,20 @@ msgstr "Odhadnúť náklady vybraného dotazu"
 
 msgid "Estimate the cost before running a query"
 msgstr "Odhadnúť náklady pred spuštením dotazu"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Událost"
@@ -8196,6 +8247,9 @@ msgid "Fit data"
 msgstr "Prispôsobiť dáta"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -12094,6 +12148,9 @@ msgstr "Pixely"
 msgid "Plain"
 msgstr "Prostý"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12508,6 +12565,12 @@ msgstr "Historie dotazov"
 #, fuzzy
 msgid "Query State"
 msgstr "Stav dotaze"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 msgid "Query data in SQL Lab"
 msgstr "Data dotazu v SQL Labu"
@@ -13420,6 +13483,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -13438,11 +13504,18 @@ msgstr "Spustiť dotaz"
 msgid "Run query (Ctrl + Return)"
 msgstr "Spustiť dotaz (Ctrl + Enter)"
 
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
+
 msgid "Run query in a new tab"
 msgstr "Spustiť dotaz v nové karte"
 
 msgid "Run selection"
 msgstr "Spustiť výber"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "Beží"
@@ -13714,6 +13787,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -16510,6 +16588,17 @@ msgid ""
 "call."
 msgstr "Objekt engine_params sa rozbalí do volanie sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Exponent pre výpočet všetkých veľkostí. Iba pre „EXP“"
 
@@ -16910,6 +16999,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Dotaz sa nepodarilo načítať"
 
@@ -17020,6 +17129,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -17270,6 +17387,9 @@ msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "Viditelný názov vrstvy"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Spôsob, jakým sú značky rozloženy na ose X"
@@ -17931,6 +18051,9 @@ msgid ""
 "one."
 msgstr "Tento e-mail je již spojen s účtem."
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -18291,6 +18414,9 @@ msgstr "Prahová hladina alfa pre určenie významnosti"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "Prahová hodnota pre Ostatní"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Prahová hodnota: "
@@ -19774,6 +19900,24 @@ msgstr "Sklad"
 msgid "Warning"
 msgstr "Varovanie"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Varovanie!"
 
@@ -19791,6 +19935,12 @@ msgid ""
 msgstr ""
 "Upozornenie: ILIKE dopyty môžu byť pomalé na veľkých súboroch údajov, "
 "pretože nemôžu efektívne využívať indexy."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "Nebolo možné zkontrolovať váš dotaz"
@@ -21096,6 +21246,9 @@ msgstr "tlačidlo (cmd + z), dokud neuložíte svoje zmeny."
 msgid "by using"
 msgstr "použitím"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -21560,6 +21713,9 @@ msgstr "Lokalní"
 msgid "log"
 msgstr "log"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -21738,6 +21894,9 @@ msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pixely"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "predchádzajúci kalendárny mesiac"
@@ -21950,6 +22109,9 @@ msgstr "nenastaveno"
 
 msgid "updated"
 msgstr "aktualizované"
+
+msgid "upper bound"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

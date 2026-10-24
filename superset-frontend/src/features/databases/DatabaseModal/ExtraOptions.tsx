@@ -41,6 +41,7 @@ import {
   no_margin_bottom,
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
+import QueryCostWarningSettings from './QueryCostWarningSettings';
 
 const ExtraOptions = ({
   db,
@@ -192,7 +193,6 @@ const ExtraOptions = ({
                 <StyledExpandableForm
                   className={cx('expandable', {
                     open: expandableModalIsOpen,
-                    'ctas-open': createAsOpen,
                   })}
                 >
                   <StyledInputContainer css={no_margin_bottom}>
@@ -288,6 +288,17 @@ const ExtraOptions = ({
                       />
                     </div>
                   </StyledInputContainer>
+                  <QueryCostWarningSettings
+                    key={`${db?.id}-${db?.backend || db?.engine}`}
+                    extra={extraJson}
+                    metric={db?.engine_information?.query_cost_warning_metric}
+                    onChange={rule =>
+                      onExtraEditorChange({
+                        name: 'query_cost_warning',
+                        json: JSON.stringify(rule),
+                      })
+                    }
+                  />
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
                       <Checkbox

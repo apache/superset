@@ -202,6 +202,77 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
+  test.each([
+    { status: 'within_threshold', proceed: false, executions: 1 },
+    { status: 'exceeded', proceed: false, executions: 0 },
+    { status: 'exceeded', proceed: true, executions: 1 },
+  ])(
+    'pre-run $status, continue $proceed executes $executions queries',
+    async ({ status, proceed, executions }) => {
+      mockIsFeatureEnabled.mockImplementation(flag =>
+        [
+          FeatureFlag.EstimateQueryCost,
+          FeatureFlag.SqlLabQueryCostWarnings,
+        ].includes(flag),
+      );
+      fetchMock.post(
+        'glob:*/api/v1/sqllab/estimate/',
+        {
+          result: {
+            status,
+            metric: 'bytes_processed',
+            label: 'Estimated bytes processed',
+            unit: 'bytes',
+            value: 101,
+            threshold: 100,
+            message: 'Estimate result',
+          },
+        },
+        { name: 'pre-run-estimate' },
+      );
+      store = createStore({
+        ...mockInitialState,
+        sqlLab: {
+          ...mockInitialState.sqlLab,
+          databases: {
+            1991: {
+              ...mockInitialState.sqlLab.databases[1991],
+              id: 1991,
+              allows_cost_estimate: true,
+              query_cost_warning: {
+                enabled: true,
+                metric: 'bytes_processed',
+                threshold: 100,
+              },
+            },
+          },
+        },
+      });
+      try {
+        const { findByTestId, findByRole } = setup(mockedProps, store);
+        fireEvent.click(await findByTestId('run-query-action'));
+        await act(async () => {
+          await fetchMock.callHistory.flush(true);
+        });
+        if (status === 'exceeded') {
+          fireEvent.click(
+            await findByRole('button', {
+              name: proceed ? 'Run anyway' : 'Cancel',
+            }),
+          );
+        }
+        await waitFor(() =>
+          expect(
+            actions.filter(action => action.type === 'START_QUERY'),
+          ).toHaveLength(executions),
+        );
+      } finally {
+        fetchMock.removeRoute('pre-run-estimate');
+        mockIsFeatureEnabled.mockReset();
+      }
+    },
+  );
+
   test('renders db unavailable message', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);

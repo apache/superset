@@ -16,7 +16,33 @@
 # under the License.
 from unittest import mock
 
+import pytest
+
 from superset.sqllab.utils import bootstrap_sqllab_data
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        {"enabled": False},
+        {"enabled": True, "metric": "bytes_processed", "threshold": 1024},
+    ],
+)
+def test_bootstrap_includes_cost_warning_rule(rule: dict[str, object]) -> None:
+    """SQL Lab receives the computed policy without exposing database extras."""
+    database = mock.MagicMock()
+    database.id = 1
+    database.to_json.return_value = {}
+    database.query_cost_warning = rule
+    with (
+        mock.patch(
+            "superset.sqllab.utils.DatabaseDAO.find_all", return_value=[database]
+        ),
+        mock.patch("superset.sqllab.utils.is_feature_enabled", return_value=False),
+    ):
+        result = bootstrap_sqllab_data(user_id=1)
+    assert result["databases"][1]["query_cost_warning"] == rule
+    assert "extra" not in result["databases"][1]
 
 
 def test_bootstrap_sqllab_data_includes_non_ansi_identifier_quote() -> None:

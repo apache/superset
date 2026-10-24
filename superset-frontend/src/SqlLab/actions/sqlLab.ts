@@ -566,34 +566,31 @@ export function runQuery(
   };
 }
 
-export function runQueryFromSqlEditor(
+/** Capture the execution inputs shared by deliberate Run and its advisory check. */
+export function getSqlEditorQuery(
   database: Database | null,
   queryEditor: QueryEditor,
   defaultQueryLimit: number,
   tempTable?: string,
   ctas?: boolean,
   ctasMethod?: string,
-): SqlLabThunkAction {
-  return function (dispatch: AppDispatch, getState: GetState) {
-    const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
-    const query: Query = {
-      id: nanoid(11),
-      dbId: qe.dbId,
-      sql: qe.selectedText || qe.sql,
-      sqlEditorId: qe.tabViewId ?? qe.id,
-      sqlEditorImmutableId: qe.immutableId,
-      tab: qe.name,
-      catalog: qe.catalog,
-      schema: qe.schema,
-      tempTable,
-      templateParams: qe.templateParams,
-      queryLimit: qe.queryLimit || defaultQueryLimit,
-      runAsync: database ? database.allow_run_async : false,
-      ctas,
-      ctas_method: ctasMethod,
-      updateTabState: !qe.selectedText,
-    };
-    dispatch(runQuery(query));
+): Query {
+  return {
+    id: nanoid(11),
+    dbId: queryEditor.dbId,
+    sql: queryEditor.selectedText || queryEditor.sql,
+    sqlEditorId: queryEditor.tabViewId ?? queryEditor.id,
+    sqlEditorImmutableId: queryEditor.immutableId,
+    tab: queryEditor.name,
+    catalog: queryEditor.catalog,
+    schema: queryEditor.schema,
+    tempTable,
+    templateParams: queryEditor.templateParams,
+    queryLimit: queryEditor.queryLimit || defaultQueryLimit,
+    runAsync: database ? database.allow_run_async : false,
+    ctas,
+    ctas_method: ctasMethod,
+    updateTabState: !queryEditor.selectedText,
   };
 }
 
@@ -848,9 +845,11 @@ export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
   };
 }
 
+/** Clone with existing effective settings and optional deliberate-run intent. */
 export function cloneQueryToNewTab(
   query: Query,
   autorun: boolean,
+  autorunSource?: QueryEditor['autorunSource'],
 ): SqlLabThunkAction<SqlLabAction> {
   return function (dispatch: AppDispatch, getState: GetState) {
     const state = getState();
@@ -868,6 +867,7 @@ export function cloneQueryToNewTab(
       catalog: query.catalog,
       schema: query.schema ?? undefined,
       autorun,
+      ...(autorunSource && { autorunSource }),
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
       templateParams: sourceQueryEditor.templateParams,

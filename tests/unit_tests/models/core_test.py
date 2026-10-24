@@ -54,6 +54,89 @@ from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
+
+@pytest.mark.parametrize(
+    "warnings_flag,estimate_flag,connection_estimation",
+    [(True, True, True), (False, True, True), (True, False, True), (True, True, False)],
+)
+@pytest.mark.parametrize(
+    "engine,metric", [("bigquery", "bytes_processed"), ("postgresql", "total_cost")]
+)
+@pytest.mark.parametrize("enabled", [False, True])
+def test_cost_warning_rule_survives_inactive_settings(
+    mocker: MockerFixture,
+    request: pytest.FixtureRequest,
+    warnings_flag: bool,
+    estimate_flag: bool,
+    connection_estimation: bool,
+    engine: str,
+    metric: str,
+    enabled: bool,
+) -> None:
+    """Saved rules remain available for display independently of activation gates."""
+    request.addfinalizer(Database.get_db_engine_spec.cache_clear)
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: warnings_flag
+        if name == "SQLLAB_QUERY_COST_WARNINGS"
+        else estimate_flag,
+    )
+    mocker.patch.object(
+        Database,
+        "allows_cost_estimate",
+        new_callable=mocker.PropertyMock,
+        return_value=connection_estimation,
+    )
+    rule = {"enabled": enabled, "metric": metric, "threshold": 100}
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri=f"{engine}://",
+        extra=json.dumps({"query_cost_warning": rule}),
+    )
+    assert database.query_cost_warning == rule
+
+
+@pytest.mark.parametrize("extra", [{}, {"cost_estimate_enabled": True}])
+def test_absent_saved_cost_warning_is_disabled(extra: dict[str, object]) -> None:
+    """Connections without a saved rule explicitly report warnings disabled."""
+    database = Database(
+        database_name="test", sqlalchemy_uri="bigquery://", extra=json.dumps(extra)
+    )
+    assert database.query_cost_warning == {"enabled": False}
+
+
+def test_minimal_disabled_cost_warning_is_preserved() -> None:
+    """A valid disabled rule remains distinct from an invalid saved rule."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps({"query_cost_warning": {"enabled": False}}),
+    )
+    assert database.query_cost_warning == {"enabled": False}
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        None,
+        {"enabled": "false"},
+        {"enabled": False, "threshold": -1},
+        {"enabled": True},
+        {"enabled": True, "metric": "bytes_processed", "threshold": -1},
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+        {"enabled": True, "metric": "unknown", "threshold": 100},
+    ],
+)
+def test_invalid_saved_cost_warning_is_null(rule: object) -> None:
+    """Invalid and incompatible rules are withheld instead of reported disabled."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps({"query_cost_warning": rule}),
+    )
+    assert database.query_cost_warning is None
+
+
 # sample config for OAuth2 tests
 oauth2_client_info = {
     "oauth2_client_info": {

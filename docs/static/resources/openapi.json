@@ -5107,6 +5107,9 @@
           "id": {
             "type": "integer"
           },
+          "query_cost_warning": {
+            "readOnly": true
+          },
           "uuid": {
             "format": "uuid",
             "nullable": true,
@@ -7293,6 +7296,10 @@
             ],
             "description": "Characters used to quote identifiers for this dialect"
           },
+          "query_cost_warning_metric": {
+            "nullable": true,
+            "type": "string"
+          },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
             "type": "boolean"
@@ -7323,8 +7330,18 @@
             "nullable": true,
             "type": "string"
           },
+          "check_warning": {
+            "default": false,
+            "description": "Check the connection's advisory warning threshold",
+            "type": "boolean"
+          },
           "database_id": {
             "description": "The database id",
+            "type": "integer"
+          },
+          "query_limit": {
+            "description": "The SQL Lab dropdown row limit",
+            "nullable": true,
             "type": "integer"
           },
           "schema": {
@@ -8016,6 +8033,25 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "QueryCostWarning": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "threshold": {
+            "exclusiveMinimum": true,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "enabled"
         ],
         "type": "object"
       },
@@ -11204,6 +11240,14 @@
           "id": {
             "description": "The database id",
             "type": "integer"
+          },
+          "query_cost_warning": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCostWarning"
+              }
+            ],
+            "nullable": true
           }
         },
         "type": "object"
@@ -35085,14 +35129,24 @@
                 "schema": {
                   "properties": {
                     "result": {
-                      "type": "object"
+                      "oneOf": [
+                        {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        {
+                          "type": "object"
+                        }
+                      ]
                     }
                   },
                   "type": "object"
                 }
               }
             },
-            "description": "Query estimation result"
+            "description": "Formatted manual estimate, or an advisory status object when check_warning is true. Warning statuses are disabled, unsupported, within_threshold, exceeded, and unavailable. Active rules also return metric, label, unit, value, threshold, and a short message. BigQuery results retain accuracy and row_level_security_applied metadata."
           },
           "400": {
             "$ref": "#/components/responses/400"

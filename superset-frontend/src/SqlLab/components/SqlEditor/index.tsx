@@ -50,6 +50,11 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
+import {
+  getQueryCostWarningError,
+  isQueryCostWarningMetric,
+  queryCostWarningMetrics,
+} from 'src/features/databases/queryCostWarning';
 import { debounce, isEmpty } from 'lodash-es';
 import Mousetrap from 'mousetrap';
 import {
@@ -75,11 +80,9 @@ import {
   queryEditorSetCursorPosition,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
-  runQueryFromSqlEditor,
   saveQuery,
   addSavedQueryToTabState,
   scheduleQuery,
-  setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
   fetchQueryEditor,
@@ -123,6 +126,8 @@ import KeyboardShortcutButton, {
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
+import useQueryCostWarning from './useQueryCostWarning';
+import QueryCostWarningDialog from './QueryCostWarningDialog';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -299,29 +304,45 @@ const SqlEditor: FC<Props> = ({
   const successful = latestQuery?.state === QueryState.Success;
   const resultColumns = latestQuery?.results?.columns || [];
 
+  const costWarning = useQueryCostWarning(queryEditor, defaultQueryLimit);
+  const warningRule = database?.query_cost_warning;
+  const warningMetric = database?.engine_information?.query_cost_warning_metric;
+  const runTooltipText =
+    isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
+    isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings) &&
+    database?.allows_cost_estimate &&
+    warningRule?.enabled === true &&
+    isQueryCostWarningMetric(warningMetric) &&
+    !getQueryCostWarningError(warningRule, warningMetric) &&
+    warningRule.threshold !== undefined
+      ? t(
+          'Run query (Ctrl + Return). Cost warnings enabled. %s: %s.',
+          queryCostWarningMetrics[warningMetric].thresholdLabel(),
+          warningRule.threshold.toLocaleString(undefined, {
+            maximumSignificantDigits: 21,
+          }),
+        )
+      : undefined;
   const startQuery = useCallback(
     (
       ctasArg = false,
       ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
+      automatic = false,
+      sql?: string,
     ) => {
-      if (!database) {
-        return;
+      if (autorun && queryEditor.autorunSource === 'history') {
+        setAutorun(false);
+        dispatch(queryEditorSetAutorun(queryEditor, false));
       }
-
-      dispatch(
-        runQueryFromSqlEditor(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          database as any,
-          queryEditor,
-          defaultQueryLimit,
-          ctasArg ? ctas : '',
-          ctasArg,
-          ctas_method,
-        ),
+      return costWarning.start(
+        ctasArg ? ctas : '',
+        ctasArg,
+        ctas_method,
+        automatic,
+        sql,
       );
-      dispatch(setActiveSouthPaneTab('Results'));
     },
-    [ctas, database, defaultQueryLimit, dispatch, queryEditor],
+    [autorun, costWarning.start, ctas, dispatch, queryEditor],
   );
 
   const formatCurrentQuery = useCallback(
@@ -335,11 +356,12 @@ const SqlEditor: FC<Props> = ({
   );
 
   const stopQuery = useCallback(() => {
+    costWarning.cancel();
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
     }
     return false;
-  }, [dispatch, latestQuery]);
+  }, [costWarning.cancel, dispatch, latestQuery]);
 
   const runQuery = () => {
     if (database) {
@@ -349,11 +371,22 @@ const SqlEditor: FC<Props> = ({
 
   useEffect(() => {
     if (autorun) {
+      if (
+        queryEditor.autorunSource === 'history' &&
+        isActive &&
+        isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+        queryEditor.inLocalStorage
+      )
+        return;
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
-      startQuery();
+      startQuery(
+        false,
+        CtasEnum.Table,
+        queryEditor.autorunSource !== 'history',
+      );
     }
-  }, [autorun, dispatch, queryEditor, startQuery]);
+  }, [autorun, dispatch, isActive, queryEditor, startQuery]);
 
   const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
@@ -557,20 +590,16 @@ const SqlEditor: FC<Props> = ({
             start = { line: currentLine, column: 0 };
           }
 
-          // Set selection and run query
-          editor.setSelection({
-            start: start ?? { line: 0, column: 0 },
-            end,
-          });
-          startQuery();
-
-          // Clear selection and restore cursor position
-          editor.setSelection({
-            start: cursorPosition,
-            end: cursorPosition,
-          });
-          editor.moveCursorToPosition(cursorPosition);
-          editor.scrollToLine(cursorPosition.line);
+          // Capture the existing statement range without changing the user's selection.
+          const statementStart = start ?? { line: 0, column: 0 };
+          const statementLines = lines.slice(statementStart.line, end.line + 1);
+          const lastIndex = statementLines.length - 1;
+          statementLines[lastIndex] = statementLines[lastIndex].slice(
+            0,
+            end.column,
+          );
+          statementLines[0] = statementLines[0].slice(statementStart.column);
+          startQuery(false, CtasEnum.Table, false, statementLines.join('\n'));
         },
       },
     ];
@@ -841,6 +870,10 @@ const SqlEditor: FC<Props> = ({
         <RunQueryActionButton
           queryEditorId={queryEditor.id}
           queryState={latestQuery?.state}
+          runTooltipText={runTooltipText}
+          checkingCost={costWarning.checking}
+          cancelCostCheck={costWarning.cancel}
+          awaitingConfirmation={!!costWarning.confirmation}
           runQuery={runQuery}
           stopQuery={stopQuery}
           overlayCreateAsMenu={showMenu ? runMenuBtn : null}
@@ -1095,6 +1128,11 @@ const SqlEditor: FC<Props> = ({
         <span>{t('Name')}</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
+      <QueryCostWarningDialog
+        estimate={costWarning.confirmation}
+        onCancel={costWarning.cancel}
+        onContinue={costWarning.continueRun}
+      />
     </StyledSqlEditor>
   );
 };

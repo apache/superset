@@ -46,6 +46,35 @@ def _make_params(**kwargs: object) -> EstimateQueryCostType:
     return base
 
 
+@pytest.mark.parametrize("engine", ["bigquery", "postgresql"])
+@patch("superset.commands.sql_lab.estimate.app")
+def test_manual_estimate_passes_native_rows_to_custom_formatter(
+    mock_app: MagicMock, engine: str
+) -> None:
+    """Configured formatters receive unmodified engine rows and own the response."""
+    formatted = [{"estimate": "custom display"}]
+    formatter = MagicMock(return_value=formatted)
+    mock_app.config = {
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {engine: formatter},
+    }
+    command = QueryEstimationCommand(_make_params())
+    database = MagicMock()
+    database.db_engine_spec.engine = engine
+    estimate = [{"KB Processed": 1.0} if engine == "bigquery" else {"Total cost": 12.5}]
+    database.db_engine_spec.estimate_query_cost.return_value = estimate
+    command._database = database
+    with (
+        patch.object(command, "validate"),
+        patch.object(command, "_apply_sql_security", side_effect=lambda value: value),
+    ):
+        result = command.run()
+    assert result is formatted
+    formatter.assert_called_once_with(estimate)
+    assert formatter.call_args.args[0] is estimate
+    database.db_engine_spec.query_cost_formatter.assert_not_called()
+
+
 def _security_exception() -> SupersetSecurityException:
     return SupersetSecurityException(
         SupersetError(

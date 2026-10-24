@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -2143,6 +2143,9 @@ msgstr "Wystąpił błąd"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Alarm o nazwie „%(name)s” już istnieje."
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -3364,6 +3367,9 @@ msgstr "Według klucza: użyj nazw wierszy jako klucza sortowania"
 msgid "By value: use metric values as sorting key"
 msgstr "Według wartości: użyj wartości metryk jako klucza sortowania"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "Odbiorcy DW"
 
@@ -3530,6 +3536,9 @@ msgstr "Anuluj"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Anuluj"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Anuluj zapytanie podczas zdarzenia zamykania okna"
@@ -4070,6 +4079,9 @@ msgid "Check your email"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -6802,6 +6814,9 @@ msgstr "Wyłącz przechodzenie do szczegółów"
 msgid "Disable embedding?"
 msgstr "Wyłączyć osadzanie?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 #, fuzzy
 msgid "Disabled"
 msgstr "Wyłączone"
@@ -7610,8 +7625,16 @@ msgstr "Włącz matrixify"
 msgid "Enable node dragging"
 msgstr "Włącz przeciąganie węzłów"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Włącz szacowanie kosztów zapytań"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Włącz rozwijanie wierszy w schematach"
@@ -7710,9 +7733,20 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Czy wypełniać obiekty"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "Wprowadź nazwę alertu"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Wprowadź czas trwania w sekundach"
@@ -7789,6 +7823,9 @@ msgid "Enter theme name"
 msgstr "Wprowadź nazwę alertu"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7967,6 +8004,20 @@ msgstr "Szacowanie kosztu wybranego zapytania"
 
 msgid "Estimate the cost before running a query"
 msgstr "Szacuj koszt przed uruchomieniem zapytania"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 #, fuzzy
 msgid "Event"
@@ -8828,6 +8879,9 @@ msgid "Fit data"
 msgstr "Dopasuj dane"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -13012,6 +13066,9 @@ msgstr "Piksele"
 msgid "Plain"
 msgstr "Prosty"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13464,6 +13521,12 @@ msgstr "Historia zapytań"
 #, fuzzy
 msgid "Query State"
 msgstr "Zapytanie A"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 #, fuzzy
 msgid "Query data in SQL Lab"
@@ -14454,6 +14517,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -14473,11 +14539,18 @@ msgstr "Uruchom zapytanie"
 msgid "Run query (Ctrl + Return)"
 msgstr "Uruchom zapytanie (Ctrl + Return)"
 
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
+
 msgid "Run query in a new tab"
 msgstr "Uruchom zapytanie w nowej karcie"
 
 msgid "Run selection"
 msgstr "Uruchom zaznaczenie"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "W toku"
@@ -14771,6 +14844,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 #, fuzzy
@@ -17855,6 +17933,17 @@ msgstr ""
 "Obiekt engine_params jest rozpakowywany podczas wywoływania "
 "sqlalchemy.create_engine."
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18293,6 +18382,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Nie udało się załadować zapytania."
 
@@ -18410,6 +18519,14 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
 msgstr ""
 
 #, python-format
@@ -18678,6 +18795,9 @@ msgstr ""
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "Pokaż wartość na górze słupka"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Sposób rozmieszczenia podziałek na osi X."
@@ -19379,6 +19499,9 @@ msgid ""
 "one."
 msgstr "Ten adres e-mail jest już powiązany z kontem. Wybierz inny."
 
+msgid "This engine does not support pre-run warnings."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -19782,6 +19905,9 @@ msgstr "Poziom alfa dla określenia istotności"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "Próg"
+
+msgid "Threshold size unit"
+msgstr ""
 
 #, fuzzy
 msgid "Threshold: "
@@ -21401,6 +21527,24 @@ msgstr "Magazyn"
 msgid "Warning"
 msgstr "Ostrzeżenie"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Ostrzeżenie!"
 
@@ -21420,6 +21564,12 @@ msgid ""
 msgstr ""
 "Ostrzeżenie: zapytania ILIKE mogą być wolne na dużych zbiorach danych, "
 "ponieważ nie mogą efektywnie używać indeksów."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 #, fuzzy
 msgid "Was unable to check your query"
@@ -22797,6 +22947,9 @@ msgstr "przycisk (cmd + z), dopóki nie zapiszesz swoich zmian."
 msgid "by using"
 msgstr "używając"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -23300,6 +23453,9 @@ msgstr "Skala logarytmiczna"
 msgid "log"
 msgstr "dziennik"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -23496,6 +23652,9 @@ msgstr "Przestawione"
 
 msgid "pixels"
 msgstr "piksele"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "poprzedni miesiąc kalendarzowy"
@@ -23729,6 +23888,9 @@ msgid "unset"
 msgstr "Czerwiec"
 
 msgid "updated"
+msgstr ""
+
+msgid "upper bound"
 msgstr ""
 
 msgid ""
