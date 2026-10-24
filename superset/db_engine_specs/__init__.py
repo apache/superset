@@ -34,6 +34,7 @@ import pkgutil
 from collections import defaultdict
 from importlib import import_module
 from importlib.metadata import entry_points
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Optional
 
@@ -130,6 +131,31 @@ backend_replacements = {
 }
 
 
+def _get_installed_native_driver(dialect: Any) -> Optional[str]:
+    """
+    Return the driver name of a native SQLAlchemy dialect if its DBAPI is installed.
+    """
+    if not (
+        issubclass(dialect, DefaultDialect)
+        and hasattr(dialect, "driver")
+        # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
+        # DBAPI import method, hence needs to be ignored to avoid a warning
+        and dialect.driver != "adodbapi"
+    ):
+        return None
+    try:
+        if hasattr(dialect, "import_dbapi"):
+            dialect.import_dbapi()
+        else:
+            dialect.dbapi()
+    except ModuleNotFoundError:
+        return None
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Unable to load dialect %s: %s", dialect, ex)
+        return None
+    return dialect.driver
+
+
 # pylint: disable=too-many-branches
 def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noqa: C901
     """
@@ -141,26 +167,35 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
     for attr in sqlalchemy.dialects.__all__:
         try:
             dialect = sqlalchemy.dialects.registry.load(attr)
-            if (
-                issubclass(dialect, DefaultDialect)
-                and hasattr(dialect, "driver")
-                # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
-                # DBAPI import method, hence needs to be ignored to avoid a warning
-                and dialect.driver != "adodbapi"
-            ):
-                try:
-                    if hasattr(dialect, "import_dbapi"):
-                        dialect.import_dbapi()
-                    else:
-                        dialect.dbapi()
-                except ModuleNotFoundError:
-                    continue
-                except Exception as ex:  # pylint: disable=broad-except
-                    logger.warning("Unable to load dialect %s: %s", dialect, ex)
-                    continue
-                drivers[attr].add(dialect.driver)
         except NoSuchModuleError:
             continue
+        if native_driver := _get_installed_native_driver(dialect):
+            drivers[attr].add(native_driver)
+
+    # ``registry.load(backend)`` only resolves SQLAlchemy's default dialect for a
+    # backend (e.g. pyodbc for mssql). Engine specs may recommend a different
+    # dialect bundled with SQLAlchemy (e.g. mssql+pymssql), so probe each spec's
+    # ``default_driver`` among the bundled dialects of its native backend too.
+    engine_specs = list(load_engine_specs())
+    for engine_spec in engine_specs:
+        engine = engine_spec.engine
+        default_driver = engine_spec.default_driver
+        if (
+            engine not in sqlalchemy.dialects.__all__
+            or not default_driver
+            or default_driver in drivers[engine]
+        ):
+            continue
+        module_name = f"sqlalchemy.dialects.{engine}.{default_driver}"
+        try:
+            if find_spec(module_name) is None:
+                continue
+            dialect = import_module(module_name).dialect
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.debug("Unable to load dialect %s: %s", module_name, ex)
+            continue
+        if native_driver := _get_installed_native_driver(dialect):
+            drivers[engine].add(native_driver)
 
     # installed 3rd-party dialects
     #
@@ -237,7 +272,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
     dbs_denylist_engines = dbs_denylist.keys()
     available_engines = {}
 
-    for engine_spec in load_engine_specs():
+    for engine_spec in engine_specs:
         driver = drivers[engine_spec.engine]
         if (
             engine_spec.engine in dbs_denylist_engines

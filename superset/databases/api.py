@@ -2004,8 +2004,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 hasattr(engine_spec, "parameters_json_schema")
                 and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
                 and engine_spec.default_driver in drivers
+                and (parameters := engine_spec.parameters_json_schema()) is not None
             ):
-                payload["parameters"] = engine_spec.parameters_json_schema()
+                payload["parameters"] = parameters
                 payload["sqlalchemy_uri_placeholder"] = (
                     engine_spec.sqlalchemy_uri_placeholder
                 )

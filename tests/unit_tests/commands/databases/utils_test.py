@@ -35,6 +35,8 @@ from superset.commands.database.utils import (
     add_vm,
     oauth2_endpoint_rebind_unsafe,
     ping,
+    reuse_stored_password,
+    uri_identity_changed,
 )
 from superset.constants import PASSWORD_MASK
 from superset.utils import json
@@ -268,3 +270,77 @@ def test_oauth2_endpoint_rebind_unsafe_without_stored_client() -> None:
         "{}",
         _oauth2_submitted({"token_request_uri": "https://other.example.org/token"}),
     )
+
+
+MSSQL_URI = f"mssql+pymssql://sa:{PASSWORD_MASK}@sqlserver:1433/db"
+
+
+@pytest.mark.parametrize(
+    "existing_uri, submitted_uri, changed",
+    [
+        (MSSQL_URI, MSSQL_URI, False),
+        # tuning-only query parameters don't change the connection identity
+        (MSSQL_URI, f"{MSSQL_URI}?login_timeout=30", False),
+        (f"{MSSQL_URI}?charset=UTF-8", f"{MSSQL_URI}?charset=CP1252", False),
+        # anything else can redirect the connection
+        (MSSQL_URI, f"{MSSQL_URI}?host=elsewhere", True),
+        (MSSQL_URI, f"{MSSQL_URI}?login_timeout=30&port=1434", True),
+        (MSSQL_URI, MSSQL_URI.replace("sqlserver", "elsewhere"), True),
+        # engines without tuning parameters keep comparing every query key
+        (
+            f"postgresql://u:{PASSWORD_MASK}@host/db",
+            f"postgresql://u:{PASSWORD_MASK}@host/db?login_timeout=30",
+            True,
+        ),
+    ],
+)
+def test_uri_identity_changed_ignores_tuning_query_params(
+    existing_uri: str, submitted_uri: str, changed: bool
+) -> None:
+    assert uri_identity_changed(existing_uri, submitted_uri) is changed
+
+
+def _mssql_model(mocker: MockerFixture) -> MagicMock:
+    model = mocker.MagicMock()
+    model.safe_sqlalchemy_uri.return_value = MSSQL_URI
+    model.sqlalchemy_uri_decrypted = "mssql+pymssql://sa:secret@sqlserver:1433/db"
+    return model
+
+
+def test_reuse_stored_password_unchanged_uri(mocker: MockerFixture) -> None:
+    model = _mssql_model(mocker)
+
+    assert reuse_stored_password(model, MSSQL_URI) == model.sqlalchemy_uri_decrypted
+
+
+def test_reuse_stored_password_with_tuning_query_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Adding a tuning-only parameter while editing keeps the stored password, so it
+    doesn't have to be re-entered.
+    """
+    model = _mssql_model(mocker)
+
+    assert reuse_stored_password(model, f"{MSSQL_URI}?login_timeout=30") == (
+        "mssql+pymssql://sa:secret@sqlserver:1433/db?login_timeout=30"
+    )
+
+
+@pytest.mark.parametrize(
+    "submitted_uri",
+    [
+        f"{MSSQL_URI}?host=elsewhere",
+        MSSQL_URI.replace("sqlserver", "elsewhere"),
+        MSSQL_URI.replace(PASSWORD_MASK, "typed-password"),
+        "mssql+pymssql://sa@sqlserver:1433/db?login_timeout=30",
+    ],
+)
+def test_reuse_stored_password_refused(
+    mocker: MockerFixture, submitted_uri: str
+) -> None:
+    """
+    The stored password is never attached to a connection that may go elsewhere,
+    nor does it override a password the user typed (or removed).
+    """
+    assert reuse_stored_password(_mssql_model(mocker), submitted_uri) is None

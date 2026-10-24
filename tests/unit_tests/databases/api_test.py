@@ -3042,3 +3042,32 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+@pytest.mark.parametrize(
+    "drivers",
+    [{"pyodbc"}, {"pymssql", "pyodbc"}],
+)
+def test_available_keeps_azure_synapse_on_uri_form(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    drivers: set[str],
+) -> None:
+    """
+    Azure Synapse never gets the dynamic form, whichever MSSQL drivers are
+    installed; SQL Server gets it only when pymssql is available.
+    """
+    from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={MssqlEngineSpec: drivers, AzureSynapseSpec: drivers},
+    )
+
+    response = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    databases = {db["name"]: db for db in response.json["databases"]}
+    assert "parameters" not in databases["Azure Synapse"]
+    assert ("parameters" in databases["Microsoft SQL Server"]) is ("pymssql" in drivers)
