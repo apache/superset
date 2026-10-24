@@ -732,9 +732,10 @@ class AddChartToDashboardResponse(DashboardMutationErrorFields):
         default=False,
         description=(
             "True when the operation failed because the current user does not "
-            "have edit rights on the target dashboard. When True, inform the "
-            "user and ask if they would like a new dashboard created instead. "
-            "Do NOT silently create a new dashboard — always confirm first."
+            "have edit rights on the target dashboard or access to the chart. "
+            "Do not retry or create another dashboard to bypass denied chart "
+            "access. For a dashboard-edit denial, ask the user before creating "
+            "a new dashboard; chart access must still be checked."
         ),
     )
 
