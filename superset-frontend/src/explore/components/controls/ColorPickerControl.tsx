@@ -236,8 +236,17 @@ export default function ColorPickerControl({
 
     // Match against the same hex the preset chip and trigger display, so a
     // special color picked from a theme-resolved chip maps back to its key.
+    // Only keys the caller actually offered as presets are candidates;
+    // otherwise an ordinary theme swatch that shares a hex with Green/Red
+    // (e.g. `colorSuccess`) would be misread as the special key.
+    const offeredSpecialKeys = new Set(
+      (customPresets ?? []).flatMap(item =>
+        item.colors.filter(color => color in SPECIAL_COLORS),
+      ),
+    );
     const specialEntry = resolveThemeTokens
       ? Object.keys(SPECIAL_COLORS)
+          .filter(key => offeredSpecialKeys.has(key))
           .map(key => [key, toDisplayHex(key, themeColors, true)] as const)
           .find(([, displayHex]) => displayHex === hex)
       : undefined;
