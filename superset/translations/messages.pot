@@ -933,6 +933,9 @@ msgstr ""
 msgid "A candlestick chart shows opening, closing, high, and low values for each period. It is commonly used for financial and other time-series range analysis."
 msgstr ""
 
+msgid "A chart on this dashboard or in this version was permanently deleted while the dashboard was being restored, so nothing was changed. Please try again."
+msgstr ""
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 
