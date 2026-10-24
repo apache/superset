@@ -16388,6 +16388,16 @@
     "/api/v1/chart/data": {
       "post": {
         "description": "Takes a query context constructed in the client and returns payload data response for the given query.",
+        "parameters": [
+          {
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "in": "query",
+            "name": "download_reason",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -17084,6 +17094,14 @@
             "name": "filters_dashboard_id",
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "in": "query",
+            "name": "download_reason",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -20158,6 +20176,14 @@
             "required": true,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "in": "query",
+            "name": "download_reason",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -35196,6 +35222,14 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "in": "query",
+            "name": "download_reason",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -35241,6 +35275,16 @@
     },
     "/api/v1/sqllab/export_streaming/": {
       "post": {
+        "parameters": [
+          {
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "in": "query",
+            "name": "download_reason",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
