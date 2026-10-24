@@ -25,14 +25,15 @@ from the request payload.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from superset import db
+from superset import db, security_manager
 from superset.daos.user import UserDAO
 from superset.views.users.api import CurrentUserRestApi
 from superset.views.users.schemas import CurrentUserPutSchema
@@ -268,3 +269,27 @@ def test_update_me_does_not_set_self_referential_changed_by(
     # The user can still be deleted.
     db.session.delete(admin_user)
     db.session.flush()
+
+
+def test_get_my_api_key_scopes_returns_security_manager_result(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """``GET /api/v1/me/api_key_scopes/`` exposes exactly the list computed
+    by ``security_manager.get_allowed_api_key_scopes`` for the current user."""
+    user = MagicMock()
+    mocker.patch("superset.views.users.api.g").user = user
+    get_scopes = mocker.patch.object(
+        security_manager,
+        "get_allowed_api_key_scopes",
+        return_value=["superset:chart:read", "superset:dashboard:read"],
+    )
+
+    response = client.get("/api/v1/me/api_key_scopes/")
+
+    assert response.status_code == 200
+    assert response.json == {
+        "result": ["superset:chart:read", "superset:dashboard:read"]
+    }
+    get_scopes.assert_called_once_with(user)

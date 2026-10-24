@@ -77,6 +77,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
+from werkzeug.exceptions import BadRequest
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -6451,12 +6452,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         resource," so it's rejected for anyone else rather than guessed at.
         Unrecognized scope strings are rejected outright (fail closed).
 
-        NOTE: this only prevents the request from being honored; it does
-        not (yet) produce a clean 400 response, since FAB's ``ApiKeyApi``
-        has no validation hook this can plug into without replacing the API
-        registration entirely. Raising here surfaces as a 500 via FAB's
-        ``@safe`` decorator until that's addressed — tracked as a known
-        follow-up, not silently accepted.
+        Raises ``ValueError``; ``create_api_key`` translates it into a
+        ``BadRequest`` so FAB's ``ApiKeyApi`` answers with a 400 carrying the
+        reason instead of a generic 500.
         """
         if not scopes:
             return
@@ -6511,6 +6509,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "self-issue as a flat scope"
             )
 
+    def get_allowed_api_key_scopes(self, user: Any) -> list[str]:
+        """Return the per-resource API-key scopes ``user`` may self-issue.
+
+        Walks the canonical ``superset:<resource>:<action>`` catalog and keeps
+        every scope that passes ``_validate_requested_api_key_scopes`` for
+        this user, so the result is exactly the set ``create_api_key`` would
+        accept. Lets the API-key UI offer only scopes the user can actually
+        obtain instead of the full catalog.
+        """
+        # pylint: disable-next=import-outside-toplevel
+        from superset.security.api_key_scopes import (
+            RESOURCE_SCOPE_ACTIONS,
+            RESOURCE_SCOPE_NAME,
+        )
+
+        allowed: list[str] = []
+        for resource in RESOURCE_SCOPE_NAME.values():
+            for action in sorted(RESOURCE_SCOPE_ACTIONS):
+                scope = f"superset:{resource}:{action}"
+                try:
+                    self._validate_requested_api_key_scopes(user, scope)
+                except ValueError:
+                    continue
+                allowed.append(scope)
+        return allowed
+
     def create_api_key(
         self,
         user: Any,
@@ -6521,10 +6545,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """Create a new API key, enforcing the scope-intersection rule.
 
         Thin wrapper around FAB's ``SecurityManager.create_api_key`` — see
-        ``_validate_requested_api_key_scopes`` for the actual check. FAB's
-        base implementation is otherwise unchanged.
+        ``_validate_requested_api_key_scopes`` for the actual check. A
+        rejected scope is raised as ``BadRequest`` so FAB's ``ApiKeyApi``
+        (whose ``@safe`` decorator maps that exception to a 400) reports the
+        reason to the caller rather than failing with a 500. FAB's base
+        implementation is otherwise unchanged.
         """
-        self._validate_requested_api_key_scopes(user, scopes)
+        try:
+            self._validate_requested_api_key_scopes(user, scopes)
+        except ValueError as ex:
+            raise BadRequest(str(ex)) from ex
         return super().create_api_key(  # type: ignore[misc]
             user=user, name=name, scopes=scopes, expires_on=expires_on
         )
