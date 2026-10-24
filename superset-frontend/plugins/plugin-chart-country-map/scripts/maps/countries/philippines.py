@@ -31,6 +31,7 @@ This fixes that: the corrected 83-province source is now the
 from __future__ import annotations
 
 import geopandas as gpd
+from shapely.geometry.polygon import orient
 
 from maps.context import BuildContext
 
@@ -40,6 +41,14 @@ _URL = (
     "https://raw.githubusercontent.com/jdruii/phgeojson/"
     "098399b6f27ca10e31c8f304e4148b3a56431ec2/philippines.geojson"
 )
+
+
+def _orient_clockwise(geom):
+    if geom.geom_type == "Polygon":
+        return orient(geom, sign=-1.0)
+    if geom.geom_type == "MultiPolygon":
+        return type(geom)([orient(part, sign=-1.0) for part in geom.geoms])
+    return geom
 
 
 def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
@@ -60,6 +69,10 @@ def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
     philippines = source.rename(columns={"NAME_1": "name", "ISO": "iso_3166_2"})[
         ["geometry", "iso_3166_2", "name"]
     ].copy()
+    # The chart projects with d3 v3, which reads a counterclockwise exterior
+    # ring as the complement on the sphere; the community source mixes
+    # windings, so force clockwise exteriors (sign=-1).
+    philippines["geometry"] = philippines.geometry.apply(_orient_clockwise)
 
     philippines_regions = ctx.df[ctx.df.admin == "Philippines"][
         ["geometry", "region_cod", "region"]

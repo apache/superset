@@ -38,7 +38,8 @@ To add a new country to the list, you'd have to edit files in
    before writing anything.
 2. If it needs a fix (a renamed region, a relocated territory, a replacement data source, ...),
    add a module under [`scripts/maps/countries/`](https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-country-map/scripts/maps/countries) -
-   the existing modules there are the best reference for the pattern.
+   the existing modules there are the best reference for the pattern. Then import the module and add it to
+   `REGISTRY` in `scripts/maps/countries/__init__.py`; unregistered modules are ignored by the build.
 3. Regenerate the GeoJSON files, `countries.ts` and `docs/data/countries.json`:
    `cd superset-frontend && npm run update-maps`. Iterate on just your country with a rendered
    preview via `python3 plugins/plugin-chart-country-map/scripts/build_maps.py --countries <name> --preview`.
