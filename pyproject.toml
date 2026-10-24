@@ -259,7 +259,7 @@ ocient = [
 oracle = ["oracledb>=26.0.0, <27"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb[sqlalchemy]>=9.2.2, <10.0.0"]
-playwright = ["playwright>=1.63.0, <2"]
+playwright = ["playwright>=1.64.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.340.0"]
