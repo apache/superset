@@ -101,6 +101,11 @@ const Error = ({ error }: { error: string }) => (
 const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
   `${value};${page};${pageSize}`;
 
+const normalizeOptionLabel = (label: unknown): string | undefined =>
+  typeof label === 'string' || typeof label === 'number'
+    ? String(label).trim().toLowerCase()
+    : undefined;
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -118,6 +123,7 @@ const AsyncSelect = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      caseSensitiveNewOptionMatching = true,
       ariaLabel,
       autoClearSearchValue = true,
       fetchOnlyOnSearch,
@@ -257,10 +263,27 @@ const AsyncSelect = forwardRef(
             ? { value: opt.value, label: opt.label }
             : { value: opt, label: String(opt) },
         );
-      return missingValues.length > 0
-        ? missingValues.concat(selectOptions)
-        : selectOptions;
-    }, [selectOptions, selectValue]);
+      const combined =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
+
+      if (caseSensitiveNewOptionMatching) {
+        return combined;
+      }
+
+      const serverLabels = new Set(
+        combined
+          .filter(option => !option.isNewOption)
+          .map(option => normalizeOptionLabel(option.label)),
+      );
+      return combined.filter(
+        option =>
+          !option.isNewOption ||
+          hasOption(option.value, selectValue) ||
+          !serverLabels.has(normalizeOptionLabel(option.label)),
+      );
+    }, [caseSensitiveNewOptionMatching, selectOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -376,10 +399,21 @@ const AsyncSelect = forwardRef(
         if (data && Array.isArray(data) && data.length) {
           // unique option values should always be case sensitive so don't lowercase
           const dataValues = new Set(data.map(opt => opt.value));
+          const dataLabels = caseSensitiveNewOptionMatching
+            ? undefined
+            : new Set(data.map(option => normalizeOptionLabel(option.label)));
           // merges with existing and creates unique options
           setSelectOptions(prevOptions => {
             mergedData = prevOptions
-              .filter(previousOption => !dataValues.has(previousOption.value))
+              .filter(
+                previousOption =>
+                  !dataValues.has(previousOption.value) &&
+                  (!previousOption.isNewOption ||
+                    hasOption(previousOption.value, selectValueRef.current) ||
+                    !dataLabels?.has(
+                      normalizeOptionLabel(previousOption.label),
+                    )),
+              )
               .concat(data)
               // Forward-compat: TS 6.0 infers stricter antd option types; widen
               // the comparator to accept the broader DefaultOptionType shape.
@@ -394,7 +428,7 @@ const AsyncSelect = forwardRef(
         }
         return mergedData;
       },
-      [sortComparatorForNoSearch],
+      [caseSensitiveNewOptionMatching, sortComparatorForNoSearch],
     );
 
     const fetchPage = useMemo(
@@ -475,8 +509,17 @@ const AsyncSelect = forwardRef(
               // typed when the server returns no match.
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
+                const dataLabels = caseSensitiveNewOptionMatching
+                  ? undefined
+                  : new Set(
+                      data.map(option => normalizeOptionLabel(option.label)),
+                    );
                 const preservedNew = prevOptions.filter(
-                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                  opt =>
+                    opt.isNewOption &&
+                    (hasOption(opt.value, selectValueRef.current) ||
+                      (!dataValues.has(opt.value) &&
+                        !dataLabels?.has(normalizeOptionLabel(opt.label)))),
                 );
                 return preservedNew
                   .concat(data)
@@ -514,6 +557,7 @@ const AsyncSelect = forwardRef(
       },
       [
         allValuesLoaded,
+        caseSensitiveNewOptionMatching,
         fetchOnlyOnSearch,
         mergeData,
         internalOnError,
@@ -530,6 +574,7 @@ const AsyncSelect = forwardRef(
 
     const searchStateRef = useRef({
       allowNewOptions,
+      caseSensitiveNewOptionMatching,
       fullSelectOptions,
       selectValue,
       allValuesLoaded,
@@ -542,6 +587,7 @@ const AsyncSelect = forwardRef(
     useEffect(() => {
       searchStateRef.current = {
         allowNewOptions,
+        caseSensitiveNewOptionMatching,
         fullSelectOptions,
         selectValue,
         allValuesLoaded,
@@ -557,6 +603,7 @@ const AsyncSelect = forwardRef(
         debounce((search: string) => {
           const {
             allowNewOptions,
+            caseSensitiveNewOptionMatching,
             fullSelectOptions,
             selectValue,
             allValuesLoaded,
@@ -570,19 +617,35 @@ const AsyncSelect = forwardRef(
 
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
-            const newOption = unquotedSearch &&
-              !hasOption(unquotedSearch, fullSelectOptions, true) && {
-                label: unquotedSearch,
-                value: unquotedSearch,
-                isNewOption: true,
-              };
-            const cleanSelectOptions = fullSelectOptions.filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-            );
-            const newOptions = newOption
-              ? [newOption, ...cleanSelectOptions]
-              : cleanSelectOptions;
-            setSelectOptions(newOptions);
+            setSelectOptions(prevOptions => {
+              const cleanSelectOptions = fullSelectOptions.filter(
+                option =>
+                  !option.isNewOption || hasOption(option.value, selectValue),
+              );
+              const optionsToCheck = caseSensitiveNewOptionMatching
+                ? fullSelectOptions
+                : [
+                    ...cleanSelectOptions,
+                    ...prevOptions.filter(option => !option.isNewOption),
+                  ];
+              const normalizedSearch = normalizeOptionLabel(unquotedSearch);
+              const hasMatchingOption = caseSensitiveNewOptionMatching
+                ? hasOption(unquotedSearch, optionsToCheck, true)
+                : optionsToCheck.some(
+                    option =>
+                      normalizedSearch !== undefined &&
+                      normalizeOptionLabel(option.label) === normalizedSearch,
+                  );
+              const newOption = unquotedSearch &&
+                !hasMatchingOption && {
+                  label: unquotedSearch,
+                  value: unquotedSearch,
+                  isNewOption: true,
+                };
+              return newOption
+                ? [newOption, ...cleanSelectOptions]
+                : cleanSelectOptions;
+            });
           }
 
           if (
