@@ -85,6 +85,18 @@ filter cleanup; the response warns that the dashboard's filters need review.
 
 ## Deleting an object permanently
 
+Archived charts and dashboards still block deletion of semantic views and layers
+they depend on. The refusal includes the number of archived dependents. Use
+**Recently Archived** to restore and repoint them, or permanently delete them,
+before deleting the semantic source. If you cannot access those assets, ask an
+admin for help.
+
+When deleting a semantic layer or view, a dependency refusal stays in the
+confirmation dialog with the total and archived counts and a link to Recently
+Archived. The typed confirmation is preserved so you can retry after removing
+or repointing the dependents. Dependencies are checked when you confirm deletion,
+not before you type the confirmation.
+
 Use the **Delete permanently** action on a row to remove an object for good.
 You will be asked to confirm.
 
