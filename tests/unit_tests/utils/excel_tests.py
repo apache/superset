@@ -82,6 +82,50 @@ def test_quote_formulas() -> None:
     ]
 
 
+def test_quote_formulas_with_leading_whitespace() -> None:
+    """
+    Formulas are quoted even when a space, tab, or newline comes first.
+
+    XlsxWriter reads the formula prefix at the first character only, so a value
+    with whitespace in front of it is written as a plain string cell whether or
+    not it is quoted. This is an export-consistency check rather than a guard
+    against the workbook evaluating anything: the streaming writer
+    (``excel_streaming``) and the CSV writer both strip before reading the
+    prefix, so without this the same cell goes out quoted from two of the three
+    paths and bare from this one.
+    """
+    df = pd.DataFrame(
+        {"formula": [" =1+1", "\t=1+1", "\n=1+1", "  @SUM(A1)", "normal"]}
+    )
+    contents = df_to_excel(df)
+    assert pd.read_excel(contents)["formula"].tolist() == [
+        "' =1+1",
+        "'\t=1+1",
+        "'\n=1+1",
+        "'  @SUM(A1)",
+        "normal",
+    ]
+
+
+def test_quote_formulas_leaves_blank_and_whitespace_only_cells_alone() -> None:
+    """
+    A cell that is empty or holds only whitespace comes back unchanged.
+
+    ``lstrip`` leaves nothing to inspect in either, so testing the stripped
+    value before reading its first character is what keeps a whitespace-only
+    cell from raising ``IndexError``. The plain ``len(value)`` guard this
+    replaced only covered the empty string, because it read the first
+    character of the original value rather than of the stripped one.
+
+    The assertion is made on ``quote_formulas`` directly rather than through a
+    round-trip, since a blank cell reads back out of a sheet as a missing value
+    and would hide the result.
+    """
+    df = pd.DataFrame({"cell": ["", " \t\n", "   "]})
+
+    assert quote_formulas(df)["cell"].tolist() == ["", " \t\n", "   "]
+
+
 def test_quote_formulas_in_headers_and_index() -> None:
     """
     Test that formulas in column headers and index labels are quoted too.
