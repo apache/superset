@@ -248,14 +248,13 @@ const AsyncSelect = forwardRef(
     const [selectOptions, setSelectOptions] =
       useState<SelectOptionsType>(EMPTY_OPTIONS);
 
-    // add selected values to options list if they are not in it
+    // add selected values to options list if they are not in it, keeping any
+    // extra option props (aria-label, title, filter props) a labeled value has
     const fullSelectOptions = useMemo(() => {
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
-          isLabeledValue(opt)
-            ? { value: opt.value, label: opt.label }
-            : { value: opt, label: String(opt) },
+          isLabeledValue(opt) ? { ...opt } : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)

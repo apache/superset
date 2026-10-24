@@ -18,7 +18,7 @@
  */
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { GroupListAddModal } from './GroupListModal';
+import { GroupListAddModal, GroupListEditModal } from './GroupListModal';
 import { fetchUserOptions, toUserSelectOption } from './utils';
 
 jest.mock('./utils', () => ({
@@ -159,6 +159,33 @@ test('Users picker options are announced by name rather than by user id', async 
   });
 
   render(<GroupListAddModal {...props} />);
+  const combobox = screen.getByRole('combobox', { name: /users/i });
+  await waitFor(() => userEvent.click(combobox));
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
+test('Edit modal announces a preselected user outside the first page by name', async () => {
+  // A member missing from the fetched page is rebuilt by AsyncSelect from the
+  // selected value, which has to keep the option's aria-label: the React label
+  // gives the virtualized list no accessible name of its own.
+  jest.mocked(fetchUserOptions).mockResolvedValue({
+    data: [toUserSelectOption({ id: 1, username: 'zoe', first_name: 'Zoe' })],
+    totalCount: 50,
+  });
+  const group = {
+    id: 9,
+    name: 'analysts',
+    label: 'Analysts',
+    description: '',
+    roles: [],
+    users: [{ id: 42, username: 'amy', first_name: 'Amy', last_name: '' }],
+  };
+
+  render(<GroupListEditModal {...props} group={group} />);
   const combobox = screen.getByRole('combobox', { name: /users/i });
   await waitFor(() => userEvent.click(combobox));
 

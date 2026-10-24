@@ -18,6 +18,7 @@
  */
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import { Form } from '@superset-ui/core/components';
 import {
   RoleNameField,
   PermissionsField,
@@ -223,6 +224,34 @@ test('UsersField options are announced by name rather than by user id', async ()
   });
 
   render(<UsersField addDangerToast={addDangerToast} loading={false} />);
+  await waitFor(() => userEvent.click(screen.getByRole('combobox')));
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
+test('UsersField announces a preselected user outside the first page by name', async () => {
+  // A member missing from the fetched page is rebuilt by AsyncSelect from the
+  // selected value, which has to keep the option's aria-label: the React label
+  // gives the virtualized list no accessible name of its own.
+  jest.mocked(fetchUserOptions).mockResolvedValue({
+    data: [toUserSelectOption({ id: 1, username: 'zoe', first_name: 'Zoe' })],
+    totalCount: 50,
+  });
+
+  render(
+    <Form
+      initialValues={{
+        roleUsers: [
+          toUserSelectOption({ id: 42, username: 'amy', first_name: 'Amy' }),
+        ],
+      }}
+    >
+      <UsersField addDangerToast={addDangerToast} loading={false} />
+    </Form>,
+  );
   await waitFor(() => userEvent.click(screen.getByRole('combobox')));
 
   expect(
