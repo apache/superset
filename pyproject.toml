@@ -106,7 +106,7 @@ dependencies = [
     "rison>=2.0.1, <3.0",
 
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
-    "sshtunnel>=0.4.0, <0.5",
+    "sshtunnel>=0.5.1, <0.6",
     "simplejson>=4.2.0",
     "slack_sdk>=3.45.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
