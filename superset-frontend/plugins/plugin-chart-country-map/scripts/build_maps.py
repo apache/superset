@@ -72,7 +72,8 @@ def _parse_args() -> argparse.Namespace:
         "--countries",
         help="Comma-separated subset of registered module NAMEs to run "
         "(default: all registered). The ~190 plain catalog entries that "
-        "don't need a module are always included.",
+        "don't need a module are included only when this flag is omitted; "
+        "a subset build writes just the named modules.",
     )
     parser.add_argument(
         "--preview",
