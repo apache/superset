@@ -315,7 +315,7 @@ def test_fetch_data_preserves_cursor_description(mocker: MockerFixture) -> None:
     DuckDBEngineSpec previously overrode fetch_data to capture and restore
     cursor.description around fetchall(), working around a duckdb-engine bug
     that no longer reproduces at current pinned versions (duckdb-engine
-    0.17.0, duckdb 1.5.5). Confirm the inherited base fetch_data still works
+    0.17.0, duckdb 1.5.5 and 2.0.0). Confirm the inherited base fetch_data still works
     correctly against a real cursor now that the override is gone.
     """
     from sqlalchemy import create_engine
@@ -395,3 +395,63 @@ def test_extended_aggregation_func_median_stddev_var_executes() -> None:
             query = select(func(literal_column("sales"))).select_from(text("t"))
             result = conn.execute(query).scalar()
             assert result == pytest.approx(expected_value)
+
+
+def test_live_reflection_and_types_roundtrip() -> None:
+    """
+    Compatibility check against the installed DuckDB (1.x or 2.x): schema,
+    table and column reflection, plus date/time, decimal and null values
+    round-tripping through a time grain and a ``convert_dttm`` filter.
+    """
+    from decimal import Decimal
+
+    from sqlalchemy import create_engine, inspect, text
+
+    from superset.constants import TimeGrain
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    with engine.connect() as conn:
+        conn.execute(text("CREATE SCHEMA s"))
+        conn.execute(
+            text(
+                "CREATE TABLE s.t (ts TIMESTAMP, d DATE, amt DECIMAL(10, 2), "
+                "name VARCHAR)"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO s.t VALUES "
+                "('2024-03-15 10:30:00', '2024-03-15', 12.34, 'a'), "
+                "(NULL, NULL, NULL, NULL)"
+            )
+        )
+
+        inspector = inspect(conn)
+        assert "memory.s" in inspector.get_schema_names()
+        assert inspector.get_table_names(schema="s") == ["t"]
+        columns = {
+            col["name"]: str(col["type"])
+            for col in inspector.get_columns("t", schema="s")
+        }
+        assert columns == {
+            "ts": "TIMESTAMP",
+            "d": "DATE",
+            "amt": "NUMERIC(10, 2)",
+            "name": "VARCHAR",
+        }
+
+        month = DuckDBEngineSpec._time_grain_expressions[TimeGrain.MONTH]
+        rows = conn.execute(
+            text(f"SELECT {month.format(col='ts')}, d, amt, name FROM s.t")  # noqa: S608
+        ).fetchall()
+        assert rows == [
+            (datetime(2024, 3, 1), datetime(2024, 3, 15).date(), Decimal("12.34"), "a"),
+            (None, None, None, None),
+        ]
+
+        literal = DuckDBEngineSpec.convert_dttm("TIMESTAMP", datetime(2024, 3, 1))
+        count = conn.execute(
+            text(f"SELECT COUNT(*) FROM s.t WHERE ts >= {literal}")  # noqa: S608
+        ).scalar()
+        assert count == 1
