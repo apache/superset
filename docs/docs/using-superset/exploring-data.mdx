@@ -489,6 +489,27 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+### Drill By Time Buckets
+
+On time-series charts, **Drill by** from a grained temporal axis keeps the clicked
+time bucket, such as a day, week, month, quarter, or year, rather than querying the
+chart's entire time range. The drill returns exactly the rows the clicked bar or
+point counts: it keeps every time setting of the chart as it is (saved, dashboard and
+legacy time ranges, Time Range filters on any date column, the Time Column, including
+a dashboard Time Column filter) and adds the bucket as a match on the grained axis,
+like Drill to detail does. The backend compares the bucket the chart grouped by, with
+the same grain, Time Column, dataset Hours offset and Custom SQL axis expression, and
+no time range replaces it. A dashboard **Time grain** filter overrides the chart's
+saved grain when determining the clicked bucket. The breadcrumb uses the bucket's
+formatted label, including when the temporal axis is forced categorical. Line and
+area charts can drill into a bucket without enabling markers, and Mixed Timeseries
+uses the clicked query's bucket. Nested drills add their filters to the bucket. The
+drill's downloads and **Edit chart** use the same filters; in Explore the bucket
+filter shows the bucket start and keeps its grain until its column or operator is
+changed. Picking a date range removes the bucket grain and filters the raw dates.
+The Custom SQL tab is unavailable while a filter carries a bucket grain, since the
+bucket comparison has no portable raw SQL representation.
+
 ### Sunburst cross-filtering
 
 Sunburst cross-filters use the underlying hierarchy values, not the formatted
@@ -497,12 +518,9 @@ entire bucket. Adaptive date formatting includes the year in month and quarter
 labels to distinguish buckets across years; other grains keep their compact labels.
 For supported bucket ranges, the selection replaces the target chart's Time Range
 and also applies to its other temporal range filters, even on another time column.
-Drill to detail matches the selected bucket, including a dataset Hours offset, unless
-the chart also has a Time Range filter on the grained Time Column. Drill by matches the
-bucket only when the chart has no Time Range filter. Otherwise the query rebuilds its
-time bounds from the chart or dashboard Time Range, so the drill returns every row in
-that range. An engine-specific grain without a fixed length matches only the start of
-the bucket.
+Drill to detail and Drill by match the selected bucket by its grain, including a
+dataset Hours offset and an engine-specific grain, also when the chart has a Time
+Range filter on the grained Time Column.
 
 On engines without SQL temporal shifts, grained comparisons (Drill to detail, grained
 `IN` / `NOT IN` cross-filters and other bucket comparisons) use the displayed bucket's

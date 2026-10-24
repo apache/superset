@@ -226,8 +226,8 @@ test('drill-by sends an ungrained temporal value as a naive ISO datetime', () =>
   ]);
 });
 
-test('drill by selects a grained bucket with its TEMPORAL_RANGE', () => {
-  // Drill by keeps only column, operator and comparator, so a grain is lost.
+test('drill by selects a grained bucket by its label and grain', () => {
+  // Like Drill to detail: no query time range replaces a grained equality.
   const { eventHandlers, event, onContextMenu, path } = setup({
     grain: TimeGranularity.MONTH,
   });
@@ -236,8 +236,9 @@ test('drill by selects a grained bucket with its TEMPORAL_RANGE', () => {
   expect(context.drillBy.filters).toEqual([
     {
       col: 'order_date',
-      op: 'TEMPORAL_RANGE',
-      val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+      op: '==',
+      val: Date.UTC(2024, 9, 1),
+      grain: TimeGranularity.MONTH,
       formattedVal: path[1].name,
     },
   ]);
@@ -403,12 +404,12 @@ test.each(['PT6H', 'PT5S', 'PT30S', 'PT0.5H', 'P0.25Y', 'custom_grain'])(
       grain,
       formattedVal: path[1].name,
     });
-    // Drill by cannot carry a grain, so it matches the bucket start instant.
     expect(onContextMenu.mock.lastCall[2].drillBy.filters).toEqual([
       {
         col: 'order_date',
         op: '==',
-        val: '2024-10-07T06:00:00',
+        val: Date.UTC(2024, 9, 7, 6),
+        grain,
         formattedVal: path[1].name,
       },
     ]);

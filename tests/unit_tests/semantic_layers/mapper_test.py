@@ -63,6 +63,7 @@ from superset.semantic_layers.mapper import (
     _convert_time_grain,
     _get_filters_from_extras,
     _get_filters_from_query_object,
+    _get_grain_bucket,
     _get_grain_time_axis_column,
     _get_group_limit_filters,
     _get_group_limit_from_query_object,
@@ -82,7 +83,7 @@ from superset.semantic_layers.mapper import (
     ValidatedQueryObject,
     ValidatedQueryObjectFilterClause,
 )
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, FilterValues as QueryFilterValues
 from superset.utils.core import FilterOperator
 
 # Alias for convenience
@@ -5284,3 +5285,84 @@ def test_public_provider_completeness_error_becomes_host_error(
         get_results(query)
     assert excinfo.value.reason == reason
     assert excinfo.value.__cause__ is failure
+
+
+@pytest.mark.parametrize(
+    "value", [1072915200000, "1072915200000", "2004-01-01T00:00:00"]
+)
+def test_convert_query_object_filter_grained_equality_selects_the_bucket(
+    value: int | str,
+) -> None:
+    """A Drill by or Drill to detail bucket compares the raw time dimension."""
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        description="Order date",
+        definition="order_date",
+    )
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.EQUALS.value,
+        "col": "order_date",
+        "val": value,
+        "grain": "P1M",
+    }
+
+    assert _convert_query_object_filter(filter_, {"order_date": order_date}) == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.GREATER_THAN_OR_EQUAL,
+            value=datetime(2004, 1, 1),
+        ),
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.LESS_THAN,
+            value=datetime(2004, 2, 1),
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    ("value", "grain"),
+    [
+        (None, "P1M"),
+        ([1072915200000], "P1M"),
+        (True, "P1M"),
+        (1072915200000, None),
+        ("not a date", "P1M"),
+        (10**100, "P1M"),
+        (float("nan"), "P1M"),
+        ("2004-01-01T00:00:00", "not a duration"),
+    ],
+)
+def test_get_grain_bucket_ignores_unsupported_values_and_grains(
+    value: QueryFilterValues | None, grain: str | None
+) -> None:
+    """Invalid bucket metadata must fall back to ordinary filter conversion."""
+    assert _get_grain_bucket(value, grain) is None
+
+
+def test_grained_equality_with_unsupported_duration_keeps_scalar_comparison() -> None:
+    """An unsupported grain must not drop the original equality predicate."""
+    order_date = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.timestamp("us"),
+        definition="order_date",
+    )
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.EQUALS.value,
+        "col": "order_date",
+        "val": "2004-01-01T00:00:00",
+        "grain": "not a duration",
+    }
+    assert _convert_query_object_filter(filter_, {"order_date": order_date}) == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=order_date,
+            operator=Operator.EQUALS,
+            value=datetime(2004, 1, 1),
+        ),
+    }

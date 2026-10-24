@@ -433,6 +433,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    # A grained filter selects time buckets, e.g. a Drill by
+                    # from a bar, rather than a time range: keep it. One on the
+                    # x-axis label is compared to the (overridden) axis column.
+                    or filter.get("grain")
                 ]
 
     def _apply_filters(

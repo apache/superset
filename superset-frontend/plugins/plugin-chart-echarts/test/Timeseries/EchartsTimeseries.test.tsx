@@ -20,6 +20,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { AxisType, DTTM_ALIAS, TimeGranularity } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { logging } from '@apache-superset/core/utils';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
@@ -937,3 +938,158 @@ test.each([undefined, 'PT6H' as TimeGranularity])(
     ]);
   },
 );
+
+test.each(['line', 'area', 'categorical line'])(
+  'Drill by snaps a markerless %s to the clicked temporal bucket',
+  async seriesType => {
+    const onContextMenu = jest.fn();
+    const timestamp = Date.UTC(2003, 9, 1);
+    renderTimeseries({
+      onContextMenu,
+      groupby: [],
+      resolvedTimeGrain: TimeGranularity.MONTH,
+      formData: { ...DEFAULT_FORM_DATA, granularitySqla: 'order_date' },
+      xAxis: {
+        label: 'order_date',
+        type:
+          seriesType === 'categorical line' ? AxisType.Category : AxisType.Time,
+      },
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      echartOptions: {
+        series: [
+          {
+            type: 'line',
+            showSymbol: false,
+            ...(seriesType === 'area' ? { areaStyle: {} } : {}),
+            data: [
+              [Date.UTC(2003, 8, 1), 100],
+              [timestamp, 158],
+              [Date.UTC(2003, 10, 1), 120],
+            ],
+          },
+        ],
+      },
+    });
+    mockChart.convertFromPixel.mockReturnValue([
+      seriesType === 'categorical line' ? 1 : timestamp + 86400000,
+      158,
+    ]);
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesIndex: 0,
+      seriesName: 'Sales',
+      name: '',
+      event: {
+        stop: jest.fn(),
+        offsetX: 100,
+        offsetY: 50,
+        event: { clientX: 10, clientY: 20 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      expect.objectContaining({
+        col: 'order_date',
+        op: '==',
+        val: timestamp,
+        grain: TimeGranularity.MONTH,
+      }),
+    ]);
+  },
+);
+
+test('forced categorical temporal Drill by formats the bucket instead of an epoch label', async () => {
+  const onContextMenu = jest.fn();
+  const timestamp = Date.UTC(2003, 9, 1);
+  renderTimeseries({
+    onContextMenu,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: { ...DEFAULT_FORM_DATA, xAxisForceCategorical: true },
+    xAxis: { label: 'order_date', type: AxisType.Category },
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+  });
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesIndex: 0,
+    seriesName: 'Sales',
+    data: [timestamp, 158],
+    name: String(timestamp),
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters[0]).toEqual({
+    col: 'order_date',
+    op: '==',
+    val: timestamp,
+    grain: TimeGranularity.MONTH,
+    formattedVal: 'Oct 2003',
+  });
+});
+
+test('ungrained markerless Timeseries Drill by keeps its series-only scope', async () => {
+  const onContextMenu = jest.fn();
+  renderTimeseries({
+    onContextMenu,
+    groupby: [],
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      granularitySqla: 'order_date',
+      timeGrainSqla: undefined,
+    },
+    xAxis: { label: 'order_date', type: AxisType.Time },
+    echartOptions: {
+      series: [
+        {
+          type: 'line',
+          showSymbol: false,
+          data: [[Date.UTC(2003, 9, 1), 158]],
+        },
+      ],
+    },
+  });
+  mockChart.convertFromPixel.mockReturnValue([Date.UTC(2003, 9, 1), 158]);
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesIndex: 0,
+    seriesName: 'Sales',
+    event: {
+      stop: jest.fn(),
+      offsetX: 100,
+      offsetY: 50,
+      event: { clientX: 10, clientY: 20 },
+    },
+  });
+  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toBeUndefined();
+});
+
+test('ungrained forced-categorical temporal Drill by formats the timestamp label', async () => {
+  const onContextMenu = jest.fn();
+  const timestamp = Date.UTC(2003, 9, 1);
+  renderTimeseries({
+    onContextMenu,
+    groupby: [],
+    resolvedTimeGrain: undefined,
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      timeGrainSqla: undefined,
+      xAxisForceCategorical: true,
+    },
+    xAxis: { label: 'order_date', type: AxisType.Category },
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+  });
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesIndex: 0,
+    seriesName: 'Sales',
+    data: [timestamp, 158],
+    name: String(timestamp),
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+    {
+      col: 'order_date',
+      op: '==',
+      val: '2003-10-01T00:00:00',
+      formattedVal: '2003-10-01 00:00:00',
+    },
+  ]);
+});

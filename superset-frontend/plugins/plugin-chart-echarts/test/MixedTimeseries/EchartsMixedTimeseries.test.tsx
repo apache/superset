@@ -21,6 +21,7 @@ import {
   ChartDataResponseResult,
   DataRecord,
   VizType,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../../src/MixedTimeseries/transformProps';
@@ -30,15 +31,25 @@ import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
-import Echart from '../../src/components/Echart';
+import { EchartsProps } from '../../src/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 
-jest.mock('../../src/components/Echart', () => ({
-  __esModule: true,
-  default: jest.fn(() => null),
-}));
-
-const mockedEchart = jest.mocked(Echart);
+const mockedEchart = jest.fn<void, [EchartsProps]>();
+const mockMixedChart = { convertFromPixel: jest.fn() };
+jest.mock('../../src/components/Echart', () => {
+  const { forwardRef, useImperativeHandle } =
+    jest.requireActual<typeof import('react')>('react');
+  return {
+    __esModule: true,
+    default: forwardRef((props: EchartsProps, ref) => {
+      mockedEchart(props);
+      useImperativeHandle(ref, () => ({
+        getEchartInstance: () => mockMixedChart,
+      }));
+      return null;
+    }),
+  };
+});
 
 const ts1 = 1704067200000;
 const ts2 = 1704153600000;
@@ -119,7 +130,7 @@ function setup(
     />,
   );
   const lastCall = mockedEchart.mock.calls[mockedEchart.mock.calls.length - 1];
-  const { eventHandlers } = lastCall[0] as any;
+  const { eventHandlers = {} } = lastCall[0];
   return { eventHandlers, setDataMask, onContextMenu, onFocusedSeries };
 }
 
@@ -218,6 +229,102 @@ test('EchartsMixedTimeseries hover focuses and unfocuses the series', () => {
   eventHandlers.mouseover({ seriesName: 'sum__num, boy' });
   expect(onFocusedSeries).toHaveBeenLastCalledWith('sum__num, boy');
 
-  eventHandlers.mouseout();
+  eventHandlers.mouseout({});
   expect(onFocusedSeries).toHaveBeenLastCalledWith(null);
+});
+
+test.each([0, 2])(
+  'Mixed Timeseries Drill by carries the bucket for query series %s',
+  async seriesIndex => {
+    const { eventHandlers, onContextMenu } = setup({
+      timeGrainSqla: TimeGranularity.MONTH,
+    });
+    await eventHandlers.contextmenu({
+      data: [ts1, 1],
+      seriesName: 'sum__num, boy',
+      seriesIndex,
+      name: '',
+      event: { stop: jest.fn(), event: { clientX: 11, clientY: 22 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      expect.objectContaining({
+        col: 'ds',
+        op: '==',
+        val: Date.UTC(2024, 0, 1),
+        grain: TimeGranularity.MONTH,
+      }),
+    ]);
+    expect(onContextMenu.mock.lastCall[2].drillBy.adhocFilterFieldName).toBe(
+      seriesIndex === 0 ? 'adhoc_filters' : 'adhoc_filters_b',
+    );
+  },
+);
+
+test.each([0, 2])(
+  'Mixed Timeseries markerless Drill by snaps query series %s to its bucket',
+  async seriesIndex => {
+    const { eventHandlers, onContextMenu } = setup({
+      timeGrainSqla: TimeGranularity.MONTH,
+    });
+    mockMixedChart.convertFromPixel.mockReturnValue([ts1 + 1000, 1]);
+    await eventHandlers.contextmenu({
+      seriesName: 'sum__num, boy',
+      seriesIndex,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      expect.objectContaining({
+        col: 'ds',
+        op: '==',
+        val: Date.UTC(2024, 0, 1),
+        grain: TimeGranularity.MONTH,
+      }),
+    ]);
+  },
+);
+
+test('Mixed Timeseries forced categorical temporal Drill by keeps a readable bucket', async () => {
+  const { eventHandlers, onContextMenu } = setup({
+    timeGrainSqla: TimeGranularity.MONTH,
+    xAxisForceCategorical: true,
+  });
+  mockMixedChart.convertFromPixel.mockReturnValue([0, 1]);
+  await eventHandlers.contextmenu({
+    seriesName: 'sum__num, boy',
+    seriesIndex: 0,
+    event: {
+      stop: jest.fn(),
+      offsetX: 20,
+      offsetY: 30,
+      event: { clientX: 11, clientY: 22 },
+    },
+  });
+  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+    {
+      col: 'ds',
+      op: '==',
+      val: Date.UTC(2024, 0, 1),
+      grain: TimeGranularity.MONTH,
+      formattedVal: 'Jan 2024',
+    },
+  ]);
+});
+
+test('ungrained Mixed Timeseries Drill by keeps its series-only scope', async () => {
+  const { eventHandlers, onContextMenu } = setup({ timeGrainSqla: undefined });
+  await eventHandlers.contextmenu({
+    data: [ts1, 1],
+    seriesName: 'sum__num, boy',
+    seriesIndex: 0,
+    event: { stop: jest.fn(), event: { clientX: 11, clientY: 22 } },
+  });
+  expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toBeUndefined();
+  expect(onContextMenu.mock.lastCall[2].drillBy.filters).toEqual([
+    expect.objectContaining({ col: 'gender', op: '==', val: 'boy' }),
+  ]);
 });

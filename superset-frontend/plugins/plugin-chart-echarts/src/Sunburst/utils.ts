@@ -164,10 +164,9 @@ export function getSunburstDetailFilter(
 }
 
 /**
- * Drill by converts its filters to adhoc filters, which keep only the column,
- * operator and comparator, so a grain would be dropped. A known grain therefore
- * selects its bucket with TEMPORAL_RANGE. As with Timeseries Drill by, a query
- * time_range replaces that range. Other temporal values use the naive ISO
+ * Drill by keeps a grain on its filters, so a grained level selects its bucket
+ * like Drill to detail does. Unlike TEMPORAL_RANGE, that equality is never
+ * replaced by a query time range. Other temporal values use the naive ISO
  * datetime, which SQL expression filters compare without backend coercion.
  */
 export function getSunburstDrillByFilter(
@@ -177,14 +176,24 @@ export function getSunburstDrillByFilter(
   coltype: GenericDataType | undefined,
   formattedVal?: string,
 ): BinaryQueryObjectFilterClause {
-  const temporalFilter =
-    coltype === GenericDataType.Temporal
-      ? getTemporalXAxisDrillByFilter(
-          column,
-          value,
-          getSunburstTimeGrain(formData, column),
-          formattedVal,
-        )
-      : undefined;
-  return temporalFilter ?? { col: column, op: '==', val: value, formattedVal };
+  if (coltype !== GenericDataType.Temporal) {
+    return { col: column, op: '==', val: value, formattedVal };
+  }
+  if (getSunburstTimeGrain(formData, column)) {
+    return getSunburstDetailFilter(
+      column,
+      value,
+      formData,
+      coltype,
+      formattedVal,
+    );
+  }
+  return (
+    getTemporalXAxisDrillByFilter(column, value, undefined, formattedVal) ?? {
+      col: column,
+      op: '==',
+      val: value,
+      formattedVal,
+    }
+  );
 }

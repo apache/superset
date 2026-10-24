@@ -25,9 +25,10 @@ single dataframe.
 """
 
 import logging
+import re
 from collections.abc import Callable, Collection
 from dataclasses import dataclass, replace
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
 from zoneinfo import ZoneInfo
@@ -850,7 +851,7 @@ def _get_time_bounds(
     return offset_from, offset_to
 
 
-def _convert_query_object_filter(
+def _convert_query_object_filter(  # noqa: C901 — one branch per filter kind
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
     *,
@@ -901,6 +902,26 @@ def _convert_query_object_filter(
             )
         return filters or None
 
+    # A grained equality (Drill by or Drill to detail from a time bucket)
+    # selects the whole bucket. Filters apply to the raw time dimension, so
+    # compare the bucket's range.
+    if operator_str == FilterOperator.EQUALS.value and (
+        bucket := _get_grain_bucket(raw_value, filter_.get("grain"))
+    ):
+        return {
+            Filter(
+                type=PredicateType.WHERE,
+                column=dimension,
+                operator=bound_operator,
+                value=_coerce_scalar_filter_value(bound, dimension),
+            )
+            for bound_operator, bound in zip(
+                (Operator.GREATER_THAN_OR_EQUAL, Operator.LESS_THAN),
+                bucket,
+                strict=True,
+            )
+        }
+
     operator: Operator | None = OPERATOR_MAP.get(operator_str)
     if not operator:
         # Unknown operator - raise error to prevent unauthorized access
@@ -940,6 +961,32 @@ def _convert_query_object_filter(
             value=value,
         )
     )
+
+
+def _get_grain_bucket(
+    value: QueryFilterValues | None, grain: str | None
+) -> tuple[datetime, datetime] | None:
+    """
+    Return the ``[start, end)`` range of the time bucket a grained equality
+    selects: the bucket start (epoch milliseconds or a naive ISO datetime, in
+    UTC) plus one grain. Returns None for any other value or grain.
+    """
+    if not grain or isinstance(value, bool):
+        return None
+    try:
+        if isinstance(value, (int, float)) or (
+            isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value.strip())
+        ):
+            start = datetime.fromtimestamp(int(value) / 1000, tz=timezone.utc).replace(
+                tzinfo=None
+            )
+        elif isinstance(value, str):
+            start = datetime.fromisoformat(value.strip())
+        else:
+            return None
+        return start, start + isodate.parse_duration(grain)
+    except (OverflowError, OSError, TypeError, ValueError, isodate.ISO8601Error):
+        return None
 
 
 def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:

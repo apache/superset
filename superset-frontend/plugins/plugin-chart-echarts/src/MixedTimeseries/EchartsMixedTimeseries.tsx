@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   AxisType,
   BinaryQueryObjectFilterClause,
@@ -26,10 +26,16 @@ import {
   getNumberFormatter,
   getTimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { EchartsHandler, EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
+import {
+  getTemporalBucketDrillByFilter,
+  getTimeAxisDrillByValue,
+  parseTemporalValue,
+} from '../utils/xAxisDrillByFilter';
 import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsMixedTimeseries({
@@ -49,11 +55,15 @@ export default function EchartsMixedTimeseries({
   onFocusedSeries,
   xValueFormatter,
   xAxis,
+  resolvedTimeGrain,
   refs,
   coltypeMapping,
   onLegendStateChanged,
   onLegendScroll,
 }: EchartsMixedTimeseriesChartTransformedProps) {
+  const echartRef = useRef<EchartsHandler | null>(null);
+  // eslint-disable-next-line no-param-reassign
+  refs.echartRef = echartRef;
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
     [seriesBreakdown],
@@ -211,6 +221,48 @@ export default function EchartsMixedTimeseries({
             });
           });
         }
+        const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
+        const xAxisColumn =
+          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        const isTemporalCategory =
+          xAxis.type === AxisType.Category &&
+          coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+            GenericDataType.Temporal;
+        if (
+          (xAxis.type === AxisType.Time || isTemporalCategory) &&
+          xAxisColumn
+        ) {
+          const xValue = getTimeAxisDrillByValue(
+            data,
+            Array.isArray(echartOptions.series)
+              ? echartOptions.series[seriesIndex]
+              : echartOptions.series,
+            data
+              ? undefined
+              : echartRef.current
+                  ?.getEchartInstance()
+                  ?.convertFromPixel({ seriesIndex }, [
+                    eventParams.event.offsetX,
+                    eventParams.event.offsetY,
+                  ]),
+            0,
+            isTemporalCategory,
+          );
+          const filter = getTemporalBucketDrillByFilter(
+            // A grained '__timestamp' bucket resolves to the time column the
+            // query groups by, including a dashboard Time Column override.
+            xAxis.label,
+            xValue,
+            resolvedTimeGrain,
+            getTimeFormatter(
+              undefined,
+              resolvedTimeGrain,
+            )(parseTemporalValue(xValue)),
+          );
+          if (filter?.grain) {
+            xAxisFilters.push(filter);
+          }
+        }
         const hasCrossFilter =
           (isFirst && groupby.length > 0) || (!isFirst && groupbyB.length > 0);
 
@@ -223,6 +275,7 @@ export default function EchartsMixedTimeseries({
             filters: drillByFilters,
             groupbyFieldName: isFirst ? 'groupby' : 'groupby_b',
             adhocFilterFieldName: isFirst ? 'adhoc_filters' : 'adhoc_filters_b',
+            ...(xAxisFilters.length > 0 && { xAxisFilters }),
           },
         });
       }
@@ -232,6 +285,7 @@ export default function EchartsMixedTimeseries({
   return (
     <Echart
       refs={refs}
+      ref={echartRef}
       height={height}
       width={width}
       echartOptions={echartOptions}
