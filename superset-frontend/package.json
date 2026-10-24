@@ -369,7 +369,7 @@
     },
     "dompurify": "^3.4.16",
     "esbuild": "^0.28.1",
-    "fast-uri": "^3.1.8",
+    "fast-uri": "^3.1.9",
     "fast-xml-parser": "^5.8.0",
     "http-proxy-middleware": "^2.0.10",
     "js-yaml-loader": {
