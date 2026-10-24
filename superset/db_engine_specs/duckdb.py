@@ -315,7 +315,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
-        return "datetime({col}, 'unixepoch')"
+        return "(TIMESTAMP 'epoch' + to_seconds({col}))"
 
     @classmethod
     def convert_dttm(
