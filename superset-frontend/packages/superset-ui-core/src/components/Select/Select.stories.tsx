@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { Input } from '../Input';
 import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
@@ -375,6 +376,33 @@ export const ManySelectedValuesWrapping = () => (
       value={manyPermissionOptions.map(o => o.value)}
       getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     />
+  </div>
+);
+
+/**
+ * Regression coverage for a `oneLine` multi-select growing taller than
+ * sibling controls (e.g. the Explore control panel, where Select-based
+ * controls sit next to plain Input controls). `oneLine` caps the tag
+ * container to a single row via CSS targeting rc-select/rc-overflow's
+ * generated class names directly -- if those selectors go stale (as
+ * happened during the antd v5->v6 upgrade), the cap silently stops
+ * applying and the Select wraps to multiple rows instead of staying at
+ * the same height as the Input beside it.
+ */
+export const OneLineHeightParity = () => (
+  <div style={{ display: 'flex', gap: 8, width: 500 }}>
+    <div style={{ flex: 1 }}>
+      <Select
+        ariaLabel="oneline-height-parity-select"
+        mode="multiple"
+        oneLine
+        options={manyPermissionOptions}
+        value={manyPermissionOptions.slice(0, 5).map(o => o.value)}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <Input aria-label="oneline-height-parity-input" value="Sibling input" />
+    </div>
   </div>
 );
 
