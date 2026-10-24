@@ -167,3 +167,15 @@ test('still queries a limit metric labeled like an aggregate for a single series
     }),
   ).toEqual(['sum']);
 });
+
+test('does not query a limit metric whose label matches the x-axis column being sorted by', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      x_axis: 'genre',
+      groupby: ['platform'],
+      timeseries_limit_metric: 'genre',
+      x_axis_sort: 'genre',
+    }),
+  ).toEqual([]);
+});

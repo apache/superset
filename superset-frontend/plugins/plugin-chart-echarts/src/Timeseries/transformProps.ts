@@ -413,11 +413,9 @@ export default function transformProps(
   const derivedComparisonSeries = new Set<string>();
   // The `<metric>, <offset>` labels `renameOperator` generates when more than one
   // metric (displayed or sort-only) is pivoted with an actual-values comparison.
+  const sortOnlyMetrics = extractExtraMetrics(chartProps.rawFormData);
   const metricOffsetLabels = new Set(
-    [
-      ...ensureIsArray(metrics),
-      ...extractExtraMetrics(chartProps.rawFormData),
-    ].flatMap(metric =>
+    [...ensureIsArray(metrics), ...sortOnlyMetrics].flatMap(metric =>
       ensureIsArray(timeCompare).map(
         offset => `${getMetricLabel(metric)}, ${offset}`,
       ),
@@ -429,6 +427,10 @@ export default function transformProps(
     if (
       entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
+      // a sort-only metric means more than one metric is pivoted, so the
+      // offset never leads the entry; a leading offset-like part is then a
+      // hidden metric that happens to share the offset's label
+      sortOnlyMetrics.length === 0 &&
       timeCompare.includes(entry[1][0])
     ) {
       derivedComparisonSeries.add(entry[0]);
@@ -436,7 +438,10 @@ export default function transformProps(
     } else if (
       entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
-      metricOffsetLabels.has(entry[1][0])
+      (metricOffsetLabels.has(entry[1][0]) ||
+        // without dimensions the flat `<metric>, <offset>` label is split
+        // into a tuple, so the whole label is the key
+        (groupBy.length === 0 && metricOffsetLabels.has(entry[0])))
     ) {
       // `renameOperator` emits `<metric>, <offset>` as the leading part when more
       // than one metric is pivoted (including a hidden sort-only metric), so the
@@ -526,7 +531,8 @@ export default function transformProps(
           // bare column of its own; a bare key whose label-map tuple is a
           // plain dimension tuple is a displayed series whose dimension value
           // happens to read like the metric label and must stay visible
-          ...(groupBy.length > 0 && labelMap[label]?.length === groupBy.length
+          ...(groupBy.length > 0 &&
+          labelMap[verboseMap[label] ?? label]?.length === groupBy.length
             ? []
             : [verboseMap[label] ?? label]),
           // forecast columns of a sort-only metric stay hidden too, even
