@@ -133,8 +133,6 @@ jobs:
             command="$(docker_command "$preset" "$extra_flags")"
             # docker buildx keeps the LAST value of a repeated --build-arg key.
             actual="$(grep -oE -- '--build-arg PY_VER=[^[:space:]]+' <<<"$command" | tail -1)"
-            # The Dockerfile default pins a digest (tag@sha256:...); compare tags.
-            actual="${actual%%@*}"
             if [ "$actual" != "--build-arg PY_VER=$expected" ]; then
               echo "::error::preset '$preset' expected effective --build-arg PY_VER=$expected, got: ${actual:-<none>} (full command: $command)"
               exit 1
@@ -257,8 +255,16 @@ jobs:
           assert_publish_guard push refs/heads/7.0 aaaa111 bbbb222 true
           assert_publish_guard pull_request refs/pull/44250/merge aaaa111 bbbb222 true
           assert_supersetbot_exports_cache_with_token superset
+          # The default presets must pass the Dockerfile's digest-pinned PY_VER
+          # (tag@sha256:...) through unchanged; read it the way
+          # docker-build-extra-flags.sh does so digest bumps need no edit here.
+          default_py_ver="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
+          if [[ "$default_py_ver" != *@sha256:* ]]; then
+            echo "::error::Dockerfile ARG PY_VER must pin a digest (tag@sha256:...), got: ${default_py_ver:-<none>}"
+            exit 1
+          fi
           for preset in superset dev lean; do
-            assert_effective_py_ver "$preset" "3.11-slim-trixie"
+            assert_effective_py_ver "$preset" "$default_py_ver"
             expected_cache="3.11-slim-trixie"
             if [ "$preset" != "superset" ]; then
               expected_cache="${expected_cache}-${preset}"
