@@ -523,7 +523,6 @@ def _dataset_query(
         "subject": "dataset 'orders'",
         "columns": {"client", "region", "ds", "other_ds"},
         "temporal_columns": {"ds", "other_ds"},
-        "main_dttm_col": "ds",
         "filters": [],
         "time_range": None,
         "time_column": None,
@@ -563,13 +562,17 @@ def test_dataset_query_refuses_what_it_cannot_apply(
         _dataset_query(constraints, **overrides)
 
 
-def test_dataset_query_refuses_a_scope_clause_superset_would_drop() -> None:
-    """QueryContextFactory drops filters on the granularity column."""
-    constraints = DashboardConstraints(
-        ({"col": "ds", "op": ">=", "val": "2024-01-01"},), None, None
+def test_dataset_query_keeps_a_scope_clause_on_the_time_column() -> None:
+    """QueryContextFactory replaces only the TEMPORAL_RANGE on the granularity
+    column, so a dashboard comparison on that column is kept, not refused."""
+    clause = {"col": "ds", "op": ">=", "val": "2024-01-01"}
+    constraints = DashboardConstraints((clause,), None, None)
+    filters, time_range, time_column = _dataset_query(
+        constraints, time_range="Last year"
     )
-    with pytest.raises(MCPDashboardScopeError, match="would be dropped"):
-        _dataset_query(constraints, time_range="Last year")
+    assert filters == [clause]
+    assert time_range == "Last year"
+    assert time_column is None
 
 
 # ---------------------------------------------------------------------------

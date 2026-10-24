@@ -421,10 +421,8 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         # Use the first temporal filter
                         filter_to_remove = temporal_filters[0]
 
-            # Removes the temporal filter which may be an x-axis or
-            # another temporal filter. A new filter based on the value of
-            # the granularity will be added later in the code.
-            # In practice, this is replacing the previous default temporal filter.
+            # Replace only the default temporal range. Independent comparisons
+            # on the same column must remain alongside the granularity filter.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -433,6 +431,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    or filter["op"] != "TEMPORAL_RANGE"
                 ]
 
     def _apply_filters(
