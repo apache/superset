@@ -408,7 +408,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.46.1
+google-cloud-bigquery==3.46.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -453,7 +453,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.105
+holidays==0.107
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1108,7 +1108,7 @@ sqloxide==0.1.51
     # via apache-superset
 sse-starlette==3.0.2
     # via mcp
-sshtunnel==0.4.0
+sshtunnel==0.5.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
