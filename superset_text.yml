@@ -20,6 +20,7 @@
 
 # DB_IMAGES:
 #   datafusion: "path/to/image/datafusion.jpg"
+#   openobserve: "path/to/image/openobserve.jpg"
 #   postgresql: "path/to/image/postgres.jpg"
 #   bigquery: "path/to/s3bucket/bigquery.jpg"
 #   snowflake: "path/to/image/snowflake.jpg"
