@@ -18048,6 +18048,12 @@ msgstr ""
 msgid "query"
 msgstr ""
 
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
+
 msgid "random"
 msgstr ""
 
