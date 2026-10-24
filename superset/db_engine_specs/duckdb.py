@@ -328,6 +328,18 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         return None
 
     @classmethod
+    def register_engine_events(cls, engine: sa.Engine) -> None:
+        # duckdb-engine subclasses the psycopg2 PostgreSQL dialect, whose
+        # class-level _backslash_escapes default is True. Unlike PostgreSQL,
+        # DuckDB never runs the _set_backslash_escapes probe (there is no
+        # standard_conforming_strings knob), so every literal compiled with
+        # literal_binds doubles its backslashes: a filter value like
+        # name\email is rendered as 'name\\email', which DuckDB reads as a
+        # literal double backslash and the query silently matches zero rows.
+        # DuckDB has no escape character at all, so the flag is simply wrong.
+        engine.dialect._backslash_escapes = False
+
+    @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: str | None
     ) -> set[str]:
