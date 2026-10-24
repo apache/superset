@@ -155,7 +155,7 @@ test('grouped-option styles reach the popup portaled to document.body', async ()
   [...CategoricalD3, ...CategoricalModernSunset].forEach(scheme =>
     getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
   );
-  setup();
+  const { container } = setup();
   await userEvent.click(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),
   );
@@ -163,7 +163,8 @@ test('grouped-option styles reach the popup portaled to document.body', async ()
     expect(screen.getByText('Featured color palettes')).toBeInTheDocument();
   });
   const popup = document.querySelector('.ant-select-dropdown')!;
-  expect(popup.closest('body')).toBe(document.body);
+  expect(container.contains(popup)).toBe(false);
+  expect(document.body.contains(popup)).toBe(true);
   // The popup lives outside the Select's css-prop scope, so the grouped
   // styles are attached via an emotion class on the popup root instead.
   const emotionClass = Array.from(popup.classList).find(cls =>
