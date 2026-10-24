@@ -129,8 +129,9 @@ describe('dashboardFilters reducer', () => {
       [`${filterId}_region`]: regionScope,
       [`${filterId}_gender`]: genderScope,
     };
-    (activeDashboardFilters as Record<string, unknown>).buildActiveFilters =
-      jest.fn();
+    jest
+      .spyOn(activeDashboardFilters, 'buildActiveFilters')
+      .mockImplementation(() => {});
     expect(
       dashboardFiltersReducer(
         dashboardFilters as unknown as Parameters<

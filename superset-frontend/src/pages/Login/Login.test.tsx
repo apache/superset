@@ -26,21 +26,27 @@ import { Provider } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Login from './index';
 
-const defaultBootstrapData = {
-  common: {
-    conf: {
-      AUTH_TYPE: 1,
-      AUTH_PROVIDERS: [],
-      AUTH_USER_REGISTRATION: false,
+// The bootstrap data lives inside the factory because getBootstrapData() is
+// called while modules are still being imported, before any top-level
+// constant of this file has been initialised.
+jest.mock('src/utils/getBootstrapData', () => {
+  const bootstrapData = {
+    common: {
+      conf: {
+        AUTH_TYPE: 1,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: false,
+      },
+      feature_flags: {},
     },
-    feature_flags: {},
-  },
-};
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => bootstrapData),
+  };
+});
 
-jest.mock('src/utils/getBootstrapData', () => ({
-  __esModule: true,
-  default: jest.fn(() => defaultBootstrapData),
-}));
+const defaultBootstrapData = getBootstrapData();
 
 const mockAddDangerToast = jest.fn((text: string) => ({
   type: 'MOCK_TOAST',
