@@ -70,9 +70,14 @@ export default function buildQuery(formData: QueryFormData) {
       baseQueryObject.extras?.time_grain_sqla,
     );
     const extras = { ...baseQueryObject.extras };
-    if (!grained && !baseQueryObject.granularity) {
+    if (
+      !grained &&
+      !baseQueryObject.granularity &&
+      formData.temporal_columns_lookup != null
+    ) {
       // A grain with neither a temporal level nor a legacy granularity subject
       // is dormant; semantic views reject a grain that has no time column.
+      // Without a lookup, temporal levels are unknown, so keep the grain.
       delete extras.time_grain_sqla;
     }
     return [

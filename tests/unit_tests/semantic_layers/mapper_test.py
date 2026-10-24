@@ -5497,3 +5497,38 @@ def test_semantic_drill_epoch_filter_keeps_timezone_aware_grain(
             datetime(2026, 7, 31, 20, tzinfo=ZoneInfo("America/New_York")),
         )
     }
+
+
+@pytest.mark.parametrize("metadata", [{}, {"temporal_columns_lookup": None}])
+def test_legacy_sunburst_dashboard_grain_reaches_semantic_mapper(
+    mocker: MockerFixture, metadata: dict[str, Any]
+) -> None:
+    """A pre-lookup saved Sunburst still groups its single temporal dimension."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    datasource = _make_grain_variant_datasource(
+        mocker, granularity_dim_grain=Grains.DAY
+    )
+    [query] = build_query_objects_from_form_data(
+        {
+            "viz_type": "sunburst_v2",
+            "columns": ["order_date", "category"],
+            "metric": "total_sales",
+            "time_grain_sqla": "P1D",
+            **metadata,
+        }
+    )
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        columns=query["columns"],
+        metrics=query["metrics"],
+        extras=query.get("extras", {}),
+    )
+    assert validate_query_object(query_object)
+    [semantic_query] = map_query_object(query_object)
+    assert {dim.name: dim.grain for dim in semantic_query.dimensions} == {
+        "order_date": Grains.DAY,
+        "category": None,
+    }

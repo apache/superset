@@ -525,6 +525,8 @@ a temporal level when no lookup is saved; it does not disable grains on other
 lookup-marked levels. Sunburst does not retain a hidden Time Column control in
 Explore. An MCP-saved chart without a lookup can therefore grain only its legacy
 Time Column, while opening it in Explore can grain additional temporal levels.
+Older semantic-view Sunbursts without a saved temporal lookup retain dashboard
+Time Grain overrides: the semantic view infers the single temporal hierarchy level.
 
 Time-range overrides replace the default temporal-range filter, not independent
 equality or membership filters on the same Time Column. When a Time Column

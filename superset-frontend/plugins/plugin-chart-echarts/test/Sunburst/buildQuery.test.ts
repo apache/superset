@@ -158,3 +158,23 @@ test('a Time Column outside the hierarchy does not disable lookup-marked grains'
   expect(withLookup.columns).toEqual([groupedTs('P1M'), 'region']);
   expect(withoutLookup.columns).toEqual(['ts', 'region']);
 });
+
+test.each([undefined, null, {}])(
+  'a legacy semantic Sunburst retains a dashboard grain unless metadata rules it out: %p',
+  temporalLookup => {
+    const [query] = buildQuery({
+      datasource: '7__semantic_view',
+      viz_type: 'sunburst_v2',
+      columns: ['order_date', 'category'],
+      metric: 'total_sales',
+      temporal_columns_lookup: temporalLookup,
+      extra_form_data: { time_grain_sqla: 'P1M' },
+    } as unknown as QueryFormData).queries;
+    expect(query.columns).toEqual(['order_date', 'category']);
+    if (temporalLookup == null) {
+      expect(query.extras?.time_grain_sqla).toBe('P1M');
+    } else {
+      expect(query.extras).not.toHaveProperty('time_grain_sqla');
+    }
+  },
+);

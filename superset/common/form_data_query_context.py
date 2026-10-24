@@ -612,8 +612,9 @@ def _sunburst_temporal_grain(form_data: dict[str, Any], query: dict[str, Any]) -
 
     Each temporal level becomes the BASE_AXIS column reference
     ``normalizeTimeColumn`` emits for a physical x-axis. A grain with neither a
-    temporal level nor a legacy ``granularity`` subject is dormant and is
-    dropped, since semantic views reject a grain that has no time column.
+    temporal level nor a legacy ``granularity`` subject is dormant when the
+    lookup is present. Without a lookup, preserve the grain for legacy semantic
+    views that infer their single temporal dimension.
     """
     extras = dict(query.get("extras") or {})
     time_grain = extras.get("time_grain_sqla")
@@ -643,7 +644,12 @@ def _sunburst_temporal_grain(form_data: dict[str, Any], query: dict[str, Any]) -
         else:
             columns.append(column)
     query["columns"] = columns
-    if not grained and not query.get("granularity") and "time_grain_sqla" in extras:
+    if (
+        not grained
+        and not query.get("granularity")
+        and form_data.get("temporal_columns_lookup") is not None
+        and "time_grain_sqla" in extras
+    ):
         del extras["time_grain_sqla"]
         if extras:
             query["extras"] = extras
