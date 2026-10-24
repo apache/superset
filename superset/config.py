@@ -3574,14 +3574,6 @@ EXTRA_ASSET_EXPORT_FIELDS: Callable[[Any, str], dict[str, Any]] | None = None
 EXTRA_ASSET_IMPORT_HANDLER: Callable[[Any, str, dict[str, Any]], None] | None = None
 
 
-# The migrations that add catalog permissions might take a considerably long time
-# to execute as it has to create permissions to all schemas and catalogs from all
-# other catalogs accessible by the credentials. This flag allows to skip the
-# creation of these secondary perms, and focus only on permissions for the default
-# catalog. These secondary permissions can be created later by editing the DB
-# connection via the UI (without downtime).
-CATALOGS_SIMPLIFIED_MIGRATION: bool = False
-
 # Configure JWT subsystem to not enforce that the sub claim is a string
 # Set this variable to avoid breaking `/api/security` endpoints
 # TODO: remove this variable once pyjwt resolved the issue.
