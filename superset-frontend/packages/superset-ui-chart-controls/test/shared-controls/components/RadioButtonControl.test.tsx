@@ -88,7 +88,7 @@ test('respects initial value prop', () => {
   expect(secondButton).toHaveAttribute('aria-selected', 'true');
 });
 
-test('calls onChange when radio button is clicked', () => {
+test('calls onChange once when selecting a different radio button', () => {
   const onChange = jest.fn();
   setup({ onChange });
 
@@ -96,21 +96,16 @@ test('calls onChange when radio button is clicked', () => {
   fireEvent.click(secondOption);
 
   expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalled();
+  expect(onChange).toHaveBeenCalledTimes(1);
 });
 
-test('handles multiple clicks correctly', () => {
+test('does not call onChange when clicking the selected radio button', () => {
   const onChange = jest.fn();
   setup({ onChange });
 
-  fireEvent.click(screen.getByText('Option 2'));
-  fireEvent.click(screen.getByText('Option 3'));
   fireEvent.click(screen.getByText('Option 1'));
 
-  expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalledWith('option3');
-  expect(onChange).toHaveBeenCalledWith('option1');
-  expect(onChange.mock.calls.length).toBeGreaterThanOrEqual(3);
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('disables specific options when disabled flag is set', () => {
