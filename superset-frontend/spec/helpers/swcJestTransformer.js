@@ -55,10 +55,30 @@ const EXPORT_DESCRIPTOR_GETTER =
   /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,\s*)(get: function\(\) \{\s*)return (\w+|from\[k\]);/g;
 
 // Only a TDZ ReferenceError is swallowed; any other error still propagates.
+// The istanbul hint keeps the injected try/catch out of coverage instrumentation
+// so exported bindings do not report uncovered branches.
 const lenient = binding =>
-  `try { return ${binding}; } catch (e) { if (!(e instanceof ReferenceError)) throw e; return undefined; }`;
+  `/* istanbul ignore next */ try { return ${binding}; } catch (e) { if (!(e instanceof ReferenceError)) throw e; return undefined; }`;
 
-function mirrorBabelExportSemantics(code) {
+export function mirrorBabelExportSemantics(code) {
+  const patched = rewriteExports(code);
+  // A shape change in SWC's export helpers would otherwise leave exports
+  // non-configurable, surfacing later as scattered "Cannot redefine property"
+  // errors or TDZ ReferenceErrors in unrelated suites.
+  if (
+    /\b_export\(/.test(code) &&
+    /enumerable: true,\s*get\b/.test(code) &&
+    !patched.includes('configurable: true')
+  ) {
+    throw new Error(
+      'swcJestTransformer: SWC export output did not match any known shape; ' +
+        'update the patterns in spec/helpers/swcJestTransformer.js',
+    );
+  }
+  return patched;
+}
+
+function rewriteExports(code) {
   return code
     .replace(
       EXPORT_DESCRIPTOR_GETTER,
@@ -88,7 +108,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v4';
+const CACHE_SALT = 'babel-export-semantics-v5';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);
