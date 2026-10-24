@@ -20,11 +20,11 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import { produce } from 'immer';
-import { EMPTY_FILTER_SQL_EXPRESSION } from 'src/utils/common';
 import {
   DataMask,
   DataMaskStateWithId,
   DataMaskWithId,
+  EMPTY_FILTER_SQL_EXPRESSION,
   Filter,
   FilterConfiguration,
   Filters,

@@ -18,10 +18,14 @@
  */
 
 import {
+  FALSE_STRING,
+  getConstantLabel,
   getNumberFormatter,
   getTimeFormatter,
+  NULL_STRING,
   NumberFormats,
   TimeFormats,
+  TRUE_STRING,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -29,7 +33,6 @@ import {
   getRangeExtraFormData,
   getSelectExtraFormData,
 } from 'src/filters/utils';
-import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Filter utils', () => {
@@ -143,23 +146,51 @@ describe('Filter utils', () => {
   describe('getDataRecordFormatter', () => {
     test('default formatter returns expected values', () => {
       const formatter = getDataRecordFormatter();
-      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.String)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
+      expect(formatter(null, GenericDataType.Numeric)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
+      expect(formatter(null, GenericDataType.Temporal)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
+      expect(formatter(null, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
       expect(formatter('foo', GenericDataType.String)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Numeric)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Temporal)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter(true, GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter(false, GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter('true', GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter('false', GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter('TRUE', GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter('FALSE', GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING);
-      expect(formatter(1, GenericDataType.Boolean)).toEqual(TRUE_STRING);
-      expect(formatter(2, GenericDataType.Boolean)).toEqual(TRUE_STRING);
+      expect(formatter('foo', GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
+      expect(formatter(true, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(TRUE_STRING),
+      );
+      expect(formatter(false, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
+      expect(formatter('true', GenericDataType.Boolean)).toEqual(
+        getConstantLabel(TRUE_STRING),
+      );
+      expect(formatter('false', GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
+      expect(formatter('TRUE', GenericDataType.Boolean)).toEqual(
+        getConstantLabel(TRUE_STRING),
+      );
+      expect(formatter('FALSE', GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
+      expect(formatter(0, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
+      expect(formatter(1, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(TRUE_STRING),
+      );
+      expect(formatter(2, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(TRUE_STRING),
+      );
       expect(formatter(0, GenericDataType.String)).toEqual('0');
       expect(formatter(0, GenericDataType.Numeric)).toEqual('0');
       expect(formatter(0, GenericDataType.Temporal)).toEqual('0');
@@ -173,7 +204,7 @@ describe('Filter utils', () => {
         '1234567.89',
       );
       expect(formatter(1234567.89, GenericDataType.Boolean)).toEqual(
-        TRUE_STRING,
+        getConstantLabel(TRUE_STRING),
       );
     });
 
@@ -204,20 +235,32 @@ describe('Filter utils', () => {
         timeFormatter: getTimeFormatter(TimeFormats.DATABASE_DATETIME),
         numberFormatter: getNumberFormatter(NumberFormats.SMART_NUMBER),
       });
-      expect(formatter(null, GenericDataType.String)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Numeric)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Temporal)).toEqual(NULL_STRING);
-      expect(formatter(null, GenericDataType.Boolean)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.String)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
+      expect(formatter(null, GenericDataType.Numeric)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
+      expect(formatter(null, GenericDataType.Temporal)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
+      expect(formatter(null, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(NULL_STRING),
+      );
       expect(formatter('foo', GenericDataType.String)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Numeric)).toEqual('foo');
       expect(formatter('foo', GenericDataType.Temporal)).toEqual('foo');
-      expect(formatter('foo', GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter('foo', GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
       expect(formatter(0, GenericDataType.String)).toEqual('0');
       expect(formatter(0, GenericDataType.Numeric)).toEqual('0');
       expect(formatter(0, GenericDataType.Temporal)).toEqual(
         '1970-01-01 00:00:00',
       );
-      expect(formatter(0, GenericDataType.Boolean)).toEqual(FALSE_STRING);
+      expect(formatter(0, GenericDataType.Boolean)).toEqual(
+        getConstantLabel(FALSE_STRING),
+      );
       expect(formatter(1234567.89, GenericDataType.String)).toEqual(
         '1234567.89',
       );
@@ -226,7 +269,7 @@ describe('Filter utils', () => {
         '1970-01-01 00:20:34',
       );
       expect(formatter(1234567.89, GenericDataType.Boolean)).toEqual(
-        TRUE_STRING,
+        getConstantLabel(TRUE_STRING),
       );
       expect(formatter('1970-01-01 00:00:00', GenericDataType.String)).toEqual(
         '1970-01-01 00:00:00',
@@ -235,7 +278,7 @@ describe('Filter utils', () => {
         '1970-01-01 00:00:00',
       );
       expect(formatter('1970-01-01 00:00:00', GenericDataType.Boolean)).toEqual(
-        FALSE_STRING,
+        getConstantLabel(FALSE_STRING),
       );
       expect(
         formatter('1970-01-01 00:00:00', GenericDataType.Temporal),

@@ -22,6 +22,7 @@ import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { configure as configureTestingLibrary } from '@testing-library/react';
 import { matchers } from '@emotion/jest';
+import * as constants from '../../packages/superset-ui-core/src/utils/sharedConstantLabels';
 
 if (typeof Intl.DurationFormat === 'undefined') {
   require('@formatjs/intl-durationformat/polyfill.js');
@@ -49,3 +50,10 @@ jest.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
 jest.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
 jest.mock('ace-builds/src-noconflict/theme-github', () => ({}));
 jest.mock('ace-builds/src-noconflict/theme-monokai', () => ({}));
+
+// Mock constant labels globally for tests
+Object.entries(constants).forEach(([key, val]) => {
+  if (key.endsWith('_STRING') && typeof val === 'string') {
+    constants.bootstrapData[val] = `MOCK_${key}`;
+  }
+});
