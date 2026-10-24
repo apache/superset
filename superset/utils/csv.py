@@ -141,24 +141,32 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # for the xlsx writer.
     index = df.index
     if isinstance(index, pd.MultiIndex):
-        # ``levels`` carries each level's distinct values, so an index with
-        # nothing to escape is recognised without a pass over every row.
+        # Every row label is one of its level's distinct values, so a frame with
+        # nothing to escape is recognised from ``levels`` without a pass over
+        # the rows. The reverse does not hold: ``levels`` keeps values no row
+        # uses any more, which a filter or a slice leaves behind.
         if any(needs_escaping(level) for level in index.levels):
-            # Only a level carrying a formula label is rebuilt. A sibling keeps
-            # its own values and codes, and with them its dtype: read back row
-            # by row it would lose a missing value to ``float64``, which writes
-            # an integer id as ``5.0`` and rounds one past 2**53 to a different
-            # number. ``escape_value`` prepends a quote, so two distinct labels
-            # can escape to the same text, and ``factorize`` folds those onto a
+            # Only a level carrying a formula label among its row labels is
+            # rebuilt, and that is decided from the row labels rather than from
+            # ``levels``, because the rebuild costs a level its dtype:
+            # ``Index.map`` re-infers it, so a level of integers and nulls comes
+            # back ``float64``, which writes an integer id as ``5.0`` and rounds
+            # one past 2**53 to a different number. A stale ``levels`` entry
+            # would pay that for a label the export does not contain, while a
+            # level that does need rebuilding holds a string among its rows,
+            # which keeps the re-inferred dtype ``object``.
+            #
+            # A sibling keeps its own values and codes, and with them its dtype.
+            # ``escape_value`` prepends a quote, so two distinct labels can
+            # escape to the same text, and ``factorize`` folds those onto a
             # single code, which the level values of a ``MultiIndex`` have to
-            # be unique for. It reads the level's row values rather than
-            # ``levels``, which is sorted rather than in row order, so reusing
-            # the original codes against escaped ``levels`` would put each
-            # label on the wrong row as soon as a hostile one did not sort
-            # first.
+            # be unique for. The row values are read rather than ``levels``,
+            # which is sorted rather than in row order, so reusing the original
+            # codes against escaped ``levels`` would put each label on the wrong
+            # row as soon as a hostile one did not sort first.
             rebuilt = [
-                pd.factorize(index.get_level_values(position).map(escape_values))
-                if needs_escaping(level)
+                pd.factorize(values.map(escape_values))
+                if needs_escaping(values := index.get_level_values(position))
                 else (index.codes[position], level)
                 for position, level in enumerate(index.levels)
             ]

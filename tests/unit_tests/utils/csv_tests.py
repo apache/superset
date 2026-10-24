@@ -502,6 +502,34 @@ def test_df_to_escaped_csv_keeps_a_sibling_level_dtype_with_a_missing_value():
     )
 
 
+def test_df_to_escaped_csv_keeps_the_dtype_of_a_level_whose_label_was_sliced_out():
+    """
+    A level keeps its dtype when the only label needing escaping is not exported.
+
+    ``levels`` holds a level's distinct values and a filter or a slice leaves
+    behind the ones no row uses any more, so a formula label can sit in
+    ``levels`` while no exported row carries it. Rebuilding on that puts the
+    level through ``Index.map``, which re-infers the dtype: a level of integers
+    and nulls comes back ``float64`` and the id past 2**53 is written as
+    ``9007199254740992.0``. Nothing in the output needed escaping.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2, 3]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", "x"), (9007199254740993, "y"), (None, "z")],
+            names=["dim", "other"],
+        ),
+    )
+    sliced = df.iloc[1:]
+    assert "=cmd()" in sliced.index.levels[0]
+    assert "=cmd()" not in sliced.index.get_level_values(0)
+
+    assert (
+        df_to_escaped_csv(sliced, encoding="utf8", index=True)
+        == "dim,other,v\n9007199254740993,y,2\n,z,3\n"
+    )
+
+
 def test_df_to_escaped_csv_leaves_safe_index_alone():
     """
     A numeric index and a negative numeric label are not escaped, so ordinary
