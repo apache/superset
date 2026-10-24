@@ -21,7 +21,12 @@
 
 /* eslint-disable no-console */
 /**
- * Build packages/plugins filtered by globs
+ * Build packages/plugins filtered by globs.
+ *
+ * `--skip-lib` skips the CommonJS Babel pass (lib/), which only the npm
+ * publish needs: webpack and Jest resolve the workspaces from src/. The
+ * production esm/ Babel pass and `tsc --build` (the .d.ts output the root
+ * type check depends on) still run, so Babel config breaks surface pre-merge.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -31,7 +36,7 @@ import { hideBin } from 'yargs/helpers';
 
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { globs } = yargs(hideBin(process.argv)).parse();
+const { globs, skipLib } = yargs(hideBin(process.argv)).parse();
 const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
@@ -116,10 +121,15 @@ function getPackages(packagePattern, tsOnly = false) {
 
 let scope = getPackages(glob);
 
-console.log('--- Run babel --------');
 const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}
         -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
-run(`${babelCommand} --out-dir lib`);
+
+if (skipLib) {
+  console.log('--- Skipping babel lib (--skip-lib) ---');
+} else {
+  console.log('--- Run babel --------');
+  run(`${babelCommand} --out-dir lib`);
+}
 
 console.log('--- Run babel esm ---');
 // run again with
