@@ -366,10 +366,17 @@ function Icicle(element: HTMLElement, props: IcicleProps): void {
       }
       t += '</tbody></table>';
       const [tipX, tipY] = d3.mouse(element);
-      tip
-        .html(sanitizeHtml(t))
-        .style('left', `${tipX + 15}px`)
-        .style('top', `${tipY}px`);
+      // Reset left before measuring: an absolutely positioned box shrinks to
+      // the space remaining right of `left`, which would under-report its width.
+      tip.html(sanitizeHtml(t)).style('left', '0px');
+      // Flip to the left of the cursor when the tooltip would overflow the
+      // chart's right edge, where the chart container clips it.
+      const tipWidth = tip.node().offsetWidth;
+      const left =
+        tipX + 15 + tipWidth > width
+          ? Math.max(0, tipX - 15 - tipWidth)
+          : tipX + 15;
+      tip.style('left', `${left}px`).style('top', `${tipY}px`);
     }
 
     const nodes = init(root);
