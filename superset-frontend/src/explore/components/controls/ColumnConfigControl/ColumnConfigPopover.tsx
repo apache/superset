@@ -79,7 +79,17 @@ export default function ColumnConfigPopover({
         key: i.toString(),
         label: item.tab,
         children: (
-          <ControlForm onChange={onChange} value={column.config}>
+          <ControlForm
+            onChange={onChange}
+            onReset={name =>
+              onChange(
+                Object.fromEntries(
+                  Object.entries(column.config).filter(([key]) => key !== name),
+                ),
+              )
+            }
+            value={column.config}
+          >
             {item.children.map(
               (row: ColumnConfigFormItem[], rowIndex: number) =>
                 renderRow(row, rowIndex),
@@ -91,7 +101,17 @@ export default function ColumnConfigPopover({
     return <Tabs items={tabItems} />;
   }
   return (
-    <ControlForm onChange={onChange} value={column.config}>
+    <ControlForm
+      onChange={onChange}
+      onReset={name =>
+        onChange(
+          Object.fromEntries(
+            Object.entries(column.config).filter(([key]) => key !== name),
+          ),
+        )
+      }
+      value={column.config}
+    >
       {(layout as ColumnConfigFormItem[][]).map(
         (row: ColumnConfigFormItem[], i: number) => renderRow(row, i),
       )}
