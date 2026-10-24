@@ -3766,7 +3766,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
-                        "supports_dynamic_catalog": False,
+                        "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
                         "supports_oauth2": False,
                         "supports_offset": True,

@@ -20,7 +20,9 @@ from typing import Optional
 
 import pytest
 import sqlalchemy as sa
+from pytest_mock import MockerFixture
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -141,3 +143,105 @@ def test_date_trunc_metric_matches_quarter_grouping_in_complete_query() -> None:
 
     assert "DATE_TRUNC('QUARTER'" not in sql
     assert sql.count("DATE_TRUNC('quarter'") >= 2
+
+
+def test_catalog_support() -> None:
+    """
+    Redshift supports catalogs (databases), including cross-database queries.
+
+    Migration ``e6d0a676a087`` relies on ``supports_catalog``: without it the
+    migration is a no-op.
+    """
+    assert RedshiftEngineSpec.supports_catalog
+    assert RedshiftEngineSpec.supports_dynamic_catalog
+    assert RedshiftEngineSpec.supports_cross_catalog_queries
+
+
+def test_adjust_engine_params() -> None:
+    """
+    Test `adjust_engine_params`.
+
+    The method can be used to adjust the catalog (database) dynamically.
+    """
+    adjusted = RedshiftEngineSpec.adjust_engine_params(
+        make_url("redshift+psycopg2://user:password@host:5439/dev"),
+        {},
+        catalog="prod",
+    )
+    assert adjusted == (
+        make_url("redshift+psycopg2://user:password@host:5439/prod"),
+        {},
+    )
+
+    # IAM connections carry the database in connect_args too
+    adjusted = RedshiftEngineSpec.adjust_engine_params(
+        make_url("redshift+redshift_connector://host:5439/dev"),
+        {"iam": True, "database": "dev"},
+        catalog="prod",
+    )
+    assert adjusted == (
+        make_url("redshift+redshift_connector://host:5439/prod"),
+        {"iam": True, "database": "prod"},
+    )
+
+    # without a catalog nothing changes
+    adjusted = RedshiftEngineSpec.adjust_engine_params(
+        make_url("redshift+psycopg2://user:password@host:5439/dev"),
+        {"database": "dev"},
+    )
+    assert adjusted == (
+        make_url("redshift+psycopg2://user:password@host:5439/dev"),
+        {"database": "dev"},
+    )
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test `get_default_catalog`.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="redshift",
+        sqlalchemy_uri="redshift+psycopg2://user:password@host:5439/dev",
+    )
+    assert RedshiftEngineSpec.get_default_catalog(database) == "dev"
+
+    # IAM connections pass the database in connect_args instead of the URL
+    database = Database(
+        database_name="redshift",
+        sqlalchemy_uri="redshift+redshift_connector://",
+        extra='{"engine_params": {"connect_args": {"iam": true, "database": "dev"}}}',
+    )
+    assert RedshiftEngineSpec.get_default_catalog(database) == "dev"
+
+    database = Database(
+        database_name="redshift",
+        sqlalchemy_uri="redshift+redshift_connector://",
+    )
+    assert RedshiftEngineSpec.get_default_catalog(database) is None
+
+
+def test_get_catalog_names(mocker: MockerFixture) -> None:
+    """
+    Test `get_catalog_names`.
+
+    Catalogs are read from SVV_REDSHIFT_DATABASES, which also lists databases
+    created from datashares.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="redshift",
+        sqlalchemy_uri="redshift+psycopg2://user:password@host:5439/dev",
+    )
+    inspector = mocker.MagicMock()
+    execute = inspector.engine.connect().__enter__().execute
+    execute.return_value = [("dev",), ("prod",), ("shared_db",)]
+
+    assert RedshiftEngineSpec.get_catalog_names(database, inspector) == {
+        "dev",
+        "prod",
+        "shared_db",
+    }
+    assert "svv_redshift_databases" in str(execute.call_args.args[0])
