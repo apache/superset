@@ -2087,6 +2087,7 @@ def test_apply_limit_to_sql(
     """
     db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
     db_engine_spec = mocker.MagicMock(limit_method=method)
+    db_engine_spec.get_limit_method.return_value = method
     db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
 
     limited = db.apply_limit_to_sql(sql, limit, force)
@@ -2109,7 +2110,11 @@ def test_apply_limit_to_sql_preserves_restrictions(
     mocker.patch.object(
         db,
         "get_db_engine_spec",
-        return_value=mocker.Mock(engine="sqlite", limit_method=method),
+        return_value=mocker.Mock(
+            engine="sqlite",
+            limit_method=method,
+            get_limit_method=mocker.Mock(return_value=method),
+        ),
     )
     # The LIMIT expression comes only from the fixed test parameters above.
     sql = (
