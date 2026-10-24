@@ -21,7 +21,6 @@ from contextlib import nullcontext
 from datetime import datetime
 from typing import Any, Callable
 
-import numpy
 import pandas as pd
 import pytest
 from flask import current_app
@@ -2397,7 +2396,7 @@ def test_post_process_df_non_zero_based_index() -> None:
     df = pd.DataFrame({"col": [None, [1, 2], [3, 4]]}, dtype=object)
     df = df[df["col"].notna()]  # index is now [1, 2], not [0, 1, 2]
     result = Database.post_process_df(df)
-    assert result["col"].dtype == numpy.object_
+    assert result["col"].dtype == "str"
     assert result["col"].iloc[0] == "[1, 2]"
     assert result["col"].iloc[1] == "[3, 4]"
 
