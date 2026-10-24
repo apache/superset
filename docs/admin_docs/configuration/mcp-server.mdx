@@ -2468,7 +2468,8 @@ script-only names, dangerous URL schemes, and entity-encoded markup that would
 leave tag-shaped text or rebuild entities that would change on resubmission
 are rejected. A title altered by sanitization
 includes a warning. Python callers supplying UTF-8 bytes or bytearrays receive
-the same title normalization as string inputs. Names are sanitized once before
+the same title normalization as string inputs; invalid UTF-8 reports an error on
+the title field. Names are sanitized once before
 persistence, including by
 `generate_chart`'s schema revalidation, so a stored name does not change when
 it is sent back.
@@ -2479,6 +2480,8 @@ MCP object names must fit their persisted model columns: chart and dataset names
 and theme names allow 250 characters, dashboard titles allow 500, saved-query
 labels and SQL Lab tab titles allow 256, and dashboard slugs allow 255.
 For fields that trim whitespace, length validation applies after trimming.
+Physical-dataset `schema` and `catalog` values trim whitespace and treat blanks
+as omitted namespaces, including UTF-8 bytes supplied by Python callers.
 For fields using the shared user-text sanitizer (including chart names, dashboard
 titles, column names, labels, and certification text), the limit applies to the
 trimmed sanitized text, not removed markup, entity encoding, or surrounding

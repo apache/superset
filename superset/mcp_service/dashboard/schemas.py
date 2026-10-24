@@ -879,14 +879,14 @@ class GenerateDashboardRequest(BaseModel):
                 break
         else:
             raw = None
-        if isinstance(raw, (bytes, bytearray)):
-            raw = raw.decode()
-        if not isinstance(raw, str):
-            return data
-        if not raw.strip():
-            data[key] = "" if raw == "" else None
-            return data
         with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                data[key] = "" if raw == "" else None
+                return data
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Dashboard title", max_length=500, allow_empty=True
             )
@@ -1050,11 +1050,11 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
                 break
         else:
             raw = None
-        if isinstance(raw, (bytes, bytearray)):
-            raw = raw.decode()
-        if not isinstance(raw, str):
-            return data
         with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
             if not raw.strip():
                 raise PydanticCustomError(
                     "empty_text", "dashboard_title cannot be empty"
@@ -1547,11 +1547,11 @@ class DuplicateDashboardRequest(BaseModel):
                 break
         else:
             raw = None
-        if isinstance(raw, (bytes, bytearray)):
-            raw = raw.decode()
-        if not isinstance(raw, str):
-            return data
         with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
             if not raw.strip():
                 raise PydanticCustomError(
                     "empty_text", "dashboard_title cannot be empty"

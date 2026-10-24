@@ -1495,3 +1495,100 @@ def test_byte_dashboard_slug_normalizes_before_length(
         {"identifier": 1, "slug": byte_value}
     )
     assert request.slug == expected
+
+
+@pytest.mark.parametrize("field", ["schema_", "schema", "catalog"])
+@pytest.mark.parametrize("as_bytearray", [False, True])
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("  public  ", "public"),
+        ("   ", None),
+        (" " * 251, None),
+        (" " + "x" * 250 + " ", "x" * 250),
+    ],
+)
+def test_byte_dataset_namespace_normalizes_before_length(
+    field: str, as_bytearray: bool, value: str, expected: str | None
+) -> None:
+    """Namespace bytes follow the same trim/blank contract as string inputs."""
+    encoded = value.encode()
+    request = CreateDatasetRequest.model_validate(
+        {
+            "database_id": 1,
+            "table_name": "t",
+            field: bytearray(encoded) if as_bytearray else encoded,
+        }
+    )
+    assert getattr(request, "schema_" if field == "schema" else field) == expected
+
+    from superset.mcp_service.dataset.tool.create_dataset import (
+        _build_dataset_properties,
+    )
+
+    properties, error = _build_dataset_properties(request)
+    assert error is None
+    expected_properties: dict[str, object] = {"database": 1, "table_name": "t"}
+    if expected is not None:
+        expected_properties["schema" if field == "schema_" else field] = expected
+    assert properties == expected_properties
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("alias_index", range(4))
+@pytest.mark.parametrize("value", [b"\xff", bytearray(b"\xff")])
+def test_invalid_utf8_title_error_is_field_located(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    alias_index: int,
+    value: bytes | bytearray,
+) -> None:
+    """Model-level byte decoding retains Pydantic's field-level Unicode error."""
+    aliases = (
+        ("chart_name", "name", "title", "slice_name")
+        if field == "chart_name"
+        else ("dashboard_title", "title", "name", "dashboard_title")
+    )
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, aliases[alias_index]: value})
+    assert exc.value.errors()[0]["type"] == "string_unicode"
+    assert exc.value.errors()[0]["loc"] == (field,)
+
+
+@pytest.mark.parametrize(
+    "value", [b"/explore/p/safe-key/", bytearray(b"/explore/p/safe-key/")]
+)
+def test_byte_permalink_url_extracts_key(value: bytes | bytearray) -> None:
+    """Byte permalink URLs cannot skip the same normalization as text URLs."""
+    from superset.mcp_service.chart.schemas import GetChartInfoRequest
+
+    request = GetChartInfoRequest.model_validate({"permalink_key": value})
+    assert request.permalink_key == "safe-key"
+
+
+@pytest.mark.parametrize("field", ["schema_", "schema", "catalog"])
+@pytest.mark.parametrize(
+    "value",
+    ["x" * 251, b"x" * 251, bytearray(b"x" * 251), 1, True, {}, b"\xff"],
+)
+def test_dataset_namespace_rejects_malformed_values(field: str, value: object) -> None:
+    """Namespace trimming does not omit malformed inputs or bypass the cap."""
+    with pytest.raises(ValidationError) as exc:
+        CreateDatasetRequest.model_validate(
+            {"database_id": 1, "table_name": "t", field: value}
+        )
+    assert exc.value.errors()[0]["loc"] == (field,)
+
+
+@pytest.mark.parametrize("as_bytearray", [False, True])
+def test_byte_permalink_rejects_other_url(as_bytearray: bool) -> None:
+    """Byte URLs outside the Explore permalink path cannot become cache keys."""
+    from superset.mcp_service.chart.schemas import GetChartInfoRequest
+
+    encoded = b"https://superset.example.com/superset/dashboard/p/key/"
+    with pytest.raises(ValidationError) as exc:
+        GetChartInfoRequest.model_validate(
+            {"permalink_key": bytearray(encoded) if as_bytearray else encoded}
+        )
+    assert exc.value.errors()[0]["loc"] == ("permalink_key",)

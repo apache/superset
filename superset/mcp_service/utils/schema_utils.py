@@ -46,6 +46,11 @@ def field_validation_error(field_name: str) -> Iterator[None]:
     """
     try:
         yield
+    except UnicodeDecodeError as ex:
+        raise ValidationError.from_exception_data(
+            "Field validation",
+            [{"type": "string_unicode", "loc": (field_name,), "input": ex.object}],
+        ) from ex
     except ValueError as ex:
         error = (
             ex

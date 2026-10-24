@@ -560,6 +560,8 @@ class CreateDatasetRequest(BaseModel):
         rejects them, rather than silently treating a malformed value (e.g. an
         int or dict) as an omitted namespace.
         """
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             return v.strip() or None
         return v

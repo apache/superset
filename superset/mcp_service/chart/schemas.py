@@ -455,6 +455,8 @@ class GetChartInfoRequest(BaseModel):
             extract_permalink_key_from_url,
         )
 
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
         if isinstance(value, str) and "/" in value:
             if key := extract_permalink_key_from_url(value):
                 return key
@@ -6390,14 +6392,14 @@ class ChartNameMixin(BaseModel):
                 break
         else:
             raw = None
-        if isinstance(raw, (bytes, bytearray)):
-            raw = raw.decode()
-        if not isinstance(raw, str):
-            return data
-        if not raw.strip():
-            data[key] = None
-            return data
         with field_validation_error("chart_name"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                data[key] = None
+                return data
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Chart name", max_length=250, allow_empty=True
             )
