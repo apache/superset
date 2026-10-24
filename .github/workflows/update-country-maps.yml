@@ -1,0 +1,184 @@
+name: Update Country Maps
+
+# Regenerates plugins/plugin-chart-country-map's GeoJSON files, countries.ts
+# and docs/data/countries.json from upstream Natural Earth + community geo
+# data, by running the same notebook `npm run update-maps` runs locally.
+#
+# Runs weekly and on workflow_dispatch, but only opens or updates a PR when
+# the regenerated output actually differs from what's on `master` - most
+# weeks this is a no-op. Unlike a translation-string catch-up, nothing here
+# auto-merges: a border/region change is the kind of thing that needs an
+# actual human look at the rendered maps. Community geo sources are pinned
+# to a commit where practical; the live WHO ArcGIS query can't be pinned
+# (it's a live service, not a repo), so a run can still legitimately pick up
+# an unreviewed upstream change there. The job itself fails (separately from
+# whether a PR was opened) if the notebook hits a cell error, so a broken
+# upstream source doesn't just quietly go green.
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC, an hour after sync-translation-catalogs.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-country-maps
+  cancel-in-progress: false
+
+jobs:
+  update-country-maps:
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: "Checkout master"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install notebook dependencies
+        run: |
+          pip install jupyter nbconvert ipykernel geopandas shapely matplotlib requests
+
+      - name: Force speed_run (skip interactive preview rendering)
+        working-directory: superset-frontend/plugins/plugin-chart-country-map/scripts
+        run: |
+          python3 - <<'PYEOF'
+          import json
+
+          path = "Country Map GeoJSON Generator.ipynb"
+          with open(path, encoding="utf-8") as f:
+              nb = json.load(f)
+
+          for cell in nb["cells"]:
+              if cell["cell_type"] != "code":
+                  continue
+              if "".join(cell["source"]).strip().startswith("speed_run = False"):
+                  cell["source"] = [
+                      "speed_run = True\n",
+                      "# forced True for unattended CI regeneration; not committed back\n",
+                  ]
+                  break
+          else:
+              raise SystemExit("Could not find the speed_run cell to patch")
+
+          with open(".ci-run.ipynb", "w", encoding="utf-8") as f:
+              json.dump(nb, f)
+          PYEOF
+
+      - name: Run notebook
+        working-directory: superset-frontend/plugins/plugin-chart-country-map/scripts
+        run: |
+          jupyter nbconvert --to notebook --execute --inplace --allow-errors \
+            --ExecutePreprocessor.timeout=1200 .ci-run.ipynb
+
+      - name: Check for cell errors and record a summary
+        id: notebook
+        working-directory: superset-frontend/plugins/plugin-chart-country-map/scripts
+        run: |
+          python3 - <<'PYEOF' >> "$GITHUB_OUTPUT"
+          import json
+
+          with open(".ci-run.ipynb", encoding="utf-8") as f:
+              nb = json.load(f)
+
+          errors = []
+          for i, cell in enumerate(nb["cells"]):
+              for output in cell.get("outputs", []):
+                  if output.get("output_type") == "error":
+                      errors.append(f"cell {i}: {output.get('ename')}: {output.get('evalue')}")
+                  elif output.get("output_type") == "stream":
+                      # Some cells catch download failures and print them
+                      # instead of raising, so they never emit an error output.
+                      for line in "".join(output.get("text", [])).splitlines():
+                          if line.startswith("Unable to download"):
+                              errors.append(f"cell {i}: {line}")
+
+          if errors:
+              print("had_errors=true")
+              summary = "\n".join(f"- {e}" for e in errors[:20])
+          else:
+              print("had_errors=false")
+              summary = ""
+
+          with open("notebook-errors.txt", "w", encoding="utf-8") as f:
+              f.write(summary)
+          PYEOF
+          rm -f .ci-run.ipynb
+          if [ -s notebook-errors.txt ]; then
+            echo "::warning::Notebook hit cell errors; generated data may be stale."
+            {
+              echo "### Country map notebook cell errors"
+              cat notebook-errors.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Check for drift
+        id: diff
+        run: |
+          PATHS="superset-frontend/plugins/plugin-chart-country-map/src/countries superset-frontend/plugins/plugin-chart-country-map/src/countries.ts docs/data/countries.json"
+          if git diff --quiet -- $PATHS; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update sync PR
+        if: steps.diff.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: chore/update-country-maps-automated
+          HAD_ERRORS: ${{ steps.notebook.outputs.had_errors }}
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git checkout -b "$BRANCH"
+          git add superset-frontend/plugins/plugin-chart-country-map/src/countries \
+            superset-frontend/plugins/plugin-chart-country-map/src/countries.ts \
+            docs/data/countries.json
+          git commit -m "chore(country-map): regenerate GeoJSON from upstream sources" \
+            -m "Automated run of the Country Map GeoJSON Generator notebook (npm run update-maps). Review the rendered diffs before merging - one source (WHO ArcGIS) is a live query, not a pinned commit."
+          git push --force origin "$BRANCH"
+
+          BODY="Automated run of \`npm run update-maps\` against current \`master\`. **Please review the rendered map diffs before merging** - this pulls from several community geo sources plus a live WHO ArcGIS query that can't be pinned to a commit, so an upstream change there hasn't had human eyes on it yet."
+          if [ "$HAD_ERRORS" = "true" ]; then
+            BODY="$BODY
+
+          ⚠️ The notebook run hit cell errors (ran with --allow-errors, so it continued past them - affected countries' data may be stale rather than updated):
+          $(cat superset-frontend/plugins/plugin-chart-country-map/scripts/notebook-errors.txt)"
+          fi
+
+          if gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq 'length > 0' | grep -q true; then
+            gh pr edit "$BRANCH" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          else
+            gh pr create --repo "$GITHUB_REPOSITORY" \
+              --title "chore(country-map): regenerate GeoJSON from upstream sources" \
+              --body "$BODY" \
+              --base master --head "$BRANCH"
+          fi
+
+      - name: Close stale sync PR when no drift remains
+        if: steps.diff.outputs.has_changes == 'false' && steps.notebook.outputs.had_errors != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: chore/update-country-maps-automated
+        run: |
+          if gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq 'length > 0' | grep -q true; then
+            gh pr close "$BRANCH" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "Upstream sources no longer differ from \`master\`, so this regenerated data is stale. Closing automatically."
+          fi
+
+      - name: Fail if the notebook hit cell errors
+        if: steps.notebook.outputs.had_errors == 'true'
+        run: |
+          echo "::error::Notebook hit cell errors - see the job summary above. Any resulting PR update still went out; the data for the affected countries may be stale rather than updated."
+          exit 1
