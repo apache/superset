@@ -17298,6 +17298,9 @@ msgstr ""
 msgid "ZIP file contains multiple file types"
 msgstr ""
 
+msgid "ZIP file contains no data files"
+msgstr ""
+
 msgid "Zebra striping"
 msgstr ""
 
