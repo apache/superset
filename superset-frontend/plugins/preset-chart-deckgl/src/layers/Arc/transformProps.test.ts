@@ -151,3 +151,33 @@ test('Arc transformProps should not set cat_color when no dimension is configure
   expect(features[0]?.cat_color).toBeUndefined();
   expect(features[1]?.cat_color).toBeUndefined();
 });
+
+test('Arc transformProps should not let a source column named cat_color override the dimension fallback', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      dimension: 'category',
+    },
+    queriesData: [
+      {
+        data: [
+          {
+            START_LAT: 37.8,
+            START_LON: -122.4,
+            END_LAT: 37.9,
+            END_LON: -122.3,
+            category: null,
+            cat_color: 'unrelated',
+          },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as ArcFeature[];
+
+  expect(features).toHaveLength(1);
+  expect(features[0]?.cat_color).toBe(NULL_CATEGORY_KEY);
+});

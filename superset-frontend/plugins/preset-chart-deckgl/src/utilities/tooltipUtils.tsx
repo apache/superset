@@ -291,9 +291,6 @@ export function createHandlebarsTooltipData(
 ): Record<string, any> {
   const initialData: Record<string, any> = {
     ...o.object,
-    ...(o.object?.cat_color != null && {
-      cat_color: formatNullCategory(`${o.object.cat_color}`),
-    }),
     coordinate: o.coordinate,
     index: o.index,
     picked: o.picked,
@@ -350,6 +347,12 @@ export function createHandlebarsTooltipData(
     );
 
     data = { ...data, ...tooltipData };
+  }
+
+  // Applied after the tooltip-contents merge so a configured `cat_color` item
+  // cannot reintroduce the raw null sentinel.
+  if (data.cat_color != null) {
+    data = { ...data, cat_color: formatNullCategory(`${data.cat_color}`) };
   }
 
   return data;

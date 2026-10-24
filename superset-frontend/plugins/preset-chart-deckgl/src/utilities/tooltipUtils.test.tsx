@@ -20,7 +20,11 @@
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { render } from '@testing-library/react';
-import { createTooltipContent, CommonTooltipRows } from './tooltipUtils';
+import {
+  createTooltipContent,
+  createHandlebarsTooltipData,
+  CommonTooltipRows,
+} from './tooltipUtils';
 import { NULL_CATEGORY_KEY } from '../utils';
 
 test('category row shows the null category as N/A, matching the legend', () => {
@@ -101,3 +105,21 @@ test('buildFieldBasedTooltipItems preserves zero configured metric fallback valu
   expect(container.textContent).toContain('name: North');
   expect(container.textContent).toContain('sum__value: 0');
 });
+
+test.each([[undefined], [['cat_color']]])(
+  'handlebars data shows the null category as N/A (tooltip_contents=%j)',
+  tooltipContents => {
+    const formData = {
+      datasource: '1__table',
+      viz_type: 'deck_scatter',
+      tooltip_contents: tooltipContents,
+    } as QueryFormData;
+
+    const data = createHandlebarsTooltipData(
+      { object: { cat_color: NULL_CATEGORY_KEY } },
+      formData,
+    );
+
+    expect(data.cat_color).toBe(Constants.NULL_DISPLAY);
+  },
+);

@@ -667,3 +667,32 @@ test.each([undefined, false])(
     expect(result.payload.data.metricLabels).toEqual(['100']);
   },
 );
+
+test('Scatter transformProps should not let a source column named cat_color override the dimension fallback', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      dimension: 'category',
+      point_radius_fixed: { type: 'fix', value: '1000' },
+    },
+    queriesData: [
+      {
+        data: [
+          {
+            LATITUDE: 37.8,
+            LONGITUDE: -122.4,
+            category: null,
+            cat_color: 'unrelated',
+          },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as ScatterFeature[];
+
+  expect(features).toHaveLength(1);
+  expect(features[0]?.cat_color).toBe(NULL_CATEGORY_KEY);
+});

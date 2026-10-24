@@ -392,3 +392,25 @@ test('Path transformProps should have empty metric labels when no metric is set'
 
   expect(result.payload.data.metricLabels).toEqual([]);
 });
+
+test('Path transformProps should not let a source column named cat_color override the dimension fallback', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      dimension: 'route_type',
+    },
+    queriesData: [
+      {
+        data: [
+          { path_json: samplePath1, route_type: null, cat_color: 'unrelated' },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as PathFeature[];
+
+  expect(features.map(f => f.cat_color)).toEqual([NULL_CATEGORY_KEY]);
+});
