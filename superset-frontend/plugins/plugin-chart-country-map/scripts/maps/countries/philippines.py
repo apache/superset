@@ -31,6 +31,7 @@ This fixes that: the corrected 83-province source is now the
 from __future__ import annotations
 
 import geopandas as gpd
+from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import orient
 
 from maps.context import BuildContext
@@ -43,7 +44,7 @@ _URL = (
 )
 
 
-def _orient_clockwise(geom):
+def _orient_clockwise(geom: BaseGeometry) -> BaseGeometry:
     if geom.geom_type == "Polygon":
         return orient(geom, sign=-1.0)
     if geom.geom_type == "MultiPolygon":
