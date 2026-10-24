@@ -24,11 +24,21 @@ from .base import BaseSupersetView
 
 
 class UserInfoView(BaseSupersetView):
+    """SPA shell for the signed-in user's own profile page.
+
+    Uses ``can_userinfo on UserInfo`` rather than ``can_read on user`` /
+    ``User``. The latter is Admin-only (``ADMIN_ONLY_VIEW_MENUS``), so
+    Alpha/Gamma were redirected to ``/superset/welcome/`` when opening
+    Settings → Info even though the menu link is shown to every
+    authenticated user. ``can_userinfo`` is already in
+    ``ACCESSIBLE_PERMS``, so stock Gamma and Alpha receive it on role sync.
+    """
+
     route_base = "/"
-    class_permission_name = "user"
+    class_permission_name = "UserInfo"
 
     @expose("/user_info/")
     @has_access
-    @permission_name("read")
+    @permission_name("userinfo")
     def list(self) -> FlaskResponse:
         return super().render_app_template()
