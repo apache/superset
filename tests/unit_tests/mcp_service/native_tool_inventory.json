@@ -455,14 +455,14 @@
         "openWorldHint": false,
         "readOnlyHint": true
       },
-      "compact_description_chars": 241,
-      "description_chars": 1736,
+      "compact_description_chars": 229,
+      "description_chars": 2223,
       "entry_bytes": {
-        "structured": 11931,
-        "text_only": 4482
+        "structured": 16155,
+        "text_only": 6613
       },
-      "input_schema_bytes": 2447,
-      "output_schema_bytes": 7433
+      "input_schema_bytes": 4084,
+      "output_schema_bytes": 9526
     },
     "get_dashboard_layout": {
       "annotations": {
@@ -1267,12 +1267,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 526793,
-      "text_only": 215676
+      "structured": 531017,
+      "text_only": 217807
     },
     "compact_catalog_bytes": {
-      "structured": 472742,
-      "text_only": 161625
+      "structured": 476460,
+      "text_only": 163250
     },
     "largest_entry": {
       "structured": {
