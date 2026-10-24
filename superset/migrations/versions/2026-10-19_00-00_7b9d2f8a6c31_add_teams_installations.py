@@ -22,6 +22,7 @@ Revises: d623a0cb6bb0
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import mysql
 from sqlalchemy_utils import UUIDType
 
 from superset.migrations.shared.utils import create_table
@@ -40,7 +41,13 @@ def upgrade() -> None:
         sa.Column("team_id", sa.String(255), nullable=False),
         sa.Column("service_url", sa.String(2048), nullable=False),
         sa.Column("active", sa.Boolean(), nullable=False),
-        sa.Column("event_at", sa.DateTime(), nullable=False),
+        sa.Column(
+            "event_at",
+            sa.DateTime()
+            .with_variant(mysql.DATETIME(fsp=6), "mysql")
+            .with_variant(mysql.DATETIME(fsp=6), "mariadb"),
+            nullable=False,
+        ),
         sa.Column("created_on", sa.DateTime(), nullable=False),
         sa.Column("changed_on", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),

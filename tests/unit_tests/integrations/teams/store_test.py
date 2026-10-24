@@ -27,8 +27,10 @@ from uuid import UUID, uuid4
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from sqlalchemy import create_engine, inspect, select
-from sqlalchemy.engine import Engine
+from sqlalchemy import Column, create_engine, inspect, select
+from sqlalchemy.dialects import mysql
+from sqlalchemy.dialects.mysql.mariadb import MariaDBDialect
+from sqlalchemy.engine import Dialect, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -359,9 +361,9 @@ def test_migration_preserves_bootstrapped_installations(
 def test_stale_events_do_not_override_removal(
     engine: Engine, install_first: bool, equal_timestamp: bool
 ) -> None:
-    installed = datetime(2026, 10, 1, 12, tzinfo=timezone.utc)
-    removed = installed.replace(minute=0 if equal_timestamp else 1)
-    reinstalled = installed.replace(minute=2)
+    installed = datetime(2026, 10, 1, 12, microsecond=100000, tzinfo=timezone.utc)
+    removed = installed.replace(microsecond=100000 if equal_timestamp else 200000)
+    reinstalled = installed.replace(microsecond=300000)
     with Session(engine) as session:
         store = TeamsInstallationStore(session)
         if install_first:
@@ -401,3 +403,21 @@ def test_insert_race_preserves_newer_removal(session: Session) -> None:
         stale = store.install(TENANT, APPLICATION, "team-1", REFRESHED_URL, installed)
     assert not stale.active
     assert session.query(TeamsInstallation).count() == 1
+
+
+@pytest.mark.parametrize(
+    "dialect", [mysql.dialect(), MariaDBDialect()], ids=["mysql", "mariadb"]
+)
+def test_event_timestamp_preserves_microseconds_in_model_and_migration(
+    dialect: Dialect,
+) -> None:
+    """Both schema definitions must retain subsecond source event ordering."""
+    assert TeamsInstallation.__table__.c.event_at.type.compile(dialect) == "DATETIME(6)"
+    with patch.object(migration, "create_table") as create_table:
+        migration.upgrade()
+    event_at = next(
+        column
+        for column in create_table.call_args.args[1:]
+        if isinstance(column, Column) and column.name == "event_at"
+    )
+    assert event_at.type.compile(dialect) == "DATETIME(6)"
