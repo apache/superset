@@ -22,8 +22,8 @@ default) to allow one additional origin. The table is only consulted when the
 ``CSP_RUNTIME_ALLOWLIST`` feature flag is enabled.
 
 Revision ID: 4a50792bd265
-Revises: 3a8e6f2c1b95
-Create Date: 2026-06-26 12:00:00.000000
+Revises: d623a0cb6bb0
+Create Date: 2026-10-23 12:00:00.000000
 
 """
 
@@ -38,7 +38,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "4a50792bd265"
-down_revision = "3a8e6f2c1b95"
+down_revision = "d623a0cb6bb0"
 
 
 def upgrade() -> None:
