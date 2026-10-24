@@ -27,6 +27,7 @@ import {
 import type { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { BaseTransformedProps, LegendFormData } from '../types';
+import { WaterfallCategory } from './crossFilter';
 
 export type WaterfallFormXTicksLayout =
   | '45°'
@@ -77,4 +78,7 @@ export interface EchartsWaterfallChartProps extends ChartProps {
 }
 
 export type WaterfallChartTransformedProps =
-  BaseTransformedProps<EchartsWaterfallFormData>;
+  BaseTransformedProps<EchartsWaterfallFormData> & {
+    /** One entry per X category, aligned with every stacked series. */
+    categories: WaterfallCategory[];
+  };

@@ -19,6 +19,7 @@
 import {
   CurrencyFormatter,
   DataRecord,
+  DataRecordValue,
   ensureIsArray,
   getMetricLabel,
   getNumberFormatter,
@@ -42,7 +43,12 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { getColtypesMapping } from '../utils/series';
 import { Refs } from '../types';
-import { NULL_STRING } from '../constants';
+import { NULL_STRING, OpacityEnum } from '../constants';
+import {
+  isWaterfallBarDimmed,
+  getSelectedWaterfallKeys,
+  WaterfallCategory,
+} from './crossFilter';
 
 type EChartsOption = ComposeOption<BarSeriesOption>;
 
@@ -160,6 +166,8 @@ export default function transformProps(
   chartProps: EchartsWaterfallChartProps,
 ): WaterfallChartTransformedProps {
   const {
+    emitCrossFilters,
+    filterState,
     width,
     height,
     formData,
@@ -170,8 +178,13 @@ export default function transformProps(
     inContextMenu,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
-  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const queryData = queriesData[0];
+  const data = queryData?.data ?? [];
+  const coltypeMapping = getColtypesMapping({
+    coltypes: queryData?.coltypes ?? [],
+    colnames: queryData?.colnames ?? [],
+  });
+  const selectedKeys = getSelectedWaterfallKeys(filterState?.selectedValues);
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
     currencyFormat,
@@ -238,8 +251,24 @@ export default function transformProps(
   const totalData: ISeriesData[] = [];
 
   let previousTotal = 0;
+  const categories: WaterfallCategory[] = [];
 
   transformedData.forEach((datum, index, self) => {
+    const isPeriodTotal = Boolean(
+      breakdownName && datum[breakdownName] === totalMark,
+    );
+    const isGrandTotal = !breakdownName && datum[xAxisName] === totalMark;
+    categories.push({
+      isGrandTotal,
+      xOnly: !breakdownColumn || isPeriodTotal,
+      xColumn: xAxisColumn,
+      xValue: (isGrandTotal ? null : datum[xAxisName]) as DataRecordValue,
+      breakdownColumn,
+      breakdownValue:
+        isPeriodTotal || !breakdownName
+          ? undefined
+          : (datum[breakdownName] as DataRecordValue),
+    });
     const totalSum = self.slice(0, index + 1).reduce((prev, cur, i) => {
       if (breakdownName) {
         if (cur[breakdownName] !== totalMark || i === 0) {
@@ -322,6 +351,25 @@ export default function transformProps(
     previousTotal = totalSum;
   });
 
+  const applyCrossFilterStyle = (item: ISeriesData, index: number) => {
+    const category = categories[index];
+    if (
+      !category ||
+      item.value === TOKEN ||
+      !isWaterfallBarDimmed(category, selectedKeys) ||
+      item.itemStyle?.opacity === 0
+    ) {
+      return item;
+    }
+    return {
+      ...item,
+      itemStyle: {
+        ...item.itemStyle,
+        opacity: OpacityEnum.SemiTransparent,
+      },
+    };
+  };
+
   const xAxisColumns: string[] = [];
   const xAxisData = transformedData.map(row => {
     let column = xAxisName;
@@ -373,9 +421,13 @@ export default function transformProps(
   axisLabel.formatter = xAxisFormatter;
   axisLabel.hideOverlap = false;
 
-  const seriesProps: Pick<BarSeriesOption, 'type' | 'stack' | 'emphasis'> = {
+  const seriesProps: Pick<
+    BarSeriesOption,
+    'type' | 'stack' | 'emphasis' | 'cursor'
+  > = {
     type: 'bar',
     stack: 'stack',
+    cursor: emitCrossFilters ? 'pointer' : 'default',
     emphasis: {
       disabled: true,
     },
@@ -391,7 +443,7 @@ export default function transformProps(
     {
       ...seriesProps,
       name: ASSIST_MARK,
-      data: assistData,
+      data: assistData.map(applyCrossFilterStyle),
     },
     {
       ...seriesProps,
@@ -403,7 +455,7 @@ export default function transformProps(
       itemStyle: {
         color: rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b),
       },
-      data: increaseData,
+      data: increaseData.map(applyCrossFilterStyle),
     },
     {
       ...seriesProps,
@@ -415,7 +467,7 @@ export default function transformProps(
       itemStyle: {
         color: rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b),
       },
-      data: decreaseData,
+      data: decreaseData.map(applyCrossFilterStyle),
     },
     {
       ...seriesProps,
@@ -427,7 +479,7 @@ export default function transformProps(
       itemStyle: {
         color: rgbToHex(totalColor.r, totalColor.g, totalColor.b),
       },
-      data: totalData,
+      data: totalData.map(applyCrossFilterStyle),
     },
   ];
 
@@ -494,5 +546,9 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    emitCrossFilters,
+    filterState,
+    coltypeMapping,
+    categories,
   };
 }
