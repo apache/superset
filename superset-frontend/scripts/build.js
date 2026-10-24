@@ -117,8 +117,7 @@ function getPackages(packagePattern, tsOnly = false) {
 let scope = getPackages(glob);
 
 console.log('--- Run babel --------');
-const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}
-        -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
+const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope} -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
 run(`${babelCommand} --out-dir lib`);
 
 console.log('--- Run babel esm ---');
@@ -130,5 +129,6 @@ run(`${babelCommand} --out-dir esm`, {
 console.log('--- Run tsc ---');
 // only run tsc for packages with ts files
 scope = getPackages(glob, true);
-run(`lerna exec --stream --concurrency 3 --scope ${scope} \
-      -- ../../scripts/tsc.sh --build`);
+run(
+  `lerna exec --stream --concurrency 3 --scope ${scope} -- ../../scripts/tsc.sh --build`,
+);
