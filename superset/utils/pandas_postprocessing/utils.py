@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import Counter
 from collections.abc import Sequence
 from functools import partial, wraps
 from typing import Any, Callable
@@ -226,10 +227,21 @@ def _append_columns(
     assign method, which overwrites the original column in `base_df` if the column
     already exists, and appends the column if the name is not defined.
 
-    A mapping may do both at once, so the two halves are handled separately: an
-    entry whose source and target names match overwrites in place, and one that
-    renames is appended. Treating a mixed mapping as a whole would append the
-    column that was meant to be overwritten, leaving a duplicate label behind.
+    A mapping may do both at once, so the two halves are handled separately.
+    An entry is appended only when its target names a column the result does not
+    already have, which means the target differs from the source *and* is not
+    already in `base_df`. Everything else is written in place. Treating a mixed
+    mapping as a whole would append the column that was meant to be overwritten,
+    leaving a duplicate label behind.
+
+    Both parts of that condition are needed. `{'y': 'z'}` against a frame that
+    already has a `z` renames onto an existing label, so appending it duplicates
+    `z`. `{'latitude': 'latitude'}` names a target that is not in `base_df` at
+    all, which `geodetic_parse` does whenever the caller keeps the default
+    column name, and that must keep being written in place: appending it would
+    concatenate, and `pd.concat` unions the index rather than aligning to
+    `base_df`, so an `append_df` that does not share `base_df`'s index would
+    change the row count.
 
     Note that! this is a memory-intensive operation.
 
@@ -248,14 +260,39 @@ def _append_columns(
         # caller which mutates the result does not reach `base_df`.
         return base_df.copy()
 
-    overwritten = {key: value for key, value in columns.items() if key == value}
-    appended = {key: value for key, value in columns.items() if key != value}
+    # Two sources cannot both be written to one target. Rejecting that up front
+    # keeps the in-place write below from being handed a duplicate label, which
+    # pandas refuses, and keeps the append half from quietly returning a frame
+    # that carries the target label twice.
+    duplicate_targets = sorted(
+        {target for target, count in Counter(columns.values()).items() if count > 1}
+    )
+    if duplicate_targets:
+        raise InvalidPostProcessingError(
+            _(
+                "Columns mapped to the same target: %(columns)s",
+                columns=", ".join(duplicate_targets),
+            )
+        )
+
+    appended = {
+        key: value
+        for key, value in columns.items()
+        if value != key and value not in base_df.columns
+    }
+    overwritten = {key: value for key, value in columns.items() if key not in appended}
 
     _base_df = base_df
     if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        _base_df.loc[:, overwritten.keys()] = append_df
+        # Select before renaming, as below, and because once the source name may
+        # differ from the target, it is the target that says which column to
+        # write.
+        overwritten_df = append_df.loc[:, overwritten.keys()].rename(
+            columns=overwritten
+        )
+        _base_df.loc[:, overwritten_df.columns] = overwritten_df
     if not appended:
         return _base_df
     # Select before renaming: `append_df` may carry columns the mapping does not

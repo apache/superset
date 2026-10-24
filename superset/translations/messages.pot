@@ -3763,6 +3763,10 @@ msgid "Columns folder can only contain column items"
 msgstr ""
 
 #, python-format
+msgid "Columns mapped to the same target: %(columns)s"
+msgstr ""
+
+#, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
 msgstr ""
 
