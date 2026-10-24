@@ -686,6 +686,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       if (appSection === AppSection.FilterConfigModal) {
         return (trigger?.parentNode as HTMLElement) || document.body;
       }
+      // The mobile filters Drawer traps focus, so a popup rendered outside of
+      // it gets closed right after it opens.
+      const drawerBody = trigger?.closest<HTMLElement>('.ant-drawer-body');
+      if (drawerBody) {
+        return drawerBody;
+      }
       return document.body;
     },
     [appSection, parentRef, showOverflow],
