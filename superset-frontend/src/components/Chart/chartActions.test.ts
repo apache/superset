@@ -40,7 +40,7 @@ import { handleChartDataResponse } from 'src/components/Chart/chartAction';
 import * as dataMaskActions from 'src/dataMask/actions';
 
 import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { initialState } from 'src/SqlLab/fixtures';
 
 /** A 200 response never re-issues, so the refetch must not be called. */

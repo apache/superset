@@ -20,7 +20,7 @@ import { act } from 'react';
 import { QueryState } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { cleanup } from '@testing-library/react';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';

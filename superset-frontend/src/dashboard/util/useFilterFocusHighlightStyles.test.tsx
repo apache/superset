@@ -18,7 +18,7 @@
  */
 
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import mockState from 'spec/fixtures/mockState';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { screen, render } from 'spec/helpers/testing-library';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import userEvent from '@testing-library/user-event';
 import QueryTable from 'src/SqlLab/components/QueryTable';

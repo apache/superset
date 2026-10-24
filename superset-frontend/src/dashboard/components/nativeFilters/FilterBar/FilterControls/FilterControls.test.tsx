@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { Store } from 'redux';
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import {
   ChartCustomizationType,
