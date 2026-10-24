@@ -18,6 +18,7 @@
  */
 import {
   ensureIsArray,
+  getColumnLabel,
   getMetricLabel,
   QueryFormData,
   QueryFormMetric,
@@ -46,6 +47,9 @@ export function extractExtraMetrics(
   if (
     !isAggregateSort &&
     limitMetric &&
+    // the control gives the x-axis column precedence over a same-labeled
+    // metric, so the sort then targets the column and no metric is queried
+    !(formData.x_axis && getColumnLabel(formData.x_axis) === x_axis_sort) &&
     getMetricLabel(limitMetric) === x_axis_sort &&
     !metrics?.some(
       (metric: QueryFormMetric) => getMetricLabel(metric) === x_axis_sort,
