@@ -1966,3 +1966,157 @@ test('converts xAxisLabelInterval string "0" to number 0', () => {
   // "All" must also disable hideOverlap so ECharts never drops a label.
   expect(xAxis.axisLabel.hideOverlap).toBe(false);
 });
+
+describe('truncateMetric / truncateMetricB', () => {
+  const getSeriesNames = (
+    overrides: Partial<EchartsMixedTimeseriesFormData>,
+  ) => {
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: { ...formData, ...overrides },
+      queriesData,
+    });
+    const transformed = transformProps(chartProps);
+    return (transformed.echartOptions.series as SeriesOption[]).map(
+      s => s.name,
+    );
+  };
+
+  test('drops the metric prefix for both queries when both flags are on', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetric: true,
+      truncateMetricB: true,
+    });
+
+    expect(seriesNames).toContain('boy');
+    expect(seriesNames).toContain('girl');
+    expect(seriesNames).not.toContain('sum__num, boy');
+    expect(seriesNames).not.toContain('sum__num, girl');
+  });
+
+  test('keeps the "metric, dimension" name when both flags are off', () => {
+    const seriesNames = getSeriesNames({});
+
+    expect(seriesNames).toContain('sum__num, boy');
+    expect(seriesNames).toContain('sum__num, girl');
+  });
+
+  test('truncateMetricB truncates query B independently of query A', () => {
+    const seriesNames = getSeriesNames({ truncateMetricB: true });
+
+    // Query A (not truncated) keeps the metric prefix.
+    expect(seriesNames).toContain('sum__num, boy');
+    expect(seriesNames).toContain('sum__num, girl');
+    // Query B (truncated) drops it.
+    expect(seriesNames).toContain('boy');
+    expect(seriesNames).toContain('girl');
+  });
+
+  test('attributes the truncated name to the correct query', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetricB: true,
+      showQueryIdentifiers: true,
+    });
+
+    expect(seriesNames).toContain('sum__num (Query A), boy');
+    expect(seriesNames).toContain('boy (Query B)');
+    expect(seriesNames).not.toContain('boy (Query A)');
+    expect(seriesNames).not.toContain('sum__num (Query B), boy');
+  });
+
+  test('still appends the query identifier when truncating, so Query A and B stay distinguishable (#38451)', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetric: true,
+      truncateMetricB: true,
+      showQueryIdentifiers: true,
+    });
+
+    expect(seriesNames).toContain('boy (Query A)');
+    expect(seriesNames).toContain('girl (Query A)');
+    expect(seriesNames).toContain('boy (Query B)');
+    expect(seriesNames).toContain('girl (Query B)');
+    // The metric is still dropped - only the query suffix is added back.
+    expect(seriesNames).not.toContain('sum__num, boy (Query A)');
+  });
+
+  test('keeps every dimension when a single metric has multiple groupby columns', () => {
+    const multiDimLabelMap = {
+      ds: ['ds'],
+      'boy, CA': ['boy', 'CA'],
+      'girl, NY': ['girl', 'NY'],
+    };
+    const rows = [
+      { 'boy, CA': 1, 'girl, NY': 2, ds: 599616000000 },
+      { 'boy, CA': 3, 'girl, NY': 4, ds: 599916000000 },
+    ];
+    const multiDimQueries = [
+      createTestQueryData(rows, { label_map: multiDimLabelMap }),
+      createTestQueryData(rows, { label_map: multiDimLabelMap }),
+    ];
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: multiDimQueries,
+      formData: {
+        ...formData,
+        groupby: ['gender', 'state'],
+        groupbyB: ['gender', 'state'],
+        truncateMetric: true,
+        truncateMetricB: true,
+      },
+      queriesData: multiDimQueries,
+    });
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as SeriesOption[]
+    ).map(s => s.name);
+
+    expect(seriesNames).toContain('boy, CA');
+    expect(seriesNames).toContain('girl, NY');
+  });
+
+  test('drops only the metric for multi-metric queries and keeps identifiers', () => {
+    const labelMap = {
+      ds: ['ds'],
+      'm1, boy': ['m1', 'boy'],
+      'm2, boy': ['m2', 'boy'],
+    };
+    const rows = [
+      { 'm1, boy': 1, 'm2, boy': 2, ds: 599616000000 },
+      { 'm1, boy': 3, 'm2, boy': 4, ds: 599916000000 },
+    ];
+    const queries = [
+      createTestQueryData(rows, { label_map: labelMap }),
+      createTestQueryData(rows, { label_map: labelMap }),
+    ];
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queries,
+      formData: {
+        ...formData,
+        metrics: ['m1', 'm2'],
+        metricsB: ['m1', 'm2'],
+        truncateMetric: true,
+        truncateMetricB: true,
+        showQueryIdentifiers: true,
+      },
+      queriesData: queries,
+    });
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as SeriesOption[]
+    ).map(s => s.name);
+
+    expect(seriesNames).toEqual(
+      expect.arrayContaining(['boy (Query A)', 'boy (Query B)']),
+    );
+    expect(seriesNames).not.toContain('m1, boy (Query A)');
+  });
+});
