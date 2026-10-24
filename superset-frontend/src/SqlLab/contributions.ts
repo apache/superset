@@ -46,5 +46,14 @@ export const ViewLocations = {
     statusBar: 'sqllab.statusBar',
     results: 'sqllab.results',
     queryHistory: 'sqllab.queryHistory',
+    // Extensions can register a full-pane replacement here. SqlEditor renders
+    // the registered view instead of the default editor+SouthPane split when
+    // a tab was opened in that mode, i.e. created via
+    // sqlLab.createTab({ northPaneViewId }) from a newTab command handler.
+    northPane: 'sqllab.northPane',
+    // Extensions register tab-type commands here. When any are present the
+    // "+" new-tab button becomes a dropdown listing all registered tab types
+    // plus the built-in SQL Editor option.
+    newTab: 'sqllab.newTab',
   },
 } as const;

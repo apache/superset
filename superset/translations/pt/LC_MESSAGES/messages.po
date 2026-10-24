@@ -9601,6 +9601,10 @@ msgstr ""
 msgid "Extensions"
 msgstr "Extensões"
 
+#, python-format
+msgid "Extensions failed to load: %s"
+msgstr ""
+
 msgid "Extent"
 msgstr "Extensão"
 
@@ -17118,6 +17122,9 @@ msgstr "SET"
 msgid "SQL"
 msgstr "SQL"
 
+msgid "SQL Editor"
+msgstr ""
+
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
@@ -19206,6 +19213,10 @@ msgid "Solid background"
 msgstr "Fundo sólido"
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+#, python-format
+msgid "Some extensions failed to load: %s"
 msgstr ""
 
 msgid ""
