@@ -30,6 +30,7 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import text, types
+from sqlalchemy.dialects import registry
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -62,6 +63,13 @@ logger = logging.getLogger(__name__)
 
 INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
     r"\[INSUFFICIENT_PERMISSIONS\]|\bSQLSTATE:\s*42501\b"
+)
+
+# Alias databricks+connector dialect to DatabricksDialect for backwards compatibility
+registry.register(
+    "databricks.connector",
+    "databricks.sqlalchemy",
+    "DatabricksDialect",
 )
 
 
@@ -814,7 +822,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             },
             {
                 "name": "databricks-dbapi (Legacy)",
-                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "pypi_package": "apache-superset[databricks]",
                 "connection_string": (
                     "databricks+connector://token:{access_token}@{host}:{port}/{database}"
                 ),
@@ -958,7 +966,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "pypi_packages": ["apache-superset[databricks]"],
         "connection_string": (
             "databricks+connector://token:{access_token}@{host}:{port}/{database_name}?http_path={http_path}"
         ),
@@ -1025,6 +1033,71 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             database=parameters["database"],
             query=query,
         ).render_as_string(hide_password=False)
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        adjusted_connect_args = connect_args.copy()
+
+        original_catalog = adjusted_connect_args.get("catalog") or uri.query.get(
+            "catalog"
+        )
+        # Only a switch away from an explicitly configured catalog invalidates
+        # the saved schema. When the connection has no catalog configured, the
+        # caller's catalog is the server default (see `get_default_catalog`), so
+        # the schema from the URI still applies.
+        is_catalog_changing = (
+            catalog is not None
+            and original_catalog is not None
+            and catalog != original_catalog
+        )
+
+        if schema:
+            effective_schema = schema
+        elif not is_catalog_changing:
+            effective_schema = (
+                adjusted_connect_args.get("schema")
+                or uri.query.get("schema")
+                or uri.database
+                or "default"
+            )
+        else:
+            # Catalog is overridden to a different catalog without an explicit
+            # schema. Resolve the catalog's default schema ("default") to prevent
+            # reflection from generating invalid queries like
+            # `catalog`.`None`.`table`.
+            effective_schema = "default"
+        effective_http_path = adjusted_connect_args.get("http_path") or uri.query.get(
+            "http_path"
+        )
+
+        query_dict = dict(uri.query)
+        if effective_catalog := catalog or original_catalog:
+            query_dict["catalog"] = effective_catalog
+            adjusted_connect_args["catalog"] = effective_catalog
+        else:
+            query_dict.pop("catalog", None)
+            adjusted_connect_args.pop("catalog", None)
+
+        if effective_schema:
+            query_dict["schema"] = effective_schema
+            adjusted_connect_args["schema"] = effective_schema
+        else:
+            query_dict.pop("schema", None)
+            adjusted_connect_args.pop("schema", None)
+
+        if effective_http_path:
+            query_dict["http_path"] = effective_http_path
+            adjusted_connect_args["http_path"] = effective_http_path
+
+        uri = uri.set(query=query_dict)
+
+        return uri, adjusted_connect_args
 
     @classmethod
     def get_parameters_from_uri(  # type: ignore
@@ -1135,7 +1208,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["pyodbc"],
+        "pypi_packages": ["databricks-dbapi[odbc]", "pyodbc"],
         "connection_string": (
             "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1147,6 +1220,17 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from SQL endpoint settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/databricks/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
@@ -1179,7 +1263,7 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["pyhive"],
+        "pypi_packages": ["databricks-dbapi[hive]", "pyhive", "thrift"],
         "connection_string": (
             "databricks+pyhive://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1191,6 +1275,17 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from cluster settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/databricks/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
