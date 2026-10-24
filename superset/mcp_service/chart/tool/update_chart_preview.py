@@ -360,6 +360,7 @@ def update_chart_preview(  # noqa: C901
                     new_form_data,
                     request.dataset_id,
                     dataset_context=lambda: dataset_context,
+                    update_config=config,
                 )
                 if merged_plugin is not None
                 else None

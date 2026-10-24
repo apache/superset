@@ -155,9 +155,11 @@ interface SetStashFormDataAction {
   isHidden: boolean;
 }
 
-// Editor can be either a number (subject ID) or an object with value/label
-// This handles both Slice format (number[]) and select control format ({value, label}[])
-type EditorItem = number | { value: number; label: string };
+// Editors arrive as subject IDs, select options, or API subject responses.
+type EditorItem =
+  | number
+  | { value: number; label: string }
+  | { id: number; label: string };
 
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
@@ -642,9 +644,10 @@ export default function exploreReducer(
     },
     [actions.SLICE_UPDATED]() {
       const typedAction = action as SliceUpdatedAction;
-      // Handle editors that can be either number[] or Array<{value, label}>
-      const getEditorId = (editor: EditorItem): number =>
-        typeof editor === 'number' ? editor : editor.value;
+      const getEditorId = (editor: EditorItem): number => {
+        if (typeof editor === 'number') return editor;
+        return 'value' in editor ? editor.value : editor.id;
+      };
       const getEditorLabel = (editor: EditorItem): string | null =>
         typeof editor === 'number' ? null : editor.label;
       return {

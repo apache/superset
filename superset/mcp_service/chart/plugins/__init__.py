@@ -30,6 +30,7 @@ To add a new chart type:
 from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
 from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
 from superset.mcp_service.chart.plugins.bubble import BubbleChartPlugin
+from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.plugins.gantt import GanttChartPlugin
 from superset.mcp_service.chart.plugins.gauge import GaugeChartPlugin
 from superset.mcp_service.chart.plugins.geographic import (
@@ -56,6 +57,7 @@ from superset.mcp_service.chart.registry import register
 
 # Register all built-in chart type plugins
 register(XYChartPlugin())
+register(BulletChartPlugin())
 register(TableChartPlugin())
 register(PieChartPlugin())
 register(SunburstChartPlugin())
@@ -76,6 +78,7 @@ __all__ = [
     "BigNumberChartPlugin",
     "BoxPlotChartPlugin",
     "BubbleChartPlugin",
+    "BulletChartPlugin",
     "GanttChartPlugin",
     "GaugeChartPlugin",
     "CountryMapChartPlugin",

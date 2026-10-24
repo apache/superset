@@ -1548,6 +1548,10 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            # keep dashboard provenance for semantic-view reporting
+                            **(
+                                {"isExtra": True} if adhoc_filter.get("isExtra") else {}
+                            ),
                         }
                     )
             elif expression_type == "SQL":
@@ -2178,13 +2182,16 @@ def normalize_dttm_col(
         if _col.timezone and isinstance(_col.timezone, str):
             try:
                 tz = ZoneInfo(_col.timezone)
-                # Data is stored in UTC, convert to the dataset's configured timezone
-                # First make the datetime UTC-aware, then convert to target timezone
+                # Naive values are assumed to be UTC; values that already carry
+                # a timezone are converted from it directly
                 series = df[_col.col_label]
                 if not series.empty and series.notna().any():
-                    # Convert UTC to target timezone
                     df[_col.col_label] = (
-                        series.dt.tz_localize("UTC")
+                        (
+                            series.dt.tz_localize("UTC")
+                            if series.dt.tz is None
+                            else series
+                        )
                         .dt.tz_convert(tz)
                         .dt.tz_localize(None)  # Remove timezone info for display
                     )
