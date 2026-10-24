@@ -212,6 +212,16 @@ class DatasetInfo(BaseModel):
     url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
     main_dttm_col: str | None = Field(None, description="Main datetime column")
+    partition_column: str | None = Field(
+        None, description="Physical column the engine partitions on"
+    )
+    partition_mapped_column: str | None = Field(
+        None,
+        description=(
+            "Column whose filters are mirrored onto the partition column; "
+            "null means the main datetime column"
+        ),
+    )
     offset: int | None = Field(None, description="Offset")
     cache_timeout: int | None = Field(None, description="Cache timeout")
     params: Dict[str, Any | None] | None = Field(None, description="Extra params")
@@ -1388,6 +1398,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
+        partition_column=getattr(dataset, "partition_column", None),
+        partition_mapped_column=getattr(dataset, "partition_mapped_column", None),
         offset=getattr(dataset, "offset", None),
         cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,

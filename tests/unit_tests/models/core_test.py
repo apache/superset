@@ -169,6 +169,14 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         PostgresDBEngineSpec,
         OldDBEngineSpec,
     ]
+    # `get_db_engine_spec` is an `lru_cache` keyed on the URL, and the specs
+    # below are only loaded on a miss -- so this test passed only as long as
+    # nothing earlier in the session had resolved a Postgres URL. Any new test
+    # anywhere that builds a `postgresql://` database made it fail, which is a
+    # property of test ordering rather than of the code under test. Cleared
+    # here, and again afterwards so the real specs are not left cached under a
+    # mock's verdict.
+    Database.get_db_engine_spec.cache_clear()
 
     assert (
         Database(database_name="db", sqlalchemy_uri="postgresql://").db_engine_spec
@@ -208,6 +216,11 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+    # The mocked specs above are cached against these URLs now; leaving them
+    # there would answer a later test with a spec defined in this function's
+    # body.
+    Database.get_db_engine_spec.cache_clear()
 
 
 @pytest.mark.parametrize(
