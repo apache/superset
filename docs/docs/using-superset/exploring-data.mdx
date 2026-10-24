@@ -507,6 +507,8 @@ uses the clicked query's bucket. Nested drills add their filters to the bucket. 
 drill's downloads and **Edit chart** use the same filters; in Explore the bucket
 filter shows the bucket start and keeps its grain until its column or operator is
 changed. Picking a date range removes the bucket grain and filters the raw dates.
+The Custom SQL tab is unavailable while a filter carries a bucket grain, since the
+bucket comparison has no portable raw SQL representation.
 
 ### Sunburst cross-filtering
 
