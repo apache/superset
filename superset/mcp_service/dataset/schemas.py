@@ -744,6 +744,19 @@ class DatasetMetricProperties(OmittedMeansUnchanged):
         None, description="JSON-encoded string with extra metric metadata."
     )
 
+    @field_validator("metric_name", mode="before")
+    @classmethod
+    def reject_blank_metric_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "metric_name cannot be empty")
+        return value
+
     @field_validator("d3format")
     @classmethod
     def d3format_must_be_valid(cls, value: str | None) -> str | None:
@@ -778,7 +791,7 @@ class DatasetMetricProperties(OmittedMeansUnchanged):
                 "At least one metric property must be provided to update. "
                 f"Updatable properties: {sorted(UPDATABLE_METRIC_FIELDS)}."
             )
-        if "metric_name" in provided and not (self.metric_name or "").strip():
+        if "metric_name" in provided and self.metric_name is None:
             with field_validation_error("metric_name"):
                 raise PydanticCustomError(
                     "empty_text", "metric_name cannot be empty or null"
@@ -1051,6 +1064,19 @@ class UpdateDatasetRequest(OmittedMeansUnchanged):
         "pick up schema changes in the underlying table or query.",
     )
 
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def reject_blank_table_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "table_name cannot be empty")
+        return value
+
     @field_validator("dataset_id", mode="before")
     @classmethod
     def reject_bool_identifier(cls, value: object) -> object:
@@ -1092,7 +1118,7 @@ class UpdateDatasetRequest(OmittedMeansUnchanged):
                 "sync_columns must be true. Updatable properties: "
                 f"{sorted(UPDATABLE_DATASET_FIELDS)}."
             )
-        if "table_name" in provided and not (self.table_name or "").strip():
+        if "table_name" in provided and self.table_name is None:
             with field_validation_error("table_name"):
                 raise PydanticCustomError(
                     "empty_text", "table_name cannot be empty or null"

@@ -2457,6 +2457,8 @@ or whitespace-only dashboard renames with "Text must not be empty"; omitting
 Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
 `update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
 `save_sql_query`, report "Text must not be empty" at the corresponding name field.
+Blank-name checks precede length checks, including whitespace-only inputs longer
+than the field limit.
 Explicit null metric or dataset names remain invalid; omitting them from updates
 leaves the stored name unchanged.
 
@@ -2487,7 +2489,8 @@ titles, column names, labels, and certification text), the limit applies to the
 trimmed sanitized text, not removed markup, entity encoding, or surrounding
 whitespace exposed by tag removal. Raw user-text sanitizer
 input has a separate 10,000-character resource bound (or the field limit, if larger).
-Theme names retain their whitespace and count it toward the limit.
+Nonblank theme names, saved-metric names, and dataset renames retain their
+whitespace and count it toward the limit.
 
 Blank saved-query labels and explicit blank dashboard renames return
 `Text must not be empty`, matching required dataset names and duplicated dashboard

@@ -679,6 +679,159 @@ _REQUIRED_NAME_CASES: list[tuple[str, dict[str, Any], str, list[str | None]]] = 
 ]
 
 
+_BLANK_ERROR_LIMIT_CASES: list[tuple[type[BaseModel], dict[str, Any], str, int]] = [
+    (UpdateDashboardRequest, {"identifier": 1}, "dashboard_title", 500),
+    (DuplicateDashboardRequest, {"dashboard_id": 1}, "dashboard_title", 500),
+    (
+        CreateVirtualDatasetRequest,
+        {"database_id": 1, "sql": "select 1"},
+        "dataset_name",
+        250,
+    ),
+    (CreateThemeRequest, {"json_data": {}}, "theme_name", 250),
+    (
+        CreateDatasetMetricRequest,
+        {"dataset_id": 1, "expression": "count(*)"},
+        "metric_name",
+        255,
+    ),
+    (UpdateDatasetMetricRequest, {"dataset_id": 1, "metric": 1}, "metric_name", 255),
+    (UpdateDatasetRequest, {"dataset_id": 1}, "table_name", 250),
+    (
+        SaveSqlQueryRequest,
+        {"database_id": 1, "sql": "select 1"},
+        "label",
+        256,
+    ),
+]
+
+
+@pytest.mark.parametrize("model,payload,field,limit", _BLANK_ERROR_LIMIT_CASES)
+@pytest.mark.parametrize("input_type", [str, bytes, bytearray])
+@pytest.mark.parametrize("whitespace", [" ", "\u2003"])
+def test_documented_blank_errors_precede_length(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    limit: int,
+    input_type: type[str] | type[bytes] | type[bytearray],
+    whitespace: str,
+) -> None:
+    """Every documented blank-name error takes precedence over its field cap."""
+    blank = whitespace * (limit + 1)
+    value = blank if input_type is str else input_type(blank.encode())
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, field: value})
+    errors = exc.value.errors()
+    assert len(errors) == 1
+    assert errors[0]["type"] == "empty_text"
+    assert errors[0]["loc"] == (field,)
+
+
+@pytest.mark.parametrize("model,payload,field,limit", _BLANK_ERROR_LIMIT_CASES)
+@pytest.mark.parametrize("input_type", [str, bytes, bytearray])
+@pytest.mark.parametrize("extra", [0, 1])
+def test_documented_name_nonblank_length_boundary(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    limit: int,
+    input_type: type[str] | type[bytes] | type[bytearray],
+    extra: int,
+) -> None:
+    """Blank-first validation must not bypass the cap for nonblank names."""
+    text = "x" * (limit + extra)
+    value = text if input_type is str else input_type(text.encode())
+    if extra:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, field: value})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+        assert exc.value.errors()[0]["loc"] == (field,)
+    else:
+        assert getattr(model.model_validate({**payload, field: value}), field) == text
+
+
+_LITERAL_NAME_LIMIT_CASES = [
+    case
+    for case in _BLANK_ERROR_LIMIT_CASES
+    if case[2] in ("theme_name", "metric_name", "table_name")
+]
+
+
+@pytest.mark.parametrize("model,payload,field,limit", _LITERAL_NAME_LIMIT_CASES)
+@pytest.mark.parametrize("input_type", [str, bytes, bytearray])
+@pytest.mark.parametrize("extra", [0, 1])
+def test_literal_names_keep_nonblank_whitespace(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    limit: int,
+    input_type: type[str] | type[bytes] | type[bytearray],
+    extra: int,
+) -> None:
+    """Blank-first checks preserve literal names and count their whitespace."""
+    text = " " + "x" * (limit - 2 + extra) + " "
+    value = text if input_type is str else input_type(text.encode())
+    if extra:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, field: value})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+    else:
+        assert getattr(model.model_validate({**payload, field: value}), field) == text
+
+
+@pytest.mark.parametrize("model,payload,field,limit", _LITERAL_NAME_LIMIT_CASES)
+@pytest.mark.parametrize(
+    "value,error_type",
+    [
+        (b"\xff", "string_unicode"),
+        (bytearray(b"\xff"), "string_unicode"),
+        (1, "string_type"),
+    ],
+)
+def test_literal_names_reject_malformed_inputs(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    limit: int,
+    value: bytes | bytearray | int,
+    error_type: str,
+) -> None:
+    """Blank-first checks leave malformed-input errors to Pydantic."""
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, field: value})
+    assert exc.value.errors()[0]["type"] == error_type
+    assert exc.value.errors()[0]["loc"] == (field,)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool,payload,field",
+    [(tool, payload, field) for tool, payload, field, _ in _REQUIRED_NAME_CASES],
+)
+@pytest.mark.parametrize("extra", [1, 50])
+async def test_required_name_over_cap_blank_wire_reason(
+    tool: str,
+    payload: dict[str, Any],
+    field: str,
+    extra: int,
+) -> None:
+    """Over-cap blank names retain the documented safe reason over MCP."""
+    limit = {"metric_name": 255, "label": 256}.get(field, 250)
+    async with Client(make_name_server()) as client:
+        result = await client.call_tool_mcp(
+            tool, {"request": {**payload, field: " " * (limit + extra)}}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text=f"Error: Validation error in {tool}: request.{field}: "
+            "Text must not be empty",
+        )
+    ]
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("tool", "payload", "field", "rejected"),
