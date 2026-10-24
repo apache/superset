@@ -21,6 +21,7 @@ from typing import Any, cast
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
+from flask_caching.backends import NullCache
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled, security_manager
@@ -58,6 +59,7 @@ from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.cache import skip_oversized_cache_value
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
@@ -69,6 +71,21 @@ from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _set_data_cache(cache_key: str, value: Any, timeout: int) -> None:
+    """Write ``value`` to the data cache unless it exceeds
+    ``DATA_CACHE_MAX_VALUE_SIZE``. An oversized value is left uncached, so the next
+    request misses and recomputes it from the datasource; any older value under
+    the key is removed so it is not served instead. With caching disabled
+    (``NullCache``) nothing is written and the size check is skipped, so the value
+    is never serialized."""
+    data_cache = cache_manager.data_cache
+    if isinstance(data_cache.cache, NullCache):
+        return
+    if not skip_oversized_cache_value(data_cache, cache_key, value):
+        data_cache.set(cache_key, value, timeout=timeout)
+
 
 # Cache lifetime for search-filtered column values, in seconds.
 SEARCH_CACHE_TIMEOUT = 60
@@ -189,7 +206,7 @@ def get_cached_column_values(
     # entry per keystroke for the full default timeout.
     timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
     if timeout != CACHE_DISABLED_TIMEOUT:
-        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+        _set_data_cache(cache_key, payload, timeout)
     logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
     return payload, False
 
@@ -760,7 +777,7 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(400, message=str(ex))
 
         if timeout != CACHE_DISABLED_TIMEOUT:
-            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+            _set_data_cache(cache_key, result, timeout)
 
         return self.response(200, result=result)
 
