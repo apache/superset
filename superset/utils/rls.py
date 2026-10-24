@@ -81,22 +81,25 @@ def apply_rls(
         outer query.
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
-    # There are two ways to insert RLS: either replacing the table with a subquery
-    # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-    # safer, but not supported in all databases.
-    method = database.db_engine_spec.get_rls_method()
+    # There are three ways to insert RLS:
+    #   - replace the table with a subquery containing the RLS (safest, but not
+    #     supported in all databases)
+    #   - append the RLS to the ``WHERE`` clause via AST transformation
+    #   - splice the RLS into the original SQL string (preserves dialect-specific
+    #     syntax that the sqlglot generator would otherwise transpile)
+    method = database.db_engine_spec.rls_method
 
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
 
     def collect_predicates(
         include_global: bool, exclude_id: int | None
-    ) -> dict[Table, list[Any]]:
-        predicates: dict[Table, list[Any]] = {}
+    ) -> dict[Table, list[str]]:
+        predicates: dict[Table, list[str]] = {}
         for table in parsed_statement.tables:
             table = table.qualify(catalog=catalog, schema=schema)
             predicates[table] = [
-                parsed_statement.parse_predicate(predicate)
+                predicate
                 for predicate in get_predicates_for_table(
                     table,
                     database,

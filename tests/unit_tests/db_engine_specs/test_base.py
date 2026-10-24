@@ -53,7 +53,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
 )
-from superset.sql.parse import Table
+from superset.sql.parse import RLSMethod, Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -2056,3 +2056,8 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_default_rls_method_is_subquery() -> None:
+    """Base engine spec defaults to subquery-based RLS."""
+    assert BaseEngineSpec.rls_method == RLSMethod.AS_SUBQUERY
