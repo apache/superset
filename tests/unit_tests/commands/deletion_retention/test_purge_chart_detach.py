@@ -200,7 +200,7 @@ def test_purge_detach_keeps_chart_history_and_etag(
     dataset, chart, _, _ = _trashed_dataset_with_charts(versioned_session)
     chart_id: int = chart.id
     dataset_id: int = dataset.id
-    chart_uuid: UUID = chart.uuid
+    chart_uuid: UUID = chart.uuid  # type: ignore[assignment]
     shadow: Any = version_class(Slice)
     latest_before: Any = versioned_session.scalars(
         sa.select(shadow)

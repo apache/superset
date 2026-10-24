@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1121,6 +1121,12 @@ msgstr "Yeni bir grafik oluşturulacaktır."
 msgid "A new dashboard will be created."
 msgstr "Yeni bir pano oluşturulacak."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1142,6 +1148,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Yeniden kullanılabilir bir veri kümesi, grafiğinizle kurtarılacaktır."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -1277,6 +1288,9 @@ msgstr "İptal Ediliyor"
 
 msgid "About"
 msgstr "Hakkında"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "Erişim"
@@ -1589,10 +1603,10 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Sanal veri kümesine %s yeni sütun eklendi"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Veri kümesine %s yeni sütun eklendi"
 
 #, python-format
 msgid "Added a %s"
@@ -1739,6 +1753,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregation Method"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2322,12 +2339,6 @@ msgstr "Bir hata anahtarı parlarken gerçekleşti."
 
 msgid "An error occurred while pruning logs "
 msgstr "Bir hata, girişleri yaparken gerçekleşti"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Yapılandırma şeması yenilenirken bir hata oluştu"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -2947,6 +2958,9 @@ msgstr "Geri dön"
 msgid "Back to all"
 msgstr "Geri dön"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3339,6 +3353,9 @@ msgstr "CVAS (Seçim olarak görünür) sorgu, bir SE ifadesi değildir."
 msgid "Cache Timeout (seconds)"
 msgstr "Önbellek Zamanaşımı (saniye)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -3689,6 +3706,12 @@ msgstr "Bu semantik katmanın değiştirilmesi yasaktır"
 msgid "Changing this semantic view is forbidden"
 msgstr "Bu semantik görünümün değiştirilmesi yasaktır"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -3844,6 +3867,10 @@ msgstr "Grafik başlığı"
 msgid "Chart type"
 msgstr "Grafik başlığı"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Grafikler silinemedi."
@@ -3897,6 +3924,9 @@ msgstr "Bu panoyu kontrol edin:"
 msgid "Check to force date partitions to have the same height"
 msgstr "Aynı yüksekliklere sahip olmak için tarih bölmelerini kontrol edin"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3927,6 +3957,9 @@ msgstr "Bir veriseti seçin"
 
 msgid "Choose a metric for right axis"
 msgstr "Doğru eksen için bir metrik seçin"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Bir numara format seçin"
@@ -4206,6 +4239,9 @@ msgstr "Close color breakpoint editörü"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Sekmey, kapat"
 
@@ -4255,6 +4291,9 @@ msgstr "Colalt Data Panel"
 
 msgid "Collapse row"
 msgstr "Collap row"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Ayarları daralt"
@@ -4353,6 +4392,10 @@ msgstr "Hedef yerin rengi"
 
 msgid "Color scheme"
 msgstr "Renk şeması"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4922,6 +4965,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Veritabanına bağlanılamadı: “%(database)s”"
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Tüm kayıtlı grafikler getirilemedi"
 
@@ -4951,6 +4998,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "hostnameyi çözemez: \"  %(host)s \"."
@@ -4969,11 +5021,34 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Say"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Ülke"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Country Color Scheme"
@@ -5477,6 +5552,10 @@ msgstr "Gösterim Paneli başlığı"
 msgid "Dashboard updated %s"
 msgstr "Pano güncellendi %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Gösterim Paneli kullanımı"
 
@@ -5734,6 +5813,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Dataset şeması geçersizdir, neden:   %(error)s "
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7274,6 +7357,11 @@ msgstr "aralığı filtre için minimum ve maksimum değerler girin"
 msgid "Enter report name"
 msgstr "Rapor ismi"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 #, fuzzy
 msgid "Enter the group's description"
 msgstr "Alarm adı"
@@ -7839,6 +7927,10 @@ msgstr "Başarısızlık"
 msgid "Failed at retrieving results"
 msgstr "Retrieving sonuçları başarısız oldu"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Tartışmayı uygulamak için başarısız oldu: Invalid JSON"
 
@@ -7916,6 +8008,9 @@ msgstr "Grafik verileri yüklemek için başarısız oldu."
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s için sütunlar yüklenemedi"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8145,6 +8240,18 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Grafikleri filtrele"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtrenin default değeri var"
 
@@ -8177,6 +8284,10 @@ msgstr "Filtre değeri (büyük küçük harf duyarlı)"
 msgid "Filter value is required"
 msgstr "Filtre değeri gereklidir"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Filtre değeri listesi boş olamaz"
 
@@ -8188,6 +8299,10 @@ msgstr "Grafiklerinizi filtreleyin"
 
 msgid "Filters"
 msgstr "Filtreler"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8410,6 +8525,12 @@ msgstr "Yabancı anahtar"
 msgid "Forest Green"
 msgstr "Orman Yeşil"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 "Form verileri önbellek olarak bulamadı, grafik metadata'ya yeniden "
@@ -8591,7 +8712,7 @@ msgstr "Kolon seç"
 msgid "Get the last date by the date unit."
 msgstr "Tarih birimi tarafından son tarihi alın."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Tatil için belirtilen tarih alın"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8771,10 +8892,10 @@ msgstr "Zaman serisi için Line'ı izler"
 msgid "Hierarchy"
 msgstr "Hierarchy"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8888,6 +9009,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Bir metrik belirtilmişse, metrik değere dayalı sıralama yapılacaktır."
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8905,6 +9035,11 @@ msgid "If table already exists"
 msgstr ""
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9030,11 +9165,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s ile gönderilecek açıklamayı ekleyin"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Bir eksen olarak seri adı ekleyin"
 
 msgid "Include time"
 msgstr "Zaman ekle"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Arttırmak"
@@ -9279,6 +9421,11 @@ msgstr "Invalid longitude/latitude"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Invalid metric object:   %(metric)s "
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Invalid numpy işlevi:   %(operator)s "
@@ -9305,6 +9452,9 @@ msgstr "Invalid result type:   %(result_type)s "
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Invalid rolling type:   %(type)s "
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Invalid state."
@@ -9651,6 +9801,9 @@ msgstr "son yıl"
 msgid "Lat"
 msgstr "Lat"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "hayali"
 
@@ -9697,6 +9850,9 @@ msgstr "Layout type of tree"
 
 msgid "Least recently modified"
 msgstr "Least son zamanlarda değiştirilmiş"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -9939,6 +10095,9 @@ msgstr "Sorguyu düzenle"
 msgid "List Roles"
 msgstr "Liste Roller"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Sorguyu düzenle"
@@ -9978,6 +10137,9 @@ msgstr "Yüklenen veriler cachelendi"
 
 msgid "Loaded from cache"
 msgstr "Cacheden yüklendi"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 msgid "Loading"
 msgstr "Yükleniyor…"
@@ -10078,10 +10240,10 @@ msgstr "Uzunlık ve"
 msgid "Longitude of default viewport"
 msgstr "Varsayılan görünümün uzunluğu"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10090,6 +10252,10 @@ msgstr "Aşağı Threshold"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10346,6 +10512,9 @@ msgstr "Belirtilen süre boyunca değerlerin anlamı"
 msgid "Mean values"
 msgstr "Ortalama değerler"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10587,6 +10756,9 @@ msgstr "Asgar"
 msgid "Minimum Font Size"
 msgstr "Minimum Font Boyut"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Asgari Radius"
 
@@ -10597,6 +10769,16 @@ msgid "Minimum Width"
 msgstr "Minimum Genişlik"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -10661,6 +10843,9 @@ msgstr "Eksik URL parametreleri"
 msgid "Mixed Chart"
 msgstr "Karma Grafik"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Düzenleme"
 
@@ -10672,10 +10857,10 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Son düzenleme %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Sanal veri kümesindeki %s sütun değiştirildi"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Veri kümesindeki %s sütun değiştirildi"
 
 msgid "Modified by"
 msgstr "Düzenleyen"
@@ -11217,6 +11402,9 @@ msgstr ""
 "%(engine_spec)s %(validator_name)s adında hiçbir doğrulama bulunamadı "
 "(foto 1   motoru için yapılandırıldı)"
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "Node etiket pozisyonu"
 
@@ -11506,6 +11694,9 @@ msgstr "Bir veya birçok metrik görüntülemek için"
 msgid "One or more annotation layers failed loading."
 msgstr "Bir veya daha fazla annotasyon tabakaları yüklemedi."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Bir veya daha fazla sütun zaten var"
 
@@ -11588,6 +11779,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
 msgstr ""
@@ -11614,9 +11811,6 @@ msgstr ""
 
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opakity, 0 ile 100 arasındaki değerleri bekliyor"
-
-msgid "Open"
-msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Open Datasource sekmesi"
@@ -11653,6 +11847,9 @@ msgstr "SQL Lab’da aç"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "SQL Lab’da aç"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Sorguyu SQL Lab’da aç"
@@ -12446,6 +12643,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Öpün"
 
@@ -12861,6 +13063,9 @@ msgstr "Reload"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab'ı Yeniden Yükle"
 
+msgid "Reload metadata"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -12924,10 +13129,10 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Sanal veri setinden %s sütun kaldırıldı"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Veri setinden %s sütun kaldırıldı"
 
 #, python-format
 msgid "Removed a %s"
@@ -13118,6 +13323,12 @@ msgstr "düğümler arasındaki güç"
 msgid "Request Access"
 msgstr "İstek Access"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -13199,6 +13410,10 @@ msgstr "Sıfır devlet"
 
 msgid "Reset to default folders?"
 msgstr "Varsayılan klasörleri sıfırlamak mı?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 #, fuzzy
 msgid "Resize"
@@ -13590,6 +13805,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "SQL Sorgusu"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "SQL ifade"
 
@@ -13892,6 +14112,11 @@ msgstr "Yazma değişikliklerini sağlamak için alta çıkın."
 msgid "Search"
 msgstr "Ara"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Arama   %s kayıtları"
+
 msgid "Search / Filter"
 msgstr "Ara / Filtrele"
 
@@ -13959,9 +14184,6 @@ msgstr "Filtrelerde ara"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Metrikleri anahtara veya etikete göre ara"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -14574,6 +14796,15 @@ msgstr "Semantik Görünüm"
 msgid "Semantic Views"
 msgstr "Semantik Görünümler"
 
+msgid "Semantic cache"
+msgstr ""
+
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14628,6 +14859,15 @@ msgstr "Semantik katman türü"
 msgid "Semantic layer updated"
 msgstr "Semantik katman güncellendi"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14664,6 +14904,11 @@ msgstr "Semantik görünüm parametreleri geçersiz."
 msgid "Semantic view updated"
 msgstr "Semantik görünüm güncellendi"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14690,6 +14935,9 @@ msgstr "PNG olarak gönder"
 
 msgid "Send as text"
 msgstr "metin olarak gönderin"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -15017,11 +15265,11 @@ msgstr "Show chart query timestamps"
 msgid "Show column headers"
 msgstr "Kolonlar bulunamadı"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Show columns subtotal"
-
-msgid "Show columns total"
-msgstr "Show columns total"
 
 msgid "Show empty columns"
 msgstr "Boş sütunlar göster"
@@ -15102,11 +15350,11 @@ msgstr "Show query tanımlayıcıları göster"
 msgid "Show row labels"
 msgstr "Toplamı göster"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Show rows sub total"
-
-msgid "Show rows total"
-msgstr "Show rows total"
 
 msgid "Show series values on the chart"
 msgstr "Grafikte seri değerleri göster"
@@ -15118,6 +15366,9 @@ msgid "Show summary"
 msgstr "Show summary Özet"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 #, fuzzy
@@ -15197,6 +15448,9 @@ msgstr "Sign in Sign in"
 
 msgid "Sign in with"
 msgstr "Sign in with"
+
+msgid "Sign in with your new password."
+msgstr ""
 
 msgid "Significance Level"
 msgstr "Significance Level"
@@ -15341,6 +15595,9 @@ msgstr ""
 "Diğer sekmelerdeki bazı zorunlu filtrelerin değerleri var ve "
 "temizlenmeyecek"
 
+msgid "Some semantic views could not be added"
+msgstr ""
+
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
 
@@ -15368,6 +15625,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Bir şey yanlış gitti."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -15632,6 +15892,11 @@ msgid ""
 "mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Start y-axis at 0"
 
@@ -15841,6 +16106,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Sum"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Belirtilen süre boyunca değerlerin sum"
@@ -16184,6 +16458,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Şablon parametreleri"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Hata: %(error)s"
@@ -16359,6 +16636,10 @@ msgid ""
 msgstr ""
 "X-axis, panolarda zaman aralık filtrelerinde kullanılmasını engelleyecek "
 "filtreler listesinde değildir. Filtre listesine eklemek ister misiniz?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -16901,6 +17182,9 @@ msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] "Parametre   %(parameters)s in your query is undefined."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Kullanıcı adı \"  %(username)s \" için sağlanan şifre yanlış."
@@ -17187,6 +17471,26 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Servis tabakanın URL'si"
 
@@ -17373,6 +17677,9 @@ msgstr "Değerler diğer uç noktaları değerleri örtüşür"
 
 msgid "The version of the service"
 msgstr "Hizmetin versiyonu"
+
+msgid "The view configuration must be a JSON object."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "tabakanın görünür başlığı"
@@ -17887,6 +18194,21 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18145,6 +18467,10 @@ msgstr ""
 "ve pozisyonları sürükleyerek dinamik olarak oluşturulur ve pano "
 "görünümünde düşer ve düşer"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -18217,6 +18543,19 @@ msgstr ""
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Bu parola çok yaygın; lütfen daha az tahmin edilebilir bir tane seçin."
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18245,6 +18584,19 @@ msgid "This section contains validation errors"
 msgstr "Bu bölüm doğrulama hataları içeriyor"
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -18606,6 +18958,9 @@ msgstr[0] ""
 msgid "Token Request URI"
 msgstr "Hediye İste URIRIRI"
 
+msgid "Too many requests. Please wait and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -18614,6 +18969,12 @@ msgid ""
 msgstr ""
 "Çok fazla alt dilim istendi. İzin verilen maksimum sayı %(max)s, ancak "
 "%(count)s istendi."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -18800,6 +19161,9 @@ msgstr "Salı"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -18903,6 +19267,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "Böyle bir tarihi delta hesaplamak için kullanılamaz"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -19360,6 +19727,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "metrik değerin bir zamantampamp olmadığı zaman bile tarih formatı kullanın"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -19367,6 +19741,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Kullanım gradient"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "sütunlar veya satırlar için üst düzey bir grup olarak metrikleri kullanın"
@@ -19530,6 +19907,9 @@ msgstr "Değer Biçimi"
 msgid "Value and Percentage"
 msgstr "Değer ve Yüzde"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "Değer sınırları"
 
@@ -19680,6 +20060,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Viewport"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Sanal"
@@ -20336,6 +20719,9 @@ msgid "X Axis Label Interval"
 msgstr "X Axis Label Interval"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Zaman formatı"
 
@@ -20381,6 +20767,9 @@ msgstr "Y"
 
 msgid "Y Axis Label"
 msgstr "Y Axis Label"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y Axis Title"
@@ -20751,6 +21140,11 @@ msgstr ""
 "erişimi istemek için bir %s düzenleyicisine ulaşın."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -20761,6 +21155,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -20768,6 +21167,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -20891,6 +21295,15 @@ msgstr ""
 msgid "Your export of \"%(title)s\" is ready."
 msgstr ""
 
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
+msgstr ""
+
 msgid "Your query could not be saved"
 msgstr "Sorgunuz kaydedilemedi"
 
@@ -20918,6 +21331,11 @@ msgstr "Sorgunuz güncellendi"
 
 msgid "Your report could not be deleted"
 msgstr "Raporunuz silinemez"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

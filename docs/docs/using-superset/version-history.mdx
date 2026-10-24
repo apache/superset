@@ -260,6 +260,8 @@ selections you had before you opened it.
 A dashboard preview reconstructs the layout as it was, including charts that
 have since been removed from the dashboard. A chart that has been deleted
 outright cannot be reconstructed; its slot shows a placeholder instead.
+Empty chart slots left by older dashboard copies are repaired on save,
+preserving their size. Detached slots are reattached to a reachable container.
 
 Preview is a close approximation of the version, not a pixel-faithful replay.
 The dashboard's own saved properties — title, CSS, metadata, description,
@@ -280,8 +282,15 @@ worth knowing:
   you moved away from. Returning to one of those states depends on its history
   still being available; retention and permanent deletion can remove it.
 - **A dashboard restore may be partial.** If the version referenced charts that
-  have since been deleted, the layout is restored without them and Superset
-  tells you how many were not reattached.
+  have since been permanently deleted, they are not reattached and Superset
+  tells you how many. Their layout slots come back as the version had them.
+  Archived charts are not skipped: they are linked to the dashboard as in the
+  version, so restoring one from the archive later puts it back on that
+  dashboard. An archived chart that was not in the version is unlinked, so
+  restoring it from the archive later does not put it back on this dashboard.
+  If a chart the restore is putting back or unlinking is permanently deleted
+  while the restore runs, nothing is changed and Superset asks you to try
+  again; the retry restores the version without that chart.
 
 Restoring is offered to the same users who may edit the entity, and is withheld
 from externally managed entities, whose source of truth lives outside Superset
@@ -304,6 +313,24 @@ timeout. A new dashboard is a copy of the *live* dashboard with the version's
 title, CSS, metadata, and layout applied over it — the copy endpoint accepts
 only those fields, so properties such as description, slug, certification, and
 theme come from the dashboard as it stands today, not from the version.
+
+When copying a dashboard **and its charts**, archived chart slots in the copy
+become placeholders saying "This archived chart was not copied." Their layout
+positions and sizes are preserved, but they do not link to the archived original.
+Restoring that original chart later therefore does not attach it to the copy.
+Live charts are still cloned. The source dashboard is unchanged, and ordinary
+dashboard saves and chart restores keep their existing reattachment behavior.
+This rule does not change copying a dashboard without copying its charts.
+
+Copying with charts refuses a layout slot that still references a live chart
+removed from the dashboard's membership. The error identifies the slot and the
+membership mismatch; no partial copy is saved. Repair the source layout before
+retrying. Malformed chart references also return a validation error (HTTP 422).
+
+Saving a dashboard removes detached duplicate chart slots before turning missing
+charts into placeholders. Numeric string or whole-number chart IDs are stored as
+integers so the saved charts remain available to native and cross-filter scopes.
+Empty slots from older copies still become placeholders with their size preserved.
 
 ## What gets recorded
 

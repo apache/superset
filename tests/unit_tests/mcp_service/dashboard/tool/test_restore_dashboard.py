@@ -112,6 +112,7 @@ async def test_restore_dashboard_success_by_numeric_id(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
     mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_command.return_value.warnings = []
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
@@ -134,6 +135,7 @@ async def test_restore_dashboard_success_by_uuid(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
     mock_find.return_value = _mock_dashboard(1, "Sales Dashboard")
+    mock_command.return_value.warnings = ["Warning: missing semantic view."]
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
@@ -143,6 +145,7 @@ async def test_restore_dashboard_success_by_uuid(
     content = result.structured_content
     assert content["success"] is True
     assert content["restored_id"] == 1
+    assert "Warning: missing semantic view." in content["message"]
     mock_find.assert_called_once_with(
         str(_UUID), skip_base_filter=True, skip_visibility_filter=True
     )

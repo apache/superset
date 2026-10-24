@@ -81,3 +81,17 @@ test('renders an icon and labels it "Report retrying" for the Retrying state', a
   await userEvent.hover(icon);
   expect(await screen.findByText('Report retrying')).toBeInTheDocument();
 });
+
+test('exposes the status label as the accessible name of the icon', () => {
+  renderIcon(AlertState.Error, true);
+  expect(
+    screen.getByRole('img', { name: 'Report failed' }),
+  ).toBeInTheDocument();
+});
+
+test('uses the alert wording as the accessible name when reports are disabled', () => {
+  renderIcon(AlertState.Success);
+  expect(
+    screen.getByRole('img', { name: 'Alert triggered, notification sent' }),
+  ).toBeInTheDocument();
+});

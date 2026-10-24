@@ -50,15 +50,22 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.dataframe import df_to_records
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
+    QueryObjectValidationMessage,
     SemanticResultCompletenessError,
     SupersetException,
+    SupersetSecurityException,
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel, json
@@ -272,6 +279,12 @@ class QueryContextProcessor:
             self._resolve_forced_query(query_obj, cache_key)
             or timeout == CACHE_DISABLED_TIMEOUT
         )
+        if query_obj:
+            # Datasources that run their own caching (semantic containment)
+            # must honor the same resolved chart/custom timeout and force
+            # decision as the result cache, not the datasource-level default.
+            query_obj.force_query = force_query
+            query_obj.cache_timeout = timeout
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -282,13 +295,14 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        # Entries without any filter reporting predate applied/rejected metadata.
+        # Rejected-only results are complete too (e.g. incompatible dashboard filters).
         if (
             query_obj
             and cache_key
             and cache.is_loaded
             and not cache.applied_filter_columns
+            and not cache.rejected_filter_columns
             and query_obj.filter
             and len(query_obj.filter) > 0
         ):
@@ -321,7 +335,8 @@ class QueryContextProcessor:
             except SemanticResultCompletenessError:
                 raise
             except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
+                # Keep the type: ChartDataCommand reads it to answer 400.
+                cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:
                 data_acquisition_ns = max(
@@ -415,6 +430,7 @@ class QueryContextProcessor:
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
+            "semantic_cache_status": getattr(cache, "semantic_cache_status", None),
             "query": cache.query,
             "status": cache.status,
             "stacktrace": cache.stacktrace,
@@ -523,6 +539,7 @@ class QueryContextProcessor:
         context: dict[str, Any] = {
             "user_id": get_user_id(),
             "source_rls": source_rls,
+            "semantic_filter_protocol": "semantic-null-filters-v1",
             "source_versions": metadata_versions,
         }
         if source_versions:
@@ -678,6 +695,12 @@ class QueryContextProcessor:
             return
 
         totals_query = self._query_context.queries[totals_idx]
+        totals_timeout: int = self.get_cache_timeout()
+        totals_query.cache_timeout = totals_timeout
+        totals_query.force_query = (
+            self._resolve_forced_query(totals_query, self.query_cache_key(totals_query))
+            or totals_timeout == CACHE_DISABLED_TIMEOUT
+        )
 
         result = self._query_context.get_query_result(totals_query)
         df = result.df
@@ -991,8 +1014,19 @@ class QueryContextProcessor:
             command.validate()
             payload = command.run()
             return {"records": payload["queries"][0]["data"]}
-        except SemanticResultCompletenessError:
+        except (
+            SemanticLayerQueryRejectedError,
+            SemanticLayerExecutionError,
+            SemanticResultCompletenessError,
+        ):
             raise
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
@@ -1008,7 +1042,18 @@ class QueryContextProcessor:
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             try:
-                security_manager.raise_for_access(query=self._qc_datasource)
+                # Query-backed chart-data runs the stored query's raw SQL, so
+                # editorship of a same-named dataset must not authorize its
+                # tables -- otherwise a no-table decoy dataset named after a
+                # table would let its editor read that table through a
+                # persisted query. ``allow_editorship=False`` stops honoring
+                # editorship while keeping the regular catalog/schema/
+                # datasource_access checks this ongoing-fetch path has always
+                # used (it is deliberately not the stricter
+                # ``force_dataset_match`` that SQL Lab execution uses).
+                security_manager.raise_for_access(
+                    query=self._qc_datasource, allow_editorship=False
+                )
             except TemplateError as ex:
                 raise SupersetTemplateException(str(ex)) from ex
         else:

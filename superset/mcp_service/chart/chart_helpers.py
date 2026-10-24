@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from copy import deepcopy
+from enum import Enum
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -432,6 +434,13 @@ def merge_extra_form_data_filters_into_query(
         extra_form_data,
     )
     merge_form_data_filters_into_query(query, extra_query_form_data)
+    if extra_form_data.get("time_range"):
+        from superset.charts.data.dashboard_filter_context import (
+            mark_dashboard_time_range_filters,
+        )
+
+        # Like a dashboard range, it is extra only over unbounded saved ranges.
+        mark_dashboard_time_range_filters(query.get("filters") or [])
 
 
 def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
@@ -922,8 +931,16 @@ def resolve_gantt_query_fields(  # noqa: C901
         if isinstance(value, str) and value:
             return value
         if isinstance(value, dict) and 0 < len(value) <= 20:
-            # QueryFormColumn objects use column_name for physical columns or
-            # expressionType/sqlExpression/label for adhoc columns.
+            # Saved QueryFormColumn objects need names in semantic queries;
+            # ad-hoc expressions retain their dictionary representation.
+            column_name: object = value.get("column_name")
+            if (
+                isinstance(column_name, str)
+                and column_name
+                and value.get("expressionType") in (None, "SIMPLE")
+                and not value.get("sqlExpression")
+            ):
+                return column_name
             if value.get("column_name") or (
                 value.get("expressionType") and value.get("label")
             ):
@@ -1133,6 +1150,20 @@ def build_single_query_dict(
     return qd
 
 
+def coerce_enum_values(value: Any) -> Any:
+    """Replace enum members with their values, in place for dicts and lists."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, dict):
+        for key, item in value.items():
+            value[key] = coerce_enum_values(item)
+    elif isinstance(value, list):
+        value[:] = [coerce_enum_values(item) for item in value]
+    elif isinstance(value, tuple):
+        return tuple(coerce_enum_values(item) for item in value)
+    return value
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -1148,12 +1179,19 @@ def build_query_dicts_from_form_data(
     ``superset.common.form_data_query_context``. This production entry point
     only performs server filter normalization and the legacy Deck.gl spatial
     augmentation before delegating to that shared frontend-equivalent contract.
+    Normalization uses deep copies to preserve caller-owned form data.
     """
     from superset.common.form_data_query_context import (
         build_query_objects_from_form_data,
     )
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
+    # Typed chart configs carry enums such as TimeGrain. Every MCP query is
+    # built here, so unwrap them once: template rendering rejects non-primitive
+    # context values.
+    form_data = coerce_enum_values(deepcopy(form_data))
+    if extra_form_data is not None:
+        extra_form_data = coerce_enum_values(deepcopy(extra_form_data))
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")

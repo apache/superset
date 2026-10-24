@@ -40,7 +40,18 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${DOCKERHUB_USER}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '') || '' }}
+          DOCKERHUB_TOKEN: ${{ (secrets.DOCKERHUB_TOKEN != '') || '' }}
       - id: set_matrix
         run: |
           MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "py311", "py312"]'; fi)
@@ -280,10 +291,18 @@ jobs:
   docker-build:
     name: docker-build
     needs: [setup_matrix, changes]
+    # Only master pushes publish images (see scripts/docker-build-plan.sh).
+    # Without the Docker Hub credentials (e.g. on a fork or mirror) they can
+    # publish nothing, so they are skipped there. Version-branch pushes and
+    # pull_request builds only load the image to validate that it builds, so
+    # they run everywhere.
     if: >-
-      needs.changes.outputs.python == 'true' ||
-      needs.changes.outputs.frontend == 'true' ||
-      needs.changes.outputs.docker == 'true'
+      (github.event_name != 'push' ||
+       github.ref != 'refs/heads/master' ||
+       needs.setup_matrix.outputs.has-secrets) &&
+      (needs.changes.outputs.python == 'true' ||
+       needs.changes.outputs.frontend == 'true' ||
+       needs.changes.outputs.docker == 'true')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     permissions:
@@ -482,7 +501,7 @@ jobs:
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
           # Both `superset` and `lean` are scanned now; without a distinct

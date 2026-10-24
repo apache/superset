@@ -452,6 +452,7 @@ def temporal_view() -> Generator[MagicMock, None, None]:
         yield view
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_temporal_result_type(
     mcp_server: FastMCP,
@@ -503,6 +504,7 @@ async def test_get_table_temporal_result_type(
     assert data["columns"][1]["data_type"] == "string"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_empty_result_keeps_temporal_grain_column_type(
     mcp_server: FastMCP,
@@ -551,6 +553,7 @@ async def test_get_table_empty_result_keeps_temporal_grain_column_type(
     ]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("result_column", "value", "coltype", "expected_type"),
@@ -681,6 +684,7 @@ def test_get_table_unsupported_time_grain(temporal_view: MagicMock) -> None:
     )
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_grain_alias_hint_for_other_temporal_column(
     mcp_server: FastMCP, temporal_view: MagicMock
@@ -842,6 +846,7 @@ def test_get_table_builtin_grain_rejected() -> None:
     assert "semantic views only" in result.error
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
     app_context: None, monkeypatch: pytest.MonkeyPatch
@@ -928,6 +933,7 @@ async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction
     }
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_incompatible_view_dimensions(mcp_server: FastMCP) -> None:
     """Reject known-incompatible pairs before querying, with deterministic guidance."""
@@ -966,6 +972,7 @@ async def test_get_table_incompatible_view_dimensions(mcp_server: FastMCP) -> No
     execute.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("backend_fails", [False, True])
 @pytest.mark.asyncio
 async def test_get_table_compatible_view_executes(
@@ -1026,11 +1033,14 @@ async def test_get_table_compatible_view_executes(
 @pytest.mark.asyncio
 async def test_get_table_skips_compatibility_without_join_risk(
     mcp_server: FastMCP,
+    request: pytest.FixtureRequest,
     builtin: bool,
     metrics: list[str],
     dimensions: list[str],
 ) -> None:
     """Builtin datasets and empty selections never consult view compatibility."""
+    if not builtin:
+        request.getfixturevalue("semantic_layers_enabled")
     dataset: MagicMock = _make_dataset()
     view: MagicMock = _make_view()
     query_result: dict[str, Any] = chart_data_command_result([], columns=[])
@@ -1115,6 +1125,19 @@ async def test_get_table_normalizes_supported_producer_timezones(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     mock_ds = _make_dataset(42)
+    dublin_fold: datetime = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+        fold=1,
+    )
+    # Capture the producer offset before normalization or hostile hooks.
+    dublin_iso: str = dublin_fold.isoformat()
     query_result = chart_data_command_result(
         [
             {
@@ -1136,17 +1159,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
                 "revenue": 3,
             },
             {
-                "created_at": datetime(
-                    2024,
-                    10,
-                    27,
-                    1,
-                    30,
-                    0,
-                    123456,
-                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
-                    fold=1,
-                ),
+                "created_at": dublin_fold,
                 "revenue": 4,
             },
             {
@@ -1227,7 +1240,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
         {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
         {
-            "created_at": "2024-10-27T01:30:00.123456+01:00",
+            "created_at": dublin_iso,
             "revenue": 4,
         },
         {"created_at": "2024-03-10T02:30:00-04:00", "revenue": 5},
@@ -1602,6 +1615,7 @@ async def test_get_table_requires_one_source(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "ValidationError"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """get_table errors when both dataset_id and view_id are provided."""
@@ -1675,6 +1689,7 @@ async def test_get_table_time_column_not_dttm_validation_error(
     assert "not marked as a temporal column" in data["message"]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> None:
     """get_table returns AccessDenied when raise_for_access rejects the view."""
@@ -1696,6 +1711,7 @@ async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> Non
     assert data["error_type"] == "AccessDenied"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_external_time_range_without_dttm_validation_error(
     mcp_server: FastMCP,
@@ -1746,6 +1762,7 @@ async def test_get_table_dataset_not_found(mcp_server: FastMCP) -> None:
     assert "999999" in data["message"]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_view_not_found(mcp_server: FastMCP) -> None:
     """get_table returns NotFound when view_id doesn't resolve to a view."""
@@ -1960,6 +1977,7 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
     assert "no temporal column is configured" in data["message"]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("dimensions", [[], ["country_name"]])
 @pytest.mark.asyncio
 async def test_get_table_rejects_incompatible_ordering_dimension(
@@ -1997,6 +2015,7 @@ async def test_get_table_rejects_incompatible_ordering_dimension(
     execute.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize(
     "order_by", [["country_name"], ["bookings"], ["country_name", "bookings"]]
 )
@@ -2038,6 +2057,7 @@ async def test_get_table_preserves_compatible_and_metric_ordering(
         view.get_compatible_dimensions.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("longhand", [False, True])
 @pytest.mark.asyncio
 async def test_temporal_filter_spellings_delegate_to_execution(
@@ -2076,6 +2096,7 @@ async def test_temporal_filter_spellings_delegate_to_execution(
     view.get_compatible_dimensions.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize(
     "usage", ["ordinary_filter", "groupby", "ordering", "temporal_range"]
 )
@@ -2298,6 +2319,7 @@ async def test_get_table_rejects_open_ended_range_before_execution(
     execute.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.parametrize("dimensions", [[], ["country_name"]])
 @pytest.mark.asyncio
 async def test_get_table_rejects_unselected_incompatible_filter(
@@ -2338,6 +2360,7 @@ async def test_get_table_rejects_unselected_incompatible_filter(
     execute.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_table_compatible_filter_without_groupby(mcp_server: FastMCP) -> None:
     """A filter-only compatible dimension is validated and retained in the query."""
@@ -2445,6 +2468,7 @@ def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> No
     ]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("scope", [None, "7"])
 async def test_get_table_guest_rls_denies_before_semantic_provider(

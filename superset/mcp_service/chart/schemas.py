@@ -29,6 +29,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol, Tuple
+from uuid import UUID
 
 from pydantic import (
     AliasChoices,
@@ -48,6 +49,7 @@ from pydantic import (
     WithJsonSchema,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
 from typing_extensions import Self, TypedDict
 
 from superset.constants import NO_TIME_RANGE, TimeGrain
@@ -82,13 +84,20 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import (
     ExactJsonSafeMapping,
     ExactJsonSafeRows,
     ExactJsonSafeValues,
     OptionalRowCount,
     RowCount,
+)
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
 )
 from superset.utils import json
 
@@ -231,6 +240,11 @@ class ChartInfo(BaseModel):
         ),
     )
 
+    unavailable_reason: str | None = Field(
+        None,
+        description="Reason chart data is unavailable, when its feature is disabled",
+    )
+
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -245,14 +259,21 @@ class ChartInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = filter_user_directory_fields(serializer(self))
+        data: dict[str, Any] = filter_user_directory_fields(serializer(self))
+        if data.get("unavailable_reason") is None:
+            data.pop("unavailable_reason", None)
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
             select_columns = info.context.get("select_columns")
             if select_columns:
                 # Filter to only requested fields
-                return {k: v for k, v in data.items() if k in select_columns}
+                return {
+                    k: v
+                    for k, v in data.items()
+                    if k in select_columns
+                    or (k == "unavailable_reason" and v is not None)
+                }
 
         return data
 
@@ -650,6 +671,12 @@ def serialize_chart_object(
                 )
 
     return ChartInfo(
+        unavailable_reason=(
+            SemanticLayersDisabledError.message
+            if getattr(chart, "datasource_type", None) == "semantic_view"
+            and not is_semantic_layers_enabled()
+            else None
+        ),
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=_viz_type,
@@ -695,14 +722,16 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "datasource_id",
         "editor",
         "created_by_fk",
         "changed_by_fk",
         "dashboards",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. To filter by a person, first call find_users "
+        description="Filter column; see get_schema(model_type='chart'). "
+        "For charts on dataset X, use datasource_id (SQL datasets only; eq/ne/in/nin). "
+        "To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
         "changed_by_fk with that integer ID. To find charts attached to a "
         "specific dashboard, filter by 'dashboards' with an integer "
@@ -718,6 +747,33 @@ class ChartFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def validate_datasource_id_filter(self) -> Self:
+        """Restrict dataset ID filters to integer equality and membership."""
+        if self.col != "datasource_id":
+            return self
+        if self.opr not in (
+            ColumnOperatorEnum.eq,
+            ColumnOperatorEnum.ne,
+            ColumnOperatorEnum.in_,
+            ColumnOperatorEnum.nin,
+        ):
+            raise ValueError("datasource_id supports only eq, ne, in, nin operators")
+        if self.opr in (ColumnOperatorEnum.in_, ColumnOperatorEnum.nin):
+            if not isinstance(self.value, list):
+                raise PydanticCustomError(
+                    "list_type", "datasource_id in/nin requires a list of integer IDs"
+                )
+            if not all(type(value) is int for value in self.value):
+                raise PydanticCustomError(
+                    "int_type", "datasource_id in/nin requires a list of integer IDs"
+                )
+        elif type(self.value) is not int:
+            raise PydanticCustomError(
+                "int_type", "datasource_id eq/ne requires a single integer ID"
+            )
+        return self
 
 
 class ChartList(PaginatedResponse[ChartFilter]):
@@ -830,7 +886,7 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
 
 class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     name: str | None = Field(
         None,
@@ -968,7 +1024,14 @@ class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
-    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
+    format: str | None = Field(
+        None,
+        description=(
+            "D3 format, e.g. ,.2f; currency symbols require verified "
+            "currency metadata or user instructions"
+        ),
+        max_length=50,
+    )
 
 
 class LegendConfig(UnknownFieldCheckMixin):
@@ -985,7 +1048,12 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 
     symbol: str = Field(
         ...,
-        description="Currency code or symbol (e.g. 'USD', 'EUR', '$', '€')",
+        description=(
+            "Currency code or symbol established by user instructions "
+            "or verified source metadata. Do not infer currency from "
+            "CPC, sales, revenue or other metric names. "
+            "Omit currency_format when unknown."
+        ),
         max_length=20,
     )
     symbol_position: Literal["prefix", "suffix"] = Field(
@@ -1002,7 +1070,7 @@ LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
 class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -1122,7 +1190,7 @@ class SortByConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 class GanttSortByConfig(UnknownFieldCheckMixin):
     """One physical-column ordering applied before Gantt rendering."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -2873,6 +2941,7 @@ class PivotTableChartConfig(BaseChartConfig):
         "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
+        "Metric",
         "Sum",
         "Average",
         "Median",
@@ -2882,9 +2951,21 @@ class PivotTableChartConfig(BaseChartConfig):
         "Maximum",
         "Count",
         "Count Unique Values",
+        "List Unique Values",
         "First",
         "Last",
-    ] = "Sum"
+        "Sum as Fraction of Total",
+        "Sum as Fraction of Rows",
+        "Sum as Fraction of Columns",
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
+    ] = Field(
+        "Metric",
+        description="Totals aggregation. 'Metric' keeps the database-computed "
+        "totals (correct for non-additive metrics such as COUNT_DISTINCT); the "
+        "other values re-aggregate the displayed cells.",
+    )
     show_row_totals: bool = True
     show_column_totals: bool = True
     transpose: bool = False
@@ -3378,6 +3459,17 @@ class HandlebarsChartConfig(BaseChartConfig):
 class BigNumberChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore")
 
+    # A saved SQL expression time column is inherited update context, never
+    # typed authoring input: 'temporal_column' only names dataset columns.
+    _inherited_time_column: dict[str, Any] | None = PrivateAttr(default=None)
+
+    @property
+    def trendline_time_column(self) -> str | dict[str, Any] | None:
+        """Return the authored trendline column or the inherited native one."""
+        if self.show_trendline and self.temporal_column:
+            return self.temporal_column
+        return self._inherited_time_column
+
     chart_type: Literal["big_number"] = Field(
         ...,
         description=(
@@ -3419,7 +3511,7 @@ class BigNumberChartConfig(BaseChartConfig):
         None,
         description=(
             "Number format string for the metric value "
-            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "(e.g., ',.2f' for decimals, ',.0f' for integers, "
             "'.2%' for percentages)"
         ),
         max_length=50,
@@ -3544,7 +3636,7 @@ class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     d3_number_format: str | None = Field(
         None,
         alias="d3NumberFormat",
-        description="D3 number format, for example ',.2f', '$,.2f', or '.1%'.",
+        description="D3 number format, for example ',.2f', ',.0f', or '.1%'.",
         min_length=1,
         max_length=100,
     )
@@ -3611,7 +3703,7 @@ class TableChartConfig(BaseChartConfig):
             "its label). Use columnWidth for minimum width in pixels, "
             "d3NumberFormat for D3 number formats such as ',.2f' or '.1%', and "
             "d3TimeFormat for D3 time formats such as '%Y-%m-%d'. Example: "
-            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': '$,.2f'}, "
+            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': ',.2f'}, "
             "'Order Date': {'d3TimeFormat': '%Y-%m-%d'}}."
         ),
     )
@@ -4525,9 +4617,10 @@ class BulletChartConfig(BaseChartConfig):
         result: list[str] = []
         for label in labels:
             if "," in label:
-                raise ValueError(
+                raise PydanticCustomError(
+                    "bullet_label_comma",
                     "Bullet labels cannot contain commas because the frontend "
-                    "comma-separated controls have no escaping"
+                    "comma-separated controls have no escaping",
                 )
             if label == "":
                 result.append("")
@@ -5916,6 +6009,37 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
 }
 
 
+def _normalize_chart_target_alias(data: dict[str, Any]) -> dict[str, Any]:
+    """Copy legacy target vocabulary without changing its datasource family."""
+    data = dict(data)
+    if "datasource_type" in data and (
+        (data.get("dataset_id") is not None and data["datasource_type"] != "table")
+        or (
+            data.get("view_id") is not None
+            and data["datasource_type"] != "semantic_view"
+        )
+    ):
+        raise ValueError("datasource_type conflicts with the explicit chart target")
+    if "datasource_id" in data:
+        source_type: object = data.get("datasource_type", "table")
+        if source_type not in ("table", "semantic_view"):
+            raise ValueError("datasource_type must be table or semantic_view")
+        target_key: str = "view_id" if source_type == "semantic_view" else "dataset_id"
+        other_key: str = "dataset_id" if target_key == "view_id" else "view_id"
+        source_id: object = data.pop("datasource_id")
+        if data.get(other_key) is not None or (
+            source_type == "semantic_view"
+            and data.get(target_key) is not None
+            and data[target_key] != source_id
+        ):
+            raise ValueError("datasource_id conflicts with the explicit chart target")
+        # Keep explicit dataset_id precedence for backward compatibility with
+        # legacy table requests; semantic targets have no such legacy contract.
+        if data.get(target_key) is None:
+            data[target_key] = source_id
+    return data
+
+
 def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
     """Accept common Superset REST/form_data vocabulary in chart requests.
 
@@ -5927,9 +6051,7 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
     """
     if not isinstance(data, dict):
         return data
-    data = dict(data)
-    if "dataset_id" not in data and "datasource_id" in data:
-        data["dataset_id"] = data.pop("datasource_id")
+    data = _normalize_chart_target_alias(data)
     config = data.get("config")
     if isinstance(config, dict):
         config = dict(config)
@@ -6102,12 +6224,15 @@ class ChartRequestNormalizerMixin(BaseModel):
 
 
 class ListChartsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[ChartFilter],
 ):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -6158,10 +6283,48 @@ class ListChartsRequest(
 
 
 # The tool input models
-class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
+class ChartTargetMixin(BaseModel):
+    """Shared ``dataset_id`` / ``view_id`` target for the chart-building tools.
+
+    Table datasets and semantic views live in unrelated id spaces (both can
+    have id 1), so a bare integer cannot say which one is meant. Callers name
+    the target explicitly and exactly one of the two must be present.
+    """
+
+    dataset_id: int | str | None = Field(
+        None,
+        description=(
+            "Table dataset ID or UUID. For a semantic view use view_id "
+            "(separate ID space)."
+        ),
+    )
+    view_id: Annotated[int, Field(strict=True, gt=0)] | UUID | None = Field(
+        None,
+        description=(
+            "Semantic view UUID or legacy numeric ID (the view_id from list_metrics / "
+            "get_compatible_dimensions / get_compatible_metrics for "
+            "source='external'). Charts on a semantic view may only use the "
+            "view's saved metrics and dimension names; ad-hoc aggregates "
+            "and custom SQL are rejected."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _exactly_one_chart_target(self) -> "ChartTargetMixin":
+        """Require an unambiguous source family for generation."""
+        if (self.dataset_id is None) == (self.view_id is None):
+            raise ValueError(
+                "Provide exactly one of dataset_id (table dataset) or view_id "
+                "(semantic view)."
+            )
+        return self
+
+
+class GenerateChartRequest(
+    ChartRequestNormalizerMixin, ChartTargetMixin, QueryCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
-    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
         ..., description=CHART_CONFIG_DESCRIPTION
     )
@@ -6212,16 +6375,17 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Chart name", max_length=255, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "chart_name contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a chart_name with plain text, or "
-                "omit it to auto-generate one."
+        with field_validation_error("chart_name"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Chart name", max_length=255, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "chart_name contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a chart_name with plain text, or "
+                    "omit it to auto-generate one."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "chart_name was modified during sanitization to remove "
@@ -6234,7 +6398,14 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        try:
+            return sanitize_user_input(
+                v, "Chart name", max_length=255, allow_empty=True
+            )
+        except ValueError as ex:
+            raise PydanticCustomError(
+                "unsafe_text", "{error}", {"error": str(ex)}
+            ) from ex
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6260,10 +6431,11 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         return self
 
 
-class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
+class GenerateExploreLinkRequest(
+    ChartRequestNormalizerMixin, ChartTargetMixin, FormDataCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
-    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: Annotated[
         ChartConfig | None, chart_config_reference_schema(nullable=True)
     ] = Field(
@@ -6279,7 +6451,7 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
 class UpdateChartRequest(
     ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
 ):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
@@ -6319,6 +6491,25 @@ class UpdateChartRequest(
             "roles valid on the target dataset; dataset-only rebinds are rejected."
         ),
     )
+    view_id: Annotated[int, Field(strict=True, gt=0)] | UUID | None = Field(
+        None,
+        description=(
+            "Target semantic view UUID or legacy numeric ID for a rebind. "
+            "Mutually exclusive with dataset_id. When both are omitted the chart "
+            "keeps its existing datasource (table dataset or semantic view)."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _at_most_one_rebind_target(self) -> "UpdateChartRequest":
+        """Reject conflicting replacement source families."""
+        if self.dataset_id is not None and self.view_id is not None:
+            raise ValueError(
+                "Provide at most one of dataset_id (table dataset) or view_id "
+                "(semantic view) to rebind a chart."
+            )
+        return self
+
     generate_preview: bool = Field(
         default=True,
         description=(
@@ -6353,7 +6544,14 @@ class UpdateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        try:
+            return sanitize_user_input(
+                v, "Chart name", max_length=255, allow_empty=True
+            )
+        except ValueError as ex:
+            raise PydanticCustomError(
+                "unsafe_text", "{error}", {"error": str(ex)}
+            ) from ex
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
@@ -6539,6 +6737,10 @@ class ChartData(BaseModel):
     chart_name: str
     chart_type: str
 
+    # Internal handoff to the dashboard tool; not part of the public chart payload.
+    _query_row_limits: list[int | None] = PrivateAttr(default_factory=list)
+    _query_post_processing: list[list[str]] = PrivateAttr(default_factory=list)
+
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")
     data: ExactJsonSafeRows = Field(description="Actual data rows")
@@ -6568,7 +6770,12 @@ class ChartData(BaseModel):
 
     # LLM-friendly summaries
     summary: str = Field(description="Human-readable data summary")
-    insights: List[str] = Field(description="Key patterns discovered in the data")
+    insights: List[str] = Field(
+        description=(
+            "Key patterns discovered in the data, plus any accuracy caveats "
+            "about how the data was retrieved (e.g. a missing query_context)"
+        )
+    )
     data_quality: Dict[str, Any] = Field(
         description=(
             "Data quality assessment. Sampled completeness includes "
@@ -6640,22 +6847,24 @@ class GetChartPreviewRequest(QueryCacheControl):
             )
         return self
 
-    format: Literal["url", "ascii", "table", "vega_lite"] = Field(
+    format: Literal["url", "ascii", "table", "vega_lite", "png"] = Field(
         default="ascii",
         description=(
             "Preview format: 'ascii' for text art (default), "
             "'url' for explore link, "
             "'table' for data table, "
-            "'vega_lite' for interactive JSON specification"
+            "'vega_lite' for interactive JSON specification, "
+            "'png' for a rendered saved chart (authenticated users only; "
+            "no unsaved state or extra filters)"
         ),
     )
     width: int | None = Field(
         default=800,
-        description="Preview width in pixels (for url and vega_lite formats)",
+        description="Preview width in pixels (for url, vega_lite, and png formats)",
     )
     height: int | None = Field(
         default=600,
-        description="Preview height in pixels (for url and vega_lite formats)",
+        description="Preview height in pixels (for url, vega_lite, and png formats)",
     )
     ascii_width: int | None = Field(
         default=80, description="ASCII chart width in characters (for ascii format)"
@@ -6672,6 +6881,16 @@ class GetChartPreviewRequest(QueryCacheControl):
             'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
+
+
+class PNGPreview(BaseModel):
+    """Rendered chart image, encoded without a shared thumbnail cache."""
+
+    type: Literal["png"] = "png"
+    mime_type: Literal["image/png"] = "image/png"
+    data: str = Field(..., description="Base64-encoded PNG image")
+    width: int = Field(..., description="Rendered PNG width in pixels")
+    height: int = Field(..., description="Rendered PNG height in pixels")
 
 
 # Discriminated union preview formats for type safety
@@ -6737,7 +6956,12 @@ class TablePreview(BaseModel):
 
 # Modern discriminated union using | syntax
 ChartPreviewContent = Annotated[
-    URLPreview | InteractivePreview | ASCIIPreview | VegaLitePreview | TablePreview,
+    URLPreview
+    | InteractivePreview
+    | ASCIIPreview
+    | VegaLitePreview
+    | TablePreview
+    | PNGPreview,
     Field(discriminator="type"),
 ]
 
