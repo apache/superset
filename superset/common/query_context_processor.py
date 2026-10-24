@@ -712,7 +712,11 @@ class QueryContextProcessor:
             if hasattr(query, "post_processing") and query.post_processing:
                 for pp in query.post_processing:
                     if pp.get("operation") == "contribution":
-                        pp["options"]["contribution_totals"] = totals
+                        # ``options`` is optional in the post-processing schema,
+                        # so a ``{"operation": "contribution"}`` entry with no
+                        # options is valid input; create it rather than raising
+                        # KeyError (which escapes as a 500).
+                        pp.setdefault("options", {})["contribution_totals"] = totals
 
     def get_payload(
         self,
