@@ -1,6 +1,7 @@
 name: SupersetBot Workflow
 
 on:
+  # zizmor: ignore[dangerous-triggers] - runs in default-branch context; checks out only the default branch (never PR code) with persist-credentials: false, and passes the comment body to the CLI via an env var rather than interpolating it into the script
   issue_comment:
     types: [created, edited]
 
