@@ -20,7 +20,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import isEqual from 'lodash/isEqual';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { Form, Input, Select, Button } from '@superset-ui/core/components';
+import {
+  Form,
+  Input,
+  Select,
+  Button,
+  Loading,
+} from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
 import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
@@ -42,6 +49,9 @@ import {
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from './jsonFormsHelpers';
+
+import { isRecord } from '../semanticViews/creationResult';
+import SemanticLayerSetupHelp from './SemanticLayerSetupHelp';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
@@ -76,7 +86,7 @@ const configurationErrorMessage = () =>
 interface SemanticLayerType {
   id: string;
   name: string;
-  description: string;
+  description?: string | null;
 }
 
 interface SemanticLayerModalProps {
@@ -99,6 +109,11 @@ export default function SemanticLayerModal({
   const [name, setName] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [types, setTypes] = useState<SemanticLayerType[]>([]);
+  const [typeStatus, setTypeStatus] = useState<'loading' | 'success' | 'error'>(
+    'loading',
+  );
+  const typeRequestRef = useRef(0);
+  const saveRequestRef = useRef(0);
   const [loading, setLoading] = useState(false);
   const [configSchema, setConfigSchema] = useState<JsonSchema | null>(null);
   const [uiSchema, setUiSchema] = useState<UISchemaElement | undefined>(
@@ -141,20 +156,33 @@ export default function SemanticLayerModal({
   const autoFilledNameRef = useRef<string>('');
 
   const fetchTypes = useCallback(async () => {
-    setLoading(true);
+    typeRequestRef.current += 1;
+    const request = typeRequestRef.current;
+    setTypeStatus('loading');
     try {
       const { json } = await SupersetClient.get({
         endpoint: '/api/v1/semantic_layer/types',
       });
-      setTypes(json.result ?? []);
-    } catch (error) {
-      const clientError = await getClientErrorObject(error);
+      if (request !== typeRequestRef.current) return;
+      const result: unknown = json.result;
+      if (
+        !Array.isArray(result) ||
+        !result.every(
+          (type): type is SemanticLayerType =>
+            isRecord(type) &&
+            typeof type.id === 'string' &&
+            typeof type.name === 'string',
+        )
+      )
+        throw new Error('Invalid semantic layer types');
+      setTypes(result);
+      setTypeStatus('success');
+    } catch {
+      if (request !== typeRequestRef.current) return;
+      setTypeStatus('error');
       addDangerToast(
-        clientError.error ||
-          t('An error occurred while fetching semantic layer types'),
+        t('An error occurred while fetching semantic layer types'),
       );
-    } finally {
-      setLoading(false);
     }
   }, [addDangerToast]);
 
@@ -253,6 +281,9 @@ export default function SemanticLayerModal({
       setName('');
       setSelectedType(null);
       setTypes([]);
+      setTypeStatus('loading');
+      setLoading(false);
+      setSaving(false);
       setConfigSchema(null);
       setUiSchema(undefined);
       setFormData({});
@@ -271,6 +302,8 @@ export default function SemanticLayerModal({
 
   useEffect(
     () => () => {
+      typeRequestRef.current += 1;
+      saveRequestRef.current += 1;
       clearRequestRef.current += 1;
       schemaRequestRef.current += 1;
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -333,6 +366,8 @@ export default function SemanticLayerModal({
   };
 
   const handleCreate = async () => {
+    saveRequestRef.current += 1;
+    const request = saveRequestRef.current;
     setSaving(true);
     try {
       if (isEditMode && semanticLayerUuid) {
@@ -340,17 +375,21 @@ export default function SemanticLayerModal({
           endpoint: `/api/v1/semantic_layer/${semanticLayerUuid}`,
           jsonPayload: { name, configuration: formData },
         });
+        if (request !== saveRequestRef.current) return;
         addSuccessToast(t('Semantic layer updated'));
       } else {
         await SupersetClient.post({
           endpoint: '/api/v1/semantic_layer/',
           jsonPayload: { name, type: selectedType, configuration: formData },
         });
+        if (request !== saveRequestRef.current) return;
         addSuccessToast(t('Semantic layer created'));
       }
       onHide();
     } catch (error) {
+      if (request !== saveRequestRef.current) return;
       const clientError = await getClientErrorObject(error);
+      if (request !== saveRequestRef.current) return;
       addDangerToast(
         clientError.error ||
           (isEditMode
@@ -358,7 +397,7 @@ export default function SemanticLayerModal({
             : t('An error occurred while creating the semantic layer')),
       );
     } finally {
-      setSaving(false);
+      if (request === saveRequestRef.current) setSaving(false);
     }
   };
 
@@ -460,8 +499,9 @@ export default function SemanticLayerModal({
     [maybeRefreshSchema, formData],
   );
 
-  const selectedTypeName =
-    types.find(type => type.id === selectedType)?.name ?? '';
+  const selectedProvider = types.find(type => type.id === selectedType);
+  const selectedTypeName = selectedProvider?.name ?? '';
+  const description = selectedProvider?.description;
 
   const title = isEditMode
     ? t('Edit %s', selectedTypeName || t('Semantic Layer'))
@@ -479,72 +519,122 @@ export default function SemanticLayerModal({
       width={isTypeStep ? MODAL_STANDARD_WIDTH : MODAL_MEDIUM_WIDTH}
       saveDisabled={
         isTypeStep
-          ? !selectedType
-          : saving || clearing || !name.trim() || hasErrors
+          ? !selectedType || typeStatus !== 'success' || loading
+          : loading || saving || clearing || !name.trim() || hasErrors
       }
       saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}
-      contentLoading={loading}
     >
       <ModalContent>
-        {isTypeStep ? (
-          <ModalFormField label={t('Type')}>
-            <Select
-              ariaLabel={t('Semantic layer type')}
-              placeholder={t('Select a semantic layer type')}
-              value={selectedType}
-              onChange={value => setSelectedType(value as string)}
-              options={types.map(type => ({
-                value: type.id,
-                label: type.name,
-              }))}
-              getPopupContainer={() => document.body}
-            />
-          </ModalFormField>
+        <SemanticLayerSetupHelp />
+        {loading ? (
+          <Loading />
         ) : (
           <>
-            {isEditMode && (
-              <Button
-                disabled={dirty || saving || clearing || refreshingSchema}
-                loading={clearing}
-                onClick={handleReloadMetadata}
-              >
-                {t('Reload metadata')}
-              </Button>
+            {/* COPY-TBD: semantic setup guidance, pending product copy. */}
+            {isTypeStep && typeStatus === 'loading' && (
+              <p>
+                <output>{t('Loading semantic layer types…')}</output>
+              </p>
             )}
-            {!isEditMode && (
-              <Button
-                buttonStyle="link"
-                icon={<Icons.CaretLeftOutlined iconSize="s" />}
-                onClick={handleBack}
-              >
-                {t('Back')}
-              </Button>
-            )}
-            <ModalFormField label={t('Name')} required>
-              <Input
-                disabled={clearing}
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder={t('Name of the semantic layer')}
-              />
-            </ModalFormField>
-            {configSchema && (
-              // Wrap in a form with autocomplete="off" so browsers do not
-              // autofill credential fields (service token, account, etc.).
-              <Form layout="vertical" autoComplete="off">
-                <JsonForms
-                  readonly={clearing}
-                  schema={configSchema}
-                  uischema={uiSchema}
-                  data={formData}
-                  renderers={renderers}
-                  cells={cellRegistryEntries}
-                  config={{ refreshingSchema, formData }}
-                  validationMode={validationMode}
-                  onChange={handleFormChange}
+            {isTypeStep && typeStatus === 'error' && (
+              <>
+                <Alert
+                  type="error"
+                  role="alert"
+                  showIcon
+                  message={t(
+                    'Unable to load semantic layer types. Try again or ask your administrator for help.',
+                  )}
                 />
-              </Form>
+                <Button onClick={fetchTypes}>{t('Try again')}</Button>
+              </>
+            )}
+            {isTypeStep && typeStatus === 'success' && types.length === 0 && (
+              <p>
+                <output>
+                  {t(
+                    'No semantic layer types are available. Ask your administrator to check the semantic layer setup for this deployment.',
+                  )}
+                </output>
+              </p>
+            )}
+            {isTypeStep &&
+              typeStatus === 'success' &&
+              types.length > 0 &&
+              !selectedType && (
+                <p>
+                  {t(
+                    'Choose a semantic layer type to see its setup information.',
+                  )}
+                </p>
+              )}
+            {typeof description === 'string' && description.trim() && (
+              <p data-test="semantic-provider-description">{t(description)}</p>
+            )}
+            {isTypeStep ? (
+              <ModalFormField label={t('Type')}>
+                <Select
+                  ariaLabel={t('Semantic layer type')}
+                  placeholder={t('Select a semantic layer type')}
+                  value={selectedType}
+                  disabled={
+                    typeStatus !== 'success' || types.length === 0 || loading
+                  }
+                  onChange={value => setSelectedType(value as string)}
+                  options={types.map(type => ({
+                    value: type.id,
+                    label: type.name,
+                  }))}
+                  getPopupContainer={() => document.body}
+                />
+              </ModalFormField>
+            ) : (
+              <>
+                {isEditMode && (
+                  <Button
+                    disabled={dirty || saving || clearing || refreshingSchema}
+                    loading={clearing}
+                    onClick={handleReloadMetadata}
+                  >
+                    {t('Reload metadata')}
+                  </Button>
+                )}
+                {!isEditMode && (
+                  <Button
+                    buttonStyle="link"
+                    icon={<Icons.CaretLeftOutlined iconSize="s" />}
+                    onClick={handleBack}
+                  >
+                    {t('Back')}
+                  </Button>
+                )}
+                <ModalFormField label={t('Name')} required>
+                  <Input
+                    disabled={clearing}
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder={t('Name of the semantic layer')}
+                  />
+                </ModalFormField>
+                {configSchema && (
+                  // Wrap in a form with autocomplete="off" so browsers do not
+                  // autofill credential fields (service token, account, etc.).
+                  <Form layout="vertical" autoComplete="off">
+                    <JsonForms
+                      readonly={clearing}
+                      schema={configSchema}
+                      uischema={uiSchema}
+                      data={formData}
+                      renderers={renderers}
+                      cells={cellRegistryEntries}
+                      config={{ refreshingSchema, formData }}
+                      validationMode={validationMode}
+                      onChange={handleFormChange}
+                    />
+                  </Form>
+                )}
+              </>
             )}
           </>
         )}

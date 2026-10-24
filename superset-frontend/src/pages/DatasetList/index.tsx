@@ -98,6 +98,7 @@ import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import type DatasetType from 'src/types/Dataset';
 import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import AddSemanticViewModal from 'src/features/semanticViews/AddSemanticViewModal';
+import SemanticLayerModal from 'src/features/semanticLayers/SemanticLayerModal';
 import {
   datasetLabel,
   datasetLabelLower,
@@ -631,8 +632,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
     useState<Dataset | null>(null);
 
-  const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
-    useState(false);
+  const [semanticSetup, setSemanticSetup] = useState<
+    'closed' | 'view' | 'layer'
+  >('closed');
+  const newDatasourceButtonRef = useRef<HTMLButtonElement>(null);
+  const canCreateLayer =
+    isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+    findPermission('can_write', 'SemanticLayer', user?.roles);
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -1370,13 +1376,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 {
                   key: 'semantic-view',
                   label: t('Semantic View'),
-                  onClick: () => setShowAddSemanticViewModal(true),
+                  onClick: () => setSemanticSetup('view'),
                 },
               ],
             }}
             trigger={['click']}
           >
             <Button
+              ref={newDatasourceButtonRef}
               data-test="btn-create-new"
               buttonStyle="primary"
               icon={<Icons.PlusOutlined iconSize="m" />}
@@ -1630,13 +1637,38 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         addSuccessToast={addSuccessToast}
         semanticView={svCurrentlyEditing}
       />
-      <AddSemanticViewModal
-        show={showAddSemanticViewModal}
-        onHide={() => setShowAddSemanticViewModal(false)}
-        onSuccess={refreshData}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-      />
+      {semanticSetup === 'view' && (
+        <AddSemanticViewModal
+          show
+          onHide={() => {
+            setSemanticSetup('closed');
+            newDatasourceButtonRef.current?.focus();
+          }}
+          onCreateLayer={
+            canCreateLayer
+              ? () => {
+                  if (
+                    isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+                    findPermission('can_write', 'SemanticLayer', user?.roles)
+                  ) {
+                    setSemanticSetup('layer');
+                  }
+                }
+              : undefined
+          }
+          onSuccess={refreshData}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
+      {semanticSetup === 'layer' && (
+        <SemanticLayerModal
+          show
+          onHide={() => setSemanticSetup('view')}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
       <ConfirmStatusChange
         // A selection containing semantic views is not recoverable: the
         // semantic_view API hard-deletes. Promising the archive while part of
