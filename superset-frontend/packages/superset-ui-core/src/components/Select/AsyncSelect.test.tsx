@@ -1681,6 +1681,74 @@ test('onChange is called with the value property when pasting an option that was
   );
 });
 
+test('pasting matches the title of options with a React label', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [
+      { label: <span>Jane Smith</span>, title: 'Jane Smith', value: 1 },
+      { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 },
+    ],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      onChange={onChange}
+    />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Jane Smith,Bob Jones',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ value: 1 }),
+        expect.objectContaining({ value: 2 }),
+      ],
+      expect.anything(),
+    ),
+  );
+});
+
+test('pasting matches the title of a React-label option that was not loaded yet', async () => {
+  const onChange = jest.fn();
+  const jane = {
+    label: <span>Jane Smith</span>,
+    title: 'Jane Smith',
+    value: 1,
+  };
+  const bob = { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 };
+  const options = jest.fn(async (search: string) => ({
+    data: search === 'Bob Jones' ? [bob] : [jane],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect {...defaultProps} options={options} onChange={onChange} />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Bob Jones',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 2 }),
+      expect.anything(),
+    ),
+  );
+  expect(options).toHaveBeenCalledWith('Bob Jones', 0, expect.any(Number));
+});
+
 test('does not fire onChange if the same value is selected in single mode', async () => {
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);

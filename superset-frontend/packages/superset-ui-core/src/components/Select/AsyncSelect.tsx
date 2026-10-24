@@ -789,12 +789,21 @@ const AsyncSelect = forwardRef(
 
     const getPastedTextValue = useCallback(
       async (text: string) => {
-        let option = getOption(text, fullSelectOptions, true);
+        // An option with a React label has no text to compare the paste
+        // against, so match the plain text its caller put in `title`.
+        const findByText = (data: SelectOptionsType) =>
+          data.find(
+            item =>
+              (typeof item.label === 'string' ? item.label : item.title) ===
+              text,
+          );
+        let option =
+          getOption(text, fullSelectOptions, true) ??
+          findByText(fullSelectOptions);
         if (!option && !allValuesLoaded) {
           const fetchOptions = options as SelectOptionsPagePromise;
           option = await fetchOptions(text, 0, pageSize).then(
-            ({ data }: SelectOptionsTypePage) =>
-              data.find(item => item.label === text),
+            ({ data }: SelectOptionsTypePage) => findByText(data),
           );
         }
         if (!option && !allowNewOptions) {

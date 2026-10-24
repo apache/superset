@@ -19,7 +19,11 @@
 import { useCallback } from 'react';
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
-import { fetchUserOptions } from '../groups/utils';
+import {
+  fetchUserOptions,
+  USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
+} from '../groups/utils';
 import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 
 interface AsyncOptionsFieldProps {
@@ -101,6 +105,10 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
         options={options}
         loading={loading}
         data-test="roles-select"
+        // The server matches on username and email too; re-filter on the
+        // option's plain-text name, email and username, not its React label.
+        optionFilterProps={USER_OPTION_FILTER_PROPS}
+        sortComparator={userOptionSortComparator}
       />
     </FormItem>
   );
