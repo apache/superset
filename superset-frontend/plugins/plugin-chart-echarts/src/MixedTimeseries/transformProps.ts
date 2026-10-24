@@ -435,14 +435,6 @@ export default function transformProps(
       primarySeries.add(seriesOption.id as string);
     }
   };
-  const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
-    stack,
-    onlyTotal,
-  });
-  const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
-    stack,
-    onlyTotal,
-  });
 
   annotationLayers
     .filter((layer: AnnotationLayer) => layer.show)
@@ -519,6 +511,15 @@ export default function transformProps(
   // lookups working (#41622).
   const displayLabelMap: Record<string, string[]> = {};
   const displayLabelMapB: Record<string, string[]> = {};
+
+  // Value labels are matched against the ECharts series index, which also
+  // counts the annotation series and, for Query B, the Query A series
+  // rendered before them.
+  const showValueIndexesA = extractShowValueIndexes(rawSeriesA, {
+    stack,
+    onlyTotal,
+    seriesIndexOffset: series.length,
+  });
 
   rawSeriesA.forEach(entry => {
     const entryName = String(entry.name || '');
@@ -624,6 +625,12 @@ export default function transformProps(
       series.push(transformedSeries);
       mapSeriesIdToAxis(transformedSeries, yAxisIndex);
     }
+  });
+
+  const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
+    stack: stackB,
+    onlyTotal: onlyTotalB,
+    seriesIndexOffset: series.length,
   });
 
   rawSeriesB.forEach(entry => {
