@@ -191,6 +191,12 @@ msgid "%(count)s additional restricted %(label)s"
 msgstr ""
 
 #, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
@@ -386,6 +392,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -3231,12 +3243,6 @@ msgstr ""
 msgid "Charts"
 msgstr ""
 
-#, python-format
-msgid "Charts built on the selected semantic view are not checked and will break if it is deleted."
-msgid_plural "Charts built on the %s selected semantic views are not checked and will break if they are deleted."
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "Charts could not be deleted."
 msgstr ""
 
@@ -5104,7 +5110,7 @@ msgstr ""
 msgid "Delete item"
 msgstr ""
 
-msgid "Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently."
+msgid "Delete or move active datasets. To remove archived datasets, open Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -5121,6 +5127,15 @@ msgid "Delete role"
 msgstr ""
 
 msgid "Delete template"
+msgstr ""
+
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
 msgstr ""
 
 msgid "Delete theme"
@@ -5216,6 +5231,12 @@ msgid "Deleted %s item(s)"
 msgstr ""
 
 #, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Deleted group: %s"
 msgstr ""
 
@@ -5253,7 +5274,14 @@ msgstr ""
 msgid "Deleting this dataset is permanent. The affected charts and dashboards will remain, but they may no longer work."
 msgstr ""
 
-msgid "Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed."
+msgid "Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed."
+msgstr ""
+
+#, python-format
+msgid "Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting."
+msgstr ""
+
+msgid "Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -7239,6 +7267,9 @@ msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
+msgstr ""
+
+msgid "Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Go to Welcome Page"
@@ -9507,6 +9538,10 @@ msgstr ""
 msgid "No selection modes are available for this control."
 msgstr ""
 
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
+
 msgid "No sort (original order)"
 msgstr ""
 
@@ -10997,6 +11032,9 @@ msgstr ""
 msgid "Remove notification method"
 msgstr ""
 
+msgid "Remove or repoint these assets before deleting it."
+msgstr ""
+
 msgid "Remove query from log"
 msgstr ""
 
@@ -12407,12 +12445,6 @@ msgstr ""
 
 msgid "Semantic layer updated"
 msgstr ""
-
-#, python-format
-msgid "Semantic source is used by %(count)s dependent asset and cannot be deleted."
-msgid_plural "Semantic source is used by %(count)s dependent assets and cannot be deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr ""
@@ -14897,6 +14929,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
@@ -15156,8 +15191,14 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
-msgid "This semantic layer has no dependent semantic views."
+msgid "This semantic layer has no semantic views. This cannot be undone."
 msgstr ""
+
+#, python-format
+msgid "This semantic layer or view is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "This semantic layer or view is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
 msgstr ""
@@ -15226,8 +15267,8 @@ msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr ""
 
 #, python-format
-msgid "This will also permanently delete its %s semantic view. Charts built on that view will stop working."
-msgid_plural "This will also permanently delete its %s semantic views. Charts built on those views will stop working."
+msgid "This will also permanently delete its %s semantic view. This cannot be undone."
+msgid_plural "This will also permanently delete its %s semantic views. This cannot be undone."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -17387,6 +17428,9 @@ msgstr ""
 msgid "aggregate"
 msgstr ""
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr ""
 
@@ -17402,6 +17446,10 @@ msgstr ""
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr ""
 
@@ -17409,6 +17457,10 @@ msgid "annotation_layer"
 msgstr ""
 
 msgid "apple"
+msgstr ""
+
+#, python-format
+msgid "archived %s"
 msgstr ""
 
 msgid "asfreq"

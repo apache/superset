@@ -46,7 +46,10 @@ from superset.models.slice import Slice
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.subjects.models import chart_editors, dashboard_editors
+from superset.subjects.utils import get_user_subject_ids_subquery
 from superset.utils import json
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -97,13 +100,16 @@ def _dashboard_targets_view(
 
 
 def _dashboard_target_ids(view_ids: sa.Select) -> set[int]:
-    """Find live dashboards with semantic targets after a coarse SQL prefilter."""
+    """Find dashboards with semantic targets after a coarse SQL prefilter."""
     selected_ids: set[int] = set(db.session.execute(view_ids).scalars())
     if not selected_ids:
         return set()
-    candidates: sa.Select = sa.select(Dashboard.id, Dashboard.json_metadata).where(
-        Dashboard.deleted_at.is_(None),
-        Dashboard.json_metadata.like("%semantic_view%"),
+    # Core columns bypass the ORM do_orm_execute soft-delete filter so archived
+    # dashboards remain deletion blockers, including metadata-only targets.
+    candidates: sa.Select = sa.select(
+        Dashboard.__table__.c.id, Dashboard.__table__.c.json_metadata
+    ).where(
+        Dashboard.__table__.c.json_metadata.like("%semantic_view%"),
     )
     matched_ids: set[int] = set()
     for dashboard_id, metadata in db.session.execute(
@@ -114,49 +120,75 @@ def _dashboard_target_ids(view_ids: sa.Select) -> set[int]:
     return matched_ids
 
 
+def _archived_audience_ids(table: sa.Table, editors: sa.Table, fk: str) -> sa.Select:
+    """Archived ids the user could restore from Recently Archived.
+
+    Mirrors ``BaseDeletedStateFilter``: admins see every archived row, others
+    only rows they edit. Core tables keep the soft-delete listener out of it.
+    """
+    # A guest token never restores archived assets, whatever its role.
+    if security_manager.is_guest_user():
+        return sa.select(table.c.id).where(sa.false())
+    if security_manager.is_admin():
+        return sa.select(table.c.id)
+    user_id: int | None = get_user_id()
+    if not user_id:
+        return sa.select(table.c.id).where(sa.false())
+    return sa.select(editors.c[fk]).where(
+        editors.c.subject_id.in_(get_user_subject_ids_subquery(user_id))
+    )
+
+
 def _dependent_assets(
     view_ids: sa.Select,
-) -> tuple[int, list[dict[str, str | int]], int]:
+) -> tuple[int, list[dict[str, str | int]], int, int]:
     """Count dependents, naming only assets visible through their list APIs."""
-    chart_ids: sa.Select = sa.select(Slice.id).where(
-        Slice.datasource_type == "semantic_view",
-        Slice.datasource_id.in_(view_ids),
-        Slice.deleted_at.is_(None),
+    # Core table selects bypass the ORM do_orm_execute soft-delete filter:
+    # archived charts and dashboards must still block semantic-source deletion.
+    chart_ids: sa.Select = sa.select(Slice.__table__.c.id).where(
+        Slice.__table__.c.datasource_type == "semantic_view",
+        Slice.__table__.c.datasource_id.in_(view_ids),
     )
     chart_dashboard_ids: sa.Select = (
         sa.select(dashboard_slices.c.dashboard_id)
-        .join(Slice, dashboard_slices.c.slice_id == Slice.id)
-        .join(Dashboard, dashboard_slices.c.dashboard_id == Dashboard.id)
+        .join(Slice.__table__, dashboard_slices.c.slice_id == Slice.__table__.c.id)
+        .join(
+            Dashboard.__table__,
+            dashboard_slices.c.dashboard_id == Dashboard.__table__.c.id,
+        )
         .where(
-            Slice.id.in_(chart_ids),
-            Dashboard.deleted_at.is_(None),
+            Slice.__table__.c.id.in_(chart_ids),
         )
         .distinct()
     )
     dashboard_target_ids: set[int] = _dashboard_target_ids(view_ids)
-    dashboard_ids: sa.Select = sa.select(Dashboard.id).where(
-        Dashboard.deleted_at.is_(None),
+    dashboard_ids: sa.Select = sa.select(Dashboard.__table__.c.id).where(
         sa.or_(
-            Dashboard.id.in_(chart_dashboard_ids),
-            Dashboard.id.in_(dashboard_target_ids),
+            Dashboard.__table__.c.id.in_(chart_dashboard_ids),
+            Dashboard.__table__.c.id.in_(dashboard_target_ids),
         ),
     )
     dependents: sa.Subquery = sa.union_all(
         sa.select(
             sa.literal("chart").label("type"),
-            Slice.id.label("id"),
-            sa.func.coalesce(Slice.slice_name, str(_("Untitled"))).label("name"),
-        ).where(Slice.id.in_(chart_ids)),
-        sa.select(
-            sa.literal("dashboard").label("type"),
-            Dashboard.id.label("id"),
-            sa.func.coalesce(Dashboard.dashboard_title, str(_("Untitled"))).label(
+            Slice.__table__.c.id.label("id"),
+            Slice.__table__.c.deleted_at.is_not(None).label("archived"),
+            sa.func.coalesce(Slice.__table__.c.slice_name, str(_("Untitled"))).label(
                 "name"
             ),
-        ).where(Dashboard.id.in_(dashboard_ids)),
+        ).where(Slice.__table__.c.id.in_(chart_ids)),
+        sa.select(
+            sa.literal("dashboard").label("type"),
+            Dashboard.__table__.c.id.label("id"),
+            Dashboard.__table__.c.deleted_at.is_not(None).label("archived"),
+            sa.func.coalesce(
+                Dashboard.__table__.c.dashboard_title, str(_("Untitled"))
+            ).label("name"),
+        ).where(Dashboard.__table__.c.id.in_(dashboard_ids)),
         sa.select(
             sa.func.lower(ReportSchedule.type).label("type"),
             ReportSchedule.id.label("id"),
+            sa.literal(False).label("archived"),
             ReportSchedule.name.label("name"),
         ).where(
             ReportSchedule.active.is_(True),
@@ -170,7 +202,7 @@ def _dependent_assets(
         cast(
             sa.Select,
             ChartFilter("id", SQLAInterface(Slice, db.session))
-            .apply(db.session.query(Slice.id), None)
+            .apply(db.session.query(Slice.id).filter(Slice.deleted_at.is_(None)), None)
             .statement,
         )
         if security_manager.can_access("can_read", "Chart")
@@ -180,7 +212,10 @@ def _dependent_assets(
         cast(
             sa.Select,
             DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session))
-            .apply(db.session.query(Dashboard.id), None)
+            .apply(
+                db.session.query(Dashboard.id).filter(Dashboard.deleted_at.is_(None)),
+                None,
+            )
             .statement,
         )
         if security_manager.can_access("can_read", "Dashboard")
@@ -196,14 +231,30 @@ def _dependent_assets(
         if security_manager.can_access("can_read", "ReportSchedule")
         else sa.select(ReportSchedule.id).where(sa.false())
     )
+    archived_chart_ids: sa.Select = (
+        _archived_audience_ids(Slice.__table__, chart_editors, "chart_id")
+        if security_manager.can_access("can_read", "Chart")
+        else sa.select(Slice.__table__.c.id).where(sa.false())
+    )
+    archived_dashboard_ids: sa.Select = (
+        _archived_audience_ids(Dashboard.__table__, dashboard_editors, "dashboard_id")
+        if security_manager.can_access("can_read", "Dashboard")
+        else sa.select(Dashboard.__table__.c.id).where(sa.false())
+    )
     visibility: sa.ColumnElement[bool] = sa.or_(
         sa.and_(
             dependents.c.type == "chart",
-            dependents.c.id.in_(visible_chart_ids),
+            sa.or_(
+                dependents.c.id.in_(visible_chart_ids),
+                dependents.c.archived & dependents.c.id.in_(archived_chart_ids),
+            ),
         ),
         sa.and_(
             dependents.c.type == "dashboard",
-            dependents.c.id.in_(visible_dashboard_ids),
+            sa.or_(
+                dependents.c.id.in_(visible_dashboard_ids),
+                dependents.c.archived & dependents.c.id.in_(archived_dashboard_ids),
+            ),
         ),
         sa.and_(
             dependents.c.type.notin_(("chart", "dashboard")),
@@ -211,24 +262,25 @@ def _dependent_assets(
         ),
     )
     # Both counts come from one statement so READ COMMITTED cannot mix snapshots.
-    counts: tuple[int, int | None] = cast(
-        tuple[int, int | None],
+    counts: tuple[int, int | None, int | None] = cast(
+        tuple[int, int | None, int | None],
         db.session.execute(
             sa.select(
                 sa.func.count(),
                 sa.func.sum(sa.case((visibility, 1), else_=0)),
+                sa.func.sum(sa.case((dependents.c.archived, 1), else_=0)),
             ).select_from(dependents)
         ).one(),
     )
     total: int = int(counts[0])
     if not total:
-        return 0, [], 0
+        return 0, [], 0, 0
     visible_total: int = int(counts[1] or 0)
     visible: sa.Subquery = sa.select(dependents).where(visibility).subquery()
-    rows: list[tuple[str, int, str]] = cast(
-        list[tuple[str, int, str]],
+    rows: list[tuple[str, int, str, bool]] = cast(
+        list[tuple[str, int, str, bool]],
         db.session.execute(
-            sa.select(visible.c.type, visible.c.id, visible.c.name)
+            sa.select(visible.c.type, visible.c.id, visible.c.name, visible.c.archived)
             .order_by(
                 sa.case(
                     (visible.c.type == "chart", 0),
@@ -244,10 +296,11 @@ def _dependent_assets(
     return (
         total,
         [
-            {"type": asset_type, "id": asset_id, "name": name}
-            for asset_type, asset_id, name in rows
+            {"type": asset_type, "id": asset_id, "name": name, "archived": archived}
+            for asset_type, asset_id, name, archived in rows
         ],
         total - visible_total,
+        int(counts[2] or 0),
     )
 
 
@@ -256,9 +309,12 @@ def _raise_for_dependents(view_ids: sa.Select) -> None:
     total: int
     dependents: list[dict[str, str | int]]
     inaccessible_count: int
-    total, dependents, inaccessible_count = _dependent_assets(view_ids)
+    archived_count: int
+    total, dependents, inaccessible_count, archived_count = _dependent_assets(view_ids)
     if total:
-        raise SemanticDeleteDependentsError(total, dependents, inaccessible_count)
+        raise SemanticDeleteDependentsError(
+            total, dependents, inaccessible_count, archived_count
+        )
 
 
 class DeleteSemanticLayerCommand(BaseCommand):
@@ -357,6 +413,15 @@ class BulkDeleteSemanticViewCommand(BaseCommand):
 
             if not current_user_can_modify_object(model):
                 raise SemanticViewForbiddenError()
-        _raise_for_dependents(
-            sa.select(SemanticView.id).where(SemanticView.id.in_(self._model_ids))
-        )
+        try:
+            _raise_for_dependents(
+                sa.select(SemanticView.id).where(SemanticView.id.in_(self._model_ids))
+            )
+        except SemanticDeleteDependentsError as ex:
+            # Refusal path only: one dependency check per selected view.
+            ex.blocked_view_ids = [
+                view_id
+                for view_id in self._model_ids
+                if _dependent_assets(sa.select(sa.literal(view_id)))[0]
+            ]
+            raise
