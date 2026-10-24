@@ -76,9 +76,14 @@ import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  archiveTitle,
+  datasetArchiveImpact,
   deleteActionLabel,
-  deletedToast,
+  deletedToastContent,
+  ToastContent,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -191,7 +196,7 @@ const isSemanticView = (d: Pick<Dataset, 'kind'>): boolean =>
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -1426,7 +1431,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(deletedToast(tableName));
+        rememberArchivedType('dataset');
+        const toast = deletedToastContent(tableName, 'dataset');
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(deleteFailedToast(tableName, errMsg)),
@@ -1470,23 +1477,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        if (softDelete && semanticViews.length) {
-          // Semantic views were hard-deleted, not archived; counting them as
-          // archived would tell the user they are recoverable.
-          addSuccessToast(
-            t(
-              'Archived %s item(s); permanently deleted %s semantic view(s)',
-              datasets.length,
-              semanticViews.length,
-            ),
-          );
-        } else {
-          addSuccessToast(
-            softDelete
+        const message =
+          softDelete && semanticViews.length
+            ? t(
+                'Archived %s item(s); permanently deleted %s semantic view(s)',
+                datasets.length,
+                semanticViews.length,
+              )
+            : softDelete
               ? t('Archived %s item(s)', datasetsToDelete.length)
-              : t('Deleted %s item(s)', datasetsToDelete.length),
-          );
-        }
+              : t('Deleted %s item(s)', datasetsToDelete.length);
+        if (datasets.length) rememberArchivedType('dataset');
+        const toast: ToastContent =
+          softDelete && datasets.length
+            ? archiveToastContent(message, 'dataset')
+            : { text: message };
+        addSuccessToast(toast.text, toast.options);
       } else {
         const semanticResult = semanticViews.length
           ? results[results.length - 1]
@@ -1558,17 +1564,40 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               {softDelete && (
-                <p>{archiveConfirmDescription(datasetLabelLower())}</p>
+                <p>{archiveConfirmContent('dataset', datasetLabelLower())}</p>
               )}
-              <p>
-                {t('The %s', datasetLabelLower())}
-                <b> {datasetCurrentlyDeleting.table_name} </b>
-                {t(
-                  'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-                  datasetCurrentlyDeleting.charts.count,
-                  datasetCurrentlyDeleting.dashboards.count,
+              {softDelete &&
+                datasetCurrentlyDeleting.charts.count === 0 &&
+                datasetCurrentlyDeleting.dashboards.count === 0 && (
+                  <p>
+                    {t(
+                      'No charts or dashboards depend on the selected %s.',
+                      datasetLabelLower(),
+                    )}
+                  </p>
                 )}
-              </p>
+              {softDelete ? (
+                (datasetCurrentlyDeleting.charts.count > 0 ||
+                  datasetCurrentlyDeleting.dashboards.count > 0) && (
+                  <p>
+                    {datasetArchiveImpact(
+                      datasetLabelLower(),
+                      datasetCurrentlyDeleting.charts.count,
+                      datasetCurrentlyDeleting.dashboards.count,
+                    )}
+                  </p>
+                )
+              ) : (
+                <p>
+                  {t('The %s', datasetLabelLower())}
+                  <b> {datasetCurrentlyDeleting.table_name} </b>
+                  {t(
+                    'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                    datasetCurrentlyDeleting.charts.count,
+                    datasetCurrentlyDeleting.dashboards.count,
+                  )}
+                </p>
+              )}
               <AffectedObjectsList
                 charts={datasetCurrentlyDeleting.charts}
                 dashboards={datasetCurrentlyDeleting.dashboards}
@@ -1589,9 +1618,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           open
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: datasetCurrentlyDeleting.table_name,
-                })
+              ? archiveTitle(datasetCurrentlyDeleting.table_name)
               : t('Delete %s?', datasetLabel())
           }
         />
@@ -1653,7 +1680,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           <>
             {softDelete ? (
               bulkIsRecoverable ? (
-                archiveConfirmDescription(datasetsLabelLower(), true)
+                archiveConfirmContent('dataset', datasetsLabelLower(), true)
               ) : (
                 <>
                   {tn(
@@ -1679,10 +1706,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             )}
             {bulkRelatedLookup.status === 'failed' && (
               <p>
-                {t(
-                  'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
-                  datasetsLabelLower(),
-                )}
+                {bulkIsRecoverable
+                  ? t(
+                      'Could not check which charts and dashboards depend on the selected %s. Archiving them may make charts unavailable.',
+                      datasetsLabelLower(),
+                    )
+                  : t(
+                      'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
+                      datasetsLabelLower(),
+                    )}
               </p>
             )}
             {bulkRelatedLookup.status === 'done' &&
@@ -1690,22 +1722,29 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               bulkRelatedLookup.related.dashboards.count > 0 ? (
                 <>
                   <p>
-                    {t(
-                      'The selected %s are linked to %s on %s. Deleting them will break those objects.',
-                      datasetsLabelLower(),
-                      tn(
-                        '%s chart',
-                        '%s charts',
-                        bulkRelatedLookup.related.charts.count,
-                        bulkRelatedLookup.related.charts.count,
-                      ),
-                      tn(
-                        '%s dashboard',
-                        '%s dashboards',
-                        bulkRelatedLookup.related.dashboards.count,
-                        bulkRelatedLookup.related.dashboards.count,
-                      ),
-                    )}
+                    {bulkIsRecoverable
+                      ? datasetArchiveImpact(
+                          datasetsLabelLower(),
+                          bulkRelatedLookup.related.charts.count,
+                          bulkRelatedLookup.related.dashboards.count,
+                          true,
+                        )
+                      : t(
+                          'The selected %s are linked to %s on %s. Deleting them will break those objects.',
+                          datasetsLabelLower(),
+                          tn(
+                            '%s chart',
+                            '%s charts',
+                            bulkRelatedLookup.related.charts.count,
+                            bulkRelatedLookup.related.charts.count,
+                          ),
+                          tn(
+                            '%s dashboard',
+                            '%s dashboards',
+                            bulkRelatedLookup.related.dashboards.count,
+                            bulkRelatedLookup.related.dashboards.count,
+                          ),
+                        )}
                   </p>
                   <AffectedObjectsList
                     charts={bulkRelatedLookup.related.charts}
