@@ -324,7 +324,7 @@
     "tsx": "^4.23.15",
     "typescript": "7.0.2",
     "unzipper": "^0.12.5",
-    "webpack": "^5.111.1",
+    "webpack": "^5.112.0",
     "webpack-bundle-analyzer": "^5.4.0",
     "webpack-cli": "^7.2.3",
     "webpack-dev-server": "^6.0.0",
