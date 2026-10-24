@@ -126,6 +126,16 @@ def set_password_must_change(user_id: int, value: bool = True) -> None:
     Intended to be called by administrative flows when provisioning an account
     that should require a password change on first use.
     """
+    write_password_must_change(user_id, value)
+
+
+def write_password_must_change(user_id: int, value: bool = True) -> None:
+    """Set (or clear) the forced-password-change flag without committing.
+
+    For callers already inside their own unit of work, such as
+    ``SupersetUserApi.pre_update``, whose change has to ride the commit FAB
+    issues right after it rather than commit the half-applied user edit early.
+    """
     from superset.extensions import db
     from superset.models.user_attributes import UserAttribute
 
