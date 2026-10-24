@@ -131,7 +131,7 @@ def _normalize_recipients(recipients: Any) -> list[tuple[str, str]]:
                 config = json.loads(config)
             except json.JSONDecodeError:
                 pass
-        if isinstance(config, dict):
+        if recipient_type == ReportRecipientType.EMAIL and isinstance(config, dict):
             config = {
                 key: value
                 for key, value in config.items()
@@ -191,6 +191,22 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             "recipients": _normalize_recipients,
         }
         return self._compare_fields(CONTENT_FIELDS, current, normalizers)
+
+    def _teams_delivery_changed(self) -> bool:
+        """Validate changed delivery settings, allowing pauses and metadata edits."""
+        assert self._model is not None
+        model = self._model
+        activating = self._properties.get("active", model.active) and not model.active
+        changed = self._compare_fields(
+            frozenset({"type", "report_format", "recipients"}),
+            {
+                "type": model.type,
+                "report_format": model.report_format,
+                "recipients": _normalize_recipients(model.recipients),
+            },
+            {"recipients": _normalize_recipients},
+        )
+        return bool(activating or changed)
 
     def _changed_condition_fields(self) -> set[str]:
         """Return alert-condition fields that differ from the stored values."""
@@ -496,8 +512,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             self._properties.get("report_format", self._model.report_format),
             exceptions,
         )
-        # Always validate the effective Teams recipients, even for metadata-only PUTs.
-        self.validate_teams_recipients(exceptions)
+        if self._teams_delivery_changed():
+            self.validate_teams_recipients(exceptions)
         if "recipients" in self._properties:
             self.validate_recipients_policy(exceptions)
         self._validate_executors(

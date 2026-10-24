@@ -193,6 +193,7 @@ def saved_schedule(**changes: Any) -> SimpleNamespace:
     """Supply the persisted fields used when PUT omits recipients/type/format."""
     return SimpleNamespace(
         **{
+            "active": True,
             "type": "Alert",
             "report_format": "NONE",
             "name": "Operations alert",
@@ -224,7 +225,7 @@ def saved_schedule(**changes: Any) -> SimpleNamespace:
 def validate_update(
     model: SimpleNamespace, changes: dict[str, Any]
 ) -> update.UpdateReportScheduleCommand:
-    """Run the real update validator, including its unconditional merged-state check."""
+    """Run the real update validator with saved values and submitted changes."""
     cast(MagicMock, update.ReportScheduleDAO.find_by_id).return_value = model
     command = update.UpdateReportScheduleCommand(1, changes)
     command.validate()
@@ -296,20 +297,34 @@ def test_partial_update_checks_saved_teams_recipients(
 
 
 @pytest.mark.parametrize("mode", ["disabled", "unconfigured", "removed-destination"])
-def test_metadata_only_update_rechecks_saved_teams_configuration(
-    configured_app: Flask, command_dependencies: None, mode: str
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"active": False},
+        {
+            "active": False,
+            "type": "Alert",
+            "report_format": "NONE",
+            "recipients": [teams_recipient()],
+        },
+        {"name": "Rename only"},
+        {"description": "Changed description"},
+    ],
+)
+def test_pause_and_metadata_updates_allow_unavailable_teams(
+    configured_app: Flask,
+    command_dependencies: None,
+    mode: str,
+    changes: dict[str, Any],
 ) -> None:
-    if mode == "disabled":
-        configured_app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
-    elif mode == "unconfigured":
-        configured_app.config["ALERT_REPORTS_TEAMS"] = {}
-    else:
-        configured_app.config["ALERT_REPORTS_TEAMS"]["destinations"][0]["key"] = (
-            "renamed"
-        )
-    with pytest.raises(ReportScheduleInvalidError) as exc:
-        validate_update(saved_schedule(), {"name": "Rename only"})
-    assert "recipients" in exc.value.normalized_messages()
+    make_teams_unavailable(configured_app, mode)
+    model = saved_schedule()
+    command = validate_update(model, changes)
+    assert all(command._properties[key] == value for key, value in changes.items())
+    assert (
+        model.recipients[0].recipient_config_json
+        == teams_recipient(saved=True).recipient_config_json
+    )
 
 
 def test_metadata_only_update_preserves_valid_saved_recipients(
@@ -351,14 +366,13 @@ def test_removing_teams_allows_format_and_type_change(
 
 
 @pytest.mark.parametrize("saved_format", ["PNG", "PDF", "CSV", "XLSX", "TEXT"])
-def test_metadata_update_does_not_preserve_legacy_invalid_teams_format(
+def test_metadata_update_can_preserve_legacy_invalid_teams_format(
     configured_app: Flask, command_dependencies: None, saved_format: str
 ) -> None:
-    with pytest.raises(ReportScheduleInvalidError) as exc:
-        validate_update(
-            saved_schedule(report_format=saved_format), {"name": "Rename only"}
-        )
-    assert "report_format" in exc.value.normalized_messages()
+    command = validate_update(
+        saved_schedule(report_format=saved_format), {"name": "Rename only"}
+    )
+    assert command._properties["name"] == "Rename only"
 
 
 def test_update_can_fix_invalid_saved_format_in_same_request(
@@ -492,3 +506,113 @@ def test_teams_delivery_reuses_execution_deadline_and_cleanup_reserve(
         state._send_notification(content, recipient)
         assert content.delivery_deadline == 10.0 + total_seconds - 5.0
     assert notification.send.call_count == 2
+
+
+@pytest.mark.parametrize("mode", ["disabled", "unconfigured", "removed-destination"])
+@pytest.mark.parametrize("active", [False, True])
+@pytest.mark.parametrize("pause", [False, True])
+def test_echoed_delivery_values_do_not_revalidate_unavailable_teams(
+    configured_app: Flask,
+    command_dependencies: None,
+    mode: str,
+    active: bool,
+    pause: bool,
+) -> None:
+    """Email's empty CC/BCC echoes allow metadata edits and pausing saved Teams."""
+    make_teams_unavailable(configured_app, mode)
+    model = saved_schedule(active=active)
+    model.recipients.append(
+        SimpleNamespace(
+            type="Email", recipient_config_json='{"target":"owner@example.com"}'
+        )
+    )
+    recipients = [
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "owner@example.com",
+                "ccTarget": "",
+                "bccTarget": "",
+            },
+        },
+        teams_recipient(),
+    ]
+    command = validate_update(
+        model,
+        {
+            "description": "Changed",
+            "active": False if pause else active,
+            "type": "Alert",
+            "report_format": "NONE",
+            "recipients": recipients,
+        },
+    )
+    assert command._properties["recipients"] == recipients
+
+
+def make_teams_unavailable(app: Flask, mode: str) -> None:
+    """Simulate deployment changes without changing the saved alert."""
+    if mode == "disabled":
+        app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
+    elif mode == "unconfigured":
+        app.config["ALERT_REPORTS_TEAMS"] = {}
+    else:
+        app.config["ALERT_REPORTS_TEAMS"]["destinations"][0]["key"] = "renamed"
+
+
+@pytest.mark.parametrize("mode", ["disabled", "unconfigured", "removed-destination"])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"active": True},
+        {"recipients": [teams_recipient({"target": "unknown"})]},
+        {"type": "Report", "database": None},
+        {"report_format": "PNG"},
+        {"active": False, "report_format": "PNG"},
+        {"active": False, "type": "Report", "database": None},
+        {"active": False, "recipients": [teams_recipient({"target": "unknown"})]},
+    ],
+)
+def test_delivery_changes_revalidate_unavailable_teams_even_when_pausing(
+    configured_app: Flask,
+    command_dependencies: None,
+    mode: str,
+    changes: dict[str, Any],
+) -> None:
+    """Omitted recipients and active:false cannot bypass delivery validation."""
+    make_teams_unavailable(configured_app, mode)
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        validate_update(saved_schedule(active=changes != {"active": True}), changes)
+    field = "recipients"
+    if mode == "removed-destination":
+        if "type" in changes:
+            field = "type"
+        elif "report_format" in changes:
+            field = "report_format"
+    assert "Teams" in str(exc.value.normalized_messages()[field])
+
+
+@pytest.mark.parametrize("field", ["ccTarget", "bccTarget"])
+@pytest.mark.parametrize("serialized", [False, True])
+@pytest.mark.parametrize("pause", [False, True])
+def test_empty_email_fields_on_teams_are_delivery_changes(
+    configured_app: Flask,
+    command_dependencies: None,
+    field: str,
+    serialized: bool,
+    pause: bool,
+) -> None:
+    """Unsupported Teams fields cannot compare unchanged and bypass validation."""
+    config = {"target": "ops", field: ""}
+    recipient = teams_recipient(json.dumps(config) if serialized else config)
+    changes: dict[str, Any] = {
+        "description": "Changed description",
+        "recipients": [recipient],
+    }
+    if pause:
+        changes["active"] = False
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        validate_update(saved_schedule(), changes)
+    assert "A configured Teams destination key is required" in str(
+        exc.value.normalized_messages()["recipients"]
+    )

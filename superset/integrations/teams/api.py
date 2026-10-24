@@ -25,6 +25,7 @@ from flask import Blueprint, current_app, Flask, request, Response
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import RequestEntityTooLarge
+from werkzeug.wsgi import get_input_stream
 
 from superset.extensions import csrf, db, feature_flag_manager
 from superset.integrations.teams.config import (
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 blueprint = Blueprint("teams", __name__)
 
 
-def _check_event_body_size() -> None:
+def _check_event_body_size() -> bytes:
     """Bound body reading and reject oversized input before JSON parsing."""
     configured_limit = request.max_content_length
     limit = (
@@ -53,11 +54,30 @@ def _check_event_body_size() -> None:
     )
     if request.content_length is not None and request.content_length > limit:
         raise RequestEntityTooLarge()
-    # Werkzeug can truncate lengthless streams at the limit without raising.
-    # Read one lookahead byte through Flask's bounded stream before parsing JSON.
-    request.max_content_length = limit + 1
-    if len(request.get_data()) > limit:
+    # Use the WSGI length/termination safeguards without Flask's global stream
+    # cap, which can hide overflow by truncating a lengthless stream at the limit.
+    # A lookahead byte bounds actual reads without a Flask 3.1-only setter.
+    stream = get_input_stream(request.environ)
+    remaining = limit + 1
+    chunks = []
+    while remaining:
+        chunk = stream.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    body = b"".join(chunks)
+    if len(body) > limit:
         raise RequestEntityTooLarge()
+    return body
+
+
+def _parse_event_body(body: bytes) -> object:
+    """Decode the bounded body with Flask's JSON provider, rejecting malformed JSON."""
+    try:
+        return current_app.json.loads(body)
+    except ValueError:
+        return None
 
 
 @blueprint.post("/api/v1/teams/events/")
@@ -73,10 +93,10 @@ def teams_events() -> Response:
         return Response(status=503)
     if config is None:
         return Response(status=503)
-    _check_event_body_size()
+    raw_body = _check_event_body_size()
     if not request.is_json:
         return Response(status=415)
-    body = request.get_json(silent=True)
+    body = _parse_event_body(raw_body)
     if not isinstance(body, dict):
         return Response(status=400)
     # Optional SDK imports stay behind the feature flag and deployment configuration.

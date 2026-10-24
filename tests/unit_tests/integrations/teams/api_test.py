@@ -24,6 +24,7 @@ import importlib.util
 from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
@@ -558,6 +559,23 @@ def test_sdk_initialization_failure_still_releases_adapter(
     assert loops[0].is_closed()
 
 
+@pytest.fixture(params=[False, True], ids=["writable-limit", "read-only-limit"])
+def body_size_client(
+    teams_client: FlaskClient, request: pytest.FixtureRequest
+) -> FlaskClient:
+    """Exercise older Flask's read-only request limit alongside modern Flask."""
+    if request.param:
+
+        class ReadOnlyLimitRequest(teams_client.application.request_class):
+            @property
+            def max_content_length(self) -> int | None:
+                """Expose only the deployment limit, as Flask before 3.1 does."""
+                return current_app.config["MAX_CONTENT_LENGTH"]
+
+        teams_client.application.request_class = ReadOnlyLimitRequest
+    return teams_client
+
+
 def post_sized_event(
     client: FlaskClient,
     installation: dict[str, Any],
@@ -584,7 +602,7 @@ def post_sized_event(
 @pytest.mark.parametrize("extra_bytes", [1, 4096])
 @pytest.mark.parametrize("content_type", ["application/json", "text/plain"])
 def test_oversized_event_is_rejected_before_json_sdk_or_database(
-    teams_client: FlaskClient,
+    body_size_client: FlaskClient,
     installation: dict[str, Any],
     content_length: bool,
     extra_bytes: int,
@@ -592,39 +610,41 @@ def test_oversized_event_is_rejected_before_json_sdk_or_database(
     limit: int | None,
 ) -> None:
     """Even valid JSON followed by excess whitespace must not reach the parser."""
-    teams_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
     with (
-        patch.object(teams_client.application.request_class, "get_json") as parse,
+        patch.object(body_size_client.application.json, "loads") as parse,
         patch.object(teams_adapter, "process_teams_event") as sdk,
         patch.object(teams_api, "Session") as session,
     ):
         response = post_sized_event(
-            teams_client,
+            body_size_client,
             installation,
             (limit or 256 * 1024) + extra_bytes,
             content_length,
             content_type=content_type,
         )
     assert response.status_code == 413
-    assert teams_client.application.config["MAX_CONTENT_LENGTH"] == limit
+    assert body_size_client.application.config["MAX_CONTENT_LENGTH"] == limit
     parse.assert_not_called()
     sdk.assert_not_called()
     session.assert_not_called()
 
 
 @pytest.mark.parametrize("content_length", [True, False])
-@pytest.mark.parametrize("size", [1024, 256 * 1024])
+@pytest.mark.parametrize("limit,size", [(None, 1024), (None, 256 * 1024), (1024, 1024)])
 def test_valid_event_within_body_limit_still_authenticates_and_persists(
-    teams_client: FlaskClient,
+    body_size_client: FlaskClient,
     teams_engine: Engine,
     installation: dict[str, Any],
     auth_headers: Callable[..., dict[str, str]],
     content_length: bool,
     size: int,
+    limit: int | None,
 ) -> None:
     """Accept normal and boundary-size JSON bodies, including terminated streams."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
     response = post_sized_event(
-        teams_client,
+        body_size_client,
         installation,
         size,
         content_length,
@@ -730,4 +750,83 @@ def test_invalid_actions_are_rejected_after_authentication(
     with patch.object(teams_api, "Session") as session:
         response = teams_client.post(PATH, json=installation, headers=auth_headers())
     assert response.status_code == 400
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("limit", [None, 1024])
+def test_oversized_declared_length_does_not_read_body(
+    body_size_client: FlaskClient, limit: int | None
+) -> None:
+    """Reject the header before consuming even one byte of WSGI input."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    stream = BytesIO(b"{}")
+    with (
+        patch.object(
+            stream, "read", side_effect=AssertionError("unexpected read")
+        ) as read,
+        patch.object(body_size_client.application.json, "loads") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = body_size_client.post(
+            PATH,
+            content_type="application/json",
+            environ_overrides={
+                "wsgi.input": stream,
+                "CONTENT_LENGTH": str((limit or 256 * 1024) + 1),
+            },
+        )
+    assert response.status_code == 413
+    read.assert_not_called()
+    parse.assert_not_called()
+    sdk.assert_not_called()
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("limit", [None, 1024])
+@pytest.mark.parametrize("declared_length", ["", "1"])
+@pytest.mark.parametrize("short_reads", [False, True])
+def test_terminated_stream_reads_are_bounded_before_parsing(
+    body_size_client: FlaskClient,
+    limit: int | None,
+    declared_length: str,
+    short_reads: bool,
+) -> None:
+    """Bound reads even when a terminated stream omits or understates its length."""
+    body_size_client.application.config["MAX_CONTENT_LENGTH"] = limit
+    effective_limit = limit or 256 * 1024
+    stream = BytesIO(b"{}" + b" " * (effective_limit + 4096))
+    read_chunk = stream.read
+    with (
+        patch.object(
+            stream,
+            "read",
+            side_effect=lambda size: read_chunk(
+                min(size, 512) if short_reads else size
+            ),
+        ) as read,
+        patch.object(body_size_client.application.json, "loads") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = body_size_client.post(
+            PATH,
+            content_type="application/json",
+            environ_overrides={
+                "wsgi.input": stream,
+                "CONTENT_LENGTH": declared_length,
+                "wsgi.input_terminated": True,
+            },
+        )
+        assert stream.tell() == effective_limit + 1
+    assert response.status_code == 413
+    if short_reads:
+        assert read.call_count > 1
+        assert all(
+            0 < call.args[0] <= effective_limit + 1 for call in read.call_args_list
+        )
+    else:
+        read.assert_called_once_with(effective_limit + 1)
+    parse.assert_not_called()
+    sdk.assert_not_called()
     session.assert_not_called()

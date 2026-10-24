@@ -522,7 +522,7 @@ def test_empty_email_cc_and_bcc_do_not_count_as_recipient_changes(
 
 
 @pytest.mark.parametrize("recipient_type", ["Slack", "SlackV2", "Webhook"])
-def test_empty_cc_and_bcc_do_not_change_non_email_recipients(
+def test_empty_cc_and_bcc_change_non_email_recipients(
     mocker: MockerFixture, recipient_type: str
 ) -> None:
     model = _make_model(run_as=OTHER_USER)
@@ -550,9 +550,11 @@ def test_empty_cc_and_bcc_do_not_change_non_email_recipients(
             ],
         },
     )
-    command.validate()
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
 
-    assert command._changed_content_fields() == set()
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+    assert command._changed_content_fields() == {"recipients"}
 
 
 @pytest.mark.parametrize(
