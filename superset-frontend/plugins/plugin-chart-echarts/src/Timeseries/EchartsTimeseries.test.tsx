@@ -1562,3 +1562,64 @@ test('drillBy uses the swapped data index for a horizontal time-based axis', asy
     },
   ]);
 });
+
+const makeVerticalLegend = (
+  orientation: LegendOrientation.Left | LegendOrientation.Right,
+) =>
+  ({
+    grid: { bottom: 20, top: 20 },
+    items: [
+      { color: '#ff0000', interactive: true, name: 'Alpha', selected: true },
+      { color: '#00ff00', interactive: true, name: 'Beta', selected: true },
+    ],
+    orientation,
+    showSelectors: true,
+  }) as never;
+
+test('renders the custom legend for a Left-oriented legend and uses chartBodyHeight as maxHeight', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={400}
+      width={800}
+      customLegend={makeVerticalLegend(LegendOrientation.Left)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).toBeInTheDocument();
+  });
+});
+
+test('renders the custom legend for a Right-oriented legend', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={400}
+      width={800}
+      customLegend={makeVerticalLegend(LegendOrientation.Right)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).toBeInTheDocument();
+  });
+});
+
+test('hides the vertical custom legend when chart width is 0 (maxWidth guard)', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={400}
+      width={0}
+      customLegend={makeVerticalLegend(LegendOrientation.Right)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).not.toBeInTheDocument();
+  });
+});
