@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate only refreshes the pinned base-image digests in the root Dockerfile; Dependabot (.github/dependabot.yml) owns npm, pip and GitHub Actions updates.",
+  "extends": ["config:recommended", "docker:pinDigests"],
+  "enabledManagers": ["dockerfile"],
+  "includePaths": ["Dockerfile"],
+  "labels": ["dependencies", "docker"],
+  "schedule": ["* 0-5 * * 1"],
+  "packageRules": [
+    {
+      "description": "Base image tags (Node major, PY_VER's Python line, Debian release) are deliberate choices, not routine bumps; see python-nightly-canary.yml for how PY_VER moves. Only refresh the digest behind the current tag.",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "enabled": false
+    },
+    {
+      "description": "Refresh all base-image digests in one weekly PR so the Node and Python stages are rebuilt together.",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "groupName": "Docker base image digests"
+    }
+  ]
+}

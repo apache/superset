@@ -19,9 +19,10 @@
 # Node stage to deal with static asset construction
 ######################################################################
 # Base images are pinned by digest so builds are reproducible and cached
-# stages don't silently outlive base image updates; bump the digest along
-# with the tag. PY_VER carries its digest, so overriding it (e.g. the
-# py311/py312 presets) replaces both.
+# stages don't silently outlive base image updates. Renovate
+# (.github/renovate.json) refreshes the digests weekly; when changing a tag
+# by hand, bump its digest too. PY_VER carries its digest, so overriding it
+# (e.g. the py311/py312 presets) replaces both.
 ARG PY_VER=3.11-slim-trixie@sha256:b7a9e5f6a93d6d4a31f129bbd4bdee69efccb6ded0fb230d78aafaf37af98377
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
