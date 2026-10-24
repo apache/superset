@@ -736,7 +736,7 @@ export const FormattingPopoverContent = ({
               tooltip={
                 objectFormatting === ObjectFormattingEnum.CELL_BAR
                   ? t(
-                      'Applies only when "Cell bars" formatting is selected: the background of the histogram columns is displayed if the "Show cell bars" flag is enabled.',
+                      'Applies only when "Cell bars" formatting is selected: cells matching the rule draw a bar even with "Show cell bars" off; enabling that flag also draws bars for the whole column.',
                     )
                   : null
               }
