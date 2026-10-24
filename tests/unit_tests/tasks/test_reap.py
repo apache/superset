@@ -24,9 +24,9 @@ from superset_core.tasks.types import TaskStatus
 
 from superset.commands.tasks.reap import ORPHAN_ERROR_MESSAGE, ReapOrphanedTasksCommand
 from superset.utils import json
+from superset.utils.class_utils import _Unset
 
 TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
-_UNSET = object()
 
 
 @contextmanager
@@ -101,13 +101,13 @@ def test_missing_celery_id_skips_revoke_but_still_reaps() -> None:
 
 @contextmanager
 def _patched_with_handle(
-    properties: str, database: object = _UNSET, *, cas_result: bool = True
+    properties: str, database: object = _Unset, *, cas_result: bool = True
 ):
     """Patch collaborators with a specific serialized `properties` blob."""
     stats = MagicMock()
     app = MagicMock()
     app.config = {"STATS_LOGGER": stats, "GTF_ORPHAN_TASK_TIMEOUT": 60}
-    resolved_db = MagicMock() if database is _UNSET else database
+    resolved_db = MagicMock() if database is _Unset else database
     with (
         patch("superset.commands.tasks.reap.current_app", app),
         patch("superset.commands.tasks.reap.db") as db,
