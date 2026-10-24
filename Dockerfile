@@ -92,6 +92,12 @@ RUN --mount=type=cache,target=/root/.cache \
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
 
+# oauth2CallbackScript.test.ts runs the actual inline script from this
+# template (not a reimplementation of it) so drift between the two can't
+# go unnoticed, which means the template needs to be present in this
+# frontend-only image too.
+COPY superset/templates/superset/oauth2.html /app/superset/templates/superset/oauth2.html
+
 ######################################################################
 # superset-node is used for compiling frontend assets
 ######################################################################
