@@ -308,7 +308,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const prevDatasource = usePrevious(props.exploreState.datasource);
   const prevChartStatus = usePrevious(props.chart.chartStatus);
 
-  const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
+  // Keep the notification tied to the transition that opened it, not live controls.
+  const [datasourceAlert, setDatasourceAlert] = useState<{
+    controlsTransferred: string[];
+    isCurrentDataset: boolean;
+  } | null>(null);
   const [activeTabKey, setActiveTabKey] = useState<string>(TABS_KEYS.DATA);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -492,16 +496,32 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   useEffect(() => {
     if (
       prevDatasource &&
-      prevDatasource.type !== DatasourceType.Query &&
       (props.exploreState.datasource?.id !== prevDatasource.id ||
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
-      setShowDatasourceAlert(true);
-      containerRef.current?.scrollTo(0, 0);
+      if (
+        prevDatasource.type !== DatasourceType.Query &&
+        !props.exploreState.skipDatasetChangeAlert
+      ) {
+        setDatasourceAlert({
+          controlsTransferred: [
+            ...ensureIsArray(props.exploreState.controlsTransferred),
+          ],
+          isCurrentDataset: true,
+        });
+        containerRef.current?.scrollTo(0, 0);
+      } else {
+        // Skipping this notification does not acknowledge an earlier one.
+        setDatasourceAlert(alert =>
+          alert ? { ...alert, isCurrentDataset: false } : null,
+        );
+      }
     }
   }, [
     props.exploreState.datasource?.id,
     props.exploreState.datasource?.type,
+    props.exploreState.skipDatasetChangeAlert,
+    props.exploreState.controlsTransferred,
     prevDatasource,
   ]);
 
@@ -523,22 +543,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [props.exploreState.datasource, form_data.viz_type, props.datasource_type],
   );
 
-  const resetTransferredControls = useCallback(() => {
-    ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
-      props.actions.setControlValue(
-        controlName,
-        props.controls[controlName].default,
-      ),
-    );
-  }, [props.actions, props.exploreState.controlsTransferred, props.controls]);
-
   const handleClearFormClick = useCallback(() => {
-    resetTransferredControls();
-    setShowDatasourceAlert(false);
-  }, [resetTransferredControls]);
+    if (!datasourceAlert?.isCurrentDataset) {
+      return;
+    }
+    datasourceAlert.controlsTransferred.forEach(controlName => {
+      if (props.controls[controlName]) {
+        props.actions.setControlValue(
+          controlName,
+          props.controls[controlName].default,
+        );
+      }
+    });
+    setDatasourceAlert(null);
+  }, [datasourceAlert, props.actions, props.controls]);
 
   const handleContinueClick = useCallback(() => {
-    setShowDatasourceAlert(false);
+    setDatasourceAlert(null);
   }, []);
 
   const shouldRecalculateControlState = ({
@@ -839,34 +860,55 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   };
 
   const hasControlsTransferred =
-    ensureIsArray(props.exploreState.controlsTransferred).length > 0;
+    (datasourceAlert?.controlsTransferred.length ?? 0) > 0;
 
   const DatasourceAlert = useCallback(
     () =>
       hasControlsTransferred ? (
         <ExploreAlert
           title={t('Keep control settings?')}
-          bodyText={t(
-            "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.",
-          )}
+          bodyText={
+            datasourceAlert?.isCurrentDataset
+              ? t(
+                  "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.",
+                )
+              : t(
+                  'During a previous dataset change, matching column and metric controls were retained. The dataset has changed again since then.',
+                )
+          }
           primaryButtonAction={handleContinueClick}
-          secondaryButtonAction={handleClearFormClick}
+          secondaryButtonAction={
+            datasourceAlert?.isCurrentDataset ? handleClearFormClick : undefined
+          }
           primaryButtonText={t('Continue')}
-          secondaryButtonText={t('Clear form')}
+          secondaryButtonText={
+            datasourceAlert?.isCurrentDataset ? t('Clear form') : undefined
+          }
           type="info"
         />
       ) : (
         <ExploreAlert
           title={t('No form settings were maintained')}
-          bodyText={t(
-            'We were unable to carry over any controls when switching to this new dataset.',
-          )}
+          bodyText={
+            datasourceAlert?.isCurrentDataset
+              ? t(
+                  'We were unable to carry over any controls when switching to this new dataset.',
+                )
+              : t(
+                  'We were unable to carry over any controls during a previous dataset change. The dataset has changed again since then.',
+                )
+          }
           primaryButtonAction={handleContinueClick}
           primaryButtonText={t('Continue')}
           type="warning"
         />
       ),
-    [handleClearFormClick, handleContinueClick, hasControlsTransferred],
+    [
+      datasourceAlert,
+      handleClearFormClick,
+      handleContinueClick,
+      hasControlsTransferred,
+    ],
   );
 
   const dataTabHasHadNoErrors = useResetOnChangeRef(
@@ -1047,7 +1089,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                       type="warning"
                     />
                   )}
-                  {showDatasourceAlert && <DatasourceAlert />}
+                  {datasourceAlert && <DatasourceAlert />}
                   {!requiresSemanticReselection && (
                     <Collapse
                       defaultActiveKey={expandedQuerySections}
