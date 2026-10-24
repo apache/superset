@@ -21,10 +21,11 @@ See :mod:`superset.coordination` for the package overview.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import threading
 import time
-from typing import Any, Callable, TYPE_CHECKING, TypeVar, Union
+from typing import Any, Callable, ContextManager, TYPE_CHECKING, TypeVar, Union
 
 from flask import current_app
 from redis.exceptions import RedisError, TimeoutError as RedisTimeoutError
@@ -497,9 +498,16 @@ class CoordinationService:
         :param name: optional thread name suffix for logging.
         """
         stop_event = threading.Event()
+        enter_context = cls._capture_background_context()
+
+        def run() -> None:
+            with enter_context():
+                cls._run_listen_loop(
+                    channel, check, on_signal, stop_event, poll_interval
+                )
+
         thread = threading.Thread(
-            target=cls._run_listen_loop,
-            args=(channel, check, on_signal, stop_event, poll_interval),
+            target=run,
             daemon=True,
             name=f"coord-listen-{name or channel}",
         )
@@ -524,6 +532,19 @@ class CoordinationService:
                     )
 
         return SignalListener(thread, stop_event, wake=wake)
+
+    @staticmethod
+    def _capture_background_context() -> Callable[[], ContextManager[Any]]:
+        """Snapshot caller-thread context for a background thread to re-enter.
+
+        Resolves ``BACKGROUND_THREAD_CONTEXT_FACTORY`` on the calling thread (where
+        the request/task context is live) and returns the callable the background
+        thread uses to enter an equivalent context. Without a configured factory
+        the returned context manager is a no-op, leaving the thread to push a bare
+        app context per call as before.
+        """
+        factory = current_app.config.get("BACKGROUND_THREAD_CONTEXT_FACTORY")
+        return factory() if factory else contextlib.nullcontext
 
     @classmethod
     def _run_listen_loop(

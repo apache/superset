@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import threading
+from typing import Callable
 
 import pytest
 from pytest_mock import MockerFixture
@@ -456,3 +457,48 @@ def test_listen_stop_wakes_blocked_backend_read(
         call.args[:2] == ("ch", {"m": "__wake__"})
         for call in backend.xadd.call_args_list
     )
+
+
+def test_listen_runs_inside_configured_background_context(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """The factory runs on the caller thread; its context wraps the listener thread."""
+    from flask import current_app
+
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    caller = threading.current_thread()
+    events: list[str] = []
+    factory_threads: list[threading.Thread] = []
+
+    class _Ctx:
+        def __enter__(self) -> None:
+            events.append("enter")
+
+        def __exit__(self, *exc: object) -> None:
+            events.append("exit")
+
+    def factory() -> Callable[[], _Ctx]:
+        factory_threads.append(threading.current_thread())
+        return _Ctx
+
+    current_app.config["BACKGROUND_THREAD_CONTEXT_FACTORY"] = factory
+    try:
+        checked_inside: list[bool] = []
+
+        def check() -> bool:
+            checked_inside.append(events == ["enter"])
+            return True
+
+        fired = threading.Event()
+        listener = CoordinationService.listen_for_signal(
+            "ch", check=check, on_signal=fired.set, poll_interval=0.01
+        )
+        assert fired.wait(timeout=2.0) is True
+        listener.stop()
+        listener._thread.join(timeout=2.0)
+    finally:
+        current_app.config.pop("BACKGROUND_THREAD_CONTEXT_FACTORY", None)
+
+    assert factory_threads == [caller]
+    assert checked_inside == [True]
+    assert events == ["enter", "exit"]
