@@ -281,6 +281,57 @@ def test_mark_cache_error_if_incomplete_persists_small_error(
     assert stored_payload["image"] is None
 
 
+def test_mark_cache_error_if_incomplete_preserves_matching_scope_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-UPDATED entry carrying a valid image rendered for this same object
+    (e.g. a staleness-refresh successor whose broker publication then failed)
+    must be marked Error without dropping the image, so image_url keeps serving
+    the last-good capture through the error backoff instead of 404ing."""
+    carried = ScreenshotCachePayload(scope="dashboard:5")
+    carried.pending()
+    carried.retain_image(FAKE_PNG_BYTES)
+    cache = MagicMock()
+    cache.get.return_value = carried.to_dict()
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with patch("superset.utils.screenshots.DistributedLock"):
+        BaseScreenshot.mark_cache_error_if_incomplete("key", "dashboard:5")
+
+    stored_payload = cache.set.call_args.args[1]
+    assert stored_payload["status"] == "Error"
+    assert stored_payload["image"] is not None
+    assert stored_payload["scope"] == "dashboard:5"
+
+
+def test_mark_cache_error_if_incomplete_drops_mismatched_scope_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bytes rendered for a different object must never survive a rebind to this
+    scope: a mismatched-scope image is dropped (it would otherwise be servable
+    under this object's authorized URL).
+
+    This pins the security invariant (cross-scope bytes never survive), not the
+    retention conditional itself -- the prior unconditional ``discard_image=True``
+    also dropped them, so this test alone does not fail if the conditional is
+    reverted. Its sibling ``..._preserves_matching_scope_image`` is the revert
+    guard for the conditional."""
+    other = ScreenshotCachePayload(scope="dashboard:1")
+    other.pending()
+    other.retain_image(FAKE_PNG_BYTES)
+    cache = MagicMock()
+    cache.get.return_value = other.to_dict()
+    monkeypatch.setattr(BaseScreenshot, "cache", cache)
+
+    with patch("superset.utils.screenshots.DistributedLock"):
+        BaseScreenshot.mark_cache_error_if_incomplete("key", "dashboard:5")
+
+    stored_payload = cache.set.call_args.args[1]
+    assert stored_payload["status"] == "Error"
+    assert stored_payload["image"] is None
+    assert stored_payload["scope"] == "dashboard:5"
+
+
 def test_mark_cache_error_if_incomplete_does_not_write_after_read_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -525,6 +576,30 @@ class TestComputeAndCache:
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["image"] != b"initial_value"
         assert cache_payload["scope"] == "dashboard:5"
+
+    def test_mismatched_scope_discards_prior_image_on_failed_recompute(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """Security: rebinding an entry to a different scope must not carry the
+        previous scope's image into the new one. The read paths serve any valid
+        retained image regardless of status, so bytes left on a rescoped
+        COMPUTING/ERROR entry would be servable under the new object's authorized
+        URL. A failed recompute must therefore leave no image behind."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        # A valid image rendered for a DIFFERENT object (scope "dashboard:1").
+        cached_value = ScreenshotCachePayload(image=FAKE_PNG_BYTES, scope="dashboard:1")
+        mocks["get_from_cache_key"].return_value = cached_value
+        # This screenshot object renders for dashboard:5, and the recompute fails.
+        screenshot_obj.cache_scope = "dashboard:5"
+        mocks["get_screenshot"].side_effect = Exception("render failed")
+
+        screenshot_obj.compute_and_cache(force=False)
+
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["status"] == "Error"
+        assert cache_payload["scope"] == "dashboard:5"
+        # The other object's bytes were dropped the moment the scope was rebound.
+        assert cache_payload["image"] is None
 
     def test_resize(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
