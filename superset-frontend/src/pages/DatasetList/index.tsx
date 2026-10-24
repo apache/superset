@@ -20,6 +20,7 @@ import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
+  getClientErrorObject,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -108,6 +109,10 @@ import {
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import SemanticDeleteBlockers, {
+  SemanticDeleteError,
+} from 'src/features/semanticLayers/SemanticDeleteBlockers';
 import type {
   BootstrapData,
   UserWithPermissionsAndRoles,
@@ -628,6 +633,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
+  const [svDeleteError, setSVDeleteError] =
+    useState<SemanticDeleteError | null>(null);
+  const [svDeleting, setSVDeleting] = useState(false);
+  const svDeleteRequest = useRef(0);
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
     useState<Dataset | null>(null);
 
@@ -817,26 +826,36 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
 
   const handleSemanticViewDelete = (sv: Dataset) => {
+    svDeleteRequest.current += 1;
+    setSVDeleteError(null);
+    setSVDeleting(false);
     setSvCurrentlyDeleting(sv);
   };
 
-  const handleSemanticViewDeleteConfirm = () => {
+  const handleSemanticViewDeleteConfirm = async () => {
     if (!svCurrentlyDeleting) return;
     const { id, table_name: tableName } = svCurrentlyDeleting;
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_view/${id}`,
-    }).then(
-      () => {
-        setSvCurrentlyDeleting(null);
-        refreshData();
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
-      createErrorHandler(errMsg =>
+    svDeleteRequest.current += 1;
+    const request = svDeleteRequest.current;
+    setSVDeleting(true);
+    try {
+      await SupersetClient.delete({ endpoint: `/api/v1/semantic_view/${id}` });
+      refreshData();
+      addSuccessToast(t('Deleted: %s', tableName));
+      if (request === svDeleteRequest.current) setSvCurrentlyDeleting(null);
+    } catch (error) {
+      const parsed = await getClientErrorObject(error);
+      if (request !== svDeleteRequest.current) return;
+      if (parsed.status === 409) {
+        setSVDeleteError(parsed);
+      } else {
         addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
-      ),
-    );
+          t('There was an issue deleting %s: %s', tableName, parsed.error),
+        );
+      }
+    } finally {
+      if (request === svDeleteRequest.current) setSVDeleting(false);
+    }
   };
 
   const columns = useMemo(
@@ -1598,14 +1617,32 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       )}
       {svCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
+          preserveConfirmationOnConfirm
+          loading={svDeleting}
+          description={
+            <>
+              <p>
+                {t('Are you sure you want to delete')}{' '}
+                <b>{svCurrentlyDeleting.table_name}</b>?{' '}
+                {t('This cannot be undone.')}
+              </p>
+              {svDeleteError && (
+                <SemanticDeleteBlockers error={svDeleteError} />
+              )}
+            </>
+          }
           onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
+          onHide={() => {
+            svDeleteRequest.current += 1;
+            setSvCurrentlyDeleting(null);
+          }}
           open
-          title={t('Delete Semantic View?')}
+          title={
+            <ModalTitleWithIcon
+              icon={<Icons.DeleteOutlined />}
+              title={t('Delete Semantic View?')}
+            />
+          }
         />
       )}
       {datasetCurrentlyEditing && (
@@ -1724,11 +1761,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               ))}
             {pendingBulkSemanticCount > 0 && (
               <p>
-                {tn(
-                  'Charts built on the selected semantic view are not checked and will break if it is deleted.',
-                  'Charts built on the %s selected semantic views are not checked and will break if they are deleted.',
-                  pendingBulkSemanticCount,
-                  pendingBulkSemanticCount,
+                {t(
+                  'Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
                 )}
               </p>
             )}

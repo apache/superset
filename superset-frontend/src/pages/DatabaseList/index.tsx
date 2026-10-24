@@ -20,6 +20,7 @@ import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
+  getClientErrorObject,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -72,6 +73,9 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import SemanticDeleteBlockers, {
+  SemanticDeleteError,
+} from 'src/features/semanticLayers/SemanticDeleteBlockers';
 import type User from 'src/types/User';
 import {
   databaseLabel,
@@ -137,7 +141,7 @@ function SemanticLayerCascadeWarning({
     return (
       <p>
         {t(
-          'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+          'Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed.',
         )}
       </p>
     );
@@ -148,7 +152,11 @@ function SemanticLayerCascadeWarning({
   // never access-filtered. An honest empty message keeps the destructive
   // warning credible for the layers where it matters.
   if (preview.dependentViewCount === 0) {
-    return <p>{t('This semantic layer has no dependent semantic views.')}</p>;
+    return (
+      <p>
+        {t('This semantic layer has no semantic views. This cannot be undone.')}
+      </p>
+    );
   }
 
   const listedViewCount = preview.dependentViewNames.length;
@@ -158,8 +166,8 @@ function SemanticLayerCascadeWarning({
     <>
       <p>
         {tn(
-          'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
-          'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
+          'This will also permanently delete its %s semantic view. This cannot be undone.',
+          'This will also permanently delete its %s semantic views. This cannot be undone.',
           preview.dependentViewCount,
           preview.dependentViewCount,
         )}
@@ -416,6 +424,10 @@ function DatabaseList({
   const [slCurrentlyEditing, setSlCurrentlyEditing] = useState<string | null>(
     null,
   );
+  const [slDeleteError, setSLDeleteError] =
+    useState<SemanticDeleteError | null>(null);
+  const [slDeleting, setSLDeleting] = useState(false);
+  const slDeleteRequest = useRef(0);
   const [slDeletePreview, setSlDeletePreview] =
     useState<SemanticLayerDeletePreview | null>(null);
 
@@ -475,6 +487,9 @@ function DatabaseList({
   const slDeleteLookupRef = useRef(0);
   const openSemanticLayerDeleteModal = useCallback((item: ConnectionItem) => {
     slDeleteLookupRef.current += 1;
+    slDeleteRequest.current += 1;
+    setSLDeleteError(null);
+    setSLDeleting(false);
     const lookupId = slDeleteLookupRef.current;
     setSlDeletePreview({ status: 'loading', item });
     return SupersetClient.get({
@@ -780,21 +795,34 @@ function DatabaseList({
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function handleSemanticLayerDelete(item: ConnectionItem) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_layer/${item.uuid}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted: %s', item.database_name));
-        setSlDeletePreview(null);
-      },
-      createErrorHandler(errMsg =>
+  async function handleSemanticLayerDelete(item: ConnectionItem) {
+    slDeleteRequest.current += 1;
+    const request = slDeleteRequest.current;
+    setSLDeleting(true);
+    try {
+      await SupersetClient.delete({
+        endpoint: `/api/v1/semantic_layer/${item.uuid}`,
+      });
+      refreshData();
+      addSuccessToast(t('Deleted: %s', item.database_name));
+      if (request === slDeleteRequest.current) setSlDeletePreview(null);
+    } catch (error) {
+      const parsed = await getClientErrorObject(error);
+      if (request !== slDeleteRequest.current) return;
+      if (parsed.status === 409) {
+        setSLDeleteError(parsed);
+      } else {
         addDangerToast(
-          t('There was an issue deleting %s: %s', item.database_name, errMsg),
-        ),
-      ),
-    );
+          t(
+            'There was an issue deleting %s: %s',
+            item.database_name,
+            parsed.error,
+          ),
+        );
+      }
+    } finally {
+      if (request === slDeleteRequest.current) setSLDeleting(false);
+    }
   }
 
   const columns = useMemo(
@@ -1174,6 +1202,8 @@ function DatabaseList({
       />
       {slDeletePreview && slDeletePreview.status !== 'loading' && (
         <DeleteModal
+          preserveConfirmationOnConfirm
+          loading={slDeleting}
           description={
             <>
               <p>
@@ -1181,12 +1211,18 @@ function DatabaseList({
                 <b>{slDeletePreview.item.database_name}</b>?
               </p>
               <SemanticLayerCascadeWarning preview={slDeletePreview} />
+              {slDeleteError && (
+                <SemanticDeleteBlockers error={slDeleteError} />
+              )}
             </>
           }
           onConfirm={() => {
             handleSemanticLayerDelete(slDeletePreview.item);
           }}
-          onHide={() => setSlDeletePreview(null)}
+          onHide={() => {
+            slDeleteRequest.current += 1;
+            setSlDeletePreview(null);
+          }}
           open
           title={
             <ModalTitleWithIcon
@@ -1216,7 +1252,7 @@ function DatabaseList({
                     databaseCurrentlyDeleting.datasets.count,
                   )}{' '}
                   {t(
-                    'Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently.',
+                    'Delete or move active datasets. To remove archived datasets, open Recently Archived and select Delete permanently.',
                   )}
                 </p>
               ) : (

@@ -34291,9 +34291,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -34313,7 +34320,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -34334,7 +34342,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34676,9 +34685,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -34698,7 +34714,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -34719,7 +34736,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34839,9 +34857,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -34861,7 +34886,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -34882,7 +34908,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }

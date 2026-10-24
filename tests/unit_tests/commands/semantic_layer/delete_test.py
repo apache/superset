@@ -41,7 +41,7 @@ def test_delete_semantic_layer_success(mocker: MockerFixture) -> None:
     mock_model.uuid = "00000000-0000-0000-0000-000000000001"
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(0, [], 0),
+        return_value=(0, [], 0, 0),
     )
 
     dao = mocker.patch(
@@ -74,7 +74,7 @@ def test_delete_semantic_layer_refuses_dependents(mocker: MockerFixture) -> None
     )
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0),
+        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0, 0),
     )
 
     exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
@@ -138,7 +138,7 @@ def test_delete_semantic_layer_creator_allowed(mocker: MockerFixture) -> None:
     mock_model.uuid = "00000000-0000-0000-0000-000000000001"
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(0, [], 0),
+        return_value=(0, [], 0, 0),
     )
 
     dao = mocker.patch(
@@ -187,7 +187,7 @@ def test_delete_semantic_view_success(mocker: MockerFixture) -> None:
     mock_model.id = 42
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(0, [], 0),
+        return_value=(0, [], 0, 0),
     )
 
     dao = mocker.patch(
@@ -225,7 +225,7 @@ def test_delete_semantic_view_refuses_dependents(mocker: MockerFixture) -> None:
     )
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0),
+        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0, 0),
     )
 
     exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
@@ -254,7 +254,7 @@ def test_bulk_delete_semantic_views_refuses_all_on_one_dependency(
     )
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0),
+        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0, 0),
     )
 
     with pytest.raises(SemanticDeleteDependentsError):
@@ -264,7 +264,7 @@ def test_bulk_delete_semantic_views_refuses_all_on_one_dependency(
 
 
 @pytest.mark.parametrize("orm_execution", [False, True])
-def test_semantic_delete_lists_live_dependents_only(
+def test_semantic_delete_counts_and_names_archived_dependents(
     session: Session, mocker: MockerFixture, orm_execution: bool
 ) -> None:
     """Charts, dashboard membership and active schedules form the dependency set."""
@@ -356,12 +356,20 @@ def test_semantic_delete_lists_live_dependents_only(
     total: int
     dependents: list[dict[str, str | int]]
     inaccessible_count: int
-    total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
+    archived_count: int
+    total, dependents, inaccessible_count, archived_count = _dependent_assets(
+        sa.select(sa.literal(42))
+    )
 
-    assert total == 5
+    assert total == 6
+    assert archived_count == 1
     assert inaccessible_count == 0
+    assert {item["name"] for item in dependents if item["archived"]} == {
+        "Deleted chart"
+    }
     assert {item["name"] for item in dependents} == {
         "Live chart",
+        "Deleted chart",
         "Live dashboard",
         "Live alert",
         "Live report",
@@ -377,10 +385,10 @@ def test_semantic_delete_lists_live_dependents_only(
     capped_total: int
     capped_dependents: list[dict[str, str | int]]
     capped_inaccessible_count: int
-    capped_total, capped_dependents, capped_inaccessible_count = _dependent_assets(
-        sa.select(sa.literal(42))
+    capped_total, capped_dependents, capped_inaccessible_count, archived_count = (
+        _dependent_assets(sa.select(sa.literal(42)))
     )
-    assert capped_total == 5
+    assert capped_total == 6
     assert len(capped_dependents) == 2
     assert [item["type"] for item in capped_dependents] == ["chart", "chart"]
     assert capped_inaccessible_count == 0
@@ -388,14 +396,24 @@ def test_semantic_delete_lists_live_dependents_only(
         "superset.commands.semantic_layer.delete.ChartFilter.apply",
         return_value=session.query(Slice.id).filter(sa.false()),
     )
+    # A user who cannot see the charts is not an admin or their editor either.
+    mocker.patch("superset.security_manager.is_admin", return_value=False)
+    for access_filter in ("DashboardAccessFilter", "ReportScheduleFilter"):
+        mocker.patch(
+            f"superset.commands.semantic_layer.delete.{access_filter}.apply",
+            side_effect=lambda query, value: query,
+        )
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.get_user_id", return_value=None
+    )
     hidden_total: int
     hidden_dependents: list[dict[str, str | int]]
     hidden_count: int
-    hidden_total, hidden_dependents, hidden_count = _dependent_assets(
+    hidden_total, hidden_dependents, hidden_count, archived_count = _dependent_assets(
         sa.select(sa.literal(42))
     )
-    assert hidden_total == 5
-    assert hidden_count == 2
+    assert hidden_total == 6
+    assert hidden_count == 3
     assert all(dependent["type"] != "chart" for dependent in hidden_dependents)
     if not orm_execution:
         connection.close()
@@ -404,7 +422,7 @@ def test_semantic_delete_lists_live_dependents_only(
 def test_semantic_delete_finds_native_filter_dashboards(
     session: Session, mocker: MockerFixture
 ) -> None:
-    """Only live, typed semantic targets block deletion; membership is deduped."""
+    """Live and archived typed targets block deletion; membership is deduped."""
     import uuid
     from datetime import datetime
 
@@ -537,10 +555,12 @@ def test_semantic_delete_finds_native_filter_dashboards(
         total: int
         dependents: list[dict[str, str | int]]
         inaccessible_count: int
-        total, dependents, inaccessible_count = _dependent_assets(
+        archived_count: int
+        total, dependents, inaccessible_count, archived_count = _dependent_assets(
             sa.select(SemanticView.id).where(SemanticView.id == 42)
         )
-        assert total == 5
+        assert total == 6
+        assert archived_count == 1
         assert inaccessible_count == 0
         assert {item["name"] for item in dependents} == {
             "Typed integer",
@@ -548,6 +568,7 @@ def test_semantic_delete_finds_native_filter_dashboards(
             "Filter and chart",
             "Member chart",
             "Native report",
+            "Deleted",
         }
         dao: MagicMock = mocker.patch(
             "superset.commands.semantic_layer.delete.SemanticViewDAO"
@@ -565,14 +586,18 @@ def test_semantic_delete_finds_native_filter_dashboards(
             "superset.commands.semantic_layer.delete.DashboardAccessFilter.apply",
             return_value=session.query(Dashboard.id).filter(sa.false()),
         )
+        mocker.patch("superset.security_manager.is_admin", return_value=False)
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.get_user_id", return_value=None
+        )
         hidden_total: int
         hidden_dependents: list[dict[str, str | int]]
         hidden_count: int
-        hidden_total, hidden_dependents, hidden_count = _dependent_assets(
-            sa.select(SemanticView.id).where(SemanticView.id == 42)
+        hidden_total, hidden_dependents, hidden_count, archived_count = (
+            _dependent_assets(sa.select(SemanticView.id).where(SemanticView.id == 42))
         )
-        assert hidden_total == 5
-        assert hidden_count == 3
+        assert hidden_total == 6
+        assert hidden_count == 4
         assert {item["name"] for item in hidden_dependents} == {
             "Member chart",
             "Native report",
@@ -648,7 +673,7 @@ def test_semantic_layer_delete_finds_dashboard_target(
             DeleteSemanticLayerCommand(str(layer_uuid)).run()
         assert exc_info.value.total == 1
         assert exc_info.value.dependents == [
-            {"type": "dashboard", "id": 741, "name": "Filter-only"}
+            {"type": "dashboard", "id": 741, "name": "Filter-only", "archived": False}
         ]
         dao.delete.assert_not_called()
     finally:
@@ -767,14 +792,17 @@ def test_semantic_delete_counts_use_one_snapshot(
         "superset.db.session.scalar", side_effect=[1, 2]
     )
     rows: MagicMock = mocker.patch("superset.db.session.execute")
-    rows.return_value.one.return_value = (1, 0)
+    rows.return_value.one.return_value = (1, 0, 0)
     rows.return_value.all.return_value = []
     mocker.patch("superset.security_manager.can_access", return_value=False)
 
     total: int
     dependents: list[dict[str, str | int]]
     inaccessible_count: int
-    total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
+    archived_count: int
+    total, dependents, inaccessible_count, archived_count = _dependent_assets(
+        sa.select(sa.literal(42))
+    )
 
     assert (total, dependents, inaccessible_count) == (1, [], 1)
     stale_scalar.assert_not_called()
@@ -810,7 +838,7 @@ def test_delete_semantic_view_creator_allowed(mocker: MockerFixture) -> None:
     mock_model.id = 42
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(0, [], 0),
+        return_value=(0, [], 0, 0),
     )
 
     dao = mocker.patch(
@@ -877,7 +905,7 @@ def test_bulk_delete_semantic_view_success(mocker: MockerFixture) -> None:
     mock_models = [MagicMock(), MagicMock()]
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(0, [], 0),
+        return_value=(0, [], 0, 0),
     )
 
     dao = mocker.patch(
@@ -925,7 +953,7 @@ def test_bulk_delete_semantic_view_creator_allowed(mocker: MockerFixture) -> Non
     mock_models = [MagicMock(), MagicMock()]
     mocker.patch(
         "superset.commands.semantic_layer.delete._dependent_assets",
-        return_value=(0, [], 0),
+        return_value=(0, [], 0, 0),
     )
 
     dao = mocker.patch(
@@ -987,3 +1015,226 @@ def test_bulk_delete_semantic_view_not_found(mocker: MockerFixture) -> None:
 
     with pytest.raises(SemanticViewNotFoundError):
         BulkDeleteSemanticViewCommand([1, 2]).run()
+
+
+@pytest.mark.parametrize("kind", ["layer", "view", "bulk"])
+def test_archived_chart_blocks_semantic_delete(
+    session: Session, mocker: MockerFixture, kind: str
+) -> None:
+    """A recoverable chart must retain its semantic source on every delete path."""
+    import uuid
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import (
+        BulkDeleteSemanticViewCommand,
+        DeleteSemanticViewCommand,
+    )
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    Slice.metadata.create_all(session.get_bind())
+    layer_uuid: uuid.UUID = uuid.uuid4()
+    session.execute(
+        SemanticLayer.__table__.insert().values(
+            uuid=layer_uuid, name="source", type="test"
+        )
+    )
+    session.execute(
+        SemanticView.__table__.insert().values(
+            id=42, name="view", semantic_layer_uuid=layer_uuid
+        )
+    )
+    session.execute(
+        Slice.__table__.insert().values(
+            id=901,
+            slice_name="archived",
+            datasource_type="semantic_view",
+            datasource_id=42,
+            deleted_at=datetime(2026, 1, 1),
+        )
+    )
+    mocker.patch("superset.security_manager.can_access", return_value=False)
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+        return_value=True,
+    )
+    layer_dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticLayerDAO"
+    )
+    view_dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO"
+    )
+    layer_dao.find_by_uuid.return_value = MagicMock(uuid=layer_uuid)
+    view_dao.find_by_id.return_value = MagicMock(id=42)
+    view_dao.find_by_ids.return_value = [MagicMock(id=42)]
+    command: (
+        DeleteSemanticLayerCommand
+        | DeleteSemanticViewCommand
+        | BulkDeleteSemanticViewCommand
+    ) = (
+        DeleteSemanticLayerCommand(str(layer_uuid))
+        if kind == "layer"
+        else DeleteSemanticViewCommand(42)
+        if kind == "view"
+        else BulkDeleteSemanticViewCommand([42])
+    )
+    exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+    with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+        command.run()
+    assert exc_info.value.total == 1
+    assert exc_info.value.archived_count == 1
+    assert exc_info.value.dependents == []
+    assert "Recently Archived" in str(exc_info.value)
+    layer_dao.delete.assert_not_called()
+    view_dao.delete.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "path", ["membership", "native_filter_configuration", "chart_customization_config"]
+)
+def test_archived_dashboard_blocks_delete_with_orm_listener(
+    session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """Core dependency queries must retain dashboards hidden by the ORM listener."""
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import _raise_for_dependents
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    Dashboard.metadata.create_all(session.get_bind())
+    session.execute(
+        Dashboard.__table__.insert().values(
+            id=950,
+            dashboard_title="Archived dashboard",
+            deleted_at=datetime(2026, 1, 1),
+            json_metadata=json.dumps(
+                {
+                    path: [
+                        {
+                            "targets": [
+                                {"datasourceType": "semantic_view", "datasetId": 42}
+                            ]
+                        }
+                    ]
+                }
+            )
+            if path != "membership"
+            else "{}",
+        )
+    )
+    if path == "membership":
+        session.execute(
+            Slice.__table__.insert().values(
+                id=951,
+                slice_name="Member",
+                datasource_type="semantic_view",
+                datasource_id=42,
+            )
+        )
+        session.execute(
+            sa.text(
+                "INSERT INTO dashboard_slices (dashboard_id, slice_id) "
+                "VALUES (950, 951)"
+            )
+        )
+    # Prove the session listener is active; do not substitute Connection.execute.
+    assert session.scalar(sa.select(Dashboard.id).where(Dashboard.id == 950)) is None
+    mocker.patch("superset.security_manager.can_access", return_value=False)
+    exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+    with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+        _raise_for_dependents(sa.select(sa.literal(42)))
+    assert exc_info.value.total == (2 if path == "membership" else 1)
+    assert exc_info.value.archived_count == 1
+    assert exc_info.value.dependents == []
+
+
+@pytest.mark.parametrize(
+    ("viewer", "named"),
+    [
+        ("admin", {"Live chart": False, "Archived chart": True}),
+        ("editor", {"Live chart": False, "Archived chart": True}),
+        ("reader", {"Live chart": False}),
+        ("guest", {"Live chart": False}),
+        ("hidden-editor", {"Archived chart": True}),
+    ],
+)
+def test_semantic_delete_names_archived_dependents_to_restore_audience(
+    session: Session, mocker: MockerFixture, viewer: str, named: dict[str, bool]
+) -> None:
+    """Archived blockers are named to whoever Recently Archived would show them."""
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import _dependent_assets
+    from superset.models.slice import Slice
+    from superset.subjects.models import chart_editors, Subject
+
+    Slice.metadata.create_all(session.get_bind())
+    session.execute(Subject.__table__.insert().values(id=1, label="editor", type=1))
+    session.execute(
+        Slice.__table__.insert(),
+        [
+            {
+                "id": 961,
+                "slice_name": "Live chart",
+                "datasource_type": "semantic_view",
+                "datasource_id": 42,
+                "deleted_at": None,
+            },
+            {
+                "id": 962,
+                "slice_name": "Archived chart",
+                "datasource_type": "semantic_view",
+                "datasource_id": 42,
+                "deleted_at": datetime(2026, 1, 1),
+            },
+        ],
+    )
+    session.execute(chart_editors.insert().values(chart_id=962, subject_id=1))
+    # Prove the session listener is active; do not substitute Connection.execute.
+    assert session.scalar(sa.select(Slice.id).where(Slice.id == 962)) is None
+    mocker.patch("superset.security_manager.can_access", return_value=True)
+    for access_filter in (
+        "ChartFilter",
+        "DashboardAccessFilter",
+        "ReportScheduleFilter",
+    ):
+        mocker.patch(
+            f"superset.commands.semantic_layer.delete.{access_filter}.apply",
+            side_effect=lambda query, value: query,
+        )
+    if viewer == "hidden-editor":
+        # Editorship names archived rows only: a live row the base filter hides
+        # stays hidden even from its editor.
+        session.execute(chart_editors.insert().values(chart_id=961, subject_id=1))
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.ChartFilter.apply",
+            side_effect=lambda query, value: query.filter(sa.false()),
+        )
+    mocker.patch(
+        "superset.security_manager.is_admin",
+        return_value=viewer in ("admin", "guest"),
+    )
+    mocker.patch(
+        "superset.security_manager.is_guest_user", return_value=viewer == "guest"
+    )
+    mocker.patch("superset.commands.semantic_layer.delete.get_user_id", return_value=7)
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.get_user_subject_ids_subquery",
+        return_value=sa.select(
+            sa.literal(1 if viewer in ("editor", "hidden-editor") else 2)
+        ),
+    )
+
+    total: int
+    dependents: list[dict[str, str | int | bool]]
+    inaccessible_count: int
+    archived_count: int
+    total, dependents, inaccessible_count, archived_count = _dependent_assets(
+        sa.select(sa.literal(42))
+    )
+
+    assert (total, archived_count) == (2, 1)
+    assert {str(item["name"]): item["archived"] for item in dependents} == named
+    assert inaccessible_count == 2 - len(named)

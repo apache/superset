@@ -576,7 +576,12 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 application/json:
                   schema:
                     type: object
-                    required: [message, total, dependents, inaccessible_count]
+                    required:
+                      - message
+                      - total
+                      - dependents
+                      - inaccessible_count
+                      - archived_count
                     properties:
                       message:
                         type: string
@@ -587,7 +592,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         maxItems: 20
                         items:
                           type: object
-                          required: [type, id, name]
+                          required: [type, id, name, archived]
                           properties:
                             type:
                               type: string
@@ -596,8 +601,17 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                               type: integer
                             name:
                               type: string
+                            archived:
+                              type: boolean
                       inaccessible_count:
                         type: integer
+                      archived_count:
+                        type: integer
+                        description: >-
+                          Archived dependents are named only to users who could
+                          restore them from Recently Archived; the others are
+                          included in inaccessible_count. The counts overlap and
+                          must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
@@ -618,6 +632,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 total=ex.total,
                 dependents=ex.dependents,
                 inaccessible_count=ex.inaccessible_count,
+                archived_count=ex.archived_count,
             )
         except SemanticViewDeleteFailedError as ex:
             logger.error(
@@ -669,7 +684,12 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 application/json:
                   schema:
                     type: object
-                    required: [message, total, dependents, inaccessible_count]
+                    required:
+                      - message
+                      - total
+                      - dependents
+                      - inaccessible_count
+                      - archived_count
                     properties:
                       message:
                         type: string
@@ -680,7 +700,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         maxItems: 20
                         items:
                           type: object
-                          required: [type, id, name]
+                          required: [type, id, name, archived]
                           properties:
                             type:
                               type: string
@@ -689,8 +709,17 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                               type: integer
                             name:
                               type: string
+                            archived:
+                              type: boolean
                       inaccessible_count:
                         type: integer
+                      archived_count:
+                        type: integer
+                        description: >-
+                          Archived dependents are named only to users who could
+                          restore them from Recently Archived; the others are
+                          included in inaccessible_count. The counts overlap and
+                          must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
@@ -719,6 +748,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 total=ex.total,
                 dependents=ex.dependents,
                 inaccessible_count=ex.inaccessible_count,
+                archived_count=ex.archived_count,
             )
         except SemanticViewDeleteFailedError as ex:
             logger.error(
@@ -1192,7 +1222,12 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                 application/json:
                   schema:
                     type: object
-                    required: [message, total, dependents, inaccessible_count]
+                    required:
+                      - message
+                      - total
+                      - dependents
+                      - inaccessible_count
+                      - archived_count
                     properties:
                       message:
                         type: string
@@ -1203,7 +1238,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                         maxItems: 20
                         items:
                           type: object
-                          required: [type, id, name]
+                          required: [type, id, name, archived]
                           properties:
                             type:
                               type: string
@@ -1212,8 +1247,17 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                               type: integer
                             name:
                               type: string
+                            archived:
+                              type: boolean
                       inaccessible_count:
                         type: integer
+                      archived_count:
+                        type: integer
+                        description: >-
+                          Archived dependents are named only to users who could
+                          restore them from Recently Archived; the others are
+                          included in inaccessible_count. The counts overlap and
+                          must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
@@ -1231,6 +1275,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                 total=ex.total,
                 dependents=ex.dependents,
                 inaccessible_count=ex.inaccessible_count,
+                archived_count=ex.archived_count,
             )
         except SemanticLayerDeleteFailedError as ex:
             logger.error(

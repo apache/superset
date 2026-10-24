@@ -81,15 +81,70 @@ test('single semantic view delete displays the counted dependency conflict', asy
     kind: 'semantic_view',
   };
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   const addDangerToast = jest.fn();
   mockDatasetListEndpoints({ result: [view], count: 1 });
   fetchMock.delete('glob:*/api/v1/semantic_view/99', {
     status: 409,
-    body: { message: reason },
+    body: { message: reason, total: 25, archived_count: 3 },
   });
   renderDatasetList(mockAdminUser, {
     addDangerToast,
+    addSuccessToast: jest.fn(),
+  });
+  await screen.findByText(view.table_name);
+  await userEvent.click(screen.getByTestId('dataset-row-delete'));
+  const modal = await screen.findByRole('dialog');
+  expect(modal).toHaveTextContent('This cannot be undone.');
+  expect(modal).not.toHaveTextContent('Deletion is blocked');
+  await userEvent.type(
+    within(modal).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  await userEvent.click(within(modal).getByRole('button', { name: 'Delete' }));
+  const alert = await within(modal).findByRole('alert');
+  expect(alert).toHaveTextContent('25 dependent assets');
+  expect(alert).toHaveTextContent('3 archived');
+  expect(
+    within(alert).getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/');
+  expect(within(modal).getByTestId('delete-modal-input')).toHaveValue('DELETE');
+  expect(addDangerToast).not.toHaveBeenCalled();
+  await userEvent.click(within(modal).getByRole('button', { name: 'Cancel' }));
+  await userEvent.click(screen.getByTestId('dataset-row-delete'));
+  await screen.findByRole('dialog');
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('alert'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByTestId('delete-modal-input'),
+  ).toHaveValue('');
+});
+
+test('single semantic view delete names its blockers, including archived ones', async () => {
+  const view = {
+    ...mockDatasets[0],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+  };
+  mockDatasetListEndpoints({ result: [view], count: 1 });
+  fetchMock.delete('glob:*/api/v1/semantic_view/99', {
+    status: 409,
+    body: {
+      message: 'blocked',
+      total: 6,
+      archived_count: 1,
+      inaccessible_count: 2,
+      dependents: [
+        { type: 'chart', id: 7, name: 'Revenue chart', archived: false },
+        { type: 'dashboard', id: 8, name: 'Old board', archived: true },
+        { type: 'dashboard', id: 9, name: 'Live board', archived: false },
+      ],
+    },
+  });
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
   });
   await screen.findByText(view.table_name);
@@ -100,10 +155,20 @@ test('single semantic view delete displays the counted dependency conflict', asy
     'DELETE',
   );
   await userEvent.click(within(modal).getByRole('button', { name: 'Delete' }));
-  await waitFor(() =>
-    expect(addDangerToast).toHaveBeenCalledWith(
-      `There was an issue deleting orders_semantic: ${reason}`,
-    ),
+  const alert = await within(modal).findByRole('alert');
+  expect(
+    within(alert).getByRole('link', { name: 'Revenue chart' }),
+  ).toHaveAttribute('href', '/explore/?slice_id=7');
+  expect(alert).toHaveTextContent('Old board (archived dashboard)');
+  expect(
+    within(alert).getByRole('link', { name: 'Live board' }),
+  ).toHaveAttribute('href', '/dashboard/9/');
+  expect(
+    within(alert).queryByRole('link', { name: 'Old board' }),
+  ).not.toBeInTheDocument();
+  expect(alert).toHaveTextContent('and 1 more');
+  expect(alert).toHaveTextContent(
+    "2 dependent assets are ones you can't see. Ask an admin for help.",
   );
 });
 
@@ -117,7 +182,7 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
   };
   const addDangerToast = jest.fn();
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   mockDatasetListEndpoints({ result: [dataset, semanticView], count: 2 });
   fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
     charts: { count: 0, result: [] },
