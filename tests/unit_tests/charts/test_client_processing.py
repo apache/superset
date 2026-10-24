@@ -30,13 +30,15 @@ from superset.charts.client_processing import (
     apply_client_processing,
     apply_pivot_number_formats,
     format_column,
+    payload_coltypes,
     pivot_df,
     pivot_table_v2,
     table,
 )
 from superset.common.chart_data import ChartDataResultFormat
-from superset.utils import excel
+from superset.utils import excel, json
 from superset.utils.core import GenericDataType
+from superset.utils.csv import chart_data_to_dataframe
 from tests.conftest import with_config
 
 
@@ -2873,6 +2875,492 @@ def test_table_applies_currency_format() -> None:
     }
     formatted = table(df, form_data)
     assert formatted["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_table_applies_time_format_alongside_number_format() -> None:
+    """
+    Table reports honor an explicit ``d3TimeFormat`` on a temporal column,
+    mirroring the Table plugin's first formatter branch, while still applying
+    number formats on the same call. Without the time branch the timestamp was
+    left raw even though the browser formats it.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {
+                0: pd.Timestamp("2024-01-15 13:45:00"),
+                1: pd.Timestamp("2024-06-30 08:00:00"),
+            },
+            "SUM(num)": {0: 1234567.0, 1: 42.0},
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["SUM(num)"],
+        "column_config": {
+            "ds": {"d3TimeFormat": "%Y"},
+            "SUM(num)": {"d3NumberFormat": ",.2f"},
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == ["2024", "2024"]
+    assert formatted["SUM(num)"].tolist() == ["1,234,567.00", "42.00"]
+
+
+@pytest.mark.parametrize(
+    ("time_format", "expected"),
+    [
+        ("%d", "01"),
+        ("%G", "2020"),
+        ("%H", "13"),
+        ("%I", "01"),
+        ("%j", "001"),
+        ("%m", "01"),
+        ("%M", "05"),
+        ("%S", "09"),
+        ("%u", "5"),
+        ("%U", "00"),
+        ("%V", "53"),
+        ("%w", "5"),
+        ("%W", "00"),
+        ("%y", "21"),
+        ("%Y", "2021"),
+        ("%%", "%"),
+        ("%G-W%V-%u", "2020-W53-5"),
+    ],
+)
+def test_table_time_format_matches_d3_for_each_shared_directive(
+    time_format: str, expected: str
+) -> None:
+    """
+    Every directive in ``SHARED_TIME_DIRECTIVES`` is held to d3's own output.
+
+    The expected strings are what ``utcFormat`` from ``d3-time-format`` returns
+    for this timestamp, so taking a directive out of the allowlist fails the
+    case that names it rather than passing unnoticed. 1 January 2021 is a
+    Friday in ISO week 53 of 2020, which is what separates ``%G`` from ``%Y``
+    and ``%V`` from ``%U`` and ``%W``; 13:05:09 separates ``%I`` from ``%H``.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2021-01-01 13:05:09")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [expected]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%Y%",
+        "%d/%m/%Y%",
+        "%%%",
+        "%Y%%%",
+    ],
+)
+def test_table_skips_a_time_format_with_an_unconsumed_percent(
+    time_format: str,
+) -> None:
+    """
+    A ``%`` that no directive consumes is dropped by d3 and copied by
+    ``strftime``.
+
+    ``%Y%`` is ``2021`` in the chart and would be ``2021%`` in the report, and
+    ``%%%`` is ``%`` against ``%%``. Every directive in these is shared, so the
+    allowlist alone accepts them and the column has to be left to the browser
+    on the stray ``%`` instead.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2021-01-01 13:05:09")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2021-01-01 13:05:09")]
+
+
+def test_table_leaves_adaptive_time_format_alone() -> None:
+    """
+    ``smart_date`` ("Adaptive formatting") is an alias the browser resolves to a
+    formatter, not a format string. It carries no ``%`` directive, so the rule
+    that a format has to have one is what keeps it away from ``strftime``,
+    which would hand the alias back unchanged and print it in every cell.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {
+                0: pd.Timestamp("2024-01-15 13:45:00"),
+                1: pd.Timestamp("2024-06-30 08:00:00"),
+            },
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "smart_date"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == [
+        pd.Timestamp("2024-01-15 13:45:00"),
+        pd.Timestamp("2024-06-30 08:00:00"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "yyyy-mm-dd",
+        "Q1",
+        "Date",
+        "100%",
+    ],
+)
+def test_table_skips_a_time_format_with_no_directive(time_format: str) -> None:
+    """
+    A format carrying no ``%`` directive is not a format string.
+
+    ``strftime`` has nothing to substitute and returns the string it was given,
+    so accepting one of these would put ``yyyy-mm-dd`` in every cell of the
+    column instead of a date. This is the rule that also rejects the adaptive
+    alias.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        pytest.param(
+            {0: "2024-01-15", 1: "2024-06-30"},
+            ["2024-01-15", "2024-06-30"],
+            id="string column",
+        ),
+        pytest.param({0: 2024, 1: 2025}, [2024, 2025], id="integer column"),
+    ],
+)
+def test_table_skips_a_time_format_on_a_non_datetime_column(
+    values: dict[int, Any], expected: list[Any]
+) -> None:
+    """
+    ``d3TimeFormat`` on a column that is not datetime leaves the column alone.
+
+    A string or a number has no ``strftime`` to call, so formatting one would
+    raise ``AttributeError`` in the report worker. The browser reaches these
+    through a d3-time-format port, which parses the value first, and that is
+    what the follow-up needs rather than something ``strftime`` can stand in
+    for.
+    """
+    df = pd.DataFrame.from_dict({"ds": values})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == expected
+
+
+def test_table_time_format_keeps_nulls() -> None:
+    """
+    A missing timestamp stays missing rather than being rendered as the string
+    ``"NaT"``, which is what ``strftime`` on a ``NaT`` would produce.
+    """
+    df = pd.DataFrame.from_dict(
+        {"ds": {0: pd.Timestamp("2024-01-15"), 1: pd.NaT}},
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist()[0] == "2024"
+    assert pd.isna(formatted["ds"].tolist()[1])
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%Y Q%q",
+        "%H:%M:%S.%L",
+        "%Q",
+        "%-d %b",
+        "%x",
+        "local!%Y-%m-%d",
+        "%Y local!",
+        "%H:%M:%S.%f",
+    ],
+)
+def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
+    """
+    ``strftime`` copies a directive it does not recognize into its output, so a
+    format carrying a d3-only one would reach the report as literal text.
+
+    So would the ``local!`` marker, wherever it sits. ``TimeFormatterRegistry``
+    reads local time off ``startsWith`` but takes the marker out of the format
+    with ``replace``, which drops it from anywhere, so a trailing one is not
+    part of the chart's output either and a format carrying one is left to the
+    browser rather than matched on its prefix.
+
+    ``%f`` is recognized by both but means different things: d3 scales the
+    milliseconds it has, so its microseconds always end in ``000``. The column
+    is left raw instead, the way an unsupported number format is.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%B %Y",
+        "%b %d",
+        "%A",
+        "%a",
+        "%I:%M %p",
+    ],
+)
+def test_table_skips_a_time_format_naming_a_month_weekday_or_period(
+    time_format: str,
+) -> None:
+    """
+    The browser reads weekday, month and period names from the d3 locale
+    definition, which ``D3_TIME_FORMAT`` overrides key by key, while ``strftime``
+    reads them from the worker's ``LC_TIME``. With French ``months`` configured
+    the chart renders ``janvier 2024`` where ``strftime`` on an English worker
+    renders ``January 2024``, so the column is left raw rather than formatted
+    with names the chart does not use.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-01-15 14:30:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-01-15 14:30:00")]
+
+
+def test_table_time_format_reads_an_aware_value_in_utc() -> None:
+    """
+    ``createD3TimeFormatter`` formats with ``utcFormat`` unless the format asks
+    for local time, so an aware value has to be read in UTC rather than in its
+    own offset, which is a different instant.
+    """
+    df = pd.DataFrame(
+        {"ds": pd.to_datetime(["2024-01-01 00:30"]).tz_localize("Asia/Kolkata")}
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y-%m-%d %H:%M"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == ["2023-12-31 19:00"]
+
+
+def test_table_report_time_format_survives_the_notification_table() -> None:
+    """
+    ``chart_data_to_dataframe`` casts every column the payload types as
+    ``TEMPORAL`` back to a datetime, so the payload has to report a formatted
+    temporal column as text or the notification table re-parses the strings and
+    the configured format never reaches the recipient.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": pd.Timestamp("2024-01-15"), "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    processed = apply_client_processing(result, form_data, datasource)
+    query = processed["queries"][0]
+
+    assert list(query["data"]["ds"].values()) == ["02/01/2024", "15/01/2024"]
+    assert query["coltypes"][0] == GenericDataType.STRING
+
+    payload = json.dumps(
+        {
+            "result": [
+                {
+                    "data": query["data"],
+                    "coltypes": [int(coltype) for coltype in query["coltypes"]],
+                    "colnames": query["colnames"],
+                    "indexnames": query["indexnames"],
+                }
+            ]
+        }
+    ).encode("utf-8")
+
+    notification_table = chart_data_to_dataframe(payload)
+
+    assert notification_table is not None
+    assert notification_table[("ds",)].tolist() == ["02/01/2024", "15/01/2024"]
+
+
+def test_table_report_time_format_survives_a_null_in_the_column() -> None:
+    """
+    A null alongside the formatted strings does not cost the column its type.
+
+    ``format_time_column`` leaves nulls in place, and ``infer_dtype`` reads a
+    ``NaT`` as a value of its own type rather than one ``skipna`` drops, so it
+    calls the column ``"mixed"`` rather than text. Typing it ``TEMPORAL`` on
+    that basis sends it back through the datetime cast in
+    ``chart_data_to_dataframe``, which reads ``02/01/2024`` month-first and
+    puts 1 February in the report, so any null in the column would undo the
+    format.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": None, "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"][0] == GenericDataType.STRING
+    values = list(query["data"]["ds"].values())
+    assert values[0] == "02/01/2024"
+    assert pd.isna(values[1])
+
+
+def test_payload_coltypes_reads_repeated_labels_positionally() -> None:
+    """
+    Two columns sharing a label are typed one at a time, not together.
+
+    ``extract_dataframe_dtypes`` walks the frame by position, so the types it
+    returns are read back the same way. Addressing the frame by label instead
+    would hand a repeated label every column that carries it, type them all
+    from the first one's values, and cost a real timestamp column its
+    ``TEMPORAL`` in the payload.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    df = pd.DataFrame(
+        [["02/01/2024", pd.Timestamp("2024-02-01")]], columns=["ds", "ds"]
+    )
+
+    assert payload_coltypes(df, datasource) == [
+        GenericDataType.STRING,
+        GenericDataType.TEMPORAL,
+    ]
+
+
+def test_report_payload_keeps_an_unformatted_temporal_column_temporal() -> None:
+    """
+    A temporal column nobody rendered as text keeps its ``TEMPORAL`` type.
+
+    The payload type is what ``chart_data_to_dataframe`` reads to rebuild dates
+    for the notification table, and what the XLSX branch hands to
+    ``excel.apply_column_types`` to get date cells. Reporting a datetime column
+    as text would cost it both.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": pd.Timestamp("2024-01-15"), "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {"viz_type": "table", "metrics": ["cnt"]}
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"][0] == GenericDataType.TEMPORAL
+    assert list(query["data"]["ds"].values()) == [
+        pd.Timestamp("2024-01-02"),
+        pd.Timestamp("2024-01-15"),
+    ]
+
+
+def test_report_payload_types_a_csv_read_temporal_column_as_text() -> None:
+    """
+    The type follows the values, not whether this module wrote them.
+
+    Number and time formatting only runs for the JSON result format, so a CSV
+    payload's temporal column arrives as text from ``read_csv`` and is reported
+    that way. Keying the override on "did a post-processor format this column"
+    instead of on the values would report text as ``TEMPORAL`` here.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "ds,cnt\n2024-01-02,1\n2024-01-15,2\n",
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"] == [GenericDataType.STRING, GenericDataType.NUMERIC]
+    # The CSV text itself is handed back untouched, formats included.
+    assert query["data"] == "ds,cnt\n2024-01-02,1\n2024-01-15,2\n"
 
 
 def test_table_applies_si_number_format() -> None:

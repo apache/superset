@@ -25,6 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+import re
 from collections.abc import Callable
 from functools import partial
 from io import BytesIO, StringIO
@@ -42,6 +43,7 @@ from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
+    GenericDataType,
     get_column_names,
     get_metric_name,
     get_metric_names,
@@ -72,6 +74,32 @@ PERCENT_1_POINT = ",.1%"
 
 # The Excel equivalent, applied as a cell format so the value stays numeric.
 EXCEL_PERCENT_FORMAT = "0.0%"
+
+# ``strftime`` copies a directive it does not recognize into its output
+# verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
+# ``%q`` stay ``%L`` and ``%q`` rather than becoming milliseconds and a quarter.
+# These are the directives that carry the same meaning in d3-time-format and in
+# ``strftime``. Left out are:
+#
+# * the ones that name a weekday, a month or a period (``%a``, ``%A``, ``%b``,
+#   ``%B``, ``%p``). The browser reads those names from the d3 locale
+#   definition, which ``D3_TIME_FORMAT`` overrides key by key, while
+#   ``strftime`` reads them from the worker's ``LC_TIME``. The two agree only
+#   when nothing is configured and the worker runs in English.
+# * the locale-composite ones (``%c``, ``%x``, ``%X``), whose output follows
+#   the server's locale rather than the chart's.
+# * ``%f``. d3 derives it from ``getUTCMilliseconds() * 1000``, so the browser's
+#   microseconds always end in ``000``, while a warehouse column with sub-second
+#   precision reaches ``strftime`` with the real value.
+# * the platform-dependent or d3-only ones (``%e``, ``%g``, ``%L``, ``%q``,
+#   ``%Q``, ``%s``, ``%Z``, ``%z``).
+SHARED_TIME_DIRECTIVES = frozenset("dGHIjmMSuUVwWyY%")
+
+# ``time-format/TimeFormats.ts::LOCAL_PREFIX``. The browser's registry removes
+# this marker from the format and formats in the viewer's own time zone instead
+# of UTC, which the server has no way to reproduce: its own zone is not the
+# viewer's. A format carrying it is left to the browser.
+LOCAL_TIME_PREFIX = "local!"
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -930,6 +958,51 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def is_strftime_expressible(d3_time_format: str) -> bool:
+    """Whether ``strftime`` renders a d3 time format the way the browser does."""
+    if LOCAL_TIME_PREFIX in d3_time_format:
+        # ``TimeFormatterRegistry.get`` strips the marker before building the
+        # formatter, so leaving it in would render it as literal text.
+        return False
+    directives = re.findall(r"%(.)", d3_time_format)
+    if not directives:
+        # Nothing for ``strftime`` to substitute, so it hands the string back
+        # unchanged and every cell would read the format itself. This is also
+        # what rejects the aliases the time format controls offer, which the
+        # browser resolves to a formatter that picks a representation per value
+        # rather than to a format string: ``smart_date`` ("Adaptive
+        # formatting", ``SMART_DATE_ID`` in ``superset-ui-core/time-format``)
+        # among them.
+        return False
+    if "%" in re.sub(r"%.", "", d3_time_format):
+        # A ``%`` no directive consumed, as the trailing one in ``%Y%``. d3
+        # drops it (``2021``) and ``strftime`` copies it (``2021%``), so the
+        # two disagree even where every directive is shared. ``%%`` is not
+        # this case: both read it as one escaped ``%``.
+        return False
+    return all(directive in SHARED_TIME_DIRECTIVES for directive in directives)
+
+
+def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> None:
+    """Format a temporal column in place with an explicit d3 time format.
+
+    The caller gates this on ``is_strftime_expressible``, so every directive in
+    ``d3_time_format`` means the same thing here as it does in the browser. Null
+    values are left as-is rather than rendered as the string ``"NaT"``.
+
+    An aware value is read in UTC. ``createD3TimeFormatter`` builds the
+    formatter with ``utcFormat`` unless the format asks for local time, which
+    ``is_strftime_expressible`` rejects, whereas ``strftime`` would use the
+    value's own offset and put a different instant in the report.
+    """
+    values = df[column]
+    if isinstance(values.dtype, pd.DatetimeTZDtype):
+        values = values.dt.tz_convert("UTC")
+    df[column] = values.apply(
+        lambda value: value.strftime(d3_time_format) if pd.notna(value) else value
+    )
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -1372,6 +1445,26 @@ def table(
     # left untouched, matching the browser.
     for column in df.columns:
         config = config_by_label.get(column) or {}
+
+        # Mirror the Table plugin's first formatter branch
+        # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
+        # an explicit per-column ``d3TimeFormat`` formats a temporal column and
+        # takes precedence over number formatting. Scoped to a datetime column
+        # carrying a format every directive of which ``strftime`` reads the same
+        # way. A column of another dtype has no ``strftime`` to call, and the
+        # bare ``isTime`` fallback, the ``tableTimestampFormat`` default,
+        # adaptive granularity and string temporal columns are left to a
+        # follow-up: they need a full server-side d3-time-format port rather
+        # than ``strftime``.
+        time_format = config.get("d3TimeFormat")
+        if (
+            time_format
+            and is_strftime_expressible(time_format)
+            and pd.api.types.is_datetime64_any_dtype(df[column])
+        ):
+            format_time_column(df, column, time_format)
+            continue
+
         configured_currency = config.get("currencyFormat") or {}
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
@@ -1446,6 +1539,44 @@ def _read_excel_for_client_processing(
         return df.iloc[:, 1:].reset_index(drop=True)
 
     return df.set_index(first_column)
+
+
+def payload_coltypes(
+    df: pd.DataFrame,
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> list[GenericDataType]:
+    """The payload's column types, reporting a text-rendered column as text.
+
+    ``extract_dataframe_dtypes`` lets the dataset's ``is_dttm`` flag decide the
+    type, so a temporal column a post-processor has rendered as text is still
+    reported as ``TEMPORAL``. ``chart_data_to_dataframe`` casts every
+    ``TEMPORAL`` column back to ``datetime64[ms]`` to build the notification
+    table, which would re-parse those strings and lose the configured format,
+    and would read ``02/01/2024`` month-first while reading ``15/01/2024``
+    day-first.
+
+    Only a column whose values really are strings is reported differently. The
+    XLSX path hands these types to ``apply_column_types`` to get date cells out
+    of a frame whose dates are still dates, and that frame is untouched here.
+
+    Nulls are dropped before the values are read. ``format_time_column`` leaves
+    them in place, and ``infer_dtype`` counts a ``NaT`` as a value of its own
+    type rather than one ``skipna`` drops, so it calls a formatted column
+    holding one ``"mixed"``. A column of nothing but nulls reads as neither
+    text nor mixed and keeps whatever type the dataset gives it.
+
+    The index is positional because ``extract_dataframe_dtypes`` walks the
+    frame the same way, so the two line up even where a label repeats.
+    """
+    coltypes = extract_dataframe_dtypes(df, datasource)
+    return [
+        GenericDataType.STRING
+        if coltype == GenericDataType.TEMPORAL
+        and pd.api.types.infer_dtype(df.iloc[:, index].dropna(), skipna=False)
+        == "string"
+        else coltype
+        for index, coltype in enumerate(coltypes)
+    ]
 
 
 @event_logger.log_this
@@ -1530,7 +1661,7 @@ def apply_client_processing(  # noqa: C901
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
-        query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
+        query["coltypes"] = payload_coltypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
         # Check if the DataFrame has a default RangeIndex, which should not be shown
