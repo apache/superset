@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import CategoricalDeckGLContainer, {
@@ -26,6 +27,7 @@ import CategoricalDeckGLContainer, {
 } from './CategoricalDeckGLContainer';
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
+import { NULL_CATEGORY_KEY } from './utils';
 
 // maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
 // calls setWorkerUrl() on it at import time.
@@ -274,4 +276,87 @@ test('with autozoom a tilt written back by Explore keeps the viewer on the same 
     </ThemeProvider>,
   );
   expect(mockViewports.at(-1)).toEqual(fitted);
+});
+
+test('rows with a null dimension get their own legend category', () => {
+  const fd = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+    color_scheme: 'supersetColors',
+    dimension: 'category',
+    slice_id: 42,
+    color_picker: { r: 0, g: 0, b: 0, a: 1 },
+  } as unknown as QueryFormData;
+  const data = [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }];
+
+  const categories = getCategories(fd, data);
+
+  expect(categories[NULL_CATEGORY_KEY]?.enabled).toBe(true);
+  expect(categories[NULL_CATEGORY_KEY]?.color).toBeDefined();
+
+  // Without a category entry the container drops the feature entirely, which is
+  // how null-dimension rows used to disappear from the map.
+  expect(data.filter(d => categories[d.cat_color]?.enabled)).toHaveLength(2);
+});
+
+test('null-dimension rows reach the layer with the N/A color and toggle with the legend', async () => {
+  const fd = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+    color_scheme: 'supersetColors',
+    dimension: 'category',
+    slice_id: 42,
+    color_picker: { r: 0, g: 0, b: 0, a: 1 },
+  } as unknown as QueryFormData;
+  const getLayer = jest.fn(() => ({}));
+  const drawnCategories = () => {
+    const { payload } = (
+      getLayer.mock.calls.at(-1) as unknown as [JsonObject]
+    )[0];
+    return payload.data.features.map((f: JsonObject) => f.cat_color);
+  };
+
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <CategoricalDeckGLContainer
+        formData={fd}
+        getLayer={getLayer}
+        getPoints={() => []}
+        viewport={{ longitude: 0, latitude: 0, zoom: 1 }}
+        width={400}
+        height={300}
+        setControlValue={jest.fn()}
+        datasource={{} as CategoricalDeckGLContainerProps['datasource']}
+        filterState={{}}
+        setDataMask={jest.fn()}
+        onContextMenu={jest.fn()}
+        emitCrossFilters={false}
+        payload={
+          {
+            data: {
+              features: [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }],
+            },
+          } as unknown as CategoricalDeckGLContainerProps['payload']
+        }
+      />
+    </ThemeProvider>,
+  );
+
+  const { payload } = (
+    getLayer.mock.calls.at(-1) as unknown as [JsonObject]
+  )[0];
+  const nullFeature = payload.data.features.find(
+    (f: JsonObject) => f.cat_color === NULL_CATEGORY_KEY,
+  );
+  expect(drawnCategories()).toEqual(['A', NULL_CATEGORY_KEY]);
+  const aFeature = payload.data.features.find(
+    (f: JsonObject) => f.cat_color === 'A',
+  );
+  expect(nullFeature.color).toHaveLength(4);
+  expect(nullFeature.color).not.toEqual(aFeature.color);
+
+  await userEvent.click(screen.getByText('N/A'));
+  expect(drawnCategories()).toEqual(['A']);
 });
