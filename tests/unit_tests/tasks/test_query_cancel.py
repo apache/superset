@@ -62,7 +62,7 @@ def test_capture_cancel_id_sets_and_resets_the_sink() -> None:
     with capture_cancel_id(sink):
         cursor = MagicMock()
         notify_cursor(cursor)
-        sink.assert_called_once_with(cursor)
+        sink.assert_called_once_with(cursor, None)
     assert _cancel_id_sink.get() is None
 
 
@@ -148,8 +148,8 @@ def test_capture_registers_abort_handler_once_when_id_available() -> None:
         with _capture_query_cancellation(qc):
             sink = _cancel_id_sink.get()
             assert sink is not None
-            sink(MagicMock())  # first cursor -> registers handler
-            sink(MagicMock())  # second cursor -> no double registration
+            sink(MagicMock(), None)  # first cursor -> registers handler
+            sink(MagicMock(), None)  # second cursor -> no double registration
 
     ctx.on_abort.assert_called_once()
     # The handle is persisted (for the orphan reaper) before on_abort, whose
@@ -157,6 +157,51 @@ def test_capture_registers_abort_handler_once_when_id_available() -> None:
     ctx.set_cancellation.assert_called_once_with(qc.datasource.database.id, "42")
     ordered = [c[0] for c in ctx.method_calls]
     assert ordered.index("set_cancellation") < ordered.index("on_abort")
+
+
+def test_capture_ignores_cursor_from_a_different_database() -> None:
+    from superset.tasks.async_queries import _capture_query_cancellation
+
+    ctx = MagicMock()
+    qc = _query_context("42")
+    other_database = MagicMock()
+    other_database.id = qc.datasource.database.id + 1
+    with (
+        patch("superset.tasks.async_queries.get_context", return_value=ctx),
+        patch("superset.tasks.async_queries.current_app"),
+    ):
+        with _capture_query_cancellation(qc):
+            sink = _cancel_id_sink.get()
+            assert sink is not None
+            sink(MagicMock(), other_database)
+
+    ctx.on_abort.assert_not_called()
+    ctx.set_cancellation.assert_not_called()
+
+
+def test_notify_cursor_routes_by_database_through_the_real_seam() -> None:
+    """Driven through ``notify_cursor`` (the seam ``get_raw_connection`` calls)
+    rather than the sink directly: the task's own database registers the abort
+    handler exactly once, another database's cursor registers nothing."""
+    from superset.tasks.async_queries import _capture_query_cancellation
+
+    ctx = MagicMock()
+    qc = _query_context("42")
+    own_database = qc.datasource.database
+    other_database = MagicMock()
+    other_database.id = own_database.id + 1
+    with (
+        patch("superset.tasks.async_queries.get_context", return_value=ctx),
+        patch("superset.tasks.async_queries.current_app"),
+    ):
+        with _capture_query_cancellation(qc):
+            notify_cursor(MagicMock(), other_database)
+            ctx.on_abort.assert_not_called()
+            notify_cursor(MagicMock(), own_database)
+            notify_cursor(MagicMock(), own_database)
+
+    ctx.on_abort.assert_called_once()
+    ctx.set_cancellation.assert_called_once_with(own_database.id, "42")
 
 
 def test_capture_skips_abort_handler_when_engine_has_no_cancel_id() -> None:
@@ -171,7 +216,7 @@ def test_capture_skips_abort_handler_when_engine_has_no_cancel_id() -> None:
         with _capture_query_cancellation(qc):
             sink = _cancel_id_sink.get()
             assert sink is not None
-            sink(MagicMock())
+            sink(MagicMock(), None)
 
     ctx.on_abort.assert_not_called()
     ctx.set_cancellation.assert_not_called()

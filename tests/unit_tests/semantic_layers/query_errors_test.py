@@ -649,7 +649,8 @@ def test_annotation_access_denial_http(
     if result_type == "full":
         assert response.status_code == 400
         assert "Annotation datasource access denied" in response.get_data(as_text=True)
-        chart.get_query_context.return_value.raise_for_access.assert_called_once()
+        # Called once to derive the annotation cache scope and once by the live fetch.
+        chart.get_query_context.return_value.raise_for_access.assert_called()
     else:
         # Query previews do not load annotations; their own validation error
         # remains in the successful response's per-query payload.
