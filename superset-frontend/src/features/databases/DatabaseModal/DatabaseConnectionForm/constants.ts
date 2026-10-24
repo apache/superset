@@ -19,6 +19,7 @@
 import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   accessTokenField,
+  awsSecretAccessKeyField,
   databaseField,
   defaultCatalogField,
   defaultSchemaField,
@@ -60,6 +61,12 @@ export const FormFieldOrder = [
   'account',
   'warehouse',
   'role',
+  'aws_access_key_id',
+  'aws_secret_access_key',
+  'region_name',
+  's3_staging_dir',
+  'schema_name',
+  'work_group',
   'ssh',
   'oauth2_client_info',
 ];
@@ -90,6 +97,12 @@ export const FORM_FIELD_MAP = {
   warehouse: validatedInputField,
   role: validatedInputField,
   account: validatedInputField,
+  aws_access_key_id: validatedInputField,
+  aws_secret_access_key: awsSecretAccessKeyField,
+  region_name: validatedInputField,
+  s3_staging_dir: validatedInputField,
+  schema_name: validatedInputField,
+  work_group: validatedInputField,
   ssh: SSHTunnelSwitchComponent,
   project_id: projectIdfield,
 };
