@@ -25,6 +25,8 @@ documented 404s for unknown entity/version UUIDs.
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 import sqlalchemy as sa
@@ -404,6 +406,187 @@ class TestDashboardRestoreApi(SupersetTestCase):
             db.session.query(Slice).filter(Slice.id == victim_id).one_or_none() is None
         ), "restore must not revive a hard-deleted chart"
 
+    @parameterized.expand([(True, False), (False, True), (True, True)])
+    def test_restore_sets_archived_chart_membership(
+        self, in_snapshot: bool, member_when_archived: bool
+    ) -> None:
+        """An archived chart's membership follows the restored version.
+
+        An archived chart is still a recoverable member: restoring the chart
+        later puts it back on the dashboards it belongs to. So a restored
+        version that had the chart links it again, and one that didn't
+        unlinks it.
+        """
+        from superset.daos.version import derive_version_uuid
+        from superset.models.slice import Slice
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        dashboard_id: int = dashboard.id
+        original_ids: list[int] = sorted(s.id for s in dashboard.slices)
+        assert len(original_ids) >= 2
+        archived: Slice = dashboard.slices[0]
+        archived_id: int = archived.id
+        if not in_snapshot:
+            dashboard.slices.remove(archived)
+            db.session.commit()
+
+        # Snapshot point.
+        dashboard.dashboard_title = "USA Births Names — archived snapshot"
+        db.session.commit()
+        ver_cls: Any = version_class(Dashboard)
+        entity_uuid: UUID | None = dashboard.uuid
+        assert entity_uuid is not None
+        target_tx: int = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        target_uuid: str = str(derive_version_uuid(entity_uuid, target_tx))
+
+        # Set the membership the chart has when it is archived.
+        if in_snapshot and not member_when_archived:
+            dashboard.slices.remove(archived)
+        elif member_when_archived and not in_snapshot:
+            dashboard.slices.append(archived)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        assert self.client.delete(f"/api/v1/chart/{archived_id}").status_code == 200
+        chart_restored: bool = False
+        try:
+            rv: Any = self._restore(str(dashboard.uuid), target_uuid)
+            assert rv.status_code == 200, rv.data
+            message: str = _json.loads(rv.data.decode("utf-8")).get("message", "")
+            assert "no longer exist" not in message, message
+
+            db.session.expire_all()
+            members: set[int] = {
+                row[0]
+                for row in db.session.execute(
+                    sa.text(
+                        "SELECT slice_id FROM dashboard_slices "
+                        "WHERE dashboard_id = :dashboard_id"
+                    ),
+                    {"dashboard_id": dashboard_id},
+                )
+            }
+            others: set[int] = set(original_ids) - {archived_id}
+            assert members == (others | {archived_id} if in_snapshot else others)
+            # The archived chart's newest association history row agrees.
+            latest_operation: int = db.session.execute(
+                sa.text(
+                    "SELECT operation_type FROM dashboard_slices_version "
+                    "WHERE dashboard_id = :dashboard_id AND slice_id = :slice_id "
+                    "ORDER BY transaction_id DESC, operation_type DESC LIMIT 1"
+                ),
+                {"dashboard_id": dashboard_id, "slice_id": archived_id},
+            ).scalar_one()
+            assert (latest_operation != M2M_OP_DELETE) is in_snapshot
+
+            # Restoring the chart brings it back only where the version had it.
+            rv = self.client.post(f"/api/v1/chart/{archived.uuid}/restore")
+            assert rv.status_code == 200, rv.data
+            chart_restored = True
+            db.session.expire_all()
+            dashboard = db.session.get(Dashboard, dashboard_id)
+            assert (archived_id in {s.id for s in dashboard.slices}) is in_snapshot
+        finally:
+            db.session.rollback()
+            if not chart_restored:
+                self.client.post(f"/api/v1/chart/{archived.uuid}/restore")
+            # Leave the fixture's dashboard with all of its charts.
+            db.session.expire_all()
+            dashboard = db.session.get(Dashboard, dashboard_id)
+            if archived_id not in {s.id for s in dashboard.slices}:
+                dashboard.slices.append(db.session.get(Slice, archived_id))
+                db.session.commit()
+
+    def test_restore_unlinks_archived_chart_from_empty_version(self) -> None:
+        """A version with no charts unlinks a chart archived since then."""
+        from superset.daos.version import derive_version_uuid
+        from superset.models.slice import Slice
+
+        _persist_fixture_state()
+        source: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert source is not None
+        archived: Slice = source.slices[0]
+        archived_id: int = archived.id
+        admin_id: int = self.get_user(ADMIN_USERNAME).id
+        dashboard: Dashboard = self.insert_dashboard(
+            "empty version restore", "empty-version-restore", [admin_id]
+        )
+        dashboard_id: int = dashboard.id
+
+        # Snapshot point: no charts.
+        dashboard.dashboard_title = "empty version restore — snapshot"
+        db.session.commit()
+        ver_cls: Any = version_class(Dashboard)
+        entity_uuid: UUID | None = dashboard.uuid
+        assert entity_uuid is not None
+        target_tx: int = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        target_uuid: str = str(derive_version_uuid(entity_uuid, target_tx))
+
+        dashboard.slices.append(archived)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        assert self.client.delete(f"/api/v1/chart/{archived_id}").status_code == 200
+        try:
+            rv: Any = self._restore(str(entity_uuid), target_uuid)
+            assert rv.status_code == 200, rv.data
+
+            db.session.expire_all()
+            members: list[Any] = db.session.execute(
+                sa.text(
+                    "SELECT slice_id FROM dashboard_slices "
+                    "WHERE dashboard_id = :dashboard_id"
+                ),
+                {"dashboard_id": dashboard_id},
+            ).fetchall()
+            assert members == []
+        finally:
+            db.session.rollback()
+            self.client.post(f"/api/v1/chart/{archived.uuid}/restore")
+            db.session.expire_all()
+            db.session.delete(db.session.get(Dashboard, dashboard_id))
+            db.session.commit()
+
+    def test_restore_membership_refuses_unflushed_slices_change(self) -> None:
+        """Installing the membership baseline would silently drop a pending
+        change to ``dashboard.slices``, so the restore refuses instead."""
+        from superset.versioning.restore import _restore_dashboard_membership
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        try:
+            with db.session.no_autoflush:
+                dashboard.slices.remove(dashboard.slices[0])
+                with pytest.raises(RuntimeError, match="unflushed changes"):
+                    _restore_dashboard_membership(dashboard, 0)
+        finally:
+            db.session.rollback()
+
     def test_restore_denies_non_editor_with_write_permission(self) -> None:
         """A user holding can_write on Dashboard but who is not an editor
         of THIS dashboard gets 403 from the command's editorship check."""
@@ -671,6 +854,173 @@ class TestDashboardRestoreLayoutMembership(SupersetTestCase, InsertChartMixin):
             chart: Slice
             for chart in charts.values():
                 db.session.delete(db.session.get(Slice, chart.id))
+            table: SqlaTable = db.session.get(SqlaTable, dataset.id)
+            database: Database = table.database
+            db.session.delete(table)
+            db.session.delete(database)
+            db.session.commit()
+
+
+class TestDashboardRestoreConcurrentPurge(SupersetTestCase, InsertChartMixin):
+    """A restore racing a purge of a chart it reattaches fails cleanly.
+
+    The purge commits on its own connection after the restore has read the
+    charts it will reattach and before it writes them, the window a real
+    concurrent purge can land in.
+    """
+
+    @parameterized.expand(
+        [
+            ("reattach_purged", False, True),
+            ("unlink_purged", True, True),
+            ("unrelated_foreign_key_failure", False, False),
+        ]
+    )
+    def test_restore_conflicts_with_concurrent_chart_purge(
+        self, case: str, unlink: bool, purge: bool
+    ) -> None:
+        """Purging a chart the restore links or unlinks makes the restore a
+        retryable 409. A simulated foreign key failure injected by the audit
+        stamp while no such chart is missing stays the ordinary 422, because
+        retrying would not help."""
+        import sqlite3
+
+        from sqlalchemy.exc import IntegrityError
+        from sqlalchemy.orm import Session
+
+        from superset.commands.deletion_retention.purge_cascade import (
+            cascade_hard_delete,
+            suppress_purge_association_versions,
+        )
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.core import Database
+        from superset.models.helpers import skip_visibility_filter
+        from superset.models.slice import Slice
+        from superset.versioning import restore as restore_module
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset: SqlaTable = SqlaTable(
+            table_name="restore_concurrent_purge",
+            database=Database(
+                database_name="restore_concurrent_purge", sqlalchemy_uri="sqlite://"
+            ),
+        )
+        db.session.add(dataset)
+        db.session.commit()
+        kept: Slice = self.insert_chart("restore-purge-kept", [admin.id], dataset.id)
+        purged: Slice = self.insert_chart(
+            "restore-purge-purged", [admin.id], dataset.id
+        )
+        kept_id: int = kept.id
+        purged_id: int = purged.id
+        dashboard_id: int | None = None
+        try:
+            self.login(ADMIN_USERNAME)
+            dashboard_id = self.client.post(
+                "/api/v1/dashboard/", json={"dashboard_title": "restore-purge"}
+            ).json["id"]
+            dashboard: Dashboard = db.session.get(Dashboard, dashboard_id)
+            dashboard_uuid: str = str(dashboard.uuid)
+            # The restore to version 1 reattaches the purged chart, or with
+            # ``unlink`` removes it from the live dashboard.
+            layouts: list[list[int]] = [[kept_id, purged_id], [kept_id]]
+            if unlink:
+                layouts.reverse()
+            chart_ids: list[int]
+            for chart_ids in layouts:
+                rv: TestResponse = self.client.put(
+                    f"/api/v1/dashboard/{dashboard_id}",
+                    json={
+                        "json_metadata": _json.dumps(
+                            {"positions": _chart_layout(chart_ids)}
+                        )
+                    },
+                )
+                assert rv.status_code == 200, rv.data
+            versions: list[dict[str, Any]] = self.client.get(
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/"
+            ).json["result"]
+            version_uuid: str = next(
+                version["version_uuid"]
+                for version in versions
+                if version["version_number"] == 1
+            )
+            # Only an archived chart can be purged.
+            rv = self.client.delete(f"/api/v1/chart/{purged_id}")
+            assert rv.status_code == 200, rv.data
+            db.session.expire_all()
+            position_before: str = db.session.get(Dashboard, dashboard_id).position_json
+            version_rows_before: int = len(
+                _get_version_rows(db.session.get(Dashboard, dashboard_id))
+            )
+
+            stamp_audit_fields: Any = restore_module._stamp_audit_fields_for_restore
+
+            def purge_then_stamp(entity: Any) -> None:
+                if not purge:
+                    raise IntegrityError(
+                        "INSERT INTO dashboard_slices",
+                        None,
+                        sqlite3.IntegrityError("FOREIGN KEY constraint failed"),
+                    )
+                other: Session
+                with Session(bind=db.engine) as other:
+                    with skip_visibility_filter(other, Slice):
+                        chart: Slice = other.get(Slice, purged_id)
+                    with suppress_purge_association_versions(other):
+                        assert cascade_hard_delete(
+                            other, chart, enforce_window=False, require_archived=True
+                        ).purged
+                    other.commit()
+                stamp_audit_fields(entity)
+
+            restore_url: str = (
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/{version_uuid}/restore"
+            )
+            with patch.object(
+                restore_module,
+                "_stamp_audit_fields_for_restore",
+                side_effect=purge_then_stamp,
+            ):
+                rv = self.client.post(restore_url)
+            if purge:
+                assert rv.status_code == 409, rv.data
+                assert "try again" in rv.json["message"], rv.json
+            else:
+                assert rv.status_code == 422, rv.data
+
+            # Nothing was restored.
+            db.session.expire_all()
+            dashboard = db.session.get(Dashboard, dashboard_id)
+            assert dashboard.position_json == position_before
+            assert {s.id for s in dashboard.slices} == {kept_id}
+            assert len(_get_version_rows(dashboard)) == version_rows_before
+
+            # Retrying restores the version: its layout comes back, without
+            # the purged chart as a member. The purge also removed the
+            # chart's history, so the version no longer lists it at all.
+            if purge:
+                rv = self.client.post(restore_url)
+                assert rv.status_code == 200, rv.data
+                db.session.expire_all()
+                dashboard = db.session.get(Dashboard, dashboard_id)
+                assert dashboard.position_json != position_before
+                assert {
+                    node["meta"]["chartId"]
+                    for node in dashboard.position.values()
+                    if isinstance(node, dict) and node.get("type") == "CHART"
+                } == set(layouts[0])
+                assert {s.id for s in dashboard.slices} == {kept_id}
+        finally:
+            db.session.rollback()
+            if dashboard_id is not None:
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+            chart_id: int
+            leftover: Slice | None
+            with skip_visibility_filter(db.session, Slice):
+                for chart_id in (kept_id, purged_id):
+                    if (leftover := db.session.get(Slice, chart_id)) is not None:
+                        db.session.delete(leftover)
             table: SqlaTable = db.session.get(SqlaTable, dataset.id)
             database: Database = table.database
             db.session.delete(table)

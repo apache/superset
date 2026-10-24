@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1305,6 +1305,9 @@ msgstr "E Mahi Ana"
 msgid "About"
 msgstr "Mō"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Urunga"
 
@@ -1768,6 +1771,9 @@ msgstr "Whakaarotautanga"
 
 msgid "Aggregation Method"
 msgstr "Tikanga Whakaarotau"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3714,6 +3720,12 @@ msgstr "He tapu te whakarereke i tēnei kauwhata"
 msgid "Changing this semantic view is forbidden"
 msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
@@ -3871,6 +3883,10 @@ msgstr "Taitara kauwhata"
 #, fuzzy
 msgid "Chart type"
 msgstr "Taitara kauwhata"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
@@ -4252,6 +4268,9 @@ msgstr "Katia te ētita tūāhanga tae"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Kati ripa"
 
@@ -4400,6 +4419,10 @@ msgstr "Tae o te wāhi whāinga"
 
 msgid "Color scheme"
 msgstr "Kaupapa tae"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5023,8 +5046,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Tatau"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Whenua"
@@ -5520,6 +5560,10 @@ msgstr "Taitara papatohu"
 msgid "Dashboard updated %s"
 msgstr "I Whakahouhia Whakamutunga %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Whakamahinga papatohu"
 
@@ -5768,6 +5812,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "He muhu te hanga rārangi raraunga, nā: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7882,6 +7930,10 @@ msgstr "I Rahua"
 msgid "Failed at retrieving results"
 msgstr "I rahua te tiki i ngā hua"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8206,7 +8258,13 @@ msgstr "Tātari kauwhata"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -8870,10 +8928,10 @@ msgstr "Ka hunaia te Rārangi mō te raupapa wā"
 msgid "Hierarchy"
 msgstr "Taumata"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9420,6 +9478,11 @@ msgstr "Longitude/latitude muhu"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Ahanoa ine muhu: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Taumahi numpy muhu: %(operator)s"
@@ -9788,6 +9851,9 @@ msgstr "Tau whakamutunga"
 msgid "Lat"
 msgstr "Lat"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Latitude"
 
@@ -10075,6 +10141,9 @@ msgstr "Rārangi Tūranga"
 msgid "List Roles"
 msgstr "Rārangi Tūranga"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Rārangi Kaiwhakamahi"
 
@@ -10217,10 +10286,10 @@ msgstr "Longitude me Latitude"
 msgid "Longitude of default viewport"
 msgstr "Longitude o te tirohanga taunoa"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10482,6 +10551,9 @@ msgstr "Toharite o ngā uara i te wā kua tohua"
 msgid "Mean values"
 msgstr "Uara toharite"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10732,6 +10804,9 @@ msgstr "Iti"
 msgid "Minimum Font Size"
 msgstr "Rahi Momotuhi Iti"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Pūtoro Iti"
 
@@ -10740,6 +10815,16 @@ msgid "Minimum Width"
 msgstr "Whānui Iti"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11340,6 +11425,9 @@ msgstr ""
 "Kāore i kitea he kaimanatoko ko %(validator_name)s te ingoa (kua "
 "whirihorahia mō te pūkaha %(engine_spec)s)"
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "Tūnga tapanga pona"
 
@@ -11753,9 +11841,6 @@ msgstr "Ataata o ngā pōro, 0 he ataata katoa, 1 he kino"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Ataata, e tūmanako ana i ngā uara i waenga i te 0 me te 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Huaki ripa Puna Raraunga"
 
@@ -11791,6 +11876,9 @@ msgstr "Huaki i SQL Lab"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Huaki i SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Huaki pātai i SQL Lab"
@@ -14074,6 +14162,12 @@ msgstr ""
 msgid "Search"
 msgstr "Rapu"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Rapu %s rekoata"
+msgstr[1] "Rapu %s rekoata"
+
 msgid "Search / Filter"
 msgstr "Rapu / Tātari"
 
@@ -14133,9 +14227,6 @@ msgstr "Rapu i ngā tātari"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Rapu Ine me ngā Tīwae"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -14741,6 +14832,12 @@ msgstr "Ngā Tirohanga Tikanga"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Papa tohu"
@@ -14812,6 +14909,11 @@ msgstr "He muhu ngā tawhā rārangi raraunga."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Kua whakahōungia te tirohanga tikanga"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -15189,11 +15291,11 @@ msgstr "Whakaatu Waitohu"
 msgid "Show column headers"
 msgstr "Te tapanga pane tīwae"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Whakaatu tapeke tīwae"
-
-msgid "Show columns total"
-msgstr "Whakaatu tapeke tīwae katoa"
 
 msgid "Show empty columns"
 msgstr "Whakaatu tīwae kau"
@@ -15276,11 +15378,11 @@ msgstr "Tirohia ngā taipitopito pātai"
 msgid "Show row labels"
 msgstr "Whakaatu Tapanga"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Whakaatu tapeke rārangi"
-
-msgid "Show rows total"
-msgstr "Whakaatu tapeke rārangi katoa"
 
 msgid "Show series values on the chart"
 msgstr "Whakaatu uara raupapa i te kauwhata"
@@ -15530,6 +15632,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "He uara ō ētahi tātari hiahiatia i runga i ērā atu ripa ā kāore e ūkuia "
 "ana"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -16040,6 +16145,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Tapeke"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Tapeke o ngā uara i te wā kua tohua"
 
@@ -16380,6 +16494,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Tawhā tauira"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -17641,6 +17758,9 @@ msgstr "Ko ngā uara e tāruatia ana i ērā atu uara pūnaha whakawehe"
 msgid "The version of the service"
 msgstr "Te putanga o te ratonga"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Te taitara kite o te papa"
 
@@ -18146,6 +18266,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18520,6 +18643,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18946,6 +19076,12 @@ msgid ""
 msgstr ""
 "He maha rawa ngā waehanga iti i tonohia. Ko te maha nui rawa atu e taea "
 "ana ko %(max)s, engari ko %(count)s i tonohia."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -19706,6 +19842,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Whakamahia hōputu rā ahakoa karekau te uara ine he waitohu"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -19714,6 +19857,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "Māeneene wā"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -20050,6 +20196,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Tirohanga"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Mariko"
@@ -20733,6 +20882,9 @@ msgid "X Axis Label Interval"
 msgstr "Tapanga Tukutuku X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Hōputu Tukutuku X"
 
@@ -20778,6 +20930,9 @@ msgstr "Hōputu Tukutuku Y"
 
 msgid "Y Axis Label"
 msgstr "Tapanga Tukutuku Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Taitara Tukutuku Y"
@@ -21338,6 +21493,11 @@ msgstr "Kua whakahouhia tō pātai"
 
 msgid "Your report could not be deleted"
 msgstr "Kāore i taea te muku i tō pūrongo"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

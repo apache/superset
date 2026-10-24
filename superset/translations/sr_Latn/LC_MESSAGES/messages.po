@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1479,6 +1479,9 @@ msgstr "Prekidanje"
 msgid "About"
 msgstr "O programu"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -2035,6 +2038,9 @@ msgstr "Agregacija"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Aggregation Method"
 msgstr "Metod agregacije"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4303,6 +4309,12 @@ msgstr "Promena ovog semantičkog sloja je zabranjena"
 msgid "Changing this semantic view is forbidden"
 msgstr "Promena ovog semantičkog prikaza je zabranjena"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "Promena ovog zadatka je zabranjena"
 
@@ -4490,6 +4502,10 @@ msgstr "Naslov grafikona"
 # ru, uk]
 msgid "Chart type"
 msgstr "Tip grafikona"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 # ru, uk]
 msgid "Chart was saved but could not be added to the selected tab."
@@ -4936,6 +4952,9 @@ msgstr "Zatvori editor prelomnih tačaka boje"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Close tab"
@@ -5092,6 +5111,10 @@ msgstr "Boja ciljne lokacije"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Color scheme"
 msgstr "Šema boja"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5816,9 +5839,26 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Count"
 msgstr "Broj"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Country"
@@ -6400,6 +6440,10 @@ msgstr "Naslov kontrolne table"
 msgid "Dashboard updated %s"
 msgstr "Kontrolna tabla ažurirana %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Dashboard usage"
 msgstr "Korišćenje kontrolne table"
@@ -6720,6 +6764,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Šema skupa podataka nije valjana, uzrok: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -9186,6 +9234,10 @@ msgstr "Neuspelo"
 msgid "Failed at retrieving results"
 msgstr "Neuspelo preuzimanje rezultata"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Neuspela primena teme: Nevažeći JSON"
@@ -9518,7 +9570,13 @@ msgstr "Filtriraj grafikone"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -10273,10 +10331,10 @@ msgstr "Sakriva liniju za vremensku seriju"
 msgid "Hierarchy"
 msgstr "Hijerarhija"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10897,6 +10955,11 @@ msgstr "Nevažeća geografska dužina/širina"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Nevažeći objekat mere: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
@@ -11329,6 +11392,9 @@ msgstr "Poslednja godina"
 msgid "Lat"
 msgstr "Geo. šir."
 
+msgid "Latest save"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Latitude"
 msgstr "Geografska širina"
@@ -11661,6 +11727,9 @@ msgstr "Lista grupa"
 msgid "List Roles"
 msgstr "Lista uloga"
 
+msgid "List Unique Values"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "List Users"
 msgstr "Lista korisnika"
@@ -11830,10 +11899,10 @@ msgstr "Geografska dužina i širina"
 msgid "Longitude of default viewport"
 msgstr "Geografska dužina podrazumevanog prikaza"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -12113,6 +12182,9 @@ msgstr "Srednja vrednost vrednosti tokom navedenog perioda"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Mean values"
 msgstr "Srednje vrednosti"
+
+msgid "Median"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -12404,6 +12476,9 @@ msgid "Minimum Font Size"
 msgstr "Minimalna veličina fonta"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimalni radijus"
 
@@ -12414,6 +12489,16 @@ msgid "Minimum dot size"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "Minimum mora biti strogo manji od maksimuma"
 
@@ -13129,6 +13214,9 @@ msgstr ""
 "Nije pronađen validator pod nazivom %(validator_name)s (konfigurisan za "
 "mehanizam %(engine_spec)s)"
 
+msgid "No views provided"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Node label position"
 msgstr "Pozicija oznake čvora"
@@ -13617,9 +13705,6 @@ msgstr "Providnost balončića, 0 znači potpuno providno, 1 znači neprovidno"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Providnost, očekuje vrednosti između 0 i 100"
 
-msgid "Open"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Open Datasource tab"
@@ -13659,6 +13744,9 @@ msgstr "Otvori u SQL Lab-u"
 # uk]
 msgid "Open in SQL lab"
 msgstr "Otvori u SQL Lab-u"
+
+msgid "Open price"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -16352,6 +16440,13 @@ msgstr "Skrolujte do dna da biste omogućili prepisivanje izmena. "
 msgid "Search"
 msgstr "Pretraga"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Pretraži %s zapis"
+msgstr[1] "Pretraži %s zapisa"
+msgstr[2] "Pretraži %s zapisa"
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
@@ -16415,9 +16510,6 @@ msgstr "Pretraga u filterima"
 
 msgid "Search metrics by key or label"
 msgstr "Pretraži metrike po ključu ili oznaci"
-
-msgid "Search records"
-msgstr ""
 
 # uk]
 msgid "Search tags"
@@ -17069,6 +17161,12 @@ msgstr "Semantički pogledi"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Semantički sloj"
 
@@ -17124,6 +17222,11 @@ msgstr "Parametri semantičkog pregleda su nevažeći."
 
 msgid "Semantic view updated"
 msgstr "Semantički pregled je ažuriran"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 msgid "Semantic views"
 msgstr "Semantički pregledi"
@@ -17543,13 +17646,12 @@ msgstr "Prikaži vremenske oznake upita grafikona"
 msgid "Show column headers"
 msgstr "Prikaži zaglavlja kolona"
 
+msgid "Show column summaries"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Show columns subtotal"
 msgstr "Prikaži podzbir kolona"
-
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "Show columns total"
-msgstr "Prikaži ukupan zbir kolona"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Show empty columns"
@@ -17646,13 +17748,12 @@ msgstr "Prikaži identifikatore upita"
 msgid "Show row labels"
 msgstr "Prikaži oznake redova"
 
+msgid "Show row summaries"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Show rows subtotal"
 msgstr "Prikaži međuzbir redova"
-
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "Show rows total"
-msgstr "Prikaži ukupan zbir redova"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show series values on the chart"
@@ -17920,6 +18021,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Neki obavezni filteri na drugim karticama imaju vrednosti i neće biti "
 "obrisani"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -18525,6 +18629,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Zbir"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sum of values over specified period"
 msgstr "Zbir vrednosti za navedeni period"
@@ -18912,6 +19025,9 @@ msgstr ""
 # zh_TW]
 msgid "Template parameters"
 msgstr "Parametri šablona"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 # uk]
 #, python-format
@@ -20283,6 +20399,9 @@ msgstr "Vrednosti se preklapaju sa drugim vrednostima prekidnih tačaka"
 msgid "The version of the service"
 msgstr "Verzija servisa"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "The visible title of the layer"
 msgstr "Vidljiv naslov sloja"
@@ -20846,6 +20965,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -21221,6 +21343,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -21714,6 +21843,12 @@ msgid ""
 msgstr ""
 "Zatraženo je previše pod-isečaka. Maksimalni dozvoljeni broj je %(max)s, "
 "ali je zatraženo %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 # uk]
 msgid "Tool Panel"
@@ -22551,6 +22686,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Koristi format datuma čak i kada vrednost metrike nije vremenska oznaka"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -22559,6 +22701,9 @@ msgstr ""
 # uk]
 msgid "Use gradient"
 msgstr "Koristi gradijent"
+
+msgid "Use metric definition"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use metrics as a top level group for columns or for rows"
@@ -22935,6 +23080,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Viewport"
 msgstr "Prikazni okvir"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Virtual"
@@ -23742,6 +23890,9 @@ msgid "X Axis Label Interval"
 msgstr "Interval oznaka X ose"
 
 # ru, uk]
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Format brojeva X ose"
 
@@ -23802,6 +23953,9 @@ msgid "Y Axis Label"
 msgstr "Oznaka Y ose"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Y Axis Minimum Interval"
+msgstr ""
+
 msgid "Y Axis Title"
 msgstr "Naslov Y ose"
 
@@ -24424,6 +24578,11 @@ msgstr "Vaš upit je ažuriran"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Your report could not be deleted"
 msgstr "Vaš izveštaj nije mogao biti obrisan"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

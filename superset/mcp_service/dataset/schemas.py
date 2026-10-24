@@ -37,7 +37,11 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.chart.schemas import (
+    DataColumn,
+    PerformanceMetadata,
+    UnknownFieldCheckMixin,
+)
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
@@ -68,6 +72,7 @@ from superset.mcp_service.utils.serialization import (
 )
 from superset.sql.parse import has_aggregate
 from superset.utils import json
+from superset.utils.number_format import is_valid_d3_format
 
 
 class DatasetFilter(ColumnOperator):
@@ -265,12 +270,15 @@ class DatasetList(PaginatedResponse[DatasetFilter]):
 
 
 class ListDatasetsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DatasetFilter],
 ):
     """Request schema for list_datasets with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Unlike its siblings, this schema does NOT parse JSON-string `filters`/
     # `select_columns` into lists; it relies on Pydantic's native list
@@ -465,6 +473,16 @@ class CreateDatasetMetric(BaseModel):
                 "saved metrics must aggregate rows; wrap a row-level column in "
                 "an aggregate such as MAX(column), or omit the saved metric and "
                 "use the dataset column directly"
+            )
+        return value
+
+    @field_validator("d3format")
+    @classmethod
+    def d3format_must_be_valid(cls, value: str | None) -> str | None:
+        if not is_valid_d3_format(value):
+            raise ValueError(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
             )
         return value
 
@@ -710,6 +728,16 @@ class DatasetMetricProperties(OmittedMeansUnchanged):
     extra: str | None = Field(
         None, description="JSON-encoded string with extra metric metadata."
     )
+
+    @field_validator("d3format")
+    @classmethod
+    def d3format_must_be_valid(cls, value: str | None) -> str | None:
+        if not is_valid_d3_format(value):
+            raise ValueError(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
+            )
+        return value
 
     def updates(self) -> Dict[str, Any]:
         """Return only the metric properties explicitly provided by the caller.
