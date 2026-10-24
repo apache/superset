@@ -58,12 +58,18 @@ def _quote_if_formula(text: str) -> str:
     Prefix formula-like text with an apostrophe so spreadsheet apps treat it as
     literal text (defense against formula injection).
 
+    Headers and rows go out through ``write_row``, which picks each cell's type
+    from its value, so a string whose first character is ``=`` is stored as a
+    formula cell unless it is quoted first. Preventing that is what the quote is
+    for, and dropping it would put a formula in the workbook.
+
     Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
-    quoted like ``"=cmd"``. Every string goes out through ``write_string``, so
-    this writer never produces a formula cell for the workbook to evaluate; the
-    quote is there for how a downstream viewer or a re-import reads the text.
-    The other two export paths strip before reading the prefix as well, so the
-    three of them agree on which cells are quoted.
+    quoted like ``"=cmd"``. XlsxWriter reads the prefix at the first character
+    only, so that value is stored as a plain string cell either way; quoting it
+    keeps this writer in step with the other two export paths, which also strip
+    before reading the prefix, and guards how a downstream viewer or a re-import
+    reads the text. ``csv.escape_value`` records a case of that: Google Sheets
+    ignored a leading space on import and evaluated the formula anyway.
     """
     stripped = text.lstrip()
     return f"'{text}" if stripped and stripped[0] in FORMULA_PREFIXES else text
