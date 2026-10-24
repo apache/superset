@@ -51,15 +51,19 @@ FORMULA_PREFIXES = {"=", "+", "-", "@"}
 def _quote_formula(value: Any) -> Any:
     """Prefix a string with a quote when it would parse as a formula.
 
+    A string whose first character is ``=`` is stored as a formula cell by the
+    writer, so quoting it is what keeps a formula out of the workbook. Dropping
+    the quote would put one in.
+
     Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
-    quoted like ``"=cmd"``. That is for consistency across the export paths
+    quoted like ``"=cmd"``. That part is for consistency across the export paths
     rather than to stop the workbook evaluating it: XlsxWriter builds a formula
     cell only from a string whose first character is ``=``, so a value with
     anything in front of the prefix is written as a plain string cell either
     way. The CSV writer (``_starts_like_spreadsheet_formula``) and the
     streaming writer both strip before reading the prefix, so without this the
     same cell exports quoted from two of the three paths and bare from this
-    one. What the quote guards against is how a downstream viewer or a
+    one. What the quote guards against there is how a downstream viewer or a
     re-import reads the text, not how XlsxWriter stored it.
 
     The value is quoted as it arrived rather than stripped, so the cell keeps
