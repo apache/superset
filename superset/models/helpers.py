@@ -3026,7 +3026,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     query_object_clone.granularity or x_axis_label
                 )
 
-            except ValueError as ex:
+            except (ValidationError, ValueError) as ex:
+                # Reversed bounds raise a bare ``ValueError``, while a range
+                # the parser cannot read raises ``TimeRangeParseFailError``, a
+                # marshmallow ``ValidationError``. The date-range branch is
+                # reachable with the second, since ``is_valid_date_range``
+                # splits the offset on ``:`` while the parser wants ``" : "``.
                 raise QueryObjectValidationError(str(ex)) from ex
 
             query_object_clone.time_offsets = []
