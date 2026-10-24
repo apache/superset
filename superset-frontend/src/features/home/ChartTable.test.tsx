@@ -251,3 +251,50 @@ test('refreshes other tab data after deleting a chart', async () => {
   expect(screen.getByText('cool chart 2')).toBeInTheDocument();
   expect(onActivityRefresh).toHaveBeenCalledTimes(1);
 });
+
+test('refreshes recent activity only after a Mine tab chart delete completes', async () => {
+  // Restore the full chart list the previous test replaced.
+  fetchMock.removeRoute(chartsEndpoint);
+  fetchMock.get(
+    chartsEndpoint,
+    { result: mockCharts },
+    { name: chartsEndpoint },
+  );
+  let resolveDelete: (value: unknown) => void = () => {};
+  fetchMock.delete(
+    'glob:*/api/v1/chart/1',
+    () =>
+      new Promise(resolve => {
+        resolveDelete = resolve;
+      }),
+  );
+
+  const onActivityRefresh = jest.fn();
+  await renderChartTable({ ...mineTabProps, onActivityRefresh });
+  await userEvent.click(screen.getByText(/mine/i));
+  await waitFor(() => {
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+  });
+  onActivityRefresh.mockClear();
+
+  const moreButtons = screen.getAllByRole('img', { name: /more/i });
+  await userEvent.click(moreButtons[1]);
+  await userEvent.click(await screen.findByText('Delete'));
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  await userEvent.click(screen.getByTestId('modal-confirm-button'));
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/api\/v1\/chart\/1/, { method: 'DELETE' }),
+    ).toHaveLength(1);
+  });
+  expect(onActivityRefresh).not.toHaveBeenCalled();
+
+  await act(async () => {
+    resolveDelete({ message: 'Chart deleted' });
+  });
+
+  await waitFor(() => {
+    expect(onActivityRefresh).toHaveBeenCalledTimes(1);
+  });
+});

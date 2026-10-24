@@ -73,7 +73,15 @@ const recentItem = (title: string, id: number) => ({
   time_delta_humanized: 'a day ago',
 });
 
+const editedDashboard = (title: string, id: number) => ({
+  id,
+  dashboard_title: title,
+  url: `/superset/dashboard/${id}/`,
+  changed_on_delta_humanized: 'a day ago',
+});
+
 let recentResponder: () => unknown;
+let editedDashboards: ReturnType<typeof editedDashboard>[] = [];
 
 beforeAll(() => {
   SupersetClient.configure().init();
@@ -84,7 +92,10 @@ beforeEach(() => {
   // Start with the Recents and Dashboards panels expanded.
   setItem(LocalStorageKeys.HomepageCollapseState, ['recents', 'dashboards']);
   fetchMock.get(chartsEndpoint, { result: [] });
-  fetchMock.get(dashboardsEndpoint, { result: [] });
+  editedDashboards = [];
+  fetchMock.get(dashboardsEndpoint, ({ url }) =>
+    url.includes('changed_by') ? { result: editedDashboards } : { result: [] },
+  );
   fetchMock.get(savedQueryEndpoint, { result: [] });
   fetchMock.get(recentActivityEndpoint, () => recentResponder());
 });
@@ -175,4 +186,67 @@ test('an older in-flight refresh cannot repopulate a deleted item', async () => 
   });
   expect(screen.queryByText('Doomed dash')).not.toBeInTheDocument();
   expect(screen.getByText('Kept dash')).toBeInTheDocument();
+});
+
+test('delete refetches the Edited tab so a removed item disappears', async () => {
+  recentResponder = () => ({ result: [recentItem('Viewed dash', 1)] });
+  editedDashboards = [
+    editedDashboard('Doomed edited dash', 1),
+    editedDashboard('Kept edited dash', 2),
+  ];
+  const deleteButton = await renderHome();
+  expect(await screen.findByText('Viewed dash')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('Edited'));
+  expect(await screen.findByText('Doomed edited dash')).toBeInTheDocument();
+  expect(screen.getByText('Kept edited dash')).toBeInTheDocument();
+
+  // The deleted dashboard no longer comes back from the edited-objects query.
+  editedDashboards = [editedDashboard('Kept edited dash', 2)];
+  await userEvent.click(deleteButton);
+
+  await waitFor(() =>
+    expect(screen.queryByText('Doomed edited dash')).not.toBeInTheDocument(),
+  );
+  expect(screen.getByText('Kept edited dash')).toBeInTheDocument();
+});
+
+test('delete refresh keeps a collapsed Dashboards panel collapsed', async () => {
+  recentResponder = () => ({ result: [recentItem('Viewed dash', 1)] });
+  const deleteButton = await renderHome();
+  expect(await screen.findByText('Viewed dash')).toBeInTheDocument();
+
+  // Collapse Dashboards while keeping Recents open.
+  const dashboardsHeader = screen.getByRole('button', { name: /Dashboards/ });
+  expect(dashboardsHeader).toHaveAttribute('aria-expanded', 'true');
+  await userEvent.click(dashboardsHeader);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Dashboards/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    ),
+  );
+
+  // Drop the persisted collapse state so only the in-memory selection
+  // survives; re-running the first-load restore would fall back to the
+  // defaults and re-expand Dashboards.
+  localStorage.removeItem(LocalStorageKeys.HomepageCollapseState);
+
+  await userEvent.click(deleteButton);
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(2),
+  );
+  await new Promise(resolve => {
+    setTimeout(resolve, 50);
+  });
+
+  expect(screen.getByRole('button', { name: /Dashboards/ })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  expect(screen.getByRole('button', { name: /Recents/ })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  expect(screen.getByText('Viewed dash')).toBeInTheDocument();
 });
