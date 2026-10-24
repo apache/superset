@@ -494,6 +494,17 @@ def is_no_time_range(time_range: str | None) -> bool:
     return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
 
 
+def _get_comparable_bounds(
+    since: datetime, until: datetime
+) -> tuple[datetime, datetime]:
+    """Use legacy wall-clock ordering for mixed bounds without mutating them."""
+    if (since.utcoffset() is None) != (until.utcoffset() is None):
+        # No common timezone exists at the parser layer. The query layer
+        # resolves naive bounds in the dataset timezone.
+        return since.replace(tzinfo=None), until.replace(tzinfo=None)
+    return since, until
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -738,7 +749,11 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             elif instant_time_comparison_range == InstantTimeComparison.WEEK:
                 time_unit = "WEEK"
             elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
-                delta_in_days = (_until - _since).days if _since and _until else None
+                if _since and _until:
+                    since_comparison, until_comparison = _get_comparable_bounds(
+                        _since, _until
+                    )
+                    delta_in_days = (until_comparison - since_comparison).days
                 time_unit = "DAY"
 
             if time_unit:
@@ -762,8 +777,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
                 _since, _until = map(datetime_eval, since_and_until)
 
-    if _since and _until and _since > _until:
-        raise ValueError(_("From date cannot be larger than to date"))
+    if _since and _until:
+        since_comparison, until_comparison = _get_comparable_bounds(_since, _until)
+        if since_comparison > until_comparison:
+            raise ValueError(_("From date cannot be larger than to date"))
 
     return _since, _until
 

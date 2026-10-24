@@ -20,10 +20,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone as dt_timezone
 
+import pytest
 from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
+from superset.utils.date_parser import get_since_until
 
 
 def _table(extra: str | None) -> tuple[SqlaTable, TableColumn]:
@@ -74,6 +76,55 @@ def test_get_time_filter_without_timezone_keeps_boundaries(app: Flask) -> None:
     sql = str(clause)
     assert "2026-01-09 00:00:00" in sql
     assert "2026-01-10 00:00:00" in sql
+
+
+@pytest.mark.parametrize(
+    "start,end,expected_start,expected_end",
+    [
+        (
+            "2024-05-31T12:34:56+08:00",
+            "2024-07-01T00:00:00+08:00",
+            "2024-03-31 16:00:00",
+            "2024-06-30 16:00:00",
+        ),
+        (
+            "2024-02-29T12:34:56-05:30",
+            "2024-04-01T00:00:00+00:00",
+            "2024-01-01 05:30:00",
+            "2024-04-01 00:00:00",
+        ),
+        (
+            "2024-05-31T12:34:56+08:00",
+            "2024-07-01T00:00:00",
+            "2024-03-31 16:00:00",
+            "2024-06-30 22:00:00",
+        ),
+        (
+            "2024-05-31T12:34:56",
+            "2024-07-01T00:00:00+08:00",
+            "2024-03-31 22:00:00",
+            "2024-06-30 16:00:00",
+        ),
+    ],
+)
+def test_get_time_filter_preserves_explicit_quarter_offsets(
+    app: Flask, start: str, end: str, expected_start: str, expected_end: str
+) -> None:
+    """Explicit offsets survive parsing and dataset timezone conversion."""
+    table, time_col = _table('{"timezone": "Europe/Berlin"}')
+    table.offset = 4
+    start_dttm, end_dttm = get_since_until(
+        f"DATETRUNC(DATETIME('{start}'), QUARTER) : DATETIME('{end}')"
+    )
+
+    with app.app_context():
+        clause = table.get_time_filter(
+            time_col=time_col, start_dttm=start_dttm, end_dttm=end_dttm
+        )
+
+    sql = str(clause)
+    assert expected_start in sql
+    assert expected_end in sql
 
 
 def test_get_time_filter_offset_only_shifts_bounds(app: Flask) -> None:

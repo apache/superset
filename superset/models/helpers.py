@@ -4588,18 +4588,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             try:
                 tz = ZoneInfo(dataset_timezone)
 
-                # The datetimes from the UI are naive (no timezone info). We
-                # interpret them as being in the dataset's configured timezone and
-                # convert them to UTC for comparison with UTC-stored data.
+                # Interpret naive UI bounds in the dataset timezone. Explicit
+                # offsets already identify an instant and must be preserved
+                # when converting to UTC for comparison with UTC-stored data.
                 if start_dttm is not None:
                     start_dttm = (
-                        start_dttm.replace(tzinfo=tz)
+                        start_dttm.replace(tzinfo=start_dttm.tzinfo or tz)
                         .astimezone(timezone.utc)
                         .replace(tzinfo=None)
                     )
                 if end_dttm is not None:
                     end_dttm = (
-                        end_dttm.replace(tzinfo=tz)
+                        end_dttm.replace(tzinfo=end_dttm.tzinfo or tz)
                         .astimezone(timezone.utc)
                         .replace(tzinfo=None)
                     )
