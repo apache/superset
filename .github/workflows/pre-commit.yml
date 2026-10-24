@@ -62,31 +62,6 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
 
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: "superset-frontend/.nvmrc"
-          cache: "npm"
-          cache-dependency-path: "superset-frontend/package-lock.json"
-
-      - name: Install Frontend Dependencies
-        run: |
-          cd superset-frontend
-          npm ci
-
-      - name: Install Docs Dependencies
-        run: |
-          cd docs
-          yarn install --immutable
-
-      - name: Cache prek environments
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/prek
-          key: prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-
-
       - name: Determine changed files
         id: changed_files
         env:
@@ -150,6 +125,56 @@ jobs:
               echo "__CHANGED_FILES_EOF__"
             } >> "$GITHUB_OUTPUT"
           fi
+
+      # The frontend and docs hooks are the only ones that need node_modules,
+      # and prek only runs hooks whose file filters match the changed files.
+      # Skip the installs (about 30 s for superset-frontend, 60 s for docs)
+      # when nothing under those trees changed; "all" (schedules, or no diff
+      # base) still installs both.
+      - name: Determine which node dependencies the hooks need
+        id: node_deps
+        env:
+          MODE: ${{ steps.changed_files.outputs.mode }}
+          CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
+        run: |
+          set -euo pipefail
+          frontend=false; docs=false
+          if [ "${MODE}" = "all" ]; then
+            frontend=true; docs=true
+          elif [ "${MODE}" = "files" ]; then
+            if grep -qE '^(superset-frontend|superset-websocket)/' <<< "${CHANGED_FILES}"; then frontend=true; fi
+            if grep -qE '^docs/.*\.(js|jsx|ts|tsx)$' <<< "${CHANGED_FILES}"; then docs=true; fi
+          fi
+          echo "frontend=${frontend}" >> "$GITHUB_OUTPUT"
+          echo "docs=${docs}" >> "$GITHUB_OUTPUT"
+          echo "frontend deps: ${frontend}, docs deps: ${docs}"
+      - name: Setup Node.js
+        if: steps.node_deps.outputs.frontend == 'true' || steps.node_deps.outputs.docs == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: "superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
+
+      - name: Install Frontend Dependencies
+        if: steps.node_deps.outputs.frontend == 'true'
+        run: |
+          cd superset-frontend
+          npm ci
+
+      - name: Install Docs Dependencies
+        if: steps.node_deps.outputs.docs == 'true'
+        run: |
+          cd docs
+          yarn install --immutable
+
+      - name: Cache prek environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/prek
+          key: prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-
 
       - name: pre-commit (via prek)
         env:
