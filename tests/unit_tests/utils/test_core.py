@@ -528,6 +528,27 @@ def test_normalize_dttm_col_invalid_timezone_falls_back_to_offset() -> None:
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
 
 
+def test_normalize_dttm_col_timezone_leaves_date_only_column() -> None:
+    """
+    A date-only column (such as ``DATE``) has no time of day, so the timezone
+    leaves it as it is, and still takes precedence over the offset.
+    """
+    df = pd.DataFrame({"date_col": ["2020-01-01"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d",
+            timezone="America/New_York",
+            offset=3,
+            date_only=True,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 00:00:00"
+
+
 def test_normalize_dttm_col_invalid_date_coerced() -> None:
     """Test that invalid dates are coerced to NaT."""
     df = pd.DataFrame({"date_col": ["2020-01-01", "invalid_date", "2022-01-01"]})
