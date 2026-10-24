@@ -465,3 +465,27 @@ test('a drilled bucket filter shows its bucket as a datetime', () => {
   expect(filter.getDefaultLabel()).toBe("order_date = '2004-01-01T00:00:00'");
   expect(filter.getTooltipTitle()).toBe("order_date = '2004-01-01T00:00:00'");
 });
+
+test.each(['TEMPORAL_RANGE', '!=', 'IS NULL'])(
+  'a drilled bucket filter drops its time grain when changing operator to %s',
+  operator => {
+    const filter = bucketFilter();
+    const edited = filter.duplicateWith({
+      subject: 'order_date',
+      operator,
+      comparator: '2004-01-15 : 2004-02-15',
+    });
+    expect(edited.timeGrain).toBeUndefined();
+    expect(filter.timeGrain).toBe('P1M');
+  },
+);
+
+test('a drilled bucket filter keeps its grain with an explicitly unchanged operator', () => {
+  expect(
+    bucketFilter().duplicateWith({
+      subject: 'order_date',
+      operator: '==',
+      comparator: Date.UTC(2004, 1, 1),
+    }).timeGrain,
+  ).toBe('P1M');
+});

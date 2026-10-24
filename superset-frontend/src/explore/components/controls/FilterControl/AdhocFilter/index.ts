@@ -146,9 +146,13 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
-      // A grain belongs to its subject's time buckets.
+      // A grain belongs to its subject's time buckets under its operator.
+      // Changing the column or operator (e.g. a picked time range) drops it.
       timeGrain:
-        nextFields.subject === undefined || nextFields.subject === this.subject
+        (nextFields.subject === undefined ||
+          nextFields.subject === this.subject) &&
+        (nextFields.operator === undefined ||
+          nextFields.operator === this.operator)
           ? this.timeGrain
           : undefined,
       clause: this.clause,
