@@ -296,6 +296,40 @@ def test_dashboard_datasets_isolate_semantic_provider_failure(
     assert caplog.records[-1].exc_info is None
 
 
+@pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
+def test_dashboard_datasets_provider_discovery_fault_logs_no_detail(
+    semantic_view: SemanticView,
+    caplog: pytest.LogCaptureFixture,
+    method: str,
+) -> None:
+    """A real discovery fault is isolated without logging provider text."""
+    chart: Slice = Slice(
+        datasource_id=semantic_view.id, datasource_type="semantic_view"
+    )
+    chart.semantic_view = semantic_view
+    dashboard: Dashboard = Dashboard(slices=[chart])
+    provider: MagicMock = MagicMock()
+    getattr(provider, method).side_effect = ValueError("secret-provider-url")
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=provider,
+    ):
+        assert dashboard.datasets_trimmed_for_slices() == []
+    # The view, layer and real exception type share one record, so concurrent
+    # failures can be told apart.
+    assert any(
+        f"operation={method}" in record.getMessage()
+        and f"view_id={semantic_view.id}" in record.getMessage()
+        and f"layer_uuid={semantic_view.semantic_layer_uuid}" in record.getMessage()
+        and "error=ValueError" in record.getMessage()
+        for record in caplog.records
+    )
+    assert "secret-provider-url" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+
+
 def test_dashboard_table_serialization_includes_capabilities_and_parent() -> None:
     """Real table payloads expose their capabilities and database parent."""
     database: Database = Database(

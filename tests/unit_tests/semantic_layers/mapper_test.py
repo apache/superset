@@ -57,6 +57,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.semantic_layers import mapper
 from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.exceptions import DiscoveryTarget
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -139,7 +140,12 @@ def test_default_resolution_exhausts_catalog_orders(
     # Inspect the real validation call's input without replacing its behavior.
     if entry == "validation":
         axis_spy: MagicMock = mocker.spy(mapper, "_get_grain_time_axis_column")
-        _validate_granularity(query, _ViewMetadata.from_view(datasource.implementation))
+        _validate_granularity(
+            query,
+            _ViewMetadata.from_view(
+                datasource.implementation, DiscoveryTarget.of(datasource)
+            ),
+        )
         if selected_grain:
             assert axis_spy.call_args.args[1]["event_time"] is raw
         else:
@@ -3813,7 +3819,11 @@ def test_validate_filters_with_valid_filters(mocker: MockerFixture) -> None:
 
     # Should not raise any error - filters are valid
     _validate_filters(
-        query_object, _ViewMetadata.from_view(query_object.datasource.implementation)
+        query_object,
+        _ViewMetadata.from_view(
+            query_object.datasource.implementation,
+            DiscoveryTarget.of(query_object.datasource),
+        ),
     )
 
 
