@@ -32,6 +32,14 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 ARG BUILD_TRANSLATIONS="false"
 
 ######################################################################
+# system-ca exposes the system CA bundle of the pinned python image. The
+# node base images ship no CA store, so the Node stages copy this one in
+# and verify TLS against the same store as the Python stages, rather than
+# Node's built-in CA list.
+######################################################################
+FROM python:${PY_VER} AS system-ca
+
+######################################################################
 # superset-node-manifests holds only the npm manifests of the frontend
 # tree (the root package.json + lockfile, .npmrc, and every workspace package.json),
 # so the `npm ci` layer in superset-node-ci can see the workspaces and is
@@ -80,6 +88,11 @@ ENV npm_config_fetch_retries=5 \
     npm_config_fetch_retry_mintimeout=20000 \
     npm_config_fetch_retry_maxtimeout=120000 \
     npm_config_fetch_timeout=600000
+
+# Verify TLS against the system CA store (see system-ca)
+COPY --from=system-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+ENV NODE_OPTIONS=--use-openssl-ca \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 # Install dependencies from the manifests alone (root + workspaces) if not in
 # dev mode. With the workspace package.json files present, npm ci links the
@@ -132,6 +145,11 @@ ENV npm_config_fetch_retries=5 \
     npm_config_fetch_retry_mintimeout=20000 \
     npm_config_fetch_retry_maxtimeout=120000 \
     npm_config_fetch_timeout=600000
+
+# Verify TLS against the system CA store (see system-ca)
+COPY --from=system-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+ENV NODE_OPTIONS=--use-openssl-ca \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /app/superset-websocket
 
