@@ -123,3 +123,33 @@ test.each([[undefined], [['cat_color']]])(
     expect(data.cat_color).toBe(Constants.NULL_DISPLAY);
   },
 );
+
+test('field-based tooltip shows the null category as N/A', () => {
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    tooltip_contents: ['cat_color'],
+  } as QueryFormData;
+
+  const content = createTooltipContent(formData, () => <div>default</div>);
+  const { container } = render(
+    content({ object: { cat_color: NULL_CATEGORY_KEY } }),
+  );
+
+  expect(container.textContent).toContain(Constants.NULL_DISPLAY);
+  expect(container.textContent).not.toContain(NULL_CATEGORY_KEY);
+});
+
+test('handlebars data leaves a non-sentinel cat_color value untouched', () => {
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+  } as QueryFormData;
+
+  const data = createHandlebarsTooltipData(
+    { object: { cat_color: ['A', 'B'] } },
+    formData,
+  );
+
+  expect(data.cat_color).toEqual(['A', 'B']);
+});
