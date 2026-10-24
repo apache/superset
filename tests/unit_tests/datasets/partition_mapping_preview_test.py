@@ -1406,16 +1406,23 @@ def test_preview_declines_a_temporal_answer_the_engine_would_floor(
 
 def _probe_by_shape(text_answer: Any, typed_answer: Any) -> Any:
     """
-    A `get_df` that answers by how the probe wrote ``:value``: as the text a
-    simple filter binds, or as the typed literal a time range's `datetime`
-    renders to. Oracle reads the two differently under ``TO_DATE(:value,
-    fmt)``; this stands in for that without an Oracle server.
+    A `get_df` that answers each probed column by how it wrote ``:value``: as
+    the text a simple filter binds, or as the typed literal a time range's
+    `datetime` renders to. Oracle reads the two differently under
+    ``TO_DATE(:value, fmt)``; this stands in for that without an Oracle server.
     """
+    import re
+
     import pandas as pd
 
     def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
-        text = "'2026-01-15 10:47:23'" in sql
-        return pd.DataFrame([[text_answer if text else typed_answer]], columns=["v0"])
+        selections = re.split(r" AS v\d+,?\s*", sql.removeprefix("SELECT "))
+        row = [
+            text_answer if "'2026-01-15 10:47:23'" in selection else typed_answer
+            for selection in selections
+            if selection.strip()
+        ]
+        return pd.DataFrame([row], columns=[f"v{i}" for i in range(len(row))])
 
     return answer
 
@@ -1449,10 +1456,11 @@ def test_preview_refuses_a_transform_that_reads_a_time_range_differently(
     result = response.json["result"]
     assert result["valid"] is False
     assert result["reason"] == "shape"
-    # Both shapes reached the engine, written differently.
-    probes = [call.kwargs.get("sql") or call.args[0] for call in get_df.call_args_list]
-    assert any("'2026-01-15 10:47:23'" in sql for sql in probes)
-    assert any("'2026-01-15 10:47:23'" not in sql for sql in probes)
+    # Both shapes reached the engine in one round trip, written differently.
+    assert get_df.call_count == 1
+    sql = get_df.call_args.kwargs.get("sql") or get_df.call_args.args[0]
+    assert sql.count(" AS v") == 2
+    assert "'2026-01-15 10:47:23'" in sql
 
 
 def test_preview_accepts_a_transform_that_reads_both_shapes_alike(

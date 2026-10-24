@@ -182,7 +182,7 @@ import hashlib
 import logging
 import numbers
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from functools import lru_cache
@@ -1824,6 +1824,7 @@ def evaluate_transform(
     values: list[Any],
     *,
     errors: list[str] | None = None,
+    text_answers: list[tuple[int, Any]] | None = None,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -1841,9 +1842,32 @@ def evaluate_transform(
         query path passes nothing and stays silent; the editor's preview passes
         a list so it can tell the owner *why* the transform did not evaluate --
         a misspelled function is the common case and sqlglot parses it happily.
+    :param text_answers: optional sink. When given, every date or timestamp in
+        ``values`` is also asked as the text a simple filter would bind, in the
+        same round trip, and ``(index, answer)`` is appended for each -- see
+        `_declined_for_reading_by_type` for why. A transform that refuses text
+        is asked again with ``values`` alone, so a refusal never costs pruning.
     """
     if not values:
         return None
+
+    if text_answers is not None:
+        indexes = [
+            index
+            for index, value in enumerate(values)
+            if isinstance(value, date) and not is_unmirrorable(value)
+        ]
+        if indexes:
+            combined = evaluate_transform(
+                database,
+                catalog,
+                schema,
+                transform,
+                values + [_as_filter_text(values[index]) for index in indexes],
+            )
+            if combined is not None:
+                text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
+                return combined[: len(values)]
 
     # Dedupe so a 200-value `IN` list costs one column, not 200.
     distinct: list[Any] = []
@@ -2907,58 +2931,25 @@ def _preview_probe(
     the text, but converts the typed value back to text through the session's
     ``NLS_DATE_FORMAT`` first and lands in year 0012 -- and previewing only the
     text said valid for a mapping whose every time range came back empty. So a
-    temporal sample is previewed as the time range sends it, and the text shape
-    is probed too: where the two answer with different partition values, the
-    mapping cannot be right for both, and the preview says so.
+    temporal sample is previewed as the time range sends it. Comparing it with
+    the text shape is `build_mirrored_predicates`' job rather than this
+    function's, so the chart path runs the same check -- see
+    `_declined_for_reading_by_type`.
     """
     probe_input = _probe_input(datasource, mapped_col, operator, sample_values)
     range_input = _as_range_bound(mapped_col, operator, probe_input)
-    if range_input is None:
-        return _preview_probe_value(
-            datasource,
-            mapping,
-            mapped_col,
+    return _preview_probe_value(
+        datasource,
+        mapping,
+        mapped_col,
+        operator,
+        datasource.mirror_probe_request(
             operator,
-            datasource.mirror_probe_request(operator, probe_input, mapped_col),
-            sample_input,
-        )
-
-    as_range = _preview_probe_value(
-        datasource,
-        mapping,
-        mapped_col,
-        operator,
-        datasource.mirror_probe_request(operator, range_input, mapped_col),
+            range_input if range_input is not None else probe_input,
+            mapped_col,
+        ),
         sample_input,
     )
-    if not as_range["valid"]:
-        return as_range
-    as_text = _preview_probe_value(
-        datasource,
-        mapping,
-        mapped_col,
-        operator,
-        datasource.mirror_probe_request(operator, probe_input, mapped_col),
-        sample_input,
-    )
-    if as_text["valid"] and (
-        as_text["emitted_predicate"] != as_range["emitted_predicate"]
-    ):
-        return {
-            "valid": False,
-            "reason": "shape",
-            "sample_input": sample_input,
-            "error": _(
-                "The transform gives a different partition value for a time "
-                "range (%(as_range)s) than for a filter typed as text "
-                "(%(as_text)s) at the same instant, so one of the two would "
-                "drop rows. Write the transform so it reads :value the same "
-                "way as a timestamp and as text.",
-                as_range=as_range["emitted_predicate"],
-                as_text=as_text["emitted_predicate"],
-            ),
-        }
-    return as_range
 
 
 def _as_range_bound(
@@ -3054,14 +3045,34 @@ def _preview_probe_value(
     errors: list[str] = []
     type_errors: list[str] = []
     escaping_errors: list[str] = []
-    predicates = build_mirrored_predicates(
-        datasource,
-        mapping,
-        [(operator, value)],
-        errors=errors,
-        type_errors=type_errors,
-        escaping_errors=escaping_errors,
-    )
+    shape_errors: list[str] = []
+    try:
+        predicates = build_mirrored_predicates(
+            datasource,
+            mapping,
+            [(operator, value)],
+            errors=errors,
+            type_errors=type_errors,
+            escaping_errors=escaping_errors,
+            shape_errors=shape_errors,
+        )
+    except Exception:  # pylint: disable=broad-except
+        # The chart path fails open on the same call; the preview reports it
+        # as a mapping that will not mirror rather than as a server error.
+        logger.warning("Could not preview the partition mapping", exc_info=True)
+        return {
+            "valid": False,
+            "reason": "engine",
+            "sample_input": sample_input,
+            "error": _("The transform could not be evaluated against the database."),
+        }
+    if shape_errors:
+        return {
+            "valid": False,
+            "reason": "shape",
+            "sample_input": sample_input,
+            "error": shape_errors[0],
+        }
     if type_errors:
         # Its own reason, because "the database would not evaluate this" and
         # "it evaluated and answered with the wrong kind of thing" are
@@ -3236,6 +3247,68 @@ def _render_literal(database: Database, value: Any) -> str:
     return _compile_literal(sa.literal(value), _dialect_for(database))
 
 
+def _as_filter_text(value: date) -> str:
+    """``value`` as the text a simple filter on a temporal column carries."""
+    if isinstance(value, datetime):
+        return value.isoformat(
+            sep=" ", timespec="seconds" if not value.microsecond else "auto"
+        )
+    return value.isoformat()
+
+
+def _declined_for_reading_by_type(
+    evaluated: list[Any],
+    text_answers: list[tuple[int, Any]],
+    shape_errors: list[str] | None,
+) -> bool:
+    """
+    Whether a temporal value's text form answered differently from the value.
+
+    A chart hands a temporal value to the transform in two shapes. A time
+    range binds a `datetime`, which the dialect writes as a typed literal
+    (``TO_DATE(...)`` on Oracle); a simple filter binds the text the author
+    typed. A transform can read the two differently: Oracle's
+    ``TO_DATE(:value, fmt)`` parses the text, but turns the typed value back
+    into text through ``NLS_DATE_FORMAT`` first, so every time range asked for
+    a partition in year 0012 and came back empty -- or, under an ISO
+    ``NLS_DATE_FORMAT``, short by whatever the format drops. Nothing about the
+    typed answer alone looks wrong, so `evaluate_transform` asks the same
+    instant as text in the same round trip (``text_answers``), and a mapping
+    whose two answers differ cannot be right for both and is not mirrored.
+
+    The text goes straight to the evaluator rather than through the mirror
+    request path, whose gates decline some text before it reaches the engine
+    -- which is how the preview at a time of day said valid for exactly this
+    transform. Reported to ``shape_errors`` and the log when it declines.
+    """
+    disagreement = next(
+        (
+            (evaluated[index], text_answer)
+            for index, text_answer in text_answers
+            if text_answer is not None and text_answer != evaluated[index]
+        ),
+        None,
+    )
+    if disagreement is None:
+        return False
+    reason = str(
+        _(
+            "The transform gives a different partition value for a "
+            "timestamp (%(typed)s) than for the same instant written as "
+            "text (%(text)s). A time range and a filter typed as text both "
+            "reach it, so it cannot be right for both; filters on this "
+            "mapping will not be mirrored. Write the transform so it reads "
+            ":value the same way in either form.",
+            typed=disagreement[0],
+            text=disagreement[1],
+        )
+    )
+    logger.warning("Partition transform reads :value by type: %s", reason)
+    if shape_errors is not None:
+        shape_errors.append(reason)
+    return True
+
+
 def build_mirrored_predicates(
     datasource: SqlaTable,
     mapping: PartitionMapping,
@@ -3244,6 +3317,7 @@ def build_mirrored_predicates(
     errors: list[str] | None = None,
     type_errors: list[str] | None = None,
     escaping_errors: list[str] | None = None,
+    shape_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -3295,6 +3369,7 @@ def build_mirrored_predicates(
         spans.append((operator, len(flat), len(values)))
         flat.extend(values)
 
+    text_answers: list[tuple[int, Any]] = []
     evaluated = evaluate_transform(
         datasource.database,
         datasource.catalog,
@@ -3302,11 +3377,15 @@ def build_mirrored_predicates(
         mapping.value_transform,
         flat,
         errors=errors,
+        text_answers=text_answers,
     )
     if evaluated is None:
         return []
 
     if not _bounds_are_ordered(evaluated, spans):
+        return []
+
+    if _declined_for_reading_by_type(evaluated, text_answers, shape_errors):
         return []
 
     # Declining here is the last chance to decline at all: once these
@@ -3565,16 +3644,27 @@ def _holds_days_only(partition_column: TableColumn) -> bool:
     )
     if not isinstance(spec_type, sa.Date):
         return False
-    match = _TYPE_NAME_RE.match(partition_column.type or "")
-    dialect = _dialect_for(partition_column.table.database)
-    if match and dialect is not None:
-        names = getattr(dialect, "ischema_names", {}) or {}
-        name = match.group(1)
-        dialect_type = (
-            names.get(name) or names.get(name.upper()) or names.get(name.lower())
-        )
-        if isinstance(dialect_type, type) and issubclass(dialect_type, sa.DateTime):
-            return False
+    try:
+        match = _TYPE_NAME_RE.match(partition_column.type or "")
+        dialect = _dialect_for(partition_column.table.database)
+        names = getattr(dialect, "ischema_names", None)
+        # A `Mapping` only. `ischema_names` is not part of SQLAlchemy's dialect
+        # contract, and third-party dialects shape it as they like --
+        # clickhouse-connect 1.10/1.11 make it a list, and calling `.get` on that
+        # raised out of the chart query, so every chart filtering the mapped
+        # column failed rather than losing its pruning.
+        if match and isinstance(names, Mapping):
+            name = match.group(1)
+            dialect_type = (
+                names.get(name) or names.get(name.upper()) or names.get(name.lower())
+            )
+            if isinstance(dialect_type, type) and issubclass(dialect_type, sa.DateTime):
+                return False
+    except Exception:  # pylint: disable=broad-except
+        # Not knowing is answered as "may hold a time of day": the precision
+        # check then runs, and at worst declines a mirror it could have kept.
+        logger.warning("Could not read the partition column's type", exc_info=True)
+        return False
     return True
 
 

@@ -5407,7 +5407,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 seen.add(key)
                 deduped.append((operator, value))
 
-        return build_mirrored_predicates(cast("SqlaTable", self), mapping, deduped)
+        # Fail open. A mirror is only ever an optimisation the original
+        # predicate already covers, so anything unexpected while building one
+        # -- a third-party dialect shaped differently from SQLAlchemy's own was
+        # the case that found this -- costs the query its pruning, not the
+        # chart.
+        try:
+            return build_mirrored_predicates(cast("SqlaTable", self), mapping, deduped)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Could not build the partition filter mirror; the query will not prune",
+                exc_info=True,
+            )
+            return []
 
     def adjust_time_bounds(
         self,

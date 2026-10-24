@@ -2786,6 +2786,108 @@ def test_an_oracle_date_key_still_takes_an_exact_midnight(app: Flask) -> None:
     )
 
 
+def test_a_dialect_whose_type_names_are_a_list_does_not_break_the_chart(
+    app: Flask,
+) -> None:
+    """
+    `ischema_names` is not part of SQLAlchemy's dialect contract, and
+    clickhouse-connect 1.10/1.11 make it a list. Calling `.get` on it raised
+    out of the chart query, so every chart filtering the mapped column failed.
+    A list is read as "no answer", which leaves the date key's own literal in
+    charge -- the same answer as before the Oracle check existed.
+    """
+    table = _temporal_partition_table("trino://localhost:8080/hive", "DATE")
+    dialect = MagicMock(ischema_names=["Date", "DateTime"])
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping._dialect_for",
+            return_value=dialect,
+        ):
+            predicates = _mirror_temporal(
+                table,
+                FilterOperator.GREATER_THAN_OR_EQUALS,
+                datetime(2026, 1, 12, 6, 30),
+            )
+
+    assert len(predicates) == 1
+
+
+def test_an_unexpected_failure_building_the_mirror_costs_only_the_pruning(
+    app: Flask,
+) -> None:
+    """The chart path fails open: a mirror is only ever an optimisation."""
+    table = _mapped_table()
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.models.helpers.build_mirrored_predicates",
+            side_effect=AttributeError("'list' object has no attribute 'get'"),
+        ):
+            predicates = table._build_partition_mirror_predicates(  # noqa: SLF001
+                mapping, [(FilterOperator.EQUALS, "2026-01-01")]
+            )
+
+    assert predicates == []
+
+
+def _get_df_by_shape(text_answer: Any, typed_answer: Any) -> Any:
+    """Answer each probed column by whether ``:value`` reached it as the text
+    ``'2026-01-12 06:30:00'`` or as a typed literal."""
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        selections = re.split(r" AS v\d+,?\s*", sql.removeprefix("SELECT "))
+        row = [
+            text_answer if "'2026-01-12 06:30:00'" in selection else typed_answer
+            for selection in selections
+            if selection.strip()
+        ]
+        return pd.DataFrame([row], columns=[f"v{i}" for i in range(len(row))])
+
+    return answer
+
+
+@pytest.mark.parametrize(
+    "text_answer, mirrored",
+    [
+        # Oracle's TO_DATE(:value, fmt) under the default NLS_DATE_FORMAT: the
+        # typed bound comes back in year 0012.
+        (datetime(2026, 1, 12, 6, 30), False),
+        # Both shapes agree: the ordinary case keeps its mirror.
+        (datetime(12, 1, 26), True),
+    ],
+)
+def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
+    app: Flask, text_answer: datetime, mirrored: bool
+) -> None:
+    """
+    The chart path runs the check too, not only the preview: a mapping set up
+    in the editor returned 0 rows for 06:30-18:30 (48 with the flag off). The
+    text form rides in the same probe, so a query still costs one round trip.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_get_df_by_shape(text_answer, datetime(12, 1, 26))
+    )
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
+        )
+
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 1
+
+
 def test_an_engine_with_no_temporal_literal_declines_a_temporal_answer() -> None:
     """
     Where the engine spec has no `convert_dttm` rendering for the column, the
