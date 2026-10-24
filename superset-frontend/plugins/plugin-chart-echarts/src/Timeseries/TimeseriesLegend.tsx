@@ -19,12 +19,13 @@
 import { memo } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import TimeseriesLegendIcon from './TimeseriesLegendIcon';
 import type { TimeseriesCustomLegend } from './types';
 
 const LegendViewport = styled.div<{ maxHeight: number }>`
   ${({ maxHeight, theme }) => `
     box-sizing: border-box;
-    color: ${theme.colorText};
+    color: ${theme.colorTextSecondary};
     font-size: ${theme.fontSizeSM}px;
     max-height: ${maxHeight}px;
     overflow-x: hidden;
@@ -86,7 +87,8 @@ const ItemButton = styled.button<{ selected: boolean }>`
     appearance: none;
     background: none;
     border: none;
-    color: ${selected ? theme.colorText : theme.colorTextDisabled};
+    // Same tokens the ECharts legend theme uses for its labels (Echart.tsx).
+    color: ${selected ? theme.colorTextSecondary : theme.colorTextDisabled};
     cursor: pointer;
     display: inline-flex;
     font: inherit;
@@ -98,18 +100,6 @@ const ItemButton = styled.button<{ selected: boolean }>`
     &:disabled {
       cursor: default;
     }
-  `}
-`;
-
-const Swatch = styled.span<{ color: string; selected: boolean }>`
-  ${({ color, selected }) => `
-    background: ${selected ? color : 'transparent'};
-    border: 1px solid ${color};
-    box-sizing: border-box;
-    flex: 0 0 auto;
-    height: 12px;
-    margin-top: 2px;
-    width: 12px;
   `}
 `;
 
@@ -178,9 +168,9 @@ function TimeseriesLegend({
                 onMouseEnter={() => onHover?.(item.name)}
                 onMouseLeave={() => onHover?.(null)}
               >
-                <Swatch
-                  aria-hidden
+                <TimeseriesLegendIcon
                   color={item.color}
+                  icon={item.icon}
                   selected={item.selected}
                 />
                 <Label>{item.name}</Label>
