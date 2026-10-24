@@ -23,7 +23,7 @@ little bit helps, and credit will always be given.
 
 ## Developer Portal
 
-All developer and contribution documentation has moved to the Apache Superset Developer Portal:
+All developer and contribution documentation has officially moved to the Apache Superset Developer Portal:
 
 **[📚 View the Developer Portal →](https://superset.apache.org/developer_portal/)**
 
