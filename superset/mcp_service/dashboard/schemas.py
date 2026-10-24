@@ -1102,6 +1102,8 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         REST schema behavior. Raises ``ValueError`` when a non-whitespace input
         normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
         """
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str) or not v:
             return v
         stripped = v.strip()

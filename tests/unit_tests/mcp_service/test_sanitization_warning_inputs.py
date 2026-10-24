@@ -1478,3 +1478,20 @@ def test_byte_object_name_trims_before_length(
     value = bytearray(encoded) if as_bytearray else encoded
     request = model.model_validate({**payload, field: value})
     assert getattr(request, field) == text
+
+
+@pytest.mark.parametrize("as_bytearray", [False, True])
+@pytest.mark.parametrize(
+    "value,expected",
+    [(" " + "x" * 255 + " ", "x" * 255), (" My slug!? ", "My-slug"), (" " * 256, "")],
+)
+def test_byte_dashboard_slug_normalizes_before_length(
+    as_bytearray: bool, value: str, expected: str
+) -> None:
+    """Slug coercion also precedes its existing REST-compatible normalization."""
+    encoded = value.encode()
+    byte_value = bytearray(encoded) if as_bytearray else encoded
+    request = UpdateDashboardRequest.model_validate(
+        {"identifier": 1, "slug": byte_value}
+    )
+    assert request.slug == expected
