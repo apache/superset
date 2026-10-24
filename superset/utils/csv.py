@@ -99,6 +99,21 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
 
+    def needs_escaping(level: pd.Index) -> bool:
+        return any(
+            isinstance(value, str) and escape_value(value) != value for value in level
+        )
+
+    def escape_axis_level(level: pd.Index) -> pd.Index:
+        # Rebuilding a level can cost it its dtype, and the dtype is what
+        # ``to_csv`` writes through: a ``float32`` row dimension widens to
+        # ``float64`` and prints its binary expansion (``1.1`` as
+        # ``1.100000023841858``), and a ``datetime64`` one turns into object,
+        # which leaves the ``date_format`` from ``CSV_EXPORT`` inert. A level
+        # holding nothing to escape is handed back as it is, so only a level
+        # that really carries a formula label is rebuilt.
+        return level.map(escape_values) if needs_escaping(level) else level
+
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
@@ -114,6 +129,56 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             for label, value in column.items():
                 if isinstance(value, str):
                     df.at[label, name] = escape_value(value)
+
+    # Row labels and axis names are written out whenever the caller asks for the
+    # index, which both export paths do once post-processing has replaced the
+    # range index: pivot_table_v2 promotes the row dimension's warehouse values
+    # into index labels and the dimension name into ``index.name``. Escaping
+    # happens after the cell loop so the labels ``.at`` addresses stay the ones
+    # the frame was handed over with. Every level of a MultiIndex is covered;
+    # the axis names are a separate attribute, hence the ``rename_axis``. This
+    # mirrors the four places ``superset.utils.excel.quote_formulas`` covers
+    # for the xlsx writer.
+    index = df.index
+    if isinstance(index, pd.MultiIndex):
+        # Every row label is one of its level's distinct values, so a frame with
+        # nothing to escape is recognised from ``levels`` without a pass over
+        # the rows. The reverse does not hold: ``levels`` keeps values no row
+        # uses any more, which a filter or a slice leaves behind.
+        if any(needs_escaping(level) for level in index.levels):
+            # Only a level carrying a formula label among its row labels is
+            # rebuilt, and that is decided from the row labels rather than from
+            # ``levels``, because the rebuild costs a level its dtype:
+            # ``Index.map`` re-infers it, so a level of integers and nulls comes
+            # back ``float64``, which writes an integer id as ``5.0`` and rounds
+            # one past 2**53 to a different number. A stale ``levels`` entry
+            # would pay that for a label the export does not contain, while a
+            # level that does need rebuilding holds a string among its rows,
+            # which keeps the re-inferred dtype ``object``.
+            #
+            # A sibling keeps its own values and codes, and with them its dtype.
+            # ``escape_value`` prepends a quote, so two distinct labels can
+            # escape to the same text, and ``factorize`` folds those onto a
+            # single code, which the level values of a ``MultiIndex`` have to
+            # be unique for. The row values are read rather than ``levels``,
+            # which is sorted rather than in row order, so reusing the original
+            # codes against escaped ``levels`` would put each label on the wrong
+            # row as soon as a hostile one did not sort first.
+            rebuilt = [
+                pd.factorize(values.map(escape_values))
+                if needs_escaping(values := index.get_level_values(position))
+                else (index.codes[position], level)
+                for position, level in enumerate(index.levels)
+            ]
+            index = pd.MultiIndex(
+                levels=[level for _, level in rebuilt],
+                codes=[level_codes for level_codes, _ in rebuilt],
+                names=index.names,
+            )
+    else:
+        index = escape_axis_level(index)
+    df = df.set_axis(index, axis="index")
+    df = df.rename_axis(index=escape_values, columns=escape_values)
 
     return df.to_csv(escapechar="\\", **kwargs)
 

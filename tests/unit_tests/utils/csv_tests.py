@@ -292,6 +292,254 @@ def test_df_to_escaped_csv_non_default_index():
     assert rows[2] == ["girl Mary", "safe"]
 
 
+def test_df_to_escaped_csv_escapes_index_labels():
+    """
+    Formulas in row labels are escaped too, not just cells and headers.
+
+    Pivot post-processing promotes the row dimension's values into the index,
+    and both export paths write the index out once it is no longer a
+    RangeIndex, so a hostile warehouse string can reach the first column of
+    the file.
+    """
+    df = pd.DataFrame(
+        data={"SUM(num)": [10.0, 20.0]},
+        index=pd.Index(['=cmd|" /C calc"!A0', "safe"], name="dim"),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    assert rows[1].startswith("\"'=cmd")
+    assert rows[2].startswith("safe,")
+    # The caller's frame is left alone.
+    assert df.index.tolist() == ['=cmd|" /C calc"!A0', "safe"]
+
+
+def test_df_to_escaped_csv_escapes_multiindex_labels_and_axis_names():
+    """
+    Every level of a MultiIndex is escaped, and so are the axis *names*.
+
+    Axis names are a separate attribute from the labels, so ``rename`` alone
+    leaves them untouched while pandas still writes them out as header cells.
+    A pivoted group-by puts a warehouse-controlled column name there.
+
+    Both levels carry a hostile label, since a pivot on two dimensions can put
+    one in either. Escaping only the innermost would leave the outer one in the
+    first column of the file.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=SUM(1+1)", '=cmd|" /C calc"!A0'), ("b", "safe")],
+            names=["level", "+name"],
+        ),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    # Header row carries the escaped axis name.
+    assert rows[0] == "level,'+name,v"
+    # The outer level label is escaped in the first field.
+    assert rows[1].split(",")[0] == "'=SUM(1+1)"
+    # The inner level label is escaped, pipes included.
+    assert "'=cmd" in rows[1]
+    assert rows[2] == "b,safe,2"
+
+
+def test_df_to_escaped_csv_escapes_column_axis_names():
+    """
+    The *column* axis names are escaped too.
+
+    A pivot with grouped columns writes both column axis names out as their own
+    header lines, ahead of the row labels, so a hostile warehouse column name
+    lands in the first cell of the file.
+    """
+    df = pd.DataFrame(
+        data=[[1]],
+        index=pd.Index(["row"], name="dim"),
+        columns=pd.MultiIndex.from_tuples([("outer", "v")], names=["=axis", "+inner"]),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    assert rows[0] == "'=axis,outer"
+    assert rows[1] == "'+inner,v"
+
+
+def test_df_to_escaped_csv_escapes_colliding_index_labels():
+    """
+    Two labels can escape to the same text, and the export still works.
+
+    ``escape_value`` is not injective: it prepends a quote, so a warehouse
+    returning both ``=a`` and ``'=a`` in one row dimension has them both land
+    on ``'=a``. Rebuilding a MultiIndex through ``set_levels`` rejects that
+    with ``ValueError: Level values must be unique``, which would turn a CSV
+    export into a 500, so the index is rebuilt from the level values instead,
+    where repeated labels are ordinary.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=a", "x"), ("'=a", "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\n'=a,x,1\n'=a,y,2\n"
+    )
+
+
+def test_df_to_escaped_csv_escapes_a_label_that_is_not_first_in_row_order():
+    """
+    A hostile label is escaped on its own row, not on the row it sorts to.
+
+    ``levels`` holds a level's distinct values in sorted order, which is not
+    the row order. Escaping those values and keeping the original codes reads
+    correctly only while the hostile label happens to sort first, and
+    otherwise puts every label on the wrong row, so the escaped level is built
+    from the row values instead.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("safe", "x"), ("=cmd()", "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\nsafe,x,1\n'=cmd(),y,2\n"
+    )
+
+
+def test_df_to_escaped_csv_keeps_a_numeric_index_dtype():
+    """
+    Escaping row labels does not widen a numeric row dimension.
+
+    Rebuilding the index promotes ``float32`` to ``float64``, and the wider
+    dtype prints the binary expansion of the stored value, so a label that
+    read ``1.1`` would export as ``1.100000023841858``.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.Index(np.array([1.1, 2.2], dtype="float32"), name="dim"),
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=True) == "dim,v\n1.1,1\n2.2,2\n"
+
+
+def test_df_to_escaped_csv_keeps_a_temporal_index_dtype():
+    """
+    Escaping row labels leaves ``date_format`` working.
+
+    Rebuilding a ``datetime64`` index turns it into object dtype, and
+    ``to_csv`` only applies ``date_format`` to a datetime index, so the
+    configured ``CSV_EXPORT["date_format"]`` would quietly stop being honored.
+    """
+    df = pd.DataFrame(
+        data={"v": [1]},
+        index=pd.DatetimeIndex(
+            np.array(["1500-01-01"], dtype="datetime64[s]"), name="dim"
+        ),
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df, encoding="utf8", index=True, date_format="%d/%m/%Y"
+    )
+
+    assert escaped_csv_str == "dim,v\n01/01/1500,1\n"
+
+
+def test_df_to_escaped_csv_keeps_a_sibling_level_dtype():
+    """
+    A level that needs escaping is rebuilt without disturbing its siblings.
+
+    A pivot on a dimension and a time grain puts both in the index, and the
+    temporal level has to keep its dtype for ``date_format`` to reach it.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Index(["=cmd()", "safe"]),
+                pd.DatetimeIndex(
+                    np.array(["1500-01-01", "1600-01-01"], dtype="datetime64[s]")
+                ),
+            ],
+            names=["dim", "when"],
+        ),
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df, encoding="utf8", index=True, date_format="%d/%m/%Y"
+    )
+
+    rows = escaped_csv_str.strip().split("\n")
+
+    assert rows[1] == "'=cmd(),01/01/1500,1"
+    assert rows[2] == "safe,01/01/1600,2"
+
+
+def test_df_to_escaped_csv_keeps_a_sibling_level_dtype_with_a_missing_value():
+    """
+    A sibling level holding a missing value keeps its integer dtype.
+
+    Reading a level back row by row codes the missing value as ``-1`` and
+    widens the level to ``float64``, which writes an id past 2**53 as a
+    different number. Only the level that needs escaping is rebuilt, so the
+    others keep their own values and codes.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", 9007199254740993), ("safe", None)], names=["dim", "id"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,id,v\n'=cmd(),9007199254740993,1\nsafe,,2\n"
+    )
+
+
+def test_df_to_escaped_csv_keeps_the_dtype_of_a_level_whose_label_was_sliced_out():
+    """
+    A level keeps its dtype when the only label needing escaping is not exported.
+
+    ``levels`` holds a level's distinct values and a filter or a slice leaves
+    behind the ones no row uses any more, so a formula label can sit in
+    ``levels`` while no exported row carries it. Rebuilding on that puts the
+    level through ``Index.map``, which re-infers the dtype: a level of integers
+    and nulls comes back ``float64`` and the id past 2**53 is written as
+    ``9007199254740992.0``. Nothing in the output needed escaping.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2, 3]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", "x"), (9007199254740993, "y"), (None, "z")],
+            names=["dim", "other"],
+        ),
+    )
+    sliced = df.iloc[1:]
+    assert "=cmd()" in sliced.index.levels[0]
+    assert "=cmd()" not in sliced.index.get_level_values(0)
+
+    assert (
+        df_to_escaped_csv(sliced, encoding="utf8", index=True)
+        == "dim,other,v\n9007199254740993,y,2\n,z,3\n"
+    )
+
+
+def test_df_to_escaped_csv_leaves_safe_index_alone():
+    """
+    A numeric index and a negative numeric label are not escaped, so ordinary
+    exports are unchanged.
+    """
+    df = pd.DataFrame(data={"a": [1, 2]}, index=[-1, -2])
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=True) == ",a\n-1,1\n-2,2\n"
+
+
 def test_get_chart_dataframe_returns_none_when_no_content(
     monkeypatch: pytest.MonkeyPatch,
 ):
