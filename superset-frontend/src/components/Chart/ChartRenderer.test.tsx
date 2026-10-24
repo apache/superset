@@ -560,12 +560,15 @@ test('threads the per-dashboard async_mode override into resolveAsyncMode for se
 });
 
 test('does not render chart during loading when last data has errors', () => {
+  // CHART_UPDATE_STARTED clears chartAlert but leaves the errored response in
+  // the store, with the form data it was queried with.
   const props = {
     ...requiredProps,
     chartStatus: 'loading' as const,
     chartAlert: undefined,
     suppressLoadingSpinner: true,
     queriesResponse: [{ error: 'bad' }],
+    responseFormData: requiredProps.formData,
   };
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);

@@ -62,6 +62,7 @@ import ChartContextMenu, {
 import { handleChartDataResponse } from './chartAction';
 import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
 import { getTabId } from 'src/hooks/useTabId';
+import { getDisplayControlNames } from 'src/explore/controlUtils/getDisplayControlNames';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -211,7 +212,8 @@ export function hasValidPreviousData(
   return hasPreviousResponse && !hasAnyErrors;
 }
 
-// The colour settings a dashboard merges into each chart's form data.
+// The colour settings a dashboard merges into each chart's form data. They
+// change without a new query and sit in no control panel.
 const DASHBOARD_COLOR_KEYS = [
   'color_scheme',
   'own_color_scheme',
@@ -342,20 +344,24 @@ function ChartRendererComponent({
 
   // A filter change updates formData as soon as the new query starts, so the
   // previous response is drawn with the form data it was queried with until
-  // the new one lands. The dashboard's colours change without a new query, so
-  // those always come from the current form data.
-  const renderedFormData = useMemo(
-    () =>
-      isRefreshing && responseFormData
-        ? {
-            ...responseFormData,
-            ...Object.fromEntries(
-              DASHBOARD_COLOR_KEYS.map(key => [key, currentFormData[key]]),
-            ),
-          }
-        : currentFormData,
-    [isRefreshing, responseFormData, currentFormData],
-  );
+  // the new one lands. What changes without a new query always comes from the
+  // current form data: the dashboard's colours, and the controls a chart sets
+  // on itself, such as an Area chart's stack toggle or a map's viewport.
+  const renderedFormData = useMemo(() => {
+    if (!isRefreshing || !responseFormData) {
+      return currentFormData;
+    }
+    const displayKeys = [
+      ...DASHBOARD_COLOR_KEYS,
+      ...getDisplayControlNames(vizType),
+    ];
+    return {
+      ...responseFormData,
+      ...Object.fromEntries(
+        displayKeys.map(key => [key, currentFormData[key]]),
+      ),
+    };
+  }, [isRefreshing, responseFormData, currentFormData, vizType]);
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
   // Gate on `hasRenderableResults` so the deep clone doesn't run for every

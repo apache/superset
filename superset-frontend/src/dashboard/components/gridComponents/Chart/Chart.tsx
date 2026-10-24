@@ -872,6 +872,7 @@ const Chart = (props: ChartProps) => {
           }
           ownState={ownState}
           queriesResponse={chart.queriesResponse ?? null}
+          latestQueryFormData={chart.latestQueryFormData}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}

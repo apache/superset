@@ -229,15 +229,28 @@ function Chart({
   // already in flight can't tell which form data that response belongs to.
   // A response that failed to render keeps no form data either: drawn again
   // while the retry is in flight, it would fail the same way.
+  //
+  // The store records the form data of the request that produced the response
+  // as latestQueryFormData. That can lag behind formData: with deferred data,
+  // a filter change moves formData on while the chart is off screen, and the
+  // response of the request already in flight lands against the newer form
+  // data. Charts rendered outside the store have no latestQueryFormData.
+  const queriedFormData =
+    latestQueryFormData && Object.keys(latestQueryFormData).length > 0
+      ? (latestQueryFormData as QueryFormData)
+      : formData;
   const responseFormDataRef = useRef<{
     queriesResponse: typeof queriesResponse;
     formData: QueryFormData | undefined;
   }>({
     queriesResponse,
-    formData: chartStatus === 'loading' ? undefined : formData,
+    formData: chartStatus === 'loading' ? undefined : queriedFormData,
   });
   if (responseFormDataRef.current.queriesResponse !== queriesResponse) {
-    responseFormDataRef.current = { queriesResponse, formData };
+    responseFormDataRef.current = {
+      queriesResponse,
+      formData: queriedFormData,
+    };
   }
   if (chartStatus === 'failed') {
     responseFormDataRef.current.formData = undefined;

@@ -46,12 +46,23 @@ interface TestChartProps {
   queriesData: { data: { value: number }[] }[];
   label?: string;
   colorScheme?: string;
+  stack?: boolean;
+  viewport?: { zoom: number };
 }
 
-const TestChart = ({ queriesData, label, colorScheme }: TestChartProps) => (
+const TestChart = ({
+  queriesData,
+  label,
+  colorScheme,
+  stack,
+  viewport,
+}: TestChartProps) => (
   <div data-test="refresh-test-chart">
     value={queriesData[0].data[0].value} label={label}
     <span data-test="refresh-test-chart-scheme">{colorScheme}</span>
+    <span data-test="refresh-test-chart-display">
+      stack={String(stack)} zoom={viewport?.zoom}
+    </span>
   </div>
 );
 
@@ -74,7 +85,34 @@ beforeAll(() => {
       queriesData: chartProps.queriesData,
       label: chartProps.formData.label,
       colorScheme: chartProps.formData.colorScheme,
+      stack: chartProps.formData.stack,
+      viewport: chartProps.formData.viewport,
     }),
+    // `label` needs a query. `stack` and `viewport` only redraw the chart, the
+    // way an Area chart's stack toggle and a deck.gl map's viewport do.
+    controlPanel: {
+      controlPanelSections: [
+        {
+          label: 'Query',
+          expanded: true,
+          controlSetRows: [
+            [{ name: 'label', config: { type: 'TextControl' } }],
+            [
+              {
+                name: 'stack',
+                config: { type: 'CheckboxControl', renderTrigger: true },
+              },
+            ],
+            [
+              {
+                name: 'viewport',
+                config: { type: 'ViewportControl', dontRefreshOnChange: true },
+              },
+            ],
+          ],
+        },
+      ],
+    },
   })
     .configure({ key: VIZ_TYPE })
     .register();
@@ -237,42 +275,193 @@ const dashboardChartProps = {
   } as unknown as Actions,
 };
 
-test('draws the previous data with the form data it was queried with', async () => {
-  // The store keeps the same response object until the new one lands.
-  const previous = queriesResponse(1);
+test('draws each previous response with the form data it was queried with', async () => {
+  // The store keeps the same response object until the new one lands, and
+  // latestQueryFormData is the form data of the request that produced it.
+  const first = queriesResponse(1);
   const { rerender } = render(
     <Chart
       {...dashboardChartProps}
       chartStatus="rendered"
-      formData={labelledFormData('before')}
-      queriesResponse={previous}
+      formData={labelledFormData('first')}
+      latestQueryFormData={labelledFormData('first')}
+      queriesResponse={first}
     />,
   );
   expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
-    'label=before',
+    'label=first',
   );
 
   rerender(
     <Chart
       {...dashboardChartProps}
       chartStatus="loading"
-      formData={labelledFormData('after')}
-      queriesResponse={previous}
+      formData={labelledFormData('second')}
+      latestQueryFormData={labelledFormData('second')}
+      queriesResponse={first}
     />,
   );
   expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
-    'value=1 label=before',
+    'value=1 label=first',
   );
 
+  const second = queriesResponse(2);
   rerender(
     <Chart
       {...dashboardChartProps}
       chartStatus="success"
-      formData={labelledFormData('after')}
-      queriesResponse={queriesResponse(2)}
+      formData={labelledFormData('second')}
+      latestQueryFormData={labelledFormData('second')}
+      queriesResponse={second}
     />,
   );
-  expect(await screen.findByText('value=2 label=after')).toBeInTheDocument();
+  expect(await screen.findByText('value=2 label=second')).toBeInTheDocument();
+
+  // The second refresh draws the second response with its own form data, not
+  // with the first query's.
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={labelledFormData('third')}
+      latestQueryFormData={labelledFormData('third')}
+      queriesResponse={second}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=2 label=second',
+  );
+});
+
+test('pairs a response that lands while the chart is off screen with the request that produced it', async () => {
+  // With deferred data, a chart off screen starts no new query, but a query
+  // already in flight keeps running and its response lands against the newer
+  // form data.
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.DashboardVirtualization]: true,
+    [FeatureFlag.DashboardVirtualizationDeferData]: true,
+  };
+  try {
+    const first = queriesResponse(1);
+    const { rerender } = render(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="rendered"
+        formData={labelledFormData('country')}
+        latestQueryFormData={labelledFormData('country')}
+        queriesResponse={first}
+      />,
+    );
+    await screen.findByTestId('refresh-test-chart');
+
+    // A country refresh is in flight when the chart scrolls out of view.
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        isInView={false}
+        chartStatus="loading"
+        formData={labelledFormData('country')}
+        latestQueryFormData={labelledFormData('country')}
+        queriesResponse={first}
+      />,
+    );
+    // Dynamic Group By moves to region. The region query is deferred, so the
+    // request's form data stays country.
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        isInView={false}
+        chartStatus="loading"
+        formData={labelledFormData('region')}
+        latestQueryFormData={labelledFormData('country')}
+        queriesResponse={first}
+      />,
+    );
+    // The country response lands.
+    const country = queriesResponse(2);
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        isInView={false}
+        chartStatus="success"
+        formData={labelledFormData('region')}
+        latestQueryFormData={labelledFormData('country')}
+        queriesResponse={country}
+      />,
+    );
+    // Back in view, the region query starts and the country rows are drawn
+    // with the country form data until it lands.
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="loading"
+        formData={labelledFormData('region')}
+        latestQueryFormData={labelledFormData('region')}
+        queriesResponse={country}
+      />,
+    );
+    expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+      'value=2 label=country',
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test('draws the previous data with the values the chart set on itself', async () => {
+  // A chart sets controls on itself through setControlValue, which a dashboard
+  // merges into the form data without a new query. A refresh then re-queries
+  // with the form data of the previous request.
+  const previous = queriesResponse(1);
+  const withDisplay = (stack: boolean, zoom: number) =>
+    ({
+      ...labelledFormData('before'),
+      stack,
+      viewport: { zoom },
+    }) as ChartRendererProps['formData'];
+  const { rerender } = render(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={withDisplay(false, 1)}
+      latestQueryFormData={withDisplay(false, 1)}
+      queriesResponse={previous}
+    />,
+  );
+  expect(
+    await screen.findByTestId('refresh-test-chart-display'),
+  ).toHaveTextContent('stack=false zoom=1');
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={withDisplay(true, 4)}
+      latestQueryFormData={withDisplay(false, 1)}
+      queriesResponse={previous}
+    />,
+  );
+  expect(
+    await screen.findByTestId('refresh-test-chart-display'),
+  ).toHaveTextContent('stack=true zoom=4');
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={withDisplay(true, 4)}
+      latestQueryFormData={withDisplay(false, 1)}
+      queriesResponse={previous}
+    />,
+  );
+  expect(screen.getByTestId('refresh-test-chart-display')).toHaveTextContent(
+    'stack=true zoom=4',
+  );
+  expect(screen.getByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1 label=before',
+  );
 });
 
 test('draws the previous data with its own form data when a virtualized chart scrolls back into view', async () => {
