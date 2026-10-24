@@ -21,6 +21,7 @@ from uuid import UUID, uuid4
 
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, DateTime, String, UniqueConstraint
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy_utils import UUIDType
 
@@ -49,6 +50,11 @@ class TeamsInstallation(Model):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # Naive UTC, matching Superset metadata timestamps.
     # changed_on records the last event processing time.
-    event_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    event_at: Mapped[datetime] = mapped_column(
+        DateTime()
+        .with_variant(mysql.DATETIME(fsp=6), "mysql")
+        .with_variant(mysql.DATETIME(fsp=6), "mariadb"),
+        nullable=False,
+    )
     created_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     changed_on: Mapped[datetime] = mapped_column(DateTime, nullable=False)

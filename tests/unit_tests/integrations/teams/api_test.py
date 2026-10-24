@@ -306,12 +306,17 @@ def test_tokens_without_expiration_are_rejected(
     session.assert_not_called()
 
 
+@pytest.mark.parametrize("add_action", ["add", "add-upgrade"])
+@pytest.mark.parametrize("remove_action", ["remove", "remove-upgrade"])
 def test_repeated_events_removal_and_reinstallation(
     teams_client: FlaskClient,
     teams_engine: Engine,
     installation: dict[str, Any],
     auth_headers: Callable[..., dict[str, str]],
+    add_action: str,
+    remove_action: str,
 ) -> None:
+    installation["action"] = add_action
     headers = auth_headers()
     for _ in range(2):
         assert (
@@ -321,7 +326,7 @@ def test_repeated_events_removal_and_reinstallation(
     with Session(teams_engine) as session:
         original = session.query(TeamsInstallation).one()
         identity, created_on = original.id, original.created_on
-    installation["action"] = "remove"
+    installation["action"] = remove_action
     for _ in range(2):
         assert (
             teams_client.post(PATH, json=installation, headers=headers).status_code
@@ -331,7 +336,7 @@ def test_repeated_events_removal_and_reinstallation(
         removed = session.query(TeamsInstallation).one()
         assert removed.id == identity
         assert not removed.active
-    installation["action"] = "add"
+    installation["action"] = add_action
     installation["timestamp"] = "2026-10-01T12:01:00Z"
     refreshed = "https://smba.trafficmanager.net/emea/"
     installation["serviceUrl"] = refreshed
@@ -689,3 +694,40 @@ def test_delayed_install_callback_cannot_undo_removal(
         assert teams_client.post(PATH, json=body, headers=headers).status_code == 200
     with Session(teams_engine) as session:
         assert not session.query(TeamsInstallation).one().active
+
+
+@pytest.mark.parametrize(
+    "action, active", [("add-upgrade", True), ("remove-upgrade", False)]
+)
+def test_upgrade_action_does_not_mutate_request(
+    teams_config: dict[str, Any],
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    action: str,
+    active: bool,
+) -> None:
+    """Authenticate the original event and normalize only the SDK validation copy."""
+    config = parse_teams_config(teams_config)
+    assert config is not None
+    installation["action"] = action
+    original = deepcopy(installation)
+    result = teams_adapter.process_teams_event(config, installation, auth_headers())
+    assert result.status == 200
+    assert result.event is not None
+    assert result.event.active is active
+    assert installation == original
+
+
+@pytest.mark.parametrize("action", [None, [], {}, True, 1, "", "add upgrade", "other"])
+def test_invalid_actions_are_rejected_after_authentication(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    action: Any,
+) -> None:
+    """Malformed actions return a client error without reaching persistence."""
+    installation["action"] = action
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(PATH, json=installation, headers=auth_headers())
+    assert response.status_code == 400
+    session.assert_not_called()

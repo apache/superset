@@ -130,11 +130,20 @@ def _installation_event(
     if not _allowed_token(config, event):
         return TeamsEventResult(403)
     token = event.token
-    if body.get("type") != "installationUpdate" or body.get("action") not in (
-        "add",
-        "remove",
+    actions = {
+        "add": "add",
+        "add-upgrade": "add",
+        "remove": "remove",
+        "remove-upgrade": "remove",
+    }
+    action = body.get("action")
+    if (
+        body.get("type") != "installationUpdate"
+        or not isinstance(action, str)
+        or action not in actions
     ):
         return TeamsEventResult(400)
+    action = actions[action]
     # Require the wire-format fields used by SDK authentication. Do not allow
     # model defaults or snake_case aliases to bypass missing channel/service data.
     if body.get("channelId") != "msteams" or not isinstance(
@@ -145,8 +154,8 @@ def _installation_event(
     if not service_url or token.service_url.rstrip("/") != service_url.rstrip("/"):
         return TeamsEventResult(403)
     try:
-        model = InstalledActivity if body["action"] == "add" else UninstalledActivity
-        activity = model.model_validate(body)
+        model = InstalledActivity if action == "add" else UninstalledActivity
+        activity = model.model_validate({**body, "action": action})
     except ValidationError:
         return TeamsEventResult(400)
     if activity.recipient.id not in {
@@ -183,9 +192,7 @@ def _installation_event(
         return TeamsEventResult(400)
     return TeamsEventResult(
         200,
-        TeamsInstallationEvent(
-            data.team.id, service_url, body["action"] == "add", event_at
-        ),
+        TeamsInstallationEvent(data.team.id, service_url, action == "add", event_at),
     )
 
 
