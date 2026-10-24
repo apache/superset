@@ -149,3 +149,21 @@ test('Users picker orders users by display name rather than by id', async () => 
   await waitFor(() => expect(optionTitles()).toHaveLength(3));
   expect(optionTitles()).toEqual(['Amy', 'Max', 'Zoe']);
 });
+
+test('Users picker options are announced by name rather than by user id', async () => {
+  // The virtualized option list derives an aria-label only from a string
+  // label, so a React-element label would leave the numeric id as the name.
+  jest.mocked(fetchUserOptions).mockResolvedValue({
+    data: [toUserSelectOption({ id: 42, username: 'amy', first_name: 'Amy' })],
+    totalCount: 1,
+  });
+
+  render(<GroupListAddModal {...props} />);
+  const combobox = screen.getByRole('combobox', { name: /users/i });
+  await waitFor(() => userEvent.click(combobox));
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});

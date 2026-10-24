@@ -912,6 +912,11 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
+          // Filtering goes through `filterOption`, so antd only reads this to
+          // match a typed token such as `Jane Smith,` to an option. Like the
+          // paste path, that lets an option with a React label match on the
+          // plain text its caller put in `title`.
+          optionFilterProp="title"
           optionRender={option => option.label || option.value}
           placeholder={placeholder}
           showSearch={shouldShowSearch}

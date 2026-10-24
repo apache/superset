@@ -214,6 +214,23 @@ test('UsersField orders users by display name rather than by id', async () => {
   expect(optionTitles()).toEqual(['Amy', 'Max', 'Zoe']);
 });
 
+test('UsersField options are announced by name rather than by user id', async () => {
+  // The virtualized option list derives an aria-label only from a string
+  // label, so a React-element label would leave the numeric id as the name.
+  jest.mocked(fetchUserOptions).mockResolvedValue({
+    data: [toUserSelectOption({ id: 42, username: 'amy', first_name: 'Amy' })],
+    totalCount: 1,
+  });
+
+  render(<UsersField addDangerToast={addDangerToast} loading={false} />);
+  await waitFor(() => userEvent.click(screen.getByRole('combobox')));
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
 test('GroupsField renders label and select', () => {
   render(<GroupsField addDangerToast={addDangerToast} />);
   expect(screen.getByText('Groups')).toBeInTheDocument();

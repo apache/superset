@@ -74,6 +74,7 @@ test('fetchUserOptions sends the search term as a server-side filter', async () 
         value: 7,
         label: expect.anything(),
         title: 'Jane Smith',
+        'aria-label': 'Jane Smith',
         textLabel: 'Jane Smith',
         subjectDetail: 'jane@example.com',
         username: 'jsmith',
@@ -90,6 +91,20 @@ test('fetchUserOptions trims the search term before sending it', async () => {
 
   expect(decodeQuery()).toEqual({
     filters: [{ col: 'username', opr: 'user_all_text', value: 'jane' }],
+    page: 0,
+    page_size: 100,
+    order_column: 'username',
+    order_direction: 'asc',
+  });
+});
+
+test('fetchUserOptions strips surrounding quotes like the client-side filter', async () => {
+  mockUsersResponse([]);
+
+  await fetchUserOptions(' "Jane Sm" ', 0, 100, jest.fn());
+
+  expect(decodeQuery()).toEqual({
+    filters: [{ col: 'username', opr: 'user_all_text', value: 'Jane Sm' }],
     page: 0,
     page_size: 100,
     order_column: 'username',
@@ -155,6 +170,7 @@ test('toUserSelectOption shows the email under the display name', () => {
   expect(option).toMatchObject({
     value: 7,
     title: 'Jane Smith',
+    'aria-label': 'Jane Smith',
     textLabel: 'Jane Smith',
     subjectDetail: 'jane@example.com',
     username: 'jsmith',

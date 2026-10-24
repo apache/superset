@@ -1749,6 +1749,34 @@ test('pasting matches the title of a React-label option that was not loaded yet'
   expect(options).toHaveBeenCalledWith('Bob Jones', 0, expect.any(Number));
 });
 
+test('typing the title of a React-label option and a comma selects it', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [
+      { label: <span>Jane Smith</span>, title: 'Jane Smith', value: 1 },
+      { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 },
+    ],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      onChange={onChange}
+    />,
+  );
+  await open();
+  await findSelectOption('Bob Jones');
+  await type('Jane Smith,');
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [expect.objectContaining({ value: 1 })],
+      expect.anything(),
+    ),
+  );
+});
+
 test('does not fire onChange if the same value is selected in single mode', async () => {
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
