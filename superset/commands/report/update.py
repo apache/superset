@@ -131,7 +131,7 @@ def _normalize_recipients(recipients: Any) -> list[tuple[str, str]]:
                 config = json.loads(config)
             except json.JSONDecodeError:
                 pass
-        if recipient_type == ReportRecipientType.EMAIL and isinstance(config, dict):
+        if recipient_type != ReportRecipientType.TEAMS and isinstance(config, dict):
             config = {
                 key: value
                 for key, value in config.items()
