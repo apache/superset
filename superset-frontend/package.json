@@ -248,7 +248,6 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.11.1",
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@oxlint/plugins": "^1.81.0",
     "@playwright/test": "^1.64.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
@@ -351,9 +350,6 @@
     "@great-expectations/jsonforms-antd-renderers": {
       "antd": "$antd"
     },
-    "@istanbuljs/load-nyc-config": {
-      "js-yaml": "^3.15.1"
-    },
     "@loaders.gl/compression": {
       "fflate": "^0.7.5"
     },
@@ -395,8 +391,7 @@
     "texture-compressor": {
       "image-size": "^2.0.3"
     },
-    "typescript-json-schema": "^0.68.0",
-    "uuid": "$uuid"
+    "typescript-json-schema": "^0.68.0"
   },
   "browserslist": [
     "last 3 chrome versions",
