@@ -4015,7 +4015,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
         # For each table referenced in the virtual dataset, apply its RLS filters
         if parsed_script.statements:
-            default_schema = self.database.get_default_schema(self.catalog)
+            default_schema = self.schema or self.database.get_default_schema(
+                self.catalog
+            )
             try:
                 rls_applied = False
                 # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on

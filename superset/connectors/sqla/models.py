@@ -2891,7 +2891,9 @@ class SqlaTable(
 
         # For virtual datasets, include RLS predicates in the cache key
         if self.is_virtual and self.sql:
-            default_schema = self.database.get_default_schema(self.catalog)
+            default_schema = self.schema or self.database.get_default_schema(
+                self.catalog
+            )
             rls_predicates = collect_rls_predicates_for_sql(
                 self.sql,
                 self.database,
