@@ -32,6 +32,106 @@ import {
 } from '../types';
 import { sanitizeHtml } from './series';
 
+/**
+ * Escapes RegExp metacharacters in a string so it can be safely used in a
+ * dynamically created regular expression.
+ *
+ * @param value - The raw string to escape
+ * @returns The escaped string safe for use in `new RegExp(...)`
+ */
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Enriches the verbose map by creating human-readable versions of compound field names.
+ *
+ * @param label_map — a mapping of compound keys to arrays of component labels (e.g., { "revenue_total_usd": ["revenue", "total", "usd"] })
+ * @param verboseMap — the existing mapping of field names to their display labels
+ * @returns an updated verbose map that includes human-readable versions of the compound keys
+ */
+export const addLabelMapToVerboseMap = (
+  label_map: Record<string, string[]>,
+  verboseMap: Record<string, string> = {},
+): Record<string, string> => {
+  /**
+   * Logic:
+   *
+   * This function takes a mapping of compound field names to their component labels
+   * and replaces those labels with their corresponding human-readable values from
+   * `verboseMap`, producing display-friendly versions of the compound keys.
+   *
+   * Replacement behavior:
+   * - Only labels that exist in `verboseMap` are considered.
+   * - Every match is found in a single pass over the whole key, using one
+   *   combined regex alternation of all its labels (longest first, so a
+   *   multi-word label like "1 week ago" is matched as a whole phrase
+   *   rather than, say, just "ago"). Scanning word-by-word instead (the
+   *   previous approach) could never match a multi-word label at all,
+   *   since no single space-delimited word equals the whole phrase.
+   *   Matching everything in one pass over the original string also means
+   *   a label's own replacement text is never re-scanned by a later label
+   *   in the same key.
+   * - Each match must be a complete token: it must NOT be part of a larger
+   *   word (e.g. "account" will NOT match "testing_account"), with
+   *   underscores (`_`) treated as part of the word. Case-sensitive.
+   * - Labels not found in `verboseMap` are left unchanged.
+   *
+   * The original `verboseMap` is preserved and extended with the newly generated
+   * human-readable entries.
+   *
+   * Example:
+   * ```ts
+   * label_map = {
+   *   "testing_count, 1 week ago": ["testing_count", "1 week ago"]
+   * }
+   *
+   * verboseMap = {
+   *   testing_count: "Testing Count"
+   * }
+   *
+   * Result:
+   * {
+   *   testing_count: "Testing Count",
+   *   "testing_count, 1 week ago": "Testing Count, 1 week ago"
+   * }
+   * ```
+   */
+  const newVerboseMap: Record<string, string> = {};
+
+  Object.entries(label_map).forEach(([key, labels]) => {
+    if (labels) {
+      const newLabelMap: Record<string, string> = labels
+        .filter(l => verboseMap[l])
+        .reduce(
+          (acc, label) => ({
+            ...acc,
+            [label]: verboseMap[label],
+          }),
+          {},
+        );
+
+      const labelsToReplace = Object.keys(newLabelMap).sort(
+        (a, b) => b.length - a.length,
+      );
+
+      const newKey =
+        labelsToReplace.length === 0
+          ? key
+          : key.replace(
+              new RegExp(
+                `(?<!\\w)(?:${labelsToReplace.map(escapeRegex).join('|')})(?!\\w)`,
+                'g',
+              ),
+              matched => newLabelMap[matched],
+            );
+
+      newVerboseMap[key] = newKey;
+    }
+  });
+
+  return { ...verboseMap, ...newVerboseMap };
+};
+
 const seriesTypeRegex = new RegExp(
   `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
 );
