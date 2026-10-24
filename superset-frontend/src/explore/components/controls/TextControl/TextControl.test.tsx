@@ -21,6 +21,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import TextControl from '.';
 
@@ -117,4 +118,46 @@ test('should keep showing an externally updated value across later re-renders', 
   // the stale local value
   rerender(<TextControl {...mockedProps} value="200" label="Row limit" />);
   expect(screen.getByDisplayValue('200')).toBeInTheDocument();
+});
+
+test('should not call onChange on mount', () => {
+  const onChange = jest.fn();
+  render(<TextControl {...mockedProps} onChange={onChange} />);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('should not call onChange again when a parent re-render hands down a new onChange identity', async () => {
+  const onChangeA = jest.fn();
+  const onChangeB = jest.fn();
+  const { rerender } = render(
+    <TextControl {...mockedProps} value="1" onChange={onChangeA} />,
+  );
+  await userEvent.type(screen.getByRole('textbox'), '2');
+  await waitFor(() => expect(onChangeA).toHaveBeenCalledTimes(1));
+
+  // a parent re-rendering with a fresh inline callback (common in control
+  // panels) must not, by itself, re-fire the deferred-value effect
+  rerender(<TextControl {...mockedProps} value="1" onChange={onChangeB} />);
+  expect(onChangeA).toHaveBeenCalledTimes(1);
+  expect(onChangeB).not.toHaveBeenCalled();
+
+  // the next edit must reach the latest handler, not the stale one
+  await userEvent.type(screen.getByRole('textbox'), '3');
+  await waitFor(() => expect(onChangeB).toHaveBeenCalledWith('123', []));
+  expect(onChangeA).toHaveBeenCalledTimes(1);
+});
+
+test('should report a repeated identical edit after an external reset', async () => {
+  const onChange = jest.fn();
+  const { rerender } = render(
+    <TextControl {...mockedProps} value="75" onChange={onChange} />,
+  );
+  const input = screen.getByRole('textbox');
+  await userEvent.clear(input);
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  rerender(<TextControl {...mockedProps} value="" onChange={onChange} />);
+  rerender(<TextControl {...mockedProps} value="75" onChange={onChange} />);
+  await userEvent.clear(input);
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
+  expect(onChange).toHaveBeenLastCalledWith('', []);
 });
