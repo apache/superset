@@ -190,6 +190,30 @@ test('UsersField shows a user matched by username even though neither line shows
   expect(dropdown.queryByText(/00f09b2e/)).not.toBeInTheDocument();
 });
 
+test('UsersField orders users by display name rather than by id', async () => {
+  // Ids 1, 2, 3 are Zoe, Amy, Max. AsyncSelect's default comparator ranks only
+  // string labels and falls back to the option value, so without
+  // userOptionSortComparator the React-element labels render in id order.
+  jest.mocked(fetchUserOptions).mockResolvedValue({
+    data: [
+      toUserSelectOption({ id: 1, username: 'zoe', first_name: 'Zoe' }),
+      toUserSelectOption({ id: 2, username: 'amy', first_name: 'Amy' }),
+      toUserSelectOption({ id: 3, username: 'max', first_name: 'Max' }),
+    ],
+    totalCount: 3,
+  });
+
+  render(<UsersField addDangerToast={addDangerToast} loading={false} />);
+  await waitFor(() => userEvent.click(screen.getByRole('combobox')));
+
+  const optionTitles = () =>
+    Array.from(
+      document.querySelectorAll('.ant-select-dropdown .ant-select-item-option'),
+    ).map(option => option.getAttribute('title'));
+  await waitFor(() => expect(optionTitles()).toHaveLength(3));
+  expect(optionTitles()).toEqual(['Amy', 'Max', 'Zoe']);
+});
+
 test('GroupsField renders label and select', () => {
   render(<GroupsField addDangerToast={addDangerToast} />);
   expect(screen.getByText('Groups')).toBeInTheDocument();

@@ -124,3 +124,28 @@ test('Users picker shows a user matched by username even though neither line sho
   expect(dropdown.getByText('bob.jones@corp.example.org')).toBeInTheDocument();
   expect(dropdown.queryByText(/00f09b2e/)).not.toBeInTheDocument();
 });
+
+test('Users picker orders users by display name rather than by id', async () => {
+  // Ids 1, 2, 3 are Zoe, Amy, Max. AsyncSelect's default comparator ranks only
+  // string labels and falls back to the option value, so without
+  // userOptionSortComparator the React-element labels render in id order.
+  jest.mocked(fetchUserOptions).mockResolvedValue({
+    data: [
+      toUserSelectOption({ id: 1, username: 'zoe', first_name: 'Zoe' }),
+      toUserSelectOption({ id: 2, username: 'amy', first_name: 'Amy' }),
+      toUserSelectOption({ id: 3, username: 'max', first_name: 'Max' }),
+    ],
+    totalCount: 3,
+  });
+
+  render(<GroupListAddModal {...props} />);
+  const combobox = screen.getByRole('combobox', { name: /users/i });
+  await waitFor(() => userEvent.click(combobox));
+
+  const optionTitles = () =>
+    Array.from(
+      document.querySelectorAll('.ant-select-dropdown .ant-select-item-option'),
+    ).map(option => option.getAttribute('title'));
+  await waitFor(() => expect(optionTitles()).toHaveLength(3));
+  expect(optionTitles()).toEqual(['Amy', 'Max', 'Zoe']);
+});
