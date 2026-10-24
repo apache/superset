@@ -25,6 +25,7 @@ import {
   UIEvent,
   useEffect,
   useMemo,
+  useContext,
   useState,
   useRef,
   useCallback,
@@ -33,6 +34,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { ConfigProvider } from 'antd';
 import {
   ensureIsArray,
   usePrevious,
@@ -155,6 +157,11 @@ const AsyncSelect = forwardRef(
     ref: ForwardedRef<AsyncSelectRef>,
   ) => {
     const isSingleMode = mode === 'single';
+    // AntdThemeProvider can supply a context-aware container (e.g. chart
+    // fullscreen); an explicit callback below would otherwise shadow it.
+    const { getPopupContainer: configGetPopupContainer } = useContext(
+      ConfigProvider.ConfigContext,
+    );
     const shouldShowSearch = allowNewOptions ? true : Boolean(showSearch);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
@@ -873,7 +880,8 @@ const AsyncSelect = forwardRef(
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
               (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
-              (triggerNode.parentNode as HTMLElement))
+              configGetPopupContainer?.(triggerNode) ||
+              document.body)
           }
           headerPosition={headerPosition}
           labelInValue

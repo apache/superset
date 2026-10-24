@@ -532,3 +532,28 @@ test('shows no message while at least one allowed column remains', async () => {
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.queryByText(allowlistGoneMessage)).not.toBeInTheDocument();
 });
+
+test('horizontal layout keeps the 200-400px popup width constraints', async () => {
+  // The popup portals to document.body, outside HorizontalFormItem's styled
+  // scope, so the width clamp must arrive as inline popup styles instead.
+  fetchMock.get('glob:*/api/v1/dataset/325', {
+    result: { table_name: 'Vehicle Sales', columns: [{ column_name: 'city' }] },
+  });
+
+  render(
+    <GroupByFilterCard
+      customizationItem={customization([{ datasetId: 325 }])}
+      orientation="horizontal"
+    />,
+    { useRedux: true, initialState },
+  );
+
+  await userEvent.click(await screen.findByRole('combobox'));
+  await waitFor(() => {
+    expect(document.querySelector('.ant-select-dropdown')).not.toBeNull();
+  });
+  expect(document.querySelector('.ant-select-dropdown')).toHaveStyle({
+    minWidth: '200px',
+    maxWidth: '400px',
+  });
+});
