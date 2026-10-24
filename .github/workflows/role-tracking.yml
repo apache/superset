@@ -1,0 +1,101 @@
+name: Role Permission Tracking
+
+on:
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - 'superset/security/manager.py'
+      - 'superset/security/**'
+      - 'RESOURCES/STANDARD_ROLES.md'
+
+# Cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  track-role-changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: "Checkout PR head"
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Extract role definitions from PR head
+        run: |
+          python scripts/extract_role_definitions.py --output head_roles.json
+
+      - name: "Checkout base branch"
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          clean: false
+          path: base
+
+      - name: Extract role definitions from base
+        run: |
+          cd base
+          python scripts/extract_role_definitions.py --output ../base_roles.json
+
+      - name: "Restore PR head for comparison script"
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          clean: false
+
+      - name: Compare role definitions
+        id: compare
+        run: |
+          python scripts/compare_role_definitions.py \
+            base_roles.json \
+            head_roles.json \
+            --format markdown \
+            --output role_changes.md \
+            --github-output
+
+      - name: Read comparison report
+        id: report
+        run: |
+          {
+            echo 'report<<EOF'
+            cat role_changes.md
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Role Definitions:'
+
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.report.outputs.report }}
+          edit-mode: replace
+
+      - name: Upload comparison artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: role-definitions-comparison
+          path: |
+            base_roles.json
+            head_roles.json
+            role_changes.md
+          retention-days: 30
