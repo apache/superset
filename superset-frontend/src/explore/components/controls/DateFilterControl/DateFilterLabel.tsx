@@ -46,6 +46,7 @@ import { DateFilterControlProps, FrameType } from './types';
 import {
   DateFilterTestKey,
   FRAME_OPTIONS,
+  formatCalendarRangeLabel,
   guessFrame,
   useDefaultTimeFilter,
 } from './utils';
@@ -218,6 +219,16 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             setActualTimeRange(value);
             setTooltipTitle(
               getTooltipTitle(labelIsTruncated, value, actualRange),
+            );
+          } else if (
+            guessedFrame === 'DateRange' &&
+            formatCalendarRangeLabel(value)
+          ) {
+            // The backend range is "start ≤ col < day after end"; show the days the user picked.
+            const pickedDays = formatCalendarRangeLabel(value);
+            setActualTimeRange(pickedDays || '');
+            setTooltipTitle(
+              getTooltipTitle(labelIsTruncated, pickedDays, actualRange),
             );
           } else {
             setActualTimeRange(actualRange || '');

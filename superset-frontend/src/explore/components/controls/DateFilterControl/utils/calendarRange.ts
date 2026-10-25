@@ -46,6 +46,15 @@ export function formatCalendarRange(dates: DateRangeValue): string | undefined {
   return `${start.format(DATE_FORMAT)}${RANGE_SEPARATOR}${exclusiveEnd.format(DATE_FORMAT)}`;
 }
 
+/** The range as the user picked it, with the end day included: "2026-11-01 – 2026-11-30". */
+export function formatCalendarRangeLabel(
+  value?: string | null,
+): string | undefined {
+  const [start, end] = parseCalendarRange(value) ?? [null, null];
+  if (!start || !end) return undefined;
+  return `${start.format(DATE_FORMAT)} – ${end.format(DATE_FORMAT)}`;
+}
+
 const CALENDAR_RANGE_PATTERN = /^\d{4}-\d{2}-\d{2} : \d{4}-\d{2}-\d{2}$/;
 
 /** True for a fixed, whole-day range as produced by the calendar picker. */

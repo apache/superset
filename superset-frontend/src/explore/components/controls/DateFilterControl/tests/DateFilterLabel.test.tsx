@@ -230,6 +230,19 @@ test('applies a configured displayFormat to the evaluated range but leaves the h
   );
 });
 
+test('a Calendar range shows the picked days with the end day included, not the exclusive backend range', async () => {
+  mockedFetchTimeRange.mockResolvedValue({
+    value: '2024-01-01 ≤ col < 2024-02-01',
+  });
+
+  render(setup({ ...defaultProps, value: '2024-01-01 : 2024-02-01' }));
+
+  expect(
+    await screen.findByText('2024-01-01 – 2024-01-31'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/≤ col </)).not.toBeInTheDocument();
+});
+
 test('regression: Apply during a pending debounced draft fetch must still update the pill', async () => {
   // Reproduces the maintainer-identified race: the user edits the draft
   // range (scheduling a 500ms debounced preview fetch), then clicks Apply

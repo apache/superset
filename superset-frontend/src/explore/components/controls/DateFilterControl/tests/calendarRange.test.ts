@@ -20,6 +20,7 @@ import dayjs from 'dayjs';
 import { guessFrame } from '../utils';
 import {
   formatCalendarRange,
+  formatCalendarRangeLabel,
   isCalendarRange,
   parseCalendarRange,
   resolvedRangeToCalendar,
@@ -69,6 +70,13 @@ test('formatCalendarRange and parseCalendarRange round-trip back to the original
   const [start, end] = parseCalendarRange(stored) ?? [];
   expect(start?.format('YYYY-MM-DD')).toBe('2024-03-05');
   expect(end?.format('YYYY-MM-DD')).toBe('2024-03-20');
+});
+
+test('formatCalendarRangeLabel shows the picked days with the end day included', () => {
+  expect(formatCalendarRangeLabel('2026-11-01 : 2026-12-01')).toBe(
+    '2026-11-01 – 2026-11-30',
+  );
+  expect(formatCalendarRangeLabel('Last week')).toBeUndefined();
 });
 
 test('isCalendarRange only accepts a fixed whole-day "start : end" range', () => {
