@@ -47,7 +47,10 @@ jobs:
 
       - name: Install notebook dependencies
         run: |
-          pip install jupyter nbconvert ipykernel geopandas shapely matplotlib requests
+          # Exact versions so a diff only moves with upstream data, not with a
+          # GeoPandas/Shapely change to simplification or serialization.
+          pip install jupyter==1.1.1 nbconvert==7.16.6 ipykernel==6.29.5 \
+            geopandas==1.1.1 shapely==2.1.1 matplotlib==3.10.3 requests==2.32.4
 
       - name: Force speed_run (skip interactive preview rendering)
         working-directory: superset-frontend/plugins/plugin-chart-country-map/scripts
