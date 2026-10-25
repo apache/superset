@@ -339,3 +339,70 @@ def test_time_range_filter_on_the_time_column_keeps_a_grained_bucket(
     )
     assert sum(row[-1] for row in run_query(query, {})) == 4
     assert sum(row[-1] for row in drill) == 2
+
+
+@pytest.mark.parametrize(
+    "time_column,expected_bars",
+    [
+        (None, [0, 0, 0, 2]),
+        ("order_date", [0, 0, 1, 1]),
+        ("ship_date", [0, 0, 1, 2]),
+    ],
+)
+def test_grained_temporal_range_on_x_axis(
+    run_query: Any,
+    executed_sql: list[str],
+    time_column: str | None,
+    expected_bars: list[int],
+) -> None:
+    """A grained range on an axis uses its underlying Time Column."""
+    query: dict[str, Any] = {
+        "columns": [X_AXIS, "status"],
+        "filters": [
+            {
+                **_temporal("order_date", "2004-01-15 : 2004-02-15"),
+                "grain": "P1M",
+            },
+        ],
+    }
+    form_data = {"x_axis": "order_date"}
+    if time_column:
+        query["granularity"] = time_column
+        form_data["granularity_sqla"] = time_column
+    rows = run_query(query, form_data)
+    assert sum(row[-1] for row in rows) == sum(expected_bars)
+    assert [_bar(rows, month) for month in MONTHS] == expected_bars
+    column = time_column or "DATETIME(order_date, 'start of month')"
+    assert f"{column} >= '2004-01-15" in executed_sql[-1]
+    assert f"{column} < '2004-02-15" in executed_sql[-1]
+
+
+@pytest.mark.parametrize("axis_in_query", [True, False])
+@pytest.mark.parametrize(
+    "op,val,expected",
+    [
+        ("==", _bucket("order_date", "2004-01")["val"], 2),
+        ("==", "2004-01-01T00:00:00", 0),
+        (
+            "IN",
+            [_bucket("order_date", month)["val"] for month in ["2004-01", "2004-02"]],
+            4,
+        ),
+        ("NOT IN", [_bucket("order_date", "2004-01")["val"]], 7),
+        ("!=", _bucket("order_date", "2004-01")["val"], 7),
+        (">=", _bucket("order_date", "2004-01")["val"], 4),
+        ("TEMPORAL_RANGE", "2004-01-15 : 2004-02-15", 2),
+    ],
+)
+def test_grained_axis_filter_operators(
+    run_query: Any, axis_in_query: bool, op: str, val: Any, expected: int
+) -> None:
+    """Axis-label and ordinary column filters preserve operator semantics."""
+    rows = run_query(
+        {
+            "columns": [X_AXIS, "status"] if axis_in_query else ["status"],
+            "filters": [{"col": "order_date", "op": op, "val": val, "grain": "P1M"}],
+        },
+        {"x_axis": "order_date"},
+    )
+    assert sum(row[-1] for row in rows) == expected

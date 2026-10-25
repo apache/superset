@@ -563,6 +563,10 @@ Drill-generated filters display their ISO time grain in brackets (for example, `
 Editing the filter's column, operator, value, or expression type clears the bucket grain;
 unchanged duplicates retain it.
 
+API temporal-range filters with a time grain compare bounds against the grained
+x-axis column. With a Time Column override, the range follows the selected
+Time Column instead of adding a second range on the original x-axis.
+
 :::resources
 
 - [Chart Walkthroughs](https://docs.preset.io/docs/chart-walkthroughs) - Detailed guides for most chart types

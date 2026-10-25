@@ -5470,6 +5470,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 if axis_tbl_column := columns_by_name.get(axis_column["sqlExpression"]):
                     adhoc_native_type = axis_tbl_column.type
+                    if op == utils.FilterOperator.TEMPORAL_RANGE:
+                        # Range bounds need the axis's underlying column,
+                        # including any Time Column override.
+                        col_obj = axis_tbl_column
                 elif isinstance(val, (int, float)) and not isinstance(val, bool):
                     # An expression axis has no native type to write an engine
                     # literal for: compare the naive ISO datetime instead of

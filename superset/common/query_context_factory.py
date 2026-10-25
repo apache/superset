@@ -438,7 +438,8 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
                     or (
-                        filter.get("grain")
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and filter.get("grain")
                         and any(
                             isinstance(column, dict)
                             and column.get("columnType") == "BASE_AXIS"
