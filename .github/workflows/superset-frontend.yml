@@ -109,7 +109,7 @@ jobs:
           path: superset-frontend/coverage
 
   report-coverage:
-    needs: [sharded-jest-tests]
+    needs: [sharded-jest-tests] # This is required to configure all Jest tests passed as required check in .asf.yaml
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 15
