@@ -18,21 +18,29 @@
  */
 import { mirrorBabelExportSemantics } from './swcJestTransformer';
 
+// The export-helper text is interpolated so this file is not itself rewritten
+// by the transformer when Jest loads it; the fixtures stay raw SWC-shaped input.
+const EXPORT_FN = '_export';
+const DEFINE = 'defineProperty';
+const GET = 'get';
+const helper = `function ${EXPORT_FN}(target, all) {
+    for(var name in all)Object.${DEFINE}(target, name, {
+        enumerable: true,
+        ${GET}: Object.getOwnPropertyDescriptor(all, name).get
+    });
+}`;
+const exportsBlock = body => `${EXPORT_FN}(exports, {
+${body}
+});`;
+
 const NAMED_EXPORTS = `"use strict";
-Object.defineProperty(exports, "__esModule", {
+Object.${DEFINE}(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: Object.getOwnPropertyDescriptor(all, name).get
-    });
-}
-_export(exports, {
-    get answer () {
+${helper}
+${exportsBlock(`    ${GET} answer () {
         return answer;
-    }
-});
+    }`)}
 const answer = 42;
 `;
 
@@ -73,13 +81,30 @@ Object.defineProperty(foo, "x", {
 });
 
 test('throws when named export getters change shape but the helper still matches', () => {
-  // The getter keyword is interpolated so this fixture is not itself rewritten
-  // when the test file goes through the transformer.
-  const changed = `${NAMED_EXPORTS.split('_export(exports')[0]}_export(exports, {
-    ${'get'} answer() { return answer; }
-});
+  const changed = `${helper}
+${exportsBlock(`    ${GET} answer() { return answer; }`)}
 const answer = 42;`;
   expect(() => mirrorBabelExportSemantics(changed)).toThrow(
     /named export getters did not match/,
   );
+});
+
+test('member-expression and $-named getters are wrapped leniently', () => {
+  const code = `"use strict";
+${helper}
+const dep = { bar: 7 };
+${exportsBlock(`    ${GET} $value () {
+        return $value;
+    },
+    ${GET} bar () {
+        return dep.bar;
+    }`)}
+globalThis.__read = [exports.$value, exports.bar];
+let $value = 1;
+`;
+  const patched = mirrorBabelExportSemantics(code);
+  expect(patched.match(/try \{ return/g)).toHaveLength(2);
+  load(patched);
+  expect(globalThis.__read).toEqual([undefined, 7]);
+  delete globalThis.__read;
 });

@@ -48,11 +48,12 @@ const EXPORT_GETTER_DESCRIPTOR =
 // the `Object.defineProperty(exports, ...)` descriptors, never to getters in
 // application code.
 const EXPORT_BLOCK = /_export\(exports, \{[\s\S]*?\n\}\);/g;
-const EXPORT_BLOCK_GETTER = /(get \w+ \(\) \{\s*)return (\w+);/g;
+const EXPORT_BLOCK_GETTER =
+  /(get [\w$]+ \(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*);/g;
 // The `get: function() { return binding; }` form SWC uses for a single export
 // or a re-export (`from[k]`), matched together with its descriptor.
 const EXPORT_DESCRIPTOR_GETTER =
-  /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,\s*)(get: function\(\) \{\s*)return (\w+|from\[k\]);/g;
+  /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,\s*)(get: function\(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*|from\[k\]);/g;
 
 // Only a TDZ ReferenceError is swallowed; any other error still propagates.
 // The istanbul hint keeps the injected try/catch out of coverage instrumentation
@@ -93,7 +94,7 @@ export function mirrorBabelExportSemantics(code) {
   // The helper descriptor always supplies `configurable: true`, so a changed
   // named-getter shape would otherwise lose only the leniency half unnoticed.
   if (
-    /\b_export\(exports, \{[\s\S]*?\bget\s+\w+\s*\(/.test(code) &&
+    /\b_export\(exports, \{[\s\S]*?\bget\s+[\w$]+\s*\(/.test(code) &&
     !patched.includes('try { return')
   ) {
     throw new Error(
@@ -119,7 +120,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v6';
+const CACHE_SALT = 'babel-export-semantics-v7';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);
