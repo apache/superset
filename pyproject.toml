@@ -109,7 +109,7 @@ dependencies = [
     "sshtunnel>=0.5.1, <0.6",
     "simplejson>=4.2.0",
     "slack_sdk>=3.45.0, <4",
-    "sqlalchemy>=2.0.52, <2.1",
+    "sqlalchemy>=2.0.55, <2.1",
     "sqlalchemy-continuum>=2.0.0, <3.0.0",
     "sqlalchemy-utils>=0.43.0, <0.44", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
@@ -142,7 +142,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.3",
     "google-cloud-bigquery>=3.46.2",
 ]
-clickhouse = ["clickhouse-connect>=1.10.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.11.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
@@ -175,7 +175,7 @@ dremio = ["sqlalchemy-dremio>=3.0.5, <4"]
 # 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
 drill = ["sqlalchemy-drill>=1.1.10, <3"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.5,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.6,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
 # Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See

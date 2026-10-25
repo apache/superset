@@ -177,7 +177,7 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-clickhouse-connect==1.10.1
+clickhouse-connect==1.11.0
     # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
@@ -252,7 +252,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.5
+duckdb==1.5.6
     # via
     #   apache-superset
     #   duckdb-engine
@@ -1050,7 +1050,7 @@ slack-sdk==3.45.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sqlalchemy==2.0.52
+sqlalchemy==2.0.55
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
