@@ -39,6 +39,8 @@ import {
 } from '../../src/types';
 import {
   transformSeries,
+  transformFormulaAnnotation,
+  transformEventAnnotation,
   transformNegativeLabelsPosition,
   getAutoBarLabelLayout,
   getPadding,
@@ -1333,4 +1335,36 @@ test('only-total labels are unaffected by the zero-height guard', () => {
       totalStackedValues: [32],
     }),
   ).toBe('32');
+});
+
+
+describe('annotation rendering order', () => {
+  test('formula annotations render below data series', () => {
+    const annotation = transformFormulaAnnotation(
+      { name: 'Threshold', value: '1' } as Parameters<
+        typeof transformFormulaAnnotation
+      >[0],
+      [],
+      'timestamp',
+      'temporal' as Parameters<typeof transformFormulaAnnotation>[3],
+      mockColorScale,
+    );
+    expect(annotation.z).toBeLessThan(2);
+  });
+
+  test('event annotation lines render below data series', () => {
+    const annotations = transformEventAnnotation(
+      { name: 'Event', showLabel: false } as Parameters<
+        typeof transformEventAnnotation
+      >[0],
+      [],
+      { Event: { records: [{ start_dttm: '2026-10-25', short_descr: 'Event' }] } } as Parameters<
+        typeof transformEventAnnotation
+      >[2],
+      mockColorScale,
+      supersetTheme,
+    );
+    expect(annotations).toHaveLength(1);
+    expect(annotations[0].z).toBeLessThan(2);
+  });
 });

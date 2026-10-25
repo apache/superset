@@ -760,7 +760,7 @@ export function transformFormulaAnnotation(
   return {
     name,
     id: name,
-    z: 10,
+    z: 0,
     itemStyle: {
       color: color || colorScale(name, sliceId),
     },
@@ -950,7 +950,7 @@ export function transformEventAnnotation(
     id: `Event - ${name}`,
     type: 'line',
     animation: false,
-    z: 10,
+    z: 0,
     markLine: {
       silent: false,
       symbol: 'none',
