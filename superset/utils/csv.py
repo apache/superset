@@ -111,7 +111,9 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
         # ``1.100000023841858``), and a ``datetime64`` one turns into object,
         # which leaves the ``date_format`` from ``CSV_EXPORT`` inert. A level
         # holding nothing to escape is handed back as it is, so only a level
-        # that really carries a formula label is rebuilt.
+        # that really carries a formula label is rebuilt. A flat index may hold
+        # the same label twice, so two labels escaping to one need no
+        # factorizing here, unlike the levels of a MultiIndex.
         return level.map(escape_values) if needs_escaping(level) else level
 
     # Escape csv headers
@@ -136,7 +138,7 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # into index labels and the dimension name into ``index.name``. Escaping
     # happens after the cell loop so the labels ``.at`` addresses stay the ones
     # the frame was handed over with. Every level of a MultiIndex is covered;
-    # the axis names are a separate attribute, hence the ``rename_axis``. This
+    # the axis names are a separate attribute, hence the ``set_names``. This
     # mirrors the four places ``superset.utils.excel.quote_formulas`` covers
     # for the xlsx writer.
     index = df.index
@@ -158,12 +160,12 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             #
             # A sibling keeps its own values and codes, and with them its dtype.
             # ``escape_value`` prepends a quote, so two distinct labels can
-            # escape to the same text, and ``factorize`` folds those onto a
-            # single code, which the level values of a ``MultiIndex`` have to
-            # be unique for. The row values are read rather than ``levels``,
-            # which is sorted rather than in row order, so reusing the original
-            # codes against escaped ``levels`` would put each label on the wrong
-            # row as soon as a hostile one did not sort first.
+            # escape to the same text. Mapping ``levels`` in place would keep
+            # every label on its own row, since the mapping runs position for
+            # position and the original codes go on pointing at the right
+            # entries, but it can leave a level holding the same value twice,
+            # and the levels of a ``MultiIndex`` have to be unique. Reading the
+            # row values and factorizing folds a collision onto one code.
             rebuilt = [
                 pd.factorize(values.map(escape_values))
                 if needs_escaping(values := index.get_level_values(position))
@@ -177,8 +179,16 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
             )
     else:
         index = escape_axis_level(index)
-    df = df.set_axis(index, axis="index")
-    df = df.rename_axis(index=escape_values, columns=escape_values)
+    # Assigned onto the frame rather than through ``set_axis`` and
+    # ``rename_axis``, which each return a copy of the data while
+    # copy-on-write is off, for a change that only touches the axes. ``df`` is
+    # already private, the ``rename`` above having copied it, so there is
+    # nothing of the caller's to protect. ``set_names`` takes a list for a flat
+    # index and a MultiIndex alike, so both branches converge on one assignment.
+    df.index = index.set_names([escape_values(name) for name in index.names])
+    df.columns = df.columns.set_names(
+        [escape_values(name) for name in df.columns.names]
+    )
 
     return df.to_csv(escapechar="\\", **kwargs)
 
