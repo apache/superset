@@ -27,6 +27,7 @@ from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
     Filter,
+    FilterExpression,
     FilterValues,
     Grain,
     GroupLimit,
@@ -57,7 +58,7 @@ def test_identity_is_stable_across_mapping_order() -> None:
     ).digest
 
     assert first == second
-    assert first.startswith("v4:")
+    assert first.startswith("v5:")
 
 
 def test_identity_changes_with_result_affecting_material() -> None:
@@ -125,8 +126,10 @@ def _query() -> SemanticQuery:
 
 def test_query_identity_is_deterministic_for_unordered_values() -> None:
     query: SemanticQuery = _query()
+    predicate: FilterExpression = next(iter(query.filters or set()))
+    assert isinstance(predicate, Filter)
     equivalent_filter: Filter = replace(
-        next(iter(query.filters or set())),
+        predicate,
         value=frozenset({"GB", "US"}),
     )
     equivalent: SemanticQuery = replace(query, filters={equivalent_filter})
@@ -168,7 +171,8 @@ def test_query_identity_changes_with_result_affecting_fields(
 
 def test_typed_filter_values_do_not_collide() -> None:
     query: SemanticQuery = _query()
-    predicate: Filter = next(iter(query.filters or set()))
+    predicate: FilterExpression = next(iter(query.filters or set()))
+    assert isinstance(predicate, Filter)
     numeric: SemanticQuery = replace(
         query,
         filters={replace(predicate, operator=Operator.EQUALS, value=1)},
@@ -197,7 +201,8 @@ def test_query_identity_supports_typed_scalar_values(
     value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues],
 ) -> None:
     query: SemanticQuery = _query()
-    predicate: Filter = next(iter(query.filters or set()))
+    predicate: FilterExpression = next(iter(query.filters or set()))
+    assert isinstance(predicate, Filter)
     changed: SemanticQuery = replace(
         query,
         filters={replace(predicate, operator=Operator.EQUALS, value=value)},
@@ -271,10 +276,10 @@ def test_bucket_identity_includes_all_host_boundaries() -> None:
 
 
 def test_value_identity_combines_bucket_and_query() -> None:
-    bucket: str = "semantic-cache:bucket:v4:fixture"
+    bucket: str = "semantic-cache:bucket:v5:fixture"
 
     first: str = SemanticCacheIdentityFactory.value(bucket, _query())
     second: str = SemanticCacheIdentityFactory.value(bucket, _query())
 
     assert first == second
-    assert first.startswith("semantic-cache:value:v4:")
+    assert first.startswith("semantic-cache:value:v5:")

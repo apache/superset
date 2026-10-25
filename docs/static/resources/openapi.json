@@ -95,6 +95,7 @@
                           "UNKNOWN_DATASOURCE_TYPE_ERROR",
                           "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
                           "TABLE_SECURITY_ACCESS_ERROR",
+                          "SEMANTIC_EXECUTION_REFUSED_ERROR",
                           "DATASOURCE_SECURITY_ACCESS_ERROR",
                           "DATABASE_SECURITY_ACCESS_ERROR",
                           "QUERY_SECURITY_ACCESS_ERROR",
@@ -3855,6 +3856,16 @@
           "cache_timeout": {
             "type": "integer"
           },
+          "chart_display_labels": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "description": "Display labels keyed by member chart ID, then by the raw column or metric ID that chart uses. Only charts the caller can access and labels configured for their saved dimensions and metrics are included; omitted for semantic views, when there are none, or when the caller has datasource access and already receives verbose_map.",
+            "type": "object"
+          },
           "column_formats": {
             "type": "object"
           },
@@ -3925,6 +3936,10 @@
             "type": "boolean"
           },
           "main_dttm_col": {
+            "type": "string"
+          },
+          "metadata_error": {
+            "description": "Validation error for this dataset only.",
             "type": "string"
           },
           "metrics": {
@@ -7918,6 +7933,38 @@
         },
         "type": "object"
       },
+      "PasswordRecoveryRequestSchema": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "PasswordRecoveryResetSchema": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "token"
+        ],
+        "type": "object"
+      },
       "PermissionApi.get": {
         "properties": {
           "id": {
@@ -11710,6 +11757,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "SubjectResponse": {
@@ -21369,6 +21419,21 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A chart the restore was linking or unlinking was permanently deleted while the restore ran. Nothing was changed; retry the same request."
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -25588,7 +25653,7 @@
             }
           },
           {
-            "description": "Optional case-insensitive substring; only values containing it are returned. Lets the client search the full column rather than the truncated first page.",
+            "description": "Optional substring search for SQL dataset columns and text semantic dimensions. Semantic non-text dimensions return the bounded page without server-side search. Case sensitivity follows the datasource or semantic provider.",
             "in": "query",
             "name": "q",
             "schema": {
@@ -27342,6 +27407,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "Query already finished or target transaction committed; includes the recorded query\\n"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -30626,6 +30694,110 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/": {
+      "post": {
+        "description": "Emails a single-use password reset link if the address belongs to an active account with a local password. The response is the same whether or not it does.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryRequestSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request accepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Request a password reset link",
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/reset/": {
+      "post": {
+        "description": "Consumes the single-use token from a password reset link and sets the account's new password. Every existing browser session for the account is signed out.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryResetSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Password reset"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The new password was rejected (``message.password``) or the token is invalid, expired or already used (``message.token``)"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Reset a password with a recovery token",
         "tags": [
           "Security"
         ]
@@ -34114,6 +34286,62 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic layer has dependent assets"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34443,6 +34671,62 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A semantic view has dependent assets"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34467,6 +34751,7 @@
               "schema": {
                 "properties": {
                   "views": {
+                    "description": "At most SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS views. Views not validated within SEMANTIC_VIEW_BULK_CREATE_TIMEOUT seconds are reported with error_type TIMEOUT.",
                     "items": {
                       "properties": {
                         "cache_timeout": {
@@ -34548,6 +34833,62 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view has dependent assets"
           },
           "422": {
             "$ref": "#/components/responses/422"

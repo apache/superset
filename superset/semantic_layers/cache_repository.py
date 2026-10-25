@@ -48,6 +48,7 @@ from superset.semantic_layers.cache_types import (
     ReuseDecision,
     SemanticCacheLookupResult as SemanticCacheLookupResult,
 )
+from superset.semantic_layers.ordering import with_default_order
 
 MAX_SEMANTIC_CACHE_DESCRIPTORS_PER_BUCKET: int = 128
 
@@ -247,6 +248,9 @@ class SemanticCacheRepository:
     ) -> bool:
         """Store a TTL-bounded value and register its bounded descriptor.
 
+        Preserve grouped predicates in the descriptor; the policy requires their
+        canonical identities to match before any leaf-only containment proof.
+
         With ``replace`` false, a value that another request already stored
         and registered under the same identity is left alone: the identical
         provider result is already discoverable, and skipping saves this
@@ -255,8 +259,15 @@ class SemanticCacheRepository:
         """
         bucket_key: str = self._bucket_key(meta)
         value_key: str = SemanticCacheIdentityFactory.value(bucket_key, query)
+        # Reuse is decided on the order the provider was asked for, which
+        # includes the default chronological order of an unordered query.
+        order_key: str = SemanticCacheIdentityFactory.order(
+            with_default_order(query).order
+        )
         now: float = self._clock()
-        if not replace and self._is_registered(bucket_key, value_key, meta, now):
+        if not replace and self._is_registered(
+            bucket_key, value_key, order_key, meta, now
+        ):
             return True
         descriptor: CachedEntry = CachedEntry(
             filters=frozenset(query.filters or set()),
@@ -264,7 +275,7 @@ class SemanticCacheRepository:
             metrics=frozenset(query.metrics),
             limit=query.limit,
             offset=query.offset or 0,
-            order_key=SemanticCacheIdentityFactory.order(query.order),
+            order_key=order_key,
             group_limit_key=SemanticCacheIdentityFactory.group_limit(query.group_limit),
             value_key=value_key,
             timestamp=now,
@@ -333,6 +344,7 @@ class SemanticCacheRepository:
         self,
         bucket_key: str,
         value_key: str,
+        order_key: str,
         meta: ViewMeta,
         now: float,
     ) -> bool:
@@ -341,6 +353,7 @@ class SemanticCacheRepository:
         )
         return any(
             entry.value_key == value_key
+            and entry.order_key == order_key
             and self._serves(entry, meta, now)
             and self._has(value_key, SemanticCacheStoreError)
             and self._matches(self._get(value_key, SemanticCacheStoreError), entry)

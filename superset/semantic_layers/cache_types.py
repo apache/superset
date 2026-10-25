@@ -27,6 +27,7 @@ from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
     Filter,
+    FilterExpression,
     Metric,
     SemanticResult,
 )
@@ -91,7 +92,7 @@ class CachedEntry:
     previous shape is ever unpickled by the new one.
     """
 
-    filters: frozenset[Filter]
+    filters: frozenset[FilterExpression]
     dimensions: frozenset[Dimension]
     metrics: frozenset[Metric]
     limit: int | None

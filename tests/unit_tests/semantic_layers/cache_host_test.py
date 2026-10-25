@@ -59,12 +59,18 @@ def test_execution_context_fingerprints_all_host_security_inputs(
     first_user: MagicMock = MagicMock(
         id=1,
         username="first",
+        is_anonymous=False,
+        is_authenticated=True,
+        groups=[],
         roles=[role],
         guest_token={"rls": [{"clause": "tenant = 1"}]},
     )
     second_user: MagicMock = MagicMock(
         id=2,
         username="second",
+        is_anonymous=False,
+        is_authenticated=True,
+        groups=[],
         roles=[role],
         guest_token={"rls": [{"clause": "tenant = 1"}]},
     )
@@ -362,8 +368,8 @@ def test_cache_identity_does_not_consult_provider_token_or_removed_adapter(
     assert configuration[0].definition_identity == _definition_identity(OBSERVATION)
 
 
-def test_legacy_definition_digest_remains_pinned() -> None:
-    """Keep the independently verified pre-token identity encoding, without reuse."""
+def test_definition_digest_rotates_for_grouped_filter_format() -> None:
+    """Pin the v5 digest, independently computed as SHA256 of its canonical input."""
     assert SemanticCacheIdentityFactory.definition({"changed_on": "None"}).digest == (
-        "v4:7c038bb0c633af651913f2fb9350339c70a3373e681a53db31d8cdf31e048a73"
+        "v5:b947b0b82833f9abfadae97ee05ecfe25a913fa68c0659327b69f1d226b691de"
     )

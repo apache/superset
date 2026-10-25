@@ -39,6 +39,7 @@ from superset.sql.parse import (
     extract_tables_from_statement,
     folds_unquoted_object_names,
     has_aggregate,
+    is_constant_expression,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -1337,6 +1338,101 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+@pytest.mark.parametrize("engine", ["base", "sqlite", "postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "--",
+        "-- trailing comment",
+        "/* trailing comment */",
+        "/* trailing comment */ ;; -- c",
+        "/* trailing comment */ ; -- c",
+        "",
+    ],
+)
+@pytest.mark.parametrize("sql", ["SELECT 1;;", ";;SELECT 1;;;", "SELECT 2;;SELECT 1;;"])
+def test_sqlscript_trailing_comments_after_empty_statements(
+    engine: str, comment: str, sql: str
+) -> None:
+    """Ignore empty statements and preserve comments on the last real statement."""
+    script = SQLScript(f"{sql}\n{comment}", engine)
+
+    assert len(script.statements) == (2 if "SELECT 2" in sql else 1)
+    assert script.statements[-1].format(comments=False) == "SELECT\n  1"
+    # Bare "--" guards against crashes; only comments with text check preservation.
+    if "trailing comment" in comment:
+        formatted = script.statements[-1].format()
+        assert "trailing comment" in formatted
+        if "-- c" in comment:
+            assert formatted.index("trailing comment") < formatted.index("/* c */")
+        if len(script.statements) == 2:
+            assert "trailing comment" not in script.statements[0].format()
+
+
+@pytest.mark.parametrize("engine", ["base", "sqlite", "postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "sql, expected_sql, expected_comments",
+    [
+        ("SELECT * FROM a;; /* x */ ;; -- c", ["SELECT\n  *\nFROM a"], [["x", "c"]]),
+        ("SELECT 1; /* x */ ; -- c", ["SELECT\n  1"], [["x", "c"]]),
+        (";; -- only comment", [], []),
+        ("-- only", [], []),
+        (";;", [], []),
+        ("", [], []),
+        (
+            "SELECT 1;;; /* x */ ;; SELECT 2",
+            ["SELECT\n  1", "SELECT\n  2"],
+            [["x"], []],
+        ),
+        (
+            ";; /* x */ ; /* y */ ; SELECT 1 /* z */",
+            ["SELECT\n  1"],
+            [["x", "y", "z"]],
+        ),
+        (
+            "SELECT 1; /* x */ ; /* y */ ; SELECT 2; /* z */ ; -- c",
+            ["SELECT\n  1", "SELECT\n  2"],
+            [["x", "y"], ["z", "c"]],
+        ),
+    ],
+)
+def test_sqlscript_comment_only_segments(
+    engine: str,
+    sql: str,
+    expected_sql: list[str],
+    expected_comments: list[list[str]],
+) -> None:
+    """Keep real statements and preserve each comment's statement and order."""
+    statements = SQLScript(sql, engine).statements
+
+    # Some engines/drivers reject comment-only queries (e.g. PostgreSQL/psycopg2).
+    # Semicolon nodes are truthy, so split_script's truthiness check retains them.
+    assert not any(
+        isinstance(statement._parsed, exp.Semicolon) for statement in statements
+    )
+    assert [
+        statement.format(comments=False) for statement in statements
+    ] == expected_sql
+    for statement, comments in zip(statements, expected_comments, strict=True):
+        formatted = statement.format()
+        assert re.findall(r"/\*\s*(.*?)\s*\*/", formatted) == comments
+
+
+@pytest.mark.parametrize("engine", ["base", "unknown-engine"])
+def test_sqlscript_comment_only_segments_with_mysql_fallback(engine: str) -> None:
+    """Normalize comment-only segments after falling back to the MySQL parser."""
+    statements = SQLScript(
+        "SELECT * FROM `a`;; /* x */ ; SELECT 2; -- c", engine
+    ).statements
+
+    assert [statement.format(comments=False) for statement in statements] == [
+        'SELECT\n  *\nFROM "a"',
+        "SELECT\n  2",
+    ]
+    assert re.findall(r"/\*\s*(.*?)\s*\*/", statements[0].format()) == ["x"]
+    assert re.findall(r"/\*\s*(.*?)\s*\*/", statements[1].format()) == ["c"]
+
+
 def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
     """
     Regression for #38189: an inline `--` comment trailing a query with a
@@ -2289,6 +2385,21 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT nextval('public.my_seq')", True),
         # currval() only reads the session's last value, so it is not mutating.
         ("SELECT currval('public.my_seq')", False),
+        # dblink functions that open remote connections or dispatch async writes.
+        ("SELECT dblink_exec('host=h dbname=d', 'DELETE FROM t')", True),
+        ("SELECT dblink_connect('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_connect_u('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_send_query('myconn', 'DELETE FROM t')", True),
+        ("SELECT * FROM dblink('host=h dbname=d', 'SELECT 1') AS t(c int)", True),
+        # pg_* state-mutating functions callable via SELECT.
+        ("SELECT pg_cancel_backend(1234)", True),
+        ("SELECT pg_reload_conf()", True),
+        ("SELECT pg_stat_reset()", True),
+        ("SELECT pg_switch_wal()", True),
+        ("SELECT pg_logical_emit_message(true, 'channel', 'msg')", True),
+        ("SELECT pg_create_restore_point('rp1')", True),
+        ("SELECT pg_drop_replication_slot('slot1')", True),
+        ("SELECT pg_rotate_logfile()", True),
         # Read-side large-object functions are intentionally NOT classified
         # as mutating here. They are still blocked via the function denylist
         # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
@@ -6934,6 +7045,49 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
     that grant something to aggregates and must not grant it on a guess.
     """
     assert has_aggregate(expression, fail_open=False) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,engine,expected",
+    [
+        ("'Other'", "postgresql", True),
+        ("('Other')", "postgresql", True),
+        ("42", "postgresql", True),
+        ("1.5", "postgresql", True),
+        ("NULL", "postgresql", True),
+        ("TRUE", "postgresql", True),
+        ("-1", "postgresql", True),
+        ("(-1.5)", "postgresql", True),
+        ("-1", "sqlite", True),
+        ("-region", "postgresql", False),
+        ("-(1 + 1)", "postgresql", False),
+        ("- 'a'", "postgresql", False),
+        ("-TRUE", "postgresql", False),
+        ("(FALSE)", "mysql", True),
+        ("TRUE", "sqlite", False),
+        ("(FALSE)", "sqlite", False),
+        ("'Other'", "sqlite", True),
+        ("NULL", "sqlite", True),
+        ("42", "sqlite", True),
+        ('"Other"', "mysql", True),
+        ('"Other"', "postgresql", False),
+        ("region", "postgresql", False),
+        ("CASE WHEN 1=1 THEN 'x' END", "postgresql", False),
+        ("CAST('x' AS VARCHAR)", "postgresql", False),
+        ("UPPER('x')", "postgresql", False),
+        ("'a' || region", "postgresql", False),
+        ("1 + 1", "postgresql", False),
+        ("'a', 'b'", "postgresql", False),
+        (")(", "postgresql", False),
+    ],
+)
+def test_is_constant_expression(expression: str, engine: str, expected: bool) -> None:
+    """
+    Only a bare literal or ``NULL`` (optionally parenthesized) is constant; an
+    expression that merely contains one, or can't be parsed, is not. ``TRUE`` and
+    ``FALSE`` are identifiers on SQLite, so they are not constant there.
+    """
+    assert is_constant_expression(expression, engine) is expected
 
 
 @pytest.mark.parametrize(

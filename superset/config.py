@@ -49,6 +49,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import Select, Subquery
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -452,6 +453,27 @@ FAB_PASSWORD_COMPLEXITY_ENABLED = True
 FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
 AUTH_PASSWORD_MIN_LENGTH = 8
 AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
+# Self-service "Forgot password?" recovery for AUTH_TYPE = AUTH_DB. Users request
+# a reset link by email from the login page; the link carries a single-use token
+# that expires after ``token_ttl_minutes``. Off by default: it needs working SMTP
+# settings, and links are built from ``base_url`` (falling back to
+# WEBDRIVER_BASEURL_USER_FRIENDLY), never from the request, so set it to the
+# public HTTPS address users reach Superset at before enabling.
+# - token_ttl_minutes: capped at 24 hours (1440); a value that is not a
+#   positive whole number falls back to the default.
+# - rate_limit: Flask-Limiter limit for both endpoints, per client address
+#   (enforced only when RATELIMIT_ENABLED is on).
+# - resend_cooldown_seconds: minimum time between two emails to one address.
+# Keys left out of an override fall back to these defaults; a value that is not
+# a dict at all is logged and treated as unset.
+AUTH_PASSWORD_RECOVERY: dict[str, Any] = {
+    "enabled": False,
+    "token_ttl_minutes": 30,
+    "rate_limit": "5 per 15 minutes",
+    "resend_cooldown_seconds": 120,
+    "base_url": None,
+}
 
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
@@ -2514,6 +2536,22 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
+        # dblink functions can open separate connections and auto-commit
+        # writes, bypassing the read-only gate entirely
+        "dblink",
+        "dblink_exec",
+        "dblink_connect",
+        "dblink_connect_u",
+        "dblink_send_query",
+        # State-mutating functions callable via SELECT
+        "pg_cancel_backend",
+        "pg_reload_conf",
+        "pg_rotate_logfile",
+        "pg_stat_reset",
+        "pg_switch_wal",
+        "pg_logical_emit_message",
+        "pg_create_restore_point",
+        "pg_drop_replication_slot",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -3478,9 +3516,44 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     dashboards: Callable[[int], Query]
 
 
+# Extra access query exclusions inject an AND NOT condition into ChartFilter
+# and DashboardAccessFilter, letting a deployment *withhold* asset visibility.
+# ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set, because its
+# conditions are OR'd with the role paths -- so a deployment that needs to keep
+# an asset out of the list, an export or a related-field lookup has no way to
+# express that through it.
+#
+# Exclusions are applied before the ``is_admin`` / ``can_access_all_datasources``
+# short-circuits, so they hold for every principal except embedded guests,
+# whose scope is set by their token alone.
+#
+# The callable receives the current user ID and returns a subquery of the asset
+# IDs to withhold.
+# Receives the current user id, or ``None`` for an anonymous request -- a
+# withholding rule is consulted even then, since skipping it would reveal
+# rather than hide. May return an ORM ``Query``, a Core ``select()`` or an
+# explicit ``.subquery()``; all three are accepted and normalised, matching
+# what the sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
+ExclusionEntry = Callable[[int | None], Query | Select | Subquery]
+
+
+class ExtraAccessQueryExclusions(TypedDict, total=False):
+    charts: ExclusionEntry
+    dashboards: ExclusionEntry
+    # Narrower than the two above: assets selectable as the target of a
+    # scheduled report, which renders as the configured executor rather than
+    # as the user who created it. A deployment may hold assets a user can read
+    # but cannot schedule a report on.
+    report_target_charts: ExclusionEntry
+    report_target_dashboards: ExclusionEntry
+
+
 # Extension hooks for deployments to plug in custom access logic.
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Asset IDs to withhold from chart/dashboard list views, exports and
+# related-field lookups. See ``ExtraAccessQueryExclusions`` above.
+EXTRA_ACCESS_QUERY_EXCLUSIONS: ExtraAccessQueryExclusions = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 # The hook receives the complete query context, so setting it turns off the
 # semantic-view chart-data check that otherwise denies before provider metadata
@@ -3637,6 +3710,19 @@ SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS: float = 1.0
 
 # Expiry for owner-token semantic-cache descriptor leases.
 SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS: int = 30
+
+# Maximum number of views accepted by one bulk semantic view creation request.
+# Each view costs one semantic layer lookup; larger batches are refused with a 400
+# before any lookup runs.
+SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS: int = 100
+
+# Time budget, in seconds, for validating the views of one bulk creation request.
+# The budget is checked before each view's lookup: views not started in time fail
+# with a "TIMEOUT" error and can be retried. A lookup already in progress is bounded
+# only by the semantic layer's own timeouts, so keep this well below
+# SUPERSET_WEBSERVER_TIMEOUT and any proxy timeout, leaving room for that lookup;
+# otherwise the client receives a gateway timeout instead of the per-view results.
+SEMANTIC_VIEW_BULK_CREATE_TIMEOUT: float = 30
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

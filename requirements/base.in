@@ -17,9 +17,11 @@
 # under the License.
 #
 # Security: CVE-2026-21441 - decompression bomb bypass on redirects
-urllib3>=2.6.3,<3.0.0
+# Security: CVE-2026-97687, CVE-2026-97689 (HIGH), CVE-2026-97688 (MEDIUM)
+urllib3>=2.8.0,<3.0.0
 # Security: CVE-2026-27199 - Windows device name handling in safe_join
-werkzeug>=3.1.6,<4.0.0
+# Security: CVE-2026-102598 (MEDIUM)
+werkzeug>=3.1.9,<4.0.0
 # Security: CVE-2025-68146 - TOCTOU symlink vulnerability
 filelock>=3.20.3,<4.0.0
 # Security: decompression bomb fix (required by aiohttp 3.13.3)
@@ -30,7 +32,7 @@ cryptography>=50.0.2,<51.0.0
 # Security: Snyk - XSS vulnerability in Mako templates
 mako>=1.4.3,<2.0.0
 # Security: CVE-2024-52338 (CRITICAL) - Deserialization of untrusted data in IPC/Parquet readers
-pyarrow>=25.0.1,<26.0.0
+pyarrow>=26.0.0,<27.0.0
 # Security: CVE-2026-27459 - pyopenssl certificate validation
 pyopenssl>=26.0.0,<27.0.0
 # Security: CVE-2026-25645 (MEDIUM) - Insecure Temporary File

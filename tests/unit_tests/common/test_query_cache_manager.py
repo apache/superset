@@ -14,10 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pandas as pd
+from flask_caching import Cache
+
+from superset.app import SupersetApp
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
+from superset.models.helpers import QueryResult
 
 
 class TestQueryCacheManagerGet:
@@ -73,3 +81,33 @@ class TestQueryCacheManagerGet:
 
         assert result.is_cached is True
         assert result.semantic_cache_status == "MISS"
+
+
+def test_kept_big_integer_column_survives_cache_round_trip(
+    app: SupersetApp, tmp_path: Path
+) -> None:
+    """Exact large integers (Python and NumPy scalars, nulls and NaN) in an object
+    column come back from a real cache backend unchanged."""
+    cache = Cache(
+        config={"CACHE_TYPE": "FileSystemCache", "CACHE_DIR": str(tmp_path / "cache")}
+    )
+    cache.init_app(app)
+    values = [2**62 + 1, None, np.int64(-(2**63)), float("nan"), np.int64(2**63 - 1)]
+    df = pd.DataFrame({"value": pd.Series(values, dtype=object)})
+
+    with patch(
+        "superset.common.utils.query_cache_manager._cache",
+        {CacheRegion.DEFAULT: cache, CacheRegion.DATA: cache},
+    ):
+        QueryCacheManager().set_query_result(
+            key="exact-integers",
+            query_result=QueryResult(df=df, query="", duration=timedelta(0)),
+            timeout=300,
+            region=CacheRegion.DATA,
+        )
+        loaded = QueryCacheManager.get(key="exact-integers", region=CacheRegion.DATA)
+
+    assert loaded.is_cached
+    assert loaded.df["value"].dtype == object
+    assert [type(value) for value in loaded.df["value"]] == [type(v) for v in values]
+    pd.testing.assert_frame_equal(loaded.df, df)

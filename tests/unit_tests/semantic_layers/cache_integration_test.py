@@ -367,7 +367,9 @@ def test_failed_forced_refresh_does_not_replace_cached_result(
     get_results(_query(datasource))
     provider.get_table.side_effect = RuntimeError("provider unavailable")
 
-    with pytest.raises(RuntimeError, match="provider unavailable"):
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    with pytest.raises(SemanticLayerExecutionError):
         get_results(_query(datasource, force_query=True))
 
     provider.get_table.side_effect = None
