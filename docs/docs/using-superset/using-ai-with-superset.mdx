@@ -108,6 +108,10 @@ comparison preserves other selected offsets, including custom comparisons.
 Forecasts use the x-axis time grain, resolved query grain, or panel grain, with a
 daily fallback.
 
+When chart compilation fails, MCP distinguishes database connection failures from
+query validation errors. For Mixed Timeseries charts, annotation failures on
+either query use the annotation charts' database engines for classification.
+
 ### Create Dashboards
 
 Build dashboards from a collection of charts:
@@ -474,6 +478,22 @@ also have `data: null`. For each statement, `executed_sql` is `null` when it equ
 
 - Ask for smaller result sets: use filters, reduce `page_size`, or request specific columns
 - Example: "Show me the top 10 rows from the sales dataset" instead of "Show me all sales data"
+
+### Chart query and template errors
+
+MCP chart tools accept ISO-8601 time grains such as `P1M` for monthly
+buckets, including Big Number trendlines with saved metrics. Template-rendering
+and query-processing validation failures are reported as `compile_error`, with
+the underlying error in `details`, rather than as database connection failures.
+Check the chart configuration or dataset expressions before retrying.
+Connection failures in an annotation layer's chart query are still reported as
+`database_connection_error`, even when the annotation layer wraps the failure as
+a validation error. Typed database exceptions are recognized directly; other
+failures are matched against candidate annotation-chart database engines. If
+multiple engines are candidates or a chart cannot be located, only specific
+connection-error patterns count, not an engine's generic error fallback. If no
+annotation engine can be determined, the main dataset's engine supplies those
+patterns. The error message names the annotation layer as the source.
 
 ### AI doesn't see Superset tools
 

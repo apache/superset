@@ -421,8 +421,14 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         # Use the first temporal filter
                         filter_to_remove = temporal_filters[0]
 
-            # Replace only the default temporal range. Independent comparisons
-            # on the same column must remain alongside the granularity filter.
+            # Removes the temporal filter which may be an x-axis or
+            # another temporal filter. A new filter based on the value of
+            # the granularity will be added later in the code.
+            # In practice, this is replacing the previous default temporal filter.
+            # Keep independent predicates when the Time Column is unchanged.
+            # A swapped x-axis drill can carry the overriding column's bucket.
+            # Sunburst levels are independent of the Time Column, so their
+            # non-dashboard predicates remain valid when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -431,7 +437,17 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
-                    or filter["op"] != "TEMPORAL_RANGE"
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and (
+                            filter_to_remove == granularity
+                            or (
+                                (form_data or {}).get("viz_type") == "sunburst_v2"
+                                # Dashboard filters can come from a swapped x-axis.
+                                and not filter.get("isExtra")
+                            )
+                        )
+                    )
                 ]
 
     def _apply_filters(

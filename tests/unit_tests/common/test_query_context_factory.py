@@ -389,7 +389,7 @@ class TestQueryContextFactory:
         temporal_binding: bool,
         granularity: str,
     ) -> None:
-        """Time-column overrides replace ranges, not independent comparisons."""
+        """Keep comparisons unless replacing a different temporal column."""
         query_object = QueryObject(
             granularity=granularity,
             columns=["ds"],
@@ -414,6 +414,9 @@ class TestQueryContextFactory:
 
         self.factory._apply_granularity(query_object, {"x_axis": x_axis}, datasource)
 
+        if (temporal_binding or x_axis == "ds") and granularity != "ds":
+            # A different Time Column replaces stale predicates on the old axis.
+            expected_filters = [f for f in expected_filters if f["col"] != "ds"]
         assert query_object.filter == expected_filters
 
     def test_apply_granularity_with_granularity_in_temporal_filters(self):

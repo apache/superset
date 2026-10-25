@@ -88,7 +88,7 @@ ROW_OVERRIDE_KEYS = frozenset(
 )
 # Keys that choose the column a time range applies to. Setting one while the
 # scope carries filters would move the dashboard window to another column, and
-# Superset's granularity handling drops existing filters on the chosen column.
+# Superset's granularity handling drops filters on the replaced column.
 TIME_TARGET_KEYS = frozenset({"granularity_sqla", "time_column"})
 # Keys that only change presentation (bucketing, interactivity), never which
 # rows are included. The model's value wins.

@@ -2448,6 +2448,56 @@ def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
     assert len(result.df) == 2
 
 
+def test_grouping_sets_fallback_mixed_levels_exact() -> None:
+    """
+    Concatenating the per-level results must keep an exact large integer exact:
+    one level carries the nullable-integer dimension as an object column, another
+    has no such column, a third carries it as float64. ``object`` + ``float64``
+    stays an exact ``object`` column (a nullable ``Int64`` would be widened to
+    ``Float64`` and round the value again).
+    """
+    from datetime import timedelta
+
+    import numpy as np
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    large = 2**62 + 1
+    levels = {
+        2: pd.DataFrame(
+            {
+                "state": ["CA", "NY"],
+                "big": pd.Series([large, None], dtype=object),
+                "value": [1, 2],
+            }
+        ),
+        1: pd.DataFrame({"state": ["CA", "NY"], "value": [3, 4]}),
+        0: pd.DataFrame(
+            {"big": pd.Series([7.0, np.nan], dtype="float64"), "value": [5, 6]}
+        ),
+    }
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state", "big"],
+        grouping_sets=[["state", "big"], ["state"], []],
+    )
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+    mock_datasource.get_query_result.side_effect = lambda sub_query: QueryResult(
+        df=levels[len(sub_query.columns)],
+        query="SELECT 1",
+        duration=timedelta(seconds=0),
+    )
+
+    result = processor._grouping_sets_fallback(query_obj)
+
+    assert result.df["big"].dtype == object
+    assert result.df["big"].iloc[0] == large
+    assert type(result.df["big"].iloc[0]) is int
+
+
 def test_relative_offset_preserves_inner_bounds(
     processor: QueryContextProcessor,
 ) -> None:
