@@ -42,6 +42,7 @@ end-to-end in CI today -- but this still covers the `MariaDBEngineSpec`
 code path, and guards against a regression if that ever changes.
 """
 
+import ipaddress
 import os
 import tempfile
 from collections.abc import Iterator
@@ -192,8 +193,18 @@ def test_require_mysql_tls_fails_closed_without_server_tls(
             pass
 
 
+def _docker_host() -> str | None:
+    """Host address the Docker daemon is reachable on, for the cert SAN."""
+    from testcontainers.core.docker_client import DockerClient
+
+    host = DockerClient().host()
+    return None if host in ("localhost", "127.0.0.1") else host
+
+
 def _write_self_signed_cert(
-    cert_dir: Path, ca_common_name: str = "superset-testcontainers-ca"
+    cert_dir: Path,
+    ca_common_name: str = "superset-testcontainers-ca",
+    docker_host: str | None = None,
 ) -> None:
     """Write a throwaway CA + server cert/key into `cert_dir`.
 
@@ -223,6 +234,18 @@ def _write_self_signed_cert(
         .sign(ca_key, hashes.SHA256())
     )
 
+    # MariaDB Connector/C maps VERIFY_CA to a check that also validates the
+    # hostname, so the cert must name every address the tests connect to.
+    san_entries: list[x509.GeneralName] = [
+        x509.DNSName("localhost"),
+        x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+    ]
+    if docker_host:
+        try:
+            san_entries.append(x509.IPAddress(ipaddress.ip_address(docker_host)))
+        except ValueError:
+            san_entries.append(x509.DNSName(docker_host))
+
     server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     server_name = x509.Name(
         [x509.NameAttribute(NameOID.COMMON_NAME, "mariadb-testcontainer")]
@@ -235,6 +258,7 @@ def _write_self_signed_cert(
         .serial_number(x509.random_serial_number())
         .not_valid_before(now - timedelta(minutes=5))
         .not_valid_after(now + timedelta(hours=1))
+        .add_extension(x509.SubjectAlternativeName(san_entries), critical=False)
         .sign(ca_key, hashes.SHA256())
     )
 
@@ -266,7 +290,7 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
     """
     with tempfile.TemporaryDirectory() as cert_dir_str:
         cert_dir = Path(cert_dir_str)
-        _write_self_signed_cert(cert_dir)
+        _write_self_signed_cert(cert_dir, docker_host=_docker_host())
         # TemporaryDirectory is 0700; the container's mysql user must be able
         # to traverse the bind-mounted directory on Linux.
         cert_dir.chmod(0o755)
@@ -295,7 +319,9 @@ def test_require_mysql_tls_rejects_untrusted_ca(
     container, _ = tls_container
     # A distinct subject keeps OpenSSL from matching this CA to the server's
     # issuer by name, so the failure is an untrusted issuer, not a bad signature.
-    _write_self_signed_cert(tmp_path, ca_common_name="superset-untrusted-ca")
+    _write_self_signed_cert(
+        tmp_path, ca_common_name="superset-untrusted-ca", docker_host=_docker_host()
+    )
     wrong_ca = tmp_path / "ca.pem"
     host = _tcp_host(container)
     port = container.get_exposed_port(container.port)
