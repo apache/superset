@@ -977,6 +977,138 @@ test('keeps a hidden sort metric labeled like a comparison series hidden', () =>
   expect(series.map(({ name }) => name)).not.toContain('sales, 1 year ago');
 });
 
+test('sorts by a hidden metric labeled exactly like the comparison offset', () => {
+  // The hidden sort metric is labeled `1 year ago`, so its label_map entry
+  // leads with the offset. Because a sort-only metric means several metrics
+  // are pivoted, that leading part is the metric, not a stripped offset, and
+  // the column must stay hidden and drive the axis order.
+  const offsetNamedMetric: QueryFormMetric = {
+    expressionType: 'SQL',
+    sqlExpression: 'SUM(sales)',
+    label: '1 year ago',
+  };
+  const compareRows: DataRecord[] = [
+    {
+      genre: 'A',
+      'count, East': 5,
+      'count, 1 year ago, East': 4,
+      '1 year ago, East': 1,
+    },
+    {
+      genre: 'B',
+      'count, East': 6,
+      'count, 1 year ago, East': 5,
+      '1 year ago, East': 10,
+    },
+  ];
+  const compareLabelMap = {
+    genre: ['genre'],
+    'count, East': ['count', 'East'],
+    'count, 1 year ago, East': ['count, 1 year ago', 'East'],
+    '1 year ago, East': ['1 year ago', 'East'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform'],
+      timeseries_limit_metric: offsetNamedMetric,
+      comparison_type: 'values',
+      comparisonType: 'values',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      x_axis_sort: '1 year ago',
+      xAxisSort: '1 year ago',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: compareRows,
+        label_map: compareLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  expect(series.map(({ name }) => name).sort()).toEqual([
+    'count, 1 year ago, East',
+    'count, East',
+  ]);
+  // hidden totals: B 10, A 1
+  expect(series[0].data.map(([genre]) => genre)).toEqual(['B', 'A']);
+});
+
+test('keeps a displayed series visible when a verbose name reads like its dimension tuple', () => {
+  // The hidden saved metric `sales` has the verbose name `PS4, US`, which is
+  // also the flat name of a displayed two-dimension series. The collision
+  // guard must look the metric up by its verbose name so that displayed
+  // series stays visible while the axis still orders by the hidden totals.
+  const salesMetric: QueryFormMetric = {
+    expressionType: 'SQL',
+    sqlExpression: 'SUM(sales)',
+    label: 'sales',
+  };
+  const twoDimRows: DataRecord[] = [
+    {
+      genre: 'A',
+      'PS4, US': 30,
+      'sales, PS4, US': 1,
+    },
+    {
+      genre: 'B',
+      'PS4, US': 5,
+      'sales, PS4, US': 10,
+    },
+  ];
+  const twoDimLabelMap = {
+    genre: ['genre'],
+    'PS4, US': ['PS4', 'US'],
+    'sales, PS4, US': ['sales', 'PS4', 'US'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform', 'region'],
+      timeseries_limit_metric: salesMetric,
+      truncate_metric: true,
+      x_axis_sort: 'sales',
+      xAxisSort: 'sales',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: twoDimRows,
+        label_map: twoDimLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+    datasource: { verboseMap: { sales: 'PS4, US' } },
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  expect(series.map(({ name }) => name)).toEqual(['PS4, US']);
+  // hidden totals: B 10, A 1
+  expect(series[0].data.map(([genre]) => genre)).toEqual(['B', 'A']);
+});
+
 test('stacks per region with one displayed metric, a hidden sort metric and a comparison', () => {
   // The comparison tuples keep the metric-offset prefix
   // (`['count, 1 year ago', region]`) while the displayed column is
