@@ -282,7 +282,6 @@
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
     "babel-jest": "^30.5.2",
-    "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "baseline-browser-mapping": "^2.11.27",
