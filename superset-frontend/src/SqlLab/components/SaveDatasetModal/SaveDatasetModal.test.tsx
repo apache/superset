@@ -378,6 +378,83 @@ describe('SaveDatasetModal', () => {
     putSpy.mockRestore();
   });
 
+  test('tells a catalog-only dataset apart from a schema-only one', async () => {
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: {
+        result: [
+          {
+            ...mockdatasets[0],
+            id: 44,
+            database: { database_name: 'analytics' },
+            catalog: 'reporting',
+            schema: null,
+            table_name: 'sales',
+          },
+          {
+            ...mockdatasets[0],
+            id: 55,
+            database: { database_name: 'analytics' },
+            catalog: null,
+            schema: 'reporting',
+            table_name: 'sales',
+          },
+        ],
+        count: 2,
+      },
+    } as any);
+
+    renderModal();
+
+    await userEvent.click(
+      screen.getByRole('radio', { name: /overwrite existing/i }),
+    );
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /existing dataset/i }),
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    expect(
+      await screen.findAllByText('analytics.reporting..sales'),
+    ).toHaveLength(1);
+    expect(
+      await screen.findAllByText('analytics.reporting.sales'),
+    ).toHaveLength(1);
+
+    getSpy.mockRestore();
+  });
+
+  test('requests the page the overwrite select asks for', async () => {
+    const getSpy = jest
+      .spyOn(SupersetClient, 'get')
+      .mockResolvedValue({ json: { result: [], count: 0 } } as any);
+
+    renderModal();
+
+    await userEvent.click(
+      screen.getByRole('radio', { name: /overwrite existing/i }),
+    );
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /existing dataset/i }),
+    );
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    await waitFor(() => {
+      const endpoint = getSpy.mock.calls
+        .map(([req]) => req.endpoint ?? '')
+        .find(e => e.includes('/api/v1/dataset/?q='));
+      expect(endpoint).toBeDefined();
+      expect(
+        rison.decode(endpoint!.slice(endpoint!.indexOf('q=') + 2)),
+      ).toMatchObject({ page: 0, page_size: expect.any(Number) });
+    });
+
+    getSpy.mockRestore();
+  });
+
   test('sends the schema when creating the dataset', async () => {
     renderModal();
 

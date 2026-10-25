@@ -206,12 +206,14 @@ const qualifiedLabel = (dataset: {
   table_name: string;
 }) =>
   [
-    dataset.database?.database_name,
-    dataset.catalog,
-    dataset.schema,
+    dataset.database?.database_name || undefined,
+    dataset.catalog || undefined,
+    // Keep the schema slot even when empty, or a catalog-only dataset
+    // (`db.reporting..sales`) would read like a schema-only one.
+    dataset.schema || '',
     dataset.table_name,
   ]
-    .filter(Boolean)
+    .filter(part => part !== undefined)
     .join('.');
 
 /**
@@ -351,53 +353,58 @@ export const SaveDatasetModal = ({
     }
   };
 
-  const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
-    // Only the table part can be filtered server-side — `database` is a
-    // relationship the list endpoint cannot match on by name. Sending the
-    // whole search as a `table_name` filter matches nothing once the user
-    // types a separator; filterAutocompleteOption narrows the qualifiers.
-    const { tableSearch } = parseQualifiedSearch(input);
+  const loadDatasetOverwriteOptions = useCallback(
+    async (input: string, page: number, pageSize: number) => {
+      // Only the table part can be filtered server-side — `database` is a
+      // relationship the list endpoint cannot match on by name. Sending the
+      // whole search as a `table_name` filter matches nothing once the user
+      // types a separator; filterAutocompleteOption narrows the qualifiers.
+      const { tableSearch } = parseQualifiedSearch(input);
 
-    const queryParams = rison.encode({
-      filters: [
-        {
-          col: 'table_name',
-          opr: 'ct',
-          value: tableSearch,
-        },
-        {
-          col: 'id',
-          opr: 'is_editable',
-          value: true,
-        },
-      ],
-      order_column: 'changed_on_delta_humanized',
-      order_direction: 'desc',
-    });
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: tableSearch,
+          },
+          {
+            col: 'id',
+            opr: 'is_editable',
+            value: true,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+        page,
+        page_size: pageSize,
+      });
 
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    }).then(response => ({
-      data: response.json.result.map(
-        (r: {
-          table_name: string;
-          id: number;
-          editors: Subject[];
-          database?: { database_name?: string };
-          catalog?: string | null;
-          schema?: string | null;
-        }) => ({
-          // `id` is unique; `table_name` is not. Keying by the table name
-          // collapses same-named datasets onto a single Select key.
-          value: r.id,
-          label: qualifiedLabel(r),
-          datasetId: r.id,
-          editors: r.editors,
-        }),
-      ),
-      totalCount: response.json.count,
-    }));
-  }, []);
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset/?q=${queryParams}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (r: {
+            table_name: string;
+            id: number;
+            editors: Subject[];
+            database?: { database_name?: string };
+            catalog?: string | null;
+            schema?: string | null;
+          }) => ({
+            // `id` is unique; `table_name` is not. Keying by the table name
+            // collapses same-named datasets onto a single Select key.
+            value: r.id,
+            label: qualifiedLabel(r),
+            datasetId: r.id,
+            editors: r.editors,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
+    [],
+  );
 
   const handleSaveInDataset = () => {
     setLoading(true);
@@ -573,7 +580,7 @@ export const SaveDatasetModal = ({
                     placeholder={t('Select or type dataset name')}
                     ariaLabel={t('Existing dataset')}
                     onChange={handleOverwriteDatasetOption}
-                    options={input => loadDatasetOverwriteOptions(input)}
+                    options={loadDatasetOverwriteOptions}
                     value={selectedDatasetToOverwrite}
                     filterOption={filterAutocompleteOption}
                     disabled={newOrOverwrite !== 2}
