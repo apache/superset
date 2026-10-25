@@ -371,10 +371,11 @@ def test_df_to_escaped_csv_escapes_colliding_index_labels():
 
     ``escape_value`` is not injective: it prepends a quote, so a warehouse
     returning both ``=a`` and ``'=a`` in one row dimension has them both land
-    on ``'=a``. Rebuilding a MultiIndex through ``set_levels`` rejects that
-    with ``ValueError: Level values must be unique``, which would turn a CSV
-    export into a 500, so the index is rebuilt from the level values instead,
-    where repeated labels are ordinary.
+    on ``'=a``. Escaping ``levels`` in place rejects that with
+    ``ValueError: Level values must be unique``, which would turn a CSV export
+    into a 500, so the level is rebuilt by factorizing its row values, where a
+    repeated label is ordinary. This is the case that separates reading the row
+    values from escaping ``levels``, the sort order not being the reason.
     """
     df = pd.DataFrame(
         data={"v": [1, 2]},
@@ -391,13 +392,14 @@ def test_df_to_escaped_csv_escapes_colliding_index_labels():
 
 def test_df_to_escaped_csv_escapes_a_label_that_is_not_first_in_row_order():
     """
-    A hostile label is escaped on its own row, not on the row it sorts to.
+    A hostile label is escaped on its own row wherever it falls in row order.
 
-    ``levels`` holds a level's distinct values in sorted order, which is not
-    the row order. Escaping those values and keeping the original codes reads
-    correctly only while the hostile label happens to sort first, and
-    otherwise puts every label on the wrong row, so the escaped level is built
-    from the row values instead.
+    This pins the placement, not the choice of source for the escaped level.
+    Mapping ``levels`` in place passes it too: the mapping runs position for
+    position, so the original codes go on pointing at the right entries even
+    when the hostile label sorts last. The case that separates the two is
+    ``test_df_to_escaped_csv_escapes_colliding_index_labels``, where two
+    labels escape to the same text and the level is no longer unique.
     """
     df = pd.DataFrame(
         data={"v": [1, 2]},
@@ -409,6 +411,28 @@ def test_df_to_escaped_csv_escapes_a_label_that_is_not_first_in_row_order():
     assert (
         df_to_escaped_csv(df, encoding="utf8", index=True)
         == "dim,other,v\nsafe,x,1\n'=cmd(),y,2\n"
+    )
+
+
+def test_df_to_escaped_csv_escapes_a_flat_index_mixing_a_formula_and_non_strings():
+    """
+    A flat index holding a formula label beside non-strings exports intact.
+
+    The level is rebuilt through ``Index.map``, which hands the callable every
+    label, not just the ones needing a quote, so it has to pass a non-string
+    through untouched. ``escape_value`` on its own does not: it subscripts its
+    argument and raises ``TypeError`` on the integer. The id past 2**53 has to
+    survive the rebuild as well, and does, because the formula string keeps the
+    re-inferred dtype at ``object``.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2, 3]},
+        index=pd.Index(["=cmd()", 9007199254740993, None], name="dim"),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,v\n'=cmd(),1\n9007199254740993,2\n,3\n"
     )
 
 
