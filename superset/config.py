@@ -47,7 +47,9 @@ from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import Select, Subquery
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -104,6 +106,11 @@ if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
 else:
     DATA_DIR = os.path.expanduser("~/.superset")
+
+# Optional globally unique workspace identity, overriding database address scope.
+# Web, Celery and MCP must resolve the same value for the same workspace.
+# A callable may return the active tenant's stable namespace per session.
+SEMANTIC_LAYER_CACHE_NAMESPACE: str | Callable[[], str] = ""
 
 # ---------------------------------------------------------
 # Superset specific config
@@ -242,6 +249,9 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
+# A manager that overrides raise_for_access receives the complete query context,
+# so it turns off the semantic-view chart-data check that otherwise denies before
+# provider metadata is loaded.
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -425,8 +435,9 @@ AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
 # When enabled, users whose account is flagged with ``password_must_change``
-# (e.g. accounts provisioned by an administrator) are redirected to the
-# password-reset page until they set a new password. Off by default.
+# (e.g. accounts provisioned by an administrator) are redirected to their
+# profile page (/user_info/, "Reset my password") until they set a new
+# password. Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
 
 # Password complexity policy, enforced (via Flask-AppBuilder) across
@@ -442,6 +453,27 @@ FAB_PASSWORD_COMPLEXITY_ENABLED = True
 FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
 AUTH_PASSWORD_MIN_LENGTH = 8
 AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
+
+# Self-service "Forgot password?" recovery for AUTH_TYPE = AUTH_DB. Users request
+# a reset link by email from the login page; the link carries a single-use token
+# that expires after ``token_ttl_minutes``. Off by default: it needs working SMTP
+# settings, and links are built from ``base_url`` (falling back to
+# WEBDRIVER_BASEURL_USER_FRIENDLY), never from the request, so set it to the
+# public HTTPS address users reach Superset at before enabling.
+# - token_ttl_minutes: capped at 24 hours (1440); a value that is not a
+#   positive whole number falls back to the default.
+# - rate_limit: Flask-Limiter limit for both endpoints, per client address
+#   (enforced only when RATELIMIT_ENABLED is on).
+# - resend_cooldown_seconds: minimum time between two emails to one address.
+# Keys left out of an override fall back to these defaults; a value that is not
+# a dict at all is logged and treated as unset.
+AUTH_PASSWORD_RECOVERY: dict[str, Any] = {
+    "enabled": False,
+    "token_ttl_minutes": 30,
+    "rate_limit": "5 per 15 minutes",
+    "resend_cooldown_seconds": 120,
+    "base_url": None,
+}
 
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
@@ -688,6 +720,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
+    # Enables the per-schedule "Run As" fields in Alerts & Reports (SIP-209).
+    # When enabled, each alert/report records which user's credentials (RBAC,
+    # database OAuth2 tokens) are used at execution time, and alerts can specify
+    # a distinct user for the alert condition query. Admins can pick any user;
+    # non-admins are restricted to their own account. Schedules without a value
+    # keep using the ALERT_REPORTS_EXECUTORS resolution.
+    # @lifecycle: development
+    "ALERT_REPORT_DYNAMIC_EXECUTOR": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
@@ -723,6 +763,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
+    # Enable Superset-owned containment caching for opted-in semantic providers.
+    # Requires shared DATA_CACHE_CONFIG and Redis-backed
+    # DISTRIBUTED_COORDINATION_CONFIG.
+    # @docs: https://superset.apache.org/admin-docs/configuration/cache/#semantic-containment-cache
+    # @lifecycle: development
+    "SEMANTIC_LAYER_CONTAINMENT_CACHE": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -747,7 +793,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the version history panel on Explore and Dashboard pages.
+    # Enables chart and dashboard version history panels and their supporting
+    # API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
     # with capture off the panel renders empty or stale history, so the two
     # ship with matching defaults and should be changed together.
@@ -863,6 +910,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # -----------------------------------------------------------------
     # When enabled, alerts send email/slack with screenshot AND link.
     # When disabled, alerts send only link; reports still send screenshot.
+    # Deprecation notice: this flag is superseded by the "Enable attachments for
+    # alerts" setting in the Alerts & Reports configuration UI (SIP-209). The
+    # flag is only used as a fallback while that setting is not saved.
     # @lifecycle: stable
     # @category: runtime_config
     "ALERTS_ATTACH_REPORTS": True,
@@ -1031,12 +1081,44 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
+
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
-# zero disables scheduled purging. Purging is live by default, so the retention
+# zero disables scheduled purging; -1 makes deleted rows eligible on the next
+# scheduled run. Purging is live by default, so the retention
 # promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
 # to True to have the task log ``would_purge`` counts without deleting anything.
-SOFT_DELETE_RETENTION_DAYS: int = 30
+def _parse_soft_delete_retention_days() -> int:
+    """Read the environment seed, deferring purge for invalid supplied values."""
+    value: str | None = os.environ.get("SOFT_DELETE_RETENTION_DAYS")
+    if value is None:
+        return 30
+    try:
+        days: int = int(value)
+        if -1 <= days <= 36500:
+            return days
+    except ValueError:
+        pass
+    logger.warning(
+        "Invalid SOFT_DELETE_RETENTION_DAYS=%r; skipping scheduled purge", value
+    )
+    return 0
+
+
+SOFT_DELETE_RETENTION_DAYS: int = _parse_soft_delete_retention_days()
+# Optional authoritative host policy, consulted before the shared CLI override.
+# Invalid/unavailable results skip purge rather than fall back to a stored value.
+SOFT_DELETE_RETENTION_DAYS_FUNC: Callable[[], int] | None = None
+# Optional host-installed purge policies, for soft-delete roots this package
+# does not own. A zero-argument callable returning a sequence of
+# ``superset.commands.deletion_retention.purge_policy.PurgeEntityPolicy``.
+# Annotated loosely to keep config import-light. A failing or malformed
+# provider, or one redeclaring a built-in root, is logged and dropped: the
+# built-in chart, dashboard and dataset roots are never affected.
+PURGE_POLICIES_FUNC: Callable[[], Any] | None = None
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
+# Maximum committed root purges per scheduled run; 0 or None is unlimited.
+# Set an int in superset_config.py; this key has no automatic environment parsing.
+SOFT_DELETE_PURGE_MAX_PER_RUN: int | None = 1000
 
 # Retention policy for the purge audit log itself (the durable evidence the
 # purge task writes). Pruning is deletion-only and scheduled
@@ -1772,10 +1854,19 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 
 # Master switch for entity-version-history capture. A falsy value disables
 # version writes while keeping existing history available read-only through the
-# ``/versions/`` endpoints; Restore is unavailable while capture is disabled.
+# ``/versions/`` endpoints when VERSION_HISTORY is enabled; Restore is
+# unavailable while capture is disabled.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
+
+# Optional runtime predicate receiving the SQLAlchemy Session. Hosts must return
+# a tenant-local decision stable for the transaction, and handle expected service
+# unavailability without raising. None preserves OSS capture behavior. This does
+# not override the startup kill switch or authorize untracked version restores.
+# Version reads (ETag / version info on the chart, dashboard and dataset APIs)
+# consult it with the same request session as the save they accompany.
+VERSIONING_CAPTURE_PREDICATE: Callable[[Session], bool] | None = None
 
 # Retention window (days) for entity version history. Version rows
 # whose owning ``version_transaction.issued_at`` is older than this
@@ -1784,7 +1875,8 @@ ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
 # If any row anchored at a transaction is live
 # (``end_transaction_id IS NULL``), that entire transaction is preserved.
 # Baseline rows (``operation_type=0``) and closed historical rows otherwise
-# age out alongside the rest. Any non-positive value disables pruning.
+# age out alongside the rest. Zero disables pruning; -1 makes historical rows
+# eligible on the next scheduled run, using the run's clock as the cutoff.
 # Read from environment variable of the same name.
 _DEFAULT_VERSION_HISTORY_RETENTION_DAYS: int = 30
 # Keep cutoff arithmetic comfortably inside ``datetime``'s supported range
@@ -1794,31 +1886,119 @@ _MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
 
 def _parse_version_history_retention_days() -> int:
     """Parse the retention window without making invalid input fatal."""
-    value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    value: str | None = os.environ.get("VERSION_HISTORY_RETENTION_DAYS")
+    legacy_value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    legacy: bool = False
+    if value is None:
+        value = legacy_value
+        legacy = value is not None
+    elif legacy_value is not None:
+        _warn_legacy_version_history_retention_days()
     if value is None:
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    return _normalize_version_history_retention_days(value, legacy=legacy)
+
+
+def _warn_legacy_version_history_retention_days() -> None:
+    """Warn about a configured legacy key even when its value is ignored."""
+    logger.warning(
+        "SUPERSET_VERSION_HISTORY_RETENTION_DAYS is deprecated; "
+        "use VERSION_HISTORY_RETENTION_DAYS. "
+        "Legacy nonpositive values disable pruning."
+    )
+
+
+def _normalize_version_history_retention_days(value: object, *, legacy: bool) -> int:
+    """Normalize released legacy values without shortening retention on upgrade."""
+    name: str = (
+        "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+        if legacy
+        else "VERSION_HISTORY_RETENTION_DAYS"
+    )
     try:
-        retention_days = int(value)
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            raise ValueError("Retention must be integer days")
+        retention_days: int = int(value)
     except ValueError:
-        logger.warning(
-            "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
-            value,
-            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
-        )
-        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+        logger.warning("Invalid %s=%r; skipping pruning", name, value)
+        return 0
+    if legacy:
+        _warn_legacy_version_history_retention_days()
+        if retention_days <= 0:
+            return 0
+    if retention_days < -1:
+        logger.warning("Invalid negative %s; skipping pruning", name)
+        return 0
     if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
         logger.warning(
-            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum "
-            "of %d; using %d",
+            "%s=%r exceeds the maximum of %d; skipping pruning",
+            name,
             value,
             _MAX_VERSION_HISTORY_RETENTION_DAYS,
-            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
         )
-        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+        return 0
+    if retention_days == -1:
+        logger.warning(
+            "%s=-1 makes history eligible for "
+            "immediate pruning on the next scheduled run; use 0 to disable",
+            name,
+        )
     return retention_days
 
 
-SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+# Maximum committed transactions pruned per scheduled run; 0 or None is unlimited.
+# Set an int in superset_config.py; this key has no automatic environment parsing.
+VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN: int | None = 1000
+# Set a bool in superset_config.py; this key has no automatic environment parsing.
+VERSION_HISTORY_PRUNE_DRY_RUN: bool = False
+_version_history_retention_seed: int = VERSION_HISTORY_RETENTION_DAYS
+
+# Sentinel for "key not configured at all", distinct from any configured value
+# (including ``None``), shared with the retention task's runtime lookup.
+_MISSING_RETENTION: object = object()
+
+
+def _resolve_version_history_retention_days(
+    canonical: object, legacy: object, *, seed: int
+) -> int:
+    """Combine the canonical and legacy retention settings into integer days.
+
+    *canonical* and *legacy* are the raw configured values of
+    ``VERSION_HISTORY_RETENTION_DAYS`` and the deprecated
+    ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS``, or ``_MISSING_RETENTION``
+    when the key is absent. *seed* is the environment-parsed default the
+    canonical key started from, which is what makes a star-imported default
+    indistinguishable from an explicit same-value override. Invalid values
+    normalize to ``0`` (pruning deferred) rather than raising, so a bad value
+    can neither select immediate cleanup nor fail the caller. Precedence: a
+    ``VERSION_HISTORY_RETENTION_DAYS`` environment variable (read here) beats
+    the legacy key outright; otherwise a canonical value wins unless it equals
+    *seed* while the legacy key differs, and a lone legacy value applies.
+
+    This is the single policy for both config load (below) and the
+    ``version_history.prune_old_versions`` task, which re-reads the live
+    ``app.config`` because hosts may set either key after import.
+    """
+    canonical_days: int = (
+        seed
+        if canonical is _MISSING_RETENTION
+        else _normalize_version_history_retention_days(canonical, legacy=False)
+    )
+    if legacy is _MISSING_RETENTION:
+        return canonical_days
+    if "VERSION_HISTORY_RETENTION_DAYS" in os.environ or (
+        canonical is not _MISSING_RETENTION and canonical_days != seed
+    ):
+        _warn_legacy_version_history_retention_days()
+        return canonical_days
+    legacy_days: int = _normalize_version_history_retention_days(legacy, legacy=True)
+    if canonical is _MISSING_RETENTION:
+        return legacy_days
+    # A star-imported default is indistinguishable from an explicit same-value
+    # override. Keep the non-destructive interpretation when the old key differs.
+    return 0 if 0 in (canonical_days, legacy_days) else max(canonical_days, legacy_days)
+
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -1895,8 +2075,8 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "schedule": crontab(minute=0, hour=0),
         },
         # Entity version-history retention. Daily at 03:00; the task
-        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
-        # is non-positive (disabled).
+        # itself short-circuits when VERSION_HISTORY_RETENTION_DAYS
+        # is zero (disabled) or below -1 (invalid).
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",
             "schedule": crontab(minute=0, hour=3),
@@ -2356,6 +2536,22 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
+        # dblink functions can open separate connections and auto-commit
+        # writes, bypassing the read-only gate entirely
+        "dblink",
+        "dblink_exec",
+        "dblink_connect",
+        "dblink_connect_u",
+        "dblink_send_query",
+        # State-mutating functions callable via SELECT
+        "pg_cancel_backend",
+        "pg_reload_conf",
+        "pg_rotate_logfile",
+        "pg_stat_reset",
+        "pg_switch_wal",
+        "pg_logical_emit_message",
+        "pg_create_restore_point",
+        "pg_drop_replication_slot",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -2566,7 +2762,14 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
+#
+# Deprecation notice: ALERT_REPORTS_EXECUTORS is superseded by the per-schedule
+# "Run As" fields introduced by SIP-209 (feature flag ALERT_REPORT_DYNAMIC_EXECUTOR).
+# When the flag is enabled, an explicit user or executor type takes precedence.
+# Schedules with neither configured use this resolution.
 ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
+# Optional override text for the the Run as tooltip
+ALERT_REPORTS_RUN_AS_TOOLTIP: str | None = None
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2635,6 +2838,10 @@ ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
+#
+# Deprecation notice: these values are superseded by the "Alert minimum interval"
+# and "Report minimum interval" settings in the Alerts & Reports configuration UI
+# (SIP-209). They are only used as a fallback while those settings are not saved.
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
@@ -2721,8 +2928,6 @@ WEBDRIVER_OPTION_ARGS: list[str] = []
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# Time selenium will wait for the page to load and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
@@ -3311,10 +3516,48 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     dashboards: Callable[[int], Query]
 
 
+# Extra access query exclusions inject an AND NOT condition into ChartFilter
+# and DashboardAccessFilter, letting a deployment *withhold* asset visibility.
+# ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set, because its
+# conditions are OR'd with the role paths -- so a deployment that needs to keep
+# an asset out of the list, an export or a related-field lookup has no way to
+# express that through it.
+#
+# Exclusions are applied before the ``is_admin`` / ``can_access_all_datasources``
+# short-circuits, so they hold for every principal except embedded guests,
+# whose scope is set by their token alone.
+#
+# The callable receives the current user ID and returns a subquery of the asset
+# IDs to withhold.
+# Receives the current user id, or ``None`` for an anonymous request -- a
+# withholding rule is consulted even then, since skipping it would reveal
+# rather than hide. May return an ORM ``Query``, a Core ``select()`` or an
+# explicit ``.subquery()``; all three are accepted and normalised, matching
+# what the sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
+ExclusionEntry = Callable[[int | None], Query | Select | Subquery]
+
+
+class ExtraAccessQueryExclusions(TypedDict, total=False):
+    charts: ExclusionEntry
+    dashboards: ExclusionEntry
+    # Narrower than the two above: assets selectable as the target of a
+    # scheduled report, which renders as the configured executor rather than
+    # as the user who created it. A deployment may hold assets a user can read
+    # but cannot schedule a report on.
+    report_target_charts: ExclusionEntry
+    report_target_dashboards: ExclusionEntry
+
+
 # Extension hooks for deployments to plug in custom access logic.
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Asset IDs to withhold from chart/dashboard list views, exports and
+# related-field lookups. See ``ExtraAccessQueryExclusions`` above.
+EXTRA_ACCESS_QUERY_EXCLUSIONS: ExtraAccessQueryExclusions = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
+# The hook receives the complete query context, so setting it turns off the
+# semantic-view chart-data check that otherwise denies before provider metadata
+# is loaded.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 # Resolve additional editor subjects for a resource. Also used for editorship
 # checks and lockout-prevention logic.
@@ -3462,6 +3705,25 @@ DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 # indefinitely. Defaults to 24 hours.
 DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
 
+# Maximum time to wait for a semantic-cache descriptor lease.
+SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS: float = 1.0
+
+# Expiry for owner-token semantic-cache descriptor leases.
+SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS: int = 30
+
+# Maximum number of views accepted by one bulk semantic view creation request.
+# Each view costs one semantic layer lookup; larger batches are refused with a 400
+# before any lookup runs.
+SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS: int = 100
+
+# Time budget, in seconds, for validating the views of one bulk creation request.
+# The budget is checked before each view's lookup: views not started in time fail
+# with a "TIMEOUT" error and can be retried. A lookup already in progress is bounded
+# only by the semantic layer's own timeouts, so keep this well below
+# SUPERSET_WEBSERVER_TIMEOUT and any proxy timeout, leaving room for that lookup;
+# otherwise the client receives a gateway timeout instead of the per-view results.
+SEMANTIC_VIEW_BULK_CREATE_TIMEOUT: float = 30
+
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.
 # After TTL expires, the lock is automatically released to prevent deadlocks.
@@ -3494,6 +3756,11 @@ def _config_fingerprint(source: bytes | None) -> str:
     return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
 
 
+_legacy_history_retention_override: bool = False
+_canonical_history_retention_override: bool = False
+_legacy_history_retention_value: object = None
+_canonical_history_retention_value: object = None
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
@@ -3510,6 +3777,20 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         exec(  # noqa: S102
             compile(config_source, cfg_path, "exec"), override_conf.__dict__
         )
+        _legacy_history_retention_override = (
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in override_conf.__dict__
+        )
+        _canonical_history_retention_override = (
+            "VERSION_HISTORY_RETENTION_DAYS" in override_conf.__dict__
+        )
+        if _legacy_history_retention_override:
+            _legacy_history_retention_value = vars(override_conf)[
+                "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+            ]
+        if _canonical_history_retention_override:
+            _canonical_history_retention_value = vars(override_conf)[
+                "VERSION_HISTORY_RETENTION_DAYS"
+            ]
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
@@ -3530,6 +3811,21 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        _legacy_history_retention_override = (
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in vars(superset_config)
+        )
+        _canonical_history_retention_override = (
+            "VERSION_HISTORY_RETENTION_DAYS" in vars(superset_config)
+        )
+        if _legacy_history_retention_override:
+            _legacy_history_retention_value = vars(superset_config)[
+                "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+            ]
+        if _canonical_history_retention_override:
+            _canonical_history_retention_value = vars(superset_config)[
+                "VERSION_HISTORY_RETENTION_DAYS"
+            ]
+
         try:
             with open(superset_config.__file__, "rb") as fh:
                 config_source = fh.read()
@@ -3544,6 +3840,20 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+VERSION_HISTORY_RETENTION_DAYS = _resolve_version_history_retention_days(
+    (
+        _canonical_history_retention_value
+        if _canonical_history_retention_override
+        else _MISSING_RETENTION
+    ),
+    (
+        _legacy_history_retention_value
+        if _legacy_history_retention_override
+        else _MISSING_RETENTION
+    ),
+    seed=_version_history_retention_seed,
+)
 
 # Final environment variable processing - must be at the very end
 # to override any config file assignments

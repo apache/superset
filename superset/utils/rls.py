@@ -160,7 +160,7 @@ def _identifiers_match(left: str | None, right: str | None, fold: bool) -> bool:
     return left == right
 
 
-def _find_datasets(
+def find_datasets(
     table: Table,
     database: Database,
     default_catalog: str | None,
@@ -243,7 +243,7 @@ def get_predicates_for_table(
     :param include_global_guest_rls: Also return global (unscoped) guest RLS rules.
         See ``apply_rls``.
     """
-    datasets = _find_datasets(
+    datasets = find_datasets(
         table,
         database,
         default_catalog,
@@ -329,6 +329,19 @@ def collect_rls_predicates_for_sql(
             }
         )
     except Exception:
+        # The block above is not only SQL parsing: `get_predicates_for_table`
+        # queries `db.session` and `get_default_catalog()` builds an engine, so
+        # a caught DB error can leave db.session in "pending rollback" state,
+        # which would poison unrelated queries later in this request.
+        #
+        # Unconditional, like the RLS handler in `models/helpers.py`: the DB
+        # work above can poison the session and then a different, non-DB error
+        # can surface -- building the engine raises `SupersetErrorException`
+        # when the impersonated user cannot be resolved, for instance -- so
+        # keying the rollback on the exception type would miss exactly the
+        # cases that need it.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+
         # If we can't parse the SQL, we can't tell which (if any) RLS
         # predicates would apply, so we can't contribute a meaningful cache
         # key component. Returning an empty list here would make every

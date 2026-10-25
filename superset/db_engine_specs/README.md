@@ -601,6 +601,7 @@ class MyDatabaseEngineSpec(BaseEngineSpec):
 
         # Recommended fields
         "logo": "mydatabase.svg",  # Logo file in docs/static/img/databases/
+        "logo_dark": "mydatabase-dark.svg",  # Optional variant for dark theme
         "homepage_url": "https://mydatabase.example.com/",
         "default_port": 5432,
 
@@ -1313,6 +1314,8 @@ Superset will try to cancel running queries if the users wants so, but it's up t
 Some databases have an implicit query cancelation. When a cursor stops being polled it will cancel the query. For databases that behave like this, the class method `has_implicit_cancel` (which should really be a class attribute) should return true.
 
 For other databases, DB engine specs can implement query cancelation via the `prepare_cancel_query` and `cancel_query` methods. Implementation of query cancelation is usually heavily dependent on the database, but the DB engine specs that support it can serve as an example.
+
+These methods must not flush or commit the metadata session. `prepare_cancel_query` can stage cancellation intent on the query; its caller persists that intent together with a conditional stop, preserving any terminal result committed while cancellation was in flight.
 
 ### Get metrics on dataset creation
 

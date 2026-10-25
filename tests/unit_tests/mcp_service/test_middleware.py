@@ -19,12 +19,14 @@
 Unit tests for MCP service middleware.
 """
 
-from typing import Any
+from typing import Any, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastmcp import FastMCP
+from fastmcp.client import Client
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.exc import OperationalError
 
 from superset.commands.exceptions import (
@@ -33,12 +35,17 @@ from superset.commands.exceptions import (
     ObjectNotFoundError,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.mcp_service.auth import MCPNoAuthSourceError, MCPPermissionDeniedError
 from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
+    _sanitize_error_for_logging,
     _sanitize_params,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
@@ -51,6 +58,7 @@ from superset.mcp_service.utils.response_size_utils import (
     get_response_size_bytes,
     UNMEASURABLE_RESPONSE_BYTES,
 )
+from superset.mcp_service.utils.validation import validation_message
 from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
 
@@ -1277,7 +1285,7 @@ class TestResponseSizeGuardMiddleware:
         to_mcp_result(). Declining to truncate surfaces the normal size-limit
         error instead.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ResponseSizeGuardMiddleware(max_bytes=500)
@@ -1315,7 +1323,7 @@ class TestResponseSizeGuardMiddleware:
         ``to_mcp_result()``, surfacing the completed write as an internal
         error -- exactly what this fallback exists to prevent.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ResponseSizeGuardMiddleware(max_bytes=500)
@@ -1380,7 +1388,7 @@ class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
 
     def test_default_config_checks_chart_preview(self) -> None:
-        """Should size-check chart preview responses by default."""
+        """Only PNG responses may use the separate image budget."""
         mock_flask_app = MagicMock()
         mock_flask_app.config.get.return_value = MCP_RESPONSE_SIZE_CONFIG
 
@@ -1391,6 +1399,7 @@ class TestCreateResponseSizeGuardMiddleware:
             middleware = create_response_size_guard_middleware()
 
         assert middleware is not None
+        assert middleware.png_max_bytes == 1_000_000
         assert "get_chart_preview" not in middleware.excluded_tools
         assert "health_check" in middleware.excluded_tools
 
@@ -1399,6 +1408,7 @@ class TestCreateResponseSizeGuardMiddleware:
         mock_config = {
             "enabled": True,
             "max_bytes": 30000,
+            "png_max_bytes": 250000,
             "warn_threshold_pct": 75,
             "excluded_tools": ["health_check"],
         }
@@ -1415,6 +1425,7 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware is not None
         assert isinstance(middleware, ResponseSizeGuardMiddleware)
         assert middleware.max_bytes == 30000
+        assert middleware.png_max_bytes == 250000
         assert middleware.warn_threshold_pct == 75
         assert "health_check" in middleware.excluded_tools
 
@@ -1505,7 +1516,7 @@ class TestExtractPayloadFromToolResult:
     """Tests for _extract_payload_from_tool_result static method."""
 
     def _make_tool_result(self, text: str, meta: dict[str, Any] | None = None) -> Any:
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         return ToolResult(
@@ -1590,7 +1601,7 @@ class TestExtractPayloadFromToolResult:
 
     def test_returns_none_for_empty_content(self) -> None:
         """Should return None when ToolResult has no content items."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         tool_result = ToolResult(content=[], meta=None)
 
@@ -1607,7 +1618,7 @@ class TestRewrapAsToolResult:
     def _make_tool_result(
         self, payload: dict[str, Any], meta: dict[str, Any] | None = None
     ) -> Any:
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils import json
@@ -1619,7 +1630,7 @@ class TestRewrapAsToolResult:
 
     def test_returns_tool_result_with_serialized_payload(self) -> None:
         """Should return a ToolResult whose content[0].text is the JSON payload."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -1637,7 +1648,7 @@ class TestRewrapAsToolResult:
 
     def test_preserves_meta_from_original_tool_result(self) -> None:
         """Should copy meta from the original ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         meta = {"request_id": "abc-123", "trace": "xyz"}
         original = self._make_tool_result({"key": "val"}, meta=meta)
@@ -1651,7 +1662,7 @@ class TestRewrapAsToolResult:
 
     def test_sets_meta_none_for_non_tool_result_original(self) -> None:
         """Should set meta=None when original is not a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         result = ResponseSizeGuardMiddleware._rewrap_as_tool_result(
             {"key": "val"}, {"not": "a ToolResult"}
@@ -1667,7 +1678,7 @@ class TestToolResultWrapping:
     def _make_tool_result(
         self, payload: dict[str, Any], meta: dict[str, Any] | None = None
     ) -> Any:
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils import json
@@ -1680,7 +1691,7 @@ class TestToolResultWrapping:
     @pytest.mark.asyncio
     async def test_info_tool_result_is_truncated_and_rewrapped(self) -> None:
         """Truncate a ToolResult-wrapped info response and return a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -1757,7 +1768,7 @@ class TestToolResultWrapping:
         data-query truncation must be exercised through that wrapper, not
         just against a plain dict.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -1789,7 +1800,7 @@ class TestToolResultWrapping:
     @pytest.mark.asyncio
     async def test_meta_preserved_after_truncation(self) -> None:
         """Should preserve the original ToolResult meta through truncation."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils import json
 
@@ -2427,6 +2438,27 @@ class TestRBACToolVisibilityMiddleware:
         assert result == tools
 
     @pytest.mark.asyncio
+    async def test_fails_open_when_metadata_thread_setup_raises(self) -> None:
+        """Returns all tools when run_in_metadata_thread's own setup fails.
+
+        Unlike test_fails_open_on_exception, this failure happens before
+        _visible_tools ever runs -- e.g. the metadata pool is exhausted while
+        run_in_metadata_thread reloads the caller's ORM user -- so
+        _visible_tools's own try/except never gets a chance to fail open.
+        """
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with patch(
+            "superset.mcp_service.middleware.run_in_metadata_thread",
+            side_effect=RuntimeError("metadata pool exhausted"),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
     async def test_fails_open_when_user_is_none(self, app) -> None:
         """Returns all tools when get_user_from_request returns None."""
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
@@ -2742,6 +2774,19 @@ class TestGlobalErrorHandlerErrorIdUsesCallId:
             _mcp_call_id_var.reset(token)
 
 
+def _pydantic_validation_error() -> ValidationError:
+    """A real pydantic ValidationError for a missing required field."""
+
+    class Request(BaseModel):
+        dataset_id: int
+
+    try:
+        Request.model_validate({})
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("expected a ValidationError")
+
+
 class TestToolResultCompatibilityErrorHook:
     """Test the last-resort MCP_ERROR_HOOK capture point in
     ToolResultCompatibilityMiddleware.on_call_tool's except block."""
@@ -2833,6 +2878,40 @@ class TestToolResultCompatibilityErrorHook:
         assert result.content[0].text == "Error: HostileStrError"
 
     @pytest.mark.asyncio
+    async def test_classification_failure_does_not_escape_last_resort_handler(
+        self,
+    ) -> None:
+        """Classifying the error for reporting inspects attributes of an
+        arbitrary exception and can itself raise (an unhashable
+        ``error_type`` makes the datasource membership check throw
+        TypeError). The last-resort handler must still return an is_error
+        result rather than propagate, and treat the error as system-class
+        so the hook fires."""
+
+        class UnhashableErrorTypeError(Exception):
+            error_type: dict[str, str] = {}
+
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        error = UnhashableErrorTypeError("boom")
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_called_once()
+        assert mock_hook.call_args[0][0] is error
+
+    @pytest.mark.asyncio
     async def test_client_facing_text_is_sanitized(self) -> None:
         """An exception bypassing GlobalErrorHandlerMiddleware must not
         leak raw internals to the client — the last-resort response text
@@ -2860,6 +2939,139 @@ class TestToolResultCompatibilityErrorHook:
         assert "s3cret" not in text
         assert "db.internal" not in text
         assert "[REDACTED]" in text
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "make_error",
+        [
+            pytest.param(
+                _pydantic_validation_error,
+                id="pydantic-ValidationError",
+            ),
+            pytest.param(
+                lambda: FastMCPValidationError("request: Field required"),
+                id="fastmcp-ValidationError",
+            ),
+            pytest.param(lambda: ValueError("page must be >= 1"), id="ValueError"),
+            pytest.param(lambda: PermissionError("denied"), id="PermissionError"),
+            pytest.param(
+                lambda: SupersetErrorException(
+                    SupersetError(
+                        message="gone",
+                        error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                ),
+                id="missing-table-datasource-error",
+            ),
+        ],
+    )
+    async def test_does_not_invoke_hook_for_user_error(
+        self, make_error: Callable[[], Exception]
+    ) -> None:
+        """User-class errors (bad arguments, denials, missing objects) are
+        expected MCP traffic. GlobalErrorHandlerMiddleware deliberately keeps
+        them out of MCP_ERROR_HOOK; the last-resort catch must apply the same
+        classification instead of paging on every one that reaches it — which
+        is every one when this middleware is registered inside that handler.
+        The client-facing response is unchanged."""
+        error = make_error()
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.fastmcp_context = None
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        mock_hook.assert_not_called()
+        assert result.is_error is True
+        if isinstance(error, (ValidationError, FastMCPValidationError)):
+            expected = await validation_message(error, context)
+        else:
+            expected = _sanitize_error_for_logging(error)
+        assert result.content[0].text == f"Error: {expected}"
+
+    @pytest.mark.asyncio
+    async def test_invokes_hook_for_datasource_connection_failure(self) -> None:
+        """A datasource failure is classified as GlobalErrorHandlerMiddleware
+        classifies it: an unreachable database is still paged."""
+        error = SupersetErrorException(
+            SupersetError(
+                message="could not connect to host",
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        mock_hook.assert_called_once()
+        assert mock_hook.call_args[0][0] is error
+
+    @pytest.mark.asyncio
+    async def test_invalid_arguments_do_not_page_when_registered_inside_handler(
+        self,
+    ) -> None:
+        """End to end, with the compatibility middleware registered *after*
+        (i.e. inside) GlobalErrorHandlerMiddleware: FastMCP's argument
+        validation error reaches the last-resort catch first. It must come
+        back as an is_error result without invoking MCP_ERROR_HOOK."""
+        mcp: FastMCP = FastMCP("compat-innermost")
+
+        class Request(BaseModel):
+            dataset_id: int
+
+        @mcp.tool
+        def get_dataset_info(request: Request) -> dict[str, int]:
+            return {"id": request.dataset_id}
+
+        mcp.add_middleware(GlobalErrorHandlerMiddleware())
+        mcp.add_middleware(ToolResultCompatibilityMiddleware())
+
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.side_effect = lambda key, default=None: (
+            mock_hook if key == "MCP_ERROR_HOOK" else default
+        )
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            patch("superset.mcp_service.middleware.get_user_id", return_value=None),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            async with Client(mcp) as client:
+                result = await client.call_tool(
+                    "get_dataset_info", {}, raise_on_error=False
+                )
+
+        assert result.is_error is True
+        assert result.content[0].text == (
+            "Error: Validation error in get_dataset_info: request: Field required"
+        )
+        mock_hook.assert_not_called()
 
 
 class TestToolResultCompatibilityIsErrorFlag:
@@ -2911,7 +3123,7 @@ class TestToolResultCompatibilityIsErrorFlag:
     @pytest.mark.asyncio
     async def test_successful_result_is_not_flagged(self) -> None:
         """The success path, including structured output, stays untouched."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ToolResultCompatibilityMiddleware(structured_output_enabled=True)
@@ -2933,7 +3145,7 @@ class TestToolResultCompatibilityIsErrorFlag:
     @pytest.mark.asyncio
     async def test_default_strips_structured_content(self) -> None:
         """The default preserves the legacy text-only bridge contract."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         middleware = ToolResultCompatibilityMiddleware()
@@ -2964,8 +3176,8 @@ class TestToolResultCompatibilityIsErrorFlag:
             task=Task(
                 taskId="task-1",
                 status="working",
-                createdAt=now,
-                lastUpdatedAt=now,
+                createdAt=now.isoformat(),
+                lastUpdatedAt=now.isoformat(),
                 ttl=None,
             )
         )
@@ -3003,7 +3215,7 @@ class TestToolResultCompatibilityIsErrorFlag:
     @pytest.mark.asyncio
     async def test_deprecated_stripper_warns_and_still_strips(self) -> None:
         """The deprecated import name must not silently reverse behavior."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         with pytest.warns(DeprecationWarning, match="is deprecated"):

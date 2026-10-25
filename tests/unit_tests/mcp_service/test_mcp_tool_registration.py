@@ -19,6 +19,8 @@
 
 import asyncio
 import logging
+import re
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -26,6 +28,8 @@ import pytest
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
 from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.utils import json
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
@@ -43,6 +47,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "create_virtual_dataset": "dataset_name",
     "delete_chart": "deleted_id",
     "delete_dashboard": "deleted_id",
+    "delete_dataset": "deleted_id",
     "delete_dataset_metric": "affected_charts",
     "duplicate_dashboard": "duplicated_slices",
     "execute_sql": "statements",
@@ -52,6 +57,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "generate_dashboard": "dashboard",
     "generate_explore_link": "form_data_key",
     "get_annotation_layer_info": "descr",
+    "get_catalog": "next_cursor",
     "get_chart_data": "query_results",
     "get_chart_info": "slice_name",
     "get_chart_preview": "explore_url",
@@ -96,6 +102,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_themes": "themes",
     "list_users": "users",
     "manage_dashboard_certification": "changed_fields",
+    "manage_dashboard_markdown": "components",
     "manage_dashboard_owners": "owners",
     "manage_dashboard_roles": "roles",
     "manage_native_filters": "filters",
@@ -104,10 +111,12 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "remove_chart_from_dashboard": "removed_layout_keys",
     "restore_chart": "restored_id",
     "restore_dashboard": "restored_id",
+    "restore_dataset": "restored_id",
     "save_sql_query": "label",
     "update_chart": "chart",
     "update_chart_preview": "previous_form_data_key",
     "update_dashboard": "changed_fields",
+    "update_dataset": "updated_properties",
     "update_dataset_metric": "updated_properties",
 }
 
@@ -130,6 +139,7 @@ MUTATING_TOOLS = {
     "create_virtual_dataset",
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset",
     "delete_dataset_metric",
     "duplicate_dashboard",
     "execute_sql",
@@ -137,16 +147,19 @@ MUTATING_TOOLS = {
     "generate_dashboard",
     "generate_explore_link",
     "manage_dashboard_certification",
+    "manage_dashboard_markdown",
     "manage_dashboard_owners",
     "manage_dashboard_roles",
     "manage_native_filters",
     "remove_chart_from_dashboard",
     "restore_chart",
     "restore_dashboard",
+    "restore_dataset",
     "save_sql_query",
     "update_chart",
     "update_chart_preview",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 }
 
@@ -166,14 +179,17 @@ NON_COMMITTING_MUTATING_TOOLS = {
 DESTRUCTIVE_TOOLS = {
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset",
     "delete_dataset_metric",
     "execute_sql",
+    "manage_dashboard_markdown",
     "manage_dashboard_owners",
     "manage_dashboard_roles",
     "manage_native_filters",
     "remove_chart_from_dashboard",
     "update_chart",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 }
 
@@ -252,6 +268,111 @@ def gtf_ffm():
 def _run(coro):
     """Run an async coroutine synchronously."""
     return asyncio.run(coro)
+
+
+# Tools whose request model tells "field omitted" from "field set to null":
+# omitting leaves the stored value alone, an explicit null is deliberate input.
+# Their optional fields must not advertise a default, or a client that
+# materialises defaults sends nulls for everything the caller never named.
+OMITTED_MEANS_UNCHANGED_TOOLS = (
+    "update_chart",
+    "update_dashboard",
+    "update_dataset",
+    "update_dataset_metric",
+)
+
+
+def _request_model_schema(tool: Any) -> dict[str, Any]:
+    """Return the JSON Schema of a tool's ``request`` argument."""
+    schema = tool.parameters or {}
+    request = schema.get("properties", {}).get("request", {})
+    for candidate in (request, *request.get("allOf", [])):
+        if reference := candidate.get("$ref"):
+            name = reference.rpartition("/")[2]
+            for container in ("$defs", "definitions"):
+                if name in schema.get(container, {}):
+                    return schema[container][name]
+            raise AssertionError(
+                f"{tool.name}: cannot resolve request schema reference {reference!r}"
+            )
+    if "properties" in request:
+        return request
+    raise AssertionError(
+        f"{tool.name}: unrecognised request schema shape {sorted(request)}; "
+        "the null-default check below would silently pass"
+    )
+
+
+def _null_defaults(schema: Any, path: str = "") -> list[str]:
+    """Return every field at or under ``schema`` that defaults to null.
+
+    The walk goes all the way down on purpose. A tool's advertised parameters
+    arrive fully inlined, while ``model_json_schema()`` puts nested models in
+    ``$defs``, and a null default is a hazard wherever it sits: the fields of
+    a nested model are merged into stored state the same way.
+    """
+    hits: list[str] = []
+    if isinstance(schema, dict):
+        for name, spec in (schema.get("properties") or {}).items():
+            if isinstance(spec, dict) and "default" in spec and spec["default"] is None:
+                hits.append(f"{path}/{name}")
+        for key, value in schema.items():
+            hits.extend(_null_defaults(value, f"{path}/{key}"))
+    elif isinstance(schema, list):
+        for index, value in enumerate(schema):
+            hits.extend(_null_defaults(value, f"{path}/{index}"))
+    return sorted(hits)
+
+
+def _omitted_means_unchanged_models() -> list[type[OmittedMeansUnchanged]]:
+    """Return every model built on ``OmittedMeansUnchanged``."""
+    models: list[type[OmittedMeansUnchanged]] = []
+    pending: list[type[OmittedMeansUnchanged]] = [OmittedMeansUnchanged]
+    while pending:
+        for subclass in pending.pop().__subclasses__():
+            if subclass not in models:
+                models.append(subclass)
+                pending.append(subclass)
+    return models
+
+
+def test_partial_update_tools_advertise_no_null_default() -> None:
+    """No optional field of a partial-update tool offers null as its default."""
+    registered = {tool.name: tool for tool in _run(mcp.list_tools())}
+    advertised = {}
+    for name in OMITTED_MEANS_UNCHANGED_TOOLS:
+        tool: Any = registered.get(name)
+        if tool is None:
+            raise AssertionError(
+                f"{name} is not registered, so its schema cannot be checked"
+            )
+        if offenders := _null_defaults(_request_model_schema(tool)):
+            advertised[name] = offenders
+
+    assert not advertised, (
+        "Partial-update tools must not advertise null defaults, or a client "
+        f"filling them clears values the caller never named: {advertised}"
+    )
+
+
+def test_omitted_means_unchanged_models_advertise_no_null_default() -> None:
+    """Every model on the base keeps null out of its advertised defaults.
+
+    ``update_chart`` reads ``model_fields_set`` on the nested chart config
+    rather than on the request, so the config models carry the base too. This
+    covers them, and any model that joins them later.
+    """
+    models = _omitted_means_unchanged_models()
+    assert models, "OmittedMeansUnchanged has no subclasses; is the import stale?"
+
+    offenders = {
+        model.__name__: null_defaults
+        for model in models
+        if (null_defaults := _null_defaults(model.model_json_schema()))
+    }
+    assert not offenders, (
+        f"Models on OmittedMeansUnchanged must not advertise null defaults: {offenders}"
+    )
 
 
 def test_mcp_app_imports_successfully():
@@ -729,3 +850,23 @@ def test_committed_write_identifying_fields_are_the_container_ones() -> None:
                 named_scalars.setdefault(name, []).append(field)
 
     assert not named_scalars, named_scalars
+
+
+@pytest.mark.asyncio
+async def test_deleted_state_documentation_matches_list_schemas() -> None:
+    """Keep the documented trash-listing support aligned with every list tool."""
+    tools = await mcp.list_tools()
+    supported = {
+        tool.name
+        for tool in tools
+        if tool.name.startswith("list_")
+        and '"deleted_state":' in json.dumps(tool.parameters)
+    }
+
+    doc = (
+        Path(__file__).resolve().parents[3]
+        / "docs/admin_docs/configuration/mcp-server.mdx"
+    ).read_text(encoding="utf-8")
+    statement = re.search(r"`deleted_state` is only defined on ([^.]+)\.", doc)
+    assert statement is not None
+    assert set(re.findall(r"`(list_\w+)`", statement[1])) == supported

@@ -17,7 +17,11 @@
 
 """Tests for CompositeTokenVerifier."""
 
-from unittest.mock import AsyncMock, MagicMock
+import asyncio
+import logging
+import threading
+from collections.abc import Iterator
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp.server.auth import AccessToken
@@ -27,6 +31,17 @@ from superset.mcp_service.composite_token_verifier import (
     API_KEY_VALIDATED_USERNAME_CLAIM,
     CompositeTokenVerifier,
 )
+from superset.mcp_service.worker import WorkerPool
+
+
+@pytest.fixture(autouse=True)
+def worker_pool() -> Iterator[WorkerPool]:
+    """Mock apps cannot size the real pool; give them a small one of their own."""
+    pool = WorkerPool(1, auth_pending=2)
+    with patch("superset.mcp_service.worker._get_pool", return_value=pool):
+        yield pool
+    for executor in (pool.executor, pool.cancellations, pool.transport, pool.auth):
+        executor.shutdown(wait=False)
 
 
 @pytest.fixture
@@ -271,6 +286,94 @@ async def test_transport_validation_valid_key_returns_access_token() -> None:
     assert result.client_id == "api_key"
     assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
     assert result.claims.get(API_KEY_VALIDATED_USERNAME_CLAIM) == "alice"
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_logs_user_id_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Successful validation logs the user id, not the username or token."""
+    mock_app = _make_app_with_api_key("alice")
+    mock_app.appbuilder.sm.validate_api_key.return_value.id = 42
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    with caplog.at_level(
+        logging.DEBUG, logger="superset.mcp_service.composite_token_verifier"
+    ):
+        result = await verifier.verify_token("sst_valid_key")
+
+    assert result is not None
+    assert result.claims.get(API_KEY_VALIDATED_USERNAME_CLAIM) == "alice"
+    assert "API key validated at transport layer for user_id=42" in caplog.text
+    assert "alice" not in caplog.text
+    assert "sst_valid_key" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_runs_on_its_own_thread() -> None:
+    """API key lookups use the dedicated lookup thread, not the shared
+    transport thread that audit writes and RBAC filtering run on."""
+    mock_app = _make_app_with_api_key("alice")
+    threads: list[str] = []
+    validate = mock_app.appbuilder.sm.validate_api_key
+    user = validate.return_value
+
+    def record_thread(token: str) -> MagicMock:
+        threads.append(threading.current_thread().name)
+        return user
+
+    validate.side_effect = record_thread
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    assert await verifier.verify_token("sst_valid_key") is not None
+    assert len(threads) == 1
+    assert threads[0].startswith("mcp-auth")
+
+
+@pytest.mark.asyncio
+async def test_stuck_lookups_do_not_delay_transport_metadata_io(
+    worker_pool: WorkerPool, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Blocked lookups for unknown keys leave the transport thread free, and
+    past the pending cap further keys are rejected instead of queued."""
+    release = threading.Event()
+    mock_app = _make_app_with_api_key(None)
+    validate = mock_app.appbuilder.sm.validate_api_key
+    validate.side_effect = lambda token: release.wait(5) and None
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+    loop = asyncio.get_running_loop()
+    try:
+        # The lookup thread is busy and the second lookup is waiting for it.
+        stuck = [
+            asyncio.create_task(verifier.verify_token(f"sst_unknown_{i}"))
+            for i in range(2)
+        ]
+        await asyncio.sleep(0.05)
+
+        # An audit write on the transport thread still runs at once.
+        audit = loop.run_in_executor(worker_pool.transport, lambda: "written")
+        assert await asyncio.wait_for(audit, 1) == "written"
+
+        logger_name = "superset.mcp_service.composite_token_verifier"
+        with caplog.at_level(logging.WARNING, logger=logger_name):
+            assert await asyncio.wait_for(verifier.verify_token("sst_more"), 1) is None
+        assert any("Too many API key lookups" in r.message for r in caplog.records)
+        assert validate.call_count == 1
+    finally:
+        release.set()
+    assert await asyncio.gather(*stuck) == [None, None]
+    assert validate.call_count == 2
+
+    # Finished lookups return their slots.
+    validate.side_effect = None
+    validate.return_value = MagicMock(username="alice")
+    assert await verifier.verify_token("sst_valid_key") is not None
 
 
 @pytest.mark.asyncio
