@@ -217,6 +217,25 @@ on the main repo:
 git push
 ```
 
+#### Testing the branch from a Docker image
+
+Each push to a release branch publishes commit-addressable pre-release images, so the
+state of the branch can be tested in a container without building locally. Once CI
+finishes:
+
+```bash
+git fetch origin ${SUPERSET_GITHUB_BRANCH}
+SHA=$(git rev-parse --short=7 origin/${SUPERSET_GITHUB_BRANCH})
+docker pull apache/superset:${SUPERSET_GITHUB_BRANCH}-${SHA}        # batteries-included
+docker pull apache/superset:${SUPERSET_GITHUB_BRANCH}-${SHA}-lean   # minimal
+```
+
+These images are multi-platform and are **not** official releases — they carry no
+release vote. Only commits touching Python, frontend or Docker paths produce an image,
+so a docs-only cherry-pick leaves the previous commit's image as the newest one. See
+[Docker builds, images and tags](../docs/admin_docs/installation/docker-builds.mdx) for
+the full tag scheme.
+
 ### Updating changelog
 
 Next, update the `CHANGELOG/<version>.md` with all the changes that are included in the release.
