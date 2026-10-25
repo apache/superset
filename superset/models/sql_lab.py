@@ -675,8 +675,11 @@ class SavedQuery(
     @property
     def catalog_perm(self) -> Optional[str]:
         """Catalog-level permission string; see ``schema_perm`` above."""
+        if not self.database:
+            return None
         return security_manager.get_catalog_perm(
-            self.database.database_name, self.catalog
+            self.database.database_name,
+            self.catalog or self.database.get_default_catalog(),
         )
 
     @property
