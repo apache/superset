@@ -214,7 +214,7 @@ def _write_self_signed_cert(
     files exist anywhere under `/var/lib/mysql` (verified directly against
     this image) -- so there's nothing to extract back out the way
     test_mysql.py's `tls_ca_path` fixture does for `mysql:8.0`. Generate a
-    throwaway one instead and mount it into a dedicated container via
+    throwaway one instead and copy it into a dedicated container via
     `--ssl-cert`/`--ssl-key`/`--ssl-ca`, verified directly to work against
     this image.
     """
@@ -273,7 +273,7 @@ def _write_self_signed_cert(
             encryption_algorithm=serialization.NoEncryption(),
         )
     )
-    # Readable by the container's mysql user once bind-mounted read-only.
+    # Readable by the container's mysql user once copied into the container.
     for name in ("ca.pem", "server-cert.pem", "server-key.pem"):
         os.chmod(cert_dir / name, 0o644)
 
@@ -291,9 +291,6 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
     with tempfile.TemporaryDirectory() as cert_dir_str:
         cert_dir = Path(cert_dir_str)
         _write_self_signed_cert(cert_dir, docker_host=_docker_host())
-        # TemporaryDirectory is 0700; the container's mysql user must be able
-        # to traverse the bind-mounted directory on Linux.
-        cert_dir.chmod(0o755)
         container = MySqlContainer(
             "mariadb:11",
             command=(
@@ -301,7 +298,12 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
                 "--ssl-key=/certs/server-key.pem "
                 "--ssl-ca=/certs/ca.pem"
             ),
-        ).with_volume_mapping(cert_dir_str, "/certs", "ro")
+        )
+        # Copied in before mysqld starts rather than bind-mounted: a mount is
+        # resolved on the Docker daemon's host, which is empty of these files
+        # with a remote DOCKER_HOST or Docker-in-Docker.
+        for name in ("ca.pem", "server-cert.pem", "server-key.pem"):
+            container.with_copy_into_container(cert_dir / name, f"/certs/{name}", 0o644)
         with container as started:
             yield started, str(cert_dir / "ca.pem")
 
@@ -330,10 +332,14 @@ def test_require_mysql_tls_rejects_untrusted_ca(
     )
     uri = uri.set(host=host, port=int(port), database=container.dbname)
     tls_engine = create_engine(uri, connect_args=connect_args)
-    # Match the verification failure itself: a missing CA or a client that
-    # refuses VERIFY_CA without one raises a different message.
+    # Match only a failure a real verification emits: the "CA certificate is
+    # required if ssl-mode is VERIFY_CA" message for a missing CA must not pass.
     with pytest.raises(
-        OperationalError, match=r"(?i)verif|self.signed|issuer|untrusted"
+        OperationalError,
+        match=(
+            r"(?i)self.signed|unable to get (local )?issuer"
+            r"|certificate verify failed"
+        ),
     ):
         with tls_engine.connect():
             pass
