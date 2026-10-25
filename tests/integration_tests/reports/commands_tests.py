@@ -1576,32 +1576,35 @@ def test_dashboard_report_executor_without_access_is_logged(
         dashboard=dashboard,
         extra={"dashboard": dashboard_state} if dashboard_state else None,
     )
-    with (
-        freeze_time("2020-01-01T00:00:00Z"),
-        patch.dict(app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("gamma")]}),
-        patch.object(security_manager, "raise_for_access", raise_for_access),
-    ):
-        with pytest.raises(ReportScheduleExecutorAccessDeniedError):
-            AsyncExecuteReportScheduleCommand(
-                TEST_ID, report_schedule.id, datetime.utcnow()
-            ).run()
+    try:
+        with (
+            freeze_time("2020-01-01T00:00:00Z"),
+            patch.dict(
+                app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("gamma")]}
+            ),
+            patch.object(security_manager, "raise_for_access", raise_for_access),
+        ):
+            with pytest.raises(ReportScheduleExecutorAccessDeniedError):
+                AsyncExecuteReportScheduleCommand(
+                    TEST_ID, report_schedule.id, datetime.utcnow()
+                ).run()
 
-    screenshot_mock.assert_not_called()
-    db.session.refresh(report_schedule)
-    assert report_schedule.last_state == ReportState.ERROR
-    error_log = next(
-        log
-        for log in get_error_logs_query(report_schedule)
-        if log.error_message != REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
-    )
-    assert '"gamma"' in error_log.error_message
-    assert specific_reason in error_log.error_message
-    # The editors' failure notification is still delivered.
-    email_mock.assert_called_once()
-    assert specific_reason in email_mock.call_args[0][2]
-
-    cleanup_report_schedule(report_schedule)
-    reset_key_values()
+        screenshot_mock.assert_not_called()
+        db.session.refresh(report_schedule)
+        assert report_schedule.last_state == ReportState.ERROR
+        error_log = next(
+            log
+            for log in get_error_logs_query(report_schedule)
+            if log.error_message != REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+        )
+        assert '"gamma"' in error_log.error_message
+        assert specific_reason in error_log.error_message
+        # The editors' failure notification is still delivered.
+        email_mock.assert_called_once()
+        assert specific_reason in email_mock.call_args[0][2]
+    finally:
+        cleanup_report_schedule(report_schedule)
+        reset_key_values()
 
 
 @pytest.mark.usefixtures("tabbed_dashboard")

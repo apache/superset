@@ -652,8 +652,14 @@ class BaseReportScheduleCommand(BaseCommand):
             self._delivers_content(str(report_type), report_format),
         )
 
-    def _stored_executor_target_state(self) -> tuple[Any, User | None, bool, bool]:
-        """Return the stored target id, executor, delivery and active flag."""
+    def _stored_executor_target_state(
+        self,
+    ) -> tuple[tuple[str, Any], User | None, bool, bool]:
+        """Return the stored target, executor, delivery and active flag.
+
+        The target is a ``(kind, id)`` pair so a chart and a dashboard that
+        share a numeric id are never mistaken for one another.
+        """
         model = getattr(self, "_model", None)
         assert model is not None
         executor = resolve_save_time_executor(
@@ -663,8 +669,13 @@ class BaseReportScheduleCommand(BaseCommand):
             changed_by=model.changed_by,
             editors=model.editors,
         )
+        stored_target = (
+            ("chart", model.chart_id)
+            if model.chart_id
+            else ("dashboard", model.dashboard_id)
+        )
         return (
-            model.chart_id or model.dashboard_id,
+            stored_target,
             executor,
             self._delivers_content(model.type, model.report_format),
             bool(model.active),
@@ -701,7 +712,7 @@ class BaseReportScheduleCommand(BaseCommand):
                 self._stored_executor_target_state()
             )
             if (
-                stored_target == target.id
+                stored_target == (kind, target.id)
                 and stored_executor is not None
                 and stored_executor.id == executor.id
                 and stored_delivery

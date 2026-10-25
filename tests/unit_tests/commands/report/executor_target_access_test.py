@@ -268,7 +268,7 @@ def _update_command(
     model.chart = None
     model.chart_id = None
     model.dashboard = stored_dashboard
-    model.dashboard_id = stored_dashboard.id
+    model.dashboard_id = getattr(stored_dashboard, "id", None)
     model.type = ReportScheduleType.REPORT
     model.report_format = ReportDataFormat.PNG
     model.active = active
@@ -325,6 +325,30 @@ def test_update_rejects_resuming_schedule_executor_cannot_access(
         properties={"active": True, "dashboard": stored},
         active=False,
     )
+
+    exceptions: list[Any] = []
+    with app.test_request_context():
+        command.validate_executor_target_access(exceptions)
+
+    assert [type(error) for error in exceptions] == [
+        ReportScheduleExecutorTargetAccessError
+    ]
+
+
+def test_update_rechecks_when_target_kind_changes_but_id_matches(
+    mocker: MockerFixture, app: Any
+) -> None:
+    _stub_update_security(mocker, app)
+    stored_chart, submitted_dashboard = Mock(id=7), Mock(id=7)
+    command = _update_command(
+        mocker,
+        stored_dashboard=None,
+        properties={"chart": None, "dashboard": submitted_dashboard},
+    )
+    command._model.chart = stored_chart
+    command._model.chart_id = stored_chart.id
+    command._model.dashboard = None
+    command._model.dashboard_id = None
 
     exceptions: list[Any] = []
     with app.test_request_context():
