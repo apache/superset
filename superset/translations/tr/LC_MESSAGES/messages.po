@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1289,6 +1289,9 @@ msgstr "İptal Ediliyor"
 msgid "About"
 msgstr "Hakkında"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Erişim"
 
@@ -1750,6 +1753,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregation Method"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3706,6 +3712,12 @@ msgstr "Bu semantik katmanın değiştirilmesi yasaktır"
 msgid "Changing this semantic view is forbidden"
 msgstr "Bu semantik görünümün değiştirilmesi yasaktır"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -3860,6 +3872,10 @@ msgstr "Grafik başlığı"
 #, fuzzy
 msgid "Chart type"
 msgstr "Grafik başlığı"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
@@ -4385,6 +4401,10 @@ msgstr "Hedef yerin rengi"
 
 msgid "Color scheme"
 msgstr "Renk şeması"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -5013,8 +5033,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Say"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Ülke"
@@ -5527,6 +5564,10 @@ msgstr "Gösterim Paneli başlığı"
 msgid "Dashboard updated %s"
 msgstr "Pano güncellendi %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Gösterim Paneli kullanımı"
 
@@ -5784,6 +5825,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Dataset şeması geçersizdir, neden:   %(error)s "
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7900,6 +7945,10 @@ msgstr "Başarısızlık"
 msgid "Failed at retrieving results"
 msgstr "Retrieving sonuçları başarısız oldu"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Tartışmayı uygulamak için başarısız oldu: Invalid JSON"
 
@@ -8212,7 +8261,13 @@ msgstr "Grafikleri filtrele"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9387,6 +9442,11 @@ msgstr "Invalid longitude/latitude"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Invalid metric object:   %(metric)s "
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Invalid numpy işlevi:   %(operator)s "
@@ -9762,6 +9822,9 @@ msgstr "son yıl"
 msgid "Lat"
 msgstr "Lat"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "hayali"
 
@@ -10052,6 +10115,9 @@ msgstr "Sorguyu düzenle"
 
 msgid "List Roles"
 msgstr "Liste Roller"
+
+msgid "List Unique Values"
+msgstr ""
 
 #, fuzzy
 msgid "List Users"
@@ -10467,6 +10533,9 @@ msgstr "Belirtilen süre boyunca değerlerin anlamı"
 msgid "Mean values"
 msgstr "Ortalama değerler"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10708,6 +10777,9 @@ msgstr "Asgar"
 msgid "Minimum Font Size"
 msgstr "Minimum Font Boyut"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Asgari Radius"
 
@@ -10718,6 +10790,16 @@ msgid "Minimum Width"
 msgstr "Minimum Genişlik"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11343,6 +11425,9 @@ msgid ""
 msgstr ""
 "%(engine_spec)s %(validator_name)s adında hiçbir doğrulama bulunamadı "
 "(foto 1   motoru için yapılandırıldı)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Node etiket pozisyonu"
@@ -14741,6 +14826,12 @@ msgstr "Semantik Görünümler"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14839,6 +14930,11 @@ msgstr "Semantik görünüm parametreleri geçersiz."
 #, fuzzy
 msgid "Semantic view updated"
 msgstr "Semantik görünüm güncellendi"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -15196,11 +15292,11 @@ msgstr "Show chart query timestamps"
 msgid "Show column headers"
 msgstr "Kolonlar bulunamadı"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Show columns subtotal"
-
-msgid "Show columns total"
-msgstr "Show columns total"
 
 msgid "Show empty columns"
 msgstr "Boş sütunlar göster"
@@ -15281,11 +15377,11 @@ msgstr "Show query tanımlayıcıları göster"
 msgid "Show row labels"
 msgstr "Toplamı göster"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Show rows sub total"
-
-msgid "Show rows total"
-msgstr "Show rows total"
 
 msgid "Show series values on the chart"
 msgstr "Grafikte seri değerleri göster"
@@ -15525,6 +15621,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Diğer sekmelerdeki bazı zorunlu filtrelerin değerleri var ve "
 "temizlenmeyecek"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -16035,6 +16134,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Sum"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Belirtilen süre boyunca değerlerin sum"
 
@@ -16376,6 +16484,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Şablon parametreleri"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -17599,6 +17710,9 @@ msgstr "Değerler diğer uç noktaları değerleri örtüşür"
 msgid "The version of the service"
 msgstr "Hizmetin versiyonu"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "tabakanın görünür başlığı"
 
@@ -18124,6 +18238,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18462,6 +18579,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18880,6 +19004,12 @@ msgid ""
 msgstr ""
 "Çok fazla alt dilim istendi. İzin verilen maksimum sayı %(max)s, ancak "
 "%(count)s istendi."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -19639,6 +19769,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "metrik değerin bir zamantampamp olmadığı zaman bile tarih formatı kullanın"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -19646,6 +19783,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Kullanım gradient"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "sütunlar veya satırlar için üst düzey bir grup olarak metrikleri kullanın"
@@ -19965,6 +20105,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Viewport"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Sanal"
@@ -20621,6 +20764,9 @@ msgid "X Axis Label Interval"
 msgstr "X Axis Label Interval"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Zaman formatı"
 
@@ -20666,6 +20812,9 @@ msgstr "Y"
 
 msgid "Y Axis Label"
 msgstr "Y Axis Label"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y Axis Title"
@@ -21227,6 +21376,11 @@ msgstr "Sorgunuz güncellendi"
 
 msgid "Your report could not be deleted"
 msgstr "Raporunuz silinemez"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

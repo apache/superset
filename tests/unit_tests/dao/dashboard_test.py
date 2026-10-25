@@ -19,7 +19,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import event, inspect
+from sqlalchemy import event, inspect, select
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
@@ -27,12 +27,13 @@ from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
+    _install_membership_baseline,
     _layout_chart_id,
     DashboardDAO,
     reconcile_position_json,
 )
 from superset.dashboards.filter_scope import derive_metadata_scopes
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
@@ -97,10 +98,13 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     db.session.add_all([live_chart, trashed_chart, dashboard])
     db.session.flush()
 
-    # Production shape: the PUT flow loads a fresh Dashboard whose
-    # ``slices`` collection is unloaded; expiring forces the baseline
-    # reload through the visibility listener during the assignment.
-    db.session.expire(dashboard, ["slices"])
+    # Production shape: the PUT flow loads the Dashboard through a query,
+    # which carries the visibility filter into the lazy load of its
+    # ``slices`` baseline. Expiring the collection alone is not enough: an
+    # object built in Python carries no filter into its lazy loads.
+    dashboard_id: int = dashboard.id
+    db.session.expunge(dashboard)
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
 
     positions: dict[str, dict[str, Any]] = {
         "CHART-live": {
@@ -129,8 +133,100 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
         "set_dash_metadata must bypass the visibility filter when "
         "resolving incoming chart ids"
     )
+    # An archived chart that has a layout slot is listed once, not twice.
+    assert [chart.id for chart in dashboard.slices] == [
+        live_chart.id,
+        trashed_chart.id,
+    ]
     # And the position slot kept its UUID rather than being nulled.
     assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
+
+
+@pytest.mark.parametrize("previously_in_layout", [False, True])
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_preserves_archived_member_missing_from_layout(
+    session: Session, previously_in_layout: bool
+) -> None:
+    """A layout save keeps omitted archived members but removes omitted live ones."""
+    Dashboard.metadata.create_all(session.get_bind())
+    live: Slice = Slice(slice_name="layout_member", datasource_type="table")
+    archived: Slice = Slice(
+        slice_name="archived_member",
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    removed: Slice = Slice(slice_name="removed_member", datasource_type="table")
+    positions: dict[str, dict[str, Any]] = {
+        "CHART-live": {"type": "CHART", "meta": {"chartId": None}}
+    }
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="archived_outside_layout", slices=[live, archived, removed]
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    positions["CHART-live"]["meta"]["chartId"] = live.id
+    stored_positions: dict[str, dict[str, Any]] = dict(positions)
+    if previously_in_layout:
+        stored_positions["CHART-archived"] = {
+            "type": "CHART",
+            "meta": {"chartId": archived.id},
+        }
+    dashboard.position_json = json.dumps(stored_positions)
+    # The layout save runs in a separate transaction from the initial membership.
+    db.session.commit()
+    dashboard_id: int = dashboard.id
+    expected_ids: set[int] = {live.id, archived.id}
+    db.session.expunge(dashboard)
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+
+    DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    db.session.flush()
+
+    member_ids: set[int] = set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard_id
+            )
+        )
+    )
+    assert member_ids == expected_ids
+    assert json.loads(dashboard.position_json) == positions
+
+
+def test_install_membership_baseline_skips_transient_dashboard(
+    session: Session,
+) -> None:
+    """A dashboard with no stored rows keeps its in-memory chart list."""
+    Dashboard.metadata.create_all(session.get_bind())
+    chart: Slice = Slice(slice_name="transient_chart", datasource_type="table")
+    db.session.add(chart)
+    db.session.flush()
+    dashboard: Dashboard = Dashboard(dashboard_title="transient_dash", slices=[chart])
+
+    _install_membership_baseline(dashboard)
+
+    assert dashboard.slices == [chart]
+    assert inspect(dashboard).attrs.slices.history.added == [chart]
+
+
+def test_install_membership_baseline_keeps_unflushed_change(
+    session: Session,
+) -> None:
+    """A pending change to the chart list is kept, not replaced by the
+    stored baseline, when autoflush cannot flush it first."""
+    Dashboard.metadata.create_all(session.get_bind())
+    kept: Slice = Slice(slice_name="kept_chart", datasource_type="table")
+    added: Slice = Slice(slice_name="added_chart", datasource_type="table")
+    dashboard: Dashboard = Dashboard(dashboard_title="pending_dash", slices=[kept])
+    db.session.add_all([kept, added, dashboard])
+    db.session.flush()
+
+    with db.session.no_autoflush:
+        dashboard.slices.append(added)
+        _install_membership_baseline(dashboard)
+
+    assert dashboard.slices == [kept, added]
+    assert inspect(dashboard).attrs.slices.history.added == [added]
 
 
 def test_set_dash_metadata_preserves_refresh_frequency(session: Session) -> None:
