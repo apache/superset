@@ -1,13 +1,13 @@
 {
   "generated": "2026-04-17T17:08:35.132Z",
   "statistics": {
-    "totalDatabases": 81,
-    "withDocumentation": 81,
-    "withConnectionString": 81,
+    "totalDatabases": 80,
+    "withDocumentation": 80,
+    "withConnectionString": 80,
     "withDrivers": 29,
     "withAuthMethods": 5,
-    "supportsJoins": 75,
-    "supportsSubqueries": 78,
+    "supportsJoins": 74,
+    "supportsSubqueries": 77,
     "supportsDynamicSchema": 29,
     "supportsCatalog": 20,
     "averageScore": 53,
