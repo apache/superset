@@ -90,6 +90,17 @@ export function mirrorBabelExportSemantics(code) {
         'update the patterns in spec/helpers/swcJestTransformer.js',
     );
   }
+  // The helper descriptor always supplies `configurable: true`, so a changed
+  // named-getter shape would otherwise lose only the leniency half unnoticed.
+  if (
+    /\b_export\(exports, \{[\s\S]*?\bget\s+\w+\s*\(/.test(code) &&
+    !patched.includes('try { return')
+  ) {
+    throw new Error(
+      'swcJestTransformer: SWC named export getters did not match the known ' +
+        'shape; update the patterns in spec/helpers/swcJestTransformer.js',
+    );
+  }
   return patched;
 }
 
@@ -108,7 +119,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v5';
+const CACHE_SALT = 'babel-export-semantics-v6';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);

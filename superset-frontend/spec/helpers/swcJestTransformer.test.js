@@ -71,3 +71,15 @@ Object.defineProperty(foo, "x", {
     /did not match any known shape/,
   );
 });
+
+test('throws when named export getters change shape but the helper still matches', () => {
+  // The getter keyword is interpolated so this fixture is not itself rewritten
+  // when the test file goes through the transformer.
+  const changed = `${NAMED_EXPORTS.split('_export(exports')[0]}_export(exports, {
+    ${'get'} answer() { return answer; }
+});
+const answer = 42;`;
+  expect(() => mirrorBabelExportSemantics(changed)).toThrow(
+    /named export getters did not match/,
+  );
+});
