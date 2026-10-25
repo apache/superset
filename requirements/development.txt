@@ -1050,7 +1050,7 @@ slack-sdk==3.45.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sqlalchemy==2.0.52
+sqlalchemy==2.0.55
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
