@@ -4666,7 +4666,7 @@ test('global attachment policy hides both the alert toggle and attachment contro
   }
 });
 
-test('Teams preserves separate destination entries and serializes only their keys', async () => {
+test('Changing the first Teams method preserves the following destination', async () => {
   mockNotificationMethods = ['Email', 'Teams'];
   fetchMock.get('glob:*/api/v1/report/92', {
     result: {
@@ -4734,6 +4734,15 @@ test('Teams preserves separate destination entries and serializes only their key
     expect(
       screen.getByText('Finance (Bot installation required)'),
     ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getAllByRole('combobox', { name: /^Delivery method/ })[0],
+    );
+    await userEvent.click(await screen.findByText('Email'));
+    await addAsyncSelectValue(
+      /email recipients/i,
+      'owner@example.com',
+      reportUsersEndpoint,
+    );
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
     await waitFor(() =>
       expect(fetchMock.callHistory.calls('save-teams')).toHaveLength(1),
@@ -4742,12 +4751,26 @@ test('Teams preserves separate destination entries and serializes only their key
     expect(JSON.parse(call.options.body as string)).toMatchObject({
       report_format: 'NONE',
       recipients: [
-        { type: 'Teams', recipient_config_json: { target: 'ops' } },
+        {
+          type: 'Email',
+          recipient_config_json: {
+            target: 'owner@example.com',
+            ccTarget: '',
+            bccTarget: '',
+          },
+        },
         { type: 'Teams', recipient_config_json: { target: 'finance' } },
       ],
     });
     expect(JSON.parse(call.options.body as string).recipients).toEqual([
-      { type: 'Teams', recipient_config_json: { target: 'ops' } },
+      {
+        type: 'Email',
+        recipient_config_json: {
+          target: 'owner@example.com',
+          ccTarget: '',
+          bccTarget: '',
+        },
+      },
       { type: 'Teams', recipient_config_json: { target: 'finance' } },
     ]);
   } finally {

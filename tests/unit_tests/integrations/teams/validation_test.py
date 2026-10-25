@@ -240,6 +240,65 @@ def test_create_valid_teams_alert_without_installation(
     assert command._properties["recipients"] == [teams_recipient()]
 
 
+@pytest.mark.parametrize("updating", [False, True])
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_teams_destination_keys_must_be_unique(
+    configured_app: Flask,
+    command_dependencies: None,
+    updating: bool,
+    duplicate: bool,
+) -> None:
+    destinations = configured_app.config["ALERT_REPORTS_TEAMS"]["destinations"]
+    destinations.append(
+        {**destinations[0], "key": "finance", "channel_id": "channel-2"}
+    )
+    recipients = [
+        teams_recipient(),
+        teams_recipient({"target": "ops" if duplicate else "finance"}),
+    ]
+
+    def validate() -> None:
+        if updating:
+            validate_update(saved_schedule(), {"recipients": recipients})
+        else:
+            create_command(recipients=recipients).validate()
+
+    if duplicate:
+        with pytest.raises(ReportScheduleInvalidError) as exc:
+            validate()
+        assert "Teams destination keys must be unique" in str(
+            exc.value.normalized_messages()
+        )
+    else:
+        validate()
+
+
+@pytest.mark.parametrize("changes", [{"active": False}, {"description": "Updated"}])
+def test_existing_duplicate_teams_recipients_allow_metadata_edits(
+    configured_app: Flask, command_dependencies: None, changes: dict[str, Any]
+) -> None:
+    model = saved_schedule(
+        recipients=[teams_recipient(saved=True), teams_recipient(saved=True)]
+    )
+    validate_update(
+        model, {**changes, "recipients": [teams_recipient(), teams_recipient()]}
+    )
+
+
+def test_reactivating_saved_duplicate_teams_recipients_is_rejected(
+    configured_app: Flask, command_dependencies: None
+) -> None:
+    model = saved_schedule(
+        active=False,
+        recipients=[teams_recipient(saved=True), teams_recipient(saved=True)],
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        validate_update(model, {"active": True})
+    assert "Teams destination keys must be unique" in str(
+        exc.value.normalized_messages()
+    )
+
+
 def test_create_must_explicitly_disable_default_attachments(
     configured_app: Flask, command_dependencies: None
 ) -> None:

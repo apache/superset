@@ -568,6 +568,7 @@ class BaseReportScheduleCommand(BaseCommand):
         report_format = self._properties.get(
             "report_format", getattr(model, "report_format", ReportDataFormat.PNG)
         )
+        destination_keys: set[str] = set()
         for recipient in recipients or []:
             if isinstance(recipient, dict):
                 recipient_type = recipient.get("type")
@@ -578,7 +579,14 @@ class BaseReportScheduleCommand(BaseCommand):
             if recipient_type != ReportRecipientType.TEAMS:
                 continue
             try:
-                validate_teams_recipient(recipient_config, report_type, report_format)
+                _, destination = validate_teams_recipient(
+                    recipient_config, report_type, report_format
+                )
+                if destination.key in destination_keys:
+                    raise TeamsRecipientValidationError(
+                        "Teams destination keys must be unique within a schedule"
+                    )
+                destination_keys.add(destination.key)
             except TeamsRecipientValidationError as ex:
                 exceptions.append(ValidationError(str(ex), field_name=ex.field))
 
