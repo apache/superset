@@ -19,9 +19,9 @@
 import { VizType } from '@superset-ui/core';
 
 // A KPI card shows one final number: it has no table of data worth exporting, and a PDF
-// of it is the same picture as the PNG. These charts offer image exports only.
+// of it is the same picture as the PNG. These charts offer image exports only. Big Number with
+// Trendline is not listed: its query returns the daily series, which people export.
 const IMAGE_ONLY_EXPORT_VIZ_TYPES: string[] = [
-  VizType.BigNumber,
   VizType.BigNumberTotal,
   VizType.BigNumberPeriodOverPeriod,
 ];

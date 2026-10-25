@@ -19,17 +19,19 @@
 import { VizType } from '@superset-ui/core';
 import isImageOnlyExportViz from './isImageOnlyExportViz';
 
-test.each([
-  VizType.BigNumber,
-  VizType.BigNumberTotal,
-  VizType.BigNumberPeriodOverPeriod,
-])('%s offers image export only', vizType => {
-  expect(isImageOnlyExportViz(vizType)).toBe(true);
-});
-
-test.each([VizType.Table, VizType.PivotTable, VizType.Sunburst, undefined])(
-  '%s keeps the data and PDF exports',
+test.each([VizType.BigNumberTotal, VizType.BigNumberPeriodOverPeriod])(
+  '%s offers image export only',
   vizType => {
-    expect(isImageOnlyExportViz(vizType)).toBe(false);
+    expect(isImageOnlyExportViz(vizType)).toBe(true);
   },
 );
+
+test.each([
+  VizType.BigNumber,
+  VizType.Table,
+  VizType.PivotTable,
+  VizType.Sunburst,
+  undefined,
+])('%s keeps the data and PDF exports', vizType => {
+  expect(isImageOnlyExportViz(vizType)).toBe(false);
+});
