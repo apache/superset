@@ -345,10 +345,12 @@ def test_update_rechecks_when_target_kind_changes_but_id_matches(
         stored_dashboard=None,
         properties={"chart": None, "dashboard": submitted_dashboard},
     )
-    command._model.chart = stored_chart
-    command._model.chart_id = stored_chart.id
-    command._model.dashboard = None
-    command._model.dashboard_id = None
+    model = command._model
+    assert model is not None
+    model.chart = stored_chart
+    model.chart_id = stored_chart.id
+    model.dashboard = None
+    model.dashboard_id = None
 
     exceptions: list[Any] = []
     with app.test_request_context():
