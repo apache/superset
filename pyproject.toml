@@ -74,7 +74,7 @@ dependencies = [
     "holidays>=0.106, <1",
     "humanize",
     "isodate",
-    "jsonpath-ng>=1.8.0, <2",
+    "jsonpath-ng>=1.11.0, <2",
     "Mako>=1.4.3",
     "markdown>=3.11",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
