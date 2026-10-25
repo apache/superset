@@ -557,3 +557,27 @@ test('horizontal layout keeps the 200-400px popup width constraints', async () =
     maxWidth: '400px',
   });
 });
+
+test('horizontal layout portals the popup out of a scrollable ancestor', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/326', {
+    result: { table_name: 'Vehicle Sales', columns: [{ column_name: 'city' }] },
+  });
+
+  render(
+    <div data-test="scroller" style={{ overflow: 'auto', maxHeight: 100 }}>
+      <GroupByFilterCard
+        customizationItem={customization([{ datasetId: 326 }])}
+        orientation="horizontal"
+      />
+    </div>,
+    { useRedux: true, initialState },
+  );
+
+  await userEvent.click(await screen.findByRole('combobox'));
+  await waitFor(() => {
+    expect(document.querySelector('.ant-select-dropdown')).not.toBeNull();
+  });
+  const popup = document.querySelector('.ant-select-dropdown') as HTMLElement;
+  expect(screen.getByTestId('scroller').contains(popup)).toBe(false);
+  expect(document.body.contains(popup)).toBe(true);
+});
