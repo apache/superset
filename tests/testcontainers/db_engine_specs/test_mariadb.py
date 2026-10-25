@@ -302,7 +302,11 @@ def test_require_mysql_tls_rejects_untrusted_ca(
     )
     uri = uri.set(host=host, port=int(port), database=container.dbname)
     tls_engine = create_engine(uri, connect_args=connect_args)
-    with pytest.raises(OperationalError):
+    # Match the verification failure itself: a missing CA or a client that
+    # refuses VERIFY_CA without one raises a different message.
+    with pytest.raises(
+        OperationalError, match=r"(?i)verif|self.signed|issuer|untrusted"
+    ):
         with tls_engine.connect():
             pass
 
@@ -321,7 +325,9 @@ def test_require_mysql_tls_connects_with_verified_tls(
     container, ca_path = tls_container
     host = _tcp_host(container)
     port = container.get_exposed_port(container.port)
-    uri, connect_args = _require_tls_connect_args(f"ssl=1&ssl_ca={ca_path}")
+    uri, connect_args = _require_tls_connect_args(
+        f"ssl=1&ssl_mode=VERIFY_CA&ssl_ca={ca_path}"
+    )
     uri = uri.set(host=host, port=int(port), database=container.dbname)
     tls_engine = create_engine(uri, connect_args=connect_args)
     with tls_engine.connect() as conn:
