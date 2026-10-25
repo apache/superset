@@ -33,6 +33,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.exceptions import CommandException, UpdateFailedError
 from superset.commands.report.alert import AlertCommand
@@ -48,6 +49,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleDataFrameFailedError,
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorAccessDeniedError,
     ReportScheduleExecutorNotFoundError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
@@ -78,7 +80,11 @@ from superset.daos.report import (
 )
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorsException, SupersetException
+from superset.exceptions import (
+    SupersetErrorsException,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.models import (
     ReportConfigKey,
@@ -106,7 +112,12 @@ from superset.subjects.types import SubjectType
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import apply_max_row_limit, HeaderDataType, override_user
+from superset.utils.core import (
+    apply_max_row_limit,
+    get_user,
+    HeaderDataType,
+    override_user,
+)
 from superset.utils.csv import (
     chart_data_to_dataframe,
     get_chart_csv_data,
@@ -791,6 +802,13 @@ class BaseReportState:
         ):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
+        return self._get_plain_dashboard_url(user_friendly=user_friendly, **kwargs)
+
+    def _get_plain_dashboard_url(
+        self, user_friendly: bool = False, **kwargs: Any
+    ) -> str:
+        """Return the dashboard URL without any stored permalink state."""
+        dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
             dashboard.uuid if dashboard.uuid is not None else dashboard.id
         )
@@ -798,9 +816,40 @@ class BaseReportState:
             "Superset.dashboard",
             user_friendly=user_friendly,
             dashboard_id_or_slug=dashboard_id_or_slug,
-            force=force,
+            force=self._get_force_param(),
             **kwargs,
         )
+
+    def _get_failure_notification_url(self) -> str:
+        """
+        Return the link for a failure notification.
+
+        The stateful link is a permalink created as the executor. When the
+        executor cannot access the dashboard, that is the very failure being
+        reported, so link to the dashboard itself rather than letting the
+        notification fail too.
+        """
+        try:
+            return self._get_url(user_friendly=True)
+        except ReportScheduleExecutorAccessDeniedError:
+            return self._get_plain_dashboard_url(user_friendly=True)
+
+    def _raise_for_executor_dashboard_access(self) -> None:
+        """
+        Fail with an actionable error when the executor cannot see the dashboard.
+
+        Without this, a plain dashboard URL renders the not-found page for the
+        executor and surfaces only as a generic screenshot failure.
+        """
+        user = get_user()
+        if user is None or getattr(user, "is_anonymous", False):
+            return
+        try:
+            security_manager.raise_for_access(dashboard=self._report_schedule.dashboard)
+        except SupersetSecurityException as ex:
+            raise ReportScheduleExecutorAccessDeniedError(
+                "dashboard", user.username, ex.error.message
+            ) from ex
 
     def get_dashboard_urls(
         self, user_friendly: bool = False, **kwargs: Any
@@ -816,6 +865,7 @@ class BaseReportState:
             and self._report_schedule.dashboard is None
         ):
             raise ReportScheduleTargetDashboardDeletedError()
+        self._raise_for_executor_dashboard_access()
         force = self._get_force_param()
 
         if (
@@ -919,10 +969,25 @@ class BaseReportState:
             filtered_params = [p for p in url_params if p[0] != "force"]
             if len(filtered_params) != len(url_params):
                 dashboard_state = {**dashboard_state, "urlParams": filtered_params}
-        permalink_key = CreateDashboardPermalinkCommand(
-            dashboard_id=str(self._report_schedule.dashboard.uuid),
-            state=dashboard_state,
-        ).run()
+        try:
+            permalink_key = CreateDashboardPermalinkCommand(
+                dashboard_id=str(self._report_schedule.dashboard.uuid),
+                state=dashboard_state,
+            ).run()
+        except DashboardAccessDeniedError as ex:
+            # The DAO deliberately returns a generic message, since its other
+            # callers answer the denied requester. The report's own log and
+            # its editors' notification may carry the specific reason.
+            cause = ex.__cause__
+            reason = (
+                cause.error.message
+                if isinstance(cause, SupersetSecurityException)
+                else str(ex.message)
+            )
+            user = get_user()
+            raise ReportScheduleExecutorAccessDeniedError(
+                "dashboard", getattr(user, "username", "") or "", reason
+            ) from ex
 
         # The report-generation flow runs inside an outer ``@transaction``
         # block (``ReportScheduleStateMachine.run``). Because of that,
@@ -1874,7 +1939,7 @@ class BaseReportState:
         :raises: CommandException
         """
         header_data = self._get_log_data()
-        url = self._get_url(user_friendly=True)
+        url = self._get_failure_notification_url()
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
@@ -2035,7 +2100,7 @@ class BaseReportState:
             return
 
         header_data = self._get_log_data()
-        url = self._get_url(user_friendly=True)
+        url = self._get_failure_notification_url()
         notification_content = NotificationContent(
             name=sanitize_title(self._report_schedule.name),
             text="Report execution failed. Contact the report owner for details.",
@@ -2054,7 +2119,7 @@ class BaseReportState:
         """
         self._validate_recipients_policy()
         header_data = self._get_log_data()
-        url = self._get_url(user_friendly=True)
+        url = self._get_failure_notification_url()
         max_attempts: int = self._report_schedule.retry_max_attempts
         notification_content = NotificationContent(
             name=sanitize_title(self._report_schedule.name),
@@ -2080,6 +2145,7 @@ class BaseReportState:
         if isinstance(
             original_exception,
             (
+                ReportScheduleExecutorAccessDeniedError,
                 ReportScheduleExecutorNotFoundError,
                 ReportScheduleRecipientsNotAllowedError,
             ),
@@ -2752,7 +2818,25 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                         report_execution_context,
                     )
                     if state._attachments_enabled():
-                        state.get_dashboard_urls()
+                        try:
+                            state.get_dashboard_urls()
+                        except (
+                            DashboardAccessDeniedError,
+                            ReportScheduleExecutorAccessDeniedError,
+                        ) as ex:
+                            # Nothing was created to pre-commit. Failing here,
+                            # before the execution is claimed, would record no
+                            # log, leave the state untouched and notify no
+                            # one; the state machine meets the same denial
+                            # inside its error handling, which records it.
+                            logger.warning(
+                                "report_permalink_precommit_skipped "
+                                "report_schedule_id=%s execution_id=%s "
+                                "reason=%s",
+                                self._model.id,
+                                self._execution_id,
+                                type(ex).__name__,
+                            )
                 execution_claim = None
                 if self._model.last_state != ReportState.WORKING:
                     execution_claim = claim_execution(
