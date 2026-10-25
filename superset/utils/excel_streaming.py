@@ -64,12 +64,13 @@ def _quote_if_formula(text: str) -> str:
     for, and dropping it would put a formula in the workbook.
 
     Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
-    quoted like ``"=cmd"``. XlsxWriter reads the prefix at the first character
-    only, so that value is stored as a plain string cell either way; quoting it
-    keeps this writer in step with the other two export paths, which also strip
-    before reading the prefix, and guards how a downstream viewer or a re-import
-    reads the text. ``csv.escape_value`` records a case of that: Google Sheets
-    ignored a leading space on import and evaluated the formula anyway.
+    quoted like ``"=cmd"``. Whitespace in front of the prefix stops XlsxWriter
+    recognising a formula at all, so that value is stored as a plain string
+    cell either way; quoting it keeps this writer in step with the other two
+    export paths, which also strip before reading the prefix, and guards how a
+    downstream viewer or a re-import reads the text. ``csv.escape_value``
+    records a case of that: Google Sheets ignored a leading space on import and
+    evaluated the formula anyway.
     """
     stripped = text.lstrip()
     return f"'{text}" if stripped and stripped[0] in FORMULA_PREFIXES else text

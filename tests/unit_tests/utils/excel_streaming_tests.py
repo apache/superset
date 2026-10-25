@@ -126,11 +126,11 @@ def test_sanitize_cell_out_of_range_decimal_is_blanked() -> None:
 def test_sanitize_cell_quotes_formula_behind_whitespace(
     value: str, expected: str
 ) -> None:
-    # XlsxWriter reads the formula prefix at the first character only, so these
-    # are written as plain string cells whether or not they are quoted. The
-    # guard looks past leading whitespace so that the three export paths agree
-    # on which cells are quoted, and for how a downstream viewer or a re-import
-    # reads the text.
+    # Whitespace in front of the prefix stops XlsxWriter recognising a formula
+    # at all, so these are written as plain string cells whether or not they
+    # are quoted. The guard looks past leading whitespace so that the three
+    # export paths agree on which cells are quoted, and for how a downstream
+    # viewer or a re-import reads the text.
     assert _sanitize_cell(value) == expected
 
 

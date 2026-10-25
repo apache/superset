@@ -57,14 +57,20 @@ def _quote_formula(value: Any) -> Any:
 
     Leading whitespace is stripped before the prefix is read, so ``" =cmd"`` is
     quoted like ``"=cmd"``. That part is for consistency across the export paths
-    rather than to stop the workbook evaluating it: XlsxWriter builds a formula
-    cell only from a string whose first character is ``=``, so a value with
-    anything in front of the prefix is written as a plain string cell either
-    way. The CSV writer (``_starts_like_spreadsheet_formula``) and the
-    streaming writer both strip before reading the prefix, so without this the
-    same cell exports quoted from two of the three paths and bare from this
-    one. What the quote guards against there is how a downstream viewer or a
-    re-import reads the text, not how XlsxWriter stored it.
+    rather than to stop the workbook evaluating it: whitespace in front of the
+    prefix stops XlsxWriter recognising a formula at all, so the value is
+    written as a plain string cell either way. The CSV writer
+    (``_starts_like_spreadsheet_formula``) and the streaming writer both strip
+    before reading the prefix, so without this the same cell exports quoted
+    from two of the three paths and bare from this one. What the quote guards
+    against there is how a downstream viewer or a re-import reads the text, not
+    how XlsxWriter stored it.
+
+    Which *unprefixed* strings the writer treats as formulas is a wider
+    question than ``FORMULA_PREFIXES``, and this guard does not answer it: a
+    string wrapped in ``{=`` and ``}`` is stored as an array formula, which
+    neither the quote nor the ``strings_to_formulas`` workbook option prevents.
+    That gap is its own change.
 
     The value is quoted as it arrived rather than stripped, so the cell keeps
     whatever spacing came with it.

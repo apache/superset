@@ -86,13 +86,13 @@ def test_quote_formulas_with_leading_whitespace() -> None:
     """
     Formulas are quoted even when a space, tab, or newline comes first.
 
-    XlsxWriter reads the formula prefix at the first character only, so a value
-    with whitespace in front of it is written as a plain string cell whether or
-    not it is quoted. This is an export-consistency check rather than a guard
-    against the workbook evaluating anything: the streaming writer
-    (``excel_streaming``) and the CSV writer both strip before reading the
-    prefix, so without this the same cell goes out quoted from two of the three
-    paths and bare from this one.
+    Whitespace in front of the prefix stops XlsxWriter recognising a formula at
+    all, so a value with whitespace in front of it is written as a plain string
+    cell whether or not it is quoted. This is an export-consistency check
+    rather than a guard against the workbook evaluating anything: the streaming
+    writer (``excel_streaming``) and the CSV writer both strip before reading
+    the prefix, so without this the same cell goes out quoted from two of the
+    three paths and bare from this one.
     """
     df = pd.DataFrame(
         {"formula": [" =1+1", "\t=1+1", "\n=1+1", "  @SUM(A1)", "normal"]}
