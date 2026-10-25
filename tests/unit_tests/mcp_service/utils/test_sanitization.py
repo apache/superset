@@ -30,6 +30,7 @@ from superset.mcp_service.utils.sanitization import (
     _strip_html_tags,
     sanitize_filter_value,
     sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 
 # --- _strip_html_tags tests ---
@@ -903,3 +904,194 @@ def test_data_label_followed_by_control_whitespace_is_preserved(
     """Whitespace after a comma-free data: label may be a tab or line break."""
     value = f"Substitute data:{separator}Jira support tickets"
     assert sanitize(value) == value.replace("\r\n", "\n")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "5 < 10",
+        "A < B",
+        "A <",
+        "A <> B",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+def test_strip_html_tags_preserves_non_tag_less_than(value: str) -> None:
+    """Preserve display text without decoding tag-opening brackets."""
+    assert _strip_html_tags(value) == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "&lt;</b>script>alert(1)",
+        "&lt;&#8203;script>alert(1)",
+        "&lt;</b>img src=x onerror=alert(1)",
+    ],
+)
+def test_strip_html_tags_does_not_reconstruct_tag_openers(value: str) -> None:
+    """Removed tags or invisible characters must not reveal raw markup."""
+    result = _strip_html_tags(value)
+    assert "<script" not in result
+    assert "<img" not in result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "&lt;<b></b>script&gt;alert(1)",
+        "&lt;&#8203;script&gt;alert(1)",
+        "&amp;lt;</script>click= <b>📈",
+        "&#x3c;&#x3c;</b>x",
+    ],
+)
+def test_sanitize_user_input_rejects_reconstructed_tag_text(value: str) -> None:
+    """Tag-shaped text left after stripping is rejected, never stored."""
+    with pytest.raises(ValueError, match="malicious HTML"):
+        sanitize_user_input(value, "Title")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "A <> B",
+        "a << b",
+        "Weekly <img src=x>KPIs",
+        "Q3 <b>revenue</b> &amp; costs",
+        "&lt;3 charts",
+    ],
+)
+def test_sanitize_user_input_is_stable_on_resubmission(value: str) -> None:
+    """Sanitizing a stored value again leaves it unchanged."""
+    once = sanitize_user_input(value, "Title")
+    assert once is not None
+    assert sanitize_user_input(once, "Title") == once
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [
+        partial(sanitize_user_input, field_name="Title"),
+        partial(sanitize_user_input_with_changes, field_name="Title"),
+        sanitize_filter_value,
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Weekly &am<b></b>p;lt;b&amp;gt;KPIs",
+        "Weekly &l<b></b>t;b&gt;KPIs",
+        "Weekly &#x<b></b>3c;b&gt;KPIs",
+        "Weekly &co<b></b>py; KPIs",
+        "Weekly &am&#8203;p;lt;b&amp;gt;KPIs",
+    ],
+)
+def test_reject_entities_reconstructed_by_removal(
+    sanitize: Callable[[str], object], value: str
+) -> None:
+    """Do not store text whose rebuilt entities change on resubmission."""
+    with pytest.raises(ValueError, match="malicious HTML"):
+        sanitize(value)
+
+
+@pytest.mark.parametrize(
+    "value", ["Q3 <ſcript src=//example.invalid/x.js", 'x <Kbd title="y']
+)
+def test_strip_html_tags_keeps_casefolding_tag_openers_escaped(value: str) -> None:
+    """Case conversion must not turn a restored bracket into an HTML tag."""
+    result = _strip_html_tags(value)
+    assert "<" not in result
+    assert "&lt;" in result
+
+
+@pytest.mark.parametrize("value", [">5", "Users\u00a0>30"])
+def test_filter_value_preserves_greater_than_and_nbsp(value: str) -> None:
+    """Text comparisons must not gain entity semicolons rejected as shell syntax."""
+    assert sanitize_filter_value(value) == value
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "\v", "\f", "\x85"])
+@pytest.mark.parametrize(
+    "sanitize",
+    [_strip_html_tags, partial(sanitize_user_input, field_name="title")],
+)
+def test_control_whitespace_keeps_less_than_escaped(
+    sanitize: Callable[[str], str], whitespace: str
+) -> None:
+    """All sanitization entry points keep control-separated brackets inert."""
+    from superset.utils.file import sanitize_title
+
+    result = sanitize(f"Q3 <{whitespace}!channel>")
+    assert "<" not in sanitize_title(result)
+
+
+@pytest.mark.parametrize("value", ["A <\t", "A <\n\u00a0", "A <\u00a0 10"])
+def test_strip_html_tags_preserves_safe_comparison_whitespace(value: str) -> None:
+    """Trailing whitespace and visible comparison spacing cannot join controls."""
+    assert _strip_html_tags(value) == value
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r"])
+def test_filter_rejects_control_separated_slack_markup(whitespace: str) -> None:
+    """Escaped control-separated brackets retain the filter shell-character gate."""
+    with pytest.raises(ValueError, match="shell"):
+        sanitize_filter_value(f"Q3 <{whitespace}!channel>")
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "&#9;", "&#10;", "&#13;"])
+def test_control_whitespace_warning_wrapper_keeps_slack_markup_inert(
+    whitespace: str,
+) -> None:
+    """The warning wrapper must persist the escaped result, not the raw title."""
+    from superset.utils.file import sanitize_title
+
+    result, changed = sanitize_user_input_with_changes(
+        f"Q3 <{whitespace}!channel>", field_name="title"
+    )
+    assert result is not None
+    assert sanitize_title(result) == "Q3 &lt;!channel>"
+    assert changed is True
+
+
+@pytest.mark.parametrize(
+    "sanitize", [sanitize_user_input, sanitize_user_input_with_changes]
+)
+@pytest.mark.parametrize("limit", [100, 200, 250, 255, 500, 1000, 5000])
+@pytest.mark.parametrize(
+    "wrapper",
+    [
+        ("<b>", "</b>"),
+        ("<b> ", " </b>"),
+        ("<b>&#32;", "&#32;</b>"),
+        ("<b>\u00a0", "\u00a0</b>"),
+        ("", "&#8203;"),
+        ("", "&amp;"),
+    ],
+)
+def test_sanitized_length_budget(
+    sanitize: Callable[..., object], limit: int, wrapper: tuple[str, str]
+) -> None:
+    """Tag removal, Unicode removal and entity decoding precede the text cap."""
+    prefix, suffix = wrapper
+    text = "x" * (limit - (1 if suffix == "&amp;" else 0))
+    expected = text + ("&" if suffix == "&amp;" else "")
+    result = sanitize(prefix + text + suffix, "Text", max_length=limit)
+    assert result == (
+        (expected, True) if sanitize is sanitize_user_input_with_changes else expected
+    )
+
+
+def test_raw_sanitization_input_is_bounded_before_html_parsing() -> None:
+    """Keep a separate resource bound even if all markup would be stripped."""
+    from unittest.mock import patch
+
+    with patch("superset.mcp_service.utils.sanitization._strip_html_tags") as strip:
+        with pytest.raises(ValueError, match="10000"):
+            sanitize_user_input("<b></b>" * 1429, "Text", max_length=250)
+    strip.assert_not_called()
