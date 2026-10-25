@@ -192,7 +192,9 @@ def test_require_mysql_tls_fails_closed_without_server_tls(
             pass
 
 
-def _write_self_signed_cert(cert_dir: Path) -> None:
+def _write_self_signed_cert(
+    cert_dir: Path, ca_common_name: str = "superset-testcontainers-ca"
+) -> None:
     """Write a throwaway CA + server cert/key into `cert_dir`.
 
     Unlike the `mysql:8.0` image, `mariadb`'s image does not auto-generate a
@@ -208,9 +210,7 @@ def _write_self_signed_cert(cert_dir: Path) -> None:
     now = datetime.now(timezone.utc)
 
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_name = x509.Name(
-        [x509.NameAttribute(NameOID.COMMON_NAME, "superset-testcontainers-ca")]
-    )
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, ca_common_name)])
     ca_cert = (
         x509.CertificateBuilder()
         .subject_name(ca_name)
@@ -293,7 +293,9 @@ def test_require_mysql_tls_rejects_untrusted_ca(
     mysqlclient links (plain `REQUIRED` only demands encryption on Oracle's).
     """
     container, _ = tls_container
-    _write_self_signed_cert(tmp_path)
+    # A distinct subject keeps OpenSSL from matching this CA to the server's
+    # issuer by name, so the failure is an untrusted issuer, not a bad signature.
+    _write_self_signed_cert(tmp_path, ca_common_name="superset-untrusted-ca")
     wrong_ca = tmp_path / "ca.pem"
     host = _tcp_host(container)
     port = container.get_exposed_port(container.port)
