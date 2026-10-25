@@ -425,6 +425,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
+            # Keep independent predicates when the Time Column is unchanged.
+            # A swapped x-axis drill can carry the overriding column's bucket.
+            # Sunburst levels are independent of the Time Column, so their
+            # non-dashboard predicates remain valid when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -433,10 +437,27 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
-                    # A grained filter selects time buckets, e.g. a Drill by
-                    # from a bar, rather than a time range: keep it. One on the
-                    # x-axis label is compared to the (overridden) axis column.
-                    or filter.get("grain")
+                    or (
+                        filter.get("grain")
+                        and any(
+                            isinstance(column, dict)
+                            and column.get("columnType") == "BASE_AXIS"
+                            and column.get("label") == filter["col"]
+                            and column.get("timeGrain") == filter["grain"]
+                            for column in query_object.columns
+                        )
+                    )
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and (
+                            filter_to_remove == granularity
+                            or (
+                                (form_data or {}).get("viz_type") == "sunburst_v2"
+                                # Dashboard filters can come from a swapped x-axis.
+                                and not filter.get("isExtra")
+                            )
+                        )
+                    )
                 ]
 
     def _apply_filters(

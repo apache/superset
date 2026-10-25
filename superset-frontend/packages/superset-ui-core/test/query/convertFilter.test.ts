@@ -83,3 +83,21 @@ describe('convertFilter', () => {
     });
   });
 });
+
+test('convertFilter retains an adhoc timeGrain as a query filter grain', () => {
+  expect(
+    convertFilter({
+      expressionType: 'SIMPLE',
+      clause: 'WHERE',
+      subject: 'ts',
+      operator: '==',
+      comparator: '2026-08-01T00:00:00',
+      timeGrain: TimeGranularity.MONTH,
+    }),
+  ).toEqual({
+    col: 'ts',
+    op: '==',
+    val: '2026-08-01T00:00:00',
+    grain: TimeGranularity.MONTH,
+  });
+});

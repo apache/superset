@@ -899,6 +899,9 @@ msgstr ""
 msgid "A candlestick chart shows opening, closing, high, and low values for each period. It is commonly used for financial and other time-series range analysis."
 msgstr ""
 
+msgid "A chart on this dashboard or in this version was permanently deleted while the dashboard was being restored, so nothing was changed. Please try again."
+msgstr ""
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 
@@ -12641,6 +12644,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr ""
 
@@ -15334,6 +15340,9 @@ msgstr ""
 msgid "Time grain"
 msgstr ""
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr ""
 
@@ -15440,6 +15449,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr ""

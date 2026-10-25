@@ -94,6 +94,7 @@ export const simpleFilterToAdhoc = (
         operatorEntry => operatorEntry[1].operation === filterClause.op,
       )?.[0],
       subject: filterClause.col,
+      ...(filterClause.grain && { timeGrain: filterClause.grain }),
       comparator: 'val' in filterClause ? filterClause.val : undefined,
       ...(filterClause.grain && { timeGrain: filterClause.grain }),
     } as SimpleAdhocFilter;

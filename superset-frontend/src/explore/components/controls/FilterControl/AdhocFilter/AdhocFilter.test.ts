@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
@@ -432,6 +433,49 @@ describe('AdhocFilter', () => {
   });
 });
 
+test('Explore filter duplicates preserve grains but bucket edits clear them', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({})).toMatchObject({
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({ comparator: '2026-09-01' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.equals(filter.duplicateWith({ timeGrain: TimeGranularity.YEAR })),
+  ).toBe(false);
+  expect(filter.duplicateWith({ subject: 'category' })).not.toHaveProperty(
+    'timeGrain',
+    'P1M',
+  );
+});
+
+test('a grained drill filter displays its grain and drops it on operator or SQL edits', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.getDefaultLabel()).toContain('[P1M]');
+  expect(filter.getTooltipTitle()).toContain('[P1M]');
+  expect(filter.duplicateWith({ operator: '>' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.duplicateWith({ expressionType: ExpressionTypes.Sql }),
+  ).not.toHaveProperty('timeGrain', TimeGranularity.MONTH);
+});
+
 const bucketFilter = () =>
   new AdhocFilter({
     expressionType: ExpressionTypes.Simple,
@@ -439,7 +483,7 @@ const bucketFilter = () =>
     operator: '==',
     operatorId: Operators.Equals,
     comparator: Date.UTC(2004, 0, 1),
-    timeGrain: 'P1M',
+    timeGrain: TimeGranularity.MONTH,
     clause: Clauses.Where,
   });
 
@@ -449,7 +493,7 @@ test('a drilled bucket filter keeps its time grain through Explore edits', () =>
   expect(filter.duplicateWith({ clause: Clauses.Having }).timeGrain).toBe(
     'P1M',
   );
-  expect(filter.duplicateWith({ comparator: 0 }).timeGrain).toBe('P1M');
+  expect(filter.duplicateWith({ comparator: 0 }).timeGrain).toBeUndefined();
   expect(filter.equals(filter.duplicateWith({}))).toBe(true);
   // A grain belongs to the time buckets of its subject.
   expect(
@@ -462,8 +506,12 @@ test('a drilled bucket filter keeps its time grain through Explore edits', () =>
 
 test('a drilled bucket filter shows its bucket as a datetime', () => {
   const filter = bucketFilter();
-  expect(filter.getDefaultLabel()).toBe("order_date = '2004-01-01T00:00:00'");
-  expect(filter.getTooltipTitle()).toBe("order_date = '2004-01-01T00:00:00'");
+  expect(filter.getDefaultLabel()).toBe(
+    "[P1M] order_date = '2004-01-01T00:00:00'",
+  );
+  expect(filter.getTooltipTitle()).toBe(
+    "[P1M] order_date = '2004-01-01T00:00:00'",
+  );
 });
 
 test.each(['TEMPORAL_RANGE', '!=', 'IS NULL'])(
@@ -485,7 +533,7 @@ test('a drilled bucket filter keeps its grain with an explicitly unchanged opera
     bucketFilter().duplicateWith({
       subject: 'order_date',
       operator: '==',
-      comparator: Date.UTC(2004, 1, 1),
+      comparator: Date.UTC(2004, 0, 1),
     }).timeGrain,
   ).toBe('P1M');
 });

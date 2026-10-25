@@ -82,9 +82,7 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
-      if (adhocFilter.timeGrain) {
-        this.timeGrain = adhocFilter.timeGrain;
-      }
+      this.timeGrain = adhocFilter.timeGrain;
       if (
         adhocFilter.operatorId &&
         DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
@@ -139,6 +137,15 @@ export default class AdhocFilter {
   }
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
+    // A changed bucket predicate becomes an ordinary filter. Metadata-only
+    // updates and unchanged duplicates retain the drill's grain.
+    const preservesBucket =
+      (!('subject' in nextFields) || nextFields.subject === this.subject) &&
+      (!('operator' in nextFields) || nextFields.operator === this.operator) &&
+      (!('comparator' in nextFields) ||
+        nextFields.comparator === this.comparator) &&
+      (!('expressionType' in nextFields) ||
+        nextFields.expressionType === this.expressionType);
     // Spread class properties as plain object for constructor input
     const currentFields: AdhocFilterInput = {
       expressionType: this.expressionType,
@@ -146,15 +153,7 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
-      // A grain belongs to its subject's time buckets under its operator.
-      // Changing the column or operator (e.g. a picked time range) drops it.
-      timeGrain:
-        (nextFields.subject === undefined ||
-          nextFields.subject === this.subject) &&
-        (nextFields.operator === undefined ||
-          nextFields.operator === this.operator)
-          ? this.timeGrain
-          : undefined,
+      timeGrain: preservesBucket ? this.timeGrain : undefined,
       clause: this.clause,
       sqlExpression: this.sqlExpression,
       isExtra: this.isExtra,
@@ -176,8 +175,8 @@ export default class AdhocFilter {
       adhocFilter.operator === this.operator &&
       adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
-      adhocFilter.timeGrain === this.timeGrain &&
-      adhocFilter.subject === this.subject
+      adhocFilter.subject === this.subject &&
+      adhocFilter.timeGrain === this.timeGrain
     );
   }
 
@@ -212,30 +211,30 @@ export default class AdhocFilter {
   }
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
-    const label = translateToSql(this.getDisplayFilter(), { columns });
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    const label = this.translateToSql({ columns });
+    const displayLabel = this.timeGrain
+      ? `[${this.timeGrain}] ${label}`
+      : label;
+    return displayLabel.length < 43
+      ? displayLabel
+      : `${displayLabel.substring(0, 40)}...`;
   }
 
   getTooltipTitle(): string {
-    return translateToSql(this.getDisplayFilter());
-  }
-
-  // A grained filter compares epoch-millisecond buckets: show them as UTC
-  // datetimes, the form the chart's temporal values take.
-  private getDisplayFilter(): CoreAdhocFilter {
-    const { comparator, timeGrain } = this;
-    return (timeGrain &&
-    typeof comparator === 'number' &&
-    Number.isFinite(comparator)
-      ? {
-          ...this,
-          comparator: new Date(comparator).toISOString().slice(0, 19),
-        }
-      : this) as unknown as CoreAdhocFilter;
+    const label = this.translateToSql();
+    return this.timeGrain ? `[${this.timeGrain}] ${label}` : label;
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
-    return translateToSql(this as unknown as CoreAdhocFilter, params);
+    const { comparator, timeGrain } = this;
+    const filter =
+      timeGrain && typeof comparator === 'number' && Number.isFinite(comparator)
+        ? {
+            ...this,
+            comparator: new Date(comparator).toISOString().slice(0, 19),
+          }
+        : this;
+    return translateToSql(filter as unknown as CoreAdhocFilter, params);
   }
 }
 
