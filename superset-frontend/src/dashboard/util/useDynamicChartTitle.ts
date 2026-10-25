@@ -22,6 +22,7 @@ import { Filter, NativeFilterType } from '@superset-ui/core';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import type { DynamicTitleConfig, RootState } from 'src/dashboard/types';
 import { useFilterConfiguration } from '../components/nativeFilters/state';
+import { getExtraFormData } from '../components/nativeFilters/utils';
 import {
   getAppliedColumns,
   getRejectedColumns,
@@ -32,6 +33,10 @@ import {
   getChartIdsInFilterScope,
 } from './getChartIdsInFilterScope';
 import { useChartLayoutItems } from './useChartLayoutItems';
+import {
+  getAllActiveFilters,
+  getFilterIdsAppliedOnChart,
+} from './activeAllDashboardFilters';
 import {
   getDynamicTitleFilterValue,
   hasNoTemporalTitleSupport,
@@ -48,6 +53,15 @@ export function useDynamicChartTitle(
   const dataMask = useSelector((state: RootState) =>
     enabled ? state.dataMask : undefined,
   );
+  const nativeFilterState = useSelector((state: RootState) =>
+    enabled ? state.nativeFilters?.filters : undefined,
+  );
+  const chartConfiguration = useSelector((state: RootState) =>
+    enabled ? state.dashboardInfo?.metadata?.chart_configuration : undefined,
+  );
+  const sliceIds = useSelector((state: RootState) =>
+    enabled ? state.dashboardState?.sliceIds : undefined,
+  );
   const layoutItems = useChartLayoutItems();
   const chart = useSelector((state: RootState) =>
     enabled ? state.charts[chartId] : undefined,
@@ -63,6 +77,16 @@ export function useDynamicChartTitle(
     }
     const layoutMap = createChartLayoutItemMap(layoutItems);
     const chartIds = Array.from(layoutMap.keys());
+    const activeFilters = getAllActiveFilters({
+      chartConfiguration: chartConfiguration ?? {},
+      nativeFilters: nativeFilterState ?? {},
+      dataMask: dataMask ?? {},
+      allSliceIds: sliceIds ?? chartIds,
+    });
+    const extraFormData = getExtraFormData(
+      dataMask ?? {},
+      getFilterIdsAppliedOnChart(activeFilters, nativeFilterState, chartId),
+    );
     const rejectedColumns = getRejectedColumns(chart);
     const appliedColumns = getAppliedColumns(chart);
     const noTemporalSupport = hasNoTemporalTitleSupport(
@@ -88,7 +112,9 @@ export function useDynamicChartTitle(
               mask?.extraFormData?.[field as keyof typeof TIME_FILTER_MAP] !==
                 undefined &&
               (rejectedColumns.has(column) ||
-                (noTemporalSupport && !appliedColumns.has(column))),
+                (noTemporalSupport && !appliedColumns.has(column)) ||
+                mask.extraFormData[field as keyof typeof TIME_FILTER_MAP] !==
+                  extraFormData[field as keyof typeof TIME_FILTER_MAP]),
           );
         return {
           id: filter.id,
@@ -106,6 +132,9 @@ export function useDynamicChartTitle(
     enabled,
     chart,
     datasource,
+    nativeFilterState,
+    chartConfiguration,
+    sliceIds,
   ]);
 
   return {

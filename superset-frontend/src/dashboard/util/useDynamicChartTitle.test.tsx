@@ -16,14 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, ExtraFormData } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  DataMaskWithId,
+  DatasourceType,
+  ExtraFormData,
+  Filter,
+  NO_TIME_RANGE,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import mockState from 'spec/fixtures/mockState';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { act, createStore, render, screen } from 'spec/helpers/testing-library';
 import { updateDataMask } from 'src/dataMask/actions';
-import { DynamicTitleConfig } from 'src/dashboard/types';
+import { ChartConfiguration, DynamicTitleConfig } from 'src/dashboard/types';
 import { useDynamicChartTitle } from './useDynamicChartTitle';
 import { hasNoTemporalTitleSupport } from './dynamicTitle';
 
@@ -32,6 +39,7 @@ const filter = {
   ...createSelectNativeFilter('period-filter', 'Period'),
   filterType: 'filter_time',
   targets: [{}],
+  chartsInScope: [chartId],
 };
 const config = {
   template: '{{chart_title}} in {{period}}',
@@ -60,6 +68,11 @@ function makeState({
 } = {}) {
   return {
     ...mockState,
+    dashboardState: { ...mockState.dashboardState, sliceIds: [chartId] },
+    nativeFilters: {
+      ...mockState.nativeFilters,
+      filters: { [filter.id]: filter },
+    },
     datasources: { '7__table': datasource },
     charts: {
       [chartId]: {
@@ -118,6 +131,213 @@ function Probe({
   onRender();
   return <span>{title}</span>;
 }
+
+const comparisonFilter: Filter = {
+  ...filter,
+  id: 'comparison-period-filter',
+  name: 'Comparison period',
+};
+
+function timeMask(id: string, value?: string): DataMaskWithId {
+  return {
+    id,
+    filterState: { value },
+    extraFormData: value === undefined ? {} : { time_range: value },
+  };
+}
+
+function makeScopedFiltersState(
+  filters: Filter[],
+  dataMask: DataMaskStateWithId,
+  chartConfiguration: ChartConfiguration = {},
+) {
+  const state = makeState({
+    datasource: {
+      ...physicalDataset,
+      column_types: [GenericDataType.String, GenericDataType.Temporal],
+      columns: [{ is_dttm: true }],
+    },
+  });
+  return {
+    ...state,
+    nativeFilters: {
+      ...state.nativeFilters,
+      filters: Object.fromEntries(filters.map(item => [item.id, item])),
+    },
+    dashboardInfo: {
+      ...state.dashboardInfo,
+      metadata: {
+        native_filter_configuration: filters,
+        chart_configuration: chartConfiguration,
+      },
+    },
+    dataMask,
+  };
+}
+
+test('falls back for an overridden period but displays the period used by the query', () => {
+  render(
+    <>
+      <Probe />
+      <Probe
+        titleConfig={{
+          ...config,
+          tokenMappings: { period: comparisonFilter.id },
+        }}
+      />
+    </>,
+    {
+      useRedux: true,
+      initialState: makeScopedFiltersState([comparisonFilter, filter], {
+        [filter.id]: timeMask(filter.id, 'Last week'),
+        [comparisonFilter.id]: timeMask(comparisonFilter.id, 'Last year'),
+      }),
+    },
+  );
+  expect(screen.getByText('Revenue')).toBeVisible();
+  expect(screen.getByText('Revenue in Last year')).toBeVisible();
+  expect(screen.queryByText('Revenue in Last week')).not.toBeInTheDocument();
+});
+
+test('uses applied data-mask order rather than filter configuration order', () => {
+  render(<Probe />, {
+    useRedux: true,
+    initialState: makeScopedFiltersState([filter, comparisonFilter], {
+      [comparisonFilter.id]: timeMask(comparisonFilter.id, 'Last year'),
+      [filter.id]: timeMask(filter.id, 'Last week'),
+    }),
+  });
+  expect(screen.getByText('Revenue in Last week')).toBeVisible();
+});
+
+test.each([
+  { inScope: true, expected: 'Revenue' },
+  { inScope: false, expected: 'Revenue in Last week' },
+])(
+  'honors cross-filter time precedence only inside its scope: $inScope',
+  ({ inScope, expected }) => {
+    render(<Probe />, {
+      useRedux: true,
+      initialState: makeScopedFiltersState(
+        [filter],
+        {
+          [filter.id]: timeMask(filter.id, 'Last week'),
+          '42': timeMask('42', 'Last year'),
+        },
+        {
+          42: {
+            id: 42,
+            crossFilters: {
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: inScope ? [chartId] : [],
+            },
+          },
+        },
+      ),
+    });
+    expect(screen.getByText(expected)).toBeVisible();
+  },
+);
+
+test('ignores an overriding native time mask outside the chart scope', () => {
+  const outOfScopeFilter = {
+    ...comparisonFilter,
+    scope: { rootPath: ['ROOT_ID'], excluded: [chartId] },
+    chartsInScope: [],
+  };
+  render(<Probe />, {
+    useRedux: true,
+    initialState: makeScopedFiltersState([filter, outOfScopeFilter], {
+      [filter.id]: timeMask(filter.id, 'Last week'),
+      [comparisonFilter.id]: timeMask(comparisonFilter.id, 'Last year'),
+    }),
+  });
+  expect(screen.getByText('Revenue in Last week')).toBeVisible();
+});
+
+test('preserves equal time values even when a later filter writes the same range', () => {
+  render(<Probe />, {
+    useRedux: true,
+    initialState: makeScopedFiltersState([filter, comparisonFilter], {
+      [filter.id]: timeMask(filter.id, 'Last week'),
+      [comparisonFilter.id]: timeMask(comparisonFilter.id, 'Last week'),
+    }),
+  });
+  expect(screen.getByText('Revenue in Last week')).toBeVisible();
+});
+
+test.each([
+  { value: undefined, expected: 'Revenue in Last week' },
+  { value: NO_TIME_RANGE, expected: 'Revenue' },
+])(
+  'distinguishes an empty time mask from an explicit no-filter override: $value',
+  ({ value, expected }) => {
+    render(<Probe />, {
+      useRedux: true,
+      initialState: makeScopedFiltersState([filter, comparisonFilter], {
+        [filter.id]: timeMask(filter.id, 'Last week'),
+        [comparisonFilter.id]: timeMask(comparisonFilter.id, value),
+      }),
+    });
+    expect(screen.getByText(expected)).toBeVisible();
+  },
+);
+
+test.each([
+  {
+    filterType: 'filter_timecolumn',
+    extraKey: 'granularity_sqla',
+    firstValue: 'ordered_at',
+    secondValue: 'shipped_at',
+  },
+  {
+    filterType: 'filter_timegrain',
+    extraKey: 'time_grain_sqla',
+    firstValue: 'P1D',
+    secondValue: 'P1M',
+  },
+])(
+  'falls back when another filter overrides the applied $filterType value',
+  ({ filterType, extraKey, firstValue, secondValue }) => {
+    render(
+      <>
+        <Probe />
+        <Probe
+          titleConfig={{
+            ...config,
+            tokenMappings: { period: comparisonFilter.id },
+          }}
+        />
+      </>,
+      {
+        useRedux: true,
+        initialState: makeScopedFiltersState(
+          [
+            { ...filter, filterType },
+            { ...comparisonFilter, filterType },
+          ],
+          {
+            [filter.id]: {
+              id: filter.id,
+              filterState: { value: [firstValue] },
+              extraFormData: { [extraKey]: firstValue },
+            },
+            [comparisonFilter.id]: {
+              id: comparisonFilter.id,
+              filterState: { value: [secondValue] },
+              extraFormData: { [extraKey]: secondValue },
+            },
+          },
+        ),
+      },
+    );
+    expect(screen.getByText('Revenue')).toBeVisible();
+    expect(screen.getByText(`Revenue in ${secondValue}`)).toBeVisible();
+    expect(
+      screen.queryByText(`Revenue in ${firstValue}`),
+    ).not.toBeInTheDocument();
+  },
+);
 
 test('ignores time on a physical dataset proven to have no temporal columns', () => {
   render(<Probe />, { useRedux: true, initialState: makeState() });

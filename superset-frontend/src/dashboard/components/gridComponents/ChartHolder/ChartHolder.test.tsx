@@ -41,7 +41,11 @@ import {
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import { updateDataMask } from 'src/dataMask/actions';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
-import type { RootState } from 'src/dashboard/types';
+import type {
+  LayoutItem,
+  LayoutItemMeta,
+  RootState,
+} from 'src/dashboard/types';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -251,6 +255,224 @@ describe('ChartHolder', () => {
       changed,
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  const renderEditableTitle = (meta: Partial<LayoutItemMeta> = {}) => {
+    const component = {
+      ...defaultProps.component,
+      meta: { ...defaultProps.component.meta, sliceName: 'Revenue', ...meta },
+    };
+    const store = createMockStore({
+      dashboardState: { ...mockState.dashboardState, hasUnsavedChanges: false },
+      dashboardLayout: {
+        past: [],
+        future: [],
+        present: { 'CHART-ID': component },
+      },
+    });
+    const dispatch = store.dispatch as ThunkDispatch<
+      RootState,
+      undefined,
+      AnyAction
+    >;
+    const update = jest.fn(
+      (components: Parameters<typeof updateComponents>[0]) =>
+        dispatch(updateComponents(components)),
+    );
+    const { rerender } = renderWrapper(store, {
+      component,
+      editMode: true,
+      isInView: true,
+      updateComponents: update,
+    });
+    const rerenderChart = (nextComponent: LayoutItem, editMode = false) =>
+      rerender(
+        <Provider store={store}>
+          <ChartHolder
+            {...defaultProps}
+            component={nextComponent}
+            editMode={editMode}
+            isInView
+            updateComponents={update}
+          />
+        </Provider>,
+      );
+    return { component, store, update, rerenderChart };
+  };
+
+  test.each<{
+    name: string;
+    override: Partial<LayoutItemMeta>;
+    action: 'enable' | 'template' | 'unchanged' | 'disable' | 'restore';
+  }>([
+    { name: 'absent override when enabling', override: {}, action: 'enable' },
+    {
+      name: 'undefined override when editing the template',
+      override: { sliceNameOverride: undefined },
+      action: 'template',
+    },
+    {
+      name: 'empty override when editing the template',
+      override: { sliceNameOverride: '' },
+      action: 'template',
+    },
+    {
+      name: 'explicit override when editing the template',
+      override: { sliceNameOverride: 'Local revenue' },
+      action: 'template',
+    },
+    {
+      name: 'explicit override equal to the original name',
+      override: { sliceNameOverride: 'Revenue' },
+      action: 'template',
+    },
+    {
+      name: 'absent override with unchanged Apply',
+      override: {},
+      action: 'unchanged',
+    },
+    {
+      name: 'empty override with unchanged Apply',
+      override: { sliceNameOverride: '' },
+      action: 'unchanged',
+    },
+    { name: 'absent override when disabling', override: {}, action: 'disable' },
+    {
+      name: 'explicit override when disabling',
+      override: { sliceNameOverride: 'Local revenue' },
+      action: 'disable',
+    },
+    {
+      name: 'absent override after editing and restoring the base',
+      override: {},
+      action: 'restore',
+    },
+  ])(
+    'preserves $name through save, reload, and chart rename',
+    async ({ override, action }) => {
+      const config = {
+        template: '{{chart_title}} overview',
+        tokenMappings: {},
+      };
+      const { component, store, rerenderChart } = renderEditableTitle({
+        ...override,
+        ...(action === 'enable' ? {} : { dynamicTitle: config }),
+      });
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Configure chart title' }),
+      );
+      if (action === 'enable' || action === 'disable') {
+        await userEvent.click(
+          screen.getByRole('checkbox', { name: 'Use a dynamic title' }),
+        );
+      }
+      if (action === 'enable' || action === 'template') {
+        fireEvent.change(screen.getByLabelText('Title template'), {
+          target: { value: '{{chart_title}} summary' },
+        });
+      }
+      if (action === 'restore') {
+        fireEvent.change(screen.getByLabelText('Base title'), {
+          target: { value: 'Temporary name' },
+        });
+        fireEvent.change(screen.getByLabelText('Base title'), {
+          target: { value: 'Revenue' },
+        });
+      }
+      await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+      const saved = store.getState().dashboardLayout.present['CHART-ID'];
+      expect(Object.hasOwn(saved.meta, 'sliceNameOverride')).toBe(
+        Object.hasOwn(component.meta, 'sliceNameOverride'),
+      );
+      expect(saved.meta.sliceNameOverride).toBe(override.sliceNameOverride);
+      expect(saved.meta.sliceName).toBe('Revenue');
+      expect(saved.meta.dynamicTitle).toEqual(
+        action === 'disable'
+          ? undefined
+          : {
+              ...config,
+              template:
+                action === 'enable' || action === 'template'
+                  ? '{{chart_title}} summary'
+                  : config.template,
+            },
+      );
+
+      // A dashboard reload syncs sliceName from the renamed saved chart.
+      const reloaded: LayoutItem = JSON.parse(JSON.stringify(saved));
+      reloaded.meta.sliceName = 'Net revenue';
+      rerenderChart(reloaded);
+      const expectedBase = override.sliceNameOverride || 'Net revenue';
+      const expectedTitle =
+        action === 'disable'
+          ? expectedBase
+          : `${expectedBase} ${action === 'enable' || action === 'template' ? 'summary' : 'overview'}`;
+      expect(screen.getByText(expectedTitle, { exact: true })).toBeVisible();
+      rerenderChart(reloaded, true);
+      expect(screen.getByText(expectedBase, { exact: true })).toBeVisible();
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Configure chart title' }),
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+      expect(
+        store.getState().dashboardLayout.present['CHART-ID'].meta
+          .sliceNameOverride,
+      ).toBe(override.sliceNameOverride);
+    },
+  );
+
+  test('clearing an existing override keeps inheritance after reopening and applying', async () => {
+    const { store, rerenderChart } = renderEditableTitle({
+      sliceNameOverride: 'Local revenue',
+      dynamicTitle: { template: '{{chart_title}} overview', tokenMappings: {} },
+    });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Configure chart title' }),
+    );
+    fireEvent.change(screen.getByLabelText('Base title'), {
+      target: { value: '' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    const saved = store.getState().dashboardLayout.present['CHART-ID'];
+    expect(saved.meta.sliceNameOverride).toBe('');
+    const reloaded: LayoutItem = JSON.parse(JSON.stringify(saved));
+    reloaded.meta.sliceName = 'Net revenue';
+    rerenderChart(reloaded, true);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Configure chart title' }),
+    );
+    expect(screen.getByLabelText('Base title')).toHaveValue('Net revenue');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    const reapplied = store.getState().dashboardLayout.present['CHART-ID'];
+    expect(reapplied.meta.sliceNameOverride).toBe('');
+    const renamedAgain: LayoutItem = JSON.parse(JSON.stringify(reapplied));
+    renamedAgain.meta.sliceName = 'Gross revenue';
+    rerenderChart(renamedAgain);
+    expect(
+      screen.getByText('Gross revenue overview', { exact: true }),
+    ).toBeVisible();
+  });
+
+  test('canceling a title draft preserves inheritance, clean state, and history', async () => {
+    const { component, store, update } = renderEditableTitle({
+      dynamicTitle: { template: '{{chart_title}} overview', tokenMappings: {} },
+    });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Configure chart title' }),
+    );
+    fireEvent.change(screen.getByLabelText('Base title'), {
+      target: { value: 'Local revenue' },
+    });
+    fireEvent.change(screen.getByLabelText('Title template'), {
+      target: { value: '{{chart_title}} changed' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(update).not.toHaveBeenCalled();
+    expect(store.getState().dashboardLayout.present['CHART-ID']).toEqual(
+      component,
+    );
+    expect(store.getState().dashboardState.hasUnsavedChanges).toBe(false);
+    expect(store.getState().dashboardLayout.past).toHaveLength(0);
   });
 
   test('falls back when the backend rejects a filter in the chart scope', () => {

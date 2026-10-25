@@ -313,10 +313,14 @@ const ChartHolder = ({
     nextTitle: string,
     dynamicTitle?: DynamicTitleConfig,
   ) => {
+    const meta = { ...component.meta, dynamicTitle };
+    if (nextTitle !== baseTitle) {
+      meta.sliceNameOverride = nextTitle;
+    }
     updateComponents({
       [component.id]: {
         ...component,
-        meta: { ...component.meta, sliceNameOverride: nextTitle, dynamicTitle },
+        meta,
       },
     });
     handleHideTitleEditor();
