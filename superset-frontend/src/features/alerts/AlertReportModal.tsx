@@ -1075,7 +1075,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setCurrentAlert({ ...defaultAlert });
   };
 
-  const onSave = () => {
+  const getRecipients = () => {
     // Notification Settings
     const recipients: Recipient[] = [];
 
@@ -1096,6 +1096,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
+    return recipients;
+  };
+
+  const effectiveReportFormat =
+    !isReport &&
+    !attachmentControlsVisible &&
+    (!isEditMode ||
+      notificationSettings.some(
+        setting => setting.method === NotificationMethodOption.Teams,
+      ))
+      ? 'NONE'
+      : reportFormat || DEFAULT_NOTIFICATION_FORMAT;
+
+  const onSave = () => {
+    const recipients = getRecipients();
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
 
@@ -1148,20 +1163,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       database: currentAlert?.database?.value,
       editors: mapSubjectPickerValuesToIds(currentAlert?.editors || []),
       recipients,
-      report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      report_format: effectiveReportFormat,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
-    if (
-      !isReport &&
-      !attachmentControlsVisible &&
-      (!isEditMode ||
-        notificationSettings.some(
-          setting => setting.method === NotificationMethodOption.Teams,
-        ))
-    ) {
-      data.report_format = 'NONE';
-    }
     if (!attachmentControlsVisible && isEditMode) {
       // Hidden settings stay stored; only the format controls attachment delivery.
       delete data.chart;
@@ -1893,10 +1898,49 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const hasTeamsRecipients = notificationSettings.some(
       setting => setting.method === NotificationMethodOption.Teams,
     );
+    // Match the backend's delivery-change check so unavailable integrations do
+    // not prevent pausing or editing metadata on an existing alert.
+    const normalizeRecipients = (
+      recipients: {
+        type: string;
+        recipient_config_json: string | Recipient['recipient_config_json'];
+      }[],
+    ) =>
+      JSON.stringify(
+        recipients
+          .map(({ type, recipient_config_json: config }) => {
+            const parsed =
+              typeof config === 'string' ? JSON.parse(config) : config;
+            return JSON.stringify([
+              type,
+              Object.entries(parsed)
+                .filter(
+                  ([key, value]) =>
+                    value !== undefined &&
+                    !(
+                      type !== NotificationMethodOption.Teams &&
+                      ['ccTarget', 'bccTarget'].includes(key) &&
+                      value === ''
+                    ),
+                )
+                .sort(([left], [right]) => left.localeCompare(right)),
+            ]);
+          })
+          .sort(),
+      );
+    const deliveryUnchanged =
+      hasTeamsRecipients &&
+      isEditMode &&
+      resource &&
+      !(currentAlert?.active && !resource.active) &&
+      resource.type === (isReport ? 'Report' : 'Alert') &&
+      resource.report_format === effectiveReportFormat &&
+      normalizeRecipients(resource.recipients || []) ===
+        normalizeRecipients(getRecipients());
     const invalidTeamsRecipients =
       hasTeamsRecipients &&
-      (!teamsSupported ||
-        !teamsIntegrationAvailable ||
+      ((!deliveryUnchanged &&
+        (!teamsSupported || !teamsIntegrationAvailable)) ||
         notificationSettings.some(
           setting =>
             setting.method === NotificationMethodOption.Teams &&
@@ -2355,6 +2399,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
+    currentAlertSafe.active,
+    resource,
+    isReport,
     currentAlertSafe.editors,
     currentAlertSafe.run_as,
     currentAlertSafe.run_as_type,

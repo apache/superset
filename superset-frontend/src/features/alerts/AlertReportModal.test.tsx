@@ -4756,11 +4756,18 @@ test('Teams preserves separate destination entries and serializes only their key
   }
 });
 
-test('Teams saved recipients remain visible when deployment configuration is removed', async () => {
-  fetchMock.get('glob:*/api/v1/report/93', {
+test.each([
+  ['an active alert', true, false],
+  ['an inactive alert', false, false],
+  ['pausing an alert', true, true],
+])('Teams unavailable integration allows %s', async (_, active, pause) => {
+  const id = pause ? 193 : active ? 194 : 195;
+  mockNotificationMethods = ['Email', 'Slack'];
+  fetchMock.get(`glob:*/api/v1/report/${id}`, {
     result: {
       ...generateMockPayload(true),
-      id: 93,
+      id,
+      active,
       report_format: 'NONE',
       recipients: [
         {
@@ -4768,6 +4775,7 @@ test('Teams saved recipients remain visible when deployment configuration is rem
           type: 'Teams',
           recipient_config_json: '{"target":"removed-key"}',
         },
+        { id: 2, type: 'Slack', recipient_config_json: { target: 'C123' } },
       ],
     },
   });
@@ -4776,16 +4784,20 @@ test('Teams saved recipients remain visible when deployment configuration is rem
     { result: [] },
     { name: 'teams-unavailable' },
   );
+  fetchMock.put(
+    `glob:*/api/v1/report/${id}`,
+    { id, result: {} },
+    {
+      name: 'teams-unavailable-save',
+    },
+  );
   try {
     render(
       <AlertReportModal
         {...generateMockedProps(false, true)}
-        alert={{ ...validAlert, id: 93 }}
+        alert={{ ...validAlert, id }}
       />,
-      {
-        useRedux: true,
-        initialState: { user: adminUser },
-      },
+      { useRedux: true, initialState: { user: adminUser } },
     );
     await userEvent.click(screen.getByTestId('notification-method-panel'));
     expect(
@@ -4794,9 +4806,48 @@ test('Teams saved recipients remain visible when deployment configuration is rem
     expect(
       await screen.findByText(/Teams delivery is unavailable/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+    await userEvent.click(screen.getByTestId('general-information-panel'));
+    const description = screen.getByPlaceholderText(
+      /include description to be sent with alert/i,
+    );
+    await userEvent.clear(description);
+    await userEvent.type(description, 'Updated description');
+    if (pause) await userEvent.click(screen.getByRole('switch'));
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    const slackTarget = screen.getByTestId('recipients');
+    fireEvent.change(slackTarget, { target: { value: 'C456' } });
+    await waitFor(() => expect(save).toBeDisabled());
+    fireEvent.change(slackTarget, { target: { value: 'C123' } });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(save);
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls('teams-unavailable-save'),
+      ).toHaveLength(1),
+    );
+    const [call] = fetchMock.callHistory.calls('teams-unavailable-save');
+    expect(JSON.parse(call.options.body as string)).toMatchObject({
+      active: pause ? false : active,
+      description: 'Updated description',
+      report_format: 'NONE',
+      recipients: [
+        { type: 'Teams', recipient_config_json: { target: 'removed-key' } },
+        {
+          type: 'Slack',
+          recipient_config_json: {
+            target: 'C123',
+            ccTarget: '',
+            bccTarget: '',
+          },
+        },
+      ],
+    });
   } finally {
+    fetchMock.removeRoute(`glob:*/api/v1/report/${id}`);
     fetchMock.removeRoute('teams-unavailable');
+    fetchMock.removeRoute('teams-unavailable-save');
   }
 });
 
@@ -4910,7 +4961,14 @@ test('Teams saved recipients stay visible and replaceable when the optional SDK 
     expect(
       screen.getByRole('combobox', { name: 'Teams destination' }),
     ).toBeDisabled();
-    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+    const save = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('general-information-panel'));
+    await userEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(save).toBeDisabled());
+    await userEvent.click(screen.getByRole('switch'));
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
     await userEvent.click(
       screen.getByRole('combobox', { name: /^Delivery method/ }),
     );
