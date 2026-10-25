@@ -22,6 +22,11 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import {
+  CategoricalD3,
+  CategoricalModernSunset,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/core';
 import ColorSchemeSelect from './ColorSchemeSelect';
 
 const openAndGetPopup = async () => {
@@ -53,4 +58,27 @@ test('portals the palette to document.body outside a modal', async () => {
   const popup = await openAndGetPopup();
   expect(screen.getByTestId('wrapper').contains(popup)).toBe(false);
   expect(document.body.contains(popup)).toBe(true);
+});
+
+test('attaches the grouped-option styles to the popup root', async () => {
+  [...CategoricalD3, ...CategoricalModernSunset].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  render(<ColorSchemeSelect onChange={jest.fn()} />);
+  const popup = await openAndGetPopup();
+  await waitFor(() =>
+    expect(screen.getByText('Featured color palettes')).toBeInTheDocument(),
+  );
+  // The popup portals out of the css-prop scope, so the grouped styles ride
+  // on an emotion class attached to the popup root.
+  const emotionClass = Array.from(popup.classList).find(cls =>
+    /^(superset|css)-(?!dev-only|var)/.test(cls),
+  );
+  expect(emotionClass).toBeDefined();
+  const styleText = Array.from(document.styleSheets)
+    .flatMap(sheet => Array.from(sheet.cssRules).map(rule => rule.cssText))
+    .join('\n');
+  expect(styleText).toContain(
+    `.${emotionClass} .ant-select-item-option-grouped`,
+  );
 });
