@@ -465,6 +465,51 @@ def test_database_rename_syncs_saved_query_chart_perms(app: Any) -> None:
         db.session.rollback()
 
 
+def test_saved_query_resync_uses_default_catalog_and_scopes_to_one_query(
+    app: Any, mocker: Any
+) -> None:
+    """A saved query with no ``catalog`` resolves both ``catalog_perm`` and
+    ``schema_perm`` against the database's default catalog, and resyncing one
+    saved query leaves another saved query's chart untouched."""
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    mocker.patch.object(Database, "get_default_catalog", return_value="main")
+
+    database = Database(database_name="dc_db", sqlalchemy_uri="sqlite://")
+    moved = SavedQuery(label="Moved", schema="s1", database=database)
+    other = SavedQuery(label="Other", schema="s1", database=database)
+    db.session.add_all([database, moved, other])
+    db.session.flush()
+
+    charts = {}
+    for key, saved_query in (("moved", moved), ("other", other)):
+        charts[key] = Slice(
+            slice_name=f"On {key}",
+            datasource_type=DatasourceType.SAVEDQUERY,
+            datasource_id=saved_query.id,
+            datasource_name=saved_query.label,
+            viz_type="table",
+            params="{}",
+        )
+    db.session.add_all(charts.values())
+    db.session.flush()
+
+    try:
+        assert charts["moved"].catalog_perm == "[dc_db].[main]"
+        moved.schema = "s2"
+        db.session.flush()
+        db.session.expire_all()
+
+        assert charts["moved"].catalog_perm == "[dc_db].[main]"
+        assert charts["moved"].schema_perm == "[dc_db].[main].[s2]"
+        assert charts["other"].schema_perm == "[dc_db].[main].[s1]"
+    finally:
+        db.session.rollback()
+
+
 def test_saved_query_after_delete_detaches_dependent_slices(app: Any) -> None:
     """Deleting a saved query clears its charts' datasource reference and
     denormalized perm columns.

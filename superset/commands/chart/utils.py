@@ -74,6 +74,22 @@ def raise_for_saved_query_ownership(datasource: Any) -> None:
         raise ChartForbiddenError()
 
 
+def raise_for_chart_datasource_access(datasource: Any) -> None:
+    """
+    Authorize binding a chart to ``datasource``.
+
+    A saved query is authored through an API that does not validate its
+    database, so editorship of one (being its creator) must not stand in for a
+    database, catalog, or schema grant: require the real grant.
+    """
+    security_manager.raise_for_access(
+        datasource=datasource,
+        allow_editorship=(
+            getattr(datasource, "type", None) != DatasourceType.SAVEDQUERY
+        ),
+    )
+
+
 def validate_query_context_datasource(
     raw_query_context: Any,
     expected_datasource_id: Any,

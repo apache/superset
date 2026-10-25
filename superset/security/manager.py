@@ -4957,6 +4957,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         saved_query: "SavedQuery",
         database: "Database",
+        default_catalog: Optional[str] = None,
     ) -> dict[str, Optional[str]]:
         """
         Compute the denormalized ``perm``/``catalog_perm``/``schema_perm`` a
@@ -4967,15 +4968,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         have just reloaded it from a changed ``db_id``, and on a database
         rename (``database_after_update``) the new ``database_name`` only
         exists on the in-memory target.
+
+        ``default_catalog`` lets callers that resolve many saved queries
+        against one database look the default catalog up once (it can be a
+        warehouse round trip); when omitted it is resolved lazily, and only
+        for a saved query whose own ``catalog`` is unset.
         """
         database_name = database.database_name
+        catalog = saved_query.catalog or default_catalog
+        if catalog is None and not saved_query.catalog:
+            catalog = database.get_default_catalog()
         return {
             "perm": f"[{database_name}].[{saved_query.name}](id:{saved_query.id})",
-            "catalog_perm": self.get_catalog_perm(database_name, saved_query.catalog),
+            "catalog_perm": self.get_catalog_perm(database_name, catalog),
             "schema_perm": self.get_schema_perm(
-                database_name,
-                saved_query.catalog or database.get_default_catalog(),
-                saved_query.schema,
+                database_name, catalog, saved_query.schema
             ),
         }
 
@@ -4984,6 +4991,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         connection: Connection,
         saved_query: "SavedQuery",
         database: "Database",
+        default_catalog: Optional[str] = None,
     ) -> None:
         """Re-copy ``saved_query``'s perm strings onto its dependent charts."""
         # pylint: disable=import-outside-toplevel
@@ -4996,8 +5004,55 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
                 chart_table.c.datasource_id == saved_query.id,
             )
-            .values(**self._saved_query_chart_perm_values(saved_query, database))
+            .values(
+                **self._saved_query_chart_perm_values(
+                    saved_query, database, default_catalog
+                )
+            )
         )
+
+    def sync_database_saved_query_chart_perms(
+        self,
+        connection: Connection,
+        database: "Database",
+    ) -> None:
+        """
+        Re-copy perm strings onto the charts of every saved query on
+        ``database`` that has dependent charts.
+
+        Only saved queries referenced by a chart are loaded, and the default
+        catalog is resolved at most once, so a database with many historical
+        saved queries does not trigger a per-query warehouse round trip.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+        from superset.models.sql_lab import SavedQuery
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        chart_ids = (
+            select(chart_table.c.datasource_id)
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id.is_not(None),
+            )
+            .scalar_subquery()
+        )
+        saved_queries = (
+            self.session.query(SavedQuery)
+            .filter(SavedQuery.db_id == database.id, SavedQuery.id.in_(chart_ids))
+            .all()
+        )
+        if not saved_queries:
+            return
+        default_catalog = (
+            database.get_default_catalog()
+            if any(not saved_query.catalog for saved_query in saved_queries)
+            else None
+        )
+        for saved_query in saved_queries:
+            self._sync_saved_query_chart_perms(
+                connection, saved_query, database, default_catalog
+            )
 
     def _update_saved_query_chart_perms(
         self,
@@ -5013,14 +5068,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         match a schema or catalog grant on an unrelated connection that later
         takes the old name.
         """
-        # pylint: disable=import-outside-toplevel
-        from superset.models.sql_lab import SavedQuery
-
-        saved_queries = (
-            self.session.query(SavedQuery).filter(SavedQuery.db_id == target.id).all()
-        )
-        for saved_query in saved_queries:
-            self._sync_saved_query_chart_perms(connection, saved_query, target)
+        self.sync_database_saved_query_chart_perms(connection, target)
 
     def saved_query_after_delete(
         self,

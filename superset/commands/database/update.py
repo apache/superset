@@ -23,7 +23,7 @@ from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
@@ -271,6 +271,13 @@ class UpdateDatabaseCommand(BaseCommand):
             predicate = {fk: database_id}
             update = {"catalog": new_catalog}
             db.session.query(model).filter_by(**predicate).update(update)
+
+        # The bulk update above bypasses ``saved_query_before_update``, so
+        # re-copy the saved queries' perm strings onto their dependent charts.
+        if database := db.session.query(Database).get(database_id):
+            security_manager.sync_database_saved_query_chart_perms(
+                db.session.connection(), database
+            )
 
     def validate(self) -> None:
         if database_name := self._properties.get("database_name"):
