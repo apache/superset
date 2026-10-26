@@ -525,3 +525,5 @@ production default, includes prompts and SQL in them.
   documented datasets produces far better answers than one without. If the
   assistant picks the wrong table, the usual fix is better descriptions or an
   `AI_EXTRA_PROMPT_SECTIONS` entry, not a different model.
+
+External MCP servers use the MCP Python SDK 2.x (`pip install "apache-superset[ai-mcp]"`). This extra is compatible with the server-side `fastmcp` extra. Both SSE and Streamable HTTP send only the headers configured for that external server, and use its configured timeout.
