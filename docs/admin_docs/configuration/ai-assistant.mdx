@@ -525,3 +525,5 @@ production default, includes prompts and SQL in them.
   `AI_EXTRA_PROMPT_SECTIONS` entry, not a different model.
 
 Chart generation returns the MCP result, including previews, partial preview errors, warnings, chart semantics, capabilities, and form data. A successful chart operation does not imply that every requested preview rendered successfully; the agent can inspect `preview_errors` before describing the result. Normal tool output limits still apply.
+
+External MCP servers use the MCP Python SDK 2.x (`pip install "apache-superset[ai-mcp]"`). This extra is compatible with the server-side `fastmcp` extra. Both SSE and Streamable HTTP send only the headers configured for that external server, and use its configured timeout.
