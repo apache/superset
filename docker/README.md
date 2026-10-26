@@ -66,11 +66,9 @@ Steps:
     1. `docker compose down`
     2. `docker compose up`
 
-The `docker compose down` command preserves the named volumes used for your
-Superset metadata database and other local data. To intentionally remove this
-data and start from a clean state, run `docker compose down -v` instead. This
-deletes the Compose project's named volumes, including your local Superset
-metadata database and stored data; only use it when you intend to reset them.
+The `docker compose down` command preserves the existing named volumes used by
+the metadata database and other local data. To start from a clean state, run
+`docker compose down -v`.
 
 ## Initializing Database
 
