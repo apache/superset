@@ -1214,18 +1214,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             check_updated_staleness=screenshot_obj.supports_updated_staleness,
         ):
             logger.info("Triggering screenshot ASYNC")
-            # Do not pre-write the cache entry here (mirroring the dashboard
-            # on-demand endpoint). The worker's compute_and_cache re-reads this
-            # same cache key and re-runs should_trigger_task(force=..., ...); a
-            # force-less request (`force` is None when omitted) that pre-wrote a
-            # fresh COMPUTING entry would make that re-check see a non-stale
-            # COMPUTING entry, skip the render, and the screenshot would never be
-            # computed -- churning COMPUTING every THUMBNAIL_COMPUTING_CACHE_TTL
-            # forever. Leaving the entry untouched also preserves any retained
-            # last-good image: the read path keeps serving it while the refresh
-            # runs, and the worker flips the entry to COMPUTING without
-            # discarding the image (and back to ERROR, still retaining it, if the
-            # render fails again).
+            if force:
+                # A forced capture stays unavailable until its replacement renders,
+                # so polling image_url cannot mistake the previous image for success.
+                cache_payload.pending()
+                cache_payload.set_scope(f"chart:{chart.id}")
+                screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+            # Leave force-less retries untouched: the worker must still see the
+            # expired state and retain its last-good image if rendering fails.
+            # Pre-writing fresh COMPUTING would make the worker skip the render.
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
@@ -1294,7 +1291,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             if cache_payload.get_scope() != f"chart:{chart.id}":
                 return self.response_404()
             # Serve whenever a valid image is present instead of gating on
-            # status == UPDATED. A failed forced refresh leaves the entry in an
+            # status == UPDATED. A failed retry leaves the entry in an
             # ERROR/COMPUTING backoff while still carrying the retained last-good
             # image; requiring UPDATED here would 404 that image for up to a day.
             # get_from_cache_key validates whatever image is present regardless of
@@ -1388,7 +1385,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Preserve a last-good image through retries. The worker rechecks the
+            # expired state and discards retained bytes if their scope differs.
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,

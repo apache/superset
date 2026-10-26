@@ -119,8 +119,8 @@ def validate_screenshot_image(image: bytes | None) -> str | None:
 # Clock skew between the worker writing a timestamp and the web host reading it
 # can make a just-written entry look slightly in the future (a small negative
 # age); tolerate that so the two tiers CONVERGE instead of the web re-enqueuing
-# forever. A timestamp implausibly far in the future (beyond this bound) is
-# treated as unusable so the entry self-heals.
+# forever. UPDATED freshness checks heal timestamps beyond this bound without
+# changing the negative-age behavior of error backoff and computation leases.
 _FUTURE_TIMESTAMP_TOLERANCE_SECONDS = 300
 
 
@@ -237,24 +237,11 @@ class ScreenshotCachePayload:
         means old pods reading entries written by a newer pod (and vice versa)
         during a rolling deploy never hit a naive-minus-aware ``TypeError``.
 
-        Returns None when the stored timestamp is unusable:
-
-        - A corrupt string ``datetime.fromisoformat`` cannot parse
-          (``ValueError``) or a legacy tz-aware string that raises ``TypeError``
-          when subtracted from naive now(). Callers treat None as 'past any TTL',
-          so the entry self-heals.
-        - A timestamp implausibly far in the future (age below
-          ``-_FUTURE_TIMESTAMP_TOLERANCE_SECONDS``), also treated as unusable so
-          it self-heals.
-
-        A small negative age (a future timestamp within tolerance, from clock
-        skew between the worker that wrote the entry and the web host reading it)
-        is returned as-is rather than coerced to None. Callers apply
-        ``age is None or age >/>= TTL``, so a small negative age reads as NOT
-        stale/expired: the entry is treated as fresh. This is what lets the web
-        tier and the worker converge -- if a future timestamp were treated as
-        stale, the web would re-enqueue at 202 while the worker saw its own
-        timestamp as fresh and skipped, looping forever."""
+        Corrupt or offset-aware timestamps return None so callers can recover.
+        Negative ages are preserved: clock/timezone skew must not expire error
+        backoff or computation leases on every request. Only the opt-in UPDATED
+        freshness check applies a bound to future timestamps.
+        """
         try:
             age = (
                 datetime.now() - datetime.fromisoformat(self.get_timestamp())
@@ -262,13 +249,6 @@ class ScreenshotCachePayload:
         except (ValueError, TypeError):
             logger.warning(
                 "Unusable screenshot cache timestamp %r; "
-                "treating entry as expired/stale",
-                self.get_timestamp(),
-            )
-            return None
-        if age < -_FUTURE_TIMESTAMP_TOLERANCE_SECONDS:
-            logger.warning(
-                "Screenshot cache timestamp %r is implausibly in the future; "
                 "treating entry as expired/stale",
                 self.get_timestamp(),
             )
@@ -300,12 +280,12 @@ class ScreenshotCachePayload:
         return age_seconds is None or age_seconds >= computing_ttl
 
     def is_updated_stale(self) -> bool:
-        """Whether a successfully-rendered (UPDATED) entry is old enough to be
-        recomputed. Returns False when the TTL is unset/0 (no-op unless an operator
-        opts in). A timestamp we cannot use -- a corrupt string (ValueError/
-        TypeError) -- is logged and treated as stale so it self-heals rather than
-        being served forever. A future timestamp (negative age from residual clock
-        skew) reads as fresh via the normal age math, so web and worker converge."""
+        """Return whether an UPDATED entry needs refreshing when freshness is enabled.
+
+        An unset/zero TTL disables the check. Unusable timestamps and future
+        timestamps beyond the skew tolerance are stale; bounded negative ages
+        remain fresh so web and worker clocks can converge.
+        """
         # `.get` (not `[]` like the sibling ERROR/COMPUTING helpers) on purpose:
         # a deployment whose config predates this key should silently disable the
         # feature, not raise KeyError. Checked first so a disabled feature never
@@ -317,6 +297,16 @@ class ScreenshotCachePayload:
         # is_error_cache_ttl_expired -- not the '>=' of is_computing_stale. An
         # unusable timestamp (age is None) is treated as stale so it self-heals.
         age_seconds = self._age_seconds()
+        if (
+            age_seconds is not None
+            and age_seconds < -_FUTURE_TIMESTAMP_TOLERANCE_SECONDS
+        ):
+            logger.warning(
+                "Screenshot cache timestamp %r is implausibly in the future; "
+                "treating UPDATED entry as stale",
+                self.get_timestamp(),
+            )
+            return True
         return age_seconds is None or age_seconds > updated_ttl
 
     def is_in_progress(self) -> bool:
@@ -382,8 +372,8 @@ class ScreenshotCachePayload:
             indistinguishable from a fresh, valid ``UPDATED`` entry, which
             would leave them permanently un-refreshed: the scope check at
             read time rejects them, but nothing ever re-triggers computation.
-            Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
-            it gets recomputed and re-scoped.
+            Treat a scope mismatch in any state as a cache miss so another
+            object's backoff or computation lease cannot block this request.
         :param check_updated_staleness: Whether a successfully-rendered
             (``UPDATED``) entry older than ``THUMBNAIL_UPDATED_CACHE_TTL``
             should be treated as a cache miss and recomputed. Enabled per
@@ -394,6 +384,7 @@ class ScreenshotCachePayload:
         """
         return (
             force
+            or (expected_scope is not None and self._scope != expected_scope)
             or self.status == StatusValues.PENDING
             or (
                 self.status == StatusValues.ERROR
@@ -405,11 +396,6 @@ class ScreenshotCachePayload:
                 self.status == StatusValues.UPDATED
                 and check_updated_staleness
                 and self.is_updated_stale()
-            )
-            or (
-                self.status == StatusValues.UPDATED
-                and expected_scope is not None
-                and self._scope != expected_scope
             )
         )
 
@@ -644,12 +630,18 @@ class BaseScreenshot:
         Computes the thumbnail and caches the result
 
         :param user: If no user is given will use the current context
-        :param cache_key: The cache key to store the thumbnail payload under
+        :param cache_key: The cache key to store the thumbnail payload under.
+            Complete captures with an explicit key pin an API generation, whose
+            completed result must survive duplicate deliveries unchanged.
         :param window_size: The window size from which will process the thumb
         :param thumb_size: The final thumbnail size
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
+        is_pinned_generation = cache_key is not None and self.require_complete_capture
+        check_updated_staleness = (
+            self.supports_updated_staleness and not is_pinned_generation
+        )
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         try:
             with DistributedLock(
@@ -668,7 +660,7 @@ class BaseScreenshot:
                     force=force,
                     expected_scope=self.cache_scope,
                     retry_fresh_error=retry_fresh_error,
-                    check_updated_staleness=self.supports_updated_staleness,
+                    check_updated_staleness=check_updated_staleness,
                 ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
@@ -852,10 +844,8 @@ class ChartScreenshot(BaseScreenshot):
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "standalone"
-    # The dashboard on-demand endpoint does not pre-wipe the entry to PENDING
-    # and serves whenever an image is present, so recomputing a stale-but-valid
-    # capture degrades gracefully (the old image stays servable during the
-    # refresh). Opt in to updated-staleness recomputation here.
+    # The on-demand endpoint carries the last-good image into a new PENDING
+    # generation, keeping it servable while a stale capture is refreshed.
     supports_updated_staleness: bool = True
 
     def __init__(

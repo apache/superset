@@ -31,6 +31,7 @@ from superset.utils.screenshots import (
     ScreenshotCacheError,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
+    StatusValues,
 )
 from superset.utils.webdriver import WebDriverPlaywright, WebDriverProxy
 
@@ -577,9 +578,13 @@ class TestComputeAndCache:
         assert cache_payload["image"] != b"initial_value"
         assert cache_payload["scope"] == "dashboard:5"
 
+    @pytest.mark.parametrize("status", list(StatusValues))
     def test_mismatched_scope_discards_prior_image_on_failed_recompute(
-        self, mocker: MockerFixture, screenshot_obj
-    ):
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        status: StatusValues,
+    ) -> None:
         """Security: rebinding an entry to a different scope must not carry the
         previous scope's image into the new one. The read paths serve any valid
         retained image regardless of status, so bytes left on a rescoped
@@ -587,7 +592,8 @@ class TestComputeAndCache:
         URL. A failed recompute must therefore leave no image behind."""
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
         # A valid image rendered for a DIFFERENT object (scope "dashboard:1").
-        cached_value = ScreenshotCachePayload(image=FAKE_PNG_BYTES, scope="dashboard:1")
+        cached_value = ScreenshotCachePayload(status=status, scope="dashboard:1")
+        cached_value.retain_image(FAKE_PNG_BYTES)
         mocks["get_from_cache_key"].return_value = cached_value
         # This screenshot object renders for dashboard:5, and the recompute fails.
         screenshot_obj.cache_scope = "dashboard:5"
@@ -595,11 +601,35 @@ class TestComputeAndCache:
 
         screenshot_obj.compute_and_cache(force=False)
 
+        mocks["get_screenshot"].assert_called_once()
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Error"
         assert cache_payload["scope"] == "dashboard:5"
         # The other object's bytes were dropped the moment the scope was rebound.
         assert cache_payload["image"] is None
+
+    def test_matching_scope_retains_prior_image_on_failed_recompute(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+    ) -> None:
+        """A failed refresh preserves the same object's last-good capture."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cached_value = ScreenshotCachePayload(scope="dashboard:5")
+        cached_value.retain_image(FAKE_PNG_BYTES)
+        mocks["get_from_cache_key"].return_value = cached_value
+        screenshot_obj.cache_scope = "dashboard:5"
+        mocks["get_screenshot"].side_effect = Exception("render failed")
+
+        screenshot_obj.compute_and_cache(force=False)
+
+        mocks["get_screenshot"].assert_called_once()
+        cached_payload = ScreenshotCachePayload.from_dict(
+            screenshot_obj.cache.get("key")
+        )
+        assert cached_payload.status == StatusValues.ERROR
+        assert cached_payload.get_scope() == "dashboard:5"
+        assert cached_payload.get_image().read() == FAKE_PNG_BYTES
 
     def test_resize(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)

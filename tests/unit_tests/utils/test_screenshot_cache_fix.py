@@ -382,6 +382,27 @@ class TestShouldTriggerTask:
         payload_computing = ScreenshotCachePayload(status=StatusValues.COMPUTING)
         assert payload_computing.should_trigger_task(force=True) is True
 
+    @pytest.mark.parametrize("status", list(StatusValues))
+    @pytest.mark.parametrize("expected_scope", [None, "chart:1", "chart:2"])
+    @patch("superset.utils.screenshots.app")
+    def test_scope_mismatch_bypasses_other_objects_backoff(
+        self,
+        mock_app: MagicMock,
+        status: StatusValues,
+        expected_scope: str | None,
+    ) -> None:
+        """Only another object's scope bypasses fresh error/computing backoff."""
+        mock_app.config = {
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
+            "THUMBNAIL_ERROR_CACHE_TTL": 300,
+        }
+        payload = ScreenshotCachePayload(status=status, scope="chart:1")
+        payload.retain_image(FAKE_PNG_BYTES)
+
+        assert payload.should_trigger_task(expected_scope=expected_scope) is (
+            expected_scope == "chart:2" or status == StatusValues.PENDING
+        )
+
     @patch("superset.utils.screenshots.app")
     def test_trigger_on_stale_updated_with_scope(self, mock_app: MagicMock) -> None:
         """A stale-but-valid UPDATED entry on a caller that opts into
@@ -681,12 +702,10 @@ class TestIsComputingStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_computing_beyond_tolerance_future_is_stale(
+    def test_computing_beyond_tolerance_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A timestamp implausibly far in the future (beyond the tolerance
-        bound) is treated as unusable: _age_seconds returns None, the entry is
-        stale (self-heal), and a warning is logged."""
+        """Timezone skew does not bypass the computation lease on every read."""
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
@@ -694,8 +713,10 @@ class TestIsComputingStale:
             status=StatusValues.COMPUTING, timestamp=future_timestamp
         )
 
-        assert payload.is_computing_stale() is True
-        mock_logger.warning.assert_called_once()
+        assert payload.is_computing_stale() is False
+        assert payload.should_trigger_task() is False
+        assert payload.should_enqueue_task() is False
+        mock_logger.warning.assert_not_called()
 
 
 class TestIsErrorCacheTtlExpired:
@@ -796,12 +817,10 @@ class TestIsErrorCacheTtlExpired:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_error_beyond_tolerance_future_is_expired(
+    def test_error_beyond_tolerance_future_is_not_expired(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A timestamp implausibly far in the future (beyond the tolerance
-        bound) is treated as unusable: _age_seconds returns None, the entry is
-        expired (self-heal), and a warning is logged."""
+        """Timezone skew does not bypass error backoff on every thumbnail read."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
         future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
@@ -809,8 +828,9 @@ class TestIsErrorCacheTtlExpired:
             status=StatusValues.ERROR, timestamp=future_timestamp
         )
 
-        assert payload.is_error_cache_ttl_expired() is True
-        mock_logger.warning.assert_called_once()
+        assert payload.is_error_cache_ttl_expired() is False
+        assert payload.should_trigger_task() is False
+        mock_logger.warning.assert_not_called()
 
 
 class TestIsUpdatedStale:
@@ -962,9 +982,7 @@ class TestIsUpdatedStale:
     def test_beyond_tolerance_future_is_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A timestamp implausibly far in the future (beyond the tolerance
-        bound) is treated as unusable: _age_seconds returns None, the entry is
-        stale (self-heal), and a warning is logged."""
+        """UPDATED freshness heals timestamps beyond the future-skew tolerance."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
         future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
@@ -1029,19 +1047,19 @@ class TestIsUpdatedStale:
         mock_logger.warning.assert_not_called()
 
     @patch("superset.utils.screenshots.logger")
-    def test_age_seconds_beyond_tolerance_future_returns_none(
+    def test_age_seconds_beyond_tolerance_future_returns_negative(
         self, mock_logger: MagicMock
     ) -> None:
-        """_age_seconds returns None for a timestamp implausibly far in the
-        future (beyond the tolerance bound) and logs a warning, so callers treat
-        the entry as stale/expired and it self-heals."""
+        """Only UPDATED freshness applies the bound to a usable negative age."""
         future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=future_timestamp
         )
 
-        assert payload._age_seconds() is None
-        mock_logger.warning.assert_called_once()
+        age = payload._age_seconds()
+        assert age is not None
+        assert age < -300
+        mock_logger.warning.assert_not_called()
 
 
 class TestIntegrationCacheBugFix:
@@ -1119,20 +1137,19 @@ class TestIntegrationCacheBugFix:
         assert cached_value["status"] == "Updated"
         assert cached_value["image"] is not None
 
+    @pytest.mark.parametrize("explicit_cache_key", [None, "thumbnail-key"])
     @patch("superset.utils.screenshots.app")
-    def test_stale_updated_triggers_recompute(
+    def test_stale_updated_unpinned_capture_triggers_recompute(
         self,
         mock_app: MagicMock,
         mocker: MockerFixture,
         mock_user: MagicMock,
+        explicit_cache_key: str | None,
     ) -> None:
-        """
-        Integration test: a stale-but-valid UPDATED entry on a DashboardScreenshot
-        (supports_updated_staleness=True) self-heals -- should_trigger_task returns
-        True and compute_and_cache re-renders, refreshing the timestamp and image.
-        This exercises the worker-guard re-check
-        (check_updated_staleness=self.supports_updated_staleness) inside
-        compute_and_cache, not just should_trigger_task in isolation.
+        """Direct and CLI thumbnail captures refresh stale dashboard images.
+
+        CLI tasks supply a resolved cache key without requiring complete capture;
+        that key does not identify an immutable API generation.
         """
         # Both keys are required: THUMBNAIL_UPDATED_CACHE_TTL drives the new
         # staleness clause, and THUMBNAIL_COMPUTING_CACHE_TTL is read as the
@@ -1144,10 +1161,6 @@ class TestIntegrationCacheBugFix:
         mocker.patch(DISTRIBUTED_LOCK_PATH)
         BaseScreenshot.cache = MockCache()
 
-        # The dashboard on-demand endpoint opts into updated-staleness; the
-        # worker-guard re-check in compute_and_cache passes
-        # supports_updated_staleness (True here) as check_updated_staleness.
-        # Without it the clause is gated off and the recompute is skipped.
         screenshot_obj = DashboardScreenshot("http://example.com", "sample_digest")
         screenshot_obj.cache_scope = "dashboard:1"
 
@@ -1157,7 +1170,7 @@ class TestIntegrationCacheBugFix:
         stale_payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=old_timestamp, scope="dashboard:1"
         )
-        cache_key = screenshot_obj.get_cache_key()
+        cache_key = explicit_cache_key or screenshot_obj.get_cache_key()
         BaseScreenshot.cache.set(cache_key, stale_payload.to_dict())
         seeded_image = BaseScreenshot.cache.get(cache_key)["image"]
 
@@ -1174,7 +1187,9 @@ class TestIntegrationCacheBugFix:
             is True
         )
 
-        screenshot_obj.compute_and_cache(user=mock_user, force=False)
+        screenshot_obj.compute_and_cache(
+            user=mock_user, force=False, cache_key=explicit_cache_key
+        )
 
         cached_value = BaseScreenshot.cache.get(cache_key)
         assert cached_value is not None
@@ -1182,6 +1197,56 @@ class TestIntegrationCacheBugFix:
         assert cached_value["timestamp"] != old_timestamp
         assert cached_value["image"] is not None
         assert cached_value["image"] != seeded_image
+
+    @pytest.mark.parametrize("status", [StatusValues.UPDATED, StatusValues.PENDING])
+    @patch("superset.utils.screenshots.app")
+    def test_api_generation_renders_pending_but_preserves_completed_capture(
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+        monkeypatch: pytest.MonkeyPatch,
+        status: StatusValues,
+    ) -> None:
+        """A delayed duplicate cannot replace a completed API generation's image."""
+        mock_app.config = {
+            "THUMBNAIL_UPDATED_CACHE_TTL": 300,
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 360,
+        }
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        cache = MockCache()
+        monkeypatch.setattr(BaseScreenshot, "cache", cache)
+        screenshot_obj = DashboardScreenshot(
+            "http://example.com", "digest", require_complete_capture=True
+        )
+        screenshot_obj.cache_scope = "dashboard:1"
+        payload = ScreenshotCachePayload(
+            status=status,
+            timestamp=(datetime.now() - timedelta(seconds=400)).isoformat(),
+            scope="dashboard:1",
+        )
+        payload.retain_image(FAKE_PNG_BYTES)
+        seeded = payload.to_dict()
+        cache.set("generation-key", seeded)
+        new_image = b"\x89PNG\r\n\x1a\nnew capture"
+        get_screenshot = mocker.patch(
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=new_image
+        )
+
+        screenshot_obj.compute_and_cache(
+            force=False,
+            cache_key="generation-key",
+            window_size=(800, 600),
+            thumb_size=(800, 600),
+        )
+
+        if status == StatusValues.UPDATED:
+            get_screenshot.assert_not_called()
+            assert cache.get("generation-key") == seeded
+        else:
+            get_screenshot.assert_called_once()
+            result = ScreenshotCachePayload.from_dict(cache.get("generation-key"))
+            assert result.is_updated()
+            assert result.get_image().read() == new_image
 
     @patch("superset.utils.screenshots.app")
     def test_stale_updated_not_recomputed_for_chart(

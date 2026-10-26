@@ -1196,7 +1196,16 @@ theme editor picker.
   should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
   `d1://` connection strings are unchanged. File upload is now off for D1:
   D1 has no transactions, so a failed upload could leave a half-written table.
-- The dashboard on-demand screenshot endpoint (`POST /api/v1/dashboard/<pk>/cache_dashboard_screenshot/`) now recomputes a successfully-rendered (`UPDATED`) thumbnail once it is older than the new `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days) instead of serving it indefinitely. This bounds how long a bad-but-valid cached capture (e.g. a valid-but-blank PNG) can be served on cache backends without TTL eviction such as S3. Set `THUMBNAIL_UPDATED_CACHE_TTL` to `0` or `None` to disable (restoring the previous serve-forever behavior). The chart `cache_screenshot` endpoint is intentionally excluded to keep this change scoped to the reported dashboard endpoint (charts leave `supports_updated_staleness` off), as are the high-traffic card-thumbnail list endpoints; note that `superset compute-thumbnails` without `--force` will also refresh stale-but-valid dashboard thumbnails (charts remain excluded). When enabling this, roll the thumbnail workers before the web servers: during a mixed deploy a new web server can return `202` for a stale dashboard while an old worker skips the refresh, leaving it stale until the worker pool finishes rolling (it self-heals once the workers are updated).
+- Dashboard screenshot requests without `force=true` refresh successfully-rendered
+  (`UPDATED`) images older than `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days),
+  retaining the last valid image during refresh and error backoff. This also applies
+  to dashboard thumbnails refreshed by `superset compute-thumbnails` without
+  `--force`; chart screenshots and card-list thumbnail endpoints are excluded.
+  Set the TTL to `0` or `None` to disable this freshness check and rely on the cache
+  backend's retention policy. Only backends without TTL eviction, such as S3, can
+  then serve a cached image indefinitely. Roll thumbnail workers before web
+  servers: older workers can skip refreshes requested by newer web servers until
+  the worker rollout finishes.
 
 ### Native Value filter "Select all" always targets the whole column
 

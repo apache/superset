@@ -6393,23 +6393,26 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_force_uses_new_generation_without_invalidating_previous_url(
         self,
-        mock_get_from_cache_key,
-        mock_current_cache_key,
-        mock_next_cache_key,
-        mock_store_cache_payload,
-        mock_set_current_cache_key,
-        mock_cache_task,
-    ):
+        mock_get_from_cache_key: MagicMock,
+        mock_current_cache_key: MagicMock,
+        mock_next_cache_key: MagicMock,
+        mock_store_cache_payload: MagicMock,
+        mock_set_current_cache_key: MagicMock,
+        mock_cache_task: MagicMock,
+    ) -> None:
+        """A forced refresh starts imageless while its predecessor stays readable."""
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
+        old_image = b"\x89PNG\r\n\x1a\nfake image data"
         old_payload = ScreenshotCachePayload(
-            image=b"old image",
+            image=old_image,
             scope=f"dashboard:{dashboard.id}",
         )
+        assert old_payload.get_invalid_image_reason() is None
         mock_get_from_cache_key.return_value = old_payload
 
         response = self._cache_screenshot(dashboard.id, force=True)
@@ -6423,7 +6426,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.json["cache_key"] == "new-cache-key"
         assert response.json["task_status"] == "Pending"
         assert old_response.status_code == 200
-        assert old_response.data == b"old image"
+        assert old_response.data == old_image
+        mock_store_cache_payload.assert_called_once()
+        successor = mock_store_cache_payload.call_args[0][1]
+        assert successor.status == StatusValues.PENDING
+        assert successor.to_dict()["image"] is None
         mock_cache_task.delay.assert_called_once()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)

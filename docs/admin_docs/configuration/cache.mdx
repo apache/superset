@@ -385,10 +385,11 @@ override `authenticate_browser_context()`, and set `MACHINE_AUTH_PROVIDER_CLASS`
 
 ### Refreshing successfully-rendered thumbnails
 
-Once a thumbnail renders successfully it is cached with no expiry, so on cache backends without
-TTL eviction (for example S3) a stale — or valid-but-blank — capture can be served indefinitely to
-callers that do not pass `force=true`. `THUMBNAIL_UPDATED_CACHE_TTL` bounds how long a
-successfully-rendered thumbnail is served before it is recomputed:
+Successfully-rendered thumbnails remain cached until the cache backend expires or evicts them.
+On backends without TTL eviction (for example S3), a stale — or valid-but-blank — capture can
+therefore be served indefinitely to callers that do not pass `force=true`.
+`THUMBNAIL_UPDATED_CACHE_TTL` triggers a refresh when an eligible request finds a
+successfully-rendered thumbnail older than this limit:
 
 ```python
 from datetime import timedelta
@@ -406,7 +407,9 @@ THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
   (`POST /api/v1/dashboard/<pk>/cache_dashboard_screenshot/`) and to dashboard thumbnails
   recomputed by `superset compute-thumbnails` without `--force`. The high-traffic card-list
   thumbnail endpoints and the chart on-demand screenshot endpoint are intentionally excluded and
-  keep serving the cached image.
+  continue using the cache backend's retention policy. A dashboard refresh without `force=true`
+  retains the last valid image while rendering and during error backoff; a forced refresh starts
+  a new generation without a retained image.
 - **Rollout:** roll thumbnail workers before web servers when enabling this. During a mixed deploy
   a new web server can enqueue a refresh that an older worker skips, leaving the thumbnail stale
   until the worker pool finishes rolling (it self-heals afterward).

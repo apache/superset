@@ -16,6 +16,7 @@
 # under the License.
 
 import uuid
+from datetime import datetime, timedelta
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
@@ -23,6 +24,7 @@ from zipfile import is_zipfile
 
 import pytest
 import rison
+from cachelib import SimpleCache
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -45,7 +47,11 @@ from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
-from superset.utils.screenshots import ScreenshotCachePayload, StatusValues
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    ScreenshotCachePayload,
+    StatusValues,
+)
 from tests.conftest import with_config
 from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
@@ -1412,7 +1418,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
     def test_screenshot_serves_retained_image_on_error(self, mock_get_from_cache_key):
-        """A failed forced refresh leaves the on-demand screenshot entry in an
+        """A failed retry leaves the on-demand screenshot entry in an
         ERROR backoff while still carrying the retained last-good image. The
         screenshot read path must serve those retained bytes (200) rather than
         404 for the length of the backoff -- gating serve on status == UPDATED
@@ -1557,6 +1563,129 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             expected_scope=f"chart:{chart.id}",
             check_updated_staleness=False,
         ), "endpoint left the cache in a state that makes the worker skip render"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
+    def test_forced_screenshot_waits_for_replacement_image(
+        self, cache: SimpleCache, cache_task: mock.MagicMock
+    ) -> None:
+        """A forced capture exposes no prior bytes while queued or after failure."""
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").one()
+        user = self.get_user(ADMIN_USERNAME)
+        with override_user(user):
+            screenshot = ChartScreenshot("http://example.com", chart.digest)
+        screenshot.cache_scope = f"chart:{chart.id}"
+        window_size = (800, 600)
+        cache_key = screenshot.get_cache_key(window_size, window_size)
+        old_image = b"\x89PNG\r\n\x1a\nold capture"
+        cache.set(
+            cache_key,
+            ScreenshotCachePayload(
+                image=old_image, scope=screenshot.cache_scope
+            ).to_dict(),
+        )
+        query = rison.dumps({"force": True, "window_size": list(window_size)})
+
+        response = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={query}"
+        )
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == cache_key
+        assert response.json["task_status"] == "Pending"
+        cache_task.delay.assert_called_once()
+        assert cache_task.delay.call_args.kwargs["force"] is True
+        queued = cache.get(cache_key)
+        assert queued["image"] is None
+        assert queued["scope"] == screenshot.cache_scope
+        image_url = response.json["image_url"]
+        assert self.client.get(image_url).status_code == 404
+
+        with (
+            patch("superset.utils.screenshots.DistributedLock"),
+            patch.object(
+                screenshot, "get_screenshot", side_effect=RuntimeError("render failed")
+            ) as capture,
+        ):
+            screenshot.compute_and_cache(
+                force=True,
+                user=user,
+                window_size=window_size,
+                thumb_size=window_size,
+                cache_key=cache_key,
+            )
+            assert cache.get(cache_key)["status"] == "Error"
+            assert self.client.get(image_url).status_code == 404
+
+            replacement = b"\x89PNG\r\n\x1a\nreplacement capture"
+            capture.side_effect = None
+            capture.return_value = replacement
+            screenshot.compute_and_cache(
+                force=True,
+                user=user,
+                window_size=window_size,
+                thumb_size=window_size,
+                cache_key=cache_key,
+            )
+
+        image_response = self.client.get(image_url)
+        assert image_response.status_code == 200
+        assert image_response.data == replacement
+
+    @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_ERROR_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
+    def test_thumbnail_retry_retains_image_after_another_render_failure(
+        self, cache: SimpleCache, cache_task: mock.MagicMock
+    ) -> None:
+        """An expired error keeps its valid capture through a failed card retry."""
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").one()
+        user = self.get_user(ADMIN_USERNAME)
+        with override_user(user):
+            digest = chart.digest
+        screenshot = ChartScreenshot("http://example.com", digest)
+        screenshot.cache_scope = f"chart:{chart.id}"
+        cache_key = screenshot.get_cache_key()
+        retained_image = b"\x89PNG\r\n\x1a\nretained capture"
+        payload = ScreenshotCachePayload(
+            image=retained_image,
+            scope=screenshot.cache_scope,
+            timestamp=(datetime.now() - timedelta(seconds=400)).isoformat(),
+        )
+        payload.status = StatusValues.ERROR
+        cache.set(cache_key, payload.to_dict())
+        thumbnail_url = f"api/v1/chart/{chart.id}/thumbnail/{digest}/"
+
+        response = self.client.get(thumbnail_url)
+
+        assert response.status_code == 202
+        cache_task.delay.assert_called_once()
+        assert cache_task.delay.call_args.kwargs["force"] is False
+        queued = ScreenshotCachePayload.from_dict(cache.get(cache_key))
+        assert queued.get_image().read() == retained_image
+        assert queued.should_trigger_task(expected_scope=screenshot.cache_scope)
+        with (
+            patch("superset.utils.screenshots.DistributedLock"),
+            patch.object(
+                screenshot, "get_screenshot", side_effect=RuntimeError("render failed")
+            ) as capture,
+        ):
+            screenshot.compute_and_cache(force=False, user=user)
+
+        capture.assert_called_once()
+        failed = ScreenshotCachePayload.from_dict(cache.get(cache_key))
+        assert failed.status == StatusValues.ERROR
+        assert failed.get_image().read() == retained_image
+        image_response = self.client.get(thumbnail_url)
+        assert image_response.status_code == 200
+        assert image_response.data == retained_image
+        cache_task.delay.assert_called_once()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_deck_layers(self):
