@@ -205,7 +205,7 @@ test.each([1, 2])(
 test('dataset impact omits empty dependencies and retains nonzero dashboard counts', () => {
   expect(datasetArchiveImpact('dataset', 0, 0)).toBeNull();
   expect(datasetArchiveImpact('dataset', 2, 1)).toContain(
-    'linked to 2 charts on 1 dashboard',
+    'linked to 2 charts and 1 dashboard',
   );
 });
 
@@ -234,4 +234,10 @@ test('remembering an archive is explicit and ignores permanent deletes', () => {
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
   rememberArchivedType('chart');
   expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe('dashboard');
+});
+
+test('bulk impact does not imply every affected chart belongs to a dashboard', () => {
+  expect(datasetArchiveImpact('datasets', 4, 1, true)).toContain(
+    'linked to 4 charts and 1 dashboard',
+  );
 });

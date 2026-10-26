@@ -264,11 +264,11 @@ export function datasetArchiveImpact(
   }
   return plural
     ? t(
-        'The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered.',
+        'The selected %(type)s are linked to %(charts)s and %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered.',
         values,
       )
     : t(
-        'This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered.',
+        'This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered.',
         values,
       );
 }
