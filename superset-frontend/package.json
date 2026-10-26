@@ -249,7 +249,7 @@
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.11.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@oxlint/plugins": "^1.81.0",
+    "@oxlint/plugins": "^1.88.0",
     "@playwright/test": "^1.64.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
     "@storybook/addon-docs": "10.6.2",
