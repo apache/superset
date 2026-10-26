@@ -276,6 +276,37 @@ test('renders isSqla fields', async () => {
   expect(screen.getByText(/template parameters/i)).toBeInTheDocument();
 });
 
+test('hides Normalize column names for virtual datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      table_name: 'Vehicle Sales +',
+      type: DatasourceType.Query,
+      sql: 'SELECT * FROM users',
+    },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.queryByText(/normalize column names/i)).not.toBeInTheDocument();
+});
+
+test('shows Normalize column names for physical datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.getByText(/normalize column names/i)).toBeInTheDocument();
+});
+
 test('Source Tab: edit mode', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 

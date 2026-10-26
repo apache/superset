@@ -52,7 +52,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.hashing import hash_from_str
 
@@ -416,7 +416,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
         Samples a first batch to estimate row size, then extrapolates the
         total number of rows that fit within ``BQ_FETCH_MAX_MB``.
-        Falls back to the parent implementation on any error.
+        Falls back to the parent implementation if the initial read fails.
+        Errors after consuming rows propagate instead of returning partial data.
         """
         # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
         # access in-context — a missing key should surface as a loud KeyError
@@ -428,13 +429,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
         max_bytes = max_mb * 1024 * 1024
 
+        first_batch: list[Any] = []
         try:
             initial_batch_size = (
                 min(_BQ_INITIAL_SAMPLE_ROWS, limit)
                 if limit
                 else _BQ_INITIAL_SAMPLE_ROWS
             )
-            first_batch: list[Any] = cursor.fetchmany(initial_batch_size)
+            first_batch = cursor.fetchmany(initial_batch_size)
 
             if not first_batch:
                 if has_request_context():
@@ -465,13 +467,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
             # First batch already covers the budget or the result set
             if rows_fetched < initial_batch_size or remaining_rows <= 0:
+                # A full sample can also be the entire result. Confirm an omitted
+                # row; a bounded cursor leaves its own EOF probe to the executor.
                 memory_limited = (
-                    remaining_rows <= 0 and rows_fetched == initial_batch_size
+                    remaining_rows <= 0
+                    and rows_fetched == initial_batch_size
+                    and bool(cursor.fetchmany(1))
                 )
                 if has_request_context():
                     g.bq_memory_limited = memory_limited
                     g.bq_memory_limited_row_count = len(first_batch)
-                return first_batch
+                return FetchedRows(first_batch, truncated=memory_limited)
 
             # Fetch one extra row to confirm truncation without false positives
             second_batch: list[Any] = cursor.fetchmany(remaining_rows + 1) or []
@@ -488,16 +494,15 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if has_request_context():
                 g.bq_memory_limited = memory_limited
                 g.bq_memory_limited_row_count = len(data)
-            return data
+            return FetchedRows(data, truncated=memory_limited)
 
-        except Exception:  # pylint: disable=broad-except
-            # Broad catch on purpose: any failure in the size-estimation /
-            # progressive-fetch path (BigQuery DB-API errors, network or
-            # auth timeouts mid-fetch, ``sys.getsizeof`` raising on an
-            # unexpected cell type, or a future ``Row`` subclass we don't
-            # know how to unwrap) must degrade gracefully to the parent's
-            # straight fetch so the user still gets data.
-            # Fallback to parent implementation
+        except Exception as ex:  # pylint: disable=broad-except
+            # A forward-only cursor cannot replay the consumed sample. Falling
+            # back after an estimation, second-batch, or EOF-probe failure would
+            # silently discard it and return only the remaining rows as success.
+            if first_batch:
+                raise cls.get_dbapi_mapped_exception(ex) from ex
+            # An initial read failure leaves no buffered rows to lose.
             data = super().fetch_data(cursor, limit)
             if data and type(data[0]).__name__ == "Row":
                 data = [r.values() for r in data]  # type: ignore
@@ -551,9 +556,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     ) -> Select | None:
         if partition_column := cls.get_time_partition_column(database, table):
             max_partition_id = cls.get_max_partition_id(database, table)
-            query = query.where(
-                column(partition_column) == func.PARSE_DATE("%Y%m%d", max_partition_id)
-            )
+            if max_partition_id is not None:
+                query = query.where(
+                    column(partition_column)
+                    == func.PARSE_DATE("%Y%m%d", max_partition_id)
+                )
 
         return query
 
@@ -580,9 +587,15 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
         # Build the query
-        query = select(
-            func.max(partitions_table.c.partition_id).label("max_partition_id")
-        ).where(partitions_table.c.table_name == table.table)
+        query = (
+            select(func.max(partitions_table.c.partition_id).label("max_partition_id"))
+            .where(partitions_table.c.table_name == table.table)
+            .where(
+                partitions_table.c.partition_id.notin_(
+                    ["__NULL__", "__UNPARTITIONED__"]
+                )
+            )
+        )
 
         # Compile to BigQuery SQL
         compiled_query = query.compile(
@@ -626,8 +639,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        payload = {}
-        partition_column = cls.get_time_partition_column(database, table)
+        from google.api_core.exceptions import NotFound
+
+        payload: dict[str, Any] = {}
+        try:
+            partition_column = cls.get_time_partition_column(database, table)
+        except NotFound:
+            # The table was dropped/renamed (or is otherwise not resolvable);
+            # partition metadata is optional enrichment, so degrade gracefully.
+            logger.warning(
+                "BigQuery table %s not found while fetching extra metadata",
+                table,
+            )
+            return payload
         with cls.get_engine(
             database, catalog=table.catalog, schema=table.schema
         ) as engine:
@@ -666,6 +690,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def epoch_ms_to_dttm(cls) -> str:
         return "TIMESTAMP_MILLIS({col})"
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return "TIMESTAMP_MICROS({col})"
 
     @classmethod
     def df_to_sql(
@@ -1103,6 +1131,69 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             column(c["column_name"]).label(c["column_name"].replace(".", "__"))
             for c in cols
         ]
+
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add the STRUCT members that ``cursor.description`` drops as dotted
+        columns, matching what the inspector returns for physical tables.
+        """
+        schema = cls._get_cursor_schema(cursor)
+        if not schema or len(schema) != len(columns):
+            return columns
+        taken = {col["column_name"] for col in columns}
+        expanded: list[ResultSetColumnType] = []
+        for col, field in zip(columns, schema, strict=True):
+            expanded.append(col)
+            expanded.extend(cls._expand_schema_field(field, col["column_name"], taken))
+        return expanded
+
+    @staticmethod
+    def _get_cursor_schema(cursor: Any) -> list[Any] | None:
+        # The DB-API cursor keeps the RowIterator of the last execute(), whose
+        # schema still has the nested fields that cursor.description drops; the
+        # public query_job property would cost an extra API call
+        rows = getattr(cursor, "_query_rows", None)
+        schema = getattr(rows, "schema", None)
+        return list(schema) if schema else None
+
+    @classmethod
+    def _expand_schema_field(
+        cls,
+        field: Any,
+        prefix: str,
+        taken: set[str],
+    ) -> list[ResultSetColumnType]:
+        if field.field_type not in {"RECORD", "STRUCT"} or field.mode == "REPEATED":
+            return []
+        columns: list[ResultSetColumnType] = []
+        for child in field.fields:
+            name = f"{prefix}.{child.name}"
+            if name in taken:
+                continue
+            taken.add(name)
+            # the inspector types REPEATED members as ARRAY
+            repeated = child.mode == "REPEATED"
+            spec = None if repeated else cls.get_column_spec(child.field_type)
+            is_dttm = bool(spec and spec.is_dttm)
+            columns.append(
+                ResultSetColumnType(
+                    name=name,
+                    column_name=name,
+                    type="ARRAY" if repeated else child.field_type,
+                    type_generic=utils.GenericDataType.TEMPORAL
+                    if is_dttm
+                    else (spec.generic_type if spec else None),
+                    is_dttm=is_dttm,
+                    nested_field=True,
+                )
+            )
+            columns.extend(cls._expand_schema_field(child, name, taken))
+        return columns
 
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:
