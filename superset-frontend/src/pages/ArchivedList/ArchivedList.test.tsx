@@ -200,8 +200,12 @@ function HistoryButtons() {
   const history = useHistory();
   return (
     <>
-      <button type="button" onClick={() => history.goBack()}>History Back</button>
-      <button type="button" onClick={() => history.goForward()}>History Forward</button>
+      <button type="button" onClick={() => history.goBack()}>
+        History Back
+      </button>
+      <button type="button" onClick={() => history.goForward()}>
+        History Forward
+      </button>
     </>
   );
 }

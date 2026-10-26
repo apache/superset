@@ -14394,7 +14394,7 @@ msgstr ""
 
 #, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
@@ -14864,7 +14864,7 @@ msgstr ""
 
 #, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
 
