@@ -706,7 +706,11 @@ Virtual dataset SQL renders Jinja against the same form data as the dashboard
 dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`),
 inherited parent time ranges, and the native filter row limit as `row_limit`
 (`NATIVE_FILTER_DEFAULT_ROW_LIMIT`, capped by the server row limit); a request's
-`limit` bounds only the returned options. When that SQL reads the target column
+`limit` bounds only the returned options. `metrics` holds only the filter's sort
+metric, as on the dashboard. For a numeric target whose templates read `metrics`
+or call the `metric` macro, discovery cannot tell SQL NULL from NaN in float
+results, so it omits those options and reports `truncated/invalid_scalar`.
+When that SQL reads the target column
 through a filter macro such as `get_filters`, the macro receives discovery's own
 probe without its literal semantics, so search returns
 `unsupported/unsupported_search`, exact probes return

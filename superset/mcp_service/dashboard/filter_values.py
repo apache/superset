@@ -32,10 +32,13 @@ from typing import Any, cast, Literal, TYPE_CHECKING
 
 from fastmcp.exceptions import ToolError
 from flask import current_app, g
+from jinja2 import meta, TemplateSyntaxError
+from jinja2.exceptions import SecurityError
 from marshmallow import ValidationError
 from pandas import DataFrame, NA
 from sqlalchemy.exc import CompileError, UnsupportedCompilationError
 
+from superset import is_feature_enabled, security_manager
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -714,6 +717,45 @@ def _parent_extra(context: _Discovery, filter_id: str) -> dict[str, Any]:
     return extra
 
 
+def _templates_observe_metrics(conf: dict[str, Any], dataset: SqlaTable) -> bool:
+    """Whether Jinja rendered for a dropdown query could read its metrics list.
+
+    The dashboard dropdown renders templates with only its sort metric, so an
+    internal evidence metric must not be visible to any template that reads
+    ``metrics`` or renders another metric through the ``metric`` macro.
+    """
+    if not is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+        return False
+    texts: list[Any] = [
+        dataset.sql,
+        *(column.expression for column in dataset.columns),
+        *(metric.expression for metric in dataset.metrics),
+        *(
+            predicate.get("sqlExpression")
+            for predicate in conf.get("adhoc_filters") or []
+            if isinstance(predicate, dict)
+        ),
+        *(rule.clause for rule in security_manager.get_rls_filters(dataset)),
+        *(
+            rule.get("clause")
+            for rule in security_manager.get_guest_rls_filters(dataset)
+        ),
+    ]
+    env = None
+    for text in texts:
+        if not isinstance(text, str) or "metric" not in text:
+            continue
+        env = env or dataset.get_template_processor().env
+        try:
+            names = meta.find_undeclared_variables(env.parse(text))
+        except (SecurityError, TemplateSyntaxError):
+            # An unparseable template cannot be shown not to read metrics.
+            return True
+        if names & {"metrics", "metric"}:
+            return True
+    return False
+
+
 def _native_query(  # noqa: C901
     context: _Discovery,
     conf: dict[str, Any],
@@ -765,9 +807,13 @@ def _native_query(  # noqa: C901
     query["columns"] = [column]
     query.setdefault("extras", {})["preserve_literal_values"] = True
     query["metrics"] = [metric] if metric else []
-    if target.column.type_generic == GenericDataType.NUMERIC:
+    if target.column.type_generic == GenericDataType.NUMERIC and not (
+        _templates_observe_metrics(conf, target.dataset)
+    ):
         # Pandas represents both SQL NULL and database NaN as NaN in float
         # columns. COUNT(target) distinguishes those groups without another query.
+        # Templates that read metrics skip it to render as the dropdown does;
+        # their ambiguous NaN groups are then omitted as invalid scalars.
         count_label = "__mcp_native_nonnull_count"
         while count_label in (column, metric):
             count_label += "_"

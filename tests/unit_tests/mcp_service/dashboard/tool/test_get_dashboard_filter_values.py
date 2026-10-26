@@ -2179,6 +2179,124 @@ def test_jinja_row_limit_matches_the_dashboard_dropdown(
     assert _available(summaries[0]).values == expected
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("select {{ 2 if metrics else 1 }} as amount", [1]),
+        ("select {{ metrics | length }} as amount", [0]),
+    ],
+)
+def test_metrics_template_renders_as_the_dashboard_dropdown(
+    sqlite_native_execution: dict[str, Any], sql: str, expected: list[int]
+) -> None:
+    """The internal non-null count is never visible to Jinja ``metrics``."""
+    sqlite_native_execution["dataset"].sql = sql
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("amount")),
+        _request(filter_value_requests=[{"filter_id": "amount"}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == expected
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("source", "observes"),
+    [
+        ("none", False),
+        ("sql_text_only", False),
+        ("sql", True),
+        ("column", True),
+        ("metric", True),
+        ("metric_macro", True),
+        ("adhoc_filter", True),
+        ("rls", True),
+        ("guest_rls", True),
+        ("unparseable", True),
+    ],
+)
+def test_metrics_observation_covers_every_rendered_template(
+    native_query: dict[str, Any], mocker: MockerFixture, source: str, observes: bool
+) -> None:
+    """Each template the query renders is checked, failing closed when unparseable."""
+    from superset.connectors.sqla.models import SqlMetric
+
+    dataset = native_query["dataset"]
+    conf = _filter("amount")
+    rls: list[Any] = []
+    guest_rls: list[dict[str, Any]] = []
+    if source == "sql_text_only":
+        dataset.sql = "select 'metrics' as amount"
+    elif source == "sql":
+        dataset.sql = "select {{ metrics | length }} as amount"
+    elif source == "column":
+        dataset.columns.append(
+            TableColumn(column_name="m", expression="{{ metrics | length }}")
+        )
+    elif source == "metric":
+        dataset.metrics = [
+            SqlMetric(metric_name="m", expression="{{ metrics | length }}")
+        ]
+    elif source == "metric_macro":
+        dataset.sql = "select {{ metric('m') }} as amount"
+    elif source == "adhoc_filter":
+        conf["adhoc_filters"] = [
+            {"expressionType": "SQL", "sqlExpression": "{{ metrics | length }} > 0"}
+        ]
+    elif source == "rls":
+        rls = [Mock(clause="{{ metrics | length }} > 0")]
+    elif source == "guest_rls":
+        guest_rls = [{"clause": "{{ metrics | length }} > 0"}]
+    elif source == "unparseable":
+        dataset.sql = "select {{ metrics"
+    mocker.patch("superset.security_manager.get_rls_filters", return_value=rls)
+    mocker.patch(
+        "superset.security_manager.get_guest_rls_filters", return_value=guest_rls
+    )
+    assert choices._templates_observe_metrics(conf, dataset) is observes
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
+def test_metrics_observation_is_off_without_template_processing(
+    native_query: dict[str, Any],
+) -> None:
+    """Without template processing nothing renders, so the count stays."""
+    native_query["dataset"].sql = "select {{ metrics | length }} as amount"
+    assert (
+        choices._templates_observe_metrics(_filter("amount"), native_query["dataset"])
+        is False
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("template", "status", "reason", "values"),
+    [
+        ("{% if metrics %}{% endif %}", "truncated", "invalid_scalar", [1.5]),
+        ("{% if columns %}{% endif %}", "complete", None, [None, 1.5]),
+    ],
+)
+def test_float_null_evidence_without_the_count_is_never_complete(
+    sqlite_native_execution: dict[str, Any],
+    template: str,
+    status: str,
+    reason: str | None,
+    values: list[Any],
+) -> None:
+    """Without the count, NULL and NaN groups are indistinguishable and omitted."""
+    sqlite_native_execution["dataset"].sql = (
+        "select cast(null as real) as amount union all select 1.5 " + template
+    )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("amount")),
+        _request(filter_value_requests=[{"filter_id": "amount"}]),
+    )
+    assert _available(summaries[0]).status == status
+    assert _available(summaries[0]).reason == reason
+    assert _available(summaries[0]).values == values
+
+
 _SWALLOWED_COUNTRY_SQL = (
     "select * from sales where 1 = 1 "
     "{% for f in get_filters('country', remove_filter=True) %}{% endfor %}"
