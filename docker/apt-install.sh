@@ -38,6 +38,14 @@ RESET='\033[0m'
 echo -e "${GREEN}Updating package lists...${RESET}"
 apt-get update -qq
 
+# The base image's already-installed packages can lag behind the latest
+# point release available in its own configured repos between rebuilds of
+# that image tag. Applying available updates at build time, not just
+# whatever shipped with the base image, keeps every already-installed
+# package current too, not only the ones this call adds.
+echo -e "${GREEN}Applying available package updates...${RESET}"
+apt-get upgrade -yqq
+
 echo -e "${GREEN}Installing packages: $*${RESET}"
 apt-get install -yqq --no-install-recommends "$@"
 

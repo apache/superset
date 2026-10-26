@@ -571,7 +571,8 @@ categories:
 
     - name: DouroECI
       url: https://www.douroeci.com/
-      contributors: ["@nunohelibeires"]
+      logo: douroeci.png
+      contributors: ["@nunohelibeires", "@J0s3-H3nr1qu3"]
 
     - name: Rogow
       url: https://rogow.com.br/
@@ -612,6 +613,11 @@ categories:
     - name: Medic
       url: https://medic.org
       contributors: ["@1yuv"]
+
+    - name: Plum
+      url: https://www.plumhq.com/
+      logo: plum.svg
+      contributors: ["@shubhpy", "@ankush-plum", "@PranavParimi"]
 
     - name: REDCap Cloud
       url: https://www.redcapcloud.com/
