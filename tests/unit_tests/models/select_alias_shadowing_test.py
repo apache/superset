@@ -184,8 +184,9 @@ def test_results_carry_the_expected_labels(
     assert list(result.df.columns) == ["ts", "n"]
 
 
+@pytest.mark.parametrize("group_others", [False, True])
 def test_renamed_alias_does_not_collide_with_series_limit_alias(
-    table: SqlaTable, shadowing: None
+    table: SqlaTable, shadowing: None, group_others: bool
 ) -> None:
     query_obj = _query_obj()
     query_obj["columns"].append(
@@ -195,6 +196,7 @@ def test_renamed_alias_does_not_collide_with_series_limit_alias(
     query_obj["series_columns"] = ["label"]
     query_obj["series_limit"] = 3
     query_obj["series_limit_metric"] = query_obj["metrics"][0]
+    query_obj["group_others_when_limit_reached"] = group_others
     sqlaq, sql = _compile(table, query_obj)
     assert "JOIN" in sql, sql
     assert len(re.findall(r"\bAS\s+\"?label__\"?(?!\w)", sql)) == 1, sql
