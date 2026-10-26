@@ -62,9 +62,13 @@ Steps:
 
 1. Create `./docker/requirements-local.txt`
 2. Add your new packages
-3. Rebuild docker compose
-    1. `docker compose down -v`
+3. Restart the Docker Compose stack so the local packages are installed:
+    1. `docker compose down`
     2. `docker compose up`
+
+The `docker compose down` command preserves the existing named volumes used by
+the metadata database and other local data. To start from a clean state, run
+`docker compose down -v`.
 
 ## Initializing Database
 
