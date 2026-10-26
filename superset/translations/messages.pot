@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 23:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7890,6 +7890,10 @@ msgstr ""
 
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
+msgstr ""
+
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
 msgstr ""
 
 #, python-format

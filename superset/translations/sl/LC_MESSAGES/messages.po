@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 23:01+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1080,6 +1080,12 @@ msgstr ""
 "Svečniški grafikon prikazuje vrednosti odprtja, zaprtja, najvišjo in "
 "najnižjo za vsako obdobje. Pogosto se uporablja za finančne in druge "
 "analize razponov časovnih vrst."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Seznam stolpcev, ločenih z vejico, ki jih je treba razčleniti kot datume"
@@ -9222,6 +9228,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Neveljavni ID-ji zavihkov: %(tab_ids)s"
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -11024,6 +11034,9 @@ msgstr "Shranjeni izrazi niso najdeni"
 
 msgid "No saved metrics found"
 msgstr "Shranjene mere niso najdene"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -14665,6 +14678,9 @@ msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Prikaži mehurčke"
 
@@ -18252,6 +18268,9 @@ msgstr "Oblika zapisa časa"
 msgid "Time grain"
 msgstr "Granulacija časa"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Vtičnik za prilagajanje grafikona časovni zrnatosti"
 
@@ -18388,6 +18407,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]

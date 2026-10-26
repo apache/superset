@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 23:01+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1012,6 +1012,12 @@ msgstr ""
 "Mum grafiği her dönem için açılış, kapanış, en yüksek ve en düşük "
 "değerleri gösterir. Genellikle finansal ve diğer zaman serisi aralık "
 "analizlerinde kullanılır."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Tarih olarak ayrıştırılacak sütunların virgülle ayrılmış listesi"
@@ -9291,6 +9297,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Geçersiz sekme kimlikleri: %(tab_ids)s"
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -11178,6 +11188,9 @@ msgstr "Bululmuş ifadeler bulunamadı"
 
 msgid "No saved metrics found"
 msgstr "Bullanmamış ölçümler bulunamadı"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -14982,6 +14995,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Göster Bubbles"
 
@@ -18643,6 +18659,9 @@ msgstr "Zaman formatı"
 msgid "Time grain"
 msgstr "Zaman tahıl"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Zaman tahıl grafiği özelleştirme eklenti"
 
@@ -18779,6 +18798,9 @@ msgstr ""
 msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "Hediye İste URIRIRI"

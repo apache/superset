@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 23:01+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1035,6 +1035,12 @@ msgstr ""
 "Свечной график показывает цены открытия, закрытия, максимум и минимум за "
 "каждый период. Обычно используется для финансового и другого анализа "
 "диапазонов временных рядов."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -8948,6 +8954,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Некорректные ID вкладок: %(tab_ids)s"
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -10708,6 +10718,9 @@ msgstr "Сохраненные выражения не найдены"
 
 msgid "No saved metrics found"
 msgstr "Сохраненные меры не найдены"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -14236,6 +14249,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Показать пузыри"
 
@@ -17738,6 +17754,9 @@ msgstr "Формат даты/времени"
 msgid "Time grain"
 msgstr "Шаг времени"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Плагин настройки диаграммы по шагу времени"
 
@@ -17868,6 +17887,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "URI запроса токена"

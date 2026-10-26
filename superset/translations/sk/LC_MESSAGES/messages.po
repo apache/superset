@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 23:01+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1043,6 +1043,12 @@ msgstr ""
 "Sviečkový graf zobrazuje otváracie, uzatváracie, najvyššie a najnižšie "
 "hodnoty za každé obdobie. Bežne sa používa na finančnú a inú analýzu "
 "rozpätia časových radov."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddelený zoznam stĺpcov, ktoré sa majú spracovať ako data"
@@ -9258,6 +9264,10 @@ msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "Neplatná ID karet: %(tab_ids)s"
 
 #, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
+#, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
@@ -11085,6 +11095,9 @@ msgstr "Nebyly nalezeny žiadne uložené výrazy"
 
 msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žiadne uložené metriky"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -14779,6 +14792,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Zobraziť bubliny"
 
@@ -18387,6 +18403,9 @@ msgstr "Formát času"
 msgid "Time grain"
 msgstr "Časová granularita"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Plugin časové granularity pre prispôsobenie grafu"
@@ -18521,6 +18540,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
