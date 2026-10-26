@@ -339,6 +339,9 @@ class DatabaseSchema(Schema):
 
 
 class DashboardDatasetSchema(Schema):
+    metadata_error: fields.String = fields.String(
+        metadata={"description": "Validation error for this dataset only."}
+    )
     supports_drill_to_detail: fields.Bool = fields.Bool()
     supports_samples: fields.Bool = fields.Bool()
     parent: fields.Dict = fields.Dict()
@@ -375,6 +378,19 @@ class DashboardDatasetSchema(Schema):
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())
+    # Built server-side from accessible member charts only, so it survives both
+    # datasource-access narrowing (which removes ``verbose_map``) and guest narrowing.
+    chart_display_labels = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(keys=fields.Str(), values=fields.Str()),
+        metadata={
+            "description": "Display labels keyed by member chart ID, then by the "
+            "raw column or metric ID that chart uses. Only charts the caller can "
+            "access and labels configured for their saved dimensions and metrics "
+            "are included; omitted for semantic views, when there are none, or "
+            "when the caller has datasource access and already receives verbose_map."
+        },
+    )
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()

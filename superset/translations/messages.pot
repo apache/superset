@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 12:42+0300\n"
+"POT-Creation-Date: 2026-10-26 13:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -899,6 +899,9 @@ msgstr ""
 msgid "A candlestick chart shows opening, closing, high, and low values for each period. It is commonly used for financial and other time-series range analysis."
 msgstr ""
 
+msgid "A chart on this dashboard or in this version was permanently deleted while the dashboard was being restored, so nothing was changed. Please try again."
+msgstr ""
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 
@@ -1073,6 +1076,9 @@ msgid "Aborting"
 msgstr ""
 
 msgid "About"
+msgstr ""
+
+msgid "Accept"
 msgstr ""
 
 msgid "Access"
@@ -1336,8 +1342,8 @@ msgid "Added '%s' dimension"
 msgstr ""
 
 #, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1467,6 +1473,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid "Aggregation used for the summary row. By default each metric keeps its own aggregation; Sum and Average override it for the summary row only. The override applies to simple metrics (a metric built from custom SQL always keeps its own aggregation). Overriding a count or a distinct count sums the counted column instead, which fails outright on a non-numeric column."
@@ -3090,10 +3099,16 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
+msgid "Changing this setting may change the casing for all columns in this dataset, which may break any existing charts and dashboard filters that reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr ""
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -3231,6 +3246,10 @@ msgid "Chart title"
 msgstr ""
 
 msgid "Chart type"
+msgstr ""
+
+#, python-format
+msgid "Chart updated: %s"
 msgstr ""
 
 msgid "Chart was saved but could not be added to the selected tab."
@@ -3536,6 +3555,9 @@ msgstr ""
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr ""
 
@@ -3665,6 +3687,10 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+#, python-format
+msgid "Color scheme: %s"
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -4196,7 +4222,22 @@ msgstr ""
 msgid "Could not verify which dimensions are compatible. All dimensions are shown."
 msgstr ""
 
+msgid "Couldn't validate this semantic view: it may not exist, or the semantic layer is unreachable."
+msgstr ""
+
 msgid "Count"
+msgstr ""
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
 msgstr ""
 
 msgid "Country"
@@ -4617,6 +4658,10 @@ msgstr ""
 msgid "Dashboard updated %s"
 msgstr ""
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr ""
 
@@ -4829,6 +4874,10 @@ msgstr ""
 
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Dataset updated: %s"
 msgstr ""
 
 #, python-format
@@ -6592,6 +6641,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -6862,7 +6915,11 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions"
+msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid "Filter column '%(column)s' is not in this semantic view. Select a dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -7233,7 +7290,7 @@ msgstr ""
 msgid "Get the last date by the date unit."
 msgstr ""
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -7396,10 +7453,10 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -7850,6 +7907,9 @@ msgstr ""
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
+msgid "Invalid number format: must be a d3-format specifier or a supported named format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr ""
@@ -8184,6 +8244,9 @@ msgstr ""
 msgid "Lat"
 msgstr ""
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr ""
 
@@ -8224,6 +8287,9 @@ msgid "Layout type of tree"
 msgstr ""
 
 msgid "Least recently modified"
+msgstr ""
+
+msgid "Leave a bound empty for an unbounded range."
 msgstr ""
 
 msgid "Leave blank to keep the current password"
@@ -8424,6 +8490,9 @@ msgstr ""
 msgid "List Roles"
 msgstr ""
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr ""
 
@@ -8552,10 +8621,10 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -8766,6 +8835,9 @@ msgstr ""
 msgid "Mean values"
 msgstr ""
 
+msgid "Median"
+msgstr ""
+
 msgid "Median edge width, the thickest edge will be 4 times thicker than the thinnest."
 msgstr ""
 
@@ -8971,6 +9043,9 @@ msgstr ""
 msgid "Minimum Font Size"
 msgstr ""
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr ""
 
@@ -8978,6 +9053,12 @@ msgid "Minimum Width"
 msgstr ""
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Only applies to numeric and time axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Useful to avoid fractional ticks on integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -9045,8 +9126,8 @@ msgid "Modified %s"
 msgstr ""
 
 #, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -9525,6 +9606,9 @@ msgstr ""
 msgid "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)"
 msgstr ""
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr ""
 
@@ -9847,6 +9931,10 @@ msgid "Only the first %s values are listed."
 msgstr ""
 
 #, python-format
+msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
+msgstr ""
+
+#, python-format
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
 msgstr ""
 
@@ -9872,9 +9960,6 @@ msgid "Opacity of bubbles, 0 means completely transparent, 1 means opaque"
 msgstr ""
 
 msgid "Opacity, expects values between 0 and 100"
-msgstr ""
-
-msgid "Open"
 msgstr ""
 
 msgid "Open Datasource tab"
@@ -9905,6 +9990,9 @@ msgid "Open in SQL Lab"
 msgstr ""
 
 msgid "Open in SQL lab"
+msgstr ""
+
+msgid "Open price"
 msgstr ""
 
 msgid "Open query in SQL Lab"
@@ -11005,8 +11093,8 @@ msgid "Removed '%s' metric"
 msgstr ""
 
 #, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -11881,6 +11969,12 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr ""
 
@@ -11933,9 +12027,6 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
-msgstr ""
-
-msgid "Search records"
 msgstr ""
 
 msgid "Search tags"
@@ -12370,6 +12461,10 @@ msgstr ""
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr ""
 
@@ -12419,6 +12514,9 @@ msgid "Semantic view parameters are invalid."
 msgstr ""
 
 msgid "Semantic view updated"
+msgstr ""
+
+msgid "Semantic view validation timed out before this view was checked. Retry it in a separate request."
 msgstr ""
 
 msgid "Semantic views"
@@ -12630,6 +12728,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr ""
 
@@ -12723,10 +12824,10 @@ msgstr ""
 msgid "Show column headers"
 msgstr ""
 
-msgid "Show columns subtotal"
+msgid "Show column summaries"
 msgstr ""
 
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show empty columns"
@@ -12801,10 +12902,10 @@ msgstr ""
 msgid "Show row labels"
 msgstr ""
 
-msgid "Show rows subtotal"
+msgid "Show row summaries"
 msgstr ""
 
-msgid "Show rows total"
+msgid "Show rows subtotal"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -12989,6 +13090,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
@@ -13421,6 +13525,15 @@ msgstr ""
 msgid "Sum"
 msgstr ""
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr ""
 
@@ -13698,6 +13811,9 @@ msgid "Template for cell titles. Use Handlebars templating syntax (a popular tem
 msgstr ""
 
 msgid "Template parameters"
+msgstr ""
+
+msgid "Template parameters must be a valid JSON object."
 msgstr ""
 
 #, python-format
@@ -14504,10 +14620,17 @@ msgstr ""
 msgid "The version of the service"
 msgstr ""
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
+msgstr ""
+
+#, python-format
+msgid "The widget was changed by someone else. Reload it and apply your change to revision %(revision)s."
 msgstr ""
 
 msgid "The width of the Isoline in pixels"
@@ -14938,6 +15061,9 @@ msgstr ""
 msgid "This chart version can't be restored because the semantic view it used has been permanently deleted. Restore a version that uses an existing semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -15149,6 +15275,9 @@ msgstr ""
 msgid "This password reset link is invalid or has expired."
 msgstr ""
 
+msgid "This pivot table used a legacy per-table aggregation setting that could be stale or incorrect, depending on which version you upgraded from. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
 msgid "This placement has no data binding."
 msgstr ""
 
@@ -15356,6 +15485,9 @@ msgstr ""
 msgid "Time grain"
 msgstr ""
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr ""
 
@@ -15463,6 +15595,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
+
 msgid "Token Request URI"
 msgstr ""
 
@@ -15471,6 +15606,10 @@ msgstr ""
 
 #, python-format
 msgid "Too many sub-slices requested. The maximum allowed is %(max)s, but %(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
 msgstr ""
 
 msgid "Tool Panel"
@@ -16089,10 +16228,16 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
+msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use example.com for an exact domain, *.example.com for subdomains, or preset.* for preset.io and preset.ai. A trailing wildcard matches one segment. Leave empty to allow any domain."
 msgstr ""
 
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use metric definition"
 msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
@@ -16343,6 +16488,9 @@ msgid "Viewers is a list of subjects who can view the dashboard. If no viewers a
 msgstr ""
 
 msgid "Viewport"
+msgstr ""
+
+msgid "Views must be a list of objects"
 msgstr ""
 
 msgid "Virtual"
@@ -16772,6 +16920,21 @@ msgstr ""
 msgid "Why do I need to create a database?"
 msgstr ""
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr ""
 
@@ -16830,6 +16993,9 @@ msgstr ""
 msgid "X Axis Label Interval"
 msgstr ""
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr ""
 
@@ -16874,6 +17040,9 @@ msgid "Y Axis Format"
 msgstr ""
 
 msgid "Y Axis Label"
+msgstr ""
+
+msgid "Y Axis Minimum Interval"
 msgstr ""
 
 msgid "Y Axis Title"
@@ -17149,16 +17318,25 @@ msgstr ""
 msgid "You must be a %s editor in order to edit. Please reach out to a %s editor to request modifications or edit access."
 msgstr ""
 
+msgid "You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access."
+msgstr ""
+
 msgid "You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access."
 msgstr ""
 
 msgid "You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access."
 msgstr ""
 
+msgid "You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access."
+msgstr ""
+
 msgid "You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access."
 msgstr ""
 
 msgid "You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid "You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid "You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access."
@@ -17275,6 +17453,9 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
+msgstr ""
+
+msgid "Your role does not have access to the profile page needed to change your password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."

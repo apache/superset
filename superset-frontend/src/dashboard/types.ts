@@ -230,7 +230,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
@@ -245,6 +245,7 @@ export type ChartsState = { [key: string]: Chart };
 
 export type Datasource = Dataset & {
   uid: string;
+  chart_display_labels?: Record<string, Record<string, string>>;
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;

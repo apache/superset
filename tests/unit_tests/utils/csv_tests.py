@@ -19,6 +19,7 @@
 from typing import Any
 from unittest import mock
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pytest
@@ -253,6 +254,19 @@ def test_df_to_escaped_csv_preserves_numeric_columns():
     # Safe string is untouched; numeric values (including negatives) are not
     # escaped or quoted.
     assert rows[2] == ["safe", "-20"]
+
+
+@pytest.mark.parametrize("scalar", [int, np.int64], ids=["python-int", "numpy-int64"])
+def test_df_to_escaped_csv_object_big_integers(scalar: type) -> None:
+    """Nullable big integers keep every digit; null and NaN rows are blank."""
+    values = [scalar(2**53 + 1), None, scalar(7), float("nan"), scalar(-(2**63))]
+    df = pd.DataFrame(
+        {"value": pd.Series(values, dtype=object), "label": list("abcde")}
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "value,label\n9007199254740993,a\n,b\n7,c\n,d\n-9223372036854775808,e\n"
+    )
 
 
 def test_df_to_escaped_csv_non_default_index():

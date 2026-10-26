@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@apache-superset/core/theme';
-import {
-  colorSchemeDark,
-  colorSchemeLight,
-  themeQuartz,
-} from '@superset-ui/core/components/ThemedAgGridReact';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import tinycolor from 'tinycolor2';
 
-export const useIsDark = () => {
-  const theme = useTheme();
-  return tinycolor(theme.colorBgContainer).isDark();
-};
+// Source: https://gist.github.com/AriPerkkio/99b9eedc7d8f71ff6e6770f9425a4be4
+import { defineConfig } from '@playwright/test';
 
-const useTableTheme = (): ReturnType<typeof themeQuartz.withPart> => {
-  const baseTheme = themeQuartz;
-  const isDarkTheme = useIsDark();
-  const tableTheme = isDarkTheme
-    ? baseTheme.withPart(colorSchemeDark)
-    : baseTheme.withPart(colorSchemeLight);
-  return tableTheme;
-};
-
-export default useTableTheme;
+const storybookUrl = 'http://localhost:6006';
+export default defineConfig({
+  testDir: '.',
+  globalSetup: 'setup-stories.ts',
+  use: { baseURL: storybookUrl },
+  fullyParallel: true,
+  // Playwright defaults to half the cores. The story smoke tests are light and
+  // CPU-bound, so use every core on CI; locally keep the default so a dev
+  // machine stays responsive.
+  workers: process.env.CI ? '100%' : undefined,
+  webServer: {
+    command: 'npm run storybook -- --ci',
+    url: `${storybookUrl}/index.json`,
+    reuseExistingServer: true,
+  },
+});
