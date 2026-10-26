@@ -696,7 +696,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
       params.delete('sortColumn');
       params.delete('sortOrder');
       params.delete('pageIndex');
-      history.replace({ search: params.toString() });
+      history.push({ search: params.toString() });
     },
     [history],
   );
