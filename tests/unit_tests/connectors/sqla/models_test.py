@@ -2625,6 +2625,35 @@ def test_get_fetch_values_predicate_wraps_undefined_error(
         sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
 
 
+def test_adhoc_column_to_sqla_wraps_undefined_error_in_metadata_lookup(
+    mocker: MockerFixture,
+) -> None:
+    """A template that raises a raw ``UndefinedError`` (an undefined name that is
+    not shaped like a function call, e.g. ``{{ foo.bar }}``) while rendering an
+    adhoc column for the metadata lookup must surface as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    template_processor = JinjaTemplateProcessor(database=database, table=sqla_table)
+
+    with pytest.raises(QueryObjectValidationError, match="Error in jinja expression"):
+        sqla_table.adhoc_column_to_sqla(
+            {
+                "label": "my_col",
+                "sqlExpression": "{{ foo.bar }}",
+                "expressionType": "SQL",
+            },
+            template_processor=template_processor,
+        )
+
+
 def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
     """A ``TypeError`` raised by a Python builtin invoked from within the
     template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
