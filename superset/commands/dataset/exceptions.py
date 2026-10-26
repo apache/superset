@@ -54,7 +54,9 @@ def get_template_render_error_msg(ex: Exception) -> str:
 
 
 def get_dataset_exist_error_msg(table: Table) -> str:
-    return _("Dataset %(table)s already exists", table=table)
+    """Render a readable display name, not the URL-encoded Table identity."""
+    name = ".".join(part for part in (table.catalog, table.schema, table.table) if part)
+    return str(_("Dataset %(table)s already exists", table=name))
 
 
 class MultiCatalogDisabledValidationError(ValidationError):

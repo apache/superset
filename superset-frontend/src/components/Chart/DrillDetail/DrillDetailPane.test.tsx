@@ -298,7 +298,10 @@ describe('download actions', () => {
     expect(payload.result_type).toBe('drill_detail');
     expect(payload.result_format).toBe('csv');
     expect(payload.queries[0].row_limit).toBe(50000);
-    expect(payload.form_data.dashboardId).toBe(123);
+    expect(payload.form_data).toEqual({
+      dashboardId: 123,
+      viz_type: chart.form_data.viz_type,
+    });
     postFormSpy.mockRestore();
   });
 
@@ -488,3 +491,46 @@ test('resets to page 1 and refetches on reload', async () => {
   expect(screen.queryByText('42.42')).not.toBeInTheDocument();
   expect(fetchMock.callHistory.calls(SAMPLES_ENDPOINT)).toHaveLength(2);
 });
+
+test.each([
+  ['Export to CSV', 'csv'],
+  ['Export to Excel', 'xlsx'],
+])(
+  'Sunburst %s carries chart type without dashboard context',
+  async (label, format) => {
+    jest.restoreAllMocks();
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockResolvedValue();
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={
+          {
+            ...chart.form_data,
+            viz_type: 'sunburst_v2',
+          } as unknown as QueryFormData
+        }
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          user: { roles: { Admin: [['can_csv', 'Superset']] } },
+          common: { conf: { SAMPLES_ROW_LIMIT: 10, ROW_LIMIT: 50000 } },
+          dashboardInfo: { id: undefined },
+        },
+      },
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText(label));
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.form_data).toEqual({ viz_type: 'sunburst_v2' });
+    expect(payload.result_format).toBe(format);
+    postFormSpy.mockRestore();
+  },
+);
