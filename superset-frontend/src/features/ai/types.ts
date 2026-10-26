@@ -183,7 +183,20 @@ export interface AiSqlResultDisplay {
 }
 
 /** Detail a tool attaches to its step for the UI to render. */
-export type AiToolDisplay = AiSqlResultDisplay | AiOpaqueDisplay;
+export interface AiChartAuthoringDisplay {
+  kind: 'chart_authoring';
+  formDataKey?: string;
+  formData?: JsonRecord & { datasource: string; viz_type: string };
+}
+
+export type AiToolDisplay =
+  | AiSqlResultDisplay
+  | AiChartAuthoringDisplay
+  | AiOpaqueDisplay;
+
+export const isChartAuthoringDisplay = (
+  display: AiToolDisplay | undefined,
+): display is AiChartAuthoringDisplay => display?.kind === 'chart_authoring';
 
 export const isSqlResultDisplay = (
   display: AiToolDisplay | undefined,
@@ -323,6 +336,27 @@ export function parseToolDisplay(
     return undefined;
   }
   const kind = readString(value, 'kind');
+  if (kind === 'chart_authoring') {
+    const formData = value.form_data;
+    const datasource = isRecord(formData)
+      ? readString(formData, 'datasource')
+      : undefined;
+    const vizType = isRecord(formData)
+      ? readString(formData, 'viz_type')
+      : undefined;
+    return {
+      kind,
+      formDataKey: readString(value, 'form_data_key'),
+      formData:
+        isRecord(formData) &&
+        datasource &&
+        vizType &&
+        !readBoolean(value, '_truncated') &&
+        !readBoolean(formData, '_truncated')
+          ? { ...formData, datasource, viz_type: vizType }
+          : undefined,
+    };
+  }
   if (kind !== 'sql_result') {
     return { kind };
   }

@@ -20,10 +20,9 @@
 /**
  * @fileoverview A chart rendered inside a chat message.
  *
- * The assistant does not send a chart, it sends a `form_data_key` it stored — so
- * what arrives in the transcript is a reference the client resolves, and the
- * rendered chart is the real thing, with the real permissions, rather than an
- * image of one.
+ * New authoring records retain form data with the conversation. Older records
+ * resolve their temporary form_data_key. Both render a real chart using the
+ * current user's data permissions; retained configuration does not retain rows.
  *
  * The awkward part is timing: the key can exist before the query behind it has
  * finished. Rather than show the chart's own "No data" state (which reads as a
@@ -42,6 +41,8 @@ import { t } from '@apache-superset/core/translation';
 import { Loading } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import { exploreChart } from 'src/explore/exploreUtils';
+import type { AiChartAuthoringDisplay } from '../types';
 
 const VALID_KEY_PATTERN = /^[a-zA-Z0-9_-]+$/;
 const MIN_HEIGHT = 100;
@@ -233,6 +234,7 @@ const CenteredMessage = styled.div<{ height: number }>`
 
 interface ChatChartEmbedProps {
   formDataKey: string;
+  savedFormData?: AiChartAuthoringDisplay['formData'];
   height?: number;
   title?: string;
 }
@@ -245,8 +247,33 @@ type FetchState =
 const exploreUrlFor = (formDataKey: string): string =>
   `/explore/?form_data_key=${encodeURIComponent(formDataKey)}`;
 
+function ExploreChartAction({
+  formDataKey,
+  savedFormData,
+}: ChatChartEmbedProps) {
+  const label = (
+    <>
+      <Icons.ExpandOutlined iconSize="s" /> {t('Open in Explore')}
+    </>
+  );
+  return savedFormData ? (
+    <ActionButton type="button" onClick={() => exploreChart(savedFormData)}>
+      {label}
+    </ActionButton>
+  ) : (
+    <ActionLink
+      href={exploreUrlFor(formDataKey)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {label}
+    </ActionLink>
+  );
+}
+
 export function ChatChartEmbedInner({
   formDataKey,
+  savedFormData,
   height = DEFAULT_HEIGHT,
   title,
 }: ChatChartEmbedProps) {
@@ -314,8 +341,6 @@ export function ChatChartEmbedInner({
     return () => observer.disconnect();
   }, [fetchState.status]);
 
-  const exploreUrl = exploreUrlFor(formDataKey);
-
   const fetchFormData = useCallback(
     async (attempt: number = 0) => {
       setFetchState({ status: 'loading' });
@@ -334,20 +359,27 @@ export function ChatChartEmbedInner({
       };
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          FETCH_TIMEOUT_MS,
-        );
+        let raw: unknown;
+        if (savedFormData) {
+          // Chart queries still use the current user's normal data permissions.
+          raw = JSON.stringify(savedFormData);
+        } else {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(
+            () => controller.abort(),
+            FETCH_TIMEOUT_MS,
+          );
+          try {
+            const response = await SupersetClient.get({
+              endpoint: `/api/v1/explore/form_data/${encodeURIComponent(formDataKey)}`,
+              signal: controller.signal,
+            });
+            raw = response.json;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
 
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/explore/form_data/${encodeURIComponent(formDataKey)}`,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        const raw = response.json;
         const formDataStr =
           typeof raw === 'string'
             ? raw
@@ -404,7 +436,7 @@ export function ChatChartEmbedInner({
         setFetchState({ status: 'error', message: errorMessage });
       }
     },
-    [formDataKey],
+    [formDataKey, savedFormData],
   );
 
   useEffect(() => {
@@ -426,13 +458,10 @@ export function ChatChartEmbedInner({
               <Icons.ReloadOutlined iconSize="s" /> {t('Retry')}
             </ActionButton>
           )}
-          <ActionLink
-            href={exploreUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Icons.ExpandOutlined iconSize="s" /> {t('Open in Explore')}
-          </ActionLink>
+          <ExploreChartAction
+            formDataKey={formDataKey}
+            savedFormData={savedFormData}
+          />
         </ChartActions>
       </ChartHeader>
 
@@ -446,13 +475,10 @@ export function ChatChartEmbedInner({
       {fetchState.status === 'error' && (
         <CenteredMessage height={Math.min(height, 120)}>
           <span>{fetchState.message}</span>
-          <ActionLink
-            href={exploreUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Icons.ExpandOutlined iconSize="s" /> {t('View in Explore instead')}
-          </ActionLink>
+          <ExploreChartAction
+            formDataKey={formDataKey}
+            savedFormData={savedFormData}
+          />
         </CenteredMessage>
       )}
 
@@ -499,21 +525,16 @@ export function ChatChartEmbedInner({
 export function ChartEmbedFallback({
   height,
   formDataKey,
-}: {
-  height: number;
-  formDataKey: string;
-}) {
+  savedFormData,
+}: ChatChartEmbedProps & { height: number }) {
   return (
     <ChartContainer>
       <CenteredMessage height={Math.min(height, 120)}>
         <span>{t('Something went wrong rendering this chart.')}</span>
-        <ActionLink
-          href={exploreUrlFor(formDataKey)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Icons.ExpandOutlined iconSize="s" /> {t('Open in Explore instead')}
-        </ActionLink>
+        <ExploreChartAction
+          formDataKey={formDataKey}
+          savedFormData={savedFormData}
+        />
       </CenteredMessage>
     </ChartContainer>
   );
@@ -531,7 +552,13 @@ export default function ChatChartEmbed(props: ChatChartEmbedProps) {
   const [crashed, setCrashed] = useState(false);
 
   if (crashed) {
-    return <ChartEmbedFallback height={height} formDataKey={formDataKey} />;
+    return (
+      <ChartEmbedFallback
+        height={height}
+        formDataKey={formDataKey}
+        savedFormData={props.savedFormData}
+      />
+    );
   }
 
   return (

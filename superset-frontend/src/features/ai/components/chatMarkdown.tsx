@@ -52,6 +52,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { addQueryEditor } from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import { type AiToolCall, isChartAuthoringDisplay } from '../types';
 import ChatChartEmbed, { parseChartEmbedParams } from './ChatChartEmbed';
 
 export const REMARK_PLUGINS = [remarkGfm];
@@ -437,7 +438,10 @@ export interface UseChatMarkdownReturn {
   /** Copy helper (also used by message-level copy buttons). */
   copyToClipboard: (content: string) => Promise<void>;
   /** Factory returning react-markdown component overrides for a given message. */
-  createMarkdownComponents: (messageId: string) => Components;
+  createMarkdownComponents: (
+    messageId: string,
+    toolCalls?: AiToolCall[],
+  ) => Components;
 }
 
 /**
@@ -557,7 +561,7 @@ export const useChatMarkdown = (): UseChatMarkdownReturn => {
   );
 
   const createMarkdownComponents = useCallback(
-    (messageId: string): Components => {
+    (messageId: string, toolCalls: AiToolCall[] = []): Components => {
       let sqlBlockCounter = 0;
       return {
         // Fenced blocks only. Inline code falls through to the default `code`
@@ -574,9 +578,15 @@ export const useChatMarkdown = (): UseChatMarkdownReturn => {
           if (/language-superset-chart\b/i.test(className)) {
             const params = parseChartEmbedParams(codeText);
             if (params.formDataKey) {
+              const display = toolCalls
+                .filter(call => call.ok)
+                .map(call => call.display)
+                .filter(isChartAuthoringDisplay)
+                .find(item => item.formDataKey === params.formDataKey);
               return (
                 <ChatChartEmbed
                   formDataKey={params.formDataKey}
+                  savedFormData={display?.formData}
                   height={params.height}
                   title={params.title ?? undefined}
                 />

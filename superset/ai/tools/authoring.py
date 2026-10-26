@@ -272,6 +272,7 @@ class GenerateChartTool(AITool):
                 "success": payload["success"],
                 "chart_id": chart_id,
                 "form_data_key": form_data_key,
+                "form_data": response.get("form_data"),
                 "explore_url": payload["explore_url"],
             },
         )

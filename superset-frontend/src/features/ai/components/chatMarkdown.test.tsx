@@ -28,6 +28,7 @@
 import type { ReactElement } from 'react';
 import type { Element } from 'hast';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import type { AiToolCall } from '../types';
 import { renderSqlHighlightedCode, useChatMarkdown } from './chatMarkdown';
 
 // The embedded chart resolves a form_data key over the network and renders a real
@@ -37,11 +38,17 @@ jest.mock('./ChatChartEmbed', () => ({
   default: ({
     formDataKey,
     title,
+    savedFormData,
   }: {
     formDataKey: string;
     title?: string;
+    savedFormData?: object;
   }) => (
-    <div data-test="chart-embed" data-key={formDataKey}>
+    <div
+      data-test="chart-embed"
+      data-key={formDataKey}
+      data-form-data={JSON.stringify(savedFormData)}
+    >
       {title}
     </div>
   ),
@@ -81,11 +88,15 @@ const Subject = ({
   render: (components: ReturnType<typeof useChatMarkdown>) => ReactElement;
 }) => renderOverride(useChatMarkdown());
 
-const renderPre = (node: Element, sqlLabDefaultDbId?: number) =>
+const renderPre = (
+  node: Element,
+  sqlLabDefaultDbId?: number,
+  toolCalls?: AiToolCall[],
+) =>
   render(
     <Subject
       render={({ createMarkdownComponents }) => {
-        const components = createMarkdownComponents('message-1');
+        const components = createMarkdownComponents('message-1', toolCalls);
         const Pre = components.pre as (props: {
           node: Element;
           children: ReactElement | string;
@@ -221,4 +232,38 @@ test('SQL highlighting colours keywords, strings and comments separately', () =>
   expect(screen.getByText('SELECT')).toBeInTheDocument();
   expect(screen.getByText("'x'")).toBeInTheDocument();
   expect(screen.getByText('FROM')).toBeInTheDocument();
+});
+
+test('the matching successful tool display supplies the chart snapshot', () => {
+  const formData = {
+    datasource: '1__table',
+    viz_type: 'table',
+    all_columns: ['amount'],
+  };
+  renderPre(fenceNode('form_data_key=saved-key', 'superset-chart'), undefined, [
+    {
+      name: 'generate_chart',
+      ok: true,
+      truncated: false,
+      display: {
+        kind: 'chart_authoring',
+        formDataKey: 'other-key',
+        formData: { ...formData, datasource: '2__table' },
+      },
+    },
+    {
+      name: 'generate_chart',
+      ok: true,
+      truncated: false,
+      display: {
+        kind: 'chart_authoring',
+        formDataKey: 'saved-key',
+        formData,
+      },
+    },
+  ]);
+  expect(screen.getByTestId('chart-embed')).toHaveAttribute(
+    'data-form-data',
+    JSON.stringify(formData),
+  );
 });

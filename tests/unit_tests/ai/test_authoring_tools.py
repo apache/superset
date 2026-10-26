@@ -64,6 +64,7 @@ def test_generate_chart_returns_an_inline_embed() -> None:
         "success": True,
         "chart_id": 42,
         "form_data_key": "chart-preview-42",
+        "form_data": None,
         "explore_url": "/explore/?slice_id=42",
     }
 
@@ -295,3 +296,5 @@ def test_generate_chart_preserves_partial_preview_results() -> None:
     for key, value in response.items():
         assert output.payload[key] == value
     assert output.payload["success"] is True
+    assert output.display is not None
+    assert output.display["form_data"] == response["form_data"]

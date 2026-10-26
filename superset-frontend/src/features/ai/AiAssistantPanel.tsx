@@ -61,7 +61,11 @@ import { ThoughtProcess } from './components/ThoughtProcess';
 import { useChatBot } from './hooks/useChatBot';
 import { AI_ACTION_EVENT, type AiActionEvent } from './hooks/useAIAction';
 import type { PageContext } from './hooks/usePageContext';
-import type { ChatMessageWithMeta, CheckpointPayload } from './types';
+import type {
+  AiToolCall,
+  ChatMessageWithMeta,
+  CheckpointPayload,
+} from './types';
 
 /**
  * How long a checkpoint waits before continuing on its own. A pause that blocks
@@ -500,7 +504,10 @@ interface MemoizedChatMessageProps {
   feedback: 'like' | 'dislike' | null;
   /** Per-message SQL expansion state, present only to invalidate the memo. */
   sqlBlockExpandState: boolean[] | undefined;
-  createMarkdownComponents: (messageId: string) => Components;
+  createMarkdownComponents: (
+    messageId: string,
+    toolCalls?: AiToolCall[],
+  ) => Components;
   /** Keeps this message's thought process open, for the run that just ended. */
   keepThinkingOpen?: boolean;
   onFeedback: (messageId: string, feedback: 'like' | 'dislike') => void;
@@ -523,7 +530,10 @@ const MemoizedChatMessage = memo(
     onFeedback,
     onCopy,
   }: MemoizedChatMessageProps) => {
-    const markdownComponents = createMarkdownComponents(message.id);
+    const markdownComponents = createMarkdownComponents(
+      message.id,
+      message.toolCalls,
+    );
     return (
       <MessageBubble
         variant={message.role}
@@ -833,7 +843,10 @@ export const AiAssistantPanel = () => {
   // The live step list is not attached to a stored message, so it gets its own
   // set of markdown components under a stable synthetic id — that id is what
   // keys the per-message SQL expand state.
-  const liveMarkdownComponents = createMarkdownComponents('live-run');
+  const liveMarkdownComponents = createMarkdownComponents(
+    'live-run',
+    liveToolCalls,
+  );
 
   const [typedThoughts, setTypedThoughts] = useState('');
   useTypewriter(liveThoughts, setTypedThoughts, isStreamingResponse);
