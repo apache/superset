@@ -104,7 +104,7 @@ bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-brotli==1.2.0
+brotli==1.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-compress
