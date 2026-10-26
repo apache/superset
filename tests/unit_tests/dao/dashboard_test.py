@@ -334,6 +334,57 @@ def test_set_dash_metadata_checks_new_charts_beside_archived_member(
     assert checked == [readable.id]
 
 
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_checks_archived_chart_that_is_not_a_member(
+    session: Session,
+) -> None:
+    """Being archived does not exempt a chart from the access check: an
+    archived chart the layout adds, and that is not already a member, is
+    refused when the caller cannot read it."""
+    Dashboard.metadata.create_all(session.get_bind())
+    live: Slice = Slice(slice_name="nonmember_live", datasource_type="table")
+    foreign: Slice = Slice(
+        slice_name="nonmember_archived",
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    dashboard: Dashboard = Dashboard(dashboard_title="nonmember_dash", slices=[live])
+    db.session.add_all([live, foreign, dashboard])
+    db.session.commit()
+    checked: list[int] = []
+
+    def can_access_chart(chart: Slice) -> bool:
+        checked.append(chart.id)
+        return chart.id != foreign.id
+
+    positions: dict[str, dict[str, Any]] = {
+        f"CHART-{chart.id}": {"type": "CHART", "meta": {"chartId": chart.id}}
+        for chart in (live, foreign)
+    }
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", can_access_chart),
+        pytest.raises(DashboardLayoutInvalidError) as excinfo,
+    ):
+        DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    db.session.rollback()
+
+    assert excinfo.value.normalized_messages() == {
+        "json_metadata": [
+            f"The layout references charts that are not available: {foreign.id}"
+        ]
+    }
+    assert checked == [foreign.id]
+    assert set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard.id
+            )
+        )
+    ) == {live.id}
+
+
 def test_set_dash_metadata_preserves_refresh_frequency(session: Session) -> None:
     """set_dash_metadata must not reset refresh_frequency when absent from data.
 
