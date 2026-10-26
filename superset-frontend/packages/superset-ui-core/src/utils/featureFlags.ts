@@ -25,6 +25,7 @@ export enum FeatureFlag {
   AiAssistant = 'AI_ASSISTANT',
   AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
   AlertReports = 'ALERT_REPORTS',
+  AlertReportDynamicExecutor = 'ALERT_REPORT_DYNAMIC_EXECUTOR',
   AlertReportTabs = 'ALERT_REPORT_TABS',
   AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
   AlertReportWebhook = 'ALERT_REPORT_WEBHOOK',
