@@ -508,9 +508,15 @@ function ChartRendererComponent({
     [handleOnContextMenu, state.inContextMenu],
   );
 
+  // Read through a ref so the callback, and the hooks passed to the chart,
+  // keep their identity when the form data changes. A new hooks object makes
+  // the plugin transform and redraw the chart, which a filter change would
+  // otherwise do under the spinner as soon as its query starts.
+  const dataMaskSourceRef = useRef(latestQueryFormData ?? formData);
+  dataMaskSourceRef.current = latestQueryFormData ?? formData;
   const setDataMaskCallback = useCallback(
     (dataMask: DataMask) => {
-      const sourceForm = latestQueryFormData ?? formData;
+      const sourceForm = dataMaskSourceRef.current;
       actions?.updateDataMask?.(
         chartId,
         sourceForm.datasource?.endsWith('__semantic_view')
@@ -531,7 +537,7 @@ function ChartRendererComponent({
           : dataMask,
       );
     },
-    [actions, chartId, latestQueryFormData, formData],
+    [actions, chartId],
   );
 
   // Hooks object - memoized

@@ -252,7 +252,17 @@ test('keeps a dashboard chart on screen under the spinner while it refreshes', (
 });
 
 test('shows no spinner over a dashboard chart during an auto-refresh', () => {
-  render(
+  // Rendered first, so the chart is kept on screen and only the suppressed
+  // spinner keeps the overlay away.
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  rerender(
     <Chart
       {...baseProps}
       dashboardId={17}
@@ -263,6 +273,38 @@ test('shows no spinner over a dashboard chart during an auto-refresh', () => {
   );
   expect(screen.getByTestId('slice-container')).toBeInTheDocument();
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+test('replaces a Matrixify dashboard chart with the spinner while it refreshes', () => {
+  // Its cells fetch their own data when they mount, so it can't stay on
+  // screen with the previous response.
+  const formData = {
+    ...baseProps.formData,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [{ label: 'count' }],
+  };
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      formData={formData}
+      dashboardId={17}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  rerender(
+    <Chart
+      {...baseProps}
+      formData={formData}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
 });
 
 test('shows only the spinner for a dashboard chart that has no previous data', () => {

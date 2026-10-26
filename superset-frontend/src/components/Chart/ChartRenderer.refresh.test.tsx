@@ -680,6 +680,45 @@ test('does not redraw a dashboard chart under the spinner when a refresh starts 
   );
 });
 
+test('does not redraw a dashboard chart under the spinner when its query records new form data objects', async () => {
+  // A query started from the chart itself sends formData, and the store
+  // records it as latestQueryFormData: a different object from the one the
+  // response was queried with, with the same values.
+  const chartProps = {
+    ...dashboardChartProps,
+    addFilter: jest.fn(),
+    onFilterMenuOpen: jest.fn(),
+    onFilterMenuClose: jest.fn(),
+  };
+  const formData = labelledFormData('first');
+  const response = queriesResponse(1);
+  const { rerender } = render(
+    <Chart
+      {...chartProps}
+      chartStatus="rendered"
+      formData={formData}
+      latestQueryFormData={labelledFormData('first')}
+      queriesResponse={response}
+    />,
+  );
+  await screen.findByTestId('refresh-test-chart');
+  const transformsBeforeRefresh = testChartTransformed.mock.calls.length;
+
+  rerender(
+    <Chart
+      {...chartProps}
+      chartStatus="loading"
+      formData={formData}
+      latestQueryFormData={formData}
+      queriesResponse={response}
+    />,
+  );
+  await waitForChartLoad();
+
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(testChartTransformed).toHaveBeenCalledTimes(transformsBeforeRefresh);
+});
+
 const selfFetchingChartProps = {
   ...dashboardChartProps,
   vizType: SELF_FETCHING_VIZ_TYPE,
