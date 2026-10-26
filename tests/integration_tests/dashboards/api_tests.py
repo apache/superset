@@ -6163,8 +6163,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 db.session.delete(chart)
             db.session.commit()
 
-    def test_copy_dashboard_metadata_comes_from_snapshot(self) -> None:
-        """Copy an older layout without inheriting settings from today's dashboard."""
+    @parameterized.expand([("default", None), ("merge", False), ("replace", True)])
+    def test_copy_dashboard_metadata_comes_from_snapshot(
+        self, case: str, replace_metadata: bool | None
+    ) -> None:
+        """Only an explicit replacement opts out of source metadata inheritance."""
         from superset.connectors.sqla.models import SqlaTable
 
         admin: User = self.get_user(ADMIN_USERNAME)
@@ -6188,6 +6191,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 f"/api/v1/dashboard/{dashboard.id}/copy/",
                 json={
                     "dashboard_title": "snapshot-copy",
+                    **(
+                        {"replace_metadata": replace_metadata}
+                        if replace_metadata is not None
+                        else {}
+                    ),
                     "json_metadata": json.dumps(
                         {
                             "positions": {
@@ -6215,8 +6223,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.expire_all()
             copied: Dashboard = db.session.get(Dashboard, copied_id)
             metadata: dict[str, Any] = copied.params_dict
-            assert "live_only" not in metadata
-            assert metadata["refresh_frequency"] == 0
+            assert ("live_only" not in metadata) is bool(replace_metadata)
+            assert metadata["refresh_frequency"] == (0 if replace_metadata else 900)
             assert metadata["color_scheme"] == "supersetColors"
             assert metadata["expanded_slices"] == {str(first.id): True}
             assert metadata["timed_refresh_immune_slices"] == [first.id]

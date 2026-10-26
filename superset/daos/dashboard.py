@@ -1162,8 +1162,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # flush delete dashboard_slices rows that were never inserted.
             dash.slices = original_dash.slices
 
-        # Every copy caller (Save as, version fork, MCP duplicate) sends the
-        # complete metadata. Seeding from the source would leak omitted settings.
+        # Version forks opt into complete metadata to avoid inheriting settings
+        # absent from the selected version. Other copies keep source seeding.
+        dash.params = (
+            "{}" if data.get("replace_metadata", False) else original_dash.params
+        )
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         copied_ids: set[int] = {chart.id for chart in dash.slices}
         chart_id_map: dict[int, int] = (

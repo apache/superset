@@ -24,16 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-- **Dashboard copies use the supplied metadata as their complete settings.**
-  `POST /api/v1/dashboard/{id}/copy/` no longer fills omitted `json_metadata`
-  settings from the source dashboard. This prevents a historical version copy
-  from inheriting newer settings. API clients that want to copy current settings
-  must include the source's full metadata, plus the intended `positions`, in
-  `json_metadata`. Omitted settings use defaults. Chart-specific settings are
-  restricted to charts retained in the copied layout and remapped to cloned IDs
-  when charts are duplicated. Ordinary dashboard updates retain their merge
-  behavior.
-
 - MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
   values with "Text must not be empty"; omit the field to keep the stored title.
   MCP chart names and theme names are capped at 250 characters, matching their

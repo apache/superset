@@ -35,8 +35,11 @@ from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
 
+@pytest.mark.parametrize("replace_metadata", [False, True])
 @pytest.mark.parametrize("legacy_form", ["string", "float"])
-def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) -> None:
+def test_copy_normalizes_legacy_chart_ids(
+    session: Session, legacy_form: str, replace_metadata: bool
+) -> None:
     """A valid legacy ID must reference its clone instead of becoming None."""
     Dashboard.metadata.create_all(session.get_bind())
     dataset: SqlaTable = SqlaTable(
@@ -76,6 +79,7 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
             source,
             {
                 "dashboard_title": "copy",
+                "replace_metadata": replace_metadata,
                 "json_metadata": json.dumps(
                     {
                         "positions": positions,
@@ -374,11 +378,12 @@ def test_copy_without_charts_dropped_from_layout(
     }
 
 
+@pytest.mark.parametrize("replace_metadata", [None, False, True])
 @pytest.mark.parametrize("keep_chart", [False, True])
 def test_copy_metadata_uses_snapshot_and_layout(
-    session: Session, keep_chart: bool
+    session: Session, keep_chart: bool, replace_metadata: bool | None
 ) -> None:
-    """A version copy must not inherit live-only settings or omitted chart IDs."""
+    """Only replacement skips source settings; both modes prune omitted charts."""
     Dashboard.metadata.create_all(session.get_bind())
     dataset: SqlaTable = SqlaTable(
         table_name="copy_snapshot",
@@ -440,12 +445,20 @@ def test_copy_metadata_uses_snapshot_and_layout(
         mock_g.user = None
         copied: Dashboard = DashboardDAO.copy_dashboard(
             source,
-            {"dashboard_title": "snapshot copy", "json_metadata": json.dumps(snapshot)},
+            {
+                "dashboard_title": "snapshot copy",
+                "json_metadata": json.dumps(snapshot),
+                **(
+                    {"replace_metadata": replace_metadata}
+                    if replace_metadata is not None
+                    else {}
+                ),
+            },
         )
     result: dict[str, Any] = copied.params_dict
-    assert "live_only" not in result
-    assert result["refresh_frequency"] == 0
-    assert result["expand_all_slices"] is False
+    assert ("live_only" not in result) is bool(replace_metadata)
+    assert result["refresh_frequency"] == (0 if replace_metadata else 999)
+    assert result["expand_all_slices"] is (not replace_metadata)
     assert result["snapshot_only"] == "preserved"
     assert result["expanded_slices"] == ({str(first.id): True} if keep_chart else {})
     assert result["timed_refresh_immune_slices"] == ([first.id] if keep_chart else [])
