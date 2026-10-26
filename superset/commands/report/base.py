@@ -719,10 +719,19 @@ class BaseReportScheduleCommand(BaseCommand):
                 and stored_active
             ):
                 return
+        withheld = False
         try:
             with override_user(executor):
                 security_manager.raise_for_access(**{kind: target})
+                # ``raise_for_access`` does not consult the exclusion hook, yet
+                # resolving the dashboard to build its permalink does, so a
+                # dashboard withheld from the executor can never be rendered.
+                withheld = kind == "dashboard" and is_excluded_by_extra_access(
+                    "dashboards", target.id
+                )
         except SupersetSecurityException:
+            withheld = True
+        if withheld:
             current_user = get_user()
             reveal_executor = security_manager.is_admin() or (
                 current_user is not None and current_user.id == executor.id

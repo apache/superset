@@ -28,7 +28,10 @@ import pytest
 from flask import g
 from pytest_mock import MockerFixture
 
-from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.exceptions import (
+    DashboardAccessDeniedError,
+    DashboardNotFoundError,
+)
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.exceptions import (
     ReportScheduleExecutorAccessDeniedError,
@@ -82,6 +85,15 @@ def _raise_for_access_denying(*denied: Mock) -> Any:
             raise _denial()
 
     return raise_for_access
+
+
+def _excluded_for(*withheld_from: Mock) -> Any:
+    """An ``is_excluded_by_extra_access`` stand-in withholding "dashboards"."""
+
+    def is_excluded(asset_kind: str, id_value: int) -> bool:
+        return asset_kind == "dashboards" and getattr(g, "user", None) in withheld_from
+
+    return is_excluded
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +269,55 @@ def test_create_accepts_executor_with_access_or_unresolved(
         _create_command().validate()
 
 
+def test_create_rejects_executor_withheld_by_extra_access_exclusions(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """
+    ``raise_for_access`` does not consult ``EXTRA_ACCESS_QUERY_EXCLUSIONS``, yet
+    resolving the dashboard as the executor does, so an executor the hook
+    withholds the dashboard from can never deliver.
+    """
+    security_manager = _stub_create(mocker, dashboard=Mock(id=7))
+    security_manager.raise_for_access.side_effect = None
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        side_effect=_excluded_for(MACHINE),
+    )
+    mocker.patch.dict(
+        app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("machine")]}
+    )
+
+    with app.test_request_context():
+        g.user = SAVER
+        with pytest.raises(ReportScheduleInvalidError) as exc:
+            _create_command().validate()
+
+    errors = exc.value._exceptions
+    assert [type(error) for error in errors] == [
+        ReportScheduleExecutorTargetAccessError
+    ]
+    assert errors[0].field_name == "dashboard"
+    assert "machine" not in str(errors[0].messages)
+
+
+def test_create_accepts_executor_not_withheld_by_extra_access_exclusions(
+    mocker: MockerFixture, app: Any
+) -> None:
+    security_manager = _stub_create(mocker, dashboard=Mock(id=7))
+    security_manager.raise_for_access.side_effect = None
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        side_effect=_excluded_for(SAVER),
+    )
+    mocker.patch.dict(
+        app.config, {"ALERT_REPORTS_EXECUTORS": [FixedExecutor("machine")]}
+    )
+
+    with app.test_request_context():
+        g.user = SAVER
+        _create_command().validate()
+
+
 def _update_command(
     mocker: MockerFixture,
     *,
@@ -324,6 +385,29 @@ def test_update_rejects_resuming_schedule_executor_cannot_access(
         stored_dashboard=stored,
         properties={"active": True, "dashboard": stored},
         active=False,
+    )
+
+    exceptions: list[Any] = []
+    with app.test_request_context():
+        command.validate_executor_target_access(exceptions)
+
+    assert [type(error) for error in exceptions] == [
+        ReportScheduleExecutorTargetAccessError
+    ]
+
+
+def test_update_rejects_new_target_withheld_from_executor_by_exclusions(
+    mocker: MockerFixture, app: Any
+) -> None:
+    security_manager = _stub_update_security(mocker, app)
+    security_manager.raise_for_access.side_effect = None
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        side_effect=_excluded_for(MACHINE),
+    )
+    stored, submitted = Mock(id=7), Mock(id=8)
+    command = _update_command(
+        mocker, stored_dashboard=stored, properties={"dashboard": submitted}
     )
 
     exceptions: list[Any] = []
@@ -479,6 +563,84 @@ def test_plain_dashboard_url_reports_executor_and_reason(
 
     assert '"machine"' in str(exc.value)
     assert SPECIFIC_REASON in str(exc.value)
+
+
+def test_plain_dashboard_url_rejects_dashboard_withheld_by_exclusions(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """
+    An executor the exclusion hook withholds the dashboard from passes
+    ``raise_for_access`` but renders the not-found page; name the cause.
+    """
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        side_effect=_excluded_for(MACHINE),
+    )
+    state = _state(mocker, None)
+
+    with app.test_request_context():
+        g.user = MACHINE
+        with pytest.raises(ReportScheduleExecutorAccessDeniedError) as exc:
+            state.get_dashboard_urls()
+
+    assert '"machine"' in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "dashboard_state",
+    [
+        # A single selected tab.
+        {"anchor": "TAB-1"},
+        # Several selected tabs.
+        {"anchor": '["TAB-1", "TAB-2"]'},
+    ],
+)
+def test_tab_urls_reject_dashboard_withheld_by_exclusions_before_permalink(
+    mocker: MockerFixture, app: Any, dashboard_state: dict[str, Any]
+) -> None:
+    """
+    The permalink command resolves the dashboard through the DAO, which raises
+    ``DashboardNotFoundError`` for a withheld id. That is neither handled by the
+    pre-claim permalink step nor recorded by the state machine, so the denial
+    has to be raised, as the access-denied error, before the command runs.
+    """
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        side_effect=_excluded_for(MACHINE),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand.run",
+        side_effect=DashboardNotFoundError(),
+    )
+    state = _state(mocker, dashboard_state)
+
+    with app.test_request_context():
+        g.user = MACHINE
+        with pytest.raises(ReportScheduleExecutorAccessDeniedError):
+            state.get_dashboard_urls()
+
+    permalink.assert_not_called()
+
+
+def test_dashboard_urls_build_when_exclusions_do_not_withhold_it(
+    mocker: MockerFixture, app: Any
+) -> None:
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        side_effect=_excluded_for(SAVER),
+    )
+    state = _state(mocker, None)
+
+    with app.test_request_context():
+        g.user = MACHINE
+        assert state.get_dashboard_urls()
 
 
 def test_get_dashboard_urls_without_executor_skips_access_check(

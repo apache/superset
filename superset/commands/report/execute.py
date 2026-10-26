@@ -128,6 +128,7 @@ from superset.utils.decorators import (
     transaction,
 )
 from superset.utils.file import sanitize_title
+from superset.utils.filters import is_excluded_by_extra_access
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.report_execution import (
     get_report_task_timeout_options,
@@ -844,12 +845,22 @@ class BaseReportState:
         user = get_user()
         if user is None or getattr(user, "is_anonymous", False):
             return
+        dashboard = self._report_schedule.dashboard
         try:
-            security_manager.raise_for_access(dashboard=self._report_schedule.dashboard)
+            security_manager.raise_for_access(dashboard=dashboard)
         except SupersetSecurityException as ex:
             raise ReportScheduleExecutorAccessDeniedError(
                 "dashboard", user.username, ex.error.message
             ) from ex
+        # ``raise_for_access`` does not consult ``EXTRA_ACCESS_QUERY_EXCLUSIONS``
+        # but the permalink command's dashboard lookup does, and answers with a
+        # not-found error that nothing before the claim handles.
+        if is_excluded_by_extra_access("dashboards", dashboard.id):
+            raise ReportScheduleExecutorAccessDeniedError(
+                "dashboard",
+                user.username,
+                "the dashboard is withheld from this user",
+            )
 
     def get_dashboard_urls(
         self, user_friendly: bool = False, **kwargs: Any
