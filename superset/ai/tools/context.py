@@ -29,9 +29,9 @@ Two authorization gates apply to each, and both are needed:
   what catches a chart that is listed but whose underlying dataset the user has
   lost access to.
 
-The chart's ``params`` blob is not returned wholesale. It is a large,
-free-form, user-authored structure whose bulk is styling, so only the fields
-that describe *what is measured* are lifted out of it.
+Saved chart controls are returned intact: visualization plugins can introduce
+transformations that change the meaning of a value. The shared tool budget
+bounds the response, and user-authored strings remain untrusted context.
 """
 
 from __future__ import annotations
@@ -55,25 +55,6 @@ MAX_DATASET_FIELDS = 100
 #: shape of the query and its joins; a longer body is better read by asking
 #: about the dataset directly.
 MAX_SQL_CHARS = 4000
-
-#: ``params`` keys worth showing. These are the ones that say what the chart
-#: measures and how it is sliced; everything else in the blob is presentation.
-_MEANINGFUL_PARAM_KEYS = (
-    "metrics",
-    "metric",
-    "groupby",
-    "columns",
-    "all_columns",
-    "adhoc_filters",
-    "granularity_sqla",
-    "time_grain_sqla",
-    "time_range",
-    "row_limit",
-    "order_desc",
-    "percent_metrics",
-    "series_limit",
-    "series_limit_metric",
-)
 
 
 def _positive_id(value: Any, field: str) -> int:
@@ -142,7 +123,7 @@ def _load_dashboard(dashboard_id: int) -> Any:
 
 def _chart_params(chart: Any) -> dict[str, Any]:
     """
-    Lift the meaningful fields out of a chart's ``params`` blob.
+    Read the saved controls without guessing which ones affect the result.
 
     A malformed blob is reported rather than raised: a chart saved by an older
     version, or hand-edited, should still yield the rest of its context.
@@ -160,11 +141,7 @@ def _chart_params(chart: Any) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         return {}
 
-    return {
-        key: parsed[key]
-        for key in _MEANINGFUL_PARAM_KEYS
-        if key in parsed and parsed[key] not in (None, [], {}, "")
-    }
+    return _untrusted(parsed)
 
 
 def _dataset_summary(dataset: Any) -> dict[str, Any]:
@@ -180,6 +157,8 @@ def _dataset_summary(dataset: Any) -> dict[str, Any]:
             "name": column.column_name,
             "type": str(column.type or ""),
             "is_temporal": bool(column.is_dttm),
+            "expression": _untrusted(column.expression),
+            "is_calculated": bool(column.expression),
             "description": _untrusted(column.description),
         }
         for column in (dataset.columns or [])[:MAX_DATASET_FIELDS]
@@ -204,6 +183,10 @@ def _dataset_summary(dataset: Any) -> dict[str, Any]:
         "main_temporal_column": dataset.main_dttm_col,
         "columns": columns,
         "metrics": metrics,
+        "column_count": len(dataset.columns or []),
+        "metric_count": len(dataset.metrics or []),
+        "columns_truncated": len(dataset.columns or []) > MAX_DATASET_FIELDS,
+        "metrics_truncated": len(dataset.metrics or []) > MAX_DATASET_FIELDS,
     }
 
     if dataset.sql:

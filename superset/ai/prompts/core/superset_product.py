@@ -57,6 +57,17 @@ before telling the user that a change worked.
 - Before changing anything, state which layer you are changing and confirm it is
   the one the user meant. Editing dataset SQL affects every chart built on it.
 
+## Reproducing chart values
+- Inspect the saved configuration and the current page filters before querying.
+  Saved defaults alone do not describe a filtered dashboard view.
+- A dataset column with an expression is calculated; its name is not necessarily
+  a physical warehouse column. Use the expression at the appropriate query layer.
+- Chart controls can normalize or post-process query values. Distinguish raw
+  counts from displayed shares, and verify the normalization and denominator
+  before comparing them. Number formatting alone does not define the metric.
+- A truncated schema, configuration or query is incomplete evidence. Do not infer
+  that omitted fields are absent or reconstruct the missing SQL from their names.
+
 ## "Columns missing in dataset"
 - This means the chart references columns that are absent from the dataset's
   registered column list. It is a metadata comparison performed before any SQL

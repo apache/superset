@@ -1408,6 +1408,7 @@ def fake_dataset() -> MagicMock:
     column.type = "TIMESTAMP"
     column.is_dttm = True
     column.description = None
+    column.expression = None
 
     metric = MagicMock()
     metric.metric_name = "count"
@@ -1453,33 +1454,60 @@ FIND_CHART = "superset.daos.chart.ChartDAO.find_by_id"
 FIND_DASHBOARD = "superset.daos.dashboard.DashboardDAO.find_by_id"
 
 
-def test_get_chart_context_returns_meaning_and_omits_styling() -> None:
-    """
-    The params blob is mostly presentation; only the measuring fields are kept.
-
-    Returning the whole blob would spend context on colour schemes.
-    """
+def test_get_chart_context_preserves_saved_configuration_and_expressions() -> None:
+    """Plugin-specific controls and calculated columns must survive context reads."""
+    from superset.ai.tools.base import strip_prompt_framing
     from superset.ai.tools.context import GetChartContextTool
 
-    with (
-        patch(FIND_CHART, return_value=fake_chart()),
-        patch(RAISE_FOR_ACCESS),
-    ):
+    chart = fake_chart()
+    params = json.loads(chart.params)
+    params.update(
+        stack="expand",
+        contributionMode="row",
+        custom_plugin_transform={"operation": "normalize", "enabled": False},
+        empty_setting=None,
+    )
+    chart.params = json.dumps(params)
+    calculated = MagicMock(
+        column_name="adjusted_amount",
+        type="NUMERIC",
+        is_dttm=False,
+        description="Amount after adjustments",
+        expression="amount - adjustment",
+    )
+    chart.datasource.columns.append(calculated)
+    with patch(FIND_CHART, return_value=chart), patch(RAISE_FOR_ACCESS):
         output = GetChartContextTool().run(chart_id=3)
 
-    configuration = output.payload["configuration"]
-    assert configuration["metrics"] == ["count"]
-    assert configuration["groupby"] == ["country"]
-    assert "color_scheme" not in configuration
-    assert "show_legend" not in configuration
-
+    assert strip_prompt_framing(output.payload["configuration"]) == params
+    assert "UNTRUSTED-CONTENT" in output.payload["configuration"]["stack"]
     dataset = output.payload["dataset"]
-    assert "UNTRUSTED-CONTENT" in dataset["name"]
-    assert [column["name"] for column in dataset["columns"]] == ["created_at"]
-    assert [metric["name"] for metric in dataset["metrics"]] == ["count"]
-
+    assert dataset["columns"][0]["expression"] is None
+    assert dataset["columns"][0]["is_calculated"] is False
+    assert dataset["columns"][1]["is_calculated"] is True
+    assert strip_prompt_framing(dataset["columns"][1]["expression"]) == (
+        "amount - adjustment"
+    )
     assert _display(output)["kind"] == "chart_context"
     assert _display(output)["dataset_id"] == 5
+
+
+def test_chart_context_marks_incomplete_dataset_fields() -> None:
+    """A bounded catalogue must not imply that omitted columns do not exist."""
+    from superset.ai.tools.context import GetChartContextTool, MAX_DATASET_FIELDS
+
+    chart = fake_chart()
+    chart.datasource.columns *= MAX_DATASET_FIELDS + 1
+    chart.datasource.metrics *= MAX_DATASET_FIELDS + 1
+    with patch(FIND_CHART, return_value=chart), patch(RAISE_FOR_ACCESS):
+        dataset = GetChartContextTool().run(chart_id=3).payload["dataset"]
+
+    assert len(dataset["columns"]) == MAX_DATASET_FIELDS
+    assert len(dataset["metrics"]) == MAX_DATASET_FIELDS
+    assert dataset["column_count"] == MAX_DATASET_FIELDS + 1
+    assert dataset["metric_count"] == MAX_DATASET_FIELDS + 1
+    assert dataset["columns_truncated"] is True
+    assert dataset["metrics_truncated"] is True
 
 
 def test_get_chart_context_checks_the_object_not_just_the_listing() -> None:

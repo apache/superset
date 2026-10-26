@@ -150,8 +150,14 @@ profile a user cannot see is also one they cannot invoke by posting its key.
 | `get_schema` | Lists schemas, tables and columns |
 | `execute_sql` | Runs a **read-only** query |
 | `validate_sql` | Checks a query without running it |
-| `get_chart_context` | Reads a chart's definition |
+| `get_chart_context` | Reads saved chart controls and dataset column expressions |
 | `get_dashboard_context` | Reads a dashboard's definition |
+
+Chart context includes plugin-specific controls, calculated-column expressions
+and explicit flags when dataset field lists are incomplete. The assistant is
+instructed to preserve active filters, verify metric definitions and calculate
+aggregates in SQL. These provide evidence for the model; they do not guarantee
+that every generated query or interpretation is correct.
 
 ## Customising the prompt
 
