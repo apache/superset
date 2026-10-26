@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlComponentProps } from '@superset-ui/chart-controls';
-import { DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
+import { ChartProps, DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { RenderFunction } from 'ol/layer/Layer';
 import { Extent } from 'ol/extent';
@@ -34,8 +34,9 @@ export interface CartodiagramPluginStylesProps {
   theme: SupersetTheme;
 }
 
-// TODO find a way to reference props from other charts
-export type ChartConfigProperties = any;
+export type ChartConfigProperties = Record<string, unknown>;
+
+export type ChartTransformer = (props: ChartProps) => ChartConfigProperties;
 
 export type ChartConfigFeature = Feature<Point, ChartConfigProperties>;
 export type ChartConfig = FeatureCollection<
@@ -68,6 +69,7 @@ interface CartodiagramPluginCustomizeProps {
   geomFormat: GeometryFormat;
   selectedChart: string;
   chartConfigs: ChartConfig;
+  chartTransformer?: ChartTransformer;
   chartSize: ZoomConfigs;
   chartVizType: string;
   layerConfigs: LayerConf[];
@@ -209,6 +211,7 @@ export type ChartHtmlElement = {
 export type ChartLayerOptions = {
   chartSizeValues?: ChartSizeValues;
   chartConfigs?: ChartConfig;
+  chartTransformer?: ChartTransformer;
   chartVizType: string;
   onMouseOver?: (this: GlobalEventHandlers, ev: MouseEvent) => any | undefined;
   onMouseOut?: (this: GlobalEventHandlers, ev: MouseEvent) => any | undefined;

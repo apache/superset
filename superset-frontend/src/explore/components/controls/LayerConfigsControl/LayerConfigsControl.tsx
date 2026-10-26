@@ -22,7 +22,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { Popover } from '@superset-ui/core/components';
 import { getChartBuildQueryRegistry } from '@superset-ui/core/chart';
 import { FeatureCollection, GeoJsonGeometryTypes } from 'geojson';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash-es/isEqual';
 import { nanoid } from 'nanoid';
 import { FC, useEffect, useMemo, useState } from 'react';
 import {

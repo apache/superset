@@ -130,9 +130,10 @@ describe('CartodiagramPlugin transformProps', () => {
     registry.clear();
   });
 
-  test('should call the transform props function of the referenced chart', () => {
-    transformProps(chartProps);
-    expect(chartTransformPropsPieMock).toHaveBeenCalled();
+  test('passes the referenced transformer through without computing layout', () => {
+    const result = transformProps(chartProps);
+    expect(result.chartTransformer).toBe(chartTransformPropsPieMock);
+    expect(chartTransformPropsPieMock).not.toHaveBeenCalled();
     expect(chartTransformPropsTimeseriesMock).not.toHaveBeenCalled();
   });
 

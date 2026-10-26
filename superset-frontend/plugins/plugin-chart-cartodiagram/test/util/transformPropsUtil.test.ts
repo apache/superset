@@ -50,7 +50,6 @@ describe('transformPropsUtil', () => {
     label_map: groupedTimeseriesLabelMap,
   };
 
-  let chartTransformer: jest.MockedFunction<any>;
   const geomColumn = 'geom';
   const pieChartConfig = {
     params: {
@@ -79,10 +78,6 @@ describe('transformPropsUtil', () => {
       },
     ],
   };
-
-  beforeEach(() => {
-    chartTransformer = jest.fn();
-  });
 
   test('getWkbColumns gets the WKB columns', () => {
     const wkbCol = '0101000020E610000000000000000020400000000000804A40';
@@ -273,17 +268,27 @@ describe('transformPropsUtil', () => {
     });
   });
 
-  test('getChartConfigs calls the transformProps function for every location', () => {
-    getChartConfigs(
+  test('getChartConfigs prepares original chart inputs for every location', () => {
+    const result = getChartConfigs(
       pieChartConfig,
       geomColumn,
       GeometryFormat.GEOJSON,
       chartProps,
-      chartTransformer,
       sliceId,
     );
 
-    expect(chartTransformer).toHaveBeenCalledTimes(2);
+    expect(result.features).toHaveLength(2);
+    result.features.forEach(feature => {
+      expect(feature.properties).toEqual(
+        expect.objectContaining({
+          formData: expect.objectContaining({ sliceId }),
+          queriesData: expect.any(Array),
+        }),
+      );
+      expect(feature.properties).not.toHaveProperty('echartOptions');
+      expect(feature.properties.width).toBeUndefined();
+      expect(feature.properties.height).toBeUndefined();
+    });
   });
   test('getChartConfigs returns a geojson', () => {
     const result = getChartConfigs(
@@ -291,7 +296,6 @@ describe('transformPropsUtil', () => {
       geomColumn,
       GeometryFormat.GEOJSON,
       chartProps,
-      chartTransformer,
       sliceId,
     );
 
@@ -312,7 +316,6 @@ describe('transformPropsUtil', () => {
       geomColumn,
       GeometryFormat.GEOJSON,
       chartProps,
-      chartTransformer,
       sliceId,
     );
     expect(result.features).toHaveLength(2);
@@ -325,7 +328,6 @@ describe('transformPropsUtil', () => {
       geomColumn,
       GeometryFormat.WKB,
       wkbChartProps,
-      chartTransformer,
       sliceId,
     );
 
@@ -340,7 +342,6 @@ describe('transformPropsUtil', () => {
       geomColumn,
       GeometryFormat.WKT,
       wktChartProps,
-      chartTransformer,
       sliceId,
     );
 

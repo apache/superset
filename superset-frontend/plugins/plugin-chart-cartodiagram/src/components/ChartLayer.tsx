@@ -21,7 +21,13 @@ import { FrameState } from 'ol/Map';
 import { apply as applyTransform } from 'ol/transform';
 import { createRoot, Root } from 'react-dom/client';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { ChartConfig, ChartLayerOptions, ChartSizeValues } from '../types';
+import {
+  ChartConfig,
+  ChartConfigFeature,
+  ChartLayerOptions,
+  ChartSizeValues,
+  ChartTransformer,
+} from '../types';
 import { createChartComponent } from '../util/chartUtil';
 import { getProjectedCoordinateFromPointGeoJson } from '../util/geometryUtil';
 
@@ -37,7 +43,7 @@ export class ChartLayer extends Layer {
     coordinate: number[];
     width: number;
     height: number;
-    feature: any;
+    feature: ChartConfigFeature;
   }[] = [];
 
   chartConfigs: ChartConfig = {
@@ -48,6 +54,8 @@ export class ChartLayer extends Layer {
   chartSizeValues: ChartSizeValues = {};
 
   chartVizType: string;
+
+  chartTransformer?: ChartTransformer;
 
   div: HTMLDivElement;
 
@@ -79,6 +87,7 @@ export class ChartLayer extends Layer {
     super(options);
 
     this.chartVizType = options.chartVizType;
+    this.chartTransformer = options.chartTransformer;
 
     if (options.chartConfigs) {
       this.chartConfigs = options.chartConfigs;
@@ -172,11 +181,11 @@ export class ChartLayer extends Layer {
    * Unmount and remove all created chart elements from the DOM.
    */
   removeAllChartElements() {
-    this.charts.forEach(chart => {
-      chart.root.unmount();
-      chart.htmlElement.remove();
-    });
+    const { charts } = this;
     this.charts = [];
+    charts.forEach(chart => chart.htmlElement.remove());
+    // React forbids unmounting a root while another render/commit is in progress.
+    setTimeout(() => charts.forEach(chart => chart.root.unmount()), 0);
   }
 
   createCharts(zoom: number) {
@@ -197,6 +206,7 @@ export class ChartLayer extends Layer {
         chartHeight,
         this.theme,
         this.locale,
+        this.chartTransformer,
       );
       const root = createRoot(container);
       root.render(chartComponent);
@@ -235,6 +245,7 @@ export class ChartLayer extends Layer {
         chartHeight,
         this.theme,
         this.locale,
+        this.chartTransformer,
       );
       chart.root.render(chartComponent);
 

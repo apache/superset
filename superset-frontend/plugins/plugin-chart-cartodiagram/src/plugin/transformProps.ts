@@ -17,10 +17,7 @@
  * under the License.
  */
 import { ChartProps, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  getChartConfigs,
-  parseSelectedChart,
-} from '../util/transformPropsUtil';
+import { getChartConfigs, parseSelectedChart } from '../util/transformPropsUtil';
 import { ChartConfig } from '../types';
 
 export default function transformProps(chartProps: ChartProps) {
@@ -52,7 +49,6 @@ export default function transformProps(chartProps: ChartProps) {
       geomColumn,
       geomFormat,
       chartProps,
-      chartTransformer,
       sliceId,
     );
   } catch {
@@ -69,6 +65,7 @@ export default function transformProps(chartProps: ChartProps) {
     geomFormat,
     selectedChart,
     chartConfigs,
+    chartTransformer,
     chartVizType: selectedChart.viz_type,
     chartSize,
     layerConfigs,
