@@ -254,6 +254,40 @@ test('a partial explicit value falls back to the positional scheme color, not le
   expect(onChange).toHaveBeenCalledWith(['#ff7f0e', '#ff7f0e']);
 });
 
+test('stays editable when explicit colors exist even if the legacy indices are unresolvable', async () => {
+  // Out-of-palette legacy indices make the control read-only only while no
+  // explicit color has been stored; once `interval_colors` exists the
+  // renderer ignores the legacy indices, so editing must remain enabled.
+  const onChange = jest.fn();
+  render(
+    <IntervalColorsControl
+      onChange={onChange}
+      intervals="20,60"
+      value={['#ff0000']}
+      legacyIntervalColorIndices="10,3"
+      colorScheme="testScheme"
+    />,
+  );
+
+  const triggers = document.querySelectorAll('.ant-color-picker-trigger');
+  expect(triggers).toHaveLength(2);
+  triggers.forEach(trigger => {
+    expect(trigger).not.toHaveClass('ant-color-picker-trigger-disabled');
+  });
+
+  await userEvent.click(triggers[0]);
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  await userEvent.click(presets[0]);
+
+  expect(onChange).toHaveBeenCalled();
+});
+
 test('keeps every legacy band color while the last interval bound is being retyped', async () => {
   // Same trailing-blank window as below, but for a legacy chart that has no
   // explicit `interval_colors` yet: bounds "20,40,60" with legacy indices
