@@ -22,6 +22,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { exploreChart } from 'src/explore/exploreUtils';
 import {
   isChartAuthoringDisplay,
+  JsonData,
   parseToolCall,
   parseToolDisplay,
 } from '../types';
@@ -91,9 +92,10 @@ test('retained tool configuration renders after the cache key expires and opens 
 });
 
 test('legacy history still resolves its temporary key', async () => {
-  jest
-    .spyOn(SupersetClient, 'get')
-    .mockResolvedValue({ json: JSON.stringify(formData) });
+  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { form_data: JSON.stringify(formData) },
+    response: new Response(),
+  });
   render(<ChatChartEmbedInner formDataKey="legacy-key" />);
   await screen.findByTestId('native-preview');
   expect(SupersetClient.get).toHaveBeenCalledWith(
@@ -103,7 +105,7 @@ test('legacy history still resolves its temporary key', async () => {
   );
 });
 
-test.each([
+test.each<JsonData>([
   { ...display, _truncated: true },
   { ...display, form_data: { ...formData, _truncated: true } },
   { ...display, form_data: { viz_type: 'table' } },
