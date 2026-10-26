@@ -100,6 +100,22 @@ export async function fetchVersionSnapshot(
   return (json as { result: VersionSnapshot }).result;
 }
 
+/** Read-only advisory count; no chart names or IDs are returned. */
+export async function fetchDashboardRestoreRemovalCount(
+  uuid: string,
+  versionUuid: string,
+): Promise<number> {
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/dashboard/${encodeURIComponent(uuid)}/versions/${encodeURIComponent(versionUuid)}/?include_restore_impact=true`,
+    timeout: 10000,
+  });
+  const count: unknown = json.result?._restore_impact?.removed_chart_count;
+  if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) {
+    throw new Error('Invalid restore impact response');
+  }
+  return count;
+}
+
 export async function restoreVersion(
   entityType: VersionedEntityType,
   uuid: string,

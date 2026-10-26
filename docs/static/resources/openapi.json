@@ -21316,6 +21316,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Include the current count of charts a restore would detach",
+            "in": "query",
+            "name": "include_restore_impact",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -21327,6 +21336,16 @@
                     "result": {
                       "description": "The dashboard's scalar fields at the target version (entity-specific keys), plus a `_version` block with the version-level metadata.",
                       "properties": {
+                        "_restore_impact": {
+                          "description": "Current membership impact when requested",
+                          "properties": {
+                            "removed_chart_count": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "_version": {
                           "$ref": "#/components/schemas/VersionListItemSchema"
                         }

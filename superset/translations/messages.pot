@@ -3274,6 +3274,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Child label position"
 msgstr ""
 
@@ -4140,6 +4143,9 @@ msgstr ""
 
 #, python-format
 msgid "Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards."
+msgstr ""
+
+msgid "Could not check which charts will be removed. Restoring may remove charts added after this version."
 msgstr ""
 
 #, python-format
@@ -11339,6 +11345,12 @@ msgstr ""
 
 msgid "Restoring creates a new version. Your existing version history will not be lost."
 msgstr ""
+
+#, python-format
+msgid "Restoring will remove %s chart added after this version from this dashboard. The chart itself will not be deleted."
+msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Results"
 msgstr ""

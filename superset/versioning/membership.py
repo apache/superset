@@ -100,3 +100,28 @@ def chart_attachment_windows_for_dashboard(
         .all()
     )
     return attachment_windows([(row[0], row[1], row[2]) for row in rows])
+
+
+def dashboard_restore_removal_count(dashboard_id: int, transaction_id: int) -> int:
+    """Count current associations absent at the target, without reading names.
+
+    Use the same attachment windows as restore, not the layout: archived or
+    unplaced members still belong to the dashboard and can be detached.
+    This is advisory; membership may change before the user confirms.
+    """
+    # Defer the model graph until the app has initialized.
+    from superset.models.dashboard import dashboard_slices
+
+    target_ids: set[int] = {
+        chart_id
+        for chart_id, window in chart_attachment_windows_for_dashboard(dashboard_id)
+        if window.contains(transaction_id)
+    }
+    current_ids: set[int] = set(
+        db.session.execute(
+            sa.select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard_id
+            )
+        ).scalars()
+    )
+    return len(current_ids - target_ids)
