@@ -58,8 +58,12 @@ const DIRECT_EXPORT_GETTER = new RegExp(
 // the `Object.defineProperty(exports, ...)` descriptors, never to getters in
 // application code.
 const EXPORT_BLOCK = /_export\(exports, \{[\s\S]*?\n\}\);/g;
-const EXPORT_BLOCK_GETTER =
-  /(get [\w$]+ \(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*);/g;
+// A commented default export also leaves its comment inside the block, between
+// `get` and the name: `get // Wrap in memo\n default () {`.
+const EXPORT_BLOCK_GETTER = new RegExp(
+  String.raw`(get\s+${COMMENTS}[\w$]+ \(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*);`,
+  'g',
+);
 // The `get: function() { return binding; }` form SWC uses for a single export
 // or a re-export (`from[k]`), matched together with its descriptor.
 const EXPORT_DESCRIPTOR_GETTER = new RegExp(
@@ -106,7 +110,9 @@ export function mirrorBabelExportSemantics(code) {
   // The helper descriptor always supplies `configurable: true`, so a changed
   // named-getter shape would otherwise lose only the leniency half unnoticed.
   if (
-    /\b_export\(exports, \{[\s\S]*?\bget\s+[\w$]+\s*\(/.test(code) &&
+    new RegExp(
+      String.raw`\b_export\(exports, \{[\s\S]*?\bget\s+${COMMENTS}[\w$]+\s*\(`,
+    ).test(code) &&
     !patched.includes('try { return')
   ) {
     throw new Error(
@@ -132,7 +138,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v8';
+const CACHE_SALT = 'babel-export-semantics-v9';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);

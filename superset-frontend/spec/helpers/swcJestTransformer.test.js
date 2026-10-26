@@ -114,7 +114,6 @@ test('a line-commented default export is configurable and lenient', () => {
 Object.${DEFINE}(exports, "__esModule", {
     value: true
 });
-globalThis.__read = exports.default;
 Object.${DEFINE}(exports, // Wrap in memo
 "default", {
     enumerable: true,
@@ -122,6 +121,7 @@ Object.${DEFINE}(exports, // Wrap in memo
         return _default;
     }
 });
+globalThis.__read = exports.default;
 const _default = 5;
 `;
   const patched = mirrorBabelExportSemantics(code);
@@ -133,6 +133,75 @@ const _default = 5;
     configurable: true,
   });
   expect(exports.default).toBe(5);
+});
+
+test('a commented default export beside named exports is lenient', () => {
+  const code = `${helper}
+${exportsBlock(`    ${GET} answer () {
+        return answer;
+    },
+    ${GET} // Wrap in memo
+    default () {
+        return _default;
+    }`)}
+globalThis.__read = [exports.answer, exports.default];
+let answer = 1;
+const _default = 5;
+`;
+  const patched = mirrorBabelExportSemantics(code);
+  expect(patched.match(/try \{ return/g)).toHaveLength(2);
+  const exports = load(patched);
+  expect(globalThis.__read).toEqual([undefined, undefined]);
+  delete globalThis.__read;
+  expect(exports.default).toBe(5);
+});
+
+test('a non-ReferenceError from a re-exported getter propagates', () => {
+  const code = `function _exportStar(from, to) {
+    Object.keys(from).forEach(function(k) {
+        if (k !== "default") Object.${DEFINE}(to, k, {
+            enumerable: true,
+            ${GET}: function() {
+                return from[k];
+            }
+        });
+    });
+    return from;
+}
+const source = {};
+Object.${DEFINE}(source, "boom", {
+    enumerable: true,
+    ${GET}() { throw new TypeError("boom"); }
+});
+_exportStar(source, exports);
+`;
+  const exports = load(mirrorBabelExportSemantics(code));
+  expect(() => exports.boom).toThrow(TypeError);
+});
+
+test('getters outside the export block keep throwing their ReferenceError', () => {
+  const code = `${helper}
+${exportsBlock(`    ${GET} answer () {
+        return answer;
+    }`)}
+const answer = 1;
+const obj = {
+    ${GET} value () {
+        return later;
+    }
+};
+try {
+    obj.value;
+} catch (e) {
+    globalThis.__early = e.name;
+}
+let later = 2;
+`;
+  const patched = mirrorBabelExportSemantics(code);
+  expect(patched.match(/try \{ return/g)).toHaveLength(1);
+  load(patched);
+  expect(globalThis.__early).toBe('ReferenceError');
+  delete globalThis.__early;
 });
 
 test('a doc-commented default export is configurable and lenient', () => {
