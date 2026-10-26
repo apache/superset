@@ -87,10 +87,10 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert result["purged"] is False
         assert result["reason"] == "not_found"
 
-    def test_force_purge_dataset_leaves_chart_dangling(self) -> None:
-        """Force-purging a dataset referenced by a live
-        chart succeeds, leaves the chart's datasource_id dangling (chart row
-        unchanged), and records the affected chart in the audit entry."""
+    def test_force_purge_dataset_detaches_chart(self) -> None:
+        """Force-purging a dataset referenced by a live chart succeeds, keeps
+        the chart with its datasource id and permission fields cleared
+        (sc-119912), and records the affected chart in the audit entry."""
         chart = self.make_chart("dep", dataset=self.dataset)
         chart_id, chart_uuid = chart.id, str(chart.uuid)
         ds_id, ds_uuid = self.dataset.id, str(self.dataset.uuid)
@@ -100,7 +100,8 @@ class TestForcePurge(DeletionRetentionTestBase):
         assert result["purged"] is True
         assert not self.exists(SqlaTable, ds_id)
         kept = db.session.query(Slice).filter(Slice.id == chart_id).one()
-        assert kept.datasource_id == ds_id  # dangling, unmodified
+        assert kept.datasource_id is None
+        assert (kept.perm, kept.schema_perm, kept.catalog_perm) == (None, None, None)
         assert chart_uuid in result["dangling_chart_uuids"]
         audit = db.session.query(PurgeAuditLog).filter_by(entity_uuid=ds_uuid).one()
         assert audit.affected_referrers

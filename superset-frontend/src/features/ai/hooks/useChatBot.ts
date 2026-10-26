@@ -31,7 +31,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { TextAreaRef } from 'antd/es/input/TextArea';
+import type { TextAreaRef } from '@superset-ui/core/components/Input';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {

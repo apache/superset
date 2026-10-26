@@ -26,6 +26,7 @@ import getDropPositionOriginal, {
 
 import {
   CHART_TYPE,
+  COLUMN_TYPE,
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
   HEADER_TYPE,
@@ -456,4 +457,86 @@ describe('getDropPosition', () => {
       expect(withChildren).toBe(DROP_RIGHT);
     });
   });
+});
+
+// The self-nesting guard needs ids and a parents chain, which getMocks above
+// intentionally omits, so these build their own minimal mocks.
+const selfNestingMocks = ({
+  componentId,
+  componentParents = [],
+  parentComponentId,
+  parentComponentParents = [],
+}: {
+  componentId: string;
+  componentParents?: string[];
+  parentComponentId?: string;
+  parentComponentParents?: string[];
+}) => [
+  {
+    getItem: () => ({ id: 'COLUMN-dragged', type: COLUMN_TYPE }),
+    getClientOffset: () => ({ x: 0, y: 0 }),
+  },
+  {
+    props: {
+      depth: 2,
+      component: {
+        id: componentId,
+        type: ROW_TYPE,
+        children: [],
+        parents: componentParents,
+      },
+      parentComponent: parentComponentId
+        ? {
+            id: parentComponentId,
+            type: TAB_TYPE,
+            children: [],
+            parents: parentComponentParents,
+          }
+        : undefined,
+      orientation: 'column',
+      isDraggingOverShallow: true,
+    },
+    ref: {
+      getBoundingClientRect: () => ({
+        top: 0,
+        right: 100,
+        bottom: 100,
+        left: 0,
+      }),
+    },
+  },
+];
+
+test('returns DROP_FORBIDDEN when dropping a component into its own descendant', () => {
+  expect(
+    getDropPosition(
+      ...selfNestingMocks({
+        componentId: 'ROW-nested-in-dragged',
+        componentParents: ['ROOT_ID', 'GRID_ID', 'COLUMN-dragged'],
+      }),
+    ),
+  ).toBe(DROP_FORBIDDEN);
+});
+
+test('returns DROP_FORBIDDEN when dropping a component as a sibling inside itself', () => {
+  expect(
+    getDropPosition(
+      ...selfNestingMocks({
+        componentId: 'ROW-nested-in-dragged-sibling',
+        componentParents: ['ROOT_ID', 'GRID_ID', 'COLUMN-dragged'],
+        parentComponentId: 'COLUMN-dragged',
+      }),
+    ),
+  ).toBe(DROP_FORBIDDEN);
+});
+
+test('allows a drop on an unrelated component', () => {
+  expect(
+    getDropPosition(
+      ...selfNestingMocks({
+        componentId: 'ROW-unrelated',
+        componentParents: ['ROOT_ID', 'GRID_ID'],
+      }),
+    ),
+  ).not.toBe(DROP_FORBIDDEN);
 });

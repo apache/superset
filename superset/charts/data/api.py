@@ -47,14 +47,19 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
+from superset.commands.streaming_export.base import encode_csv_stream
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
+from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import CACHE_DISABLED_TIMEOUT
+from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
+from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
@@ -64,7 +69,10 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
-from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.error_sanitization import (
+    redact_sensitive_query_fields,
+    sanitize_error_message,
+)
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -220,9 +228,16 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except SemanticLayersDisabledError as error:
+            return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
             return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -240,6 +255,8 @@ class ChartDataRestApi(ChartRestApi):
         try:
             form_data = json.loads(chart.params)
         except (TypeError, json.JSONDecodeError):
+            form_data = {}
+        if not isinstance(form_data, dict):
             form_data = {}
 
         return self._get_data_response(
@@ -316,9 +333,16 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except SemanticLayersDisabledError as error:
+            return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
             return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -464,13 +488,7 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
-            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-                has_export_perm = security_manager.can_access(
-                    "can_export_data", "Superset"
-                )
-            else:
-                has_export_perm = security_manager.can_access("can_csv", "Superset")
-            if not has_export_perm:
+            if not self._has_export_permission():
                 return self.response_403()
 
             if not materialized_result["queries"]:
@@ -547,21 +565,11 @@ class ChartDataRestApi(ChartRestApi):
                 ):
                     query["timing"] = query_result.timing.as_public_dict()
 
-            if security_manager.is_guest_user():
-                # Guests may see the generated SQL only when the role attached to
-                # their guest token has been granted "can view query on Dashboard",
-                # mirroring the permission the frontend uses to expose the
-                # "View query" action. Stacktraces and driver errors stay redacted
-                # regardless, as those leak details of the deployment itself.
-                can_view_query = security_manager.can_access(
-                    "can_view_query", "Dashboard"
-                )
-                for query in queries:
-                    if not can_view_query:
-                        query.pop("query", None)
-                    query.pop("stacktrace", None)
-                    if query.get("error"):
-                        query["error"] = sanitize_error_message(query["error"])
+            # Guest (embedded) responses drop the generated SQL unless the guest
+            # role has "can view query on Dashboard", and always drop stacktraces
+            # and raw driver errors; a no-op for other principals. See
+            # ``redact_sensitive_query_fields``.
+            redact_sensitive_query_fields(queries)
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:
@@ -575,6 +583,9 @@ class ChartDataRestApi(ChartRestApi):
                 )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            resp.headers["X-Superset-Semantic-Cache"] = SemanticCacheStatus.combine(
+                query.get("semantic_cache_status") for query in queries
+            ).value
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
@@ -655,11 +666,38 @@ class ChartDataRestApi(ChartRestApi):
         slice_: Slice | None = None,
     ) -> Response:
         """Get data response and optionally log is_cached information."""
+        query_context = command.query_context
         try:
+            if self._should_stream_before_execution(query_context, expected_rows):
+                # The client already decided to stream this export, so skip the
+                # regular execution: it would run the full query and hold every
+                # row in memory only to discard the result, and the streaming
+                # command runs the query again anyway. On large exports that
+                # first pass is long enough for proxies to drop the idle
+                # connection before the first byte is sent. It shares the try
+                # below with the regular execution so failures raised while
+                # validating access or building the SQL (the streaming command
+                # validates and compiles synchronously, before the generator
+                # starts) map to the usual chart-data 4xx responses instead of
+                # escaping as a 500.
+                if not self._has_export_permission():
+                    return self.response_403()
+                return self._create_streaming_csv_response(
+                    {"query_context": query_context},
+                    form_data,
+                    filename=filename,
+                    expected_rows=expected_rows,
+                    slice_=slice_ or query_context.slice_,
+                )
+
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
-        except ChartDataQueryFailedError as exc:
+        except (
+            ChartDataQueryFailedError,
+            SemanticLayerQueryRejectedError,
+            QueryObjectValidationError,
+        ) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
 
             # Log is_cached if extra payload callback is provided
@@ -731,11 +769,47 @@ class ChartDataRestApi(ChartRestApi):
         """
 
         try:
-            return ChartDataQueryContextSchema().load(form_data)
+            schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
+            schema.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
+            return schema.load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
         except ValueError as ex:
             raise ValidationError(str(ex)) from ex
+
+    @staticmethod
+    def _has_export_permission() -> bool:
+        """Whether the current user may export chart data as a file."""
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            return security_manager.can_access("can_export_data", "Superset")
+        return security_manager.can_access("can_csv", "Superset")
+
+    @staticmethod
+    def _should_stream_before_execution(
+        query_context: QueryContext, expected_rows: int | None
+    ) -> bool:
+        """
+        Whether a CSV export can go straight to streaming without executing first.
+
+        The frontend only sends ``expected_rows`` when it has decided to stream,
+        comparing its row count against the same ``CSV_STREAMING_ROW_THRESHOLD``.
+        Only raw data (``FULL``) qualifies: post-processed results such as pivot
+        tables need the regular execution path. Multi-query contexts also stay
+        on the regular path: the streaming command exports a single query,
+        while the regular path bundles every query into a zip.
+        """
+        if expected_rows is None:
+            return False
+        if len(query_context.queries) != 1:
+            return False
+        if query_context.result_format != ChartDataResultFormat.CSV:
+            return False
+        if query_context.result_type != ChartDataResultType.FULL:
+            return False
+        threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
+        return expected_rows >= threshold
 
     def _should_use_streaming(
         self, result: dict[Any, Any], form_data: dict[str, Any] | None = None
@@ -814,7 +888,8 @@ class ChartDataRestApi(ChartRestApi):
 
         # Create response with streaming headers
         response = Response(
-            csv_generator_callable(),  # Call the callable to get generator
+            # Call the callable to get generator
+            encode_csv_stream(csv_generator_callable(), encoding),
             # Use content_type (not mimetype) so the charset is set verbatim;
             # passing a charset via mimetype makes Werkzeug append a second
             # charset, producing a malformed doubled Content-Type header.

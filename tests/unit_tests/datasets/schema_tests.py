@@ -31,6 +31,7 @@ from superset.datasets.schemas import validate_python_date_format
     [
         "epoch_ms",
         "epoch_s",
+        "epoch_us",
         "%Y-%m-%dT%H:%M:%S.%f",
         "%Y%m%d",
     ],
@@ -316,3 +317,135 @@ def test_import_v1_column_schema_validates_date_formats() -> None:
 
     with pytest.raises(ValidationError):
         schema.load({"column_name": "ds", "datetime_format": "not a format'"})
+
+
+def test_dataset_put_schema_accepts_certification_metadata() -> None:
+    """
+    GET /api/v1/dataset/<id> exposes the certification/warning properties on
+    every column and metric. Echoing that payload back on PUT must load, and
+    the flat keys must be emitted after ``extra`` so they win on ``setattr``.
+    """
+    from superset.datasets.schemas import DatasetPutSchema
+
+    flat = {
+        "certified_by": "Data Platform",
+        "certification_details": "details",
+        "warning_markdown": "**warn**",
+        "is_certified": True,
+    }
+    payload = {
+        "columns": [{**flat, "column_name": "a", "extra": "{}"}],
+        "metrics": [
+            {**flat, "metric_name": "m", "expression": "COUNT(*)", "extra": "{}"}
+        ],
+    }
+
+    result = DatasetPutSchema().load(payload)
+
+    for item in [*result["columns"], *result["metrics"]]:
+        keys = list(item)
+        assert keys.index("extra") < keys.index("certified_by")
+        assert {k: item.get(k) for k in flat} == {**flat, "is_certified": None}
+
+
+@pytest.mark.parametrize(
+    "item, expected",
+    [
+        ({"is_certified": False}, {"is_certified": False}),
+        ({"is_certified": True}, {"is_certified": True}),
+        ({"is_certified": False, "certified_by": "x"}, {"certified_by": "x"}),
+        (
+            {"is_certified": True, "certification_details": None},
+            {"certification_details": None},
+        ),
+    ],
+)
+def test_dataset_put_schema_resolves_is_certified(
+    item: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """``is_certified`` is kept only when the certification keys are absent."""
+    from superset.datasets.schemas import DatasetColumnsPutSchema
+
+    result = DatasetColumnsPutSchema().load({"column_name": "a", **item})
+
+    assert result == {"column_name": "a", **expected}
+
+
+@pytest.mark.parametrize("fmt", [None, ",.2f", ".3s", "SMART_NUMBER", "DURATION"])
+def test_metric_put_schema_accepts_valid_d3format(fmt: Any) -> None:
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    result = DatasetMetricsPutSchema().load(
+        {"metric_name": "m", "expression": "COUNT(*)", "d3format": fmt}
+    )
+    assert result["metric_name"] == "m"
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        "<script>alert(1)</script>",
+        "<img src=x onerror=alert(1)>",
+        "nulld2fxk)",
+        ",.2f<b>",
+        "SMART_NUMBER<",
+    ],
+)
+def test_metric_put_schema_rejects_invalid_d3format(fmt: str) -> None:
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    with pytest.raises(ValidationError) as exc:
+        DatasetMetricsPutSchema().load(
+            {"metric_name": "m", "expression": "COUNT(*)", "d3format": fmt}
+        )
+    assert "d3format" in exc.value.messages
+
+
+def test_metric_put_schema_rejects_over_max_length_d3format() -> None:
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    # A well-formed specifier that exceeds the 128-char column limit.
+    too_long = "," + "." + "1" * 130 + "f"
+    with pytest.raises(ValidationError) as exc:
+        DatasetMetricsPutSchema().load(
+            {"metric_name": "m", "expression": "COUNT(*)", "d3format": too_long}
+        )
+    assert "d3format" in exc.value.messages
+
+
+def test_dataset_put_schema_reports_offending_metric_index() -> None:
+    from superset.datasets.schemas import DatasetPutSchema
+    from superset.exceptions import SupersetMarshmallowValidationError
+
+    # DatasetPutSchema.handle_error wraps marshmallow errors in a SIP-40 error
+    # (HTTP 422); the nested payload still points at the offending metric index.
+    with pytest.raises(SupersetMarshmallowValidationError) as exc:
+        DatasetPutSchema().load(
+            {
+                "metrics": [
+                    {"metric_name": "ok", "expression": "COUNT(*)", "d3format": ",.2f"},
+                    {
+                        "metric_name": "bad",
+                        "expression": "COUNT(*)",
+                        "d3format": "<script>alert(1)</script>",
+                    },
+                ]
+            }
+        )
+    messages = exc.value.error.extra["messages"]
+    assert 1 in messages["metrics"]
+    assert "d3format" in messages["metrics"][1]
+
+
+def test_import_metric_schema_rejects_invalid_d3format() -> None:
+    from superset.datasets.schemas import ImportV1MetricSchema
+
+    with pytest.raises(ValidationError) as exc:
+        ImportV1MetricSchema().load(
+            {
+                "metric_name": "m",
+                "expression": "COUNT(*)",
+                "d3format": "<img src=x onerror=alert(1)>",
+            }
+        )
+    assert "d3format" in exc.value.messages

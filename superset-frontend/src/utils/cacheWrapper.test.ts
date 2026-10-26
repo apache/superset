@@ -20,6 +20,60 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('cacheWrapper', () => {
+  test('retries a key after its cached promise rejects', async () => {
+    const request = jest
+      .fn<Promise<string>, [string]>()
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValueOnce('recovered');
+    const cache = new Map<string, Promise<string>>();
+    const cachedRequest = cacheWrapper(request, cache);
+
+    await expect(cachedRequest('resource')).rejects.toThrow('transient');
+    await expect(cachedRequest('resource')).resolves.toBe('recovered');
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  test('shares an in-flight promise and retains its fulfilled result', async () => {
+    let resolveRequest: (value: string) => void = () => {};
+    const request = jest.fn<Promise<string>, [string]>().mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveRequest = resolve;
+        }),
+    );
+    const cachedRequest = cacheWrapper(
+      request,
+      new Map<string, Promise<string>>(),
+    );
+
+    const first = cachedRequest('resource');
+    expect(cachedRequest('resource')).toBe(first);
+    resolveRequest('fulfilled');
+    await expect(first).resolves.toBe('fulfilled');
+    expect(cachedRequest('resource')).toBe(first);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not evict a replacement after an older promise rejects', async () => {
+    let rejectRequest: (reason: Error) => void = () => {};
+    const request = jest.fn<Promise<string>, [string]>().mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRequest = reject;
+        }),
+    );
+    const cache = new Map<string, Promise<string>>();
+    const cachedRequest = cacheWrapper(request, cache);
+    const first = cachedRequest('resource');
+    const replacement = Promise.resolve('newer');
+    cache.set(JSON.stringify(['resource']), replacement);
+
+    rejectRequest(new Error('older request failed'));
+    await expect(first).rejects.toThrow('older request failed');
+    expect(cache.get(JSON.stringify(['resource']))).toBe(replacement);
+    expect(cachedRequest('resource')).toBe(replacement);
+  });
+
   const fnResult = 'fnResult';
   const fn = jest.fn<string, [number, number]>().mockReturnValue(fnResult);
 
