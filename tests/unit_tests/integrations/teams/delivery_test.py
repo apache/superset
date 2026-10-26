@@ -340,6 +340,7 @@ def test_excessive_server_delay_is_not_shortened(
         ([404], "parameter", 1, 0),
         ([302], "parameter", 1, 0),
         ([401, 503, 503, None], None, 4, 1),
+        ([503, 503, 503, 401], "authorization", 4, 0),
     ],
 )
 def test_one_authentication_refresh_and_permanent_errors(
