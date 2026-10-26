@@ -390,6 +390,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             presto://localhost:8080/hive[/default]
 
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         database = sqlalchemy_uri.database.strip("/")
 
         if "/" not in database:

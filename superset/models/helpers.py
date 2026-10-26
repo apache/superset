@@ -4000,7 +4000,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Only dynamic-schema engines apply the datasource's schema to the connection.
         Other engines resolve it from connection parameters or the inspector, using
-        the same query-aware resolver as SQL Lab authorization.
+        the same query-aware resolver as SQL Lab authorization. If discovery returns
+        no schema, retain the dataset schema for RLS qualification.
         """
         if self.db_engine_spec.supports_dynamic_schema:
             return self.schema or self.database.get_default_schema(self.catalog) or ""
@@ -4008,6 +4009,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self.database.resolve_query_default_schema(
                 self.sql, self.schema, self.catalog, self.template_params_dict
             )
+            or self.schema
             or ""
         )
 

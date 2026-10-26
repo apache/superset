@@ -29,6 +29,10 @@ from sqlalchemy.pool import NullPool
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
+from superset.db_engine_specs.druid import DruidEngineSpec
+from superset.db_engine_specs.tdengine import TDengineEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -303,3 +307,96 @@ def test_virtual_dataset_denylist_uses_connection_schema(
     virtual, _ = static_schema_datasource
 
     assert virtual._resolve_denylist_schema("SELECT col1 FROM physical") == "main"
+
+
+@pytest.fixture(params=[False, True], ids=["sqlite", "druid"])
+def unresolved_schema_datasource(
+    request: pytest.FixtureRequest,
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> tuple[SqlaTable | Query, MagicMock]:
+    """Model static engines whose URI and inspector expose no default schema."""
+    virtual, rule = static_schema_datasource
+    virtual.schema = "main"
+    if request.param:
+        mocker.patch.object(
+            Database, "get_db_engine_spec", return_value=DruidEngineSpec
+        )
+    mocker.patch.object(
+        virtual.database.db_engine_spec, "get_default_schema", return_value=None
+    )
+    return virtual, rule
+
+
+def test_virtual_dataset_rls_preserves_unresolved_schema(
+    unresolved_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """Unknown runtime defaults must retain RLS on the configured physical table."""
+    virtual, _ = unresolved_schema_datasource
+    query = QueryObject(datasource=virtual, columns=["col1"], metrics=[])
+
+    result = virtual.get_query_result(query)
+
+    assert result.status == "success"
+    assert result.df["col1"].tolist() == [1]
+
+
+def test_virtual_dataset_rls_cache_preserves_unresolved_schema(
+    unresolved_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """An undiscoverable default must not remove tenant predicates from cache keys."""
+    virtual, rule = unresolved_schema_datasource
+
+    assert virtual.get_extra_cache_keys({}) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys({}) == ["(col1 = 2)"]
+
+
+def test_virtual_dataset_rls_retry_preserves_unresolved_schema(
+    unresolved_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """The injection-error retry must retain the fallback schema and fail closed."""
+    virtual, _ = unresolved_schema_datasource
+    mocker.patch(
+        "superset.models.helpers.apply_rls", side_effect=ValueError("cannot apply RLS")
+    )
+    mocker.patch("superset.models.helpers.db.session.rollback")
+
+    with pytest.raises(QueryObjectValidationError):
+        virtual.get_from_clause()
+
+
+@pytest.mark.parametrize("spec", [TDengineEngineSpec, CouchbaseEngineSpec])
+@pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
+@pytest.mark.parametrize("operation", ["get_from_clause", "get_extra_cache_keys"])
+def test_virtual_dataset_without_uri_database(
+    mocker: MockerFixture,
+    app_context: None,
+    spec: type[BaseEngineSpec],
+    datasource_class: type[SqlaTable] | type[Query],
+    operation: str,
+) -> None:
+    """Fully qualified SQL must survive schema resolution without a URI database."""
+    database = Database(
+        database_name="analytic", sqlalchemy_uri=f"{spec.engine}://host"
+    )
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=spec)
+    mocker.patch.object(spec, "get_default_schema", return_value=None)
+    extractor = mocker.spy(spec, "get_schema_from_engine_params")
+    mocker.patch("superset.models.helpers.apply_rls", return_value=False)
+    mocker.patch("superset.utils.rls.collect_rls_predicates_for_sql", return_value=[])
+    virtual = datasource_class(
+        id=2,
+        sql="SELECT ts, value FROM metrics.readings",
+        schema="metrics",
+        database=database,
+    )
+
+    if operation == "get_from_clause":
+        virtual.get_from_clause()
+    else:
+        assert virtual.get_extra_cache_keys({}) == []
+
+    extractor.assert_called_once()
+    assert extractor.call_args.args[0].database is None
