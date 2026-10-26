@@ -1156,6 +1156,7 @@ def test_archived_dashboard_blocks_delete_with_orm_listener(
         ("admin", {"Live chart": False, "Archived chart": True}),
         ("editor", {"Live chart": False, "Archived chart": True}),
         ("reader", {"Live chart": False}),
+        ("read-only-editor", {"Live chart": False}),
         ("guest", {"Live chart": False}),
         ("hidden-editor", {"Archived chart": True}),
     ],
@@ -1163,7 +1164,7 @@ def test_archived_dashboard_blocks_delete_with_orm_listener(
 def test_semantic_delete_names_archived_dependents_to_restore_audience(
     session: Session, mocker: MockerFixture, viewer: str, named: dict[str, bool]
 ) -> None:
-    """Archived blockers are named to whoever Recently Archived would show them."""
+    """Archived blockers are named only to callers with restore capability."""
     from datetime import datetime
 
     from superset.commands.semantic_layer.delete import _dependent_assets
@@ -1194,7 +1195,11 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
     session.execute(chart_editors.insert().values(chart_id=962, subject_id=1))
     # Prove the session listener is active; do not substitute Connection.execute.
     assert session.scalar(sa.select(Slice.id).where(Slice.id == 962)) is None
-    mocker.patch("superset.security_manager.can_access", return_value=True)
+    mocker.patch(
+        "superset.security_manager.can_access",
+        side_effect=lambda permission, resource: viewer != "read-only-editor"
+        or permission != "can_write",
+    )
     for access_filter in (
         "ChartFilter",
         "DashboardAccessFilter",
@@ -1223,7 +1228,9 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
     mocker.patch(
         "superset.commands.semantic_layer.delete.get_user_subject_ids_subquery",
         return_value=sa.select(
-            sa.literal(1 if viewer in ("editor", "hidden-editor") else 2)
+            sa.literal(
+                1 if viewer in ("editor", "hidden-editor", "read-only-editor") else 2
+            )
         ),
     )
 

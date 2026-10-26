@@ -233,12 +233,12 @@ def _dependent_assets(
     )
     archived_chart_ids: sa.Select = (
         _archived_audience_ids(Slice.__table__, chart_editors, "chart_id")
-        if security_manager.can_access("can_read", "Chart")
+        if security_manager.can_access("can_write", "Chart")
         else sa.select(Slice.__table__.c.id).where(sa.false())
     )
     archived_dashboard_ids: sa.Select = (
         _archived_audience_ids(Dashboard.__table__, dashboard_editors, "dashboard_id")
-        if security_manager.can_access("can_read", "Dashboard")
+        if security_manager.can_access("can_write", "Dashboard")
         else sa.select(Dashboard.__table__.c.id).where(sa.false())
     )
     visibility: sa.ColumnElement[bool] = sa.or_(
