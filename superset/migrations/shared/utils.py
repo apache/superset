@@ -144,7 +144,7 @@ def assign_uuids(
         ),
         batch_size=batch_size,
     ):
-        obj.uuid = uuid4
+        obj.uuid = uuid4()
     print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
 
 

@@ -110,6 +110,16 @@ class ValidationPipeline:
             # Ensure request is not None
             if request is None:
                 return ValidationResult(is_valid=False, error=error)
+            if request.dataset_id is None:
+                return ValidationResult(
+                    is_valid=False,
+                    request=request,
+                    error=ChartGenerationError(
+                        error_type="invalid_target",
+                        message="The dataset pipeline requires a dataset_id.",
+                        details="Semantic targets use the authorized view validator.",
+                    ),
+                )
 
             # config is already a typed ChartConfig (validated by Pydantic)
             typed_config = request.config
@@ -119,20 +129,9 @@ class ValidationPipeline:
                 request.dataset_id
             )
 
-            # Layer 2: Dataset validation (reuses context)
-            is_valid, error = ValidationPipeline._validate_dataset(
-                typed_config, request.dataset_id, dataset_context
-            )
-            if not is_valid:
-                return ValidationResult(is_valid=False, request=request, error=error)
-
-            # Layer 3: Runtime validation - returns warnings as metadata, not errors
-            _is_valid, warnings_metadata = ValidationPipeline._validate_runtime(
-                typed_config, request.dataset_id
-            )
-            # Runtime validation always returns True now, warnings are informational
-
-            # Layer 4: Column name normalization (reuses context)
+            # Canonicalize against the same authorized schema used by
+            # validation. Ambiguous case-insensitive matches must fail rather
+            # than silently selecting one dataset field.
             from .dataset_validator import GanttSemanticNormalizationError
 
             try:
@@ -140,6 +139,16 @@ class ValidationPipeline:
                     request, dataset_context, typed_config=typed_config
                 )
             except GanttSemanticNormalizationError as ex:
+                # A semantic conflict can be the downstream symptom of dataset
+                # metadata that collides only by case. Report that more specific
+                # diagnosis when dataset validation can name it.
+                _is_valid, dataset_error = ValidationPipeline._validate_dataset(
+                    typed_config, request.dataset_id, dataset_context
+                )
+                if dataset_error is not None:
+                    return ValidationResult(
+                        is_valid=False, request=request, error=dataset_error
+                    )
                 return ValidationResult(
                     is_valid=False,
                     request=request,
@@ -157,6 +166,34 @@ class ValidationPipeline:
                         error_code="GANTT_SEMANTIC_VALIDATION_ERROR",
                     ),
                 )
+            except ValueError as ex:
+                return ValidationResult(
+                    is_valid=False,
+                    request=request,
+                    error=ChartGenerationError(
+                        error_type="ambiguous_column_reference",
+                        message="Chart references could not be canonicalized",
+                        details=str(ex),
+                        suggestions=[
+                            "Use get_dataset_info and copy exact-case field names"
+                        ],
+                        error_code="AMBIGUOUS_COLUMN_REFERENCE",
+                    ),
+                )
+            typed_config = normalized_request.config
+
+            # Layer 2: Dataset validation (reuses context)
+            is_valid, error = ValidationPipeline._validate_dataset(
+                typed_config, request.dataset_id, dataset_context
+            )
+            if not is_valid:
+                return ValidationResult(is_valid=False, request=request, error=error)
+
+            # Layer 3: Runtime validation - returns warnings as metadata, not errors
+            _is_valid, warnings_metadata = ValidationPipeline._validate_runtime(
+                typed_config, request.dataset_id
+            )
+            # Runtime validation always returns True now, warnings are informational
 
             return ValidationResult(
                 is_valid=True,
@@ -272,10 +309,13 @@ class ValidationPipeline:
         """
         try:
             from .dataset_validator import (
+                AmbiguousDatasetReferenceError,
                 DatasetValidator,
                 GanttSemanticNormalizationError,
             )
 
+            if request.dataset_id is None:
+                return request
             config = typed_config or request.config
             normalized_config = DatasetValidator.normalize_column_names(
                 config,
@@ -283,13 +323,19 @@ class ValidationPipeline:
                 dataset_context=dataset_context,
             )
 
-            # Create a new request with the normalized config
-            request_dict = request.model_dump()
+            # Create a new request with the normalized config. The name is
+            # already sanitized; carry it over instead of sanitizing it again.
+            request_dict = request.model_dump(exclude={"chart_name"})
             request_dict["config"] = normalized_config.model_dump(exclude_unset=True)
 
-            return GenerateChartRequest.model_validate(request_dict)
+            return GenerateChartRequest.model_validate(request_dict).model_copy(
+                update={"chart_name": request.chart_name}
+            )
 
-        except GanttSemanticNormalizationError:
+        except (GanttSemanticNormalizationError, AmbiguousDatasetReferenceError):
+            # These name a real, actionable schema conflict rather than a
+            # transient normalization failure; callers map them to structured
+            # errors instead of silently querying an unresolved reference.
             raise
         except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
             # If normalization fails, return the original request

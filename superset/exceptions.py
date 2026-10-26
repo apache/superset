@@ -22,6 +22,7 @@ from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -240,6 +241,58 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
+class SemanticResultCompletenessError(QueryObjectValidationError):
+    """Reject incomplete or unverifiable semantic results with safe guidance."""
+
+    def __init__(self, reason: SemanticResultCompletenessReason) -> None:
+        self.reason: SemanticResultCompletenessReason = reason
+        # Keep fixed guidance aligned with frontend middleware/asyncQueryError.ts.
+        message: str
+        if reason == "incomplete":
+            message = _(
+                "The semantic layer returned only part of this query result. "
+                "Narrow the time range or selected dimensions, or request a "
+                "smaller explicit row limit, then retry. "
+                "Result pagination is not supported yet."
+            )
+        elif reason == "unverified":
+            message = _(
+                "The semantic layer could not verify that this query result "
+                "is complete. Retry the query; if it continues, ask an "
+                "administrator to check the semantic-layer connection."
+            )
+        else:
+            raise ValueError("Unknown completeness reason")
+        super().__init__(message)
+
+
+class QueryObjectValidationMessage(str):
+    """
+    A failed query's error text that keeps its validation cause.
+
+    Chart-data payloads carry a failed query's error as text. This subclass
+    serializes as that text, so payload consumers are unaffected, while the
+    chart-data command can still report the failure as a validation error.
+
+    ``QueryContextProcessor.get_df_payload_result`` records it and
+    ``ChartDataCommand`` reads it. Rebuilding the text between them (copying,
+    formatting, sanitizing) yields a plain ``str``, and the failure is then
+    reported as an ordinary query failure. It lives beside its cause so the
+    processor and the command share it without importing each other.
+    """
+
+    cause: QueryObjectValidationError
+
+    def __new__(cls, cause: QueryObjectValidationError) -> QueryObjectValidationMessage:
+        message = super().__new__(cls, str(cause))
+        message.cause = cause
+        return message
+
+    def __reduce__(self) -> tuple[type[str], tuple[str]]:
+        # Copies and pickles degrade to the plain error text.
+        return str, (str(self),)
+
+
 class AdvancedDataTypeResponseError(SupersetException):
     status = 400
 
@@ -439,6 +492,29 @@ class OAuth2Error(SupersetErrorException):
         )
 
 
+class OAuth2RejectedError(SupersetErrorException):
+    """
+    Exception for when the OAuth2 callback itself can't be completed.
+
+    Raised when the provider denies authorization or the callback request
+    can't be trusted (missing/invalid state, no authenticated session).
+    These are conditions the caller could correct by retrying the OAuth2
+    flow, so unlike ``OAuth2Error`` this maps to a 4xx response instead of
+    a 500.
+    """
+
+    status = 400
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message=error,
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.WARNING,
+            )
+        )
+
+
 class SupersetDisallowedSQLFunctionException(SupersetErrorException):
     """
     Disallowed function found on SQL statement
@@ -463,6 +539,24 @@ class SupersetDisallowedSQLTableException(SupersetErrorException):
         super().__init__(
             SupersetError(
                 message=f"SQL statement references disallowed table(s): {tables}",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class SupersetDisallowedClientFileTransferException(SupersetErrorException):
+    """
+    Client-side file-transfer command found in SQL statement
+    """
+
+    def __init__(self, commands: list[str]):
+        super().__init__(
+            SupersetError(
+                message=(
+                    "SQL statement contains disallowed client-side "
+                    f"file-transfer command(s): {', '.join(commands)}"
+                ),
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
             )

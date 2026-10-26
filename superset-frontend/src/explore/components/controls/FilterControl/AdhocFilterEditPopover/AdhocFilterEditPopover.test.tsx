@@ -17,13 +17,46 @@
  * under the License.
  */
 import type React from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterEditPopover from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
+
+// The real editor is an Ace instance that loads asynchronously and exposes no
+// DOM input, so a plain textarea stands in for it.
+jest.mock('src/core/editors', () => {
+  const React = require('react');
+  return {
+    EditorHost: React.forwardRef(
+      (
+        {
+          value,
+          onChange,
+        }: {
+          value: string;
+          onChange: (v: string) => void;
+        },
+        ref: React.Ref<{ resize: () => void }>,
+      ) => {
+        React.useImperativeHandle(ref, () => ({ resize: jest.fn() }));
+        return (
+          <textarea
+            defaultValue={value}
+            onChange={e => onChange?.(e.target.value)}
+          />
+        );
+      },
+    ),
+  };
+});
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: ExpressionTypes.Simple,
@@ -120,26 +153,20 @@ describe('AdhocFilterEditPopover', () => {
     ).toBeDisabled();
   });
 
-  /* oxlint-disable-next-line jest/no-disabled-tests */
-  test.skip('updates the filter when changes are made', async () => {
+  test('updates the filter when changes are made', async () => {
     const onChange = jest.fn();
     renderPopover({
       onChange,
       adhocFilter: sqlAdhocFilter,
     });
 
-    // Switch to SQL tab
-    await userEvent.click(screen.getByRole('tab', { name: /custom sql/i }));
+    // The SQL tab is preselected for a SQL filter; edit its expression
+    const sqlInput = screen.getByRole('textbox');
+    await userEvent.clear(sqlInput);
+    await userEvent.paste('COUNT(*) > 0');
 
-    // Find and update the SQL editor
-    const sqlInput = screen.getByTestId('sql-input');
-    fireEvent.change(sqlInput, { target: { value: 'COUNT(*) > 0' } });
-
-    // Wait for validation to complete
-    await screen.findByRole('button', { name: /save/i });
-
-    // Click save button
     const saveButton = screen.getByRole('button', { name: /save/i });
+    await waitFor(() => expect(saveButton).toBeEnabled());
     await userEvent.click(saveButton);
 
     expect(onChange).toHaveBeenCalledWith(

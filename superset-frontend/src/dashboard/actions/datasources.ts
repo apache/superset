@@ -18,7 +18,13 @@
  */
 import { Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
+import { nanoid } from 'nanoid';
+import { logging } from '@apache-superset/core/utils';
 import { Datasource, RootState } from 'src/dashboard/types';
+import {
+  provenSemanticDataset,
+  updateDashboardSemanticDataset,
+} from './dashboardInfo';
 
 // update datasources index for Dashboard
 export enum DatasourcesAction {
@@ -52,17 +58,46 @@ export function setDatasource(datasource: Datasource, key: string) {
   };
 }
 
-export function fetchDatasourceMetadata(key: string) {
+export function fetchDatasourceMetadata(key: string, dashboardId?: number) {
   return (dispatch: Dispatch, getState: () => RootState) => {
     const { datasources } = getState();
     const datasource = datasources[key];
+    const requestId = dashboardId === undefined ? undefined : nanoid();
 
-    if (datasource) {
+    if (dashboardId !== undefined) {
+      dispatch(
+        updateDashboardSemanticDataset(dashboardId, key, null, requestId, true),
+      );
+    }
+
+    if (datasource && dashboardId === undefined) {
       return dispatch(setDatasource(datasource, key));
     }
 
     return SupersetClient.get({
       endpoint: `/fetch_datasource_metadata?datasourceKey=${key}`,
-    }).then(({ json }) => dispatch(setDatasource(json as Datasource, key)));
+    })
+      .then(({ json }) => {
+        if (dashboardId !== undefined) {
+          const proven = provenSemanticDataset(json, key);
+          dispatch(
+            updateDashboardSemanticDataset(dashboardId, key, proven, requestId),
+          );
+          if (!proven) {
+            logging.error('Semantic datasource metadata did not match', key);
+            return undefined;
+          }
+        }
+        return dispatch(setDatasource(json as Datasource, key));
+      })
+      .catch(error => {
+        // The metadata is already invalidated; chart validation remains server-side.
+        if (dashboardId === undefined) throw error;
+        dispatch(
+          updateDashboardSemanticDataset(dashboardId, key, null, requestId),
+        );
+        logging.error('Error fetching semantic datasource metadata:', error);
+        return undefined;
+      });
   };
 }

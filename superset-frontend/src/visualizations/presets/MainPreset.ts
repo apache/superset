@@ -40,6 +40,7 @@ import {
   BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
+  EchartsCandlestickChartPlugin,
   EchartsAreaChartPlugin,
   EchartsTimeseriesChartPlugin,
   EchartsTimeseriesBarChartPlugin,
@@ -111,6 +112,9 @@ export default class MainPreset extends Preset {
           key: VizType.BigNumberTotal,
         }),
         new EchartsBoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
+        new EchartsCandlestickChartPlugin().configure({
+          key: VizType.Candlestick,
+        }),
         new EchartsBulletChartPlugin().configure({ key: VizType.Bullet }),
         new CalendarChartPlugin().configure({ key: VizType.Calendar }),
         new ChordChartPlugin().configure({ key: VizType.Chord }),
