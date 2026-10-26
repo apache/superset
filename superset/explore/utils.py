@@ -66,8 +66,12 @@ def check_query_access(query_id: int) -> Optional[bool]:
                 # This is the one-time explore/create-chart transition the
                 # query-authorship bypass in raise_for_access is meant to
                 # cover; see allow_query_authorship_bypass's docstring there.
+                # Editorship of a dataset named after a table the query reads
+                # does not authorize it, as on the chart-data path.
                 security_manager.raise_for_access(
-                    query=query, allow_query_authorship_bypass=True
+                    query=query,
+                    allow_query_authorship_bypass=True,
+                    allow_editorship=False,
                 )
             except TemplateError as ex:
                 # raise_for_access() Jinja-renders the query's SQL to resolve

@@ -33,20 +33,26 @@ from superset.common.tabular_query import (
     resolve_explorable,
     ResolvedExplorable,
     TabularQueryValidationError,
+    validate_names,
     validate_query_names,
 )
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.schemas import DatasourceQuerySchema
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
-from superset.semantic_layers.access import (
-    SemanticLayersDisabledError,
+from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
 )
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
@@ -69,12 +75,16 @@ SEARCH_CACHE_TIMEOUT = 60
 
 
 class _HttpError(Exception):
-    """Carries an HTTP status out of the shared resolve helper."""
+    """Carry an HTTP status and response payload out of the resolve helper."""
 
-    def __init__(self, status: int, message: str) -> None:
+    def __init__(
+        self, status: int, message: str, *, error: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(message)
-        self.status = status
-        self.message = message
+        self.status: int = status
+        self.payload: dict[str, Any] = {"message": message}
+        if error is not None:
+            self.payload["errors"] = [error]
 
 
 def _column_values_cache_key(
@@ -139,8 +149,15 @@ def get_cached_column_values(
             "q": search,
         },
     )
+    timeout: int = datasource.cache_timeout or app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
     cached: list[Any] | None
-    if not force and (cached := cache_manager.data_cache.get(cache_key)) is not None:
+    if (
+        timeout != CACHE_DISABLED_TIMEOUT
+        and not force
+        and (cached := cache_manager.data_cache.get(cache_key)) is not None
+    ):
         logger.debug(
             "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
         )
@@ -168,13 +185,11 @@ def get_cached_column_values(
             warn_threshold,
         )
 
-    timeout: int = datasource.cache_timeout or app.config.get(
-        "CACHE_DEFAULT_TIMEOUT", 300
-    )
     # Bound each distinct search term's lifetime instead of retaining one
     # entry per keystroke for the full default timeout.
     timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
-    cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+    if timeout != CACHE_DISABLED_TIMEOUT:
+        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
     logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
     return payload, False
 
@@ -237,9 +252,10 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: q
             description: >-
-              Optional case-insensitive substring; only values containing it are
-              returned. Lets the client search the full column rather than the
-              truncated first page.
+              Optional substring search for SQL dataset columns and text semantic
+              dimensions. Semantic non-text dimensions return the bounded page
+              without server-side search. Case sensitivity follows the datasource
+              or semantic provider.
           - in: query
             schema:
               type: string
@@ -299,7 +315,12 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        return self._column_values_response(datasource, datasource_type, column_name)
+        try:
+            return self._column_values_response(
+                datasource, datasource_type, column_name
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
     def _column_values_response(
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
@@ -370,6 +391,8 @@ class DatasourceRestApi(BaseSupersetApi):
                 selection_version=selection_version,
                 force=force,
             )
+        except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
+            return self.response(ex.status, message=ex.message)
         except QueryObjectValidationError as ex:
             # Validation errors can quote dataset SQL; embedded guests get the
             # same generic text as the chart-data API.
@@ -569,8 +592,12 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
-        """Return metrics and dimensions compatible with the current selection.
+    def compatible(  # noqa: C901
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
+        """Return compatible members, refusing unknown selected names with a 400.
+
+        Non-string entries in selection lists do not select datasource members.
         ---
         post:
           summary: Get compatible metrics and dimensions
@@ -642,9 +669,55 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        body = request.get_json(silent=True) or {}
-        selected_metrics = body.get("selected_metrics", [])
-        selected_dimensions = body.get("selected_dimensions", [])
+        body: Any = request.get_json(silent=True) or {}
+        raw_metrics: object = body.get("selected_metrics", [])
+        raw_dimensions: object = body.get("selected_dimensions", [])
+        if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
+            return self.response(
+                400, message="selected_metrics and selected_dimensions must be lists"
+            )
+
+        selected_metrics: list[str] = [
+            name for name in raw_metrics if isinstance(name, str)
+        ]
+        selected_dimensions: list[str] = [
+            name for name in raw_dimensions if isinstance(name, str)
+        ]
+
+        # Check names before the result cache: live datasource members can change
+        # without invalidating a previously cached compatibility result.
+        selection_errors: list[str] = []
+        if selected_metrics:
+            selection_errors.extend(
+                validate_names(
+                    selected_metrics,
+                    {metric.metric_name for metric in datasource.metrics},
+                    "metric",
+                )
+            )
+        if selected_dimensions:
+            try:
+                selection_errors.extend(
+                    validate_names(
+                        selected_dimensions,
+                        {dimension.column_name for dimension in datasource.columns},
+                        "dimension",
+                    )
+                )
+            except AmbiguousDimensionError as ex:
+                return self.response(400, message=str(ex))
+        if selection_errors:
+            return self.response(400, message="; ".join(selection_errors))
+
+        try:
+            datasource_uid: str = datasource.uid
+            metadata_version: str | None = (
+                datasource.metadata_generation
+                if isinstance(datasource, SemanticView)
+                else None
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
@@ -653,12 +726,9 @@ class DatasourceRestApi(BaseSupersetApi):
             + hashlib.sha256(
                 json.dumps(
                     {
-                        "uid": datasource.uid,
-                        "metadata_version": (
-                            datasource.metadata_generation
-                            if isinstance(datasource, SemanticView)
-                            else None
-                        ),
+                        "uid": datasource_uid,
+                        "changed_on": str(getattr(datasource, "changed_on", "")),
+                        "metadata_version": metadata_version,
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },
@@ -667,22 +737,30 @@ class DatasourceRestApi(BaseSupersetApi):
             ).hexdigest()
         )
 
-        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
-            return self.response(200, result=cached)
-
-        result = {
-            "compatible_metrics": datasource.get_compatible_metrics(
-                selected_metrics, selected_dimensions
-            ),
-            "compatible_dimensions": datasource.get_compatible_dimensions(
-                selected_metrics, selected_dimensions
-            ),
-        }
-
-        timeout = datasource.cache_timeout or app.config.get(
+        timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        cached: dict[str, list[str]] | None
+        if (
+            timeout != CACHE_DISABLED_TIMEOUT
+            and (cached := cache_manager.data_cache.get(cache_key)) is not None
+        ):
+            return self.response(200, result=cached)
+
+        try:
+            result: dict[str, list[str]] = {
+                "compatible_metrics": datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                ),
+                "compatible_dimensions": datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                ),
+            }
+        except AmbiguousDimensionError as ex:
+            return self.response(400, message=str(ex))
+
+        if timeout != CACHE_DISABLED_TIMEOUT:
+            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)
 
@@ -702,6 +780,11 @@ class DatasourceRestApi(BaseSupersetApi):
         except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             raise _HttpError(404, ex.message) from ex
         except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise _HttpError(403, ex.message, error=ex.to_dict()) from ex
             raise _HttpError(403, ex.message) from ex
         except TabularQueryValidationError as ex:
             raise _HttpError(400, str(ex)) from ex
@@ -767,7 +850,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, payload)
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"
@@ -961,7 +1044,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, {})
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"
