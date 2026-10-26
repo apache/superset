@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
+  getClientErrorObject,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -628,6 +630,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
+  const [svDeleteError, setSVDeleteError] = useState<{
+    error: string;
+    total?: number;
+    archived_count?: number;
+  } | null>(null);
+  const [svDeleting, setSVDeleting] = useState(false);
+  const svDeleteRequest = useRef(0);
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
     useState<Dataset | null>(null);
 
@@ -817,36 +826,45 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
 
   const handleSemanticViewDelete = (sv: Dataset) => {
+    svDeleteRequest.current += 1;
+    setSVDeleteError(null);
+    setSVDeleting(false);
     setSvCurrentlyDeleting(sv);
   };
 
-  const handleSemanticViewDeleteConfirm = () => {
+  const handleSemanticViewDeleteConfirm = async () => {
     if (!svCurrentlyDeleting) return;
     const { id, table_name: tableName } = svCurrentlyDeleting;
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_view/${id}`,
-    }).then(
-      () => {
-        setSvCurrentlyDeleting(null);
-        refreshData();
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
-      createErrorHandler(errMsg =>
+    svDeleteRequest.current += 1;
+    const request = svDeleteRequest.current;
+    setSVDeleting(true);
+    try {
+      await SupersetClient.delete({ endpoint: `/api/v1/semantic_view/${id}` });
+      refreshData();
+      addSuccessToast(t('Deleted: %s', tableName));
+      if (request === svDeleteRequest.current) setSvCurrentlyDeleting(null);
+    } catch (error) {
+      const parsed = await getClientErrorObject(error);
+      if (request !== svDeleteRequest.current) return;
+      if (parsed.status === 409) {
+        setSVDeleteError(parsed);
+      } else {
         addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
-      ),
-    );
+          t('There was an issue deleting %s: %s', tableName, parsed.error),
+        );
+      }
+    } finally {
+      if (request === svDeleteRequest.current) setSVDeleting(false);
+    }
   };
 
   const columns = useMemo(
     () => [
       {
-        Cell: () => null,
-        accessor: 'kind_icon',
-        disableSortBy: true,
-        size: 'xs',
+        accessor: 'id',
         id: 'id',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -872,7 +890,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreTo}>
+              <Link
+                data-test="internal-link"
+                to={exploreTo}
+                title={datasetTitle}
+              >
                 {datasetTitle}
               </Link>
             );
@@ -880,7 +902,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo} title={datasetTitle}>
+                {datasetTitle}
+              </GenericLink>
             );
           }
           try {
@@ -916,6 +940,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxxl',
         id: 'table_name',
       },
       {
@@ -1592,12 +1617,44 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       )}
       {svCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
+          preserveConfirmationOnConfirm
+          loading={svDeleting}
+          description={
+            <>
+              <p>
+                {t(
+                  'Are you sure you want to delete %s? This cannot be undone.',
+                  svCurrentlyDeleting.table_name,
+                )}
+              </p>
+              {svDeleteError && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={
+                    <>
+                      {typeof svDeleteError.total === 'number' &&
+                      typeof svDeleteError.archived_count === 'number'
+                        ? t(
+                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
+                            svDeleteError.total,
+                            svDeleteError.archived_count,
+                          )
+                        : svDeleteError.error}{' '}
+                      <a href={ensureAppRoot('/archived/')}>
+                        {t('Recently Archived')}
+                      </a>
+                    </>
+                  }
+                />
+              )}
+            </>
+          }
           onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
+          onHide={() => {
+            svDeleteRequest.current += 1;
+            setSvCurrentlyDeleting(null);
+          }}
           open
           title={t('Delete Semantic View?')}
         />
@@ -1718,11 +1775,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               ))}
             {pendingBulkSemanticCount > 0 && (
               <p>
-                {tn(
-                  'Charts built on the selected semantic view are not checked and will break if it is deleted.',
-                  'Charts built on the %s selected semantic views are not checked and will break if they are deleted.',
-                  pendingBulkSemanticCount,
-                  pendingBulkSemanticCount,
+                {t(
+                  'Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
                 )}
               </p>
             )}

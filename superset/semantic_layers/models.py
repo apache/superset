@@ -23,15 +23,13 @@ import hashlib
 import logging
 import math
 import uuid
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from dataclasses import dataclass, field
-from functools import cached_property
 from typing import Any, cast, TYPE_CHECKING
 
 import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
-from flask import current_app
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
@@ -72,6 +70,11 @@ from superset.semantic_layers.dimension_resolution import (
 from superset.semantic_layers.exceptions import (
     execute_semantic_query,
     SemanticLayerQueryRejectedError,
+)
+from superset.semantic_layers.execution import (
+    configured_namespace,
+    metadata_namespace,
+    SemanticBindingMemo,
 )
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
@@ -153,6 +156,7 @@ class _MetadataGenerations:
     """Session-local generations, captured before discovery and forgotten on Save."""
 
     generations: dict[uuid.UUID, str] = field(default_factory=dict)
+    namespaces: dict[sa.engine.Engine, str] = field(default_factory=dict)
 
     @classmethod
     def for_session(cls, session: Session) -> _MetadataGenerations:
@@ -164,27 +168,15 @@ class _MetadataGenerations:
     def capture(self, layer: SemanticLayer, session: Session) -> str:
         """Web, task and MCP operations share a credential-independent identity."""
         if layer.uuid not in self.generations:
-            namespace: str | Callable[[], str] = current_app.config.get(
-                "SEMANTIC_LAYER_CACHE_NAMESPACE", ""
-            )
-            if callable(namespace):
-                namespace = namespace()
-            if not isinstance(namespace, str):
-                raise TypeError(
-                    "SEMANTIC_LAYER_CACHE_NAMESPACE must resolve to a string"
-                )
-            url: sa.engine.URL = session.get_bind(mapper=SemanticLayer).engine.url
-            driver: str = url.drivername.split("+", 1)[0]
-            identity: list[str | int | None] = (
-                ["namespace", namespace]
-                if namespace
-                else [
-                    driver,
-                    url.host,
-                    url.port,
-                    url.database,
-                ]
-            )
+            namespace: str = configured_namespace()
+            if not namespace:
+                engine: sa.engine.Engine = session.get_bind(mapper=SemanticLayer).engine
+                if engine not in self.namespaces:
+                    self.namespaces[engine] = metadata_namespace(
+                        session.connection(bind_arguments={"mapper": SemanticLayer})
+                    )
+                namespace = self.namespaces[engine]
+            identity: list[str] = ["namespace", namespace]
             scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
             self.generations[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
         return self.generations[layer.uuid]
@@ -316,7 +308,7 @@ class SemanticLayer(AuditMixinNullable, Model):
             .execution_options(synchronize_session=False)
         )
         session.expire(self, ["cache_version"])
-        self.__dict__.pop("implementation", None)
+        SemanticBindingMemo.for_layer(self).forget(self)
         _MetadataGenerations.for_session(session).forget(self.uuid)
         instance: object
         for instance in session.identity_map.values():
@@ -326,21 +318,12 @@ class SemanticLayer(AuditMixinNullable, Model):
                     sa.inspect(instance).dict.get("semantic_layer_uuid", self.uuid)
                     == self.uuid
                 ):
-                    instance.forget_metadata()
+                    instance.reset_metadata_generation()
 
-    @cached_property
-    def implementation(
-        self,
-    ) -> SemanticLayerABC[Any, SemanticViewABC]:
-        """
-        Return semantic layer implementation.
-        """
-        # TODO (betodealmeida):
-        # return extension_manager.get_contribution("semanticLayers", self.type)
-        class_ = registry[self.type]
-        return class_.from_configuration_with_cache_token(
-            json.loads(self.configuration), cache_token=self.metadata_generation
-        )
+    @property
+    def implementation(self) -> SemanticLayerABC[Any, SemanticViewABC]:
+        """Return the operation's guarded, identity-bound provider layer."""
+        return SemanticBindingMemo.for_layer(self).bind(self)[0]
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -357,6 +340,9 @@ class SemanticView(AuditMixinNullable, Model):
     # affordance from the chart 3-dots menu can return anything meaningful.
     supports_samples: bool = False
     supports_drill_to_detail: bool = False
+
+    # Semantic views have no dataset-level SQL predicate for fetching filter values.
+    fetch_values_predicate: None = None
 
     # Use integer as the primary key for cross-database auto-increment
     # compatibility (sa.Identity() is not supported in MySQL or SQLite).
@@ -428,17 +414,20 @@ class SemanticView(AuditMixinNullable, Model):
 
         security_manager.semantic_view_after_delete(mapper, connection, target)
 
-    @cached_property
+    @property
     def implementation(self) -> SemanticViewABC:
-        """
-        Return semantic view implementation.
-        """
-        # Pin before the provider can discover any members.
-        self._capture_metadata_generation()
-        return self.semantic_layer.implementation.get_semantic_view(
-            self.name,
-            json.loads(self.configuration),
+        """Return a view from the same memo and identity as its owning layer."""
+        layer: SemanticLayerABC[Any, Any]
+        views: dict[tuple[str, str], SemanticViewABC]
+        layer, views = SemanticBindingMemo.for_layer(self.semantic_layer).bind(
+            self.semantic_layer
         )
+        self._capture_metadata_generation()
+        configuration: dict[str, Any] = json.loads(self.configuration)
+        key: tuple[str, str] = (self.name, json.dumps(configuration, sort_keys=True))
+        if key not in views:
+            views[key] = layer.get_semantic_view(self.name, configuration)
+        return views[key]
 
     # =========================================================================
     # Explorable protocol implementation
@@ -843,7 +832,11 @@ class SemanticView(AuditMixinNullable, Model):
 
     def forget_metadata(self) -> None:
         """Discard this view's implementation and captured generation together."""
-        self.__dict__.pop("implementation", None)
+        SemanticBindingMemo.for_layer(self.semantic_layer).forget(self.semantic_layer)
+        self.reset_metadata_generation()
+
+    def reset_metadata_generation(self) -> None:
+        """Forget the captured generation without loading relationships or providers."""
         self._metadata_generation = None
 
     @property

@@ -40,7 +40,18 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${DOCKERHUB_USER}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '') || '' }}
+          DOCKERHUB_TOKEN: ${{ (secrets.DOCKERHUB_TOKEN != '') || '' }}
       - id: set_matrix
         run: |
           MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "py311", "py312"]'; fi)
@@ -131,7 +142,9 @@ jobs:
             local preset="$1" expected="$2" extra_flags command
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(docker_command "$preset" "$extra_flags")"
-            if ! grep -Fq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected" <<<"$command"; then
+            # Match the whole flag, so a ref with extra trailing text (e.g. a
+            # digest) doesn't pass on its prefix.
+            if ! grep -oE -- '--cache-from=[^[:space:]]+' <<<"$command" | grep -Fxq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected"; then
               echo "::error::preset '$preset' expected cache-from apache/superset-cache:$expected (full command: $command)"
               exit 1
             fi
@@ -185,7 +198,7 @@ jobs:
             load_build_plan push refs/heads/master master
             extra_flags="$(PUBLISH_DOCKER_CACHE=true DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
-            if ! grep -Fq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected" <<<"$command"; then
+            if ! grep -oE -- '--cache-to=[^[:space:]]+' <<<"$command" | grep -Fxq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected"; then
               echo "::error::preset '$preset' expected cache-to apache/superset-cache:$expected for master publish (full command: $command)"
               exit 1
             fi
@@ -244,8 +257,16 @@ jobs:
           assert_publish_guard push refs/heads/7.0 aaaa111 bbbb222 true
           assert_publish_guard pull_request refs/pull/44250/merge aaaa111 bbbb222 true
           assert_supersetbot_exports_cache_with_token superset
+          # The default presets must pass the Dockerfile's digest-pinned PY_VER
+          # (tag@sha256:...) through unchanged; read it the way
+          # docker-build-extra-flags.sh does so digest bumps need no edit here.
+          default_py_ver="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
+          if [[ "$default_py_ver" != *@sha256:* ]]; then
+            echo "::error::Dockerfile ARG PY_VER must pin a digest (tag@sha256:...), got: ${default_py_ver:-<none>}"
+            exit 1
+          fi
           for preset in superset dev lean; do
-            assert_effective_py_ver "$preset" "3.11-slim-trixie"
+            assert_effective_py_ver "$preset" "$default_py_ver"
             expected_cache="3.11-slim-trixie"
             if [ "$preset" != "superset" ]; then
               expected_cache="${expected_cache}-${preset}"
@@ -280,10 +301,18 @@ jobs:
   docker-build:
     name: docker-build
     needs: [setup_matrix, changes]
+    # Only master pushes publish images (see scripts/docker-build-plan.sh).
+    # Without the Docker Hub credentials (e.g. on a fork or mirror) they can
+    # publish nothing, so they are skipped there. Version-branch pushes and
+    # pull_request builds only load the image to validate that it builds, so
+    # they run everywhere.
     if: >-
-      needs.changes.outputs.python == 'true' ||
-      needs.changes.outputs.frontend == 'true' ||
-      needs.changes.outputs.docker == 'true'
+      (github.event_name != 'push' ||
+       github.ref != 'refs/heads/master' ||
+       needs.setup_matrix.outputs.has-secrets) &&
+      (needs.changes.outputs.python == 'true' ||
+       needs.changes.outputs.frontend == 'true' ||
+       needs.changes.outputs.docker == 'true')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     permissions:
@@ -482,7 +511,7 @@ jobs:
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
           # Both `superset` and `lean` are scanned now; without a distinct
