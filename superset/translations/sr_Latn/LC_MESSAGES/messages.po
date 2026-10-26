@@ -3475,6 +3475,9 @@ msgstr "Orijentacija stubova"
 msgid "Base"
 msgstr "Osnova"
 
+msgid "Base chart title"
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "Base exponent"
 msgstr "Osnovni eksponent"
@@ -3498,6 +3501,9 @@ msgstr "Stil mape osnovnog sloja. Pogledajte MapLibre dokumentaciju: %s"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Base slope"
 msgstr "Osnovni nagib"
+
+msgid "Base title"
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Base width"
@@ -4610,6 +4616,9 @@ msgstr "Izaberite bazu podataka..."
 msgid "Choose a delimiter"
 msgstr "Izaberite graničnik"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Choose a metric for right axis"
@@ -5466,6 +5475,9 @@ msgstr "Konfiguriši automatsko osvežavanje kontrolne table"
 # lv, ru, sk, uk]
 msgid "Configure caching and performance settings"
 msgstr "Konfiguriši podešavanja keširanja i performansi"
+
+msgid "Configure chart title"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Configure custom time range"
@@ -8564,6 +8576,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Unesite deo naziva objekta"
 
+msgid "Enter a title template."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Enter alert name"
 msgstr "Unesite naziv upozorenja"
@@ -8862,6 +8877,9 @@ msgid "Example"
 msgstr "Primer"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -10729,6 +10747,9 @@ msgstr "Unesite URL sloja"
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Insert Layer title"
 msgstr "Unesite naziv sloja"
+
+msgid "Insert token"
+msgstr ""
 
 # uk]
 msgid "Inside"
@@ -13102,6 +13123,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "Na ovu kontrolnu tablu trenutno nisu dodati nikakvi višeslojni deck.gl "
 "grafikoni."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -16266,6 +16290,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Sačuvaj upit"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "Bezbedno sačuvajte ovaj API ključ"
 
@@ -19240,6 +19267,11 @@ msgstr "Anotacija je ažurirana"
 msgid "The background color of the charts."
 msgstr "Boja pozadine grafikona."
 
+msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -21788,6 +21820,9 @@ msgstr "Naslov je obavezan"
 msgid "Title or Slug"
 msgstr "Naslov ili slug"
 
+msgid "Title template"
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
@@ -22548,6 +22583,10 @@ msgstr "Ažuriraj automatsko osvežavanje"
 msgid "Update chart"
 msgstr "Ažuriraj grafikon"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Updating chart was stopped"
 msgstr "Ažuriranje grafikona je zaustavljeno"
@@ -22647,6 +22686,9 @@ msgstr ""
 "Koristite Handlebars sintaksu da biste kreirali prilagođene oblačiće. "
 "Dostupne promenljive zavise od izbora sadržaja oblačića izabranog iznad."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use a log scale"
 msgstr "Koristi logaritamsku skalu"
@@ -22728,6 +22770,9 @@ msgstr "Koristite ovaj odeljak ako želite da upitate atomske redove"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use this to define a static color for all circles"
 msgstr "Koristite ovo da biste definisali statičnu boju za sve krugove"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -24618,6 +24663,9 @@ msgstr "Nivo zuma"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Zoom level of the map"
 msgstr "Nivo zuma mape"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "[ untitled dashboard ]"

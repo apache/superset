@@ -4052,6 +4052,9 @@ msgstr "주석"
 msgid "Base"
 msgstr "데이터베이스"
 
+msgid "Base chart title"
+msgstr ""
+
 #, fuzzy
 msgid "Base exponent"
 msgstr "데이터베이스"
@@ -4083,6 +4086,9 @@ msgstr "기본 레이어 맵 스타일. MapLibre 문서를 참조하세요: %s"
 #, fuzzy
 msgid "Base slope"
 msgstr "기본 기울기"
+
+msgid "Base title"
+msgstr ""
 
 #, fuzzy
 msgid "Base width"
@@ -5455,6 +5461,9 @@ msgstr "데이터소스 선택"
 msgid "Choose a delimiter"
 msgstr "데이터소스 선택"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -6541,6 +6550,9 @@ msgstr "대시보드 자동 새로 고침 구성"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "캐싱 및 성능 설정 구성"
+
+msgid "Configure chart title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10226,6 +10238,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "차트 유형"
 
+msgid "Enter a title template."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "테이블 명"
@@ -10599,6 +10614,9 @@ msgid "Example"
 msgstr "예시"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12986,6 +13004,9 @@ msgstr "레이어 URL 삽입"
 #, fuzzy
 msgid "Insert Layer title"
 msgstr "레이어 제목 삽입"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -16067,6 +16088,9 @@ msgstr "검색 결과"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "현재 이 대시보드에 추가된 다중 레이어 deck.gl 차트가 없습니다."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -20106,6 +20130,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Query 저장"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -23743,6 +23770,11 @@ msgstr "주석 레이어"
 msgid "The background color of the charts."
 msgstr "새 차트 생성"
 
+msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -26834,6 +26866,9 @@ msgstr "데이터소스"
 msgid "Title or Slug"
 msgstr "제목 또는 슬러그"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -27813,6 +27848,10 @@ msgstr "새로고침 간격"
 msgid "Update chart"
 msgstr "차트 보기"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -27919,6 +27958,9 @@ msgid ""
 "Use Handlebars syntax to create custom tooltips. Available variables are "
 "based on your tooltip contents selection above."
 msgstr "Handlebars 구문을 사용하여 사용자 정의 툴팁을 만드세요. 사용 가능한 변수는 위에서 선택한 툴팁 내용을 기반으로 합니다."
+
+msgid "Use a dynamic title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28038,6 +28080,9 @@ msgstr "원자 행을 쿼리하려는 경우 이 섹션을 사용하세요"
 #, fuzzy
 msgid "Use this to define a static color for all circles"
 msgstr "모든 원에 정적 색상을 정의하려면 이것을 사용하세요"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -30450,6 +30495,9 @@ msgstr "확대/축소 수준"
 #, fuzzy
 msgid "Zoom level of the map"
 msgstr "지도의 확대/축소 수준"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 #, fuzzy
 msgid "[ untitled dashboard ]"

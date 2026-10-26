@@ -2880,6 +2880,9 @@ msgstr "பார் திசையமைப்பு (Bar orientation)"
 msgid "Base"
 msgstr "அடிமானம் (Base)"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "அடிமான அடுக்கு (Base exponent)"
 
@@ -2898,6 +2901,9 @@ msgstr "அடிப்படை அடுக்கு வரைபட நடை
 
 msgid "Base slope"
 msgstr "அடிமானச் சரிவு (Base slope)"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "அடிமான அகலம்"
@@ -3803,6 +3809,9 @@ msgstr "தரவுத்தளத்தைத் தேர்ந்தெட�
 msgid "Choose a delimiter"
 msgstr "பிரிப்பானைத் (delimiter) தேர்ந்தெடுக்கவும்"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "வலது அச்சிற்கான அளவீட்டைத் தேர்ந்தெடுக்கவும்"
 
@@ -4515,6 +4524,9 @@ msgstr "டேஷ்போர்டு தானாகப் புதுப்�
 
 msgid "Configure caching and performance settings"
 msgstr "கேச் மற்றும் செயல்திறன் அமைப்புகளை உள்ளமைக்கவும்"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "தனிப்பயன் நேர வரம்பை உள்ளமைக்கவும்"
@@ -6996,6 +7008,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "பொருளின் பெயரின் ஒரு பகுதியை உள்ளிடவும்"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "எச்சரிக்கை பெயரை உள்ளிடவும்"
 
@@ -7237,6 +7252,9 @@ msgid "Example"
 msgstr "உதாரணம்"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -8771,6 +8789,9 @@ msgstr "அடுக்கு (Layer) URL ஐச் செருகவும்"
 
 msgid "Insert Layer title"
 msgstr "அடுக்கு தலைப்பைச் செருகவும்"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "உள்ளே"
@@ -10674,6 +10695,9 @@ msgstr "பொருத்தமான முடிவுகள் எதுவ�
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "இந்த டேஷ்போர்டில் தற்போது வடிகட்டிகள் எதுவும் சேர்க்கப்படவில்லை."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -13170,6 +13194,9 @@ msgstr ""
 msgid "Save query"
 msgstr "வினவலைச் சேமி"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr ""
 
@@ -15585,6 +15612,11 @@ msgid "The background color of the charts."
 msgstr "சார்ட்டுகளின் பின்னணி நிறம்."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr "நிறங்களை ஒதுக்கப் பயன்படுத்தப்படும் மூல நோட்களின் வகை."
@@ -17644,6 +17676,9 @@ msgstr "தலைப்பு தேவை"
 msgid "Title or Slug"
 msgstr "தலைப்பு அல்லது ஸ்லக்"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -18267,6 +18302,10 @@ msgstr "தானியங்கி புதுப்பித்தலை அ�
 msgid "Update chart"
 msgstr "சார்ட்டைப் புதுப்பிக்கவும்"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "சார்ட்டைப் புதுப்பிப்பது நிறுத்தப்பட்டது"
 
@@ -18342,6 +18381,9 @@ msgid ""
 "based on your tooltip contents selection above."
 msgstr "தனிப்பயன் டூல்டிப்புகளை உருவாக்க Handlebars தொடரியல் பயன்படுத்தவும்."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "லாக் அளவைப் (Log scale) பயன்படுத்தவும்"
 
@@ -18409,6 +18451,9 @@ msgstr "தனித்தனி வரிசைகளை வினவ விர
 
 msgid "Use this to define a static color for all circles"
 msgstr "அனைத்து வட்டங்களுக்கும் நிலையான நிறத்தை வரையறுக்க இதைப் பயன்படுத்தவும்"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -19955,6 +20000,9 @@ msgstr "பெரிதாக்கும் நிலை"
 
 msgid "Zoom level of the map"
 msgstr "வரைபடத்தின் பெரிதாக்கும் நிலை"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ தலைப்பில்லாத டாஷ்போர்டு ]"

@@ -2496,6 +2496,9 @@ msgstr ""
 msgid "Base"
 msgstr ""
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr ""
 
@@ -2513,6 +2516,9 @@ msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr ""
 
 msgid "Base slope"
+msgstr ""
+
+msgid "Base title"
 msgstr ""
 
 msgid "Base width"
@@ -3289,6 +3295,9 @@ msgstr ""
 msgid "Choose a delimiter"
 msgstr ""
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr ""
 
@@ -3903,6 +3912,9 @@ msgid "Configure automatic dashboard refresh"
 msgstr ""
 
 msgid "Configure caching and performance settings"
+msgstr ""
+
+msgid "Configure chart title"
 msgstr ""
 
 msgid "Configure custom time range"
@@ -6075,6 +6087,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr ""
 
@@ -6309,6 +6324,9 @@ msgid "Example"
 msgstr ""
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -7685,6 +7703,9 @@ msgid "Insert Layer URL"
 msgstr ""
 
 msgid "Insert Layer title"
+msgstr ""
+
+msgid "Insert token"
 msgstr ""
 
 msgid "Inside"
@@ -9461,6 +9482,9 @@ msgid "No matching results found"
 msgstr ""
 
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
+msgstr ""
+
+msgid "No native filters affect this chart."
 msgstr ""
 
 msgid "No provider query is available for this run."
@@ -11767,6 +11791,9 @@ msgstr ""
 msgid "Save query"
 msgstr ""
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr ""
 
@@ -13854,6 +13881,9 @@ msgstr ""
 msgid "The background color of the charts."
 msgstr ""
 
+msgid "The base title is shown when a referenced filter has no value or no longer affects this chart."
+msgstr ""
+
 msgid "The category of source nodes used to assign colors. If a node is associated with more than one category, only the first will be used."
 msgstr ""
 
@@ -15432,6 +15462,9 @@ msgstr ""
 msgid "Title or Slug"
 msgstr ""
 
+msgid "Title template"
+msgstr ""
+
 msgid "To begin using your Google Sheets, you need to create a database first. Databases are used as a way to identify your data so that it can be queried and visualized. This database will hold all of your individual Google Sheets you choose to connect here."
 msgstr ""
 
@@ -15982,6 +16015,10 @@ msgstr ""
 msgid "Update chart"
 msgstr ""
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr ""
 
@@ -16053,6 +16090,9 @@ msgstr ""
 msgid "Use Handlebars syntax to create custom tooltips. Available variables are based on your tooltip contents selection above."
 msgstr ""
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr ""
 
@@ -16108,6 +16148,9 @@ msgid "Use this section if you want to query atomic rows"
 msgstr ""
 
 msgid "Use this to define a static color for all circles"
+msgstr ""
+
+msgid "Use tokens in the format {{filter_name}}."
 msgstr ""
 
 msgid "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json"
@@ -17317,6 +17360,9 @@ msgid "Zoom level"
 msgstr ""
 
 msgid "Zoom level of the map"
+msgstr ""
+
+msgid "[ untitled chart ]"
 msgstr ""
 
 msgid "[ untitled dashboard ]"

@@ -344,6 +344,26 @@ Congrats! You’ve successfully linked, analyzed, and visualized data in Superse
 of other table configuration and visualization options, so please start exploring and creating
 slices and dashboards of your own.
 
+### Dynamic chart titles
+
+Chart titles can include values from native dashboard filters. In **Edit dashboard**
+mode, hover over a chart and click **Configure chart title**. Set a **Base title**,
+enable **Use a dynamic title**, and use **Insert token** to add the base chart title
+or a filter that affects this chart. For example, `{{chart_title}} in {{country}}`
+can display "Revenue in Brazil". The preview uses the currently applied filters.
+
+Click **Apply**, then save the dashboard. Canceling the editor discards its draft;
+applied changes support the dashboard's undo and redo controls. Each occurrence of
+a chart has its own title configuration, and the saved chart's name is unchanged.
+In dashboard edit mode, the chart header shows the base title for editing.
+
+Titles update when filter changes are applied. Multiple selections use the filter's
+display labels. If a referenced filter is cleared, deleted, or no longer affects
+the chart, the complete base title is shown. Filters rejected as incompatible by
+the chart's query also use this fallback. The editor identifies invalid tokens
+so they can be removed or replaced. Disable **Use a dynamic title** to restore a
+static title.
+
 ### Manage access to Dashboards
 
 Access to dashboards is managed via editors and permissions. Non-editor access can be controlled

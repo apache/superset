@@ -3472,6 +3472,9 @@ msgstr "Оријентација стубова"
 msgid "Base"
 msgstr "Основа"
 
+msgid "Base chart title"
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "Base exponent"
 msgstr "Основни експонент"
@@ -3495,6 +3498,9 @@ msgstr "Стил мапе основног слоја. Погледајте MapL
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Base slope"
 msgstr "Основни нагиб"
+
+msgid "Base title"
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Base width"
@@ -4607,6 +4613,9 @@ msgstr "Изаберите базу података..."
 msgid "Choose a delimiter"
 msgstr "Изаберите граничник"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Choose a metric for right axis"
@@ -5463,6 +5472,9 @@ msgstr "Конфигуриши аутоматско освежавање кон�
 # lv, ru, sk, uk]
 msgid "Configure caching and performance settings"
 msgstr "Конфигуриши подешавања кеширања и перформанси"
+
+msgid "Configure chart title"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Configure custom time range"
@@ -8560,6 +8572,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Унесите део назива објекта"
 
+msgid "Enter a title template."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Enter alert name"
 msgstr "Унесите назив упозорења"
@@ -8858,6 +8873,9 @@ msgid "Example"
 msgstr "Пример"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -10722,6 +10740,9 @@ msgstr "Унесите URL слоја"
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Insert Layer title"
 msgstr "Унесите назив слоја"
+
+msgid "Insert token"
+msgstr ""
 
 # uk]
 msgid "Inside"
@@ -13095,6 +13116,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "На ову контролну таблу тренутно нису додати никакви вишеслојни deck.gl "
 "графикони."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -16259,6 +16283,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Сачувај упит"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "Безбедно сачувајте овај API кључ"
 
@@ -19232,6 +19259,11 @@ msgstr "Анотација је ажурирана"
 msgid "The background color of the charts."
 msgstr "Боја позадине графикона."
 
+msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -21771,6 +21803,9 @@ msgstr "Наслов је обавезан"
 msgid "Title or Slug"
 msgstr "Наслов или слуг"
 
+msgid "Title template"
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
@@ -22531,6 +22566,10 @@ msgstr "Ажурирај аутоматско освежавање"
 msgid "Update chart"
 msgstr "Ажурирај графикон"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Updating chart was stopped"
 msgstr "Ажурирање графикона је заустављено"
@@ -22630,6 +22669,9 @@ msgstr ""
 "Користите Handlebars синтаксу да бисте креирали прилагођене облачиће. "
 "Доступне променљиве зависе од избора садржаја облачића изабраног изнад."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use a log scale"
 msgstr "Користи логаритамску скалу"
@@ -22711,6 +22753,9 @@ msgstr "Користите овај одељак ако желите да упи
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use this to define a static color for all circles"
 msgstr "Користите ово да бисте дефинисали статичну боју за све кругове"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -24600,6 +24645,9 @@ msgstr "Ниво зума"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Zoom level of the map"
 msgstr "Ниво зума мапе"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "[ untitled dashboard ]"

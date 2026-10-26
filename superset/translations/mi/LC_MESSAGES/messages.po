@@ -2997,6 +2997,9 @@ msgstr "Ahunga pae"
 msgid "Base"
 msgstr "Pūtake"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Pūmahi pūtake"
 
@@ -3020,6 +3023,9 @@ msgstr "Kāhua papa pūtake. Tirohia te tuhinga a Mapbox: %s"
 
 msgid "Base slope"
 msgstr "Taha pūtake"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Whānui pūtake"
@@ -3972,6 +3978,9 @@ msgstr "Kōwhiria tētahi pātengi raraunga..."
 msgid "Choose a delimiter"
 msgstr "Kōwhiria tētahi tohutuhi"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Kōwhiria tētahi ine mō te tukutuku matau"
 
@@ -4731,6 +4740,9 @@ msgstr "Whakaritea te whakahōhou aunoa o te papatohu"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "Whakaritea ngā tautuhinga moka me te āhuatanga mahi"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Whirihora awhe wā ritenga"
@@ -7352,6 +7364,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Mēnā ka whakakī i ngā ahanoa"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Tāuru ingoa matohi"
 
@@ -7611,6 +7626,9 @@ msgid "Example"
 msgstr "Tauira"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9277,6 +9295,9 @@ msgstr "Kōkuhu URL Papa"
 
 msgid "Insert Layer title"
 msgstr "Kōkuhu taitara Papa"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -11331,6 +11352,9 @@ msgstr "Kāore i kitea he rekoata hāngai"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Kāore he tātari kua tāpiritia ki tēnei papatohu i tēnei wā."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -14018,6 +14042,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Tiaki pātai"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -16695,6 +16722,11 @@ msgid "The background color of the charts."
 msgstr "Te tae papamuri o ngā kauwhata."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -19022,6 +19054,9 @@ msgstr "E hiahiatia ana te taitara"
 msgid "Title or Slug"
 msgstr "Taitara, Slug rānei"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19729,6 +19764,10 @@ msgstr "Tautuhi wā whakahou-aunoa"
 msgid "Update chart"
 msgstr "Whakahou kauwhata"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "I whakamutua te whakahou kauwhata"
 
@@ -19809,6 +19848,9 @@ msgstr ""
 "Whakamahia te hātepe Handlebars hei hanga ngā tohutohu ritenga. Ko ngā "
 "taurangi wātea e ahu ana i tōu kōwhiringa ihirangi tohutohu i runga ake."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Whakamahia tauine pūkete"
 
@@ -19884,6 +19926,9 @@ msgstr ""
 
 msgid "Use this to define a static color for all circles"
 msgstr "Whakamahia tēnei hei tautuhi i tētahi tae mau mō ngā porohita katoa"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -21529,6 +21574,9 @@ msgstr "Taumata topa"
 
 msgid "Zoom level of the map"
 msgstr "Taumata topa o te mahere"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ papatohu kāore i taitarahia ]"
