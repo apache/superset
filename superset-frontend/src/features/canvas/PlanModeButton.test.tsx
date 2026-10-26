@@ -40,6 +40,20 @@ const clickPlanMode = async (onStarted = jest.fn()) => {
   return onStarted;
 };
 
+const planModeButton = () => screen.getByRole('button', { name: 'Plan mode' });
+
+/**
+ * Waits until the response has actually been handled.
+ *
+ * The request being *issued* is not enough: a `waitFor` on the call history is
+ * satisfied the moment the POST goes out, so anything asserted after it runs
+ * before the response continuation does, and a missing guard inside that
+ * continuation still passes. The button clears its busy state in `finally`,
+ * which runs only once the whole handler has.
+ */
+const settled = async () =>
+  waitFor(() => expect(planModeButton()).not.toHaveClass('ant-btn-loading'));
+
 test('starting a plan creates a draft and opens its token', async () => {
   fetchMock.post(endpoint, { result: { token: 'tok-123', revision: 0 } });
 
@@ -54,8 +68,9 @@ test('a draft that cannot be started does not open anything', async () => {
 
   const onStarted = await clickPlanMode();
 
-  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  await settled();
   expect(onStarted).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls()).toHaveLength(1);
 });
 
 test('a response without a token is treated as a failure', async () => {
@@ -63,8 +78,9 @@ test('a response without a token is treated as a failure', async () => {
 
   const onStarted = await clickPlanMode();
 
-  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  await settled();
   expect(onStarted).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls()).toHaveLength(1);
 });
 
 test('a draft that arrives after the canvas changed is not opened', async () => {
@@ -93,6 +109,7 @@ test('a draft that arrives after the canvas changed is not opened', async () => 
 
   respond();
 
-  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  // Only once the handler has run past the guard is the assertion meaningful.
+  await settled();
   expect(onStarted).not.toHaveBeenCalled();
 });

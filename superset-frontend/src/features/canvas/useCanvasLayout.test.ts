@@ -42,7 +42,12 @@ const resultAt = (
     // The stored layouts behind them. These happen to match because the
     // fixture places everything explicitly.
     layouts: placements,
-  }) as CanvasDefinitionResult;
+    // Reverse of the natural order, so a test that asserts the server's order
+    // replaced it cannot pass by accident.
+    childOrder: { root: ['trend', 'kpi'] },
+    // Through `unknown`: a deliberately partial fixture, carrying only the
+    // fields this hook reads.
+  }) as unknown as CanvasDefinitionResult;
 
 beforeEach(() => {
   fetchMock.removeRoutes();
@@ -226,6 +231,69 @@ test('drags made while a write is in flight are coalesced, not conflicted', asyn
     { op: 'place', id: 'trend', layout: third },
   ]);
   expect(result.current.error).toBeUndefined();
+});
+
+test('a node moved twice while a write is in flight is sent last', async () => {
+  // The queue goes out as ordered `place` ops and the server lets a later op
+  // win a contested cell. `Map.set` on a key the map already holds keeps that
+  // key's original position, so without deleting first the newest gesture
+  // would be applied before a sibling it was dropped on top of and lose.
+  let release: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    release = () =>
+      resolve(
+        new Response(
+          JSON.stringify({
+            result: {
+              revision: 4,
+              ops: [],
+              placements: { kpi: MOVED, trend: TREND },
+              layouts: { kpi: MOVED, trend: TREND },
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+  });
+  fetchMock.patch(endpoint, () => held, { repeat: 1 });
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 5,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      layouts: { kpi: MOVED, trend: TREND },
+    },
+  });
+
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  const second: GridPlacement = { col: 1, row: 2, colSpan: 6, rowSpan: 4 };
+  const third: GridPlacement = { col: 1, row: 3, colSpan: 24, rowSpan: 8 };
+  const last: GridPlacement = { col: 1, row: 3, colSpan: 6, rowSpan: 4 };
+
+  act(() => {
+    // The first write goes out and is held open.
+    result.current.place('kpi', MOVED);
+    // These three queue behind it: kpi, then trend, then kpi again.
+    result.current.place('kpi', second);
+    result.current.place('trend', third);
+    result.current.place('kpi', last);
+  });
+
+  release();
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  const followUp = JSON.parse(
+    fetchMock.callHistory.calls()[1].options.body as string,
+  );
+
+  // kpi was dropped last, so it must be applied last.
+  expect(followUp.ops).toEqual([
+    { op: 'place', id: 'trend', layout: third },
+    { op: 'place', id: 'kpi', layout: last },
+  ]);
 });
 
 test('a gesture queued behind a write is not undone by that write landing', async () => {
@@ -434,6 +502,34 @@ test("a write's stored layouts replace the fetched ones", async () => {
 
   await waitFor(() =>
     expect(result.current.layouts.trend).toEqual(pushedLayout),
+  );
+});
+
+test("a write's child order replaces the fetched one", async () => {
+  // `place` reorders the parent's children server-side so the dropped widget
+  // keeps the spot it landed on. A preview resolving against the fetched order
+  // would put the neighbours somewhere the server does not, and they would
+  // jump on release.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      layouts: { kpi: MOVED, trend: TREND },
+      // The drop landed on `trend`, so `kpi` now comes first.
+      childOrder: { root: ['kpi', 'trend'] },
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.childOrder).toEqual({ root: ['trend', 'kpi'] });
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() =>
+    expect(result.current.childOrder).toEqual({ root: ['kpi', 'trend'] }),
   );
 });
 

@@ -38,6 +38,9 @@ export const emptyScopeValues = (): ScopeValues => ({
 
 const NO_VALUES: canvasApi.FilterValue[] = [];
 
+/** The key the root grid's child order is reported under. */
+const ROOT_NODE_ID = 'root';
+
 /** For each node, the values that reach it from the nodes whose scope includes it. */
 function valuesByNode(
   scopes: Record<string, string[]>,
@@ -129,7 +132,20 @@ export default function CanvasGrid({
     customizationScopes,
     widgets = {},
   } = result;
-  const { placements, layouts, place } = layout;
+  const { placements, layouts, childOrder, place } = layout;
+  /**
+   * A grid's children in reading order. The server's order wins where it has
+   * one: a `place` reorders them so the dropped widget keeps the spot it
+   * landed on, and the fetched definition does not catch up until the next
+   * poll. Containers that are not grids (tabs, say) are not reordered, so
+   * they keep the definition's order.
+   */
+  const orderOf = (nodeId: string, children: string[]) =>
+    // Tolerant of the field being absent altogether, which is what a response
+    // from a server that predates it looks like. Rendering a canvas in the
+    // order it was stored in is a stale preview; throwing here would be a
+    // blank page.
+    childOrder?.[nodeId] ?? children;
   // Props and schema version live on the placement for a structural widget,
   // and with the widget entity otherwise.
   const contentOf = (nodeId: string) => {
@@ -182,7 +198,7 @@ export default function CanvasGrid({
 
   function renderNode(nodeId: string, depth = 0): ReactNode {
     const node = definition.nodes[nodeId];
-    const childIds = node.children ?? [];
+    const childIds = orderOf(nodeId, node.children ?? []);
     const widgetType = widgetTypes[nodeId];
 
     if (widgetType === undefined) {
@@ -267,7 +283,12 @@ export default function CanvasGrid({
   return (
     <CanvasDraftContext.Provider value={draftToken}>
       <div data-test="canvas-grid">
-        {renderGrid(definition.root.children, columns, renderNode, 0)}
+        {renderGrid(
+          orderOf(ROOT_NODE_ID, definition.root.children),
+          columns,
+          renderNode,
+          0,
+        )}
       </div>
     </CanvasDraftContext.Provider>
   );

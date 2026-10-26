@@ -63,12 +63,18 @@ interface Gesture {
   startX: number;
   startY: number;
   /**
-   * Page scroll when the widget was grabbed. Pointer coordinates are relative
-   * to the viewport, so scrolling mid-gesture moves the content under a still
-   * pointer; without this the drag would report no movement at all.
+   * Where the grid sat in the viewport when the widget was grabbed.
+   *
+   * Pointer coordinates are relative to the viewport, so scrolling
+   * mid-gesture moves the content under a still pointer and the drag would
+   * report no movement at all. The grid's own position is what this measures
+   * against rather than the page's scroll offset: the canvas does not
+   * necessarily scroll the window -- with the chat panel open the shell is
+   * locked and the content scrolls inside it -- and the grid's rect moves for
+   * any scrolling ancestor, the window included.
    */
-  startScrollX: number;
-  startScrollY: number;
+  startLeft: number;
+  startTop: number;
   dx: number;
   dy: number;
   /**
@@ -163,10 +169,22 @@ const ownsPress = (event: ReactPointerEvent<HTMLElement>): boolean => {
   );
 };
 
-/** A gesture's movement over the page content, scrolling included. */
-const travelled = (gesture: Gesture, clientX: number, clientY: number) => ({
-  dx: clientX - gesture.startX + (window.scrollX - gesture.startScrollX),
-  dy: clientY - gesture.startY + (window.scrollY - gesture.startScrollY),
+/**
+ * A gesture's movement across the grid, scrolling included.
+ *
+ * `left`/`top` are where the grid sits in the viewport now. Content scrolling
+ * under a still pointer moves the grid's rect, and the widget has travelled by
+ * that much relative to the grid even though the pointer has not moved.
+ */
+const travelled = (
+  gesture: Gesture,
+  clientX: number,
+  clientY: number,
+  left: number,
+  top: number,
+) => ({
+  dx: clientX - gesture.startX - (left - gesture.startLeft),
+  dy: clientY - gesture.startY - (top - gesture.startTop),
 });
 
 const Grid = styled.div<GridMetrics>`
@@ -409,8 +427,7 @@ const ResizeCorner = styled.button<{
         width: ${theme.sizeUnit * 2}px;
         height: ${theme.sizeUnit * 2}px;
         border-${west ? 'left' : 'right'}: 2px solid ${theme.colorTextTertiary};
-        border-${north ? 'top' : 'bottom'}: 2px solid
-          ${theme.colorTextTertiary};
+        border-${north ? 'top' : 'bottom'}: 2px solid ${theme.colorTextTertiary};
       }
     `;
   }}
@@ -473,7 +490,28 @@ export default function CanvasGridSurface({
   onPlace,
   renderNode,
 }: CanvasGridSurfaceProps) {
-  const [gridRef, width] = useElementWidth();
+  const [measureGrid, width] = useElementWidth();
+  // The grid node, for reading where it sits in the viewport mid-gesture.
+  const grid = useRef<HTMLDivElement | null>(null);
+  const gridRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      grid.current = node;
+      measureGrid(node);
+    },
+    [measureGrid],
+  );
+
+  /**
+   * Where the grid sits in the viewport. Falls back to the gesture's own
+   * origin when the node has gone, so a vanished grid reports no scrolling
+   * rather than a jump to zero.
+   */
+  const originOf = useCallback((gesture: Gesture) => {
+    const box = grid.current?.getBoundingClientRect();
+    return box
+      ? { left: box.left, top: box.top }
+      : { left: gesture.startLeft, top: gesture.startTop };
+  }, []);
   const [gesture, setGesture] = useState<Gesture>();
   // The handlers read the gesture directly, so committing never runs as a
   // side effect inside a state updater.
@@ -533,6 +571,16 @@ export default function CanvasGridSurface({
     ) =>
     (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      // React routes events from a portalled child through this handler even
+      // though it renders outside this subtree, so a press inside a modal the
+      // widget opened arrives here looking like a press on the widget. The
+      // DOM knows better than the React tree does.
+      if (
+        !(event.target instanceof Node) ||
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
       // Only a deferred press is checked. A handle press is unambiguous, and
       // a handle is itself a button, so checking it would reject every one.
       if (!armed && ownsPress(event)) return;
@@ -549,6 +597,9 @@ export default function CanvasGridSurface({
       // and claims the press; the rest stand down.
       if (claimedPresses.has(event.nativeEvent)) return;
       claimedPresses.add(event.nativeEvent);
+      // Where the grid sits now, so later moves can tell scrolling apart from
+      // pointer travel.
+      const box = grid.current?.getBoundingClientRect();
       if (armed) {
         event.preventDefault();
         event.stopPropagation();
@@ -563,8 +614,8 @@ export default function CanvasGridSurface({
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
-        startScrollX: window.scrollX,
-        startScrollY: window.scrollY,
+        startLeft: box?.left ?? 0,
+        startTop: box?.top ?? 0,
         dx: 0,
         dy: 0,
         origin,
@@ -595,7 +646,14 @@ export default function CanvasGridSurface({
     const onMove = (event: PointerEvent) => {
       const { current } = live;
       if (!current || current.pointerId !== event.pointerId) return;
-      const moved = travelled(current, event.clientX, event.clientY);
+      const at = originOf(current);
+      const moved = travelled(
+        current,
+        event.clientX,
+        event.clientY,
+        at.left,
+        at.top,
+      );
       // A deferred gesture arms only once the pointer has really travelled.
       const armed =
         current.armed || Math.hypot(moved.dx, moved.dy) >= DRAG_THRESHOLD;
@@ -617,7 +675,14 @@ export default function CanvasGridSurface({
       // From the release event's own position: the pointer can travel between
       // the last move event and the release, and the drop belongs where the
       // user let go.
-      const { dx, dy } = travelled(current, event.clientX, event.clientY);
+      const at = originOf(current);
+      const { dx, dy } = travelled(
+        current,
+        event.clientX,
+        event.clientY,
+        at.left,
+        at.top,
+      );
       commit(
         current.nodeId,
         targetOf(

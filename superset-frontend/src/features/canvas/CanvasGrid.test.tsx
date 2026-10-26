@@ -75,6 +75,10 @@ const result: CanvasDefinitionResult = {
     unknown: {},
     c1: { colSpan: 6 },
   },
+  childOrder: {
+    root: ['f', 'g', 'lost', 'odd', 'unknown'],
+    g: ['c1'],
+  },
   widgetTypes: {
     f: 'test.filter',
     g: 'test.group',
@@ -128,6 +132,7 @@ const layoutOf = (
 ): CanvasLayout => ({
   placements: gridResult.placements,
   layouts: gridResult.layouts,
+  childOrder: gridResult.childOrder,
   revision: gridResult.revision,
   saving: false,
   place,

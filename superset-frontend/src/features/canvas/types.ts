@@ -113,6 +113,14 @@ export interface CanvasDefinitionResult {
    * the write that follows.
    */
   layouts: Record<string, GridLayout>;
+  /**
+   * Each grid's children in reading order, keyed by the container's node id
+   * (the root grid under `"root"`). Reading order decides which widget yields
+   * to which, and a `place` rewrites it when a drop lands on an earlier
+   * sibling, so a drag preview has to resolve against the server's order
+   * rather than the one the definition was fetched with.
+   */
+  childOrder: Record<string, string[]>;
   /** Node id -> widget type, for nodes whose widget resolves. */
   widgetTypes: Record<string, string>;
   /** Grid container node id -> its column count. */
@@ -149,6 +157,12 @@ export interface ApplyOperationsResult {
    * resolve from a layout the server has already moved on from.
    */
   layouts: Record<string, GridLayout>;
+  /**
+   * The reading order the write produced. A `place` reorders the parent's
+   * children so the dropped widget wins the spot it landed on, so this
+   * changes without being asked to, exactly as `layouts` does.
+   */
+  childOrder: Record<string, string[]>;
   widgetTypes: Record<string, string>;
   gridColumns: Record<string, number>;
   layoutConstraints: Record<string, SpanConstraints>;

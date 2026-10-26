@@ -18,6 +18,7 @@
  */
 
 import { ReactNode, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import CanvasGridSurface from './CanvasGridSurface';
 import { RESIZE_CORNERS } from './gridGeometry';
@@ -146,24 +147,44 @@ const corners = (container: HTMLElement, corner = 'se') =>
     container.querySelectorAll(`[data-corner="${corner}"]`),
   ) as HTMLElement[];
 
-/** jsdom never scrolls, so page scroll is simulated. */
-let pageScrollY = 0;
+/**
+ * jsdom never scrolls or lays anything out, so scrolling is simulated by
+ * moving the grid's rect, which is what it measures.
+ *
+ * Any scrolling ancestor moves that rect -- the window, or the app shell's
+ * content box, which is what scrolls while the chat panel is open. Reading the
+ * window's own offset would miss the second, and Canvas opens that panel by
+ * default.
+ */
+let contentOffsetY = 0;
 const scrollTo = (y: number) => {
-  pageScrollY = y;
+  contentOffsetY = y;
 };
 
 beforeEach(() => {
-  pageScrollY = 0;
+  contentOffsetY = 0;
 });
 
 beforeAll(() => {
-  Object.defineProperty(window, 'scrollY', {
+  Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
     configurable: true,
-    get: () => pageScrollY,
-  });
-  Object.defineProperty(window, 'scrollX', {
-    configurable: true,
-    get: () => 0,
+    value(this: HTMLElement) {
+      // Only the grid reports a moving origin; everything else stays at zero,
+      // which is what jsdom would return anyway.
+      const scrolled =
+        this.dataset.test === 'canvas-grid-surface' ? -contentOffsetY : 0;
+      return {
+        x: 0,
+        y: scrolled,
+        left: 0,
+        top: scrolled,
+        right: WIDTH,
+        bottom: scrolled,
+        width: WIDTH,
+        height: 0,
+        toJSON: () => ({}),
+      } as DOMRect;
+    },
   });
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
     configurable: true,
@@ -632,10 +653,13 @@ test("a nested grid lifts its resize corner clear of its container's", () => {
   expect(bottom).toBeLessThan(placements.kpi.rowSpan * 40);
 });
 
-test('a drag follows the content when the page scrolls under it', () => {
+test('a drag follows the content when it scrolls under the pointer', () => {
   // Pointer coordinates are relative to the viewport, so scrolling while
   // holding moves the content under a still pointer. Without compensating,
-  // the drag reports no movement and the drop writes nothing.
+  // the drag reports no movement and the drop writes nothing. Measured from
+  // the grid's own rect rather than the window's scroll offset, because with
+  // the chat panel open -- which Canvas does by default -- the shell is locked
+  // and it is the content box that scrolls.
   const onPlace = renderSurface();
   const handle = handles('Move widget')[0];
 
@@ -1181,4 +1205,34 @@ test("a container's scroll box stops clipping while a widget inside it drags", (
 
   expect(override).not.toHaveLength(0);
   expect(override.join('\n')).toMatch(/overflow:\s*visible/);
+});
+
+test('a drag inside a modal the widget opened does not move the widget', () => {
+  // React routes a portalled child's events through the component that
+  // rendered it, so a press in a modal arrives at the widget's wrapper even
+  // though it renders at the document root. Selecting query text in a widget's
+  // View query modal would otherwise persist a move of the widget behind it.
+  const onPlace = renderSurface({
+    renderNode: nodeId => (
+      <>
+        {`widget ${nodeId}`}
+        {createPortal(
+          <div data-test={`modal-${nodeId}`}>query text</div>,
+          document.body,
+        )}
+      </>
+    ),
+  });
+  const inModal = screen.getByTestId('modal-kpi');
+
+  // The portal renders outside the grid, so this is not a press on the widget.
+  expect(onPlace.container.contains(inModal)).toBe(false);
+
+  pointer(inModal, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(inModal, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  pointer(inModal, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+  // And the grid is still usable afterwards.
+  recover(onPlace);
 });

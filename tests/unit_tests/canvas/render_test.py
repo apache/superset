@@ -105,6 +105,36 @@ def test_layouts_carry_what_placement_is_resolved_from() -> None:
     }
 
 
+def test_child_order_reports_each_grid_in_reading_order() -> None:
+    """
+    Reading order per grid, which the ``place`` operation rewrites when a drop
+    lands on an earlier sibling. A client previewing a drag resolves against
+    it, so a stale order makes the preview disagree with the write.
+    """
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    definition = normalize_definition(
+        canvas(
+            {
+                "k1": node("chart-1", layout={"colSpan": 8}),
+                "g": node("group", layout={"colSpan": 24}, children=["c1", "c2"]),
+                "c1": node("chart-2", layout={"colSpan": 6}),
+                "c2": node("chart-3", layout={"colSpan": 6}),
+            },
+            children=["k1", "g"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    # The root under its own id, and every grid container under its node id.
+    assert context["childOrder"] == {
+        "root": ["k1", "g"],
+        "g": ["c1", "c2"],
+    }
+
+
 def test_layout_constraints_carry_declared_span_limits() -> None:
     """Only the limits a widget actually declares reach the client."""
     rules, resolver = canvas_widget_types(), FakeResolver()

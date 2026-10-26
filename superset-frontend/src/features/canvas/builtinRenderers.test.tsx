@@ -56,6 +56,7 @@ const result: CanvasDefinitionResult = {
   customizationScopes: {},
   placements: {},
   layouts: {},
+  childOrder: { root: ['overview', 'kpis'] },
   widgetTypes: {
     overview: 'tabs',
     emea: 'tab',
@@ -79,6 +80,7 @@ test('renders core containers and markdown without extensions', async () => {
       layout={{
         placements: result.placements,
         layouts: result.layouts,
+        childOrder: result.childOrder,
         revision: result.revision,
         saving: false,
         place: jest.fn(),

@@ -61,8 +61,11 @@ const definition = (children: string[], revision = 1) => ({
     crossFilterScopes: {},
     customizationScopes: {},
     placements: {},
+    layouts: {},
+    childOrder: { root: children },
     widgetTypes: {},
     gridColumns: {},
+    layoutConstraints: {},
   },
 });
 

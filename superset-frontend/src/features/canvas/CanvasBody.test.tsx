@@ -79,6 +79,7 @@ const result = {
   customizationScopes: {},
   placements: { kpi: KPI, trend: TREND },
   layouts: { kpi: KPI, trend: TREND },
+  childOrder: { root: ['kpi', 'trend'] },
   widgetTypes: { kpi: 'test.plain', trend: 'test.plain' },
   gridColumns: {},
   layoutConstraints: {},

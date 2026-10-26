@@ -32,8 +32,10 @@ whoever can read the canvas can read the widgets it places.
 ``layouts`` gives each node's *stored* layout, which is what placement is
 resolved from and is not recoverable from ``placements``: an auto-placed node
 has no stored ``col``/``row`` at all, and validation writes a collided node's
-pushed-down ``row`` back to its layout. A client previewing a drag has to
-resolve from these to reach the same answer the server will.
+pushed-down ``row`` back to its layout. ``childOrder`` gives each grid's
+children in reading order, which the ``place`` operation rewrites when a drop
+lands on an earlier sibling. A client previewing a drag needs both to reach the
+same answer the server will.
 """
 
 from __future__ import annotations
@@ -52,6 +54,7 @@ from superset.canvas.definition.registry import (
     get_widget_types,
     WidgetTypes,
 )
+from superset.canvas.definition.schemas import ROOT_ID
 
 
 def render_context(
@@ -71,19 +74,23 @@ def render_context(
     )
     type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 
-    grids: list[tuple[list[str], int]] = [
-        (definition["root"]["children"], definition["root"]["layout"]["columns"])
+    grids: list[tuple[str, list[str], int]] = [
+        (
+            ROOT_ID,
+            definition["root"]["children"],
+            definition["root"]["layout"]["columns"],
+        )
     ]
     grid_columns: dict[str, int] = {}
     for node_id, widget in node_types.items():
         columns = widget.behavior.grid_columns
         if widget.behavior.container and columns is not None:
-            grids.append((nodes[node_id].get("children") or [], columns))
+            grids.append((node_id, nodes[node_id].get("children") or [], columns))
             grid_columns[node_id] = columns
 
     placements: dict[str, dict[str, int]] = {}
     stored_layouts: dict[str, dict[str, Any]] = {}
-    for children, columns in grids:
+    for _, children, columns in grids:
         layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
         rects, _ = resolve_grid(layouts, columns)
         for child, rect, layout in zip(children, rects, layouts, strict=True):
@@ -98,6 +105,7 @@ def render_context(
         "widgetTypes": type_ids,
         "placements": placements,
         "layouts": stored_layouts,
+        "childOrder": {parent: list(children) for parent, children, _ in grids},
         "gridColumns": grid_columns,
         "layoutConstraints": {
             node_id: constraints

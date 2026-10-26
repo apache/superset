@@ -34,6 +34,8 @@ interface AppliedLayout {
   placements: Record<string, GridPlacement>;
   /** The stored layouts behind `placements`; see `CanvasLayout.layouts`. */
   layouts: Record<string, GridLayout>;
+  /** Reading order per grid; see `CanvasLayout.childOrder`. */
+  childOrder: Record<string, string[]>;
 }
 
 export interface CanvasLayout {
@@ -48,6 +50,14 @@ export interface CanvasLayout {
    * then disagree with the server until the next refetch.
    */
   layouts: Record<string, GridLayout>;
+  /**
+   * Each grid's children in reading order, kept in step with every write for
+   * the same reason as `layouts`: a `place` reorders the parent's children so
+   * the dropped widget wins the spot it landed on. A preview resolving against
+   * the fetched order would put the neighbours somewhere the server does not,
+   * and they would jump on release.
+   */
+  childOrder: Record<string, string[]>;
   /**
    * The newest revision the server is known to hold — the one the last write
    * returned, else the one the definition was fetched at. Never an optimistic
@@ -112,6 +122,7 @@ export function useCanvasLayout(
   // local layout to build on.
   const fetchedPlacements = useRef(result.placements);
   const fetchedLayouts = useRef(result.layouts);
+  const fetchedOrder = useRef(result.childOrder);
   // The last layout the server acknowledged, without any optimistic overlay.
   // A failed write falls back to this rather than to the fetched definition,
   // which may be several acknowledged drags behind.
@@ -121,7 +132,8 @@ export function useCanvasLayout(
     fetched.current = revision;
     fetchedPlacements.current = result.placements;
     fetchedLayouts.current = result.layouts;
-  }, [revision, result.placements, result.layouts]);
+    fetchedOrder.current = result.childOrder;
+  }, [revision, result.placements, result.layouts, result.childOrder]);
 
   // Which surface this state belongs to. A request already in flight when the
   // surface changes still returns, and its response has to be dropped rather
@@ -184,6 +196,7 @@ export function useCanvasLayout(
             revision: written.revision,
             placements: written.placements,
             layouts: written.layouts,
+            childOrder: written.childOrder,
           };
           // Gestures queued while this write was in flight are newer than the
           // placements it resolved, so they stay on top -- otherwise the
@@ -201,6 +214,9 @@ export function useCanvasLayout(
               waiting.length > 0
                 ? { ...written.layouts, ...Object.fromEntries(waiting) }
                 : written.layouts,
+            // Not merged with the queued gestures: how they affect reading
+            // order is the server's to decide, and the follow-up returns it.
+            childOrder: written.childOrder,
           });
         })
         .catch(async response => {
@@ -267,9 +283,19 @@ export function useCanvasLayout(
             ...(newer?.layouts ?? fetchedLayouts.current),
             [nodeId]: placement,
           },
+          // Left as it stands until the write returns the server's. The
+          // reorder depends on where the drop landed relative to every
+          // sibling, and the response settles it within a round trip.
+          childOrder: newer?.childOrder ?? fetchedOrder.current,
         };
       });
       if (writing.current) {
+        // Deleted before being set: `Map.set` on a key it already holds keeps
+        // that key's original position, and this queue is sent as ordered
+        // `place` ops. The server lets a later op win a contested cell, so a
+        // node moved twice while a write was in flight has to end up last or
+        // its newest drop loses to a sibling it was dropped on top of.
+        queued.current.delete(nodeId);
         queued.current.set(nodeId, placement);
         return;
       }
@@ -286,6 +312,7 @@ export function useCanvasLayout(
   return {
     placements: newer?.placements ?? result.placements,
     layouts: newer?.layouts ?? result.layouts,
+    childOrder: newer?.childOrder ?? result.childOrder,
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,
