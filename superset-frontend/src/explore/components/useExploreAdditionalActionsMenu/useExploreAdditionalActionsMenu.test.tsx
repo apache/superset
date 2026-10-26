@@ -545,6 +545,7 @@ test('A Big Number chart keeps only the image exports in Data Export Options', a
   expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
   expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
 });
 
 test('A Big Number chart keeps only the image exports in Export Current View', async () => {
@@ -571,6 +572,7 @@ test('A Big Number chart keeps only the image exports in Export Current View', a
   expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
   expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to .JSON')).not.toBeInTheDocument();
 });
 
 test('A Big Number with Trendline chart keeps its data exports', async () => {
