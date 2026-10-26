@@ -633,15 +633,23 @@ class SQLExecutor:
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
             timeout_msg = f"Query exceeded the {timeout} seconds timeout."
 
-            from superset.sql.execution.cancellation import cursor_scope
+            from superset.sql.execution.cancellation import cursor_scope, timeout_scope
 
             # MCP's owner enforces a per-call deadline off the transport loop.
             # A process-wide SIGALRM is neither thread-safe nor cancellable.
-            timeout_context = (
-                contextlib.nullcontext()
-                if cursor_scope.get() is not None
-                else utils.timeout(seconds=timeout, error_message=timeout_msg)
+            timeout_context: (
+                contextlib.AbstractContextManager[None]
+                | utils.TimerTimeout
+                | utils.SigalrmTimeout
             )
+            if owner_timeout := timeout_scope.get():
+                timeout_context = owner_timeout(timeout)
+            elif cursor_scope.get() is not None:
+                timeout_context = contextlib.nullcontext()
+            else:
+                timeout_context = utils.timeout(
+                    seconds=timeout, error_message=timeout_msg
+                )
             with timeout_context:
                 statement_results = self._execute_statements(
                     original_script,

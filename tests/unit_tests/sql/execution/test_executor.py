@@ -3660,3 +3660,38 @@ def test_truncation_survives_cache_round_trip(
     cached = executor._get_from_cache("SELECT 1", QueryOptions())
     assert cached is not None
     assert cached.statements[0].truncated is truncated
+
+
+@pytest.mark.parametrize("custom_timeout", [None, 7])
+def test_execute_passes_sql_timeout_to_execution_owner(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    custom_timeout: int | None,
+) -> None:
+    from contextlib import nullcontext
+
+    from superset.sql.execution.cancellation import timeout_scope
+
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+    owner = mocker.Mock(side_effect=lambda seconds: nullcontext())
+    signal_timeout = mocker.patch("superset.sql.execution.executor.utils.timeout")
+    token = timeout_scope.set(owner)
+    try:
+        result = database.execute(
+            "SELECT 1", options=QueryOptions(timeout_seconds=custom_timeout)
+        )
+    finally:
+        timeout_scope.reset(token)
+    assert result.status == QueryStatus.SUCCESS
+    owner.assert_called_once_with(custom_timeout or 30)
+    signal_timeout.assert_not_called()

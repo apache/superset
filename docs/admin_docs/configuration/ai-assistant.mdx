@@ -49,6 +49,20 @@ to roles. Without this the endpoints return `403`.
 Conversations are stored in Superset's metadata database, so no extra
 infrastructure is needed for the default configuration.
 
+### Query deadlines
+
+The agent's run deadline is applied to active warehouse cursors through the
+engine's cancellation API. SQL Lab's configured timeout (or a query's explicit
+timeout) can shorten this deadline, but cannot extend the run. After expiry the
+runtime does not start another tool or model turn.
+
+Cancellation uses the original user's identity and a separate metadata session.
+The warehouse connection stays owned until cancellation completes. Interrupting
+blocked I/O requires engine cancellation support and the warehouse permissions
+needed by that engine; unsupported drivers or failed cancellation can only stop
+when their current I/O returns. Configure driver connection/network timeouts as
+well, because a cursor deadline cannot interrupt connection establishment.
+
 ### Which roles get access
 
 `superset init` grants `can_read`/`can_write` on `AIAssistant` to **Admin** and

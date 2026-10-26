@@ -54,6 +54,11 @@ def cancellable_cursor(
             yield
 
 
+timeout_scope: ContextVar[Callable[[float], AbstractContextManager[None]] | None] = (
+    ContextVar("warehouse_timeout_scope", default=None)
+)
+
+
 before_warehouse_access: ContextVar[Callable[[], None] | None] = ContextVar(
     "warehouse_before_access", default=None
 )
@@ -91,6 +96,7 @@ def without_execution_hooks() -> Iterator[None]:
     cancellation recursively.
     """
     cursor_token = cursor_scope.set(None)
+    timeout_token = timeout_scope.set(None)
     access_token = before_warehouse_access.set(None)
     deadline_token = check_deadline.set(None)
     execute_token = after_execute.set(None)
@@ -102,6 +108,7 @@ def without_execution_hooks() -> Iterator[None]:
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)
         before_warehouse_access.reset(access_token)
+        timeout_scope.reset(timeout_token)
         cursor_scope.reset(cursor_token)
 
 
