@@ -19,6 +19,7 @@
 import { render } from '@testing-library/react';
 import {
   ChartDataResponseResult,
+  DTTM_ALIAS,
   DataRecord,
   VizType,
   TimeGranularity,
@@ -35,7 +36,7 @@ import { EchartsProps } from '../../src/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 
 const mockedEchart = jest.fn<void, [EchartsProps]>();
-const mockMixedChart = { convertFromPixel: jest.fn() };
+const mockMixedChart = { convertFromPixel: jest.fn(), getModel: jest.fn() };
 jest.mock('../../src/components/Echart', () => {
   const { forwardRef, useImperativeHandle } =
     jest.requireActual<typeof import('react')>('react');
@@ -95,15 +96,15 @@ function createQueryData(): ChartDataResponseResult {
 
 function setup(
   formDataOverrides: Partial<EchartsMixedTimeseriesFormData> = {},
+  queriesData = [createQueryData(), createQueryData()],
 ) {
-  const queryData = createQueryData();
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsMixedTimeseriesFormData,
     EchartsMixedTimeseriesProps
   >({
     defaultFormData: DEFAULT_FORM_DATA as EchartsMixedTimeseriesFormData,
     defaultVizType: 'mixed_timeseries',
-    defaultQueriesData: [queryData, queryData],
+    defaultQueriesData: queriesData,
     formData: {
       colorScheme: 'bnbColors',
       metrics: ['sum__num'],
@@ -114,7 +115,7 @@ function setup(
       viz_type: VizType.MixedTimeseries,
       ...formDataOverrides,
     },
-    queriesData: [queryData, queryData],
+    queriesData,
   });
   const transformed = transformProps(chartProps);
   const setDataMask = jest.fn();
@@ -136,6 +137,11 @@ function setup(
 
 beforeEach(() => {
   mockedEchart.mockClear();
+  mockMixedChart.getModel.mockReturnValue({
+    getComponent: jest
+      .fn()
+      .mockReturnValue({ getCategories: () => [ts1, ts2] }),
+  });
 });
 
 test('EchartsMixedTimeseries click emits cross-filter with tail-anchored dimension values', () => {
@@ -328,3 +334,91 @@ test('ungrained Mixed Timeseries Drill by keeps its series-only scope', async ()
     expect.objectContaining({ col: 'gender', op: '==', val: 'boy' }),
   ]);
 });
+
+test.each([undefined, 'ship_date'])(
+  'legacy Mixed Drill by emits a resolvable bucket column for Edit chart with Time Column %s',
+  async timeColumn => {
+    const query = createQueryData();
+    const legacyQuery = {
+      ...query,
+      data: query.data.map(({ ds, ...row }) => ({ ...row, [DTTM_ALIAS]: ds })),
+      colnames: [DTTM_ALIAS, ...query.colnames.slice(1)],
+    };
+    const { eventHandlers, onContextMenu } = setup(
+      {
+        x_axis: undefined,
+        granularity_sqla: 'order_date',
+        granularitySqla: 'order_date',
+        timeGrainSqla: TimeGranularity.MONTH,
+        extraFormData: timeColumn ? { granularity_sqla: timeColumn } : {},
+      },
+      [legacyQuery, legacyQuery],
+    );
+    await eventHandlers.contextmenu({
+      data: [ts1, 1],
+      seriesName: 'sum__num, boy',
+      seriesIndex: 2,
+      event: { stop: jest.fn(), event: { clientX: 11, clientY: 22 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      {
+        col: timeColumn ?? 'order_date',
+        op: '==',
+        val: ts1,
+        grain: TimeGranularity.MONTH,
+        formattedVal: 'Jan 2024',
+      },
+    ]);
+  },
+);
+
+test.each([1, 2, 0])(
+  'Mixed categorical markerless Drill by uses shared axis category %s for a sparse query B',
+  async categoryIndex => {
+    const timestamps = [0, 1, 2].map(month => Date.UTC(2024, month, 1));
+    const query = createQueryData();
+    const queryA = {
+      ...query,
+      data: timestamps.map(ds => ({
+        ds,
+        'sum__num, boy': 1,
+        'sum__num, girl': 2,
+      })),
+    };
+    const queryB = { ...queryA, data: queryA.data.slice(1) };
+    const { eventHandlers, onContextMenu } = setup(
+      { timeGrainSqla: TimeGranularity.MONTH, xAxisForceCategorical: true },
+      [queryA, queryB],
+    );
+    mockMixedChart.getModel.mockReturnValue({
+      getComponent: jest
+        .fn()
+        .mockReturnValue({ getCategories: () => timestamps }),
+    });
+    mockMixedChart.convertFromPixel.mockReturnValue([categoryIndex, 1]);
+    await eventHandlers.contextmenu({
+      seriesName: 'sum__num, boy',
+      seriesIndex: 2,
+      event: {
+        stop: jest.fn(),
+        offsetX: 20,
+        offsetY: 30,
+        event: { clientX: 11, clientY: 22 },
+      },
+    });
+    const filters = onContextMenu.mock.lastCall[2].drillBy.xAxisFilters;
+    if (categoryIndex === 0) {
+      expect(filters).toBeUndefined();
+    } else {
+      expect(filters).toEqual([
+        {
+          col: 'ds',
+          op: '==',
+          val: timestamps[categoryIndex],
+          grain: TimeGranularity.MONTH,
+          formattedVal: categoryIndex === 1 ? 'Feb 2024' : 'Mar 2024',
+        },
+      ]);
+    }
+  },
+);

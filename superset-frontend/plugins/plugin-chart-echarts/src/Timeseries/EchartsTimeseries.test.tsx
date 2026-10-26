@@ -1598,7 +1598,7 @@ test('Drill by uses the dashboard time grain for the clicked time-axis bucket', 
   // groups by, including a dashboard Time Column override.
   expect(drillBy.xAxisFilters).toEqual([
     {
-      col: DTTM_ALIAS,
+      col: 'order_date',
       op: '==',
       val: Date.UTC(2003, 0, 1),
       grain: TimeGranularity.YEAR,
@@ -1660,6 +1660,42 @@ test.each([
         val: Date.UTC(2003, 0, 1),
         grain: TimeGranularity.YEAR,
         formattedVal: '2003',
+      },
+    ]);
+  },
+);
+
+test.each([undefined, 'ship_date'])(
+  'legacy Drill by emits a resolvable bucket column for Edit chart with Time Column %s',
+  async timeColumn => {
+    const onContextMenu = jest.fn();
+    render(
+      <EchartsTimeseries
+        {...defaultProps}
+        onContextMenu={onContextMenu}
+        resolvedTimeGrain={TimeGranularity.MONTH}
+        xValueFormatter={getTimeFormatter('%b %Y')}
+        formData={{
+          ...defaultFormData,
+          granularitySqla: 'order_date',
+          extraFormData: timeColumn ? { granularity_sqla: timeColumn } : {},
+        }}
+        xAxis={{ label: DTTM_ALIAS, type: AxisType.Time }}
+      />,
+    );
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesName: 'Sales',
+      data: [Date.UTC(2024, 1, 1), 10],
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      {
+        col: timeColumn ?? 'order_date',
+        op: '==',
+        val: Date.UTC(2024, 1, 1),
+        grain: TimeGranularity.MONTH,
+        formattedVal: 'Feb 2024',
       },
     ]);
   },

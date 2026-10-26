@@ -559,6 +559,11 @@ Other chart types, including Table
 and time-series charts, discard filters on the replaced column, including drill
 predicates that may carry the new column's bucket.
 
+For time-series and Mixed charts, **Edit chart** preserves a drilled time bucket even
+when the chart was saved with only a legacy Time Column. The bucket uses the dashboard
+Time Column override when present. On a forced-categorical temporal axis, a markerless
+Mixed-series click selects the displayed month even when the two queries have different months.
+
 Drill-generated filters display their ISO time grain in brackets (for example, `[P1M]`).
 Editing the filter's column, operator, value, or expression type clears the bucket grain;
 unchanged duplicates retain it.

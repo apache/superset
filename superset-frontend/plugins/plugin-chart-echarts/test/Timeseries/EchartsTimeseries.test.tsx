@@ -970,6 +970,15 @@ test.each(['line', 'area', 'categorical line'])(
         ],
       },
     });
+    mockChart.getModel.mockReturnValue({
+      getComponent: jest.fn().mockReturnValue({
+        getCategories: () => [
+          Date.UTC(2003, 8, 1),
+          timestamp,
+          Date.UTC(2003, 10, 1),
+        ],
+      }),
+    });
     mockChart.convertFromPixel.mockReturnValue([
       seriesType === 'categorical line' ? 1 : timestamp + 86400000,
       158,

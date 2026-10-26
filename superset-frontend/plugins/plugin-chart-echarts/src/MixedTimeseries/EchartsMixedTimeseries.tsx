@@ -32,6 +32,7 @@ import Echart from '../components/Echart';
 import { EchartsHandler, EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
 import {
+  getCategoryAxisValues,
   getTemporalBucketDrillByFilter,
   getTimeAxisDrillByValue,
   parseTemporalValue,
@@ -223,7 +224,10 @@ export default function EchartsMixedTimeseries({
         }
         const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
         const xAxisColumn =
-          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+          xAxis.label === DTTM_ALIAS
+            ? (formData.extraFormData?.granularity_sqla ??
+              formData.granularitySqla)
+            : xAxis.label;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
           coltypeMapping?.[getColumnLabel(xAxis.label)] ===
@@ -247,11 +251,14 @@ export default function EchartsMixedTimeseries({
                   ]),
             0,
             isTemporalCategory,
+            isTemporalCategory && data === undefined
+              ? getCategoryAxisValues(echartRef.current?.getEchartInstance(), 0)
+              : undefined,
           );
           const filter = getTemporalBucketDrillByFilter(
-            // A grained '__timestamp' bucket resolves to the time column the
-            // query groups by, including a dashboard Time Column override.
-            xAxis.label,
+            // Persist a real column for legacy charts: Explore populates
+            // x_axis on edit, so '__timestamp' would stop resolving there.
+            xAxisColumn,
             xValue,
             resolvedTimeGrain,
             getTimeFormatter(

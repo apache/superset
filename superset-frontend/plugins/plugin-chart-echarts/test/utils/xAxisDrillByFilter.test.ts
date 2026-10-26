@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { init, use } from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent } from 'echarts/components';
+import { SVGRenderer } from 'echarts/renderers';
 import { TimeGranularity } from '@superset-ui/core';
 import {
   formatNaiveDateTime,
   getTemporalBucketDrillByFilter,
   getTemporalXAxisDrillByFilter,
+  getCategoryAxisValues,
   getTimeAxisDrillByValue,
   getTimeBucketRange,
 } from '../../src/utils/xAxisDrillByFilter';
@@ -306,3 +311,62 @@ test('getTemporalBucketDrillByFilter returns undefined for unusable input', () =
     getTemporalBucketDrillByFilter('', Date.UTC(2024, 9, 5), 'P1M'),
   ).toBeUndefined();
 });
+
+test.each([0, 1])(
+  'categorical bucket lookup matches the axis domain rather than sparse series offsets (%s)',
+  valueIndex => {
+    const timestamps = [0, 1, 2].map(month => Date.UTC(2024, month, 1));
+    const series = {
+      data: timestamps
+        .slice(1)
+        .map(timestamp =>
+          valueIndex === 0 ? [timestamp, 10] : [10, timestamp],
+        ),
+    };
+    const lookup = (index: number) =>
+      getTimeAxisDrillByValue(
+        undefined,
+        series,
+        valueIndex === 0 ? [index, 10] : [10, index],
+        valueIndex,
+        true,
+        timestamps.map(String),
+      );
+    expect(lookup(1)).toBe(timestamps[1]);
+    expect(lookup(2)).toBe(timestamps[2]);
+    expect(lookup(0)).toBeUndefined();
+    expect(lookup(3)).toBeUndefined();
+    expect(lookup(-1)).toBeUndefined();
+  },
+);
+
+test.each([false, true])(
+  'category domain includes all queries on the rendered temporal axis (horizontal: %s)',
+  horizontal => {
+    use([LineChart, GridComponent, SVGRenderer]);
+    const chart = init(document.createElement('div'), undefined, {
+      renderer: 'svg',
+      ssr: true,
+      width: 400,
+      height: 300,
+    });
+    const timestamps = [0, 1, 2].map(month => Date.UTC(2024, month, 1));
+    const valueIndex = horizontal ? 1 : 0;
+    try {
+      chart.setOption({
+        animation: false,
+        xAxis: { type: horizontal ? 'value' : 'category' },
+        yAxis: { type: horizontal ? 'category' : 'value' },
+        series: [timestamps, timestamps.slice(1)].map(values => ({
+          type: 'line',
+          data: values.map(value => (horizontal ? [10, value] : [value, 10])),
+        })),
+      });
+      expect(getCategoryAxisValues(chart, valueIndex)?.map(String)).toEqual(
+        timestamps.map(String),
+      );
+    } finally {
+      chart.dispose();
+    }
+  },
+);

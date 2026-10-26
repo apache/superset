@@ -57,6 +57,7 @@ import {
 } from './types';
 import { formatSeriesName } from '../utils/series';
 import {
+  getCategoryAxisValues,
   getTemporalBucketDrillByFilter,
   getTimeAxisDrillByValue,
   parseTemporalValue,
@@ -682,7 +683,10 @@ export default function EchartsTimeseries({
         const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
         const xAxisCol =
           // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+          xAxis.label === DTTM_ALIAS
+            ? (formData.extraFormData?.granularity_sqla ??
+              formData.granularitySqla)
+            : xAxis.label;
         const isTemporalCategory =
           xAxis.type === AxisType.Category &&
           coltypeMapping?.[getColumnLabel(xAxis.label)] ===
@@ -709,11 +713,17 @@ export default function EchartsTimeseries({
                   ]),
             xAxisValueIndex,
             isTemporalCategory,
+            isTemporalCategory && data === undefined
+              ? getCategoryAxisValues(
+                  echartRef.current?.getEchartInstance(),
+                  xAxisValueIndex,
+                )
+              : undefined,
           );
           const xAxisFilter = getTemporalBucketDrillByFilter(
-            // A grained '__timestamp' bucket resolves to the time column the
-            // query groups by, including a dashboard Time Column override.
-            resolvedTimeGrain ? xAxis.label : xAxisCol,
+            // Persist a real column for legacy charts: Explore populates
+            // x_axis on edit, so '__timestamp' would stop resolving there.
+            xAxisCol,
             xValue,
             resolvedTimeGrain,
             isTemporalCategory

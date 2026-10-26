@@ -22,6 +22,26 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 
+import type { EChartsType } from 'echarts/core';
+import type GlobalModel from 'echarts/types/src/model/Global';
+import type { CartesianAxisModel } from 'echarts/types/src/coord/cartesian/AxisModel';
+
+/** Read the category domain ECharts collected across all series on the axis. */
+export const getCategoryAxisValues = (
+  chart: EChartsType | undefined,
+  valueIndex = 0,
+): readonly unknown[] | undefined => {
+  // ECharts omits auto-collected categories from getOption(). Use the axis
+  // model so a sparse series shares the same domain as the rendered axis.
+  const model = (
+    chart as unknown as { getModel: () => GlobalModel } | undefined
+  )?.getModel();
+  const axis = model?.getComponent(valueIndex === 1 ? 'yAxis' : 'xAxis', 0) as
+    | CartesianAxisModel
+    | undefined;
+  return axis?.getCategories();
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -196,6 +216,7 @@ export const getTimeAxisDrillByValue = (
   coordinate: unknown,
   valueIndex = 0,
   categorical = false,
+  axisCategories: readonly unknown[] = [],
 ): unknown => {
   if (Array.isArray(data)) {
     return data[valueIndex];
@@ -217,7 +238,14 @@ export const getTimeAxisDrillByValue = (
     return undefined;
   }
   if (categorical) {
-    const point: unknown = series.data[Math.round(axisValue)];
+    const category = axisCategories[Math.round(axisValue)];
+    if (category === undefined) {
+      return undefined;
+    }
+    const point: unknown = series.data.find(
+      (item: unknown) =>
+        Array.isArray(item) && String(item[valueIndex]) === String(category),
+    );
     return Array.isArray(point) ? point[valueIndex] : undefined;
   }
   let nearest: number | undefined;
