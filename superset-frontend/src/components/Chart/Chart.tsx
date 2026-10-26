@@ -22,6 +22,7 @@ import { logging } from '@apache-superset/core/utils';
 import {
   ensureIsArray,
   FeatureFlag,
+  getChartMetadataRegistry,
   isFeatureEnabled,
   QueryFormData,
   SqlaFormData,
@@ -475,9 +476,17 @@ function Chart({
   const showSpinner = isLoading && !suppressLoadingSpinner;
   // A dashboard chart with a previous response stays on screen while it
   // refreshes, and the spinner is drawn over it instead of replacing it.
+  // A chart that fetches its own data (deck.gl Multiple Layers) only starts
+  // reloading it once its own query lands and the spinner is gone, so kept on
+  // screen it would show the previous data with no sign of the reload. It gets
+  // the regular spinner and loads its data again when it mounts.
+  const chartFetchesOwnData =
+    getChartMetadataRegistry().get(formData.viz_type || vizType)
+      ?.enableNoResults === false;
   const keepChartOnScreen =
     isLoading &&
     !!dashboardId &&
+    !chartFetchesOwnData &&
     responseFormData !== undefined &&
     hasValidPreviousData(
       queriesResponse,

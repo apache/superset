@@ -66,6 +66,7 @@ const TestChart = ({
   </div>
 );
 
+const testChartTransformed = jest.fn();
 const selfFetchingChartMounted = jest.fn();
 
 // Stands in for deck.gl Multiple Layers: it issues no query of its own, so
@@ -81,13 +82,16 @@ beforeAll(() => {
   new ChartPlugin({
     metadata: new ChartMetadata({ name: 'Refresh test chart', thumbnail: '' }),
     Chart: TestChart,
-    transformProps: chartProps => ({
-      queriesData: chartProps.queriesData,
-      label: chartProps.formData.label,
-      colorScheme: chartProps.formData.colorScheme,
-      stack: chartProps.formData.stack,
-      viewport: chartProps.formData.viewport,
-    }),
+    transformProps: chartProps => {
+      testChartTransformed();
+      return {
+        queriesData: chartProps.queriesData,
+        label: chartProps.formData.label,
+        colorScheme: chartProps.formData.colorScheme,
+        stack: chartProps.formData.stack,
+        viewport: chartProps.formData.viewport,
+      };
+    },
     // `label` needs a query. `stack` and `viewport` only redraw the chart, the
     // way an Area chart's stack toggle and a deck.gl map's viewport do.
     controlPanel: {
@@ -129,6 +133,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  testChartTransformed.mockClear();
   selfFetchingChartMounted.mockClear();
 });
 
@@ -574,33 +579,138 @@ test('shows the regular spinner for a dashboard chart mounted while its query is
   expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
 });
 
-test('keeps a self-fetching dashboard chart mounted under the spinner through a manual refresh', async () => {
+test('does not redraw a dashboard chart under the spinner when a refresh starts with nothing changed', async () => {
+  // A refresh sends latestQueryFormData again, so the store keeps both form
+  // data objects as they are. The form data the chart is drawn with is built
+  // from them while it refreshes, and an ECharts chart replays its entrance
+  // animation each time the plugin transforms it again. The dashboard also
+  // passes its filter callbacks memoized.
   const chartProps = {
     ...dashboardChartProps,
-    vizType: SELF_FETCHING_VIZ_TYPE,
-    formData: {
-      datasource: '1__table',
-      viz_type: SELF_FETCHING_VIZ_TYPE,
-    } as ChartRendererProps['formData'],
+    addFilter: jest.fn(),
+    onFilterMenuOpen: jest.fn(),
+    onFilterMenuClose: jest.fn(),
   };
+  const formData = labelledFormData('first');
+  const latestQueryFormData = labelledFormData('first');
+  const response = queriesResponse(1);
   const { rerender } = render(
-    <Chart {...chartProps} chartStatus="rendered" queriesResponse={[]} />,
+    <Chart
+      {...chartProps}
+      chartStatus="rendered"
+      formData={formData}
+      latestQueryFormData={latestQueryFormData}
+      queriesResponse={response}
+    />,
+  );
+  await screen.findByTestId('refresh-test-chart');
+  const transformsBeforeRefresh = testChartTransformed.mock.calls.length;
+
+  rerender(
+    <Chart
+      {...chartProps}
+      chartStatus="loading"
+      formData={formData}
+      latestQueryFormData={latestQueryFormData}
+      queriesResponse={response}
+    />,
+  );
+  await waitForChartLoad();
+
+  expect(screen.getByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1 label=first',
+  );
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(testChartTransformed).toHaveBeenCalledTimes(transformsBeforeRefresh);
+
+  rerender(
+    <Chart
+      {...chartProps}
+      chartStatus="success"
+      formData={formData}
+      latestQueryFormData={latestQueryFormData}
+      queriesResponse={queriesResponse(2)}
+    />,
+  );
+  expect(await screen.findByText('value=2 label=first')).toBeInTheDocument();
+});
+
+const selfFetchingChartProps = {
+  ...dashboardChartProps,
+  vizType: SELF_FETCHING_VIZ_TYPE,
+  formData: {
+    datasource: '1__table',
+    viz_type: SELF_FETCHING_VIZ_TYPE,
+  } as ChartRendererProps['formData'],
+};
+
+test('replaces a self-fetching dashboard chart with the spinner through a manual refresh', async () => {
+  // Its own query lands first and its data reloads after that, so kept on
+  // screen it would show the previous data with no spinner while it reloads.
+  const { rerender } = render(
+    <Chart
+      {...selfFetchingChartProps}
+      chartStatus="rendered"
+      queriesResponse={[]}
+    />,
   );
   await screen.findByTestId('self-fetching-test-chart');
 
   rerender(
-    <Chart {...chartProps} chartStatus="loading" queriesResponse={[]} />,
+    <Chart
+      {...selfFetchingChartProps}
+      chartStatus="loading"
+      queriesResponse={[]}
+    />,
   );
-  expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
-  expect(screen.getByRole('status')).toBeInTheDocument();
-  expect(screen.queryByText('Waiting on database...')).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('self-fetching-test-chart'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
 
   rerender(
-    <Chart {...chartProps} chartStatus="success" queriesResponse={[]} />,
+    <Chart
+      {...selfFetchingChartProps}
+      chartStatus="success"
+      queriesResponse={[]}
+    />,
+  );
+  expect(
+    await screen.findByTestId('self-fetching-test-chart'),
+  ).toBeInTheDocument();
+  // Mounting again is what reloads its data.
+  expect(selfFetchingChartMounted).toHaveBeenCalledTimes(2);
+});
+
+test('keeps a self-fetching dashboard chart mounted through an auto-refresh', async () => {
+  const { rerender } = render(
+    <Chart
+      {...selfFetchingChartProps}
+      chartStatus="rendered"
+      queriesResponse={[]}
+    />,
+  );
+  await screen.findByTestId('self-fetching-test-chart');
+
+  rerender(
+    <Chart
+      {...selfFetchingChartProps}
+      chartStatus="loading"
+      queriesResponse={[]}
+      suppressLoadingSpinner
+    />,
   );
   expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
-  // A remount would make the chart load all of its data again.
+
+  rerender(
+    <Chart
+      {...selfFetchingChartProps}
+      chartStatus="success"
+      queriesResponse={[]}
+      suppressLoadingSpinner
+    />,
+  );
+  expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
   expect(selfFetchingChartMounted).toHaveBeenCalledTimes(1);
 });
 

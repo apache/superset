@@ -447,8 +447,14 @@ test('renders a dashboard chart during loading when the spinner is not suppresse
 
   const { getByTestId } = render(<ChartRenderer {...props} />);
   expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-queries-data',
+    JSON.stringify(props.queriesResponse),
+  );
+  // The plugin is not told about a refresh that shows the spinner: it would
+  // redraw the chart it already shows.
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
     'data-is-refreshing',
-    'true',
+    'false',
   );
 });
 

@@ -279,7 +279,17 @@ test('shows only the spinner for a dashboard chart that has no previous data', (
 });
 
 test('replaces an Explore chart with the spinner while it refreshes', () => {
-  render(
+  // Rendered first, so the response's form data is known and only the
+  // missing dashboard sends the chart back to the regular spinner.
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  rerender(
     <Chart
       {...baseProps}
       chartStatus="loading"

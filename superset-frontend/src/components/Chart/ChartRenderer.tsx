@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, cloneDeep } from 'lodash-es';
+import { snakeCase, cloneDeep, isEqual } from 'lodash-es';
 import {
   useCallback,
   useEffect,
@@ -332,10 +332,11 @@ function ChartRendererComponent({
   // an auto-refresh, a manual refresh or a filter change. The store holds the
   // previous response until the new one lands, so that response is what the
   // chart renders in the meantime.
+  const isAutoRefreshing =
+    Boolean(restProps.suppressLoadingSpinner) && chartStatus === 'loading';
   const isRefreshing =
     chartStatus === 'loading' &&
-    (Boolean(restProps.suppressLoadingSpinner) ||
-      source === ChartSource.Dashboard);
+    (isAutoRefreshing || source === ChartSource.Dashboard);
   const hasRenderableResults =
     resultsReady ||
     (isRefreshing &&
@@ -347,21 +348,33 @@ function ChartRendererComponent({
   // the new one lands. What changes without a new query always comes from the
   // current form data: the dashboard's colours, and the controls a chart sets
   // on itself, such as an Area chart's stack toggle or a map's viewport.
+  //
+  // A plugin transforms and redraws the chart whenever it gets a new form data
+  // object, and an ECharts chart replays its entrance animation when it does.
+  // When the chart is already drawn with the same values, as it is when a
+  // refresh starts with nothing changed, it keeps the object it has.
+  const drawnFormDataRef = useRef(currentFormData);
   const renderedFormData = useMemo(() => {
-    if (!isRefreshing || !responseFormData) {
-      return currentFormData;
+    let nextFormData = currentFormData;
+    if (isRefreshing && responseFormData) {
+      nextFormData = { ...responseFormData };
+      [...DASHBOARD_COLOR_KEYS, ...getDisplayControlNames(vizType)].forEach(
+        key => {
+          if (key in currentFormData) {
+            nextFormData[key] = currentFormData[key];
+          } else {
+            delete nextFormData[key];
+          }
+        },
+      );
     }
-    const displayKeys = [
-      ...DASHBOARD_COLOR_KEYS,
-      ...getDisplayControlNames(vizType),
-    ];
-    return {
-      ...responseFormData,
-      ...Object.fromEntries(
-        displayKeys.map(key => [key, currentFormData[key]]),
-      ),
-    };
+    return isEqual(nextFormData, drawnFormDataRef.current)
+      ? drawnFormDataRef.current
+      : nextFormData;
   }, [isRefreshing, responseFormData, currentFormData, vizType]);
+  useEffect(() => {
+    drawnFormDataRef.current = renderedFormData;
+  }, [renderedFormData]);
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
   // Gate on `hasRenderableResults` so the deep clone doesn't run for every
@@ -684,7 +697,10 @@ function ChartRendererComponent({
           legendState={state.legendState}
           enableNoResults={bypassNoResult}
           legendIndex={state.legendIndex}
-          isRefreshing={isRefreshing}
+          // Only an auto-refresh is passed on, the one refresh that shows no
+          // spinner. Plugins redraw when this flips, and a chart under the
+          // spinner should stay as it was drawn.
+          isRefreshing={isAutoRefreshing}
           {...drillToDetailProps}
         />
       </div>
