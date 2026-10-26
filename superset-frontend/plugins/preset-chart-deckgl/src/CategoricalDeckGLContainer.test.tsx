@@ -19,7 +19,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
-import { JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  ChartProps,
+  DatasourceType,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import CategoricalDeckGLContainer, {
   CategoricalDeckGLContainerProps,
   getCategories,
@@ -28,6 +33,7 @@ import CategoricalDeckGLContainer, {
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
 import { NULL_CATEGORY_KEY } from './utils';
+import transformScatterProps from './layers/Scatter/transformProps';
 
 // maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
 // calls setWorkerUrl() on it at import time.
@@ -310,6 +316,36 @@ test('null-dimension rows reach the layer with the N/A color and toggle with the
     slice_id: 42,
     color_picker: { r: 0, g: 0, b: 0, a: 1 },
   } as unknown as QueryFormData;
+  // Real Scatter transformProps output, so the null-to-category handoff between
+  // the transform and the container is exercised rather than a hand-built key.
+  const scatterPayload = transformScatterProps({
+    rawFormData: {
+      ...fd,
+      spatial: { type: 'latlong', latCol: 'LATITUDE', lonCol: 'LONGITUDE' },
+      point_radius_fixed: { type: 'fix', value: '1000' },
+      viewport: {},
+    },
+    queriesData: [
+      {
+        data: [
+          { LATITUDE: 37.8, LONGITUDE: -122.4, category: 'A' },
+          { LATITUDE: 37.9, LONGITUDE: -122.3, category: null },
+        ],
+      },
+    ],
+    datasource: {
+      type: DatasourceType.Table,
+      id: 1,
+      name: 'test_datasource',
+      columns: [],
+      metrics: [],
+    },
+    height: 300,
+    width: 400,
+    hooks: {},
+    filterState: {},
+    emitCrossFilters: false,
+  } as unknown as ChartProps).payload;
   const getLayer = jest.fn(() => ({}));
   const drawnCategories = () => {
     const { payload } = (
@@ -333,13 +369,7 @@ test('null-dimension rows reach the layer with the N/A color and toggle with the
         setDataMask={jest.fn()}
         onContextMenu={jest.fn()}
         emitCrossFilters={false}
-        payload={
-          {
-            data: {
-              features: [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }],
-            },
-          } as unknown as CategoricalDeckGLContainerProps['payload']
-        }
+        payload={scatterPayload as CategoricalDeckGLContainerProps['payload']}
       />
     </ThemeProvider>,
   );
