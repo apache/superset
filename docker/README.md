@@ -62,9 +62,15 @@ Steps:
 
 1. Create `./docker/requirements-local.txt`
 2. Add your new packages
-3. Rebuild docker compose
-    1. `docker compose down -v`
+3. Restart the Docker Compose stack so the local packages are installed:
+    1. `docker compose down`
     2. `docker compose up`
+
+The `docker compose down` command preserves the named volumes used for your
+Superset metadata database and other local data. To intentionally remove this
+data and start from a clean state, run `docker compose down -v` instead. This
+deletes the Compose project's named volumes, including your local Superset
+metadata database and stored data; only use it when you intend to reset them.
 
 ## Initializing Database
 
