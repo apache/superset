@@ -239,6 +239,42 @@ test('keeps the extra props of a selected value that is not in the options', asy
   expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
 });
 
+test('keeps the extra props of an option picked from search results after the search clears', async () => {
+  // Selecting stores only { label, value }. Once the search clears and the
+  // base page (which lacks the pick) is restored, the option rebuilt from the
+  // selection must still carry the picked option's aria-label.
+  const amy = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy',
+    'aria-label': 'Amy',
+  };
+  const loadOptions = jest.fn(async (search: string) =>
+    search === ''
+      ? { data: [OPTIONS[1]], totalCount: 100 }
+      : { data: [amy], totalCount: 1 },
+  );
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      options={loadOptions}
+      optionFilterProps={['title']}
+    />,
+  );
+  await open();
+  await type('Amy');
+  await userEvent.click(await findSelectOption('Amy'));
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', { name: OPTIONS[1].label }),
+    ).toBeInTheDocument(),
+  );
+  expect(screen.getByRole('option', { name: 'Amy' })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
 test('does not add a new option if the value is already in the options', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [OPTIONS[0]],

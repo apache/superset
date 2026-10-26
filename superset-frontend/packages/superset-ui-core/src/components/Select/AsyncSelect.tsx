@@ -178,6 +178,13 @@ const AsyncSelect = forwardRef(
 
     const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
     const fullSelectOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
+    // The full option of each value picked from the list, keyed by value. A
+    // selection only stores { label, value }, so once the page it came from is
+    // replaced (e.g. a search is cleared) the option rebuilt from the selected
+    // value would otherwise lose its aria-label, title and filter props.
+    const pickedOptionsRef = useRef(
+      new Map<ReturnType<typeof getValue>, SelectOptionsType[number]>(),
+    );
 
     const quoteAwareTokenSeparators = useMemo(() => {
       const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
@@ -254,7 +261,9 @@ const AsyncSelect = forwardRef(
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
-          isLabeledValue(opt) ? { ...opt } : { value: opt, label: String(opt) },
+          isLabeledValue(opt)
+            ? { ...pickedOptionsRef.current.get(opt.value), ...opt }
+            : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)
@@ -262,6 +271,9 @@ const AsyncSelect = forwardRef(
     }, [selectOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
+      if (isObject(option)) {
+        pickedOptionsRef.current.set(getValue(selectedItem), option);
+      }
       if (isSingleMode) {
         // on select is fired in single value mode if the same value is selected
         const valueChanged = !utilsIsEqual(
