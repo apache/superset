@@ -21419,6 +21419,21 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A chart the restore was linking or unlinking was permanently deleted while the restore ran. Nothing was changed; retry the same request."
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34276,6 +34291,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34319,7 +34338,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34661,6 +34681,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34704,7 +34728,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34824,6 +34849,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34867,7 +34896,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
