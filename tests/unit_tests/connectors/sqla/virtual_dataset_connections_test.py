@@ -863,7 +863,11 @@ def test_cache_hit_series_limit_does_not_execute_prequery(
             "series_columns": ["col1"],
             "series_limit_metric": "restricted",
         },
-        {"timeseries_limit": 1, "timeseries_limit_metric": "restricted"},
+        {
+            "is_timeseries": True,
+            "timeseries_limit": 1,
+            "timeseries_limit_metric": "restricted",
+        },
         {
             "series_limit": 1,
             "series_columns": ["col1"],
@@ -1056,3 +1060,54 @@ def test_expression_cache_key_parse_failure_is_user_scoped(
         "rls-predicate-parse-failed-for-user-42"
     ]
     build.assert_not_called()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["series_columns", "series_limit_metric"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_expression_cache_key_ignores_unused_series_fields(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """Series labels and disabled limit metrics must not render unused SQL."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.columns.append(TableColumn(column_name="unused", expression="{{ 1 / 0 }}"))
+    virtual.metrics.append(SqlMetric(metric_name="unused", expression="{{ 1 / 0 }}"))
+    query: QueryObjectDict = {
+        "columns": ["col1"],
+        "metrics": [],
+        "is_timeseries": False,
+        "series_limit": 0,
+    }
+    if sink == "series_columns":
+        query["series_columns"] = ["unused"]
+    else:
+        query["series_limit_metric"] = "unused"
+    build = mocker.spy(virtual, "get_sqla_query")
+
+    assert virtual.get_extra_cache_keys(query) == []
+    build.assert_not_called()
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_expression_cache_key_reuses_catalog_discovery(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Catalog-inspecting engines share one lookup with the dataset SQL collector."""
+    virtual, _ = static_schema_datasource
+    catalog = mocker.spy(virtual.database, "get_default_catalog")
+    query: QueryObjectDict = {
+        "columns": [
+            {"sqlExpression": "(SELECT MAX(col1) FROM physical)", "label": str(index)}
+            for index in range(3)
+        ],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    assert catalog.call_count == 1

@@ -29,6 +29,7 @@ import uuid
 from collections.abc import Hashable, Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import cache
 from typing import (
     Any,
     Callable,
@@ -4057,7 +4058,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for value in [
             *(query_obj.get("columns") or []),
             *(query_obj.get("groupby") or []),
-            *(query_obj.get("series_columns") or []),
         ]:
             add(value)
         for value in query_obj.get("metrics") or []:
@@ -4067,8 +4067,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for flt in query_obj.get("filter") or []:
             value = flt.get("col")
             add(value, metric=isinstance(value, str) and value not in columns)
-        add(query_obj.get("series_limit_metric"), metric=True)
-        add(query_obj.get("timeseries_limit_metric"), metric=True)
+        series_limit = query_obj.get("series_limit") or (
+            query_obj.get("timeseries_limit")
+            if query_obj.get("is_timeseries", True)
+            else 0
+        )
+        add(
+            (
+                query_obj.get("series_limit_metric")
+                or query_obj.get("timeseries_limit_metric")
+            )
+            if series_limit
+            else None,
+            metric=True,
+        )
         add(query_obj.get("granularity"))
         add(self.main_dttm_col if query_obj.get("granularity") else None)
         extras = query_obj.get("extras") or {}
@@ -4083,7 +4095,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return expressions
 
     def _get_query_rls_cache_keys(
-        self, query_obj: QueryObjectDict, default_schema: str | None = None
+        self,
+        query_obj: QueryObjectDict,
+        default_schema: str | None = None,
+        resolve_catalog: Callable[[], str | None] | None = None,
     ) -> list[str]:
         """Collect expression-only RLS rules without building or executing SQL.
 
@@ -4096,6 +4111,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if not query_obj or not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             return []
+        resolve_catalog = resolve_catalog or cache(self.database.get_default_catalog)
         extras = query_obj.get("extras") or {}
         granularity = query_obj.get("granularity")
         if granularity is not None and granularity not in self.dttm_cols:
@@ -4138,7 +4154,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # and select-list fragments such as DISTINCT (SELECT ...).
             predicates.update(
                 collect_rls_predicates_for_sql(
-                    sql, self.database, self.catalog, default_schema
+                    sql,
+                    self.database,
+                    self.catalog,
+                    default_schema,
+                    resolve_catalog=resolve_catalog,
                 )
             )
         return sorted(predicates)

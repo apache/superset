@@ -24,6 +24,7 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import cache
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -2891,6 +2892,7 @@ class SqlaTable(
             )
             extra_cache_keys += sqla_query.extra_cache_keys
 
+        resolve_catalog = cache(self.database.get_default_catalog)
         default_schema = None
         # For virtual datasets, include RLS predicates in the cache key
         if self.is_virtual and self.sql:
@@ -2901,12 +2903,13 @@ class SqlaTable(
                 self.catalog,
                 default_schema,
                 exclude_dataset_id=self.id,
+                resolve_catalog=resolve_catalog,
             )
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
         extra_cache_keys.extend(
-            self._get_query_rls_cache_keys(query_obj, default_schema)
+            self._get_query_rls_cache_keys(query_obj, default_schema, resolve_catalog)
         )
         return list(set(extra_cache_keys))
 
