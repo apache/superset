@@ -674,21 +674,22 @@ def test_runtime_schema_unknown_type(
 
 @SEMANTIC_LAYERS_APP
 def test_runtime_schema_exception(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test POST /<uuid>/schema/runtime returns 400 when schema raises."""
-    test_uuid = str(uuid_lib.uuid4())
-    mock_layer = MagicMock()
+    """Keep provider details in server logs, not the runtime-schema response."""
+    test_uuid: str = str(uuid_lib.uuid4())
+    mock_layer: MagicMock = MagicMock()
     mock_layer.type = "snowflake"
     mock_layer.implementation.configuration = {"account": "test"}
 
-    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = mock_layer
 
-    mock_cls = MagicMock()
-    mock_cls.get_runtime_schema.side_effect = ValueError("Bad config")
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.get_runtime_schema.side_effect = ValueError("provider-private-detail")
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
@@ -696,12 +697,14 @@ def test_runtime_schema_exception(
         clear=True,
     )
 
-    response = client.post(
+    response: TestResponse = client.post(
         f"/api/v1/semantic_layer/{test_uuid}/schema/runtime",
     )
 
     assert response.status_code == 400
-    assert "Bad config" in response.json["message"]
+    assert response.json["message"] == "Unable to fetch semantic layer runtime schema."
+    assert "provider-private-detail" not in response.get_data(as_text=True)
+    assert "ValueError: provider-private-detail" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -3051,26 +3054,31 @@ def test_get_semantic_view_structure_feature_flag_off(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("method", ["get_dimensions", "get_metrics"])
 def test_get_semantic_view_structure_implementation_error(
-    client: Any,
+    client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    method: str,
 ) -> None:
-    """Test GET /<pk>/structure returns 422 when implementation raises."""
-    mock_view = MagicMock()
-    mock_view.implementation.get_dimensions.side_effect = RuntimeError(
-        "Connection failed"
+    """Keep provider details in server logs, not the structure response."""
+    mock_view: MagicMock = MagicMock()
+    getattr(mock_view.implementation, method).side_effect = RuntimeError(
+        "provider-private-detail"
     )
 
-    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
     mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
         mock_view
     )
 
-    response = client.get("/api/v1/semantic_view/1/structure")
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
 
     assert response.status_code == 422
-    assert "Connection failed" in response.json["message"]
+    assert response.json["message"] == "Unable to fetch semantic view structure."
+    assert "provider-private-detail" not in response.get_data(as_text=True)
+    assert "RuntimeError: provider-private-detail" in caplog.text
 
 
 @SEMANTIC_LAYERS_APP
