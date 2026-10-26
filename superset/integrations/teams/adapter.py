@@ -492,8 +492,7 @@ async def _deliver_with_retries(
             raise TeamsDeliveryError("transient")
         try:
             await transport.post_root(destination, card)
-            if monotonic() >= deadline:
-                raise TeamsDeliveryError("transient")
+            # Preserve confirmed delivery even if the request exceeded its budget.
             return
         except TeamsTransportError as error:
             if error.status is None and not error.retryable:
@@ -536,7 +535,7 @@ def deliver_teams_alert(
     retry_deadline: float | None = None,
     transport_factory: TransportFactory | None = None,
 ) -> None:
-    """Share one retry budget across authentication, posting and resource cleanup.
+    """Bound authentication and posting without reclassifying confirmed delivery.
 
     Synchronous MSAL requests and async SDK posts have explicit socket timeouts.
     The existing Celery soft/hard task limits bound blocking work that cannot be
@@ -555,6 +554,3 @@ def deliver_teams_alert(
             await _deliver_with_retries(transport, destination, card, deadline)
 
     asyncio.run(deliver())
-    # Cleanup consumes the same budget; it must finish before reporting success.
-    if monotonic() >= deadline:
-        raise TeamsDeliveryError("transient")

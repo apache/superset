@@ -24,7 +24,7 @@ import importlib.util
 import threading
 import time
 from collections.abc import AsyncIterator, Iterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 from types import SimpleNamespace
@@ -788,12 +788,12 @@ def test_celery_soft_timeout_propagates_after_cleanup(
 
 
 @pytest.mark.parametrize("phase", ["construction", "post", "cleanup"])
-def test_elapsed_work_and_cleanup_do_not_report_success_after_deadline(
+def test_deadline_expiry_preserves_confirmed_delivery(
     configured: TeamsConfig,
     monkeypatch: pytest.MonkeyPatch,
     phase: str,
 ) -> None:
-    """Every phase shares the caller's deadline, including successful teardown."""
+    """Expiry blocks a new post but does not turn confirmed delivery into failure."""
     clock = [0.0]
     monkeypatch.setattr(adapter, "monotonic", lambda: clock[0])
     transport = FakeTransport([None])
@@ -819,7 +819,12 @@ def test_elapsed_work_and_cleanup_do_not_report_success_after_deadline(
             if phase == "cleanup":
                 clock[0] = 3.0
 
-    with pytest.raises(adapter.TeamsDeliveryError, match="temporarily unavailable"):
+    expected = (
+        pytest.raises(adapter.TeamsDeliveryError, match="temporarily unavailable")
+        if phase == "construction"
+        else nullcontext()
+    )
+    with expected:
         adapter.deliver_teams_alert(
             configured,
             configured.destinations[0],

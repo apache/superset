@@ -973,6 +973,17 @@ Approve only standard channels in the configured tenant. Duplicate keys or
 channels and unknown configuration fields are rejected. An empty mapping leaves
 Teams unconfigured.
 
+For `team_id`, use the Teams thread ID, for example `19:example@thread.tacv2`,
+not the Microsoft 365 group GUID shown as the Team ID in Graph or the Teams
+admin center. In Teams, open the team's **More options (…) > Get link to team**.
+Copy the value between `/l/team/` and `/conversations` and URL-decode it
+(`%3A` becomes `:` and `%40` becomes `@`). Do not use the link's `groupId` parameter.
+For `channel_id`, use **Get link to channel** and URL-decode the value immediately
+after `/l/channel/`. See Microsoft's [Teams link formats](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/deep-link-teams).
+The installation callback matches `team_id` exactly. A group GUID will cause
+installation events to return 403 and leave the destination without an active
+installation.
+
 Merge these feature flags into your existing flags. Restart the web server and
 workers after changing configuration or rotating a secret. Apply the migration
 before accepting installation events. The scheduler, broker, and worker setup
