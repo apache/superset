@@ -1052,7 +1052,8 @@ def test_the_default_configuration_reaches_no_server(mocker: MockerFixture) -> N
 # --------------------------------------------------------------------------- #
 
 
-def test_the_client_speaks_the_protocol_to_a_real_server() -> None:
+@pytest.mark.parametrize("transport_name", ["streamable_http", "sse"])
+def test_the_client_speaks_the_protocol_to_a_real_server(transport_name: str) -> None:
     """
     Exercise the real ``ClientSession``, not the fake.
 
@@ -1073,25 +1074,37 @@ def test_the_client_speaks_the_protocol_to_a_real_server() -> None:
 
     from superset.ai.mcp import client as mcp_client
 
-    remote_server = Server("acme-catalog")
+    async def _list_tools(context: Any, params: Any) -> types.ListToolsResult:
+        return types.ListToolsResult(
+            tools=[
+                types.Tool(
+                    name="search_tables",
+                    description="Search the catalog.",
+                    input_schema={
+                        "type": "object",
+                        "properties": {"q": {"type": "string"}},
+                    },
+                )
+            ]
+        )
 
-    @remote_server.list_tools()
-    async def _list_tools() -> list[types.Tool]:
-        return [
-            types.Tool(
-                name="search_tables",
-                description="Search the catalog.",
-                inputSchema={"type": "object", "properties": {"q": {"type": "string"}}},
-            )
-        ]
+    async def _call_tool(
+        context: Any, params: types.CallToolRequestParams
+    ) -> types.CallToolResult:
+        assert params.arguments is not None
+        return types.CallToolResult(
+            content=[
+                types.TextContent(
+                    type="text", text=f"rows for {params.arguments['q']}"
+                ),
+                types.ImageContent(type="image", data="QUJD", mime_type="image/png"),
+            ],
+            is_error=params.arguments["q"] == "error",
+        )
 
-    @remote_server.call_tool()
-    async def _call_tool(name: str, arguments: dict[str, Any]) -> list[Any]:
-        return [
-            types.TextContent(type="text", text=f"rows for {arguments['q']}"),
-            # A non-text block: its bytes must not reach the model.
-            types.ImageContent(type="image", data="QUJD", mimeType="image/png"),
-        ]
+    remote_server = Server(
+        "acme-catalog", on_list_tools=_list_tools, on_call_tool=_call_tool
+    )
 
     @asynccontextmanager
     async def transport(**kwargs: Any) -> Any:
@@ -1118,7 +1131,7 @@ def test_the_client_speaks_the_protocol_to_a_real_server() -> None:
         transports={"streamable_http": transport, "sse": transport},
     )
 
-    config = server(headers={"X-Api-Key": "configured"})
+    config = server(headers={"X-Api-Key": "configured"}, transport=transport_name)
 
     async def exercise() -> tuple[list[Any], list[str]]:
         with patch.object(mcp_client, "_sdk", return_value=patched):
@@ -1126,6 +1139,10 @@ def test_the_client_speaks_the_protocol_to_a_real_server() -> None:
             called = await mcp_client._acall_tool(  # noqa: SLF001
                 config, "search_tables", {"q": "orders"}, None
             )
+            with pytest.raises(mcp_client.MCPClientError, match="reported an error"):
+                await mcp_client._acall_tool(  # noqa: SLF001
+                    config, "search_tables", {"q": "error"}, None
+                )
         return listed, called
 
     listed, called = asyncio.run(exercise())
