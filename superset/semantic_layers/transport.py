@@ -148,14 +148,34 @@ class HostProviderTransport(ProviderTransport):
             PROVIDER_DEADLINE.reset(token)
             bound.close()
 
-    def _validated_url(self, url: str) -> SplitResult:
+    @staticmethod
+    def _check_url_characters(url: str) -> None:
+        """Refuse characters URL parsers can discard or interpret differently."""
+        if any(
+            char == "\\" or char.isspace() or ord(char) < 32 or ord(char) == 127
+            for char in url
+        ):
+            raise ProviderRequestError(Failure.INVALID_URL)
+
+    @classmethod
+    def _prepared_url(cls, url: str) -> SplitResult:
+        """Compare destinations using the same URL preparation as Requests."""
+        cls._check_url_characters(url)
         try:
-            parts: SplitResult = urlsplit(url)
+            prepared: requests.PreparedRequest = requests.PreparedRequest()
+            prepared.prepare_url(url, None)
+            if prepared.url is None:
+                raise ProviderRequestError(Failure.INVALID_URL)
+            parts: SplitResult = urlsplit(prepared.url)
             parts.port  # noqa: B018  Validate malformed ports before any I/O.
-        except ValueError:
+        except (ValueError, requests.RequestException):
             raise ProviderRequestError(Failure.INVALID_URL) from None
         if not parts.hostname:
             raise ProviderRequestError(Failure.INVALID_URL)
+        return parts
+
+    def _validated_url(self, url: str) -> SplitResult:
+        parts: SplitResult = self._prepared_url(url)
         if parts.scheme not in (
             {"https", "http"} if self._allow_internal else {"https"}
         ):
@@ -170,10 +190,10 @@ class HostProviderTransport(ProviderTransport):
         ):
             return None
         before: SplitResult = self._validated_url(response.url)
+        self._check_url_characters(response.headers["Location"])
         try:
             target: str = urljoin(response.url, response.headers["Location"])
-            after: SplitResult = urlsplit(target)
-            after.port  # noqa: B018
+            after: SplitResult = self._prepared_url(target)
         except ValueError:
             raise ProviderRequestError(Failure.INVALID_URL) from None
 
@@ -186,7 +206,7 @@ class HostProviderTransport(ProviderTransport):
                 else (443 if parts.scheme == "https" else 80),
             )
 
-        return target if origin(before) == origin(after) else None
+        return after.geturl() if origin(before) == origin(after) else None
 
     @staticmethod
     def _read_body(

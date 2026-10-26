@@ -35,11 +35,13 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib.machinery import ModuleSpec
+from io import BytesIO
 from pathlib import Path
 from threading import get_ident, Lock, Thread
 from types import ModuleType
 from typing import Any, cast, TypeAlias
 from unittest.mock import Mock, patch
+from urllib.parse import urlsplit
 
 import pytest
 import requests
@@ -56,6 +58,7 @@ from superset_core.semantic_layers.transport import (
     ProviderTransport,
     RequestBudget,
 )
+from urllib3.response import HTTPResponse
 
 from superset.semantic_layers import transport as semantic_layer_http
 from superset.utils import network
@@ -418,6 +421,86 @@ def test_default_path_follows_same_origin_get_redirects_only(
             provider_request("MetricFlow", "GET", f"{base}/away", timeout=2)
     assert response.json() == {"ok": True}
     assert [entry.split()[1] for entry in seen] == ["/accounts", "/accounts/", "/away"]
+
+
+@pytest.mark.parametrize(
+    "location,followed",
+    [
+        ("https://evil.example\\@provider.example/", False),
+        ("https://evil.example%5C@provider.example/", True),
+        ("https://provider.example@evil.example/", False),
+        ("https://PROVIDER.EXAMPLE/next", True),
+        ("https://provider.example./next", False),
+        ("https://provider.example:443/next", True),
+        ("https://provider.example:0/next", True),
+        ("http://provider.example/next", False),
+        ("/next", True),
+        ("/next\t", False),
+        ("/next\n", False),
+        ("/next\x00", False),
+        ("/next\x7f", False),
+        ("/next path", False),
+    ],
+)
+def test_redirect_checks_prepared_destination(
+    monkeypatch: pytest.MonkeyPatch, location: str, followed: bool
+) -> None:
+    """Exercise Requests preparation before capturing adapter-bound credentials."""
+    sent: list[requests.PreparedRequest] = []
+
+    def send(
+        adapter: network.PinnedHTTPAdapter,
+        request: requests.PreparedRequest,
+        **kwargs: Any,
+    ) -> requests.Response:
+        sent.append(request)
+        response: requests.Response = requests.Response()
+        response.status_code = 302 if len(sent) == 1 else 200
+        assert request.url is not None
+        response.url = request.url
+        response.request = request
+        response.raw = HTTPResponse(body=BytesIO(b"ok"), preload_content=False)
+        if len(sent) == 1:
+            response.headers["Location"] = location
+        return response
+
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    if followed:
+        assert (
+            provider_request(
+                "fixture",
+                "GET",
+                "https://provider.example/start",
+                timeout=2,
+                headers={"Authorization": "Bearer private", "X-API-Key": "private"},
+            ).status
+            == 200
+        )
+    else:
+        with pytest.raises(ProviderRequestError):
+            provider_request(
+                "fixture",
+                "GET",
+                "https://provider.example/start",
+                timeout=2,
+                headers={"Authorization": "Bearer private", "X-API-Key": "private"},
+            )
+    assert len(sent) == (2 if followed else 1)
+    assert all(urlsplit(request.url).hostname == "provider.example" for request in sent)
+    assert all(request.headers["X-API-Key"] == "private" for request in sent)
+
+
+@pytest.mark.parametrize("suffix", ["\\@provider.example/", "/path\n", "/a b"])
+def test_ambiguous_first_hop_is_rejected_before_adapter(
+    monkeypatch: pytest.MonkeyPatch, suffix: str
+) -> None:
+    """First-hop validation must not accept syntax Requests interprets differently."""
+    send: Mock = Mock(side_effect=AssertionError("Invalid URL reached adapter"))
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", f"https://evil.example{suffix}", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
 
 
 def test_flag_allows_local_http_development_endpoints() -> None:
@@ -1222,26 +1305,6 @@ def test_cross_scheme_redirect_returns_status_without_reading_body(
     assert raised.value.status == 302
     response.raw.read1.assert_not_called()
     send.assert_called_once()
-
-
-def test_explicit_zero_port_is_not_the_default_origin(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from unittest.mock import MagicMock
-
-    response: MagicMock = MagicMock(
-        status_code=302,
-        url="https://fixture.test:0/",
-        headers={"Location": "https://fixture.test:443/"},
-    )
-    response.__enter__.return_value = response
-    send: MagicMock = MagicMock(return_value=response)
-    monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
-    with pytest.raises(ProviderRequestError) as raised:
-        provider_request("fixture", "GET", response.url, timeout=1)
-    assert raised.value.failure == ProviderRequestFailure.HTTP_STATUS
-    send.assert_called_once()
-    response.raw.read1.assert_not_called()
 
 
 def test_completed_body_does_not_require_a_second_full_copy() -> None:
