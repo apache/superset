@@ -69,7 +69,7 @@ class UpdateWidgetCommand(UpdateMixin, BaseCommand):
             db.session.flush()
         except StaleDataError as ex:
             # Another writer committed between our read and this UPDATE.
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             latest = WidgetDAO.find_by_id(self._widget_uuid, id_column="uuid")
             raise WidgetRevisionConflictError(
                 latest.revision if latest else current_revision
