@@ -248,3 +248,48 @@ test('a year label is not highlighted by digits inside a selected epoch key', ()
   expect(nodes[1].itemStyle?.opacity).toBeUndefined();
   expect(nodes[1].children?.[0].itemStyle?.opacity).toBeUndefined();
 });
+
+test.each([undefined, 'created_at'])(
+  'formats both lookup-grained temporal levels with Time Column %s',
+  timeColumn => {
+    const props = new ChartProps<EchartsSunburstFormData>({
+      formData: {
+        ...formData,
+        viz_type: 'sunburst_v2',
+        columns: ['order_date', 'ship_date'],
+        temporalColumnsLookup: { order_date: true, ship_date: true },
+        timeGrainSqla: TimeGranularity.MONTH,
+        extraFormData: { granularity_sqla: timeColumn },
+        dateFormat: SMART_DATE_ID,
+      },
+      width: 800,
+      height: 600,
+      theme: supersetTheme,
+      queriesData: [
+        {
+          colnames: ['order_date', 'ship_date', 'sum__value'],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.Temporal,
+            GenericDataType.Numeric,
+          ],
+          data: [
+            {
+              order_date: Date.UTC(2024, 9, 1),
+              ship_date: Date.UTC(2024, 10, 1),
+              sum__value: 10,
+            },
+          ],
+        },
+      ],
+    });
+    const result = transformProps(props as EchartsSunburstChartProps);
+    const nodes = (
+      result.echartOptions as {
+        series: { data: { name: string; children: { name: string }[] }[] }[];
+      }
+    ).series[0].data;
+    expect(nodes[0].name).toBe('Oct 2024');
+    expect(nodes[0].children[0].name).toBe('Nov 2024');
+  },
+);

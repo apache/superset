@@ -2992,6 +2992,104 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    @staticmethod
+    def _expunge_dashboards_and_charts() -> None:
+        """Drop dashboards and charts from the session so the next request
+        loads them through a query, as a fresh request would."""
+        for obj in list(db.session):
+            if isinstance(obj, (Dashboard, Slice)):
+                db.session.expunge(obj)
+
+    def test_update_dashboard_keeps_archived_chart_slot(self) -> None:
+        """PUT: saving back the layout of a dashboard that holds an archived
+        chart succeeds, and the chart keeps its slot and its membership, so
+        recovering it puts it back in place."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user("admin")
+        dataset_id: int = db.session.query(SqlaTable.id).first()[0]
+        live: Slice = self.insert_chart("archived-slot-live", [admin.id], dataset_id)
+        archived: Slice = self.insert_chart(
+            "archived-slot-archived", [admin.id], dataset_id
+        )
+        live_id: int = live.id
+        archived_id: int = archived.id
+        archived_uuid: str = str(archived.uuid)
+        positions: dict[str, Any] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["CHART-live", "CHART-archived"],
+                "parents": ["ROOT_ID"],
+            },
+        }
+        for slot, chart_id in (
+            ("CHART-live", live_id),
+            ("CHART-archived", archived_id),
+        ):
+            positions[slot] = {
+                "id": slot,
+                "type": "CHART",
+                "children": [],
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+        dashboard: Dashboard = self.insert_dashboard(
+            "archived-slot",
+            None,
+            [admin.id],
+            slices=[live, archived],
+            position_json=json.dumps(positions),
+        )
+        dashboard_id: int = dashboard.id
+        self.login(ADMIN_USERNAME)
+        rv: TestResponse = self.client.delete(f"api/v1/chart/{archived_id}")
+        assert rv.status_code == 200, rv.data
+        try:
+            # Load the dashboard and its chart list fresh, as a real request
+            # does: through a query that hides archived charts, not from the
+            # identity map this test populated.
+            self._expunge_dashboards_and_charts()
+            rv = self.client.get(f"api/v1/dashboard/{dashboard_id}")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            rv = self.client.put(
+                f"api/v1/dashboard/{dashboard_id}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 200, rv.data
+
+            self._expunge_dashboards_and_charts()
+            model: Dashboard = db.session.get(Dashboard, dashboard_id)
+            stored: dict[str, Any] = json.loads(model.position_json)
+            assert stored["CHART-archived"]["type"] == "CHART"
+            assert stored["CHART-archived"]["meta"]["chartId"] == archived_id
+            member_ids: set[int] = {
+                row[0]
+                for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                    dashboard_slices.c.dashboard_id == dashboard_id
+                )
+            }
+            assert member_ids == {live_id, archived_id}
+
+            rv = self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            model = db.session.get(Dashboard, dashboard_id)
+            assert {s.id for s in model.slices} == {live_id, archived_id}
+        finally:
+            db.session.rollback()
+            self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            self._expunge_dashboards_and_charts()
+            with skip_visibility_filter(db.session, Slice):
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+                for chart_id in (live_id, archived_id):
+                    db.session.delete(db.session.get(Slice, chart_id))
+            db.session.commit()
+
     def test_update_dashboard_reconciles_dangling_position_json(self) -> None:
         """PUT: a raw ``position_json`` layout node referencing a chart absent
         from every Slice row is persisted as a markdown placeholder (sc-115325).
@@ -6394,6 +6492,46 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             rv = self.client.put(f"/api/v1/dashboard/{ids['dashboard']}", json=stale)
             assert rv.status_code == 200, rv.data
             assert self._member_names(ids) == {"member", "archived"}
+
+    def test_update_dashboard_layout_chart_access_keeps_archived_member(
+        self,
+    ) -> None:
+        """An archived member that no layout slot represents is kept without
+        passing the access check, while new charts are still checked."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": self._chart_layout(
+                                ids["member"], ids["readable"], ids["foreign"]
+                            )
+                        }
+                    )
+                },
+            )
+            assert rv.status_code == 422, rv.data
+            assert rv.json["message"]["json_metadata"] == [
+                f"The layout references charts that are not available: {ids['foreign']}"
+            ]
+            assert self._member_names(ids) == {"member", "archived"}
+
+            rv = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": self._chart_layout(
+                                ids["member"], ids["readable"]
+                            )
+                        }
+                    )
+                },
+            )
+            assert rv.status_code == 200, rv.data
+            assert self._member_names(ids) == {"member", "archived", "readable"}
 
     @staticmethod
     def _member_names(ids: dict[str, int]) -> set[str]:
