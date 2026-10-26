@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 15:12-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -909,6 +909,9 @@ msgid "A butterfly chart compares two metrics across categories using horizontal
 msgstr ""
 
 msgid "A candlestick chart shows opening, closing, high, and low values for each period. It is commonly used for financial and other time-series range analysis."
+msgstr ""
+
+msgid "A chart on this dashboard or in this version was permanently deleted while the dashboard was being restored, so nothing was changed. Please try again."
 msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -9517,6 +9520,9 @@ msgstr ""
 msgid "No saved metrics found"
 msgstr ""
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -11010,7 +11016,7 @@ msgstr ""
 msgid "Remove notification method"
 msgstr ""
 
-msgid "Remove or repoint these assets before deleting it."
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 msgid "Remove query from log"
@@ -12424,6 +12430,12 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
+#, python-format
+msgid "Semantic source is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "Semantic source is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Semantic view could not be created."
 msgstr ""
 
@@ -12653,6 +12665,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Show All/Invert buttons in legend"
+msgstr ""
 
 msgid "Show Bubbles"
 msgstr ""
@@ -15166,14 +15181,8 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
-msgid "This semantic layer has no semantic views. This cannot be undone."
+msgid "This semantic layer has no dependent semantic views. This cannot be undone."
 msgstr ""
-
-#, python-format
-msgid "This semantic layer or view is used by %(count)s dependent asset and cannot be deleted."
-msgid_plural "This semantic layer or view is used by %(count)s dependent assets and cannot be deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
 msgstr ""
@@ -15356,6 +15365,9 @@ msgstr ""
 msgid "Time grain"
 msgstr ""
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr ""
 
@@ -15462,6 +15474,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr ""
@@ -15751,6 +15766,12 @@ msgid "Unable to decode value"
 msgstr ""
 
 msgid "Unable to encode value"
+msgstr ""
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
 msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."

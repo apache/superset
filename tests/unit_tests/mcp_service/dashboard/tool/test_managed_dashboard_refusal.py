@@ -319,6 +319,9 @@ async def test_unmanaged_dashboard_reaches_write_path(
                 return_value=Mock(is_valid=True),
             )
         )
+        stack.enter_context(
+            patch("superset.security_manager.can_access_chart", return_value=True)
+        )
         session: Mock = stack.enter_context(patch("superset.extensions.db.session"))
         session.get.return_value = chart
         update_command: Mock = stack.enter_context(
