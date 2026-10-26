@@ -388,6 +388,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
             "agent_key": profile.key,
             "model": model,
             "tool_calls": result.tool_calls,
+            "thoughts": result.thoughts,
             "turns": result.turns,
             **_recorded_context(recorded_context),
         },

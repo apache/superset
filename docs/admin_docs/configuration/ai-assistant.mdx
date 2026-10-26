@@ -474,6 +474,9 @@ latency to every turn that uses it.
 
 ## Retention
 
+Completed responses retain the provider-supplied thought process shown during
+the run, so it remains available when a conversation is reloaded.
+
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
 The default Celery beat schedule runs `ai.prune_conversations` daily at 03:30.
 Deployments with a custom schedule must include this task to enforce retention.
