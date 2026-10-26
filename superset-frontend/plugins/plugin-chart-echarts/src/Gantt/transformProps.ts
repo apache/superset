@@ -47,7 +47,9 @@ import { LegendOrientation, Refs } from '../types';
 import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   groupData,
+  measureTextInkWidth,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -58,7 +60,13 @@ import { defaultGrid } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { getTooltipLabels } from '../utils/tooltip';
-import { Dimension, ELEMENT_HEIGHT_SCALE } from './constants';
+import {
+  CATEGORY_LABEL_GAP,
+  CATEGORY_LABEL_TRUNCATE_GAP,
+  Dimension,
+  ELEMENT_HEIGHT_SCALE,
+  MAX_CATEGORY_LABEL_WIDTH_RATIO,
+} from './constants';
 
 const renderItem: CustomSeriesRenderItem = (params, api) => {
   const startX = api.value(Dimension.StartTime);
@@ -120,6 +128,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    legendIndex,
   } = chartProps;
 
   const {
@@ -140,6 +149,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendType,
     legendSort,
     showLegend,
+    showSelectorLegend,
     yAxisTitle,
     yAxisTitleMargin,
     xAxisTitle,
@@ -151,7 +161,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     ...formData,
   };
 
-  const { setControlValue, onLegendStateChanged } = hooks;
+  const { setControlValue, onLegendStateChanged, onLegendScroll } = hooks;
 
   const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const refs: Refs = {};
@@ -211,14 +221,12 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   let prevSum = 0;
   let maxCategoryLabelWidth = 0;
 
-  let measureContext: CanvasRenderingContext2D | null = null;
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas');
-    measureContext = canvas.getContext('2d');
-    if (measureContext) {
-      measureContext.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-    }
-  }
+  // The category labels are drawn via the markLine `label` below, so its font
+  // must match the one measureTextInkWidth measures with (the theme's
+  // fontSizeSM / fontFamily), or the reserved grid area can end up narrower
+  // than the rendered text.
+  const categoryLabelFontSize = theme.fontSizeSM;
+  const categoryLabelFontFamily = theme.fontFamily;
 
   Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
     sum += map.size;
@@ -231,19 +239,31 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     });
 
     if (name) {
-      // Prefer exact canvas measurement; fall back to an approximate width
-      // (~0.62 of the font size per character) when canvas is unavailable (e.g. SSR).
-      const labelWidth = measureContext
-        ? measureContext.measureText(name).width
-        : name.length * theme.fontSizeSM * 0.62;
-
-      maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
+      // Reserve the rendered glyphs' ink extent rather than only the advance
+      // width, which previously left labels clipped by a few pixels.
+      maxCategoryLabelWidth = Math.max(
+        maxCategoryLabelWidth,
+        measureTextInkWidth(name, theme),
+      );
     }
 
     borderLines.push({ yAxis: seriesCount - sum });
 
     prevSum = sum;
   });
+
+  // Category names are rendered as markLine labels, and `grid.containLabel`
+  // only reserves room for axis labels, so a name longer than the default left
+  // padding was drawn into -- and clipped by -- the left edge of the plot.
+  // Measure the widest name and reserve that much, capped so a very long
+  // category cannot eat the chart; anything past the cap is truncated with an
+  // ellipsis by the label itself.
+  const categoryLabelWidth = Math.min(
+    maxCategoryLabelWidth > 0
+      ? Math.ceil(maxCategoryLabelWidth) + CATEGORY_LABEL_TRUNCATE_GAP
+      : 0,
+    Math.floor(width * MAX_CATEGORY_LABEL_WIDTH_RATIO),
+  );
 
   const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
   const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
@@ -362,6 +382,10 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           position: 'start',
           formatter: '{b}',
           color: theme.colorText,
+          fontSize: categoryLabelFontSize,
+          fontFamily: categoryLabelFontFamily,
+          width: categoryLabelWidth,
+          overflow: 'truncate',
         },
         data: categoryLines,
       },
@@ -396,6 +420,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -447,16 +472,20 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
         padding,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     grid: {
       ...defaultGrid,
       ...padding,
-      left: (padding.left || 0) + maxCategoryLabelWidth + 10,
+      left:
+        padding.left +
+        (categoryLabelWidth > 0 ? categoryLabelWidth + CATEGORY_LABEL_GAP : 0),
     },
     dataZoom: zoomable && [
       {
@@ -524,5 +553,6 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     refs,
     setControlValue,
     onLegendStateChanged,
+    onLegendScroll,
   };
 }

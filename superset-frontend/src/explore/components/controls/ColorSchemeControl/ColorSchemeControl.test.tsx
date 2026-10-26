@@ -21,6 +21,7 @@ import {
   CategoricalModernSunset,
   CategoricalScheme,
   ColorSchemeGroup,
+  SequentialScheme,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
 import {
@@ -28,6 +29,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
@@ -336,4 +338,78 @@ test('should NOT show tooltip for search results (original Cypress contract)', a
     const tooltipContent = document.querySelector('.color-scheme-tooltip');
     expect(tooltipContent).toBeFalsy();
   });
+});
+
+test('searching for a color scheme and selecting it calls onChange with the scheme id', async () => {
+  getCategoricalSchemeRegistry().registerValue(lyftColors.id, lyftColors);
+  const onChange = jest.fn();
+  setup({ onChange });
+
+  const selectInput = screen.getByLabelText('Select color scheme', {
+    selector: 'input',
+  });
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'lyftColors');
+  await userEvent.click(await screen.findByTestId('lyftColors'));
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  expect(onChange).toHaveBeenCalledWith('lyftColors');
+});
+
+test('searching by label matches a scheme and filters out non-matching schemes', async () => {
+  [...CategoricalD3, lyftColors].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  setup();
+
+  const selectInput = screen.getByLabelText('Select color scheme', {
+    selector: 'input',
+  });
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'Lyft');
+
+  expect(await screen.findByTestId('lyftColors')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.queryByText('D3 Category 10')).not.toBeInTheDocument(),
+  );
+});
+
+test('isLinear: searching a sequential scheme and selecting it calls onChange with the scheme id', async () => {
+  const sequentialSchemes = [
+    new SequentialScheme({
+      id: 'testBlues',
+      label: 'Test Blues',
+      colors: ['#eff3ff', '#6baed6', '#08519c'],
+    }),
+    new SequentialScheme({
+      id: 'testGreens',
+      label: 'Test Greens',
+      colors: ['#edf8e9', '#74c476', '#006d2c'],
+    }),
+  ];
+  const onChange = jest.fn();
+  setup({
+    isLinear: true,
+    value: 'testBlues',
+    choices: sequentialSchemes.map(s => [s.id, s.label]),
+    schemes: Object.fromEntries(
+      sequentialSchemes.map(s => [s.id, s]),
+    ) as ColorSchemes,
+    onChange,
+  });
+
+  const selectInput = screen.getByLabelText('Select color scheme', {
+    selector: 'input',
+  });
+  await userEvent.click(selectInput);
+  await userEvent.type(selectInput, 'Greens');
+
+  const option = await screen.findByTestId('testGreens');
+  // Sequential schemes are interpolated to 10 swatches, not their 3 raw colors
+  expect(within(option).getAllByTestId('color')).toHaveLength(10);
+
+  await userEvent.click(option);
+
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  expect(onChange).toHaveBeenCalledWith('testGreens');
 });

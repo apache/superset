@@ -51,6 +51,7 @@ from tests.integration_tests.base_tests import (
     SupersetTestCase,
     user_is_editor,
 )
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -714,6 +715,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_create_chart_from_semantic_view(self):
         """
         Chart API: creating a chart with datasource_type="semantic_view" must
@@ -1260,13 +1262,9 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert "id" in data["result"]
         assert "thumbnail_url" in data["result"]
         assert "url" in data["result"]
-        # implicit tags created by the tagging system's SQLA event listeners
+        # implicit type:/editor: tags are no longer auto-generated
         tags = data["result"].pop("tags")
-        assert len(tags) == 2
-        assert {(tag["name"], tag["type"]) for tag in tags} == {
-            ("type:chart", TagType.type.value),
-            (f"editor:{admin.id}", TagType.editor.value),
-        }
+        assert tags == []
         for key, value in data["result"].items():
             # We can't assert timestamp values or id/urls
             if key not in (

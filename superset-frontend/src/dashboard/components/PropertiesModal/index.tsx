@@ -102,7 +102,6 @@ type DashboardInfo = {
   certifiedBy: string;
   certificationDetails: string;
   isManagedExternally: boolean;
-  metadata: Record<string, any>;
   common?: {
     conf?: {
       SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT?: number;
@@ -213,7 +212,13 @@ const PropertiesModal = ({
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
         css: css || '',
-        metadata,
+        // `metadata` is deliberately left out: this object feeds the form
+        // store, which deep-merges every value it is given, and no form field
+        // reads metadata. On dashboards with many charts it holds a
+        // chart_configuration whose chartsInScope lists grow with the square
+        // of the chart count, which made the merge block the main thread.
+        // The raw metadata is kept in `jsonMetadata` and
+        // `originalDashboardMetadata` instead.
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -835,10 +840,12 @@ const PropertiesModal = ({
                   customCss={customCss}
                   hasCustomLabelsColor={hasCustomLabelsColor}
                   showChartTimestamps={showChartTimestamps}
+                  jsonMetadata={jsonMetadata}
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
                   onCustomCssChange={handleCustomCssChange}
                   onShowChartTimestampsChange={setShowChartTimestamps}
+                  onJsonMetadataChange={setJsonMetadata}
                   addDangerToast={addDangerToast}
                 />
               ),

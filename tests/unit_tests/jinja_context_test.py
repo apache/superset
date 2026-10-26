@@ -30,6 +30,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.connectors.sqla.models import (
@@ -259,6 +260,80 @@ def test_get_filters_remove_not_present() -> None:
     cache = ExtraCache()
     assert cache.get_filters("name", remove_filter=True) == []
     assert cache.removed_filters == []
+
+
+@pytest.mark.parametrize("value", [0, False])
+def test_get_filters_falsy_value(value: Any) -> None:
+    """
+    Test that ``get_filters`` returns filters whose value is falsy but set.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": value,
+                            "expressionType": "SIMPLE",
+                            "operator": "==",
+                            "subject": "amount",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("amount", remove_filter=True) == [
+            {"op": "==", "col": "amount", "val": value}
+        ]
+        assert cache.removed_filters == ["amount"]
+        assert cache.applied_filters == ["amount"]
+
+
+def test_get_filters_range_filter_starting_at_zero() -> None:
+    """
+    Test that both bounds of a native Range filter starting at 0 are returned.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "extra_form_data": {
+                        "filters": [
+                            {"col": "amount", "op": ">=", "val": 0},
+                            {"col": "amount", "op": "<=", "val": 100},
+                        ]
+                    }
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("amount") == [
+            {"op": ">=", "col": "amount", "val": 0},
+            {"op": "<=", "col": "amount", "val": 100},
+        ]
+
+
+@pytest.mark.parametrize("value", [0, False])
+def test_filter_values_falsy_value(value: Any) -> None:
+    """
+    Test that ``filter_values`` returns falsy but set values.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "amount", "op": "==", "val": value}]
+    )
+    assert cache.filter_values("amount", default="fallback") == [value]
+
+
+def test_filter_values_empty_string_uses_default() -> None:
+    """
+    Test that ``filter_values`` treats an empty-string value as absent.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "amount", "op": "==", "val": ""}])
+    assert cache.filter_values("amount", default="fallback") == ["fallback"]
 
 
 def test_get_filters_query_context_filters() -> None:
@@ -780,6 +855,36 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_email() is None
     assert cache.current_user_roles() is None
     assert cache.current_user_rls_rules() is None
+
+
+def test_current_user_roles_rolls_back_only_on_db_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_user_roles()`` lazy-loads from ``db.session``, so a DB error caught
+    here leaves it in "pending rollback" state. This runs during SQL templating,
+    upstream of the engine build that would otherwise inherit the failed
+    transaction, so roll it back.
+
+    A non-DB failure touches no session and must not roll anything back, or it
+    would discard pending work unrelated to templating.
+    """
+    session = mocker.patch("superset.jinja_context.db").session
+
+    mocker.patch(
+        "superset.jinja_context.security_manager.get_user_roles",
+        side_effect=SQLAlchemyError("connection lost"),
+    )
+    assert ExtraCache(table=mocker.MagicMock()).current_user_roles() is None
+    session.rollback.assert_called_once()
+
+    session.reset_mock()
+    mocker.patch(
+        "superset.jinja_context.security_manager.get_user_roles",
+        side_effect=TypeError("not a DB problem"),
+    )
+    assert ExtraCache(table=mocker.MagicMock()).current_user_roles() is None
+    session.rollback.assert_not_called()
 
 
 def test_current_username_email_escaped(mocker: MockerFixture) -> None:

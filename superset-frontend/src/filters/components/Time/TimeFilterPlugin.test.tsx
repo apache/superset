@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { NO_TIME_RANGE } from '@superset-ui/core';
+import { act, render } from 'spec/helpers/testing-library';
 import TimeFilterPlugin from './TimeFilterPlugin';
 import { PluginFilterTimeProps } from './types';
 
@@ -73,6 +74,7 @@ const defaultProps: PluginFilterTimeProps = {
 
 beforeEach(() => {
   capturedProps.length = 0;
+  mockSetDataMask.mockClear();
 });
 
 test('passes formData.displayFormat through to the underlying date filter control', () => {
@@ -92,4 +94,40 @@ test('passes an undefined displayFormat through when none is configured', () => 
 
   expect(capturedProps).toHaveLength(1);
   expect(capturedProps[0].displayFormat).toBeUndefined();
+});
+
+const chooseTimeRange = (value?: string) => {
+  const { onChange } = capturedProps[capturedProps.length - 1] as {
+    onChange: (timeRange?: string) => void;
+  };
+  act(() => onChange(value));
+};
+
+test('choosing a time range emits time_range through setDataMask', () => {
+  render(<TimeFilterPlugin {...defaultProps} />);
+  mockSetDataMask.mockClear();
+
+  chooseTimeRange('Last week');
+
+  expect(mockSetDataMask).toHaveBeenCalledWith({
+    extraFormData: { time_range: 'Last week' },
+    filterState: { value: 'Last week' },
+  });
+});
+
+test('clearing the time range emits an empty value through setDataMask', () => {
+  render(
+    <TimeFilterPlugin
+      {...defaultProps}
+      filterState={{ ...defaultProps.filterState, value: 'Last week' }}
+    />,
+  );
+  mockSetDataMask.mockClear();
+
+  chooseTimeRange(NO_TIME_RANGE);
+
+  expect(mockSetDataMask).toHaveBeenCalledWith({
+    extraFormData: {},
+    filterState: { value: undefined },
+  });
 });
