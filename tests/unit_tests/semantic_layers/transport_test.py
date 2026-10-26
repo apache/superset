@@ -507,6 +507,38 @@ def test_ambiguous_first_hop_is_rejected_before_adapter(
     send.assert_not_called()
 
 
+def test_hostless_prepared_url_is_invalid_before_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-HTTP preparation can succeed without yielding a network hostname."""
+    send: Mock = Mock(side_effect=AssertionError("Invalid URL reached adapter"))
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", "mailto:provider@example.test", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
+
+
+def test_missing_prepared_url_is_invalid_before_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing result from preparation must not be passed to the URL parser."""
+    prepare: Mock = Mock(return_value=None)
+    parse: Mock = Mock(wraps=urlsplit)
+    send: Mock = Mock(side_effect=AssertionError("Invalid URL reached adapter"))
+    monkeypatch.setattr(requests.PreparedRequest, "prepare_url", prepare)
+    monkeypatch.setattr(semantic_layer_http, "urlsplit", parse)
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", "https://provider.example/", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    prepare.assert_called_once_with("https://provider.example/", None)
+    parse.assert_not_called()
+    send.assert_not_called()
+
+
 def test_flag_allows_local_http_development_endpoints() -> None:
     with _server() as (port, seen), _internal_hosts(True):
         response: ProviderResponse = provider_request(
