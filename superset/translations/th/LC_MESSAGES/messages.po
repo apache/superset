@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:20+0000\n"
+"POT-Creation-Date: 2026-10-26 18:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -285,6 +285,11 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3993,6 +3998,10 @@ msgstr "คุณแน่ใจหรือไม่ว่าต้องกา
 msgid "Are you sure you want to delete %s?"
 msgstr "คุณแน่ใจหรือไม่ว่าต้องการลบ %s?"
 
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -5897,15 +5906,6 @@ msgstr ""
 #, fuzzy
 msgid "Charts"
 msgstr "แผนภูมิ"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -9730,8 +9730,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -13505,6 +13518,11 @@ msgstr "รับวันที่ที่ระบุสำหรับวั
 #, fuzzy
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "ให้สิทธิ์การเข้าถึงแคตตาล็อกหลายรายการในการเชื่อมต่อฐานข้อมูลเดียว"
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -17741,6 +17759,9 @@ msgstr "ไม่พบนิพจน์ที่บันทึกไว้"
 msgid "No saved metrics found"
 msgstr "ไม่พบเมตริกที่บันทึกไว้"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -20605,6 +20626,9 @@ msgid "Remove item"
 msgstr "ลบรายการ"
 
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -28717,7 +28741,9 @@ msgstr "ส่วนนี้มีตัวเลือกที่ช่วย
 msgid "This section contains validation errors"
 msgstr "ส่วนนี้มีข้อผิดพลาดในการตรวจสอบ"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -28850,11 +28876,11 @@ msgstr "การดำเนินการนี้จะยกเลิก (�
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -29084,6 +29110,9 @@ msgstr "รูปแบบเวลา"
 #, fuzzy
 msgid "Time grain"
 msgstr "หน่วยเวลา"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -29868,6 +29897,12 @@ msgstr "ไม่สามารถถอดรหัสค่าได้"
 #, fuzzy
 msgid "Unable to encode value"
 msgstr "ไม่สามารถเข้ารหัสค่าได้"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

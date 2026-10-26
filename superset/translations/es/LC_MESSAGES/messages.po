@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:20+0000\n"
+"POT-Creation-Date: 2026-10-26 18:28+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -238,6 +238,12 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -2685,6 +2691,10 @@ msgid "Are you sure you want to delete %s?"
 msgstr "¿Está seguro de que desea eliminar %s?"
 
 #, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
+#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "¿Seguro que quieres eliminar el %s seleccionado?"
 
@@ -3892,16 +3902,6 @@ msgstr ""
 
 msgid "Charts"
 msgstr "Gráficos"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Charts could not be deleted."
 msgstr "No se han podido eliminar los gráficos."
@@ -6315,8 +6315,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -8717,6 +8730,11 @@ msgstr "Obtiene la fecha del día feriado especificado"
 
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "Da acceso a múltiples catálogos en una sola conexión de base de datos."
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -11353,6 +11371,9 @@ msgstr "No se han encontrado expresiones guardadas"
 msgid "No saved metrics found"
 msgstr "No se han encontrado métricas guardadas"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -13123,6 +13144,9 @@ msgid "Remove item"
 msgstr "Eliminar elemento"
 
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 msgid "Remove query from log"
@@ -18678,7 +18702,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Esta sección contiene errores de validación"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -18783,11 +18809,11 @@ msgstr "Esto cancelará (detendrá) la tarea para todos los %s suscriptor(es)."
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -18923,6 +18949,9 @@ msgstr "Formato de hora/fecha"
 
 msgid "Time grain"
 msgstr "Granularidad temporal"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 #, fuzzy
 msgid "Time grain chart customization plugin"
@@ -19432,6 +19461,12 @@ msgstr "No se ha podido decodificar el valor"
 
 msgid "Unable to encode value"
 msgstr "No se ha podido codificar el valor"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
+  values with "Text must not be empty"; omit the field to keep the stored title.
+  MCP chart names and theme names are capped at 250 characters, matching their
+  model columns (the published chart-name limit was 255).
+
 - **MCP authentication hooks and disabled API keys:** Custom `MCP_USER_RESOLVER`
   functions that read `access_token.client_id` must use
   `get_verifier_client_id(access_token)` from
@@ -212,9 +217,13 @@ assists people when migrating to a new version.
   Providers must accept required keyword-only `cache_token` and `context` on
   `from_configuration`; the optional `from_configuration_with_cache_token` hook
   is removed. Local metadata caches must include `cache_token` in their keys
-  before lookup or eager discovery for complete invalidation. When tenants share
-  a metadata database or web, Celery and MCP use different database host aliases,
-  configure
+  before lookup or eager discovery for complete invalidation. The default namespace
+  uses the active metadata database's durable installation identity rather than
+  its address, so web, Celery and MCP agree across host/port/database aliases.
+  This causes a one-time cache miss for semantic-layer results after deployment
+  when using the default namespace; update all roles together. Existing explicit
+  namespaces retain their key scheme. When tenants share a metadata database or
+  a full database clone must be isolated from its source, configure
   `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
   resolves identically in all three contexts. A metadata session must not span
   workspaces. Saves handled by old instances during a rolling deployment do not

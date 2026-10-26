@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:20+0000\n"
+"POT-Creation-Date: 2026-10-26 18:28+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -272,6 +272,11 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -3601,6 +3606,10 @@ msgstr "정말로 삭제하시겠습니까"
 msgid "Are you sure you want to delete %s?"
 msgstr "%s을(를) 삭제하시겠습니까?"
 
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5359,15 +5368,6 @@ msgstr ""
 
 msgid "Charts"
 msgstr "차트"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
 
 msgid "Charts could not be deleted."
 msgstr "차트를 삭제할 수 없습니다."
@@ -8718,8 +8718,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12208,6 +12221,11 @@ msgstr "공휴일의 지정 날짜를 가져옵니다"
 #, fuzzy
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "단일 데이터베이스 연결에서 여러 카탈로그에 대한 액세스를 허용합니다."
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -16152,6 +16170,9 @@ msgstr "표현식"
 msgid "No saved metrics found"
 msgstr "저장된 Query"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18858,6 +18879,9 @@ msgid "Remove item"
 msgstr "항목 제거"
 
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 msgid "Remove query from log"
@@ -26338,7 +26362,9 @@ msgstr "이 섹션에는 쿼리 결과의 고급 분석 후처리를 허용하�
 msgid "This section contains validation errors"
 msgstr "이 섹션에 유효성 검사 오류가 있습니다"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -26467,11 +26493,11 @@ msgstr "이것은 모든 %s 구독자의 작업을 중단(정지)시킵니다."
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -26688,6 +26714,9 @@ msgstr "D3 포멧"
 #, fuzzy
 msgid "Time grain"
 msgstr "시간 단위"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, tr, uk]
@@ -27426,6 +27455,12 @@ msgstr "값을 디코딩할 수 없습니다"
 #, fuzzy
 msgid "Unable to encode value"
 msgstr "값을 인코딩할 수 없습니다"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

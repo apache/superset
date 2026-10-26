@@ -84,6 +84,7 @@ from superset.utils.core import (
     QueryStatus,
     user_label,
 )
+from superset.utils.dates import naive_utcnow
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -178,7 +179,7 @@ class Query(
     tracking_url_raw = Column(Text, name="tracking_url")
 
     changed_on = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+        DateTime, default=naive_utcnow, onupdate=naive_utcnow, nullable=True
     )
 
     @hybrid_property

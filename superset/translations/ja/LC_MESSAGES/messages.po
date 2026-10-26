@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:20+0000\n"
+"POT-Creation-Date: 2026-10-26 18:28+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -216,6 +216,11 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -2431,6 +2436,10 @@ msgid "Are you sure you want to delete %s?"
 msgstr "本当に %s を削除しますか？"
 
 #, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
+#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "選択した %s を削除してもよろしいですか？"
 
@@ -3474,15 +3483,6 @@ msgstr ""
 
 msgid "Charts"
 msgstr "チャート"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
 
 msgid "Charts could not be deleted."
 msgstr "チャートを削除できませんでした。"
@@ -5621,8 +5621,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -7738,6 +7751,11 @@ msgstr "指定された休日の日付を取得します"
 
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "単一のデータベース接続で複数のカタログへのアクセスを許可します。"
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -10123,6 +10141,9 @@ msgstr "保存済み数式が見つかりません"
 msgid "No saved metrics found"
 msgstr "保存済みメトリックが見つかりません"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -11718,6 +11739,9 @@ msgstr "項目を削除"
 
 msgid "Remove notification method"
 msgstr "通知方法を削除"
+
+msgid "Remove or repoint these assets before deleting the semantic source."
+msgstr ""
 
 msgid "Remove query from log"
 msgstr "ログからクエリを削除"
@@ -16460,7 +16484,9 @@ msgstr "このセクションには、クエリ結果の高度な分析後処理
 msgid "This section contains validation errors"
 msgstr "このセクションには検証エラーが含まれています"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -16552,11 +16578,11 @@ msgstr "これにより、%s 人のすべてのサブスクライバーのタス
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 
 msgid ""
@@ -16676,6 +16702,9 @@ msgstr "時間の形式"
 
 msgid "Time grain"
 msgstr "時間粒度"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 msgid "Time grain chart customization plugin"
 msgstr "時間粒度チャートカスタマイズプラグイン"
@@ -17123,6 +17152,12 @@ msgstr "値をデコードできません"
 
 msgid "Unable to encode value"
 msgstr "値をエンコードできません"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "セマンティックビューを取得できません。レイヤーの設定を確認してください。"

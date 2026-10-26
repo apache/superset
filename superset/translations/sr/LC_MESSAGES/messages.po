@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:20+0000\n"
+"POT-Creation-Date: 2026-10-26 18:28+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -258,6 +258,13 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -3141,6 +3148,10 @@ msgstr "Да ли сте сигурни да желите да обришете"
 msgid "Are you sure you want to delete %s?"
 msgstr "Да ли сте сигурни да желите да обришете %s?"
 
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -4529,17 +4540,6 @@ msgstr ""
 # zh, zh_TW]
 msgid "Charts"
 msgstr "Графикони"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -7383,8 +7383,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -10125,6 +10138,11 @@ msgstr "Добавља одређени датум за празник"
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "Омогућава приступ више каталога у једној вези са базом података."
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -13164,6 +13182,9 @@ msgstr "Нису пронађени сачувани изрази"
 msgid "No saved metrics found"
 msgstr "Нису пронађене сачуване метрике"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -15239,6 +15260,9 @@ msgid "Remove item"
 msgstr "Уклони ставку"
 
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -21377,7 +21401,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Овај одељак садржи грешке валидације"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -21488,11 +21514,11 @@ msgstr "Ово ће прекинути (зауставити) задатак з�
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
@@ -21657,6 +21683,9 @@ msgstr "Формат времена"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Time grain"
 msgstr "Временска грануларност"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 # uk]
 msgid "Time grain chart customization plugin"
@@ -22229,6 +22258,12 @@ msgstr "Није могуће декодирати вредност"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Unable to encode value"
 msgstr "Није могуће кодирати вредност"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Није могуће преузети семантичке приказе. Проверите конфигурацију слоја."

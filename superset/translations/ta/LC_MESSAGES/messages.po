@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 18:20+0000\n"
+"POT-Creation-Date: 2026-10-26 18:28+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -235,6 +235,12 @@ msgstr ""
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -2619,6 +2625,10 @@ msgid "Are you sure you want to delete %s?"
 msgstr "நிச்சயமாக %s-ஐ நீக்க விரும்புகிறீர்களா?"
 
 #, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
+#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "தேர்ந்தெடுக்கப்பட்ட %s-ஐ நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
 
@@ -3737,16 +3747,6 @@ msgstr ""
 
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Charts could not be deleted."
 msgstr "சார்ட்டுகளை நீக்க முடியவில்லை."
@@ -6051,8 +6051,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -8289,6 +8302,11 @@ msgstr "விடுமுறைக்கான குறிப்பிட்�
 
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "ஒரே தரவுத்தள இணைப்பில் பல கேட்டலாக்குகளுக்கான அணுகலை வழங்கவும்."
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -10728,6 +10746,9 @@ msgstr "சேமிக்கப்பட்ட கோவைகள் (expressio
 msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -12368,6 +12389,9 @@ msgstr "உருப்படியை நீக்கு"
 #, fuzzy
 msgid "Remove notification method"
 msgstr "அறிவிப்பு முறை"
+
+msgid "Remove or repoint these assets before deleting the semantic source."
+msgstr ""
 
 msgid "Remove query from log"
 msgstr "பதிவிலிருந்து வினவலை நீக்கு"
@@ -17331,7 +17355,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "இந்தப் பிரிவில் சரிபார்ப்பு பிழைகள் உள்ளன"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -17429,11 +17455,11 @@ msgstr ""
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -17561,6 +17587,9 @@ msgstr "நேர வடிவம்"
 
 msgid "Time grain"
 msgstr "நேர நுணுக்கம்"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 msgid "Time grain chart customization plugin"
 msgstr "நேர நுணுக்க சார்ட் தனிப்பயனாக்குதல் செருகுநிரல்"
@@ -18014,6 +18043,12 @@ msgstr "மதிப்பை டிகோட் செய்ய முடிய
 
 msgid "Unable to encode value"
 msgstr "மதிப்பை என்கோட் செய்ய முடியவில்லை"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
