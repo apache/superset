@@ -472,8 +472,18 @@ function Chart({
     (datasource?.database?.name as string | undefined);
 
   const isLoading = chartStatus === 'loading';
-  // Suppress spinner during auto-refresh to avoid visual flicker
-  const showSpinner = isLoading && !suppressLoadingSpinner;
+  const canDrawPreviousResponse =
+    responseFormData !== undefined &&
+    hasValidPreviousData(
+      queriesResponse,
+      responseFormData,
+      formData.viz_type || vizType,
+    );
+  // Suppress spinner during auto-refresh to avoid visual flicker. A chart that
+  // can't draw its previous response (a Matrixify grid, or one that failed to
+  // render) would leave an empty box until the new one lands, so it keeps it.
+  const showSpinner =
+    isLoading && (!suppressLoadingSpinner || !canDrawPreviousResponse);
   // A dashboard chart with a previous response stays on screen while it
   // refreshes, and the spinner is drawn over it instead of replacing it.
   // A chart that fetches its own data (deck.gl Multiple Layers) only starts
@@ -487,12 +497,7 @@ function Chart({
     isLoading &&
     !!dashboardId &&
     !chartFetchesOwnData &&
-    responseFormData !== undefined &&
-    hasValidPreviousData(
-      queriesResponse,
-      responseFormData,
-      formData.viz_type || vizType,
-    );
+    canDrawPreviousResponse;
 
   if (datasource?.metadata_error) {
     return (

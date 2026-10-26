@@ -562,6 +562,49 @@ test('draws the previous data with the current dashboard colour scheme', async (
   );
 });
 
+test('draws the previous data without a colour setting cleared on the dashboard', async () => {
+  // The response was queried with a colour scheme that the dashboard then
+  // drops without a new query.
+  const previous = queriesResponse(1);
+  const { rerender } = render(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={
+        {
+          ...labelledFormData('before'),
+          color_scheme: 'supersetColors',
+        } as ChartRendererProps['formData']
+      }
+      queriesResponse={previous}
+    />,
+  );
+  expect(
+    await screen.findByTestId('refresh-test-chart-scheme'),
+  ).toHaveTextContent('supersetColors');
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={labelledFormData('before')}
+      queriesResponse={previous}
+    />,
+  );
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={labelledFormData('before')}
+      queriesResponse={previous}
+    />,
+  );
+  await waitForChartLoad();
+
+  expect(screen.getByTestId('refresh-test-chart')).toHaveTextContent('value=1');
+  expect(screen.getByTestId('refresh-test-chart-scheme')).toBeEmptyDOMElement();
+});
+
 test('shows the regular spinner for a dashboard chart mounted while its query is in flight', async () => {
   // Nothing tells this chart which form data the response in the store was
   // queried with, so it can't draw that response.
