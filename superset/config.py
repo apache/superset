@@ -1414,12 +1414,13 @@ THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 # How long to treat a COMPUTING cache entry as an active lease before considering
 # the worker stuck.  Should exceed the task soft_time_limit (300 s) by a margin.
 THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
-# How long a successfully-rendered (UPDATED) thumbnail stays servable before it
-# is recomputed. Cache backends without TTL eviction (e.g. S3) never expire
-# entries on their own, so without this a once-rendered thumbnail is served
-# forever even if it was a valid-but-blank capture. Defaults to match the
-# THUMBNAIL_CACHE_CONFIG CACHE_DEFAULT_TIMEOUT (7 days) so freshness matches what
-# TTL-evicting backends already enforce. Set to 0 or None to disable (opt out).
+# Refresh threshold for UPDATED dashboard screenshots requested by the on-demand
+# endpoint or dashboard thumbnails refreshed by compute-thumbnails without --force.
+# Chart screenshots and card-list thumbnail endpoints do not use this check.
+# Retained images remain servable during refresh and error backoff: this triggers
+# recomputation, not image expiry. Defaults to match THUMBNAIL_CACHE_CONFIG's
+# CACHE_DEFAULT_TIMEOUT (7 days). Set to 0 or None to disable this check;
+# cache backend expiry and eviction still apply.
 THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup

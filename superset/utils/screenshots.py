@@ -685,7 +685,12 @@ class BaseScreenshot:
                     cache_payload = ScreenshotCachePayload()
                 cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
+                last_good_image: bytes | None = None
                 if self.require_complete_capture:
+                    try:
+                        last_good_image = cache_payload.get_image().getvalue()
+                    except ScreenshotImageNotAvailableException:
+                        pass
                     self.store_cache_payload(cache_key, cache_payload)
                 else:
                     self.cache.set(cache_key, cache_payload.to_dict())
@@ -758,16 +763,28 @@ class BaseScreenshot:
                     except ScreenshotCacheError:
                         if cache_payload.status == StatusValues.UPDATED:
                             # Image-bearing writes can be rejected by bounded
-                            # cache backends. Replace the stale Computing state
-                            # with a small terminal Error whenever possible.
+                            # caches. Prefer the validated same-scope image from
+                            # before rendering, then a small terminal Error if
+                            # the backend cannot store that retained image either.
                             cache_payload.error(discard_image=True)
-                            try:
-                                self.store_cache_payload(cache_key, cache_payload)
-                            except ScreenshotCacheError:
-                                logger.exception(
-                                    "Could not persist fallback Error state for %s",
-                                    cache_key,
-                                )
+                            fallback_images = (
+                                (last_good_image, None)
+                                if last_good_image is not None
+                                else (None,)
+                            )
+                            for fallback_image in fallback_images:
+                                cache_payload.retain_image(fallback_image)
+                                try:
+                                    self.store_cache_payload(cache_key, cache_payload)
+                                except ScreenshotCacheError:
+                                    if fallback_image is None:
+                                        logger.exception(
+                                            "Could not persist fallback Error state "
+                                            "for %s",
+                                            cache_key,
+                                        )
+                                else:
+                                    break
                         raise
                 else:
                     self.cache.set(cache_key, cache_payload.to_dict())

@@ -28,6 +28,7 @@ from zipfile import is_zipfile, ZipFile
 from werkzeug.test import TestResponse
 
 from flask import current_app
+from cachelib import SimpleCache
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -7870,6 +7871,74 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         # get_image() would raise.
         assert successor.get_image().read() == retained_image
         assert successor.is_in_progress()
+
+    @parameterized.expand(
+        [
+            ("wrong_scope", "dashboard:999999", b"\x89PNG\r\n\x1a\nprior capture"),
+            ("missing_scope", None, b"\x89PNG\r\n\x1a\nprior capture"),
+            ("missing_image", "matching", None),
+            ("corrupt_image", "matching", b"not an image"),
+        ]
+    )
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_does_not_carry_unusable_predecessor(
+        self,
+        case: str,
+        predecessor_scope: str | None,
+        predecessor_image: bytes | None,
+    ) -> None:
+        """Refresh unusable predecessors without exposing their bytes on the new URL."""
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        predecessor = ScreenshotCachePayload(
+            image=predecessor_image,
+            status=StatusValues.UPDATED,
+            scope=scope if predecessor_scope == "matching" else predecessor_scope,
+        ).to_dict()
+
+        with (
+            patch(
+                "superset.utils.screenshots.DashboardScreenshot.cache",
+                new_callable=SimpleCache,
+            ) as cache,
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+                return_value="prior-generation",
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+                return_value="next-generation",
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+                return_value=True,
+            ),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as cache_task,
+        ):
+            cache.set("prior-generation", predecessor)
+
+            response = self._cache_screenshot(dashboard.id)
+
+            assert response.status_code == 202, case
+            assert response.json["cache_key"] == "next-generation"
+            assert response.json["task_status"] == "Pending"
+            image_response = self.client.get(response.json["image_url"])
+            assert image_response.status_code == 404
+            assert image_response.json["extra"]["task_status"] == "Pending"
+            successor = cache.get("next-generation")
+            assert successor["status"] == "Pending"
+            assert successor["scope"] == scope
+            assert successor["image"] is None
+            assert cache.get("prior-generation") == predecessor
+            cache_task.delay.assert_called_once()
+            assert cache_task.delay.call_args.kwargs["cache_key"] == "next-generation"
+            assert cache_task.delay.call_args.kwargs["force"] is False
 
     @with_feature_flags(THUMBNAILS=True)
     @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
