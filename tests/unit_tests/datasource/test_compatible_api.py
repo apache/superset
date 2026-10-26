@@ -22,6 +22,7 @@ from uuid import uuid4
 
 import pyarrow as pa
 import pytest
+from flask import Flask
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import Dimension, Grains, Metric
@@ -33,9 +34,16 @@ from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 @pytest.mark.parametrize("ambiguous", [False, True])
 def test_compatible_endpoint_resolves_semantic_variants(
-    client: FlaskClient, full_api_access: None, mocker: MockerFixture, ambiguous: bool
+    app: Flask,
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    ambiguous: bool,
 ) -> None:
     """The public endpoint uses the real model resolver on cache misses."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "compatible-endpoint-tests"}
+    )
     raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
     month: Dimension = Dimension(
         "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
