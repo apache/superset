@@ -18216,6 +18216,12 @@ msgstr "Не удалось декодировать значение"
 msgid "Unable to encode value"
 msgstr "Не удалось закодировать значение"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Не удалось получить представления аннотаций. Проверьте конфигурацию слоя."
 
