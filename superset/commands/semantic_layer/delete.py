@@ -419,9 +419,24 @@ class BulkDeleteSemanticViewCommand(BaseCommand):
             )
         except SemanticDeleteDependentsError as ex:
             # Refusal path only: one dependency check per selected view.
-            ex.blocked_view_ids = [
-                view_id
-                for view_id in self._model_ids
-                if _dependent_assets(sa.select(sa.literal(view_id)))[0]
-            ]
+            view_id: int
+            total: int
+            dependents: list[dict[str, str | int]]
+            inaccessible_count: int
+            archived_count: int
+            for view_id in self._model_ids:
+                total, dependents, inaccessible_count, archived_count = (
+                    _dependent_assets(sa.select(sa.literal(view_id)))
+                )
+                if total:
+                    ex.blocked_views.append(
+                        {
+                            "id": view_id,
+                            "total": total,
+                            "dependents": dependents,
+                            "inaccessible_count": inaccessible_count,
+                            "archived_count": archived_count,
+                        }
+                    )
+            ex.blocked_view_ids = [view["id"] for view in ex.blocked_views]
             raise

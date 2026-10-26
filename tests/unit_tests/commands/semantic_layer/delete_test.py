@@ -1198,6 +1198,15 @@ def test_bulk_delete_names_only_the_blocked_views(
 
     assert exc_info.value.total == 1
     assert exc_info.value.blocked_view_ids == [42]
+    assert exc_info.value.blocked_views == [
+        {
+            "id": 42,
+            "total": 1,
+            "dependents": [],
+            "inaccessible_count": 1,
+            "archived_count": 0,
+        }
+    ]
     view_dao.delete.assert_not_called()
 
 

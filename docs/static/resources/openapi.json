@@ -34696,6 +34696,67 @@
                       },
                       "type": "array"
                     },
+                    "blocked_views": {
+                      "description": "Caller-visible dependency details for each blocked view.",
+                      "items": {
+                        "properties": {
+                          "archived_count": {
+                            "type": "integer"
+                          },
+                          "dependents": {
+                            "items": {
+                              "properties": {
+                                "archived": {
+                                  "type": "boolean"
+                                },
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "chart",
+                                    "dashboard",
+                                    "alert",
+                                    "report"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "name",
+                                "archived"
+                              ],
+                              "type": "object"
+                            },
+                            "maxItems": 20,
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "inaccessible_count": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "total",
+                          "dependents",
+                          "inaccessible_count",
+                          "archived_count"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {

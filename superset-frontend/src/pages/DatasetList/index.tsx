@@ -51,6 +51,7 @@ import {
   ConfirmStatusChange,
   CertifiedBadge,
   DeleteModal,
+  Modal,
   Dropdown,
   Tooltip,
   InfoTooltip,
@@ -211,6 +212,13 @@ type DatasetRelatedObjects = {
   dashboards: RelatedObjects;
 };
 
+interface SemanticViewBlockerDetails extends Omit<
+  SemanticDeleteError,
+  'error'
+> {
+  id: number;
+}
+
 type BulkRelatedLookup =
   | { status: 'idle' | 'loading' | 'failed' }
   | { status: 'done'; related: DatasetRelatedObjects };
@@ -341,9 +349,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [pendingBulkCount, setPendingBulkCount] = useState(0);
   // A refused bulk delete deletes nothing; the views without dependents can be
   // deleted after a second confirmation.
-  const [unblockedRetry, setUnblockedRetry] = useState<{
+  const [bulkDeleteRefusal, setBulkDeleteRefusal] = useState<{
     blocked: Dataset[];
     unblocked: Dataset[];
+    error: SemanticDeleteError;
+    details: SemanticViewBlockerDetails[];
   } | null>(null);
   // Dependents of the current bulk selection, so the bulk confirm can warn
   // about the blast radius the same way the single-row delete modal does.
@@ -1460,6 +1470,29 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const showSemanticDeleteRefusal = async (
+    error: Parameters<typeof getClientErrorObject>[0],
+    semanticViews: Dataset[],
+  ) => {
+    const parsed = await getClientErrorObject(error);
+    const { blocked_view_ids: blockedIds, blocked_views: details } =
+      parsed as SemanticDeleteError & {
+        blocked_view_ids?: number[];
+        blocked_views?: SemanticViewBlockerDetails[];
+      };
+    const named = Array.isArray(blockedIds)
+      ? semanticViews.filter(view => blockedIds.includes(view.id))
+      : [];
+    // Without attribution, no selected view is safe to retry separately.
+    const blocked = named.length ? named : semanticViews;
+    setBulkDeleteRefusal({
+      blocked,
+      unblocked: semanticViews.filter(view => !blocked.includes(view)),
+      error: parsed,
+      details: Array.isArray(details) ? details : [],
+    });
+  };
+
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
     bulkRelatedLookupId.current += 1;
     setBulkRelatedLookup({ status: 'idle' });
@@ -1518,28 +1551,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ? results[results.length - 1]
           : undefined;
         if (semanticResult?.status === 'rejected') {
-          const parsed = await getClientErrorObject(semanticResult.reason);
-          const blockedIds = (parsed as { blocked_view_ids?: unknown })
-            .blocked_view_ids;
-          const named = Array.isArray(blockedIds)
-            ? semanticViews.filter(view => blockedIds.includes(view.id))
-            : [];
-          // Without an attribution, every selected view may be the blocker.
-          const blocked = named.length ? named : semanticViews;
-          const unblocked = semanticViews.filter(
-            view => !blocked.includes(view),
-          );
-          if (blocked.length && unblocked.length) {
-            setUnblockedRetry({ blocked, unblocked });
-          } else {
-            addDangerToast(
-              t(
-                'Could not delete semantic views %s: %s',
-                blocked.map(view => view.table_name).join(', '),
-                parsed.error,
-              ),
-            );
-          }
+          await showSemanticDeleteRefusal(semanticResult.reason, semanticViews);
         }
         if (datasets.length && results[0].status === 'fulfilled') {
           // The datasets went through even though the semantic views did not.
@@ -1567,9 +1579,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   };
 
   const handleUnblockedRetry = () => {
-    if (!unblockedRetry) return;
-    const { unblocked } = unblockedRetry;
-    setUnblockedRetry(null);
+    if (!bulkDeleteRefusal) return;
+    const { unblocked } = bulkDeleteRefusal;
+    setBulkDeleteRefusal(null);
     SupersetClient.delete({
       endpoint: `/api/v1/semantic_view/?q=${rison.encode(
         unblocked.map(({ id }) => id),
@@ -1586,17 +1598,27 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         );
       },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t(
-            'Could not delete semantic views %s: %s',
-            unblocked.map(view => view.table_name).join(', '),
-            errMsg,
-          ),
-        ),
-      ),
+      error => showSemanticDeleteRefusal(error, unblocked),
     );
   };
+
+  const bulkRefusalDetails = bulkDeleteRefusal?.blocked.map(view => {
+    const detail = bulkDeleteRefusal.details.find(item => item.id === view.id);
+    return (
+      <section key={view.id} aria-label={view.table_name}>
+        <h4>{view.table_name}</h4>
+        <SemanticDeleteBlockers
+          error={
+            detail
+              ? { ...detail, error: bulkDeleteRefusal.error.error }
+              : bulkDeleteRefusal.blocked.length === 1
+                ? bulkDeleteRefusal.error
+                : { error: bulkDeleteRefusal.error.error }
+          }
+        />
+      </section>
+    );
+  });
 
   const handleDatasetDuplicate = (newDatasetName: string) => {
     if (datasetCurrentlyDuplicating === null) {
@@ -1705,29 +1727,48 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }
         />
       )}
-      {unblockedRetry && (
+      {bulkDeleteRefusal && bulkDeleteRefusal.unblocked.length > 0 && (
         <DeleteModal
           open
           title={t('Delete the other semantic views?')}
           description={
-            <p>
-              {t(
-                'No semantic views were deleted because other assets depend on %s.',
-                unblockedRetry.blocked.map(view => view.table_name).join(', '),
-              )}{' '}
-              {tn(
-                'Delete the other semantic view, %s? This cannot be undone.',
-                'Delete the other semantic views, %s? This cannot be undone.',
-                unblockedRetry.unblocked.length,
-                unblockedRetry.unblocked
-                  .map(view => view.table_name)
-                  .join(', '),
-              )}
-            </p>
+            <>
+              <p>
+                {t(
+                  'No semantic views were deleted because other assets depend on %s.',
+                  bulkDeleteRefusal.blocked
+                    .map(view => view.table_name)
+                    .join(', '),
+                )}{' '}
+                {tn(
+                  'Delete the other semantic view, %s? This cannot be undone.',
+                  'Delete the other semantic views, %s? This cannot be undone.',
+                  bulkDeleteRefusal.unblocked.length,
+                  bulkDeleteRefusal.unblocked
+                    .map(view => view.table_name)
+                    .join(', '),
+                )}
+              </p>
+              {bulkRefusalDetails}
+            </>
           }
           onConfirm={handleUnblockedRetry}
-          onHide={() => setUnblockedRetry(null)}
+          onHide={() => setBulkDeleteRefusal(null)}
         />
+      )}
+      {bulkDeleteRefusal && bulkDeleteRefusal.unblocked.length === 0 && (
+        <Modal
+          show
+          title={t('Cannot delete semantic views')}
+          onHide={() => setBulkDeleteRefusal(null)}
+          footer={
+            <Button onClick={() => setBulkDeleteRefusal(null)}>
+              {t('Close')}
+            </Button>
+          }
+        >
+          {bulkRefusalDetails}
+        </Modal>
       )}
       {datasetCurrentlyEditing && (
         <DatasourceModal

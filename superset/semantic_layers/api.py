@@ -727,6 +727,43 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         description: >-
                           The selected views that have dependents. Nothing is
                           deleted; the others can be deleted in a new request.
+                      blocked_views:
+                        type: array
+                        description: >-
+                          Caller-visible dependency details for each blocked view.
+                        items:
+                          type: object
+                          required:
+                            - id
+                            - total
+                            - dependents
+                            - inaccessible_count
+                            - archived_count
+                          properties:
+                            id:
+                              type: integer
+                            total:
+                              type: integer
+                            inaccessible_count:
+                              type: integer
+                            archived_count:
+                              type: integer
+                            dependents:
+                              type: array
+                              maxItems: 20
+                              items:
+                                type: object
+                                required: [type, id, name, archived]
+                                properties:
+                                  type:
+                                    type: string
+                                    enum: [chart, dashboard, alert, report]
+                                  id:
+                                    type: integer
+                                  name:
+                                    type: string
+                                  archived:
+                                    type: boolean
             422:
               $ref: '#/components/responses/422'
         """
@@ -757,6 +794,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 inaccessible_count=ex.inaccessible_count,
                 archived_count=ex.archived_count,
                 blocked_view_ids=ex.blocked_view_ids,
+                blocked_views=ex.blocked_views,
             )
         except SemanticViewDeleteFailedError as ex:
             logger.error(
