@@ -5017,20 +5017,24 @@ test.each(['PNG', 'CSV'])(
       },
       { name: configurationEndpoint },
     );
-    fetchMock.get('glob:*/api/v1/report/96', {
-      result: {
-        ...generateMockPayload(true),
-        id: 96,
-        report_format: reportFormat,
-        recipients: [
-          {
-            id: 1,
-            type: 'Email',
-            recipient_config_json: { target: 'test@example.com' },
-          },
-        ],
+    fetchMock.get(
+      'glob:*/api/v1/report/96',
+      {
+        result: {
+          ...generateMockPayload(true),
+          id: 96,
+          report_format: reportFormat,
+          recipients: [
+            {
+              id: 1,
+              type: 'Email',
+              recipient_config_json: { target: 'test@example.com' },
+            },
+          ],
+        },
       },
-    });
+      { name: 'teams-saved-format' },
+    );
     fetchMock.get(
       'glob:*/api/v1/report/teams_destinations/',
       {
@@ -5080,6 +5084,7 @@ test.each(['PNG', 'CSV'])(
         ],
       });
     } finally {
+      fetchMock.removeRoute('teams-saved-format');
       fetchMock.removeRoute('teams-hidden-attachments');
       fetchMock.removeRoute('save-teams-hidden');
       fetchMock.removeRoute(configurationEndpoint);
