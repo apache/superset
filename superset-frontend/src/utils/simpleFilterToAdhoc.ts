@@ -96,7 +96,6 @@ export const simpleFilterToAdhoc = (
       subject: filterClause.col,
       ...(filterClause.grain && { timeGrain: filterClause.grain }),
       comparator: 'val' in filterClause ? filterClause.val : undefined,
-      ...(filterClause.grain && { timeGrain: filterClause.grain }),
     } as SimpleAdhocFilter;
   }
   if (filterClause.isExtra) {

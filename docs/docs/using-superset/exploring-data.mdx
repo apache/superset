@@ -509,6 +509,8 @@ filter shows the bucket start and keeps its grain until its column, operator, va
 or expression type is changed. Picking a date range removes the bucket grain and filters the raw dates.
 The Custom SQL tab is unavailable while a filter carries a bucket grain, since the
 bucket comparison has no portable raw SQL representation.
+For Custom SQL axes, invalid numeric bucket timestamps (non-finite or outside the
+supported datetime range) return a query validation error.
 
 ### Sunburst cross-filtering
 

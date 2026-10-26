@@ -36,6 +36,7 @@ from pytest_mock import MockerFixture
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 
 # (order_date, ship_date, status)
@@ -406,3 +407,32 @@ def test_grained_axis_filter_operators(
         {"x_axis": "order_date"},
     )
     assert sum(row[-1] for row in rows) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [float("nan"), float("inf"), float("-inf"), 1e30, -1e30, 10**400],
+    ids=[
+        "nan",
+        "inf",
+        "negative_inf",
+        "out_of_range",
+        "negative_out_of_range",
+        "overflow",
+    ],
+)
+def test_expression_x_axis_rejects_invalid_bucket_epoch(
+    run_query: Any, value: float | int
+) -> None:
+    """Invalid expression-axis epochs must raise a client-facing query error."""
+    axis = _axis("DATETIME(order_date)", "order_ts")
+    with pytest.raises(
+        QueryObjectValidationError, match="Invalid temporal filter value"
+    ):
+        run_query(
+            {
+                "columns": [axis, "status"],
+                "filters": [{**_bucket("order_ts", "2004-01"), "val": value}],
+            },
+            {"x_axis": {"sqlExpression": "DATETIME(order_date)", "label": "order_ts"}},
+        )

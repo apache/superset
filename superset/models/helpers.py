@@ -5478,11 +5478,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # An expression axis has no native type to write an engine
                     # literal for: compare the naive ISO datetime instead of
                     # the epoch milliseconds of the bucket.
-                    val = (
-                        datetime.fromtimestamp(val / 1000, tz=timezone.utc)
-                        .replace(tzinfo=None)
-                        .isoformat()
-                    )
+                    try:
+                        val = (
+                            datetime.fromtimestamp(val / 1000, tz=timezone.utc)
+                            .replace(tzinfo=None)
+                            .isoformat()
+                        )
+                    except (OverflowError, OSError, ValueError) as ex:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Invalid temporal filter value for column %(column)s",
+                                column=get_column_name(flt_col),
+                            )
+                        ) from ex
                 applied_adhoc_filters_columns.append(flt_col)
                 is_adhoc_sqla_col = True
             elif is_adhoc_column(flt_col):
