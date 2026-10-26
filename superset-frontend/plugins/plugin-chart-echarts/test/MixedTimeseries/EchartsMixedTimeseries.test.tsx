@@ -372,9 +372,8 @@ test.each([undefined, 'ship_date'])(
   },
 );
 
-test.each([1, 2, 0])(
-  'Mixed categorical markerless Drill by uses shared axis category %s for a sparse query B',
-  async categoryIndex => {
+test('Mixed categorical markerless Drill by uses shared axis categories for a sparse query B', async () => {
+  for (const categoryIndex of [1, 2, 0]) {
     const timestamps = [0, 1, 2].map(month => Date.UTC(2024, month, 1));
     const query = createQueryData();
     const queryA = {
@@ -420,5 +419,5 @@ test.each([1, 2, 0])(
         },
       ]);
     }
-  },
-);
+  }
+});
