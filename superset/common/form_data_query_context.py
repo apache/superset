@@ -255,6 +255,7 @@ def adhoc_filters_to_query_filters(
                 "col": flt.get("subject"),
                 "op": flt.get("operator"),
                 "val": flt.get("comparator"),
+                **({"grain": flt["timeGrain"]} if flt.get("timeGrain") else {}),
             }
         )
     return result
@@ -579,7 +580,9 @@ def _base_query_object(  # noqa: C901
 def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list[Any]:
     """Apply the pivot BASE_AXIS temporal-column contract."""
     time_grain = form_data.get("time_grain_sqla")
-    temporal_lookup = form_data.get("temporal_columns_lookup") or {}
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if not isinstance(temporal_lookup, Mapping):
+        temporal_lookup = {}
     result: list[Any] = []
     for column in columns:
         if (
@@ -602,6 +605,56 @@ def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list
         else:
             result.append(column)
     return result
+
+
+def _sunburst_temporal_grain(form_data: dict[str, Any], query: dict[str, Any]) -> None:
+    """Mirror Sunburst buildQuery: grain only its temporal hierarchy levels.
+
+    Each temporal level becomes the BASE_AXIS column reference
+    ``normalizeTimeColumn`` emits for a physical x-axis. A grain with neither a
+    temporal level nor a legacy ``granularity`` subject is dormant when the
+    lookup is present. Without a lookup, preserve the grain for legacy semantic
+    views that infer their single temporal dimension.
+    """
+    extras = dict(query.get("extras") or {})
+    time_grain = extras.get("time_grain_sqla")
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if not isinstance(temporal_lookup, Mapping):
+        temporal_lookup = {}
+    subject = query.get("granularity")
+    grained = False
+    columns: list[Any] = []
+    for column in _as_list(query.get("columns")):
+        if (
+            time_grain
+            and isinstance(column, str)
+            and (subject == column or temporal_lookup.get(column))
+        ):
+            grained = True
+            columns.append(
+                {
+                    "timeGrain": time_grain,
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": column,
+                    "label": column,
+                    "expressionType": "SQL",
+                    "isColumnReference": True,
+                }
+            )
+        else:
+            columns.append(column)
+    query["columns"] = columns
+    if (
+        not grained
+        and not query.get("granularity")
+        and form_data.get("temporal_columns_lookup") is not None
+        and "time_grain_sqla" in extras
+    ):
+        del extras["time_grain_sqla"]
+        if extras:
+            query["extras"] = extras
+        else:
+            query.pop("extras", None)
 
 
 def _box_temporalized_columns(
@@ -1671,6 +1724,7 @@ def build_query_objects_from_form_data(  # noqa: C901
     elif effective_viz == "treemap_v2":
         _treemap_query(form_data, query)
     elif effective_viz == "sunburst_v2":
+        _sunburst_temporal_grain(form_data, query)
         if not form_data.get("sort_by_metric"):
             query["orderby"] = []
         elif form_data.get("metric") is not None:
