@@ -9504,6 +9504,9 @@ msgstr ""
 msgid "No saved metrics found"
 msgstr ""
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 

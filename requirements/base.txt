@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.2.1
+cachetools==7.2.5
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -193,7 +193,7 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
-jsonpath-ng==1.8.0
+jsonpath-ng==1.13.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
     # via
