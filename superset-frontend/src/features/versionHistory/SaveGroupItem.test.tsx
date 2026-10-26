@@ -45,6 +45,7 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       isCurrent={false}
       canRestore
       isHighlighted={false}
+      marksCurrentState={false}
       onPreview={jest.fn()}
       onExitPreview={jest.fn()}
       onRestore={jest.fn()}
@@ -67,23 +68,30 @@ test('a highlighted group carries the active treatment; a resting one does not',
   expect(groupBackground(highlighted)).not.toBe(groupBackground(resting));
 });
 
-test('group icons are semantic: check-circle for current, save for history', () => {
+test('every dated save uses the save icon and no Current tag, the live one included', () => {
   const { container: current } = renderItem({ isCurrent: true });
   const { container: historical } = renderItem();
 
-  expect(
-    within(current).getByRole('img', { name: 'check-circle' }),
-  ).toBeInTheDocument();
-  expect(
-    within(current).queryByRole('img', { name: 'save' }),
-  ).not.toBeInTheDocument();
+  for (const container of [current, historical]) {
+    expect(within(container).getByRole('img', { name: 'save' })).toBeVisible();
+    expect(
+      within(container).queryByRole('img', { name: 'check-circle' }),
+    ).not.toBeInTheDocument();
+    expect(within(container).queryByText('Current')).not.toBeInTheDocument();
+  }
+});
 
-  expect(
-    within(historical).getByRole('img', { name: 'save' }),
-  ).toBeInTheDocument();
-  expect(
-    within(historical).queryByRole('img', { name: 'check-circle' }),
-  ).not.toBeInTheDocument();
+test('a latest save with no records has a text label without a focusable no-op header', () => {
+  const { container } = renderItem({
+    isCurrent: true,
+    marksCurrentState: true,
+  });
+
+  expect(within(container).getByText('Latest save')).toBeVisible();
+  expect(within(container).getAllByRole('button')).toEqual([
+    within(container).getByRole('button', { name: 'More actions' }),
+  ]);
+  expect(container.querySelector('[aria-current]')).not.toBeInTheDocument();
 });
 
 test('rows of the highlighted group show the active timeline dot', () => {
@@ -306,5 +314,59 @@ test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
     expect(onPreview).toHaveBeenCalledTimes(isCurrent ? 0 : 3);
     expect(onExitPreview).toHaveBeenCalledTimes(isCurrent ? 3 : 0);
     expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(2);
+  },
+);
+
+test.each([false, true])(
+  'latest-save metadata describes its header independently of aria-current (%s)',
+  marksCurrentState => {
+    const record: ActivityRecord = {
+      version_uuid: 'version-uuid',
+      entity_kind: 'chart',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'My chart',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind: 'metrics',
+      operation: 'update',
+      path: ['metrics'],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const group = makeGroup({
+      records: [record],
+      changedBy: { id: 1, first_name: 'Ada', last_name: 'Lovelace' },
+    });
+    const { container: latest } = renderItem({
+      group,
+      isCurrent: true,
+      marksCurrentState,
+    });
+    const { container: historical } = renderItem({ group });
+    const latestHeader = within(latest).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+    const historicalHeader = within(historical).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+
+    expect(latestHeader).toHaveAccessibleDescription(
+      /Latest save · Ada Lovelace · 8\/31\/2026/,
+    );
+    expect(historicalHeader).toHaveAccessibleDescription(
+      /^Ada Lovelace · 8\/31\/2026/,
+    );
+    if (marksCurrentState) {
+      expect(latestHeader).toHaveAttribute('aria-current', 'true');
+    } else {
+      expect(latestHeader).not.toHaveAttribute('aria-current');
+    }
   },
 );
