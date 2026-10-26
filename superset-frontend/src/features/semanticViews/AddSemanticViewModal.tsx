@@ -154,6 +154,7 @@ interface AddSemanticViewModalProps {
   onHide: () => void;
   onSuccess: () => void;
   onCreateLayer?: () => void;
+  layerCreatedSignal?: number;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
@@ -163,6 +164,7 @@ export default function AddSemanticViewModal({
   onHide,
   onSuccess,
   onCreateLayer,
+  layerCreatedSignal,
   addDangerToast,
   addSuccessToast,
 }: AddSemanticViewModalProps) {
@@ -628,7 +630,7 @@ export default function AddSemanticViewModal({
       setCreationErrors([]);
       lastViewsKeyRef.current = '';
     }
-  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [show, layerCreatedSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // =========================================================================
   // Save

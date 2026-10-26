@@ -635,6 +635,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [semanticSetup, setSemanticSetup] = useState<
     'closed' | 'view' | 'layer'
   >('closed');
+  const [layerCreatedSignal, setLayerCreatedSignal] = useState(0);
   const newDatasourceButtonRef = useRef<HTMLButtonElement>(null);
   const canCreateLayer =
     isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
@@ -1640,6 +1641,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {semanticSetup === 'view' && (
         <AddSemanticViewModal
           show
+          layerCreatedSignal={layerCreatedSignal}
           onHide={() => {
             setSemanticSetup('closed');
             newDatasourceButtonRef.current?.focus();
@@ -1665,6 +1667,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         <SemanticLayerModal
           show
           onHide={() => setSemanticSetup('view')}
+          onCreated={() => setLayerCreatedSignal(signal => signal + 1)}
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
         />

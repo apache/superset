@@ -319,7 +319,14 @@ def test_language_pack_template_context_inline_for_override_pack(
     assert context == {"language_pack_src": None, "language_pack_inline": True}
 
 
-@pytest.mark.parametrize("url", [None, "https://docs.example.org/semantic-setup"])
+@pytest.mark.parametrize(
+    "url",
+    [
+        None,
+        "http://docs.example.org/semantic-setup",
+        "https://docs.example.org:8443/semantic-setup",
+    ],
+)
 def test_semantic_setup_documentation_config_in_bootstrap(
     app_context: None,
     url: str | None,
@@ -342,3 +349,38 @@ def test_semantic_setup_documentation_config_in_bootstrap(
 
 def test_semantic_setup_documentation_is_opt_in() -> None:
     assert config.SEMANTIC_LAYER_DOCUMENTATION_URL is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://user:secret@docs.example.org/semantic-setup",
+        "https://@docs.example.org/semantic-setup",
+        "ftp://docs.example.org/semantic-setup",
+        "/semantic-setup",
+        "https://[invalid",
+        "https://docs.example.org:invalid/semantic-setup",
+        "https://docs.example.org/has space",
+    ],
+)
+def test_semantic_setup_documentation_drops_unsafe_url(
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+    url: str,
+) -> None:
+    with (
+        patch.dict(current_app.config, {"SEMANTIC_LAYER_DOCUMENTATION_URL": url}),
+        patch("superset.views.base.menu_data", return_value={}),
+        caplog.at_level("WARNING", logger="superset.views.base"),
+    ):
+        payload: dict[str, Any] = cached_common_bootstrap_data.uncached(
+            user_id=1, locale=None
+        )
+    assert payload["conf"]["SEMANTIC_LAYER_DOCUMENTATION_URL"] is None
+    assert [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == "superset.views.base"
+        and "SEMANTIC_LAYER_DOCUMENTATION_URL" in record.getMessage()
+    ] == ["Dropped invalid SEMANTIC_LAYER_DOCUMENTATION_URL"]
+    assert "secret" not in caplog.text

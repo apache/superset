@@ -92,6 +92,7 @@ interface SemanticLayerType {
 interface SemanticLayerModalProps {
   show: boolean;
   onHide: () => void;
+  onCreated?: () => void;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   semanticLayerUuid?: string;
@@ -100,6 +101,7 @@ interface SemanticLayerModalProps {
 export default function SemanticLayerModal({
   show,
   onHide,
+  onCreated,
   addDangerToast,
   addSuccessToast,
   semanticLayerUuid,
@@ -382,6 +384,9 @@ export default function SemanticLayerModal({
           endpoint: '/api/v1/semantic_layer/',
           jsonPayload: { name, type: selectedType, configuration: formData },
         });
+        // The server created the layer even if this dialog was closed. Only
+        // the parent may refresh the picker; stale dialog UI remains ignored.
+        onCreated?.();
         if (request !== saveRequestRef.current) return;
         addSuccessToast(t('Semantic layer created'));
       }

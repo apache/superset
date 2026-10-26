@@ -648,6 +648,79 @@ describe('semantic layer setup transition', () => {
     expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(2);
   });
 
+  test('late layer creation refreshes the view picker after cancel without stale UI', async () => {
+    const user = configure(true);
+    const addSuccessToast = jest.fn();
+    fetchMock.removeRoutes({ names: ['setup-types'] });
+    fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+      result: [{ id: 'example', name: 'Example provider' }],
+    });
+    fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+      result: { type: 'object', properties: {} },
+    });
+    let finishSave!: (value: { result: { uuid: string } }) => void;
+    fetchMock.post(
+      'glob:*/api/v1/semantic_layer/',
+      () =>
+        new Promise(resolve => {
+          finishSave = resolve;
+        }),
+      { name: 'pending-create' },
+    );
+    renderDatasetList(user, { addSuccessToast });
+    await openView();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Create semantic layer' }),
+    );
+    const typePicker = await screen.findByRole('combobox', {
+      name: 'Semantic layer type',
+    });
+    await waitFor(() => expect(typePicker).toBeEnabled());
+    fireEvent.mouseDown(typePicker);
+    await userEvent.click(
+      await screen.findByText('Example provider', {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    const create = await screen.findByRole('button', { name: 'Create' });
+    await waitFor(() => expect(create).toBeEnabled());
+    await userEvent.click(create);
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('pending-create')).toHaveLength(1),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(
+      await screen.findByText(/No semantic layers are available to you/),
+    ).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(2);
+    fetchMock.removeRoutes({ names: ['setup-layers'] });
+    fetchMock.get(
+      'glob:*/api/v1/semantic_layer/',
+      { result: [{ uuid: 'new-layer', name: 'Example provider' }] },
+      { name: 'refreshed-layers' },
+    );
+    await act(async () => {
+      finishSave({ result: { uuid: 'new-layer' } });
+      await fetchMock.callHistory.flush(true);
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('refreshed-layers')).toHaveLength(1),
+    );
+    const layerPicker = screen.getByRole('combobox', {
+      name: 'Semantic layer',
+    });
+    expect(layerPicker).toBeEnabled();
+    fireEvent.mouseDown(layerPicker);
+    expect(
+      await screen.findByText('Example provider', {
+        selector: '.ant-select-item-option-content',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(addSuccessToast).not.toHaveBeenCalled();
+  });
+
   test('flag off keeps the setup entry unavailable', async () => {
     const user = configure(true);
     jest.mocked(isFeatureEnabled).mockReturnValue(false);

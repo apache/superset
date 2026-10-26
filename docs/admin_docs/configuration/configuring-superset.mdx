@@ -875,7 +875,8 @@ Set `SEMANTIC_LAYER_DOCUMENTATION_URL` in `superset_config.py` to an absolute
 HTTP or HTTPS URL for your deployment's semantic layer setup guide. The New
 Semantic Layer and Add Semantic View dialogs show this optional link. It opens
 in a new tab. Leave the setting as `None` (the default) to hide the link. Invalid
-URLs and URLs containing credentials are also hidden.
+URLs and URLs with username/password userinfo are omitted from the page bootstrap
+rather than partially sanitized; the server logs a warning without the URL value.
 
 This setting does not change the main documentation menu's `DOCUMENTATION_URL`,
 install providers, grant permissions, or enable the `SEMANTIC_LAYERS` feature.
