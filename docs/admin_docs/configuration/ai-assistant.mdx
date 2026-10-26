@@ -141,6 +141,10 @@ valid names, rather than an assistant that quietly lacks a capability. An empty
 `required_permission` is enforced on both the listing *and* the run path, so a
 profile a user cannot see is also one they cannot invoke by posting its key.
 
+Text the assistant emits while using tools stays in the answer. The thought
+process panel contains only the provider's separate thinking output; ordinary
+assistant text is not reclassified as reasoning.
+
 ### Available tools
 
 | Tool | What it does |
