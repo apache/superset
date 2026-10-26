@@ -178,11 +178,12 @@ const AsyncSelect = forwardRef(
 
     const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
     const fullSelectOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
-    // The full option of each value picked from the list, keyed by value. A
-    // selection only stores { label, value }, so once the page it came from is
-    // replaced (e.g. a search is cleared) the option rebuilt from the selected
-    // value would otherwise lose its aria-label, title and filter props.
-    const pickedOptionsRef = useRef(
+    // Every option any fetch has returned, keyed by value. A selection only
+    // stores { label, value }, so when a selected value is missing from the
+    // loaded options (e.g. it was picked or pasted from search results that
+    // have since been replaced) the option rebuilt for it is completed from
+    // here and keeps its aria-label, title and filter props.
+    const seenOptionsRef = useRef(
       new Map<ReturnType<typeof getValue>, SelectOptionsType[number]>(),
     );
 
@@ -262,7 +263,7 @@ const AsyncSelect = forwardRef(
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
           isLabeledValue(opt)
-            ? { ...pickedOptionsRef.current.get(opt.value), ...opt }
+            ? { ...seenOptionsRef.current.get(opt.value), ...opt }
             : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
@@ -271,9 +272,6 @@ const AsyncSelect = forwardRef(
     }, [selectOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
-      if (isObject(option)) {
-        pickedOptionsRef.current.set(getValue(selectedItem), option);
-      }
       if (isSingleMode) {
         // on select is fired in single value mode if the same value is selected
         const valueChanged = !utilsIsEqual(
@@ -408,6 +406,20 @@ const AsyncSelect = forwardRef(
       [sortComparatorForNoSearch],
     );
 
+    // All fetches go through here so every option returned is remembered.
+    const fetchAndRememberOptions = useCallback(
+      (search: string, page: number, size: number) =>
+        (options as SelectOptionsPagePromise)(search, page, size).then(
+          (result: SelectOptionsTypePage) => {
+            result.data.forEach(opt =>
+              seenOptionsRef.current.set(opt.value, opt),
+            );
+            return result;
+          },
+        ),
+      [options],
+    );
+
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
         setPage(page);
@@ -428,9 +440,8 @@ const AsyncSelect = forwardRef(
         }
         setIsLoading(true);
 
-        const fetchOptions = options as SelectOptionsPagePromise;
         inFlightFetchesRef.current += 1;
-        fetchOptions(search, page, pageSize)
+        fetchAndRememberOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
             // Drop responses whose search arg no longer matches the user's
             // current input — otherwise a slow base fetch can land after a
@@ -528,7 +539,7 @@ const AsyncSelect = forwardRef(
         fetchOnlyOnSearch,
         mergeData,
         internalOnError,
-        options,
+        fetchAndRememberOptions,
         pageSize,
         sortComparatorForNoSearch,
       ],
@@ -812,8 +823,7 @@ const AsyncSelect = forwardRef(
           getOption(text, fullSelectOptions, true) ??
           findByText(fullSelectOptions);
         if (!option && !allValuesLoaded) {
-          const fetchOptions = options as SelectOptionsPagePromise;
-          option = await fetchOptions(text, 0, pageSize).then(
+          option = await fetchAndRememberOptions(text, 0, pageSize).then(
             ({ data }: SelectOptionsTypePage) => findByText(data),
           );
         }
@@ -830,7 +840,13 @@ const AsyncSelect = forwardRef(
         }
         return value;
       },
-      [allValuesLoaded, allowNewOptions, fullSelectOptions, options, pageSize],
+      [
+        allValuesLoaded,
+        allowNewOptions,
+        fetchAndRememberOptions,
+        fullSelectOptions,
+        pageSize,
+      ],
     );
 
     const onPaste = async (e: ClipboardEvent<HTMLInputElement>) => {

@@ -168,10 +168,11 @@ test('Users picker options are announced by name rather than by user id', async 
   expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
 });
 
-test('Edit modal announces a preselected user outside the first page by name', async () => {
+test('Edit modal keeps a preselected user outside the first page named and searchable by email', async () => {
   // A member missing from the fetched page is rebuilt by AsyncSelect from the
-  // selected value, which has to keep the option's aria-label: the React label
-  // gives the virtualized list no accessible name of its own.
+  // selected value, which has to keep the full user option: the React label
+  // gives the virtualized list no accessible name of its own, and the email
+  // search relies on its filter props.
   jest.mocked(fetchUserOptions).mockResolvedValue({
     data: [toUserSelectOption({ id: 1, username: 'zoe', first_name: 'Zoe' })],
     totalCount: 50,
@@ -182,7 +183,15 @@ test('Edit modal announces a preselected user outside the first page by name', a
     label: 'Analysts',
     description: '',
     roles: [],
-    users: [{ id: 42, username: 'amy', first_name: 'Amy', last_name: '' }],
+    users: [
+      {
+        id: 42,
+        username: 'amy',
+        first_name: 'Amy',
+        last_name: '',
+        email: 'aadams@example.com',
+      },
+    ],
   };
 
   render(<GroupListEditModal {...props} group={group} />);
@@ -193,4 +202,12 @@ test('Edit modal announces a preselected user outside the first page by name', a
     await screen.findByRole('option', { name: 'Amy' }),
   ).toBeInTheDocument();
   expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+
+  await userEvent.type(combobox, 'aadams@', { delay: 10 });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('option', { name: 'Zoe' }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(screen.getByRole('option', { name: 'Amy' })).toBeInTheDocument();
 });

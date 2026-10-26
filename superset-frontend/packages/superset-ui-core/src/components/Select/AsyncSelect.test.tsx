@@ -1813,6 +1813,39 @@ test('pasting matches the title of a React-label option that was not loaded yet'
   expect(options).toHaveBeenCalledWith('Bob Jones', 0, expect.any(Number));
 });
 
+test('keeps the extra props of a pasted option that is not on the loaded page', async () => {
+  // A paste resolved by its own fetch never lands in the options, so the
+  // option rebuilt from the selection must still carry its aria-label.
+  const amy = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy',
+    'aria-label': 'Amy',
+  };
+  const loadOptions = jest.fn(async (search: string) =>
+    search === ''
+      ? { data: [OPTIONS[1]], totalCount: 100 }
+      : { data: [amy], totalCount: 1 },
+  );
+  render(
+    <AsyncSelect {...defaultProps} mode="multiple" options={loadOptions} />,
+  );
+  await open();
+  await findSelectOption(OPTIONS[1].label);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Amy',
+    },
+  });
+  fireEvent(input, paste);
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
 test('typing the title of a React-label option and a comma selects it', async () => {
   const onChange = jest.fn();
   const options = jest.fn(async () => ({
