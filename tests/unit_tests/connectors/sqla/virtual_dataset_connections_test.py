@@ -1341,7 +1341,9 @@ def test_rls_schema_fallback_documented(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
-@pytest.mark.parametrize("sink", ["column_name", "adhoc_column", "groupby", "orderby"])
+@pytest.mark.parametrize(
+    "sink", ["column_name", "adhoc_column", "groupby", "orderby", "metric_label"]
+)
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
 def test_expression_cache_key_ignores_shadowed_references(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
@@ -1370,12 +1372,73 @@ def test_expression_cache_key_ignores_shadowed_references(
     elif sink == "orderby":
         query["columns"] = [{"sqlExpression": "col1", "label": "axis"}]
         query["orderby"] = [("axis", True)]
+    elif sink == "metric_label":
+        query["columns"] = ["col1"]
+        query["metrics"] = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "MAX(col1)",
+                "label": "calculated",
+            }
+        ]
+        query["orderby"] = [("calculated", True)]
     executed = virtual.get_sqla_query(
         columns=query.get("columns"),
         groupby=query.get("groupby"),
-        metrics=[],
+        metrics=query.get("metrics"),
         orderby=query.get("orderby"),
         is_timeseries=False,
     )
     assert "virtual_table" in str(executed.sqla_query)
     assert virtual.get_extra_cache_keys(query) == []
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["filter", "orderby"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_groupby_alias_retains_saved_column_rls(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    sink: str,
+) -> None:
+    """Labels used outside an overriding GROUP BY must retain their saved SQL."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.columns.append(
+        TableColumn(
+            column_name="calculated",
+            type="INTEGER",
+            expression="(SELECT MAX(col1) FROM physical)",
+        )
+    )
+    query: QueryObjectDict = {
+        "columns": [
+            cast(
+                AdhocColumn,
+                {
+                    "sqlExpression": "calculated",
+                    "label": "axis",
+                    "expressionType": "SQL",
+                },
+            )
+        ],
+        "groupby": ["col1"],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    if sink == "filter":
+        query["filter"] = [{"col": "axis", "op": "==", "val": 1}]
+    else:
+        query["orderby"] = [("axis", True)]
+    executed = virtual.get_sqla_query(
+        columns=query.get("columns"),
+        groupby=query.get("groupby"),
+        metrics=[],
+        filter=query.get("filter"),
+        orderby=query.get("orderby"),
+        is_timeseries=False,
+    )
+    assert "col1 = 1" in str(executed.sqla_query)
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
