@@ -86,6 +86,7 @@ const ChatTableContainer = styled.div`
 
 const ChatTable = styled.table`
   width: 100%;
+  overflow-wrap: break-word;
   border-collapse: collapse;
   margin: 0;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
@@ -103,7 +104,7 @@ const ChatTableHeader = styled.th`
   font-weight: ${({ theme }) => theme.fontWeightStrong};
   border-bottom: 2px solid ${({ theme }) => theme.colorBorderSecondary};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  white-space: nowrap;
+  white-space: normal;
 `;
 
 const ChatTableCell = styled.td`
