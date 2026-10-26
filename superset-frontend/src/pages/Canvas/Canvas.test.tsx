@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
 import { subscribeRealtime } from 'src/middleware/realtime';
 import CanvasPage from '.';
@@ -36,10 +41,11 @@ jest.mock('src/middleware/realtime', () => ({
 const metadataEndpoint = 'glob:*/api/v1/canvas/7';
 const definitionEndpoint = 'glob:*/api/v1/canvas/7/definition';
 
-const definition = (children: string[], revision = 1) => ({
+const definition = (children: string[], revision = 1, canEdit = false) => ({
   result: {
     version: 1,
     revision,
+    canEdit,
     definition: {
       version: 1,
       root: { layout: { columns: 24, gap: 16, rowUnit: 40 }, children },
@@ -132,4 +138,34 @@ test('explains when the canvas cannot be opened', async () => {
       'This canvas does not exist, or you do not have access to it',
     ),
   ).toBeInTheDocument();
+});
+
+test('starting a plan opens the draft on this canvas', async () => {
+  // The page is what connects the button to the draft: without `onStarted`
+  // wired to `draft.open`, clicking Plan mode would create a draft the page
+  // never shows, and nothing else here would notice.
+  fetchMock.get(definitionEndpoint, definition([], 1, true));
+  fetchMock.post('glob:*/api/v1/canvas/7/draft', {
+    result: { token: 'tok-123', revision: 0 },
+  });
+  // Opening a draft refetches the definition from the draft's own route.
+  fetchMock.get('glob:*/api/v1/canvas/draft', definition([], 0, true));
+
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Plan mode' }));
+
+  // The draft banner only renders once the page is showing a draft.
+  expect(
+    await screen.findByText(
+      'Only you can see these changes until you publish them.',
+    ),
+  ).toBeInTheDocument();
+
+  const [draftCall] = fetchMock.callHistory
+    .calls()
+    .filter(call => call.url.includes('/draft'));
+  expect(draftCall.options.method?.toUpperCase()).toBe('POST');
+  // And the draft the page opened is the one the request returned.
+  await waitFor(() => expect(window.location.hash).toBe('#draft=tok-123'));
 });

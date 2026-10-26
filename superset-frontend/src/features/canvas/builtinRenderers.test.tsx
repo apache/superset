@@ -81,6 +81,7 @@ test('renders core containers and markdown without extensions', async () => {
         placements: result.placements,
         layouts: result.layouts,
         childOrder: result.childOrder,
+        layoutConstraints: result.layoutConstraints,
         revision: result.revision,
         saving: false,
         place: jest.fn(),

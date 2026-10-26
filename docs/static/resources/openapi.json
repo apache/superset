@@ -17057,6 +17057,10 @@
                           "description": "Whether the current user may apply operations to this canvas",
                           "type": "boolean"
                         },
+                        "childOrder": {
+                          "description": "The children of each grid in reading order, keyed by the container node id, with the root grid under the key root. Reading order decides which widget yields to which, and placing a widget rewrites it",
+                          "type": "object"
+                        },
                         "crossFilterScopes": {
                           "description": "The node ids each cross-filter source drives; empty while cross-filters are turned off",
                           "type": "object"

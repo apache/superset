@@ -126,13 +126,15 @@ export default function CanvasGrid({
     definition,
     widgetTypes,
     gridColumns,
-    layoutConstraints,
     filterScopes,
     crossFilterScopes,
     customizationScopes,
     widgets = {},
   } = result;
-  const { placements, layouts, childOrder, place } = layout;
+  // Span limits come from the layout rather than the fetched definition: a
+  // container's row minimum follows the rows its children occupy, so a write
+  // that moves a child moves the minimum with it.
+  const { placements, layouts, childOrder, layoutConstraints, place } = layout;
   /**
    * A grid's children in reading order. The server's order wins where it has
    * one: a `place` reorders them so the dropped widget keeps the spot it

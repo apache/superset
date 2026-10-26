@@ -133,11 +133,18 @@ const layoutOf = (
   placements: gridResult.placements,
   layouts: gridResult.layouts,
   childOrder: gridResult.childOrder,
+  layoutConstraints: gridResult.layoutConstraints,
   revision: gridResult.revision,
   saving: false,
   place,
   dismissError: jest.fn(),
 });
+
+/** A layout with fields overridden, for the acknowledged-state reads. */
+const layoutWith = (
+  gridResult: CanvasDefinitionResult,
+  overrides: Partial<CanvasLayout>,
+): CanvasLayout => ({ ...layoutOf(gridResult), ...overrides });
 
 const renderGrid = (
   values: ScopeValues = emptyScopeValues(),
@@ -341,4 +348,64 @@ test('a press inside a group drags the widget, not the group', () => {
 
   expect(place).toHaveBeenCalledTimes(1);
   expect(place.mock.calls[0][0]).toBe('c1');
+});
+
+test("the acknowledged reading order wins over the definition's", () => {
+  // A `place` reorders the parent's children server-side, and the fetched
+  // definition keeps the old order until the next poll. Reading it from the
+  // definition would restore the stale order right after a drop.
+  render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutWith(result, {
+        // The definition's root order starts 'f', 'g'; this swaps them.
+        childOrder: { ...result.childOrder, root: ['g', 'f', 'lost'] },
+      })}
+      editable={false}
+    />,
+  );
+
+  // Direct children of the root grid only: a nested grid's own children sit
+  // inside their container and would interleave with them.
+  const rendered = Array.from(
+    document.querySelectorAll(
+      '[data-test="canvas-grid"] > [data-test="canvas-grid-surface"] > [data-node-id]',
+    ),
+  ).map(node => node.getAttribute('data-node-id'));
+
+  expect(rendered).toEqual(['g', 'f', 'lost']);
+});
+
+test('the acknowledged span limits are what a resize clamps to', () => {
+  // A container's row minimum follows the rows its children occupy, so a
+  // write moves it. Clamping to the definition's limits would let the user
+  // shrink a container past a minimum the server has already raised.
+  const place = jest.fn();
+  render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutWith(result, {
+        place,
+        // 'c1' spans 6 of the group's 12 columns; this forbids going below 5.
+        layoutConstraints: { c1: { minColSpan: 5 } },
+      })}
+      editable
+    />,
+  );
+
+  const group = screen.getByRole('region', { name: 'group' });
+  dragRight(group.querySelector('[data-corner="se"]') as HTMLElement, -2000);
+
+  expect(place).toHaveBeenCalledWith('c1', {
+    col: 1,
+    row: 1,
+    colSpan: 5,
+    rowSpan: 1,
+  });
 });

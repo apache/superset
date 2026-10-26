@@ -582,6 +582,14 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                               The stored layout of every node on a grid, which
                               placement is resolved from, for a client that
                               previews a drag before writing it
+                          childOrder:
+                            type: object
+                            description: >-
+                              The children of each grid in reading order, keyed
+                              by the container node id, with the root grid
+                              under the key root. Reading order decides which
+                              widget yields to which, and placing a widget
+                              rewrites it
                           widgetTypes:
                             type: object
                             description: The widget type of each resolvable node

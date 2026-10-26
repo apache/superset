@@ -45,6 +45,9 @@ const resultAt = (
     // Reverse of the natural order, so a test that asserts the server's order
     // replaced it cannot pass by accident.
     childOrder: { root: ['trend', 'kpi'] },
+    // Deliberately different from what the writes below return, so a test
+    // that asserts the server's limits replaced these cannot pass by accident.
+    layoutConstraints: { kpi: { minRowSpan: 4 } },
     // Through `unknown`: a deliberately partial fixture, carrying only the
     // fields this hook reads.
   }) as unknown as CanvasDefinitionResult;
@@ -530,6 +533,36 @@ test("a write's child order replaces the fetched one", async () => {
 
   await waitFor(() =>
     expect(result.current.childOrder).toEqual({ root: ['kpi', 'trend'] }),
+  );
+});
+
+test("a write's span limits replace the fetched ones", async () => {
+  // A container's row minimum is the rows its children occupy, so a write
+  // that moves a child moves the minimum. Clamping to the fetched limits
+  // would let the user shrink a container past a minimum the server has
+  // already raised, and the server would restore the span at the new row.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      layouts: { kpi: MOVED, trend: TREND },
+      childOrder: { root: ['kpi', 'trend'] },
+      layoutConstraints: { kpi: { minRowSpan: 8 } },
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.layoutConstraints).toEqual({ kpi: { minRowSpan: 4 } });
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() =>
+    expect(result.current.layoutConstraints).toEqual({
+      kpi: { minRowSpan: 8 },
+    }),
   );
 });
 

@@ -26,6 +26,7 @@ import type {
   CanvasDefinitionResult,
   GridLayout,
   GridPlacement,
+  SpanConstraints,
 } from './types';
 
 /** The newest layout this client knows of, and the revision it belongs to. */
@@ -36,6 +37,8 @@ interface AppliedLayout {
   layouts: Record<string, GridLayout>;
   /** Reading order per grid; see `CanvasLayout.childOrder`. */
   childOrder: Record<string, string[]>;
+  /** Span limits per node; see `CanvasLayout.layoutConstraints`. */
+  layoutConstraints: Record<string, SpanConstraints>;
 }
 
 export interface CanvasLayout {
@@ -58,6 +61,14 @@ export interface CanvasLayout {
    * and they would jump on release.
    */
   childOrder: Record<string, string[]>;
+  /**
+   * Each node's span limits, kept in step with every write for the same
+   * reason as `layouts` and `childOrder`. A container's row minimum comes
+   * from the rows its children occupy, so it moves whenever they do: a child
+   * grown from four rows to eight raises its container's minimum, and a
+   * client still clamping to four would send a span the server replaces.
+   */
+  layoutConstraints: Record<string, SpanConstraints>;
   /**
    * The newest revision the server is known to hold — the one the last write
    * returned, else the one the definition was fetched at. Never an optimistic
@@ -123,6 +134,7 @@ export function useCanvasLayout(
   const fetchedPlacements = useRef(result.placements);
   const fetchedLayouts = useRef(result.layouts);
   const fetchedOrder = useRef(result.childOrder);
+  const fetchedConstraints = useRef(result.layoutConstraints);
   // The last layout the server acknowledged, without any optimistic overlay.
   // A failed write falls back to this rather than to the fetched definition,
   // which may be several acknowledged drags behind.
@@ -133,7 +145,14 @@ export function useCanvasLayout(
     fetchedPlacements.current = result.placements;
     fetchedLayouts.current = result.layouts;
     fetchedOrder.current = result.childOrder;
-  }, [revision, result.placements, result.layouts, result.childOrder]);
+    fetchedConstraints.current = result.layoutConstraints;
+  }, [
+    revision,
+    result.placements,
+    result.layouts,
+    result.childOrder,
+    result.layoutConstraints,
+  ]);
 
   // Which surface this state belongs to. A request already in flight when the
   // surface changes still returns, and its response has to be dropped rather
@@ -197,6 +216,7 @@ export function useCanvasLayout(
             placements: written.placements,
             layouts: written.layouts,
             childOrder: written.childOrder,
+            layoutConstraints: written.layoutConstraints,
           };
           // Gestures queued while this write was in flight are newer than the
           // placements it resolved, so they stay on top -- otherwise the
@@ -217,6 +237,7 @@ export function useCanvasLayout(
             // Not merged with the queued gestures: how they affect reading
             // order is the server's to decide, and the follow-up returns it.
             childOrder: written.childOrder,
+            layoutConstraints: written.layoutConstraints,
           });
         })
         .catch(async response => {
@@ -287,6 +308,8 @@ export function useCanvasLayout(
           // reorder depends on where the drop landed relative to every
           // sibling, and the response settles it within a round trip.
           childOrder: newer?.childOrder ?? fetchedOrder.current,
+          layoutConstraints:
+            newer?.layoutConstraints ?? fetchedConstraints.current,
         };
       });
       if (writing.current) {
@@ -313,6 +336,7 @@ export function useCanvasLayout(
     placements: newer?.placements ?? result.placements,
     layouts: newer?.layouts ?? result.layouts,
     childOrder: newer?.childOrder ?? result.childOrder,
+    layoutConstraints: newer?.layoutConstraints ?? result.layoutConstraints,
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,
