@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
-import { JsonObject, QueryFormData } from '@superset-ui/core';
+import {
+  ChartProps,
+  DatasourceType,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import CategoricalDeckGLContainer, {
   CategoricalDeckGLContainerProps,
   getCategories,
@@ -26,6 +32,8 @@ import CategoricalDeckGLContainer, {
 } from './CategoricalDeckGLContainer';
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
+import { NULL_CATEGORY_KEY } from './utils';
+import transformScatterProps from './layers/Scatter/transformProps';
 
 // maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
 // calls setWorkerUrl() on it at import time.
@@ -274,4 +282,111 @@ test('with autozoom a tilt written back by Explore keeps the viewer on the same 
     </ThemeProvider>,
   );
   expect(mockViewports.at(-1)).toEqual(fitted);
+});
+
+test('rows with a null dimension get their own legend category', () => {
+  const fd = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+    color_scheme: 'supersetColors',
+    dimension: 'category',
+    slice_id: 42,
+    color_picker: { r: 0, g: 0, b: 0, a: 1 },
+  } as unknown as QueryFormData;
+  const data = [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }];
+
+  const categories = getCategories(fd, data);
+
+  expect(categories[NULL_CATEGORY_KEY]?.enabled).toBe(true);
+  expect(categories[NULL_CATEGORY_KEY]?.color).toBeDefined();
+
+  // Without a category entry the container drops the feature entirely, which is
+  // how null-dimension rows used to disappear from the map.
+  expect(data.filter(d => categories[d.cat_color]?.enabled)).toHaveLength(2);
+});
+
+test('null-dimension rows reach the layer with the N/A color and toggle with the legend', async () => {
+  const fd = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+    color_scheme: 'supersetColors',
+    dimension: 'category',
+    slice_id: 42,
+    color_picker: { r: 0, g: 0, b: 0, a: 1 },
+  } as unknown as QueryFormData;
+  // Real Scatter transformProps output, so the null-to-category handoff between
+  // the transform and the container is exercised rather than a hand-built key.
+  const scatterPayload = transformScatterProps({
+    rawFormData: {
+      ...fd,
+      spatial: { type: 'latlong', latCol: 'LATITUDE', lonCol: 'LONGITUDE' },
+      point_radius_fixed: { type: 'fix', value: '1000' },
+      viewport: {},
+    },
+    queriesData: [
+      {
+        data: [
+          { LATITUDE: 37.8, LONGITUDE: -122.4, category: 'A' },
+          { LATITUDE: 37.9, LONGITUDE: -122.3, category: null },
+        ],
+      },
+    ],
+    datasource: {
+      type: DatasourceType.Table,
+      id: 1,
+      name: 'test_datasource',
+      columns: [],
+      metrics: [],
+    },
+    height: 300,
+    width: 400,
+    hooks: {},
+    filterState: {},
+    emitCrossFilters: false,
+  } as unknown as ChartProps).payload;
+  const getLayer = jest.fn(() => ({}));
+  const drawnCategories = () => {
+    const { payload } = (
+      getLayer.mock.calls.at(-1) as unknown as [JsonObject]
+    )[0];
+    return payload.data.features.map((f: JsonObject) => f.cat_color);
+  };
+
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <CategoricalDeckGLContainer
+        formData={fd}
+        getLayer={getLayer}
+        getPoints={() => []}
+        viewport={{ longitude: 0, latitude: 0, zoom: 1 }}
+        width={400}
+        height={300}
+        setControlValue={jest.fn()}
+        datasource={{} as CategoricalDeckGLContainerProps['datasource']}
+        filterState={{}}
+        setDataMask={jest.fn()}
+        onContextMenu={jest.fn()}
+        emitCrossFilters={false}
+        payload={scatterPayload as CategoricalDeckGLContainerProps['payload']}
+      />
+    </ThemeProvider>,
+  );
+
+  const { payload } = (
+    getLayer.mock.calls.at(-1) as unknown as [JsonObject]
+  )[0];
+  const nullFeature = payload.data.features.find(
+    (f: JsonObject) => f.cat_color === NULL_CATEGORY_KEY,
+  );
+  expect(drawnCategories()).toEqual(['A', NULL_CATEGORY_KEY]);
+  const aFeature = payload.data.features.find(
+    (f: JsonObject) => f.cat_color === 'A',
+  );
+  expect(nullFeature.color).toHaveLength(4);
+  expect(nullFeature.color).not.toEqual(aFeature.color);
+
+  await userEvent.click(screen.getByText('N/A'));
+  expect(drawnCategories()).toEqual(['A']);
 });

@@ -43,10 +43,36 @@ logger = logging.getLogger(__name__)
 # be silently misidentified as a Superset API-key request.
 API_KEY_PASSTHROUGH_CLAIM = "_superset_mcp_api_key_passthrough"
 
-# Claim that carries the FAB-validated username after transport-layer
-# API key validation. When present, ``_resolve_user_from_api_key`` skips
-# the second DB call and loads the user directly by username.
+# Compatibility claim carrying the username after transport-layer validation.
+# Resolution trusts TransportValidatedAPIKeyToken, never this claim alone.
 API_KEY_VALIDATED_USERNAME_CLAIM = "_superset_mcp_validated_username"
+
+
+class TransportValidatedAPIKeyToken(AccessToken):
+    """Carry FAB validation evidence that an external JWT cannot manufacture.
+
+    MultiAuth's model_copy preserves this type. If a transport serializes it
+    into a plain AccessToken, resolution falls back to FAB validation instead
+    of trusting the serialized claims.
+    """
+
+    validated_username: str
+
+
+def get_verifier_client_id(access_token: Any) -> str | None:
+    """Return the ``client_id`` set by the verifier that admitted the token.
+
+    FastMCP 4's ``MultiAuth`` replaces ``AccessToken.client_id`` with a
+    source-qualified JSON string and keeps the verifier's own value in
+    ``original_client_id``. Comparisons against the identifiers this module and
+    ``GuestTokenVerifier`` assign (``"api_key"``, ``"guest"``) must use the
+    verifier's value, which is ``client_id`` itself on FastMCP 3 or when no
+    ``MultiAuth`` wraps the verifier.
+    """
+    original = getattr(access_token, "original_client_id", None)
+    if isinstance(original, str):
+        return original
+    return getattr(access_token, "client_id", None)
 
 
 class CompositeTokenVerifier(TokenVerifier):
@@ -205,9 +231,10 @@ class CompositeTokenVerifier(TokenVerifier):
                     )
                     return None
                 username, key_scopes = result
-                return AccessToken(
+                return TransportValidatedAPIKeyToken(
                     token=token,
                     client_id="api_key",
+                    validated_username=username,
                     # Preserve the key's own scopes exactly. An empty list
                     # means "no scopes advertised" and therefore retains the
                     # RBAC-only behavior for existing unscoped API keys.
@@ -248,16 +275,22 @@ class CompositeTokenVerifier(TokenVerifier):
             return None
 
         jwt_access_token = await self._jwt_verifier.verify_token(token)
-        # Anti-forgery: only the GuestTokenVerifier may set the guest marker.
-        # Strip it from JWT-verified tokens so a crafted IdP JWT can't pose as
-        # a verified guest.
+        # Internal identity-routing claims are not evidence of validation
+        # when supplied by an IdP. Preserve the JWT's own user identity.
         if jwt_access_token is not None:
             jwt_claims = getattr(jwt_access_token, "claims", None)
-            if isinstance(jwt_claims, dict) and GUEST_TOKEN_CLAIM in jwt_claims:
+            internal_claims = {
+                GUEST_TOKEN_CLAIM,
+                API_KEY_PASSTHROUGH_CLAIM,
+                API_KEY_VALIDATED_USERNAME_CLAIM,
+            }
+            if isinstance(jwt_claims, dict) and internal_claims.intersection(
+                jwt_claims
+            ):
                 # Rebuild, not mutate: claims may be immutable/copied,
                 # so pop() can no-op.
                 stripped = {
-                    k: v for k, v in jwt_claims.items() if k != GUEST_TOKEN_CLAIM
+                    k: v for k, v in jwt_claims.items() if k not in internal_claims
                 }
                 jwt_access_token = jwt_access_token.model_copy(
                     update={"claims": stripped}
