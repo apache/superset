@@ -18,13 +18,27 @@
  */
 import {
   archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  deletedToastContent,
+  datasetArchiveImpact,
   getSoftDeleteRetentionDays,
   recoveredToast,
 } from './softDeleteCopy';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import { isFeatureEnabled } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
+  applicationRoot: jest.fn(() => ''),
   default: jest.fn(() => ({ common: { conf: {} } })),
 }));
 
@@ -35,7 +49,9 @@ const withConf = (conf: Record<string, unknown>) =>
   mockBootstrapData.mockReturnValue({ common: { conf } });
 
 beforeEach(() => {
+  localStorage.clear();
   withConf({});
+  (applicationRoot as jest.Mock).mockReturnValue('');
 });
 
 test('recoveredToast links to the asset and enables HTML when a url is present', () => {
@@ -107,29 +123,115 @@ test('immediate eligibility does not promise a recovery window', () => {
 test('the confirm copy quotes the window when there is one', () => {
   withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
   expect(archiveConfirmDescription('chart')).toBe(
-    'This chart will be moved to Recently Archived in the Settings menu. You can recover it there within 30 days.',
+    'This chart will be moved to Recently Archived. You can recover it there within 30 days.',
   );
   expect(archiveConfirmDescription('charts', true)).toBe(
-    'These charts will be moved to Recently Archived in the Settings menu. You can recover them there within 30 days.',
+    'These charts will be moved to Recently Archived. You can recover them there within 30 days.',
   );
 });
 
 test('a one-day window is quoted in the singular', () => {
   withConf({ SOFT_DELETE_RETENTION_DAYS: 1 });
   expect(archiveConfirmDescription('chart')).toBe(
-    'This chart will be moved to Recently Archived in the Settings menu. You can recover it there within 1 day.',
+    'This chart will be moved to Recently Archived. You can recover it there within 1 day.',
   );
   expect(archiveConfirmDescription('charts', true)).toBe(
-    'These charts will be moved to Recently Archived in the Settings menu. You can recover them there within 1 day.',
+    'These charts will be moved to Recently Archived. You can recover them there within 1 day.',
   );
 });
 
 test('the confirm copy omits the clause when there is no window', () => {
   withConf({});
   expect(archiveConfirmDescription('dashboard')).toBe(
-    'This dashboard will be moved to Recently Archived in the Settings menu. You can recover it there.',
+    'This dashboard will be moved to Recently Archived. You can recover it there.',
   );
   expect(archiveConfirmDescription('dashboards', true)).toBe(
-    'These dashboards will be moved to Recently Archived in the Settings menu. You can recover them there.',
+    'These dashboards will be moved to Recently Archived. You can recover them there.',
   );
+});
+
+test.each(['', '/superset'])(
+  'archive confirmation gives a plain location hint under app root %s',
+  root => {
+    (applicationRoot as jest.Mock).mockReturnValue(root);
+    const { container } = render(
+      archiveConfirmContent('dashboard', 'dashboard'),
+    );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(container.textContent?.match(/Recently Archived/g)).toHaveLength(1);
+    expect(container).toHaveTextContent(
+      'This dashboard will be moved to Recently Archived. You can recover it there.',
+    );
+  },
+);
+
+test('archive toast escapes names and links to its collection', () => {
+  const spy = isFeatureEnabled as jest.Mock;
+  spy.mockReturnValue(true);
+  const toast = deletedToastContent('<img src=x onerror=alert(1)>', 'dataset');
+  expect(toast.text).not.toContain('<img');
+  expect(toast.text).toContain('&lt;img');
+  expect(toast.text).toContain('href="/archived/?type=dataset"');
+  expect(toast.text).toContain('View in Recently Archived');
+  expect(toast.options).toEqual({ allowHtml: true });
+  spy.mockReturnValue(false);
+  expect(deletedToastContent('name', 'chart')).toEqual({
+    text: 'Deleted: name',
+  });
+  spy.mockReset();
+});
+
+test('archive toast preserves and escapes the application root', () => {
+  (applicationRoot as jest.Mock).mockReturnValue('/superset&qa');
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  expect(deletedToastContent('name', 'dataset').text).toContain(
+    'href="/superset&amp;qa/archived/?type=dataset"',
+  );
+});
+
+test.each([1, 2])(
+  'dataset impact omits absent dashboards for %s charts',
+  count => {
+    const charts = count === 1 ? '1 chart' : '2 charts';
+    expect(datasetArchiveImpact('dataset', count, 0)).toBe(
+      `This dataset is used by ${charts}. Archiving it will make dependent charts unavailable until it is recovered.`,
+    );
+    expect(datasetArchiveImpact('datasets', count, 0, true)).toBe(
+      `The selected datasets are used by ${charts}. Archiving them will make dependent charts unavailable until they are recovered.`,
+    );
+  },
+);
+
+test('dataset impact omits empty dependencies and retains nonzero dashboard counts', () => {
+  expect(datasetArchiveImpact('dataset', 0, 0)).toBeNull();
+  expect(datasetArchiveImpact('dataset', 2, 1)).toContain(
+    'linked to 2 charts on 1 dashboard',
+  );
+});
+
+test.each(['chart', 'dashboard', 'dataset'] as const)(
+  'bulk %s archive toast links to its collection',
+  type => {
+    const toast = archiveToastContent('Archived 2 item(s)', type);
+    expect(toast.text).toContain('Archived 2 item(s)');
+    expect(toast.text).toContain(`href="/archived/?type=${type}"`);
+    expect(toast.text).toContain('View in Recently Archived →');
+    expect(toast.options).toEqual({ allowHtml: true });
+  },
+);
+
+test('formatting archive toasts does not change the remembered collection', () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  archiveToastContent('Archived 2 item(s)', 'dashboard');
+  deletedToastContent('Dataset', 'dataset');
+  expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBeNull();
+});
+
+test('remembering an archive is explicit and ignores permanent deletes', () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  rememberArchivedType('dashboard');
+  expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe('dashboard');
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+  rememberArchivedType('chart');
+  expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe('dashboard');
 });

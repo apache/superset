@@ -203,6 +203,12 @@ msgid "%(count)s additional restricted %(label)s"
 msgstr ""
 
 #, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
@@ -370,6 +376,12 @@ msgid "%s aggregates(s)"
 msgstr ""
 
 #, python-format
+msgid "%s chart"
+msgid_plural "%s charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s chart updated"
 msgid_plural "%s charts updated"
 msgstr[0] ""
@@ -384,6 +396,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s column(s)"
 msgstr ""
+
+#, python-format
+msgid "%s dashboard"
+msgid_plural "%s dashboards"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s dashboard updated"
@@ -2433,6 +2451,10 @@ msgid "Are you sure you want to delete %s?"
 msgstr ""
 
 #, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
+#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr ""
 
@@ -3494,16 +3516,6 @@ msgstr ""
 msgid "Charts"
 msgstr ""
 
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break if it is "
-"deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will break if they"
-" are deleted."
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "Charts could not be deleted."
 msgstr ""
 
@@ -4471,8 +4483,12 @@ msgstr ""
 
 #, python-format
 msgid ""
-"Could not check which charts and dashboards depend on the selected %s. Deleting them "
-"may break charts and dashboards."
+"Could not check which charts and dashboards depend on the selected %s. "
+"Archiving them may make charts unavailable."
+msgstr ""
+
+#, python-format
+msgid "Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards."
 msgstr ""
 
 #, python-format
@@ -5656,10 +5672,14 @@ msgid ""
 "but they may no longer work."
 msgstr ""
 
-msgid ""
-"Deleting this semantic layer also permanently deletes any semantic views it contains,"
-" and charts built on those views will stop working. The affected views could not be "
-"listed."
+msgid "Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed."
+msgstr ""
+
+#, python-format
+msgid "Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting."
+msgstr ""
+
+msgid "Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -7024,6 +7044,9 @@ msgstr ""
 msgid "Extensions"
 msgstr ""
 
+msgid "Extensions are not enabled on this server"
+msgstr ""
+
 msgid "Extent"
 msgstr ""
 
@@ -7772,6 +7795,9 @@ msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
+msgstr ""
+
+msgid "Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Go to Welcome Page"
@@ -10153,6 +10179,9 @@ msgstr ""
 msgid "No saved metrics found"
 msgstr ""
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -11558,9 +11587,6 @@ msgstr ""
 msgid "Recently Archived"
 msgstr ""
 
-msgid "Recently archived"
-msgstr ""
-
 msgid "Recently modified"
 msgstr ""
 
@@ -11733,6 +11759,9 @@ msgid "Remove item"
 msgstr ""
 
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 msgid "Remove query from log"
@@ -14751,9 +14780,10 @@ msgid ""
 " GROUP BY. Wrap it in an aggregate function, e.g. %(example)s."
 msgstr ""
 
-msgid ""
-"The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive "
-"polygons, lines and points (circles, icons and/or texts)."
+msgid "The ENABLE_EXTENSIONS feature flag must be on when the server starts. Enable it in the server configuration and restart."
+msgstr ""
+
+msgid "The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts)."
 msgstr ""
 
 msgid ""
@@ -15478,6 +15508,13 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 #, python-format
+msgid ""
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"Archiving them will make dependent charts unavailable until they are "
+"recovered."
+msgstr ""
+
+#, python-format
 msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
 msgstr ""
 
@@ -15956,18 +15993,18 @@ msgstr ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. You can "
-"recover them there within %(days)s day."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s day."
 msgid_plural ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. You can "
-"recover them there within %(days)s days."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. You can "
-"recover them there."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
@@ -15978,30 +16015,28 @@ msgstr ""
 
 #, python-format
 msgid ""
-"This %(schedule)s executes as another user. Only admins can change its content; set "
-"the Run As field to your own account to make this change."
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"will make dependent charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived and may be permanently deleted on "
-"the next cleanup run."
-msgstr ""
-
-#, python-format
-msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. You can "
-"recover it there within %(days)s day."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s day."
 msgid_plural ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. You can "
-"recover it there within %(days)s days."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. You can "
-"recover it there."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
@@ -16385,7 +16420,7 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
-msgid "This semantic layer has no dependent semantic views."
+msgid "This semantic layer has no dependent semantic views. This cannot be undone."
 msgstr ""
 
 msgid ""
@@ -16474,12 +16509,8 @@ msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr ""
 
 #, python-format
-msgid ""
-"This will also permanently delete its %s semantic view. Charts built on that view "
-"will stop working."
-msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on those views "
-"will stop working."
+msgid "This will also permanently delete its %s semantic view. This cannot be undone."
+msgid_plural "This will also permanently delete its %s semantic views. This cannot be undone."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -17039,6 +17070,12 @@ msgid "Unable to decode value"
 msgstr ""
 
 msgid "Unable to encode value"
+msgstr ""
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
 msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
@@ -19843,4 +19880,25 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+#, python-format
+msgid ""
+"The selected %(type)s are used by %(charts)s. Archiving them will make "
+"dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is used by %(charts)s. Archiving it will make dependent charts"
+" unavailable until it is recovered."
+msgstr ""
+
+msgid "View in Recently Archived →"
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(schedule)s executes as another user. Only admins can change its content; set "
+"the Run As field to your own account to make this change."
 msgstr ""
