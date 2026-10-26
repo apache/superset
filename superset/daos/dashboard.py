@@ -20,14 +20,16 @@ import logging
 import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
-from sqlalchemy import or_, select
+from sqlalchemy import inspect as sa_inspect, or_, select
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import lazyload, Query, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm.state import InstanceState
 
 from superset import security_manager
 from superset.commands.dashboard.exceptions import (
@@ -57,6 +59,10 @@ from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.filters import is_excluded_by_extra_access
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -412,6 +418,36 @@ def _copy_chart_metadata(
     return metadata
 
 
+def _install_membership_baseline(dashboard: Dashboard) -> None:
+    """Install *dashboard*'s stored chart membership, archived charts
+    included, as the committed state of ``dashboard.slices``.
+
+    Call inside ``skip_visibility_filter``. Only a persistent dashboard has
+    stored membership. Pending changes to the collection must be flushed
+    first: the baseline query autoflushes them, and a caller running under
+    ``no_autoflush`` flushes explicitly (as ``UpdateDashboardCommand`` does).
+    A change still pending is kept, by leaving the collection alone, because
+    installing the baseline would drop it.
+    """
+    state: InstanceState[Dashboard] = sa_inspect(dashboard)
+    if not state.persistent:
+        return
+    baseline: list[Slice] = (
+        db.session.query(Slice)
+        .join(dashboard_slices, dashboard_slices.c.slice_id == Slice.id)
+        .filter(dashboard_slices.c.dashboard_id == dashboard.id)
+        .all()
+    )
+    if state.attrs.slices.history.has_changes():
+        logger.warning(
+            "dashboard id=%s has unflushed chart-list changes; saving it with "
+            "an archived chart may fail",
+            dashboard.id,
+        )
+        return
+    set_committed_value(dashboard, "slices", baseline)
+
+
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
     # Column used by MCP tools for title-based identifier fallback, so a
@@ -572,9 +608,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
         ).all()
 
     @staticmethod
-    def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
+    def get_datasets_for_dashboard(
+        id_or_slug: str,
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
+    ) -> list[tuple[Any, dict[str, Any]]]:
+        """Load datasets, sharing the endpoint's datasource authorization check."""
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
-        return dashboard.datasets_trimmed_for_slices()
+        return dashboard.datasets_trimmed_for_slices(
+            can_access_datasource=can_access_datasource
+        )
 
     @staticmethod
     def get_tabs_for_dashboard(id_or_slug: str) -> dict[str, Any]:
@@ -741,21 +785,31 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # documented restore-reattach contract) and writing
             # ``uuid: None`` into its position slot via ``uuid_map`` below.
             #
-            # The bypass must be session-scoped and cover the ASSIGNMENT,
-            # not just the resolution query: assigning to
+            # The bypass must also cover the ASSIGNMENT: assigning to
             # ``dashboard.slices`` makes the unit of work diff the new
-            # collection against the existing one, which it lazy-loads at
-            # that moment. A filtered baseline load would exclude the
-            # trashed member, so the diff would treat it as net-new and
-            # INSERT a ``dashboard_slices`` row that still exists (soft
-            # delete never removes junction rows) — an IntegrityError on
-            # the composite primary key on every save of a dashboard
-            # containing a trashed chart.
+            # collection against the existing one. A baseline missing the
+            # trashed member makes the diff treat it as net-new and INSERT a
+            # ``dashboard_slices`` row that still exists (soft delete never
+            # removes junction rows), an IntegrityError on the composite
+            # primary key on every save of a dashboard containing a trashed
+            # chart. Lazy-loading the baseline inside the bypass is not
+            # enough: a dashboard loaded through a query carries the
+            # visibility filter into its own lazy loads. Read the baseline
+            # from the association table instead and install it as the
+            # committed state.
             with skip_visibility_filter(db.session, Slice):
                 current_slices = (
                     db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
                 )
-                dashboard.slices = current_slices
+                _install_membership_baseline(dashboard)
+                # Preserve archived membership even when no layout slot represents it.
+                layout_ids: set[int] = {chart.id for chart in current_slices}
+                kept_archived: list[Slice] = [
+                    chart
+                    for chart in dashboard.slices
+                    if chart.deleted_at is not None and chart.id not in layout_ids
+                ]
+                dashboard.slices = current_slices + kept_archived
 
             # add UUID to positions
             uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}

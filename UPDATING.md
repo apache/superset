@@ -34,6 +34,24 @@ assists people when migrating to a new version.
   when charts are duplicated. Ordinary dashboard updates retain their merge
   behavior.
 
+- MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
+  values with "Text must not be empty"; omit the field to keep the stored title.
+  MCP chart names and theme names are capped at 250 characters, matching their
+  model columns (the published chart-name limit was 255).
+
+- **MCP authentication hooks and disabled API keys:** Custom `MCP_USER_RESOLVER`
+  functions that read `access_token.client_id` must use
+  `get_verifier_client_id(access_token)` from
+  `superset.mcp_service.composite_token_verifier` instead. FastMCP 4's `MultiAuth`
+  qualifies `client_id`; the helper returns the originating verifier's ID on
+  both FastMCP 3 and 4. This ID routes authentication; it is not proof that the
+  bearer is valid. When API keys are disabled (`MCP_API_KEY_ENABLED=False`, or
+  `FAB_API_KEY_ENABLED=False` without an MCP override), an explicit API-key
+  pass-through token raises `PermissionError` instead of falling through to
+  another identity. `tools/list` returns an empty list for that client, not
+  public tools. Remove the API-key credential to use another authentication
+  method, or explicitly enable API-key authentication.
+
 - **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
   query (no post-processing or time offsets, and not a report's client-processed
   result), a dimension column of nullable integers that holds a value beyond
