@@ -47,7 +47,6 @@ import threading
 from collections.abc import AsyncIterator, Callable, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import timedelta
 from typing import Any, cast, TypeVar
 
 from superset.ai.mcp.config import (
@@ -172,7 +171,6 @@ def _sdk() -> _ClientSDK:
     try:
         from mcp import ClientSession
         from mcp.client.sse import sse_client
-        from mcp.client.streamable_http import streamablehttp_client
     except ModuleNotFoundError as ex:
         raise MCPNotInstalledError(
             "Connecting to an external MCP server requires the 'mcp' package, "
@@ -182,10 +180,24 @@ def _sdk() -> _ClientSDK:
     return _ClientSDK(
         client_session=ClientSession,
         transports={
-            TRANSPORT_STREAMABLE_HTTP: streamablehttp_client,
+            TRANSPORT_STREAMABLE_HTTP: _streamable_http,
             TRANSPORT_SSE: sse_client,
         },
     )
+
+
+@asynccontextmanager
+async def _streamable_http(
+    url: str, headers: dict[str, str], timeout: float
+) -> AsyncIterator[Any]:
+    import httpx2
+    from mcp.client.streamable_http import streamable_http_client
+
+    async with httpx2.AsyncClient(
+        headers=headers, timeout=timeout, follow_redirects=True
+    ) as http_client:
+        async with streamable_http_client(url, http_client=http_client) as streams:
+            yield streams
 
 
 @asynccontextmanager
@@ -209,7 +221,7 @@ async def _session(server: MCPServerConfig) -> AsyncIterator[Any]:
         async with sdk.client_session(
             read_stream,
             write_stream,
-            read_timeout_seconds=timedelta(seconds=server.timeout_seconds),
+            read_timeout_seconds=server.timeout_seconds,
         ) as session:
             await session.initialize()
             yield session
@@ -230,7 +242,7 @@ async def _acall_tool(
     async with _session(server) as session:
         result = await session.call_tool(tool_name, arguments or None)
 
-    if getattr(result, "isError", False):
+    if getattr(result, "is_error", False):
         # The server's own error text is not repeated: it is attacker-controlled
         # prose that would reach the model outside the untrusted-content wrapper
         # the successful path applies.
@@ -248,7 +260,7 @@ def _remote_tool(raw: Any) -> RemoteTool:
     SDK models differently degrades to a missing description instead of an
     exception during discovery.
     """
-    schema = getattr(raw, "inputSchema", None)
+    schema = getattr(raw, "input_schema", None)
     return RemoteTool(
         name=str(getattr(raw, "name", "") or ""),
         description=str(getattr(raw, "description", "") or ""),

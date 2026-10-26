@@ -189,11 +189,17 @@ export function useFilterOperations({
         } else if (configItem?.cascadeParentIds) {
           array = [...configItem.cascadeParentIds];
         }
-        dependencyMap.set(key, array);
+        // Drop parent ids that no longer qualify (removed, or its filter
+        // type changed to one that doesn't support cascade dependencies)
+        // as soon as the map is rebuilt, instead of only at save time.
+        dependencyMap.set(
+          key,
+          array.filter(parentId => canBeUsedAsDependency(parentId)),
+        );
       });
     }
     return dependencyMap;
-  }, [filterConfigMap, form]);
+  }, [canBeUsedAsDependency, filterConfigMap, form]);
 
   const getAvailableFilters = useCallback(
     (filterId: string, getItemTitle: (id: string) => string) => {
