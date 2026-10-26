@@ -42,6 +42,7 @@ import {
   ScatterChart,
   RadarChart,
   BoxplotChart,
+  CandlestickChart,
   TreeChart,
   TreemapChart,
   HeatmapChart,
@@ -95,6 +96,7 @@ use([
   CanvasRenderer,
   BarChart,
   BoxplotChart,
+  CandlestickChart,
   CustomChart,
   FunnelChart,
   GaugeChart,
@@ -125,8 +127,9 @@ use([
   LegacyGridContainLabel,
 ]);
 
-// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
-// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+// Report/thumbnail screenshots use standalone=3. Legacy chart capture URLs may
+// still carry standalone="true"; live embeds use 1/2 and keep animation.
+// See superset/utils/screenshots.py.
 export function isReportScreenshotMode(): boolean {
   try {
     const standalone = new URLSearchParams(window.location.search).get(

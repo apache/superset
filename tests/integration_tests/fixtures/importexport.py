@@ -17,6 +17,8 @@
 from copy import deepcopy
 from typing import Any
 
+import yaml
+
 from superset.utils import json
 
 # example V0 import/export format
@@ -721,3 +723,105 @@ saved_queries_config = {
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
     "catalog": "default",
 }
+
+
+def dashboard_annotation_layer_config(
+    layer_uuid: str,
+    name: str,
+    annotations: list[dict[str, Any]],
+    descr: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "name": name,
+        "descr": descr,
+        "uuid": layer_uuid,
+        "version": "1.0.0",
+        "annotation": annotations,
+    }
+
+
+def dashboard_chart_config(chart_uuid: str, slice_name: str) -> dict[str, Any]:
+    config = deepcopy(chart_config)
+    config["uuid"] = chart_uuid
+    config["slice_name"] = slice_name
+    return config
+
+
+def dashboard_config_for_charts(
+    dashboard_uuid: str,
+    dashboard_title: str,
+    chart_entries: list[tuple[str, str, str]],
+) -> dict[str, Any]:
+    config = deepcopy(dashboard_config)
+    config["uuid"] = dashboard_uuid
+    config["dashboard_title"] = dashboard_title
+    config["position"] = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "GRID_ID": {
+            "children": ["ROW-1"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "HEADER_ID": {
+            "id": "HEADER_ID",
+            "meta": {"text": dashboard_title},
+            "type": "HEADER",
+        },
+        "ROW-1": {
+            "children": [entry[0] for entry in chart_entries],
+            "id": "ROW-1",
+            "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "ROW",
+        },
+    }
+
+    for index, (node_id, chart_uuid, slice_name) in enumerate(chart_entries, start=1):
+        config["position"][node_id] = {
+            "children": [],
+            "id": node_id,
+            "meta": {
+                "chartId": index,
+                "height": 50,
+                "sliceName": slice_name,
+                "uuid": chart_uuid,
+                "width": 4,
+            },
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+            "type": "CHART",
+        }
+
+    config["metadata"] = {
+        "timed_refresh_immune_slices": list(range(1, len(chart_entries) + 1)),
+        "expanded_slices": {str(i): True for i in range(1, len(chart_entries) + 1)},
+        "expand_all_slices": False,
+        "refresh_frequency": 0,
+        "default_filters": "{}",
+        "color_scheme": None,
+        "remote_id": 7,
+        "import_time": 1604342885,
+    }
+    return config
+
+
+def dashboard_import_bundle(
+    dashboard_cfg: dict[str, Any],
+    chart_payloads: dict[str, dict[str, Any]],
+    annotation_layer_payloads: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    contents = {
+        "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+        "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+        "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_cfg),
+    }
+
+    for filename, payload in chart_payloads.items():
+        contents[f"charts/{filename}"] = yaml.safe_dump(payload)
+
+    for filename, payload in (annotation_layer_payloads or {}).items():
+        contents[f"annotation_layers/{filename}"] = yaml.safe_dump(payload)
+
+    return contents

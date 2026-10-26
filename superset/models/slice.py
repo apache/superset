@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator, Sequence
 from typing import Any, TYPE_CHECKING
 from urllib import parse
 
@@ -45,6 +46,7 @@ from superset.legacy import update_time_range
 from superset.models.helpers import (
     AuditMixinNullable,
     ImportExportMixin,
+    skip_visibility_filter,
     SoftDeleteMixin,
 )
 from superset.security.manager import get_extra_editor_subject_ids
@@ -53,6 +55,7 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
+from superset.utils.schema import is_query_context_metadata_complete
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -284,6 +287,57 @@ class Slice(  # pylint: disable=too-many-public-methods
         # letting the access check crash on it.
         return resolved if hasattr(resolved, "perm") else None
 
+    @staticmethod
+    def iter_resolved_datasources(
+        slices: Sequence[Slice],
+    ) -> Iterator[Datasource | None]:
+        """Resolve unique member references in order, batching each fallback type.
+
+        Relationship-backed references retain their existing resolver. A fallback
+        batch is loaded only when its first member is reached, so callers can
+        short-circuit before any fallback query. All batch state is call-local.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import DatasourceTypeNotSupportedError
+
+        seen: set[tuple[str | None, int | None]] = set()
+        batches: dict[str, dict[int, Datasource]] = {}
+        for slc in slices:
+            key: tuple[str | None, int | None] = (
+                slc.datasource_type,
+                slc.datasource_id,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            if not slc.datasource_id or slc.datasource_type in (
+                utils.DatasourceType.TABLE,
+                utils.DatasourceType.SEMANTIC_VIEW,
+            ):
+                yield slc.resolved_datasource
+                continue
+            datasource_type: str = slc.datasource_type
+            if datasource_type not in batches:
+                ids: set[int] = {
+                    member.datasource_id
+                    for member in slices
+                    if member.datasource_type == datasource_type
+                    and member.datasource_id is not None
+                }
+                try:
+                    batches[datasource_type] = DatasourceDAO.get_datasources_by_ids(
+                        datasource_type, ids
+                    )
+                except DatasourceTypeNotSupportedError:
+                    batches[datasource_type] = {}
+            resolved: Datasource | None = batches[datasource_type].get(
+                slc.datasource_id
+            )
+            yield (
+                resolved if resolved is not None and hasattr(resolved, "perm") else None
+            )
+
     def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
@@ -384,7 +438,10 @@ class Slice(  # pylint: disable=too-many-public-methods
     def form_data(self) -> dict[str, Any]:
         form_data: dict[str, Any] = {}
         try:
-            form_data = json.loads(self.params)
+            d = json.loads(self.params)
+            if not isinstance(d, dict):
+                raise ValueError("params is not a JSON object")
+            form_data = d
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
@@ -404,12 +461,26 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
-                return self.get_query_context_factory().create(
-                    **{**json.loads(self.query_context), "current_slice": self}
-                )
+                query_context_payload = json.loads(self.query_context)
             except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
+                return None
+            # ``QueryContextFactory.create()`` requires ``datasource`` and
+            # ``queries`` as keyword-only arguments; a row saved before the
+            # ChartPostSchema/ChartPutSchema validation added in
+            # apache/superset#35774 can still be missing either, which would
+            # otherwise raise a raw TypeError on every read of this chart.
+            if not is_query_context_metadata_complete(query_context_payload):
+                logger.error(
+                    "Slice %s query_context is missing required "
+                    "'datasource'/'queries' fields",
+                    self.id,
+                )
+                return None
+            return self.get_query_context_factory().create(
+                **{**query_context_payload, "current_slice": self}
+            )
         return None
 
     def get_explore_url(
@@ -449,7 +520,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         # SCRIPT_NAME (the application_root). `Slice.url` itself stays router-
         # relative so frontend callers can apply ensureAppRoot exactly once.
         href = url_for("ExploreView.root", slice_id=self.id)
-        return Markup(f'<a href="{href}">{name}</a>')
+        return Markup('<a href="{}">{}</a>').format(href, name)
 
     @property
     def icons(self) -> str:
@@ -487,7 +558,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
     if isinstance(id_or_uuid, int):
         return Slice.id == id_or_uuid
-    if id_or_uuid.isdigit():
+    if id_or_uuid.isdecimal():
         return Slice.id == int(id_or_uuid)
     return Slice.uuid == id_or_uuid
 
@@ -496,13 +567,45 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import DatasourceDAO
 
-    src_class = DatasourceDAO.sources[target.datasource_type]
+    src_class: type[Datasource] | None = DatasourceDAO.sources.get(
+        target.datasource_type
+    )
+    if src_class is None:
+        # An unknown ``datasource_type`` (a legacy connector, a typo, or an
+        # extension type core does not know yet) has no resolvable datasource.
+        # Guard with ``.get()`` so this before_insert/before_update listener
+        # does not raise KeyError and 500 every save of such a chart. Fail
+        # closed by clearing the denormalized perm columns: a chart whose type
+        # is mutated to an unknown value loses access instead of resolving under
+        # its former datasource's stale perm in list filters. An unresolved
+        # datasource cannot satisfy datasource-derived access; independent
+        # owner/Admin/viewer chart grants retain their usual checks.
+        logger.warning(
+            "Slice %r references unknown datasource_type %r; clearing perm "
+            "columns (fail closed).",
+            target.slice_name,
+            target.datasource_type,
+        )
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
+    ds: Datasource | None = None
     if id_ := target.datasource_id:
-        ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-        if ds:
-            target.perm = ds.perm
-            target.catalog_perm = ds.catalog_perm
-            target.schema_perm = ds.schema_perm
+        # A soft-deleted datasource is restorable, not missing: resolve it so
+        # its charts keep their perms through trash and restore.
+        with skip_visibility_filter(db.session, src_class):
+            ds = db.session.query(src_class).filter_by(id=int(id_)).first()
+    if ds is None:
+        # A missing datasource (hard-deleted, or no ``datasource_id``) fails
+        # closed like an unknown type, rather than keeping the stale perm.
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
+    target.perm = getattr(ds, "perm", None)
+    target.catalog_perm = getattr(ds, "catalog_perm", None)
+    target.schema_perm = getattr(ds, "schema_perm", None)
 
 
 def event_after_chart_changed(
