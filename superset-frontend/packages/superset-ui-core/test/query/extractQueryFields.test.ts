@@ -69,6 +69,18 @@ describe('extractQueryFields', () => {
     ).toEqual(['left_sum', 'right_sum']);
   });
 
+  test('should extract candlestick OHLC metrics', () => {
+    expect(
+      extractQueryFields({
+        x_axis: 'date',
+        open: 'open',
+        close: 'close',
+        high: 'high',
+        low: 'low',
+      }).metrics,
+    ).toEqual(['open', 'close', 'high', 'low']);
+  });
+
   test('should extract columns', () => {
     expect(extractQueryFields({ columns: 'col_1' })).toEqual({
       columns: ['col_1'],
