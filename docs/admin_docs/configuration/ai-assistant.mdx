@@ -412,6 +412,9 @@ latency to every turn that uses it.
 
 ## Retention
 
+Completed responses retain the provider-supplied thought process shown during
+the run, so it remains available when a conversation is reloaded.
+
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
 Pruning is not automatic — schedule it if you want it enforced.
 

@@ -467,3 +467,64 @@ def test_a_silent_success_is_not_given_an_invented_error() -> None:
 
     quiet = SimpleNamespace(answer="", error=None, cancelled=False, timed_out=False)
     assert _terminal_content(quiet, RunOutcome.SUCCESS) == ""
+
+
+@pytest.mark.parametrize("thinking", ["Checked the available data.", ""])
+def test_completed_turn_keeps_streamed_reasoning_in_history(
+    thinking: str,
+    mocker: MockerFixture,
+) -> None:
+    """Reloading a successful turn retains its provider-supplied reasoning."""
+    from superset.ai.llm.echo import EchoProvider, ScriptedTurn
+    from superset.ai.orchestrator import _run, TurnRequest
+    from superset.ai.profiles import AgentProfile
+    from superset.ai.runtime.messages import MessagesApiRuntime
+    from superset.ai.tools.base import ToolRegistry
+    from superset.ai.types import MessageStatus, StreamEventType
+
+    provider = EchoProvider([ScriptedTurn(text="Answer.", thinking=thinking)])
+    mocker.patch("superset.ai.factories.get_provider", return_value=provider)
+    mocker.patch(
+        "superset.ai.factories.get_runtime",
+        return_value=MessagesApiRuntime(provider),
+    )
+    profiles = mocker.patch("superset.ai.factories.get_profiles")
+    profiles.return_value.get.return_value = AgentProfile(key="test", name="Test")
+    mocker.patch(
+        "superset.ai.factories.get_tools_for_profile", return_value=ToolRegistry()
+    )
+    mocker.patch(
+        "superset.daos.ai.AIChatThreadDAO.find_by_uuid_for_user",
+        return_value=SimpleNamespace(),
+    )
+    mocker.patch(
+        "superset.daos.ai.AIChatMessageDAO.find_for_thread",
+        return_value=[_stored("user", "Question")],
+    )
+    mocker.patch("superset.ai.orchestrator._mark_streaming")
+    finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
+    events = list(
+        _run(
+            TurnRequest(
+                thread_uuid="t-reasoning",
+                user_id=7,
+                run_id="r-reasoning",
+                assistant_message_uuid="m-reasoning",
+            ),
+            {},
+        )
+    )
+
+    finalise.assert_called_once()
+    saved = finalise.call_args.kwargs
+    assert saved["status"] is MessageStatus.COMPLETE
+    assert saved["content"] == "Answer."
+    assert saved["extra"]["thoughts"] == thinking
+    assert (
+        "".join(
+            event.payload["delta"]
+            for event in events
+            if event.type is StreamEventType.THOUGHTS
+        )
+        == thinking
+    )
