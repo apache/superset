@@ -56,7 +56,7 @@
     "@types/d3-format": "^3.0.4",
     "@types/json-bigint": "^1.0.4",
     "@visx/responsive": "^4.0.0",
-    "ace-builds": "^1.44.0",
+    "ace-builds": "^1.45.0",
     "ag-grid-community": "36.2.0",
     "ag-grid-react": "36.2.0",
     "brace": "^0.11.1",
