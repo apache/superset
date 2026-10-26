@@ -279,6 +279,8 @@ export default function SemanticLayerModal({
         fetchTypes();
       }
     } else {
+      typeRequestRef.current += 1;
+      schemaRequestRef.current += 1;
       setStep('type');
       setName('');
       setSelectedType(null);

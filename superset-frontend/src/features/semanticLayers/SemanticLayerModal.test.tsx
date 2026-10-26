@@ -997,6 +997,46 @@ test.each(['resolve', 'reject'])(
   },
 );
 
+test('closing a mounted layer dialog suppresses a pending type-fetch failure', async () => {
+  let rejectTypes!: (error: Error) => void;
+  mockedGet.mockReset().mockReturnValue(
+    new Promise((_, reject) => {
+      rejectTypes = reject;
+    }),
+  );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} semanticLayerUuid={undefined} />,
+  );
+  await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(1));
+
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      show={false}
+    />,
+  );
+  await act(async () => rejectTypes(new Error('late type failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('closing a mounted layer dialog suppresses a pending schema-fetch failure', async () => {
+  let rejectSchema!: (error: Error) => void;
+  mockedPost.mockReset().mockReturnValue(
+    new Promise((_, reject) => {
+      rejectSchema = reject;
+    }),
+  );
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => rejectSchema(new Error('late schema failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
 test('setup documentation stays available during schema loading and configuration', async () => {
   mockSemanticDocsUrl = 'https://docs.example.org/setup';
   mockedGet.mockReset().mockResolvedValue({
