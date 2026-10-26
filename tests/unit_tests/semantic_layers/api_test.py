@@ -1039,7 +1039,7 @@ def test_semantic_delete_reports_dependents_as_conflict(
     }
     mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
     mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
-        25, [dependent], 24
+        25, [dependent], 24, 3
     )
 
     request_path: str = (
@@ -1050,11 +1050,16 @@ def test_semantic_delete_reports_dependents_as_conflict(
     response: TestResponse = client.delete(request_path)
 
     assert response.status_code == 409
+    assert response.json["archived_count"] == 3
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
     assert response.json["message"] == (
-        "Semantic source is used by 25 dependent assets and cannot be deleted."
+        "Semantic source is used by 25 dependent assets and cannot be deleted. "
+        "Remove or repoint these assets before deleting the semantic source. "
+        "3 dependent assets are archived. "
+        "Go to Recently Archived to restore and repoint archived assets, "
+        "or delete them permanently, or ask an admin for help."
     )
 
 
@@ -1086,6 +1091,7 @@ def test_semantic_delete_openapi_conflict_schema(
         "total",
         "dependents",
         "inaccessible_count",
+        "archived_count",
     }
     assert schema["properties"]["dependents"]["maxItems"] == 20
     assert schema["properties"]["dependents"]["items"]["properties"]["type"][
