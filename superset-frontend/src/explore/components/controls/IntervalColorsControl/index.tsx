@@ -87,6 +87,16 @@ export default function IntervalColorsControl({
   );
   const schemeColors =
     getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
+  // Legacy indices past the static palette resolve only against the
+  // renderer's render-time palette, so the editor cannot show (or safely
+  // persist) the colors the chart renders. Stay read-only until explicit
+  // colors exist, so a row edit never rewrites an untouched band.
+  const legacyUnresolved =
+    !hasExplicitColors &&
+    legacyIndexCount > 0 &&
+    legacyColors.length > 0 &&
+    legacyColors.every(color => color === '');
+  const editable = boundsComplete && !legacyUnresolved;
   const colorAt = (index: number): string =>
     value?.[index] ||
     (hasExplicitColors ? '' : legacyColors[index]) ||
@@ -94,7 +104,7 @@ export default function IntervalColorsControl({
     '';
 
   const handleColorChange = (index: number) => (color: ColorPickerValue) => {
-    if (typeof color !== 'string' || !boundsComplete) return;
+    if (typeof color !== 'string' || !editable) return;
     onChange?.(replaceColorAtIndex(writeLength, index, color, colorAt));
   };
 
@@ -115,7 +125,7 @@ export default function IntervalColorsControl({
               value={colorAt(index)}
               onChange={handleColorChange(index)}
               outputFormat="hex"
-              disabled={!boundsComplete}
+              disabled={!editable}
             />
           </IntervalRow>
         ))
