@@ -24,50 +24,39 @@ import { test, expect, devices, Page } from '@playwright/test';
 // environment (FEATURE_FLAGS = {"MOBILE_CONSUMPTION_MODE": True}).
 import { TIMEOUT } from '../../utils/constants';
 import { URL } from '../../utils/urls';
+import { gotoWithRetry } from '../../helpers/navigation';
 
 /**
  * Mobile dashboard viewing tests verify that dashboards can be viewed
  * and interacted with on mobile devices.
  *
- * These tests assume the World Bank's Health sample dashboard exists.
+ * These tests assume the World Bank's Data sample dashboard exists.
  */
 
 // Use iPhone 12 viewport for mobile tests
 const mobileViewport = devices['iPhone 12'];
 
-/**
- * Navigates to the dashboard list, clicks the first available dashboard
- * card, and waits for navigation into that dashboard. Skips the current
- * test when no dashboards are available to open.
- */
-async function openFirstDashboard(page: Page): Promise<void> {
-  await page.goto(URL.DASHBOARD_LIST);
+/** Opens the required sample dashboard and asserts navigation succeeds. */
+async function openExampleDashboard(page: Page): Promise<void> {
+  const response = await gotoWithRetry(page, 'dashboard/world_health/');
+  expect(
+    response?.status(),
+    'world_health missing; run superset load_examples',
+  ).toBe(200);
   await page.waitForLoadState('networkidle');
-
-  const cards = page.locator('[data-test="styled-card"]');
-  const cardCount = await cards.count();
-
-  test.skip(cardCount === 0, 'No dashboards available to open on mobile');
-
-  await cards.first().click();
-
-  await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-    timeout: TIMEOUT.PAGE_LOAD,
-  });
 }
 
 /**
- * Navigates to the World Bank's Health dashboard and returns a locator
+ * Navigates to the World Bank's Data dashboard and returns a locator
  * for its mobile filter button. Skips the current test when the fixture
  * has no native filters configured.
  */
 async function getMobileFilterButton(page: Page) {
-  // Navigate directly to the World Bank's Health dashboard, which this
+  // Navigate directly to the World Bank's Data dashboard, which this
   // spec's fixtures require, rather than an arbitrary first card from
   // the list. Whether it has native filters configured depends on the
   // fixture, so callers skip themselves when none are present.
-  await page.goto('dashboard/world_health/');
-  await page.waitForLoadState('networkidle');
+  await openExampleDashboard(page);
 
   // Give filters time to load
   await page.waitForTimeout(2000);
@@ -164,32 +153,8 @@ test.describe('Mobile Dashboard Interaction', () => {
     userAgent: mobileViewport.userAgent,
   });
 
-  // Skip this test suite if no dashboards exist
-  test.beforeAll(async ({ browser }) => {
-    // browser.newPage() does not inherit the project's `storageState`, so
-    // it must be passed explicitly to reuse the authenticated session -
-    // otherwise this check hits the login page and always finds 0 cards.
-    const page = await browser.newPage({
-      viewport: mobileViewport.viewport,
-      userAgent: mobileViewport.userAgent,
-      storageState: 'playwright/.auth/user.json',
-    });
-
-    await page.goto(URL.DASHBOARD_LIST);
-    await page.waitForLoadState('networkidle');
-
-    const cards = page.locator('[data-test="styled-card"]');
-    const cardCount = await cards.count();
-
-    await page.close();
-
-    if (cardCount === 0) {
-      test.skip();
-    }
-  });
-
   test('dashboard loads and shows charts on mobile', async ({ page }) => {
-    await openFirstDashboard(page);
+    await openExampleDashboard(page);
 
     // Dashboard content should be visible
     await expect(
@@ -210,7 +175,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard header shows hamburger menu on mobile', async ({ page }) => {
-    await openFirstDashboard(page);
+    await openExampleDashboard(page);
 
     // Look for the hamburger menu / more actions button
     const menuButton = page
@@ -223,7 +188,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('refresh dashboard works from mobile menu', async ({ page }) => {
-    await openFirstDashboard(page);
+    await openExampleDashboard(page);
 
     // Open the actions menu
     const menuButton = page

@@ -26,8 +26,9 @@ runs:
         if [ "$INPUT_PYTHON_VERSION" = "current" ]; then
           RESOLVED_VERSION="3.11"
         elif [ "$INPUT_PYTHON_VERSION" = "next" ]; then
-          # currently disabled in GHA matrixes because of library compatibility issues
-          RESOLVED_VERSION="3.12"
+          # tracks the next Python minor we're evaluating for support; exercised
+          # by the nightly canary (python-nightly-canary.yml), not PR/push CI
+          RESOLVED_VERSION="3.13"
         elif printf '%s' "$INPUT_PYTHON_VERSION" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
           RESOLVED_VERSION="$INPUT_PYTHON_VERSION"
         else
