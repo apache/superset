@@ -43,7 +43,7 @@ def _rows(widget_ids: Iterable[str]) -> list[Widget]:
     if not uuids:
         return []
     query = db.session.query(Widget)
-    return query.filter(Widget.uuid.in_(uuids)).all()  # type: ignore[attr-defined]
+    return query.filter(Widget.__table__.c.uuid.in_(uuids)).all()
 
 
 def stored(widget: Widget) -> StoredWidget:
