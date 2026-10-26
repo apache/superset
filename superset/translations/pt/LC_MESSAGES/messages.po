@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -1284,6 +1284,12 @@ msgstr ""
 "Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo"
 " de cada período. É habitualmente usado em análises financeiras e de "
 "intervalos de séries temporais."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Lista de colunas separadas por vírgulas a serem analisadas como datas"
@@ -14055,6 +14061,9 @@ msgstr "Nenhuma expressão salva foi encontrada"
 msgid "No saved metrics found"
 msgstr "Nenhuma métrica salva foi encontrada"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -23299,6 +23308,9 @@ msgstr "Formato de hora"
 msgid "Time grain"
 msgstr "Grão de tempo"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Plug-in de personalização de gráfico de granulação temporal"
 
@@ -23379,6 +23391,9 @@ msgstr "Erro de tempo limite"
 
 msgid "Timestamp format"
 msgstr "Formato de carimbo de data/hora"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

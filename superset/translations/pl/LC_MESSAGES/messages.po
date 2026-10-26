@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -1080,6 +1080,12 @@ msgstr ""
 "Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i "
 "minimum dla każdego okresu. Jest powszechnie używany do analiz "
 "finansowych i zakresów szeregów czasowych."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -12006,6 +12012,9 @@ msgstr "Nie znaleziono zapisanych wyrażeń"
 msgid "No saved metrics found"
 msgstr "Nie znaleziono zapisanych metryk"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -19972,6 +19981,9 @@ msgstr "Format czasu"
 msgid "Time grain"
 msgstr "Jednostka czasu"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Brakujący filtr jednostki czasu"
@@ -20057,6 +20069,9 @@ msgstr "Błąd przekroczenia limitu czasu"
 #, fuzzy
 msgid "Timestamp format"
 msgstr "Format znacznika czasu"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Strefa czasowa"

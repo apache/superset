@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1056,6 +1056,12 @@ msgstr ""
 "Een candlestick-grafiek toont openings-, slot-, hoogste en laagste "
 "waarden per periode. Wordt vaak gebruikt voor financiële en andere "
 "tijdreeks-bereikanalyses."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -11838,6 +11844,9 @@ msgstr "Geen opgeslagen expressies gevonden"
 msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -19655,6 +19664,9 @@ msgstr "Tijd opmaak"
 msgid "Time grain"
 msgstr "Tijdsinterval"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Tijdsinterval filter plugin"
@@ -19733,6 +19745,9 @@ msgstr "Timeout fout"
 
 msgid "Timestamp format"
 msgstr "Tijdsstempel opmaak"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Tijdzone"

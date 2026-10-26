@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1328,6 +1328,12 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr "캔들스틱 차트는 각 기간의 시가, 종가, 고가, 저가를 보여 줍니다. 금융 및 기타 시계열 범위 분석에 자주 사용됩니다."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -16202,6 +16208,9 @@ msgstr "표현식"
 msgid "No saved metrics found"
 msgstr "저장된 Query"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -26756,6 +26765,9 @@ msgstr "D3 포멧"
 msgid "Time grain"
 msgstr "시간 단위"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -26876,6 +26888,9 @@ msgstr "시간 초과 오류"
 #, fuzzy
 msgid "Timestamp format"
 msgstr "타임스탬프 형식"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

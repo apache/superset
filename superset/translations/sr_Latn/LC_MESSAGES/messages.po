@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1197,6 +1197,12 @@ msgstr ""
 "Svećasti grafikon prikazuje vrednosti otvaranja, zatvaranja, maksimum i "
 "minimum za svaki period. Obično se koristi za finansijsku i drugu analizu"
 " opsega vremenskih serija."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -13225,6 +13231,9 @@ msgstr "Nisu pronađeni sačuvani izrazi"
 msgid "No saved metrics found"
 msgstr "Nisu pronađene sačuvane metrike"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -21746,6 +21755,9 @@ msgstr "Format vremena"
 msgid "Time grain"
 msgstr "Vremenska granularnost"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # uk]
 msgid "Time grain chart customization plugin"
 msgstr "Dodatak za prilagođavanje grafikona prema vremenskoj granulaciji"
@@ -21841,6 +21853,9 @@ msgstr "Greška usled prekoračenja vremena"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Timestamp format"
 msgstr "Format vremenske oznake"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Timezone"

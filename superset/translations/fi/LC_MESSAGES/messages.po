@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -1448,6 +1448,12 @@ msgstr ""
 "Kynttiläkaavio näyttää avaus-, päätös-, ylä- ja aliarvot kullekin "
 "jaksolle. Sitä käytetään yleisesti rahoitus- ja muuhun aikasarjojen "
 "vaihteluvälianalyysiin."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -18010,6 +18016,9 @@ msgstr "Tallennettuja lausekkeita ei löydy"
 msgid "No saved metrics found"
 msgstr "Tallennettuja mittareita ei löydy"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -29499,6 +29508,9 @@ msgstr "Aikamuoto"
 msgid "Time grain"
 msgstr "Aikayksikkö"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -29637,6 +29649,9 @@ msgstr "Aikakatkaisuvirhe"
 #, fuzzy
 msgid "Timestamp format"
 msgstr "Aikaleiman muoto"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1084,6 +1084,12 @@ msgstr ""
 "Svečniški grafikon prikazuje vrednosti odprtja, zaprtja, najvišjo in "
 "najnižjo za vsako obdobje. Pogosto se uporablja za finančne in druge "
 "analize razponov časovnih vrst."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Seznam stolpcev, ločenih z vejico, ki jih je treba razčleniti kot datume"
@@ -11090,6 +11096,9 @@ msgstr "Shranjeni izrazi niso najdeni"
 msgid "No saved metrics found"
 msgstr "Shranjene mere niso najdene"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18337,6 +18346,9 @@ msgstr "Oblika zapisa časa"
 msgid "Time grain"
 msgstr "Granulacija časa"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Vtičnik za prilagajanje grafikona časovni zrnatosti"
 
@@ -18412,6 +18424,9 @@ msgstr "Napaka pretečenega časa"
 
 msgid "Timestamp format"
 msgstr "Oblika zapisa časovne značke"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Časovni pas"

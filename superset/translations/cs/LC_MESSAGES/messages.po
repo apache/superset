@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1053,6 +1053,12 @@ msgstr ""
 "Svíčkový graf zobrazuje otevírací, uzavírací, nejvyšší a nejnižší hodnoty"
 " za každé období. Běžně se používá pro finanční a jinou analýzu rozpětí "
 "časových řad."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -11140,6 +11146,9 @@ msgstr "Nebyly nalezeny žádné uložené výrazy"
 msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žádné uložené metriky"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18460,6 +18469,9 @@ msgstr "Formát času"
 msgid "Time grain"
 msgstr "Časová granularita"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Plugin časové granularity pro přizpůsobení grafu"
@@ -18539,6 +18551,9 @@ msgstr "Chyba časového limitu"
 
 msgid "Timestamp format"
 msgstr "Formát časového razítka"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Časové pásmo"

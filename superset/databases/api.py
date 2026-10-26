@@ -282,7 +282,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
     allowed_rel_fields = {"changed_by", "created_by"}
 
-    list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
+    list_select_columns = list_columns + [
+        "extra",
+        "sqlalchemy_uri",
+        "password",
+        "encrypted_extra",
+    ]
     order_columns = [
         "allow_file_upload",
         "allow_dml",

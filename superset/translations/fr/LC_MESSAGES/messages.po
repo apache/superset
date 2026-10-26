@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -1026,6 +1026,12 @@ msgstr ""
 "le plus haut et le plus bas de chaque période. Il est couramment utilisé "
 "pour l'analyse financière et d'autres analyses de plage de séries "
 "temporelles."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Liste de Colonnes séparée par des virgules à traiter comme des dates"
@@ -11043,6 +11049,9 @@ msgstr "Aucune expression sauvegardée trouvée"
 msgid "No saved metrics found"
 msgstr "Aucune mesure sauvegardée trouvée"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18425,6 +18434,9 @@ msgstr "Format de temps"
 msgid "Time grain"
 msgstr "Fragment de temps"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Plugin de personnalisation du fragment de temps"
 
@@ -18500,6 +18512,9 @@ msgstr "Erreur de dépassement de délai"
 
 msgid "Timestamp format"
 msgstr "Format d'horodatage"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Fuseau horaire"

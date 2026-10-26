@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1076,6 +1076,12 @@ msgstr ""
 "Свічковий графік показує ціни відкриття, закриття, максимум і мінімум за "
 "кожен період. Зазвичай використовується для фінансового та іншого аналізу"
 " діапазонів часових рядів."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Перелік стовпців, розділених комами, які слід розпізнавати як дати"
@@ -10938,6 +10944,9 @@ msgstr "Не знайдено жодного збереженого виразу
 msgid "No saved metrics found"
 msgstr "Не знайдено жодного збереженого показника"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18137,6 +18146,9 @@ msgstr "Формат часу"
 msgid "Time grain"
 msgstr "Одиниця часу"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Модуль налаштування одиниці часу"
 
@@ -18213,6 +18225,9 @@ msgstr "Час очікування"
 
 msgid "Timestamp format"
 msgstr "Формат часової мітки"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Часовий пояс"

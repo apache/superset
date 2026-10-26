@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-23 17:00-0300\n"
+"POT-Creation-Date: 2026-10-26 15:51-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1101,6 +1101,12 @@ msgstr ""
 "Un grafic cu lumânări afișează valorile de deschidere, închidere, maximă "
 "și minimă pentru fiecare perioadă. Este folosit frecvent în analize "
 "financiare și de interval pe serii temporale."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "O listă separată prin virgulă de coloane care ar trebui analizate ca date"
@@ -11670,6 +11676,9 @@ msgstr "Nicio expresie salvată găsită"
 msgid "No saved metrics found"
 msgstr "Nu s-au găsit indicatori salvați"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -19308,6 +19317,9 @@ msgstr "Format timp"
 msgid "Time grain"
 msgstr "Granularitate timp"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19391,6 +19403,9 @@ msgstr "Eroare timeout"
 
 msgid "Timestamp format"
 msgstr "Format marcaj temporal"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Fus orar"
