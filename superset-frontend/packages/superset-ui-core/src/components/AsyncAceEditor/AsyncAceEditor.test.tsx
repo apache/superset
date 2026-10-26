@@ -351,6 +351,39 @@ test('renders FullSQLEditor', async () => {
   });
 });
 
+test.each([
+  ['SQLEditor', SQLEditor],
+  ['FullSQLEditor', FullSQLEditor],
+])('%s folds SQL blocks without changing the query', async (_, Editor) => {
+  const ref = createRef<AceEditor>();
+  const sql = [
+    'WITH nested_query AS (',
+    '  SELECT 1 AS value',
+    ')',
+    'SELECT * FROM nested_query;',
+    '/* multi-line',
+    '   comment */',
+  ].join('\n');
+  render(<Editor ref={ref as React.Ref<never>} defaultValue={sql} />);
+  await waitFor(() => expect(ref.current).not.toBeNull());
+
+  const { session } = ref.current!.editor;
+  expect(session.getFoldWidget(0)).toBe('start');
+  expect(session.getFoldWidget(4)).toBe('start');
+  session.foldAll();
+  expect(session.getAllFolds().map(fold => fold.start.row)).toEqual([0, 4]);
+  expect(session.getValue()).toBe(sql);
+
+  session.unfold();
+  expect(session.getAllFolds()).toHaveLength(0);
+  expect(session.getValue()).toBe(sql);
+  expect(session.getTokens(3)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ type: 'keyword', value: 'SELECT' }),
+    ]),
+  );
+});
+
 test('renders MarkdownEditor', async () => {
   const { container } = render(<MarkdownEditor />);
 

@@ -686,6 +686,7 @@
         "pypi_packages": ["pydoris"],
         "connection_string": "doris://{username}:{password}@{host}:{port}/{catalog}.{database}",
         "default_port": 9030,
+        "notes": "The SSL switch sets ssl_mode=VERIFY_CA. With MariaDB Connector/C, which mysqlclient uses in the Superset image, this also verifies the server hostname. Add ssl_ca=<path to the CA certificate> in Additional parameters and use a Doris FE certificate that matches the host. A Doris FE on its default self-signed certificate fails to connect once the switch is on.",
         "parameters": {
           "username": "User name",
           "password": "Password",
@@ -1457,6 +1458,7 @@
           "Open Source"
         ],
         "pypi_packages": ["pinotdb"],
+        "version_requirements": "The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.",
         "connection_string": "pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/",
         "default_port": 8099,
         "connection_examples": [
@@ -2172,8 +2174,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -2395,8 +2397,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -2911,19 +2913,20 @@
       "max_score": 201,
       "documentation": {
         "description": "ClickHouse is an open-source column-oriented database for real-time analytics using SQL. It's known for extremely fast query performance on large datasets.",
-        "logo": "clickhouse.png",
+        "logo": "clickhouse.svg",
         "homepage_url": "https://clickhouse.com/",
         "categories": ["Analytical Databases", "Open Source"],
-        "pypi_packages": ["clickhouse-connect>=0.13.0"],
+        "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
           {
-            "name": "clickhouse-connect (Recommended)",
-            "pypi_package": "clickhouse-connect>=0.13.0",
+            "name": "clickhouse-connect",
+            "pypi_package": "clickhouse-connect>=1.8.0,<2.0",
             "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
             "is_recommended": true,
-            "notes": "Official ClickHouse Python driver with native protocol support."
+            "docs_url": "https://github.com/ClickHouse/clickhouse-connect",
+            "notes": "Official ClickHouse Python driver using HTTP(S). Use the HTTP port (8123 by default), or the HTTPS port with secure=true (8443 for ClickHouse Cloud). Native TCP ports are not supported."
           },
           {
             "name": "clickhouse-sqlalchemy (Legacy)",
@@ -2935,35 +2938,45 @@
         ],
         "connection_examples": [
           {
+            "description": "ClickHouse Cloud SQL playground (demo user, no password)",
+            "connection_string": "clickhousedb://demo:@sql-clickhouse.clickhouse.com:8443/uk?secure=true"
+          },
+          {
+            "description": "ClickHouse Cloud (HTTPS)",
+            "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+          },
+          {
             "description": "Altinity Cloud",
             "connection_string": "clickhousedb://demo:demo@github.demo.trial.altinity.cloud/default?secure=true"
           },
           {
-            "description": "Local (no auth, no SSL)",
-            "connection_string": "clickhousedb://localhost/default"
+            "description": "Local (default user, no password, no TLS)",
+            "connection_string": "clickhousedb://default@localhost:8123/default"
           }
         ],
-        "install_instructions": "echo \"clickhouse-connect>=0.13.0\" >> ./docker/requirements-local.txt",
+        "install_instructions": "# For a Python environment\npip install \"clickhouse-connect>=1.8.0,<2.0\"\n\n# For the repository Docker Compose setup\necho \"clickhouse-connect>=1.8.0,<2.0\" >> ./docker/requirements-local.txt\n# Restart the containers after adding the driver.",
         "compatible_databases": [
           {
             "name": "ClickHouse Cloud",
             "description": "ClickHouse Cloud is the official fully-managed cloud service for ClickHouse. It provides automatic scaling, built-in backups, and enterprise security features.",
-            "logo": "clickhouse.png",
+            "logo": "clickhouse-mark.svg",
+            "logo_dark": "clickhouse-mark-dark.svg",
             "homepage_url": "https://clickhouse.cloud/",
             "categories": [
               "Analytical Databases",
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": ["clickhouse-connect>=0.13.0"],
+            "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
             "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true",
             "parameters": {
-              "username": "ClickHouse Cloud username",
-              "password": "ClickHouse Cloud password",
-              "host": "Your ClickHouse Cloud hostname",
+              "username": "Database username from the service Connect dialog (default: default)",
+              "password": "URL-encoded database password from the service Connect dialog",
+              "host": "HTTPS hostname from the service Connect dialog",
               "database": "Database name (default)"
             },
-            "docs_url": "https://clickhouse.com/docs/en/cloud"
+            "docs_url": "https://clickhouse.com/docs/products/cloud/getting-started/cloud-get-started",
+            "notes": "Open your service in the ClickHouse Cloud console and select Connect to find the HTTPS endpoint and database credentials. For public connections, allow the Superset server IP address in the service IP access list."
           },
           {
             "name": "Altinity.Cloud",
@@ -2975,12 +2988,15 @@
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": ["clickhouse-connect>=0.13.0"],
+            "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
             "connection_string": "clickhousedb://{username}:{password}@{host}/{database}?secure=true",
             "docs_url": "https://docs.altinity.com/"
           }
         ],
-        "category": "Analytical Databases"
+        "category": "Analytical Databases",
+        "logo_dark": "clickhouse-dark.svg",
+        "docs_url": "https://clickhouse.com/docs/integrations/superset",
+        "notes": "The SQL playground at sql.clickhouse.com uses the database endpoint sql-clickhouse.clickhouse.com; the example connects to its uk sample database. URL-encode special characters in usernames and passwords when building a SQLAlchemy URI. Use database credentials, not your ClickHouse Cloud console sign-in. For Docker deployments, localhost refers to the Superset container; use a hostname reachable from that container."
       },
       "engine": "clickhousedb",
       "engine_name": "ClickHouse",
@@ -3053,7 +3069,9 @@
       "documentation": {
         "pypi_packages": [],
         "connection_string": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
-        "category": "Analytical Databases"
+        "category": "Analytical Databases",
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg"
       },
       "engine": "clickhouse",
       "engine_name": "ClickHouse (sqlalchemy)",
@@ -3107,7 +3125,7 @@
       "column_type_mapping": false,
       "function_names": true,
       "user_impersonation": false,
-      "file_upload": true,
+      "file_upload": false,
       "get_extra_table_metadata": false,
       "dbapi_exception_mapping": false,
       "custom_errors": false,
@@ -3121,7 +3139,7 @@
       "expand_data": false,
       "query_cost_estimation": false,
       "sql_validation": false,
-      "score": 41,
+      "score": 31,
       "max_score": 201,
       "documentation": {
         "description": "Cloudflare D1 is a serverless SQLite database.",
@@ -3132,21 +3150,22 @@
           "Traditional RDBMS",
           "Hosted Open Source"
         ],
-        "pypi_packages": ["superset-engine-d1"],
+        "pypi_packages": ["sqlalchemy-d1"],
         "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
         "parameters": {
           "cloudflare_account_id": "Cloudflare account ID",
           "cloudflare_api_token": "Cloudflare API token",
           "cloudflare_d1_database_id": "D1 database ID"
         },
-        "install_instructions": "pip install superset-engine-d1",
+        "install_instructions": "pip install \"apache-superset[d1]\"",
+        "version_requirements": "sqlalchemy-d1 0.2.0 or later is required for SQLAlchemy 2. sqlalchemy-d1 0.1.0 pins SQLAlchemy below 2.0 and depends on the retired dbapi-d1 package.",
         "category": "Other Databases"
       },
       "engine": "d1",
       "engine_name": "Cloudflare D1",
       "engine_aliases": [],
-      "default_driver": "d1",
-      "supports_file_upload": true,
+      "default_driver": "httpx",
+      "supports_file_upload": false,
       "supports_dynamic_schema": false,
       "supports_catalog": false,
       "supports_dynamic_catalog": false
@@ -3645,6 +3664,7 @@
         ],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
+        "version_requirements": "The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.",
         "connection_string": "databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}",
         "parameters": {
           "access_token": "Personal access token from Settings > User Settings",
@@ -3691,7 +3711,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Databricks (legacy)": {
       "time_grains": {
@@ -3764,7 +3789,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Databricks Interactive Cluster": {
       "time_grains": {
@@ -3842,7 +3872,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Databricks SQL Endpoint": {
       "time_grains": {
@@ -3915,7 +3950,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": false,
       "supports_catalog": false,
-      "supports_dynamic_catalog": false
+      "supports_dynamic_catalog": false,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Denodo": {
       "time_grains": {
@@ -6807,8 +6847,8 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
-      "score": 104,
+      "sql_validation": false,
+      "score": 94,
       "max_score": 201,
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -6961,6 +7001,26 @@
             },
             "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2.",
             "categories": ["Cloud - AWS", "Hosted Open Source"]
+          },
+          {
+            "name": "ClickHouse Managed Postgres",
+            "description": "Managed PostgreSQL from ClickHouse.",
+            "logo": "clickhouse-mark.svg",
+            "homepage_url": "https://clickhouse.com/cloud/postgres",
+            "pypi_packages": ["psycopg2"],
+            "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}?sslmode=verify-full&sslrootcert={ca_certificate_path}",
+            "parameters": {
+              "username": "Database user",
+              "password": "URL-encoded database password",
+              "host": "Direct PostgreSQL hostname from the Connect dialog",
+              "port": "Port from the Connect dialog (default: 5432)",
+              "database": "Database name",
+              "ca_certificate_path": "URL-encoded absolute path to the instance CA certificate on the Superset server"
+            },
+            "notes": "In ClickHouse Cloud, open the Connect menu and use the Directly option. Download the instance-specific CA certificate from Settings and make it available to each Superset process that connects to the database. Use verify-full to verify the certificate and hostname.",
+            "docs_url": "https://clickhouse.com/docs/products/managed-postgres/connection",
+            "categories": ["HOSTED_OPEN_SOURCE"],
+            "logo_dark": "clickhouse-mark-dark.svg"
           }
         ],
         "category": "Traditional RDBMS",
@@ -7834,7 +7894,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "StarRocks": {
       "time_grains": {

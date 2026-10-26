@@ -22,15 +22,17 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Annotated, Any, Dict, List
 
 from fastmcp import Context
 from flask import g
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import db, event_logger
+from superset.daos.dashboard import _layout_chart_id
+from superset.dashboards.layout import repair_position
+from superset.extensions import db, event_logger, security_manager
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -200,7 +202,19 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     ),
 )
 def generate_dashboard(  # noqa: C901
-    request: GenerateDashboardRequest, ctx: Context
+    request: Annotated[
+        GenerateDashboardRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {"chart_ids": [1], "dashboard_title": "New"}}. '
+                "Charts must exist and be accessible. NEW dashboards only; "
+                "use add_chart_to_existing_dashboard for existing ones. "
+                "Never use as a fallback if that fails. "
+                "position_json overrides the default grid."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateDashboardResponse:
     """Create a NEW dashboard from chart IDs.
 
@@ -252,13 +266,19 @@ def generate_dashboard(  # noqa: C901
                     ),
                 )
 
-            # Validate dataset access for each chart.
+            # Validate dataset access as well as chart visibility.
             # check_chart_data_access is the centralized data-level
             # permission check that complements the class-level RBAC
             # enforced by mcp_auth_hook.
             from superset.mcp_service.auth import check_chart_data_access
 
             for chart in chart_objects:
+                if not security_manager.can_access_chart(chart):
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=f"You don't have permission to access chart {chart.id}.",
+                    )
                 validation = check_chart_data_access(chart)
                 if not validation.is_valid:
                     return GenerateDashboardResponse(
@@ -269,20 +289,26 @@ def generate_dashboard(  # noqa: C901
                         ),
                     )
 
-        # Create dashboard layout with chart objects.
-        # Invalid explicit layouts make frontend hydration fail before chart
-        # queries start, so fall back to the known-good packed grid.
+        # Check all supplied references before repair can detach or replace nodes.
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
-            if request.position_json and (
-                validate_dashboard_layout(request.position_json, found_chart_ids)
-                is None
-            ):
-                # A caller-supplied layout may carry only an immediate
-                # parent (or omit `parents` altogether); rebuild the full
-                # ancestor chains so server-side filter-scope derivation
-                # sees the same tree the frontend would after hydration.
-                # See superset.dashboards.filter_scope.get_chart_ids_in_scope.
-                layout = rebuild_parent_chains(request.position_json)
+            layout = request.position_json
+            if layout:
+                chart_id: int | None
+                layout_chart_ids = {
+                    chart_id
+                    for node in layout.values()
+                    if (chart_id := _layout_chart_id(node)) is not None
+                }
+                if layout_chart_ids - set(request.chart_ids):
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error="Every layout chart must be included in chart_ids.",
+                    )
+                layout = repair_position(layout)
+
+            if layout and validate_dashboard_layout(layout, found_chart_ids) is None:
+                layout = rebuild_parent_chains(layout)
             else:
                 layout = _create_dashboard_layout(chart_objects)
                 if request.position_json:
@@ -359,8 +385,6 @@ def generate_dashboard(  # noqa: C901
                 # before the tool function runs), so the User object
                 # is bound to a dead/different scoped session.
                 # Querying fresh avoids all cross-session errors.
-                from superset.extensions import security_manager
-
                 current_user = (
                     db.session.query(security_manager.user_model)
                     .filter_by(id=g.user.id)
