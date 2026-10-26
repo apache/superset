@@ -290,7 +290,8 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
     """
     with tempfile.TemporaryDirectory() as cert_dir_str:
         cert_dir = Path(cert_dir_str)
-        _write_self_signed_cert(cert_dir, docker_host=_docker_host())
+        docker_host = _docker_host()
+        _write_self_signed_cert(cert_dir, docker_host=docker_host)
         container = MySqlContainer(
             "mariadb:11",
             command=(
@@ -305,6 +306,16 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
         for name in ("ca.pem", "server-cert.pem", "server-key.pem"):
             container.with_copy_into_container(cert_dir / name, f"/certs/{name}", 0o644)
         with container as started:
+            # The cert is minted before the container exists, so an address only
+            # known afterwards (TESTCONTAINERS_CONNECTION_MODE=bridge_ip or
+            # gateway_ip, or pytest inside a container) cannot be in the SAN.
+            # Skip rather than fail on a hostname mismatch under Connector/C.
+            covered = {"localhost", "127.0.0.1", docker_host}
+            if _tcp_host(started) not in covered:
+                pytest.skip(
+                    f"connect address {_tcp_host(started)!r} is not in the "
+                    "server certificate SAN"
+                )
             yield started, str(cert_dir / "ca.pem")
 
 
