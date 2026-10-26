@@ -339,6 +339,13 @@ class DatabaseSchema(Schema):
 
 
 class DashboardDatasetSchema(Schema):
+    metadata_error: fields.String = fields.String(
+        metadata={"description": "Validation error for this dataset only."}
+    )
+    supports_drill_to_detail: fields.Bool = fields.Bool()
+    supports_samples: fields.Bool = fields.Bool()
+    parent: fields.Dict = fields.Dict()
+    semantic_view_features: fields.List = fields.List(fields.Str())
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
@@ -371,6 +378,19 @@ class DashboardDatasetSchema(Schema):
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())
+    # Built server-side from accessible member charts only, so it survives both
+    # datasource-access narrowing (which removes ``verbose_map``) and guest narrowing.
+    chart_display_labels = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(keys=fields.Str(), values=fields.Str()),
+        metadata={
+            "description": "Display labels keyed by member chart ID, then by the "
+            "raw column or metric ID that chart uses. Only charts the caller can "
+            "access and labels configured for their saved dimensions and metrics "
+            "are included; omitted for semantic views, when there are none, or "
+            "when the caller has datasource access and already receives verbose_map."
+        },
+    )
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
@@ -381,6 +401,8 @@ class DashboardDatasetSchema(Schema):
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
             serialized.pop("database", None)
+            serialized.pop("parent", None)
+            serialized.pop("semantic_view_features", None)
             serialized.pop("editors", None)
             # Guest users should never receive fields that expose internal
             # connection or query details.
@@ -509,10 +531,15 @@ class DashboardPutSchema(DiscardIsManagedExternallyMixin, BaseDashboardSchema):
         allow_none=True,
         validate=validate_json,
     )
+    # Not validated here: a dashboard PUT sends the full object on every save
+    # (renaming, moving a chart, editing a filter all resend the unchanged
+    # css), so a field-level validator would re-reject a dashboard's existing
+    # css on any edit, not just an edit to css itself. UpdateDashboardCommand
+    # validates it, but only when the incoming value actually differs from
+    # what's stored.
     css = fields.String(
         metadata={"description": css_description},
         allow_none=True,
-        validate=validate_css,
     )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
@@ -598,7 +625,15 @@ class GetFavStarIdsSchema(Schema):
 class ImportV1DashboardSchema(Schema):
     dashboard_title = fields.String(required=True)
     description = fields.String(allow_none=True)
-    css = fields.String(allow_none=True)
+    # Unlike DashboardPutSchema, this is validated unconditionally, even for
+    # a value that matches what's already stored under the same uuid. A ZIP
+    # bundle is an untrusted input -- it may come from another instance, a
+    # different export era, or a tampered file -- so there's no equivalent
+    # to the PUT grandfather clause here: exempting "unchanged" css would
+    # only be safe if the existing row itself were still known-safe, which
+    # this path can't establish. A bundle carrying css that predates this
+    # check needs its css cleaned (or dropped) before it's importable again.
+    css = fields.String(allow_none=True, validate=validate_css)
     slug = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     position = fields.Dict()
@@ -638,6 +673,13 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     )
     task_status = fields.String(
         metadata={"description": "The status of the async screenshot"}
+    )
+    task_timeout_seconds = fields.Integer(
+        metadata={
+            "description": (
+                "The client wait budget for the Pending and Computing task states"
+            )
+        }
     )
     task_updated_at = fields.String(
         metadata={"description": "The timestamp of the last change in status"}

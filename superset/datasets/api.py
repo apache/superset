@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response
@@ -63,7 +63,10 @@ from superset.commands.deletion_retention.purge_impact import (
 )
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import (
     collect_dataset_impact,
     PurgeArchivedCommand,
@@ -107,8 +110,11 @@ from superset.exceptions import (
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
@@ -130,10 +136,12 @@ from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
@@ -155,6 +163,21 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
 
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
+
+    restore_command_cls: ClassVar[type[RestoreDatasetCommand]] = RestoreDatasetCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetLogicalDuplicateError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"
@@ -1003,8 +1026,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -1466,23 +1490,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreDatasetCommand(uuid).run()
-            return self.response(200, message="OK")
-        except DatasetNotFoundError:
-            return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
-        except DatasetLogicalDuplicateError as ex:
-            return self.response_422(message=str(ex))
-        except DatasetRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge-impact", methods=("GET",))
     @protect()
@@ -1737,7 +1745,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
@@ -1746,28 +1754,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         sync_columns = request.form.get("sync_columns") == "true"
         sync_metrics = request.form.get("sync_metrics") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDatasetsCommand(
@@ -2219,6 +2213,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -2267,6 +2262,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -2326,6 +2322,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @permission_name("get")
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -2413,6 +2410,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

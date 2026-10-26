@@ -17,7 +17,7 @@
 """
 What a tool step shows a person, as opposed to what it tells the model.
 
-``superset.mcp_service`` frames user-authored text in ``<UNTRUSTED-CONTENT>``
+The AI client frames user-authored text in ``<UNTRUSTED-CONTENT>``
 delimiters so a model can tell data from instruction. Those delimiters were
 reaching the panel verbatim, which is what these are about: the framing is for
 the model, and only the model.
