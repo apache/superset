@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:20+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -1193,6 +1193,12 @@ msgstr ""
 "Свећасти графикон приказује вредности отварања, затварања, максимум и "
 "минимум за сваки период. Обично се користи за финансијску и другу анализу"
 " опсега временских серија."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -6101,6 +6107,9 @@ msgstr "Прилагођене ad-hoc SQL метрике нису омогуће
 
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Прилагођена SQL поља се не могу протумачити као једна SQL изјава."
+
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Прилагођена SQL поља не могу садржати операције над скуповима."
@@ -17514,6 +17523,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show Bubbles"
 msgstr "Прикажи балончиће"
@@ -21810,6 +21822,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # ru, sk, uk]
 msgid "Token Request URI"
