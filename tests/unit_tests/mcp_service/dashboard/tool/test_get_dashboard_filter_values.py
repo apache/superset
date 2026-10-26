@@ -27,6 +27,7 @@ from flask import current_app, g
 from pytest_mock import MockerFixture
 from sqlalchemy import column, create_engine, select, String, text
 from sqlalchemy.dialects import mysql, postgresql, sqlite
+from sqlalchemy.exc import CompileError, UnsupportedCompilationError
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -304,6 +305,69 @@ def test_search_numeric_is_unsupported_without_query(
     )
     assert _available(summaries[0]).reason == "unsupported_search"
     assert meta.query_count == 0
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        CompileError("unsupported literal predicate"),
+        UnsupportedCompilationError(None, type(column("country"))),
+        NotImplementedError("unsupported literal predicate"),
+    ],
+    ids=["compile", "unsupported_compilation", "not_implemented"],
+)
+def test_search_compile_failure_is_unsupported_and_preserves_siblings(
+    native_query: dict[str, Any], error: Exception
+) -> None:
+    """Unsupported search compilation consumes a query and leaves siblings usable."""
+    native_query["run"].side_effect = [
+        error,
+        {"queries": [{"data": [{"region": "EMEA"}]}]},
+    ]
+    summaries, metadata = choices.discover_filter_values(
+        _dashboard(_filter("country"), _filter()),
+        _request(
+            filter_value_requests=[
+                {"filter_id": "country", "search": "Fran"},
+                {"filter_id": "region"},
+            ]
+        ),
+    )
+    available = _available(summaries[0])
+    assert available.status == "unsupported"
+    assert available.reason == "unsupported_search"
+    assert available.values == []
+    assert available.query_mode == "contains"
+    assert _available(summaries[1]).status == "complete"
+    assert _available(summaries[1]).values == ["EMEA"]
+    assert metadata.query_count == 2
+    assert native_query["run"].call_count == 2
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        CompileError("unsupported literal predicate"),
+        UnsupportedCompilationError(None, type(column("country"))),
+        NotImplementedError("unsupported literal predicate"),
+    ],
+    ids=["compile", "unsupported_compilation", "not_implemented"],
+)
+@pytest.mark.parametrize("probe", [{}, {"exact_value": "France"}, {"search": ""}])
+def test_non_search_compile_failure_propagates_from_run(
+    native_query: dict[str, Any], error: Exception, probe: dict[str, str]
+) -> None:
+    """Listing and exact failures reach the ordinary per-filter error handler."""
+    conf = _filter("country")
+    request = _request(filter_value_requests=[{"filter_id": "country", **probe}])
+    context = choices.validate_discovery_configuration(_dashboard(conf), request)
+    assert request.filter_value_requests is not None
+    native_query["run"].side_effect = error
+    with pytest.raises(type(error)) as raised:
+        choices._run(context, conf, request.filter_value_requests[0])
+    assert raised.value is error
+    assert context.query_count == 1
+    native_query["run"].assert_called_once()
 
 
 def test_saved_predicates_sort_and_transitive_parents(
