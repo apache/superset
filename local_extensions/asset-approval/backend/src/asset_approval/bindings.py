@@ -188,6 +188,28 @@ def install_bindings() -> None:
         ),
     )
 
+    # ---- the legacy datasource save -------------------------------------
+    # `POST /datasource/save/` writes a whole datasource dict straight onto
+    # the model, with no command to bind, so a reviewed dataset could be
+    # changed outright (S-01, QA run 1). It is deprecated in favour of
+    # `PUT /api/v1/dataset/<id>`, which is gated, and nothing in the
+    # frontend calls it -- so refusing closes the hole without taking away
+    # a route anyone uses.
+    #
+    # Refused rather than captured on purpose: its body is a full datasource
+    # dict, not the dataset command's, so a captured request could not be
+    # replayed faithfully and would fail at approval instead of here.
+    gate_method(
+        "superset.views.datasource.views",
+        "Datasource",
+        "save",
+        lambda *_args, **_kwargs: refuse_unreviewable_write(
+            "Saving a dataset through the legacy endpoint",
+            "Save the dataset from its editor, or through "
+            "PUT /api/v1/dataset/<id>, so the change can be reviewed.",
+        ),
+    )
+
     # ---- Explore's legacy save ------------------------------------------
     # No command of its own: the view writes through the DAO inline, so the
     # view method is the only seam before the write happens.

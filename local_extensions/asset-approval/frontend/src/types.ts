@@ -42,6 +42,10 @@ export interface FieldChange {
   field: string;
   /** True when the value is too large or structural to show inline. */
   opaque?: boolean;
+  /** For an opaque JSON column: which entries inside it moved. */
+  keys?: string[];
+  /** For `position_json`: how the dashboard's layout moved, in counts. */
+  layout?: { added: number; removed: number; changed: number };
   before?: string | number | boolean | null;
   after?: string | number | boolean | null;
   unchanged?: boolean;

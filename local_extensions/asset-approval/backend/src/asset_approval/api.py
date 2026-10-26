@@ -54,7 +54,7 @@ from asset_approval.gate import (
     is_enabled,
     RESTORE_VERSION_COMMAND,
 )
-from asset_approval.changes import changed_fields
+from asset_approval.changes import changed_fields, changed_keys, layout_summary
 from asset_approval.models import ChangeRequest
 from asset_approval.replay import load_asset
 from asset_approval.types import (
@@ -243,7 +243,16 @@ def describe_changes(
             continue
 
         if field in OPAQUE_FIELDS:
-            changes.append({"field": field, "opaque": True})
+            # Still opaque as a value -- these columns are far too big to
+            # show -- but say what moved inside them. "Changed" alone left
+            # the reviewer nothing to decide on (129075).
+            entry: dict[str, Any] = {"field": field, "opaque": True}
+            if field == "position_json":
+                if summary := layout_summary(current, proposed):
+                    entry["layout"] = summary
+            elif keys := changed_keys(current, proposed):
+                entry["keys"] = keys
+            changes.append(entry)
             continue
         before, after = _readable(current), _readable(proposed)
         if before is None and after is None:

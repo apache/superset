@@ -145,6 +145,39 @@ const Muted = styled.div`
   `}
 `;
 
+/**
+ * What a reviewer calls these, rather than what the column is called.
+ *
+ * `params` and `json_metadata` are storage names; a reviewer deciding
+ * whether to publish a change should not have to know them (129075).
+ */
+const FIELD_LABELS: Record<string, string> = {
+  slice_name: t('Title'),
+  dashboard_title: t('Title'),
+  table_name: t('Name'),
+  description: t('Description'),
+  params: t('Chart configuration'),
+  query_context: t('Query'),
+  json_metadata: t('Dashboard settings'),
+  position_json: t('Layout'),
+  css: t('Stylesheet'),
+  published: t('Published'),
+  cache_timeout: t('Cache timeout'),
+  owners: t('Owners'),
+  editors: t('Editors'),
+  sql: t('SQL'),
+};
+
+const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? field;
+
+/** "Title, metrics and 2 more" -- a list a person can read at a glance. */
+function summarise(keys: string[]): string {
+  const named = keys.slice(0, 3).map(fieldLabel);
+  const rest = keys.length - named.length;
+  const list = named.join(', ');
+  return rest > 0 ? t('%s and %s more', list, rest) : list;
+}
+
 export interface WhatChangedPanelProps {
   changeRequest: ChangeRequest;
   onClose: () => void;
@@ -263,9 +296,22 @@ export default function WhatChangedPanel({
         ) : (
           (changeRequest.changes ?? []).map(change => (
             <FieldBlock key={change.field}>
-              <FieldName>{change.field}</FieldName>
+              <FieldName>{fieldLabel(change.field)}</FieldName>
               {change.opaque ? (
-                <Tag>{t('Changed')}</Tag>
+                change.layout ? (
+                  <Muted>
+                    {t(
+                      '%s added, %s removed, %s moved',
+                      change.layout.added,
+                      change.layout.removed,
+                      change.layout.changed,
+                    )}
+                  </Muted>
+                ) : change.keys?.length ? (
+                  <Muted>{summarise(change.keys)}</Muted>
+                ) : (
+                  <Tag>{t('Changed')}</Tag>
+                )
               ) : (
                 <>
                   <Before>{String(change.before ?? '—')}</Before>

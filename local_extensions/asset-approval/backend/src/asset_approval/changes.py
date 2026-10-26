@@ -192,3 +192,47 @@ EXEMPT_FIELDS = frozenset(
         "description",
     }
 )
+
+
+def changed_keys(current: Any, proposed: Any) -> list[str]:
+    """Which top-level entries differ between two JSON blobs.
+
+    A chart's `params` and a dashboard's `json_metadata` are single columns
+    holding dozens of settings, so a reviewer was told only that the column
+    had "Changed" (129075). Naming the entries that moved turns that into
+    something a person can decide about: the author renamed the chart, or
+    swapped a metric, or changed a filter.
+
+    Returns an empty list when the shapes are not comparable as objects --
+    the caller falls back to saying the field changed, which is what it
+    used to say anyway.
+    """
+    before, after = _parsed(current), _parsed(proposed)
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return []
+    return sorted(
+        key
+        for key in set(before) | set(after)
+        if _parsed(before.get(key)) != _parsed(after.get(key))
+    )
+
+
+def layout_summary(current: Any, proposed: Any) -> dict[str, int] | None:
+    """How a dashboard's layout moved, in counts rather than ids.
+
+    `position_json` keys are generated element ids, so listing them tells a
+    reviewer nothing. How many things arrived, left or shifted does.
+    """
+    before, after = _parsed(current), _parsed(proposed)
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return None
+    added = set(after) - set(before)
+    removed = set(before) - set(after)
+    moved = {
+        key
+        for key in set(before) & set(after)
+        if _parsed(before.get(key)) != _parsed(after.get(key))
+    }
+    if not (added or removed or moved):
+        return None
+    return {"added": len(added), "removed": len(removed), "changed": len(moved)}
