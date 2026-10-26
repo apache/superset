@@ -894,6 +894,103 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   fetchMock.removeRoute('post-fail');
 });
 
+const subscriberBootstrapData = (): BootstrapData => ({
+  ...bootstrapData(),
+  user: {
+    firstName: 'Dashboard',
+    lastName: 'Subscriber',
+    username: 'subscriber',
+    isActive: true,
+    isAnonymous: false,
+    userId: 7,
+    roles: {},
+    permissions: {},
+    groups: [],
+  },
+});
+
+test('duplicate subscription opens the existing report for editing', async () => {
+  mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      status: 409,
+      body: {
+        errors: [{ message: 'Resource already has an attached report.' }],
+      },
+    },
+    { name: 'post-duplicate-subscribe' },
+  );
+  fetchMock.modifyRoute('report-list', {
+    response: {
+      result: [
+        {
+          id: 12,
+          dashboard_id: 1,
+          creation_method: 'dashboards',
+          name: 'My existing report',
+          crontab: '0 9 * * *',
+          report_format: 'PNG',
+        },
+      ],
+    },
+  });
+  const onHide = jest.fn();
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} onHide={onHide} />, {
+    useRedux: true,
+    store,
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+  expect(await screen.findByText('Edit email report')).toBeInTheDocument();
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'My existing report',
+  );
+  const toasts = (store.getState() as any).messageToasts;
+  expect(
+    toasts.some((toast: { text: string }) =>
+      toast.text.includes('already subscribed to this dashboard'),
+    ),
+  ).toBe(true);
+  expect(
+    toasts.some((toast: { text: string }) =>
+      toast.text.includes('Failed to create report'),
+    ),
+  ).toBe(false);
+  expect(screen.queryByText('Failed to create report')).not.toBeInTheDocument();
+  expect(onHide).not.toHaveBeenCalled();
+
+  fetchMock.modifyRoute('report-list', { response: {} });
+  fetchMock.removeRoute('post-duplicate-subscribe');
+});
+
+test('duplicate subscription shows the error when the existing report cannot be found', async () => {
+  mockedGetBootstrapData.mockReturnValue(subscriberBootstrapData());
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    {
+      status: 409,
+      body: {
+        errors: [{ message: 'Resource already has an attached report.' }],
+      },
+    },
+    { name: 'post-duplicate-subscribe-missing' },
+  );
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+  expect(
+    await screen.findByText('Failed to create report'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
+
+  fetchMock.removeRoute('post-duplicate-subscribe-missing');
+});
+
 // ---------------------------------------------------------------------------
 // Error Handling section tests
 // ---------------------------------------------------------------------------
