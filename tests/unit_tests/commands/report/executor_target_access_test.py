@@ -665,6 +665,7 @@ def test_permalink_denial_carries_specific_reason(
     The DAO keeps its generic message for every requester; the report
     recovers the specific reason from the denial's cause.
     """
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
     denial = DashboardAccessDeniedError()
     denial.__cause__ = _denial()
     mocker.patch(
@@ -689,6 +690,7 @@ def test_failure_notification_links_plain_dashboard_when_permalink_denied(
     The editors' failure notification must still be sent when the stateful
     link it would carry is the permalink the executor cannot create.
     """
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
     mocker.patch(
         "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
         return_value=True,
@@ -708,6 +710,95 @@ def test_failure_notification_links_plain_dashboard_when_permalink_denied(
     content = send.call_args.args[0]
     assert content.text == "denied"
     assert content.url.endswith("/dashboard/dashboard-uuid/?force=false")
+
+
+def test_failure_notification_links_plain_dashboard_when_dashboard_withheld(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """
+    An executor the exclusion hook withholds the dashboard from makes the
+    permalink command answer with ``DashboardNotFoundError``. The failure
+    notification still has to go out, linking the dashboard itself.
+    """
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        side_effect=_excluded_for(MACHINE),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand.run",
+        side_effect=DashboardNotFoundError(),
+    )
+    state = _state(mocker, {"anchor": "TAB-1"})
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    send = mocker.patch.object(state, "_send")
+
+    with app.test_request_context():
+        g.user = MACHINE
+        state.send_error("Error occurred for report: Daily", "withheld")
+
+    content = send.call_args.args[0]
+    assert content.text == "withheld"
+    assert content.url.endswith("/dashboard/dashboard-uuid/?force=false")
+    permalink.assert_not_called()
+
+
+def test_get_url_rejects_dashboard_withheld_by_exclusions_before_permalink(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """
+    Content generation reaches the stored-state permalink through ``_get_url``
+    rather than ``get_dashboard_urls``; the exclusion has to surface there as
+    the access-denied error too.
+    """
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        side_effect=_excluded_for(MACHINE),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand.run",
+        side_effect=DashboardNotFoundError(),
+    )
+    state = _state(mocker, {"anchor": "TAB-1"})
+
+    with app.test_request_context():
+        g.user = MACHINE
+        with pytest.raises(ReportScheduleExecutorAccessDeniedError):
+            state._get_url(user_friendly=True)
+
+    permalink.assert_not_called()
+
+
+def test_get_tab_url_builds_permalink_when_exclusions_do_not_withhold_it(
+    mocker: MockerFixture, app: Any
+) -> None:
+    mocker.patch("superset.commands.report.execute.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        side_effect=_excluded_for(SAVER),
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand.run",
+        return_value="permalink-key",
+    )
+    mocker.patch("superset.commands.report.execute.db.session.commit")
+    state = _state(mocker, {"anchor": "TAB-1"})
+
+    with app.test_request_context():
+        g.user = MACHINE
+        url = state._get_tab_url({"anchor": "TAB-1"})
+
+    permalink.assert_called_once()
+    assert "permalink-key" in url
 
 
 def test_executor_access_denial_is_logged_and_not_retried(

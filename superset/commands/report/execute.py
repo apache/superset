@@ -969,6 +969,11 @@ class BaseReportState:
         """
         Get one tab url
         """
+        # Content generation and failure notifications reach this method
+        # without passing through ``get_dashboard_urls``, so the executor
+        # check lives here to turn an exclusion (which the permalink command
+        # reports as not-found) into the access-denied error callers handle.
+        self._raise_for_executor_dashboard_access()
         force = self._get_force_param()
         # ``Superset.dashboard_permalink`` redirects by appending this
         # state's ``urlParams`` *before* its own query string (which is
