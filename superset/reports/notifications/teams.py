@@ -111,6 +111,7 @@ def _send_to_teams(
             "authorization": NotificationAuthorizationException,
             "transient": NotificationTransientError,
             "parameter": NotificationParamException,
+            "unknown": NotificationError,
         }[ex.category]
         raise exception(str(ex)) from None
 

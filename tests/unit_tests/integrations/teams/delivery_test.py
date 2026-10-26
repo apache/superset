@@ -52,6 +52,7 @@ from superset.reports.notifications import create_notification, teams as notific
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
+    NotificationError,
     NotificationParamException,
     NotificationTransientError,
 )
@@ -232,11 +233,28 @@ def retry_clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     return sleeps
 
 
-@pytest.mark.parametrize("status", [None, 408, 429, 500, 502, 503, 504])
-def test_transient_failures_retry_with_bounded_attempts(
-    configured: TeamsConfig, retry_clock: list[float], status: int | None
+@pytest.mark.parametrize(
+    "status,retryable",
+    [
+        (None, False),
+        (None, True),
+        (408, False),
+        (429, False),
+        (500, False),
+        (502, False),
+        (503, False),
+        (504, False),
+    ],
+)
+def test_transport_failures_respect_retry_safety_and_attempt_bound(
+    configured: TeamsConfig,
+    retry_clock: list[float],
+    status: int | None,
+    retryable: bool,
 ) -> None:
-    transport = FakeTransport([adapter.TeamsTransportError(status)] * 4)
+    transport = FakeTransport(
+        [adapter.TeamsTransportError(status, retryable=retryable)] * 4
+    )
     with pytest.raises(adapter.TeamsDeliveryError) as exc:
         adapter.deliver_teams_alert(
             configured,
@@ -245,9 +263,10 @@ def test_transient_failures_retry_with_bounded_attempts(
             {},
             transport_factory=transport.factory,
         )
-    assert exc.value.category == "transient"
-    assert len(transport.posts) == 4
-    assert retry_clock == [1.0, 2.0, 4.0]
+    ambiguous = status is None and not retryable
+    assert exc.value.category == ("unknown" if ambiguous else "transient")
+    assert len(transport.posts) == (1 if ambiguous else 4)
+    assert retry_clock == ([] if ambiguous else [1.0, 2.0, 4.0])
     assert transport.closed
     assert transport.loop is not None
     assert transport.loop.is_closed()
@@ -365,6 +384,7 @@ def test_one_authentication_refresh_and_permanent_errors(
         ("authorization", NotificationAuthorizationException),
         ("transient", NotificationTransientError),
         ("parameter", NotificationParamException),
+        ("unknown", NotificationError),
     ],
 )
 def test_transport_errors_map_to_existing_notification_exceptions(
@@ -491,6 +511,8 @@ def sdk_network(
         assert str(request.url) == SERVICE_URL.rstrip("/") + "/v3/conversations"
         state.posts.append((request, json.loads(request.content)))
         status = state.statuses.pop(0) if state.statuses else 201
+        if isinstance(status, Exception):
+            raise status
         return _sdk_post_response(status)
 
     class SDKHttpClient(httpx.AsyncClient):
@@ -592,6 +614,44 @@ def test_real_sdk_failures_close_resources_and_sanitize_errors(
     assert "secret SQL diagnostic" not in str(exc.value)
     assert "deployment-secret" not in str(exc.value)
     assert len(sdk_network.posts) == posts
+    assert_resources_closed(sdk_network)
+
+
+@pytest.mark.parametrize(
+    "error,retryable",
+    [
+        (httpx.ConnectError, True),
+        (httpx.ConnectTimeout, True),
+        (httpx.PoolTimeout, True),
+        (httpx.ReadTimeout, False),
+        (httpx.ReadError, False),
+        (httpx.WriteTimeout, False),
+        (httpx.WriteError, False),
+        (httpx.RemoteProtocolError, False),
+    ],
+)
+def test_sdk_retries_only_safe_connection_failures(
+    sdk_network: SimpleNamespace,
+    configured: TeamsConfig,
+    retry_clock: list[float],
+    error: type[httpx.RequestError],
+    retryable: bool,
+) -> None:
+    sdk_network.statuses = [error("secret diagnostic"), 201]
+    if retryable:
+        adapter.deliver_teams_alert(
+            configured, configured.destinations[0], SERVICE_URL, {}
+        )
+    else:
+        with pytest.raises(adapter.TeamsDeliveryError) as exc:
+            adapter.deliver_teams_alert(
+                configured, configured.destinations[0], SERVICE_URL, {}
+            )
+        assert exc.value.category == "unknown"
+        assert "may have been delivered" in str(exc.value)
+        assert "secret diagnostic" not in str(exc.value)
+    assert len(sdk_network.posts) == (2 if retryable else 1)
+    assert retry_clock == ([1.0] if retryable else [])
     assert_resources_closed(sdk_network)
 
 

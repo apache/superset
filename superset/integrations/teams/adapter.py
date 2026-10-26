@@ -253,7 +253,7 @@ class TeamsDeliveryError(Exception):
     """Sanitized delivery outcome for mapping to existing notification exceptions."""
 
     def __init__(
-        self, category: Literal["authorization", "transient", "parameter"]
+        self, category: Literal["authorization", "transient", "parameter", "unknown"]
     ) -> None:
         """Expose a stable message without response bodies, SQL, tokens, or URLs."""
         self.category = category
@@ -261,12 +261,16 @@ class TeamsDeliveryError(Exception):
             "authorization": "Teams bot authorization failed",
             "transient": "Teams alert delivery temporarily unavailable",
             "parameter": "Teams alert delivery was rejected",
+            "unknown": (
+                "Teams alert delivery could not be confirmed. "
+                "It may have been delivered"
+            ),
         }
         super().__init__(messages[category])
 
 
 class TeamsTransportError(Exception):
-    """An HTTP failure carrying only the status and Microsoft's retry metadata."""
+    """Sanitized HTTP failure with explicit retry safety for status-less errors."""
 
     def __init__(
         self,
@@ -274,10 +278,13 @@ class TeamsTransportError(Exception):
         headers: httpx.Headers
         | requests.structures.CaseInsensitiveDict[str]
         | None = None,
+        *,
+        retryable: bool = False,
     ) -> None:
         """Retain only retry headers; never retain a response body or request token."""
         super().__init__("Teams transport request failed")
         self.status = status
+        self.retryable = retryable
         self.retry_after = headers.get("Retry-After") if headers is not None else None
         self.retry_after_ms = (
             headers.get("x-ms-retry-after-ms") if headers is not None else None
@@ -302,7 +309,7 @@ def _remaining(deadline: float) -> float:
     """Bound each request by its timeout and remaining delivery budget."""
     remaining = deadline - monotonic()
     if remaining <= 0:
-        raise TeamsTransportError()
+        raise TeamsTransportError(retryable=True)
     return min(_DELIVERY_REQUEST_TIMEOUT, remaining)
 
 
@@ -420,8 +427,14 @@ class _SDKTeamsTransport:
             error = TeamsTransportError(ex.response.status_code, ex.response.headers)
             await ex.response.aclose()
             raise error from None
-        except (httpx.RequestError, requests.RequestException):
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout):
+            raise TeamsTransportError(retryable=True) from None
+        except httpx.RequestError:
+            # The connector may have accepted the POST before the connection failed.
             raise TeamsTransportError() from None
+        except requests.RequestException:
+            # requests is used only for authentication, before the connector POST.
+            raise TeamsTransportError(retryable=True) from None
         except ValueError:
             # Includes invalid SDK models/response JSON. Replaying a successful
             # POST whose response could not be decoded could duplicate delivery.
@@ -483,6 +496,8 @@ async def _deliver_with_retries(
                 raise TeamsDeliveryError("transient")
             return
         except TeamsTransportError as error:
+            if error.status is None and not error.retryable:
+                raise TeamsDeliveryError("unknown") from None
             if error.status in (401, 403):
                 if (
                     error.status == 403

@@ -445,8 +445,19 @@ def test_callback_fails_closed_without_sdk_or_configuration(
         teams_client.application.config["ALERT_REPORTS_TEAMS"] = {
             "credential": "deployment-secret"
         }
-    with patch.dict("sys.modules", {"superset.integrations.teams.adapter": None}):
-        response = teams_client.post(PATH, json=installation, headers=auth_headers())
+    with patch.object(teams_adapter, "process_teams_event") as process_event:
+        if mode == "missing-sdk":
+            with patch.dict(
+                "sys.modules", {"superset.integrations.teams.adapter": None}
+            ):
+                response = teams_client.post(
+                    PATH, json=installation, headers=auth_headers()
+                )
+        else:
+            response = teams_client.post(
+                PATH, json=installation, headers=auth_headers()
+            )
+        process_event.assert_not_called()
     assert response.status_code == expected
     assert response.data == b""
 
