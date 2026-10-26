@@ -680,7 +680,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                     ft = MySQLdb.constants.FIELD_TYPE
                 except ImportError:
                     try:
-                        import pymysql
+                        import pymysql  # type: ignore[import-untyped]
 
                         ft = pymysql.constants.FIELD_TYPE
                     except ImportError:
