@@ -65,16 +65,14 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Verify Teams SDK is available for authentication and delivery tests
+        run: python -c "import microsoft_teams.apps"
       - name: SDK unit tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
           PYTHONPATH: ${{ github.workspace }}/superset-core/src
         run: |
           python -m pytest -q -o addopts='' superset-core/tests --junit-xml=test-results/junit-sdk.xml
-      - name: Install optional Teams SDK for authentication and delivery tests
-        run: |
-          uv pip install --system -e '.[teams]'
-          python -c "import microsoft_teams.apps"
       # The babel_update.sh tests run the script's msgcat step and fail on CI
       # when gettext is missing (tests/unit_tests/scripts/translations).
       - name: Install gettext tools
