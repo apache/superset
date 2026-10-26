@@ -194,6 +194,8 @@ class HostProviderTransport(ProviderTransport):
         try:
             target: str = urljoin(response.url, response.headers["Location"])
             after: SplitResult = self._prepared_url(target)
+            if after.username is not None or after.password is not None:
+                raise ProviderRequestError(Failure.INVALID_URL)
         except ValueError:
             raise ProviderRequestError(Failure.INVALID_URL) from None
 

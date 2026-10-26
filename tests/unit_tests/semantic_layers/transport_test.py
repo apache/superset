@@ -427,7 +427,10 @@ def test_default_path_follows_same_origin_get_redirects_only(
     "location,followed",
     [
         ("https://evil.example\\@provider.example/", False),
-        ("https://evil.example%5C@provider.example/", True),
+        ("https://evil.example%5C@provider.example/", False),
+        ("https://attacker:pw@provider.example/x", False),
+        ("https://@provider.example/x", True),
+        ("https://:pw@provider.example/x", False),
         ("https://provider.example@evil.example/", False),
         ("https://PROVIDER.EXAMPLE/next", True),
         ("https://provider.example./next", False),
@@ -488,6 +491,7 @@ def test_redirect_checks_prepared_destination(
     assert len(sent) == (2 if followed else 1)
     assert all(urlsplit(request.url).hostname == "provider.example" for request in sent)
     assert all(request.headers["X-API-Key"] == "private" for request in sent)
+    assert all(request.headers["Authorization"] == "Bearer private" for request in sent)
 
 
 @pytest.mark.parametrize("suffix", ["\\@provider.example/", "/path\n", "/a b"])
