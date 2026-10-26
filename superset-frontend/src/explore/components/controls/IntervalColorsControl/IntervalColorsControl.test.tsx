@@ -158,6 +158,26 @@ test('a non-positive legacy index falls back to the positional scheme color like
   expect(screen.queryByText('#2CA02C')).not.toBeInTheDocument();
 });
 
+test('stays read-only when legacy indices cannot be resolved so untouched bands are never rewritten', async () => {
+  const onChange = jest.fn();
+  render(
+    <IntervalColorsControl
+      onChange={onChange}
+      intervals="20,60"
+      legacyIntervalColorIndices="10,3"
+      colorScheme="testScheme"
+    />,
+  );
+
+  const triggers = document.querySelectorAll('.ant-color-picker-trigger');
+  expect(triggers).toHaveLength(2);
+  triggers.forEach(trigger => {
+    expect(trigger).toHaveClass('ant-color-picker-trigger-disabled');
+  });
+  await userEvent.click(triggers[0]);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test('a legacy index past the scheme length leaves every legacy index unresolved', () => {
   // The renderer may index a palette that grew past the static scheme, so
   // wrapping modulo the scheme length would show (and later persist) a
