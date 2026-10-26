@@ -842,11 +842,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const columns = useMemo(
     () => [
       {
-        Cell: () => null,
-        accessor: 'kind_icon',
-        disableSortBy: true,
-        size: 'xs',
+        accessor: 'id',
         id: 'id',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -872,7 +871,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreTo}>
+              <Link
+                data-test="internal-link"
+                to={exploreTo}
+                title={datasetTitle}
+              >
                 {datasetTitle}
               </Link>
             );
@@ -880,7 +883,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo} title={datasetTitle}>
+                {datasetTitle}
+              </GenericLink>
             );
           }
           try {
@@ -916,6 +921,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxxl',
         id: 'table_name',
       },
       {
@@ -923,12 +929,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: CellProps<Dataset>) =>
-          isSemanticView({ kind }) ? (
-            <span>{t('Semantic View')}</span>
-          ) : (
-            <DatasetTypeLabel datasetType={kind} />
-          ),
+        }: CellProps<Dataset>) => (
+          <DatasetTypeLabel
+            datasetType={kind}
+            label={isSemanticView({ kind }) ? t('Semantic View') : undefined}
+          />
+        ),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
@@ -1106,9 +1112,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1455,7 +1465,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       );
     }
 
-    Promise.allSettled(promises).then(results => {
+    Promise.allSettled(promises).then(async results => {
       const failures = results.filter(r => r.status === 'rejected');
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
@@ -1478,17 +1488,33 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
         }
       } else {
-        addDangerToast(
-          softDelete
-            ? t(
-                'There was an issue archiving the selected %s',
-                datasetsLabelLower(),
-              )
-            : t(
-                'There was an issue deleting the selected %s',
-                datasetsLabelLower(),
+        const semanticResult = semanticViews.length
+          ? results[results.length - 1]
+          : undefined;
+        if (semanticResult?.status === 'rejected') {
+          await createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'Could not delete semantic views %s: %s',
+                semanticViews.map(view => view.table_name).join(', '),
+                errMsg,
               ),
-        );
+            ),
+          )(semanticResult.reason);
+        }
+        if (datasets.length && results[0].status === 'rejected') {
+          addDangerToast(
+            softDelete
+              ? t(
+                  'There was an issue archiving the selected %s',
+                  datasetsLabelLower(),
+                )
+              : t(
+                  'There was an issue deleting the selected %s',
+                  datasetsLabelLower(),
+                ),
+          );
+        }
       }
     });
   };

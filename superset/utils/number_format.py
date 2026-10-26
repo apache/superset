@@ -327,12 +327,16 @@ def apply_sign(formatted: str, value: float, sign_mode: str) -> str:
 
     Negative values get a leading ``-`` (or wrapping parentheses for the ``(``
     accounting mode); positive values get a ``+`` or a leading space only for the
-    ``+`` and space modes respectively. Mirrors the sign decoration in
-    ``d3-format/src/locale.js``.
+    ``+`` and space modes respectively. A negative value (including ``-0.0``)
+    whose formatted magnitude rounds to zero is shown unsigned unless the ``+``
+    mode is requested. Mirrors the sign decoration in ``d3-format/src/locale.js``.
 
     :return: the signed or accounting-decorated string
     """
-    if value < 0:
+    negative = math.copysign(1.0, value) < 0
+    if negative and sign_mode != "+" and not re.search(r"[1-9]", formatted):
+        negative = False
+    if negative:
         return f"({formatted})" if sign_mode == "(" else f"-{formatted}"
     if sign_mode == "+":
         return f"+{formatted}"
@@ -605,3 +609,97 @@ def raw_string(value: float) -> str:
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value)
+
+
+# ---------------------------------------------------------------------------
+# Server-side validation of a user-supplied ``d3format`` string.
+#
+# Distinct from ``D3_FORMAT_RE`` above (which parses the subset the report-table
+# path renders and rejects padding): this matches the full d3-format grammar for
+# *acceptance* and also allows the named formats the frontend registers, so the
+# dataset API accepts exactly what the UI can render and nothing else.
+# ---------------------------------------------------------------------------
+
+OVER_MAX_HIDDEN: str = "OVER_MAX_HIDDEN"
+
+# Full d3-format specifier, matched against the whole string:
+#   [[fill]align][sign][symbol][0][width][,][.precision][~][type]
+# A fill character is allowed only when followed by an align character; type is
+# case-sensitive. See https://github.com/d3/d3-format.
+D3_FORMAT_VALIDATION_RE: re.Pattern[str] = re.compile(
+    r"(?:.?[<>=^])?"  # [[fill]align]
+    r"[-+ (]?"  # [sign]
+    r"[$#]?"  # [symbol]
+    r"0?"  # [0] zero-pad flag
+    r"\d*"  # [width]
+    r",?"  # [,] group separator
+    r"(?:\.\d+)?"  # [.precision]
+    r"~?"  # [~] trim insignificant zeros
+    r"[efgrspbodxXcn%]?"  # [type]
+)
+
+# Named number formats (and deprecated/typo shims) the frontend accepts as
+# ``d3format`` values but that are not plain d3 specifiers. Kept in one constant
+# so the backend stays in sync with what the UI renders. Sources:
+#   - superset-frontend/packages/superset-ui-core/src/number-format/
+#     NumberFormats.ts (SMART_NUMBER, SMART_NUMBER_SIGNED, OVER_MAX_HIDDEN)
+#   - superset-frontend/src/setup/setupFormatters.ts (the registered named
+#     formatters -- already enumerated by UNSUPPORTED_FRONTEND_PRESETS, plus the
+#     throughput formatters -- and the "deprecated or common typo" shims)
+#   - superset-frontend/src/explore/controls.tsx (D3_FORMAT_OPTIONS)
+NAMED_NUMBER_FORMATS: frozenset[str] = UNSUPPORTED_FRONTEND_PRESETS | frozenset(
+    {
+        SMART_NUMBER,
+        SMART_NUMBER_SIGNED,
+        OVER_MAX_HIDDEN,
+        "NETWORK_THROUGHPUT",
+        "NETWORK_THROUGHPUT_FROM_BYTES",
+        # deprecated / common-typo shims (setupFormatters.ts)
+        ",0",
+        "null",
+        "%",
+        ".",
+        ",f",
+        ",r",
+        "0f",
+        ",#",
+        "$,f",
+        "0%",
+        "f",
+        ",.",
+        ".1%f",
+        "1%",
+        "3%",
+        ",%",
+        ".r",
+        "$,.0",
+        "$,.1",
+        ",0s",
+        "%%%",
+        ",0f",
+        "+,%",
+        "$f",
+        "+,",
+        ",2f",
+        ",g",
+        "int",
+        ".0%f",
+        "$,0",
+        "$,0f",
+        "$,.f",
+    }
+)
+
+
+def is_valid_d3_format(value: str | None) -> bool:
+    """Return whether ``value`` is an acceptable ``d3format`` string.
+
+    ``None`` and the empty string (unset) are accepted, as are the supported
+    named formats and any well-formed d3-format specifier. Length is enforced
+    separately by the schema.
+    """
+    if not value:
+        return True
+    if value in NAMED_NUMBER_FORMATS:
+        return True
+    return D3_FORMAT_VALIDATION_RE.fullmatch(value) is not None

@@ -332,7 +332,7 @@ def test_update_semantic_layer_validates_configuration(
     config = {"account": "test"}
     UpdateSemanticLayerCommand("some-uuid", {"configuration": config}).run()
 
-    mock_cls.from_configuration.assert_called_once_with(config)
+    mock_cls.configuration_class.model_validate.assert_called_once_with(config)
 
 
 def test_update_semantic_layer_skips_name_check_when_no_name(
@@ -547,6 +547,102 @@ def test_unmask_configuration_missing_existing_key() -> None:
     assert result == {"account": "test", "password": PASSWORD_MASK}
 
 
+def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None:
+    """
+    A masked field must not be revealed in the same update that also
+    changes some other configuration field. An editor is entitled to edit
+    this connection, but not to see its real secret (that's the entire
+    reason the read path masks it) -- revealing it while also changing a
+    potentially destination-relevant field would poison the stored
+    configuration with the real secret attached to attacker-controlled
+    config, silently leaking it on the next legitimate use of this layer.
+    """
+    with pytest.raises(SemanticLayerInvalidError):
+        _unmask_configuration(
+            '{"account": "prod-account", "password": "hunter2"}',
+            {"account": "attacker-account", "password": PASSWORD_MASK},
+            "test_provider",
+        )
+
+
+def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -> None:
+    """
+    A newly introduced key with an explicit ``None`` value must be treated
+    as a configuration change, the same as any other new/changed key --
+    ``dict.get(key)`` alone can't distinguish "key absent from storage" from
+    "key present and stored as None" (both return None), which would let
+    this slip through as "unchanged" and reveal the masked secret alongside
+    it.
+    """
+    with pytest.raises(SemanticLayerInvalidError):
+        _unmask_configuration(
+            '{"account": "prod-account", "password": "hunter2"}',
+            {
+                "account": "prod-account",
+                "password": PASSWORD_MASK,
+                "proxy_host": None,
+            },
+            "test_provider",
+        )
+
+
+def test_unmask_configuration_rejects_secret_reveal_with_removed_key() -> None:
+    """
+    Dropping a stored key while reusing the masked secret is a configuration
+    change too: the update replaces the stored dictionary wholesale, so the
+    key really is gone afterwards while the real secret is carried over.
+    Comparing only the submitted keys would let that through.
+    """
+    with pytest.raises(SemanticLayerInvalidError):
+        _unmask_configuration(
+            '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
+            {"account": "prod-account", "password": PASSWORD_MASK},
+            "test_provider",
+        )
+
+
+def test_unmask_configuration_allows_removed_key_with_fresh_secret() -> None:
+    """
+    Dropping a stored key is still allowed when a genuinely fresh secret is
+    supplied alongside it -- only the masked round-trip is restricted.
+    """
+    result = _unmask_configuration(
+        '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
+        {"account": "prod-account", "password": "fresh-secret"},
+        "test_provider",
+    )
+
+    assert result == {"account": "prod-account", "password": "fresh-secret"}
+
+
+def test_unmask_configuration_allows_fresh_secret_with_changed_field() -> None:
+    """
+    A deliberate configuration change is still possible when a genuinely
+    fresh (non-masked) secret is supplied alongside it.
+    """
+    result = _unmask_configuration(
+        '{"account": "prod-account", "password": "hunter2"}',
+        {"account": "new-account", "password": "fresh-secret"},
+        "test_provider",
+    )
+
+    assert result == {"account": "new-account", "password": "fresh-secret"}
+
+
+def test_unmask_configuration_allows_unrelated_field_addition_with_no_mask() -> None:
+    """
+    Adding/changing fields with no masked value present at all is
+    unaffected -- there's no secret being reused, so nothing to protect.
+    """
+    result = _unmask_configuration(
+        '{"account": "prod-account"}',
+        {"account": "new-account", "extra_option": "value"},
+        "test_provider",
+    )
+
+    assert result == {"account": "new-account", "extra_option": "value"}
+
+
 def test_update_semantic_layer_preserves_masked_secret_end_to_end(
     mocker: MockerFixture,
 ) -> None:
@@ -582,7 +678,7 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
     }
     UpdateSemanticLayerCommand("some-uuid", data).run()
 
-    mock_cls.from_configuration.assert_called_once_with(
+    mock_cls.configuration_class.model_validate.assert_called_once_with(
         {"account": "test", "password": "hunter2"}
     )
     dao.update.assert_called_once_with(
@@ -609,7 +705,9 @@ def test_update_explicit_empty_configuration_is_validated(
         return_value=True,
     )
     provider: MagicMock = MagicMock()
-    provider.from_configuration.side_effect = ValueError("missing required password")
+    provider.configuration_class.model_validate.side_effect = ValueError(
+        "missing required password"
+    )
     mocker.patch.dict(
         "superset.commands.semantic_layer.update.registry",
         {"test_provider": provider} if registered else {},
@@ -618,9 +716,9 @@ def test_update_explicit_empty_configuration_is_validated(
     with pytest.raises(SemanticLayerInvalidError):
         UpdateSemanticLayerCommand("layer", {"configuration": {}}).run()
     if registered:
-        provider.from_configuration.assert_called_once_with({})
+        provider.configuration_class.model_validate.assert_called_once_with({})
     else:
-        provider.from_configuration.assert_not_called()
+        provider.configuration_class.model_validate.assert_not_called()
     dao.update.assert_not_called()
 
 
