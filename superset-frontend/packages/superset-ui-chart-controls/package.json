@@ -41,7 +41,7 @@
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "*",
     "@testing-library/user-event": "*",
-    "ace-builds": "^1.4.14",
+    "ace-builds": "^1.45.0",
     "brace": "^0.11.1",
     "memoize-one": "^6.0.0",
     "react": "^18.3.0",
