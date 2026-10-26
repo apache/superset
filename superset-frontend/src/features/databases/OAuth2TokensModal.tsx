@@ -27,6 +27,7 @@ import {
   DeleteModal,
   Flex,
   Input,
+  InfoTooltip,
   Modal,
   Space,
   Table,
@@ -280,10 +281,17 @@ export default function OAuth2TokensModal({
               },
               { title: t('Email'), dataIndex: ['user', 'email'] },
               {
-                title: t('Expires on'),
+                title: (
+                  <Space size="small">
+                    {t('Expires on')}
+                    <InfoTooltip
+                      tooltip={t('Timestamps are shown in server time.')}
+                    />
+                  </Space>
+                ),
                 dataIndex: 'access_token_expiration',
                 render: (value: string | null) =>
-                  value ? new Date(value).toLocaleString() : t('Unknown'),
+                  value ? value.replace('T', ' ') : t('Unknown'),
               },
               {
                 title: t('Actions'),

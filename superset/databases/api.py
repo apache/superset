@@ -2245,19 +2245,6 @@ class DatabaseOAuth2TokensRestApi(BaseSupersetModelRestApi):
         )
         return self.get_list_headless(**kwargs)
 
-    def pre_get_list(self, data: dict[str, Any]) -> None:
-        """
-        Include timezone offsets when serializing stored local expiration times.
-
-        Tokens are stored with a naive `datetime.now()`, so this method tries to
-        fix the timezone difference between the user and the serve.
-        """
-        for row in data["result"]:
-            if expiration := row.get("access_token_expiration"):
-                row["access_token_expiration"] = (
-                    datetime.fromisoformat(expiration).astimezone().isoformat()
-                )
-
     @expose("/<int:pk>/oauth2_tokens/delete/", methods=["POST"])
     @protect()
     @safe

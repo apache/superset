@@ -266,7 +266,7 @@ def test_fab_listing_caps_page_size(
     assert query.call_args.kwargs["page_size"] == 100
     assert (
         response.json["result"][0]["access_token_expiration"]
-        == datetime(2027, 1, 1).astimezone().isoformat()
+        == datetime(2027, 1, 1).isoformat()
     )
 
 

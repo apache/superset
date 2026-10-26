@@ -221,3 +221,17 @@ test('failed listing disables deletion and offers retry', async () => {
   ).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled();
 });
+
+test('expiration displays stored server time and explains it in the header tooltip', async () => {
+  renderModal();
+  await screen.findByText('user1');
+  expect(screen.getAllByText('2027-01-01 00:00:00')).toHaveLength(2);
+  await userEvent.hover(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  );
+  expect(
+    await screen.findByRole('tooltip', {
+      name: 'Timestamps are shown in server time.',
+    }),
+  ).toBeInTheDocument();
+});
