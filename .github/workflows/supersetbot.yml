@@ -1,7 +1,7 @@
 name: SupersetBot Workflow
 
 on:
-  # zizmor: ignore[dangerous-triggers] - runs in default-branch context; checks out only the default branch (never PR code) with persist-credentials: false, and passes the comment body to the CLI via an env var rather than interpolating it into the script
+  # zizmor: ignore[dangerous-triggers] - runs in default-branch context; checks out only the default branch (never PR code) with persist-credentials: false, and passes the comment body to the CLI via an env var rather than interpolating it into the script. Any commenter can invoke supersetbot label/unlabel with the job's write token (non-protected labels only); that is an accepted risk, separate from this code-execution finding
   issue_comment:
     types: [created, edited]
 
