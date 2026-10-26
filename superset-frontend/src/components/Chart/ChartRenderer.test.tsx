@@ -581,6 +581,49 @@ test('does not render chart during loading when last data has errors', () => {
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });
 
+test('chart mask updates carry the selection sources of the latest query', () => {
+  // A cross-filter emitted after a filter change belongs to the query that
+  // produced the rows on screen, not to the chart's first query.
+  const updateDataMask = jest.fn();
+  const queryFormData = (source: string) => ({
+    datasource: '7__semantic_view',
+    viz_type: 'table',
+    semantic_selection_version: 'cube-member-id-v1',
+    semantic_selection_sources: [{ datasource: source, version: null }],
+  });
+  const actions = {
+    ...mockActions,
+    updateDataMask,
+  } as ChartRendererProps['actions'];
+  const { rerender } = render(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={queryFormData('first__semantic_view')}
+      actions={actions}
+    />,
+  );
+  rerender(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={queryFormData('second__semantic_view')}
+      actions={actions}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit semantic mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        semantic_selection_sources: [
+          { datasource: 'foreign__semantic_view', version: null },
+          { datasource: 'second__semantic_view', version: null },
+          { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      }),
+    }),
+  );
+});
+
 test('chart mask updates preserve incoming and query selection provenance', () => {
   const updateDataMask = jest.fn();
   render(

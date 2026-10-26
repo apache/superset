@@ -35,7 +35,10 @@ import { ChartSource } from 'src/types/ChartSource';
 // lives in what SuperChart does with the data ChartRenderer hands it.
 jest.mock(
   'src/components/Chart/ChartContextMenu/ChartContextMenu',
-  () => () => <div />,
+  () =>
+    ({ formData }: { formData: { label?: string } }) => (
+      <div data-test="chart-context-menu" data-label={formData.label} />
+    ),
 );
 
 const VIZ_TYPE = 'refresh_test_chart';
@@ -409,6 +412,60 @@ test('pairs a response that lands while the chart is off screen with the request
     );
     expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
       'value=2 label=country',
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test('builds the context menu from the form data the chart is drawn with while it refreshes', async () => {
+  // A drill from the context menu has to match the rows on screen, which
+  // keep the previous grouping until the new response lands.
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  try {
+    const first = queriesResponse(1);
+    const { rerender } = render(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="rendered"
+        formData={labelledFormData('country')}
+        latestQueryFormData={labelledFormData('country')}
+        queriesResponse={first}
+      />,
+    );
+    await screen.findByTestId('refresh-test-chart');
+
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="loading"
+        formData={labelledFormData('region')}
+        latestQueryFormData={labelledFormData('region')}
+        queriesResponse={first}
+      />,
+    );
+    expect(screen.getByTestId('chart-context-menu')).toHaveAttribute(
+      'data-label',
+      'country',
+    );
+
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="success"
+        formData={labelledFormData('region')}
+        latestQueryFormData={labelledFormData('region')}
+        queriesResponse={queriesResponse(2)}
+      />,
+    );
+    expect(await screen.findByText('value=2 label=region')).toBeInTheDocument();
+    expect(screen.getByTestId('chart-context-menu')).toHaveAttribute(
+      'data-label',
+      'region',
     );
   } finally {
     window.featureFlags = previousFlags;
