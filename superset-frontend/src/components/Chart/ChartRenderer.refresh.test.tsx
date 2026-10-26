@@ -623,16 +623,61 @@ test('does not redraw a dashboard chart under the spinner when a refresh starts 
   expect(screen.getByRole('status')).toBeInTheDocument();
   expect(testChartTransformed).toHaveBeenCalledTimes(transformsBeforeRefresh);
 
+  const second = queriesResponse(2);
   rerender(
     <Chart
       {...chartProps}
       chartStatus="success"
       formData={formData}
       latestQueryFormData={latestQueryFormData}
-      queriesResponse={queriesResponse(2)}
+      queriesResponse={second}
     />,
   );
   expect(await screen.findByText('value=2 label=first')).toBeInTheDocument();
+
+  // A filter change: the request starts with the new form data, and the chart
+  // is drawn with it once its response lands.
+  const filteredFormData = labelledFormData('second');
+  const filteredQueryFormData = labelledFormData('second');
+  const third = queriesResponse(3);
+  rerender(
+    <Chart
+      {...chartProps}
+      chartStatus="loading"
+      formData={filteredFormData}
+      latestQueryFormData={filteredQueryFormData}
+      queriesResponse={second}
+    />,
+  );
+  rerender(
+    <Chart
+      {...chartProps}
+      chartStatus="success"
+      formData={filteredFormData}
+      latestQueryFormData={filteredQueryFormData}
+      queriesResponse={third}
+    />,
+  );
+  expect(await screen.findByText('value=3 label=second')).toBeInTheDocument();
+
+  // The next refresh with nothing changed compares against the form data the
+  // chart was last drawn with, not the one it was first drawn with.
+  const transformsBeforeSecondRefresh = testChartTransformed.mock.calls.length;
+  rerender(
+    <Chart
+      {...chartProps}
+      chartStatus="loading"
+      formData={filteredFormData}
+      latestQueryFormData={filteredQueryFormData}
+      queriesResponse={third}
+    />,
+  );
+  await waitForChartLoad();
+
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(testChartTransformed).toHaveBeenCalledTimes(
+    transformsBeforeSecondRefresh,
+  );
 });
 
 const selfFetchingChartProps = {
