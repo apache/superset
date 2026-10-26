@@ -411,14 +411,14 @@ class Query(
         )
 
         default_schema = self._get_rls_schema()
-        return list(
-            collect_rls_predicates_for_sql(
-                self.sql,
-                self.database,
-                self.catalog,
-                default_schema,
-            )
+        predicates = collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            default_schema,
         )
+        predicates.extend(self._get_query_rls_cache_keys(query_obj))
+        return list(dict.fromkeys(predicates))
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """

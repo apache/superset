@@ -170,7 +170,7 @@ from superset.utils.date_parser import (
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
-from superset.utils.rls import apply_rls, get_predicates_for_table
+from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
 
 
 class ValidationResultDict(TypedDict):
@@ -519,6 +519,7 @@ def validate_adhoc_subquery(
     """
     parsed_statement = SQLStatement(sql, engine)
     rls_applied = False
+    wrapped = False
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             raise SupersetSecurityException(
@@ -529,13 +530,27 @@ def validate_adhoc_subquery(
                 )
             )
 
+        # Scope traversal needs a query root to find tables inside bare expressions
+        # such as MAX((SELECT ...)), including Query-backed adhoc columns.
+        if not parsed_statement.is_select() and not parsed_statement.is_set_operation():
+            parsed_statement = SQLStatement(f"SELECT {sql}", engine)
+            wrapped = True
+
         # enforce RLS rules in any relevant tables
+        default_schema = get_rls_schema(database, catalog, default_schema, sql)
         rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
 
     # Only regenerate the SQL if RLS predicates were actually applied;
     # unnecessary round-tripping through sqlglot can alter dialect-specific
     # syntax.
-    return parsed_statement.format() if rls_applied else sql
+    if not rls_applied:
+        return sql
+    rewritten = parsed_statement.format()
+    if wrapped:
+        return re.split(r"SELECT\s+", rewritten, maxsplit=1, flags=re.IGNORECASE)[
+            1
+        ].strip()
+    return rewritten
 
 
 def validate_stored_expression_at_query_time(
@@ -578,10 +593,8 @@ def validate_stored_expression_at_query_time(
     except SupersetParseError:
         pass
 
-    # The detector passes below are detection only: the SQL they return is
-    # discarded rather than returned, since it is wrapped and may be in the wrong
-    # dialect. RLS injection is therefore not applied here, matching how such
-    # expressions reached the query before this check existed.
+    # Select-list fragments may only parse with a SELECT wrapper. Preserve any RLS
+    # rewrite in the engine dialect, but do not embed SQL rendered in another dialect.
     wrapped = f"SELECT {expression}"
     for dialect in (engine, "base"):
         try:
@@ -589,11 +602,21 @@ def validate_stored_expression_at_query_time(
                 raise QueryObjectValidationError(
                     _("Custom SQL fields cannot be parsed as a single SQL statement.")
                 )
-            validate_adhoc_subquery(wrapped, database, catalog, default_schema, dialect)
+            validated = validate_adhoc_subquery(
+                wrapped, database, catalog, default_schema, dialect
+            )
         except SupersetParseError:
             continue
         except SupersetSecurityException as ex:
             raise QueryObjectValidationError(ex.message) from ex
+        if validated != wrapped:
+            if dialect != engine:
+                raise QueryObjectValidationError(
+                    _("Custom SQL fields cannot be safely rewritten with RLS filters.")
+                )
+            return re.split(r"SELECT\s+", validated, maxsplit=1, flags=re.IGNORECASE)[
+                1
+            ].strip()
         return expression
 
     logger.warning("Skipping query-time validation of unparseable stored expression")
@@ -3996,21 +4019,30 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return self.db_engine_spec.get_text_clause(clause)
 
     def _get_rls_schema(self) -> str:
-        """Resolve unqualified RLS table names against the schema used at execution.
+        """Resolve RLS tables with the same schema policy as SQL expressions."""
+        return get_rls_schema(
+            self.database,
+            self.catalog,
+            self.schema,
+            self.sql or "",
+            self.template_params_dict,
+        )
 
-        Only dynamic-schema engines apply the datasource's schema to the connection.
-        Other engines resolve it from connection parameters or the inspector, using
-        the same query-aware resolver as SQL Lab authorization. If discovery returns
-        no schema, retain the dataset schema for RLS qualification.
+    def _get_query_rls_cache_keys(self, query_obj: QueryObjectDict) -> list[str]:
+        """Include expression subqueries' RLS, not just the datasource SQL's rules.
+
+        Build (but do not execute) the query to cover rendered expressions in columns,
+        metrics, filters, ordering and stored expressions through their query-time
+        validation paths. These subqueries are not constrained by the outer dataset's
+        RLS, so neither its id nor global guest rules may be excluded here.
         """
-        if self.db_engine_spec.supports_dynamic_schema:
-            return self.schema or self.database.get_default_schema(self.catalog) or ""
-        return (
-            self.database.resolve_query_default_schema(
-                self.sql, self.schema, self.catalog, self.template_params_dict
-            )
-            or self.schema
-            or ""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not query_obj or not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+            return []
+        sql = self.get_query_str_extended(query_obj, mutate=False).full_sql
+        return collect_rls_predicates_for_sql(
+            sql, self.database, self.catalog, self._get_rls_schema()
         )
 
     def get_from_clause(

@@ -28,16 +28,284 @@ from sqlalchemy.pool import NullPool
 
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.common.query_object import QueryObject
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import (
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+    validate_stored_expression,
+)
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.db_engine_specs.tdengine import TDengineEngineSpec
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetParseError
+from superset.models import helpers
 from superset.models.core import Database
+from superset.models.helpers import (
+    validate_rendered_expression,
+    validate_stored_expression_at_query_time,
+)
 from superset.models.sql_lab import Query
+from superset.sql.parse import SQLStatement
+from superset.superset_typing import QueryObjectDict
+from tests.unit_tests.conftest import with_feature_flags
 
 
+@pytest.fixture(
+    params=[
+        "column",
+        "arithmetic",
+        "metric",
+        "where",
+        "having",
+        "orderby",
+        "filter_column",
+    ]
+)
+def adhoc_subquery(request: pytest.FixtureRequest) -> QueryObjectDict:
+    """Build each adhoc sink around an independently RLS-protected subquery."""
+    expression = "(SELECT MAX(col1) FROM physical)"
+    if request.param in {"column", "arithmetic"}:
+        if request.param == "arithmetic":
+            expression = f"0 + {expression}"
+        return {
+            "columns": [{"sqlExpression": expression, "label": "restricted"}],
+            "metrics": [],
+        }
+    if request.param == "metric":
+        return {
+            "columns": [],
+            "metrics": [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": f"MAX({expression})",
+                    "label": "restricted",
+                }
+            ],
+        }
+    query: QueryObjectDict = {
+        "columns": [],
+        "metrics": [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "MAX(col1)",
+                "label": "restricted",
+            }
+        ],
+    }
+    if request.param == "orderby":
+        query["orderby"] = [
+            (
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": f"MAX({expression})",
+                    "label": "ordering",
+                },
+                True,
+            )
+        ]
+    elif request.param == "filter_column":
+        query["filter"] = [
+            {
+                "col": {"sqlExpression": expression, "label": "filtering"},
+                "op": "==",
+                "val": 1,
+            }
+        ]
+    else:
+        query["extras"] = {request.param: f"1 = {expression}"}
+    return query
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_adhoc_subquery_rls_uses_connection_schema(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    adhoc_subquery: QueryObjectDict,
+) -> None:
+    """Column, metric and filter subqueries must read only RLS-visible rows."""
+    virtual, _ = static_schema_datasource
+    query = QueryObject(
+        datasource=virtual,
+        columns=adhoc_subquery.get("columns"),
+        metrics=adhoc_subquery.get("metrics"),
+        filters=adhoc_subquery.get("filter"),
+        extras=adhoc_subquery.get("extras"),
+        orderby=adhoc_subquery.get("orderby"),
+    )
+
+    result = virtual.get_query_result(query)
+
+    assert result.status == "success"
+    assert result.df["restricted"].tolist() == [1]
+    # The outer virtual SQL and the independent expression each need RLS.
+    assert result.query.count("col1 = 1") == (3 if adhoc_subquery["columns"] else 2)
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_adhoc_subquery_rls_cache_uses_connection_schema(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    adhoc_subquery: QueryObjectDict,
+) -> None:
+    """An expression-only table reference must contribute its rules to the key."""
+    virtual, rule = static_schema_datasource
+    # The base SQL deliberately reads no table: only the expression needs RLS.
+    virtual.sql = "SELECT 1 AS col1"
+    query = QueryObject(
+        datasource=virtual,
+        columns=adhoc_subquery.get("columns"),
+        metrics=adhoc_subquery.get("metrics"),
+        filters=adhoc_subquery.get("filter"),
+        extras=adhoc_subquery.get("extras"),
+        orderby=adhoc_subquery.get("orderby"),
+    )
+
+    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 2)"]
+
+
+@pytest.mark.parametrize("sink", ["stored", "rendered", "save", "fragment"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_expression_validation_rls_uses_connection_schema(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """Stored, rendered and save-time validators share the adhoc RLS resolver."""
+    virtual, _ = static_schema_datasource
+    expression = "(SELECT MAX(col1) FROM physical)"
+    if sink == "fragment":
+        expression = f"DISTINCT {expression}"
+    apply = mocker.spy(helpers, "apply_rls")
+    args = (expression, virtual.database, virtual.catalog, virtual.schema)
+    if sink == "save":
+        validate_stored_expression(
+            virtual.database, virtual.catalog, virtual.schema, expression
+        )
+    elif sink == "rendered":
+        validate_rendered_expression(*args)
+    else:
+        rewritten = validate_stored_expression_at_query_time(
+            *args, virtual.database.backend
+        )
+        assert "col1 = 1" in rewritten
+
+    assert apply.call_args.args[2] == "main"
+    assert "col1 = 1" in apply.call_args.args[3].format()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("kind", ["column", "metric"])
+@pytest.mark.parametrize("templated", [False, True])
+@pytest.mark.parametrize("cache_key", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_stored_subquery_rls_uses_connection_schema(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    kind: str,
+    templated: bool,
+    cache_key: bool,
+) -> None:
+    """Stored and rendered column/metric subqueries affect execution and caching."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    expression = "(SELECT MAX(col1) FROM physical)"
+    virtual.template_params = '{"subquery": "(SELECT MAX(col1) FROM physical)"}'
+    if templated:
+        expression = "{{ subquery }}"
+    if kind == "column":
+        virtual.columns.append(
+            TableColumn(column_name="restricted", expression=expression)
+        )
+        query = QueryObject(datasource=virtual, columns=["restricted"], metrics=[])
+    else:
+        virtual.metrics = [
+            SqlMetric(metric_name="restricted", expression=f"MAX({expression})")
+        ]
+        query = QueryObject(datasource=virtual, columns=[], metrics=["restricted"])
+
+    if cache_key:
+        assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+        rule.clause = "col1 = 2"
+        assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 2)"]
+    else:
+        result = virtual.get_query_result(query)
+        assert result.status == "success"
+        assert result.df["restricted"].tolist() == [1]
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_adhoc_subquery_rls_schema_discovery_fails_closed(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """An expression cannot silently lose RLS when execution-schema discovery fails."""
+    virtual, _ = static_schema_datasource
+    mocker.patch.object(
+        virtual.database,
+        "resolve_query_default_schema",
+        side_effect=RuntimeError("discovery failed"),
+    )
+    apply = mocker.patch("superset.models.helpers.apply_rls")
+
+    with pytest.raises(RuntimeError, match="discovery failed"):
+        helpers.validate_adhoc_subquery(
+            "SELECT (SELECT MAX(col1) FROM physical)",
+            virtual.database,
+            virtual.catalog,
+            virtual.schema,
+            virtual.database.backend,
+        )
+    apply.assert_not_called()
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_stored_subquery_rls_dialect_fallback_fails_closed(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """A detector-only dialect must not discard the required RLS rewrite."""
+    virtual, _ = static_schema_datasource
+
+    def parse(sql: str, engine: str) -> SQLStatement:
+        """Model a fragment understood only by the permissive detector dialect."""
+        if engine != "base":
+            raise SupersetParseError("unsupported dialect syntax")
+        return SQLStatement(sql, engine)
+
+    mocker.patch("superset.models.helpers.SQLStatement", side_effect=parse)
+    with pytest.raises(QueryObjectValidationError, match="safely rewritten"):
+        validate_stored_expression_at_query_time(
+            "MAX((SELECT MAX(col1) FROM physical))",
+            virtual.database,
+            virtual.catalog,
+            virtual.schema,
+            virtual.database.backend,
+        )
+
+
+def test_expression_without_subquery_avoids_schema_discovery(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Ordinary expressions do not acquire a connection just to resolve RLS."""
+    virtual, _ = static_schema_datasource
+    resolve = mocker.spy(virtual.database, "resolve_query_default_schema")
+    assert (
+        helpers.validate_adhoc_subquery(
+            "MAX(col1)",
+            virtual.database,
+            virtual.catalog,
+            virtual.schema,
+            virtual.database.backend,
+        )
+        == "MAX(col1)"
+    )
+    resolve.assert_not_called()
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+@pytest.mark.parametrize("adhoc", [False, True])
 @pytest.mark.parametrize(
     "sql", ["SELECT col1 FROM physical", "SELECT col1 FROM main.physical"]
 )
@@ -54,6 +322,7 @@ def test_virtual_dataset_avoids_schema_connections(
     sql: str,
     datasource_class: type[SqlaTable] | type[Query],
     dynamic_schema: bool,
+    adhoc: bool,
 ) -> None:
     """Dynamic or statically proven schemas need no introspection connections."""
     uri = f"sqlite:///{tmp_path / 'analytic.db'}"
@@ -111,7 +380,18 @@ def test_virtual_dataset_avoids_schema_connections(
         result_type="full",
     )
     processor = QueryContextProcessor(context)
-    query = QueryObject(datasource=virtual, columns=["col1"], metrics=[])
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {
+                "sqlExpression": "col1 + 0 * (SELECT MAX(col1) FROM physical)",
+                "label": "col1",
+            }
+        ]
+        if adhoc
+        else ["col1"],
+        metrics=[],
+    )
     cache = MagicMock(is_loaded=cached, status="success", bq_memory_limited=False)
     cache.df = pd.DataFrame({"col1": [1] if with_rls else [1, 2]})
     mocker.patch(

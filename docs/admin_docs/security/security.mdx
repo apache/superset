@@ -662,6 +662,11 @@ has important implications when working with virtual (SQL-based) datasets:
   Additionally, RLS filters on the **underlying physical datasets** referenced by the
   virtual dataset's SQL are injected into the inner subquery for each referenced table.
 
+When `ALLOW_ADHOC_SUBQUERY` is enabled, subqueries in chart columns, metrics and filters
+also receive the referenced datasets' RLS filters, and those filters contribute to the
+chart's cache key. Unqualified table names use the connection's execution schema on
+engines that cannot change schema per query, not an ignored dataset schema setting.
+
 For example, if you have:
 
 1. A physical dataset `orders` with RLS filter `region = 'US'`

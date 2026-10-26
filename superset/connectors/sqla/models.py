@@ -2902,6 +2902,7 @@ class SqlaTable(
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
+        extra_cache_keys.extend(self._get_query_rls_cache_keys(query_obj))
         return list(set(extra_cache_keys))
 
     @property

@@ -54,6 +54,28 @@ def _get_cache_identity() -> str:
     return str(get_user_id())
 
 
+def get_rls_schema(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    sql: str,
+    template_params: dict[str, Any] | None = None,
+) -> str:
+    """Qualify RLS tables with the execution schema, retaining unknown defaults.
+
+    Only dynamic-schema engines apply a query's schema to the connection. Other
+    engines discover it from connection parameters or the inspector. When discovery
+    returns no schema, keep the configured schema rather than losing its RLS rules.
+    """
+    if database.db_engine_spec.supports_dynamic_schema:
+        return schema or database.get_default_schema(catalog) or ""
+    return (
+        database.resolve_query_default_schema(sql, schema, catalog, template_params)
+        or schema
+        or ""
+    )
+
+
 def apply_rls(
     database: Database,
     catalog: str | None,
