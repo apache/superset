@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 15:12-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -9535,6 +9535,9 @@ msgstr ""
 msgid "No saved metrics found"
 msgstr ""
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -11032,7 +11035,7 @@ msgstr ""
 msgid "Remove notification method"
 msgstr ""
 
-msgid "Remove or repoint these assets before deleting it."
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 msgid "Remove query from log"
@@ -12445,6 +12448,12 @@ msgstr ""
 
 msgid "Semantic layer updated"
 msgstr ""
+
+#, python-format
+msgid "Semantic source is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "Semantic source is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr ""
@@ -15191,14 +15200,8 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
-msgid "This semantic layer has no semantic views. This cannot be undone."
+msgid "This semantic layer has no dependent semantic views. This cannot be undone."
 msgstr ""
-
-#, python-format
-msgid "This semantic layer or view is used by %(count)s dependent asset and cannot be deleted."
-msgid_plural "This semantic layer or view is used by %(count)s dependent assets and cannot be deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
 msgstr ""
@@ -15379,6 +15382,9 @@ msgid "Time format"
 msgstr ""
 
 msgid "Time grain"
+msgstr ""
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
 msgstr ""
 
 msgid "Time grain chart customization plugin"
@@ -15779,6 +15785,12 @@ msgid "Unable to decode value"
 msgstr ""
 
 msgid "Unable to encode value"
+msgstr ""
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
 msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."

@@ -154,7 +154,9 @@ function SemanticLayerCascadeWarning({
   if (preview.dependentViewCount === 0) {
     return (
       <p>
-        {t('This semantic layer has no semantic views. This cannot be undone.')}
+        {t(
+          'This semantic layer has no dependent semantic views. This cannot be undone.',
+        )}
       </p>
     );
   }
