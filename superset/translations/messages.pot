@@ -362,6 +362,12 @@ msgid "%s aggregates(s)"
 msgstr ""
 
 #, python-format
+msgid "%s chart"
+msgid_plural "%s charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s chart updated"
 msgid_plural "%s charts updated"
 msgstr[0] ""
@@ -376,6 +382,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s column(s)"
 msgstr ""
+
+#, python-format
+msgid "%s dashboard"
+msgid_plural "%s dashboards"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s dashboard updated"
@@ -4136,6 +4148,12 @@ msgstr ""
 
 #, python-format
 msgid "Could not automatically fetch: %s. This is often blocked by the remote server (CORS); copy its contents in manually instead."
+msgstr ""
+
+#, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
+"Archiving them may make charts unavailable."
 msgstr ""
 
 #, python-format
@@ -10841,9 +10859,6 @@ msgstr ""
 msgid "Recently Archived"
 msgstr ""
 
-msgid "Recently archived"
-msgstr ""
-
 msgid "Recently modified"
 msgstr ""
 
@@ -14404,6 +14419,13 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 #, python-format
+msgid ""
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"Archiving them will make dependent charts unavailable until they are "
+"recovered."
+msgstr ""
+
+#, python-format
 msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
 msgstr ""
 
@@ -14844,13 +14866,19 @@ msgid "These %(type)s will be moved to Recently Archived and may be permanently 
 msgstr ""
 
 #, python-format
-msgid "These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there within %(days)s day."
-msgid_plural "These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there within %(days)s days."
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s day."
+msgid_plural ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
-msgid "These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there."
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
@@ -14861,17 +14889,29 @@ msgid "This %(schedule)s executes as another user. Only admins can change its co
 msgstr ""
 
 #, python-format
+msgid ""
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"will make dependent charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
 msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
-msgid "This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there within %(days)s day."
-msgid_plural "This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there within %(days)s days."
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s day."
+msgid_plural ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
-msgid "This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there."
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
@@ -18319,4 +18359,19 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+#, python-format
+msgid ""
+"The selected %(type)s are used by %(charts)s. Archiving them will make "
+"dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is used by %(charts)s. Archiving it will make dependent charts"
+" unavailable until it is recovered."
+msgstr ""
+
+msgid "View in Recently Archived →"
 msgstr ""
