@@ -193,4 +193,13 @@ test.each(['metric', 'calculated column'] as const)(
       ]),
     );
   },
+  // This test does real work: a full modal render with two AceEditor
+  // mounts, several userEvent interactions, and three real (not
+  // fake-timer) debounce waits via settleInputs(). The 'metric' case adds
+  // an extra expand/collapse round trip on top of that, and has timed out
+  // past the default 20s budget on otherwise-unrelated master pushes under
+  // CI load (e.g. runs 40370481814 and 40410835505, both on commit sha
+  // prefixes unrelated to this file). Give it real headroom instead of
+  // retrying flakes.
+  40000,
 );
