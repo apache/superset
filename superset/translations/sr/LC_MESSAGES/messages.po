@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -1245,6 +1245,12 @@ msgstr ""
 "Свећасти графикон приказује вредности отварања, затварања, максимум и "
 "минимум за сваки период. Обично се користи за финансијску и другу анализу"
 " опсега временских серија."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -13374,6 +13380,9 @@ msgstr "Нису пронађени сачувани изрази"
 msgid "No saved metrics found"
 msgstr "Нису пронађене сачуване метрике"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -22047,6 +22056,9 @@ msgstr "Формат времена"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Time grain"
 msgstr "Временска грануларност"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 # uk]
 msgid "Time grain chart customization plugin"

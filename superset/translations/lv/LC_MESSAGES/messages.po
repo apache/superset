@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1102,6 +1102,12 @@ msgstr ""
 "Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
 "zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
 " analīzei."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -11090,6 +11096,9 @@ msgstr "Nav atrastas saglabātas izteiksmes"
 msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18445,6 +18454,9 @@ msgstr "Laika formāts"
 
 msgid "Time grain"
 msgstr "Laika graudulība"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 msgid "Time grain chart customization plugin"
 msgstr "Laika granulu diagrammas pielāgošanas spraudnis"

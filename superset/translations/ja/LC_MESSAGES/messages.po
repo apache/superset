@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -998,6 +998,12 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr "ローソク足チャートは、各期間の始値、終値、高値、安値を示します。金融やその他の時系列レンジ分析によく使われます。"
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "日付として解析する列のリスト(カンマ区切り)"
@@ -10333,6 +10339,9 @@ msgstr "保存済み数式が見つかりません"
 msgid "No saved metrics found"
 msgstr "保存済みメトリックが見つかりません"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -17066,6 +17075,9 @@ msgstr "時間の形式"
 
 msgid "Time grain"
 msgstr "時間粒度"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 msgid "Time grain chart customization plugin"
 msgstr "時間粒度チャートカスタマイズプラグイン"

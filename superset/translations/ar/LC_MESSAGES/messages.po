@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1223,6 +1223,12 @@ msgid ""
 msgstr ""
 "يعرض مخطط الشموع قيم الفتح والإغلاق والأعلى والأدنى لكل فترة. يُستخدم "
 "عادةً في التحليل المالي وتحليل نطاق السلاسل الزمنية."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -12101,6 +12107,9 @@ msgstr "لم يتم العثور على تعبيرات محفوظة"
 msgid "No saved metrics found"
 msgstr "لم يتم العثور على مقاييس محفوظة"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -19996,6 +20005,9 @@ msgstr "صيغة الوقت"
 
 msgid "Time grain"
 msgstr "تايم جرين"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 #, fuzzy
 msgid "Time grain chart customization plugin"

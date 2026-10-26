@@ -455,7 +455,7 @@ def test_get_samples_partitioned_dataset_skips_count_star(
             datasource_id=1,
             page=3,
             per_page=50,
-            payload=payload,  # type: ignore[arg-type]
+            payload=payload,
             datasource=datasource,
         )
 
@@ -646,3 +646,41 @@ def test_get_samples_keeps_exact_count_without_partition_mapping(
     assert len(result["data"]) == 50
     assert result["total_count"] == 1234
     assert result["total_count_is_lower_bound"] is False
+
+
+@pytest.mark.parametrize("dashboard_id", [None, 1])
+def test_get_samples_carries_chart_type_to_sample_and_count_queries(
+    fake_datasource_factory: FakeDatasourceFactory,
+    dashboard_id: int | None,
+) -> None:
+    """Samples and the total count use the same Sunburst drill semantics."""
+    from superset.views.datasource import utils
+    from superset.views.datasource.schemas import SamplesPayloadSchema
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    payload = SamplesPayloadSchema().load({"viz_type": "sunburst_v2", "filters": []})
+    with patch.object(utils, "QueryContextFactory") as qcf:
+        samples_ctx = MagicMock()
+        samples_ctx.get_payload.return_value = {
+            "queries": [{"data": [{"kind": "a"}], "status": "success"}]
+        }
+        count_ctx = MagicMock()
+        count_ctx.get_payload.return_value = {
+            "queries": [{"data": [{"COUNT(*)": 1}], "status": "success"}]
+        }
+        qcf.return_value.create.side_effect = [samples_ctx, count_ctx]
+        utils.get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            datasource=datasource,
+            dashboard_id=dashboard_id,
+            payload=payload,
+        )
+    expected_form_data: dict[str, str | int] = {"viz_type": "sunburst_v2"}
+    if dashboard_id:
+        expected_form_data["dashboardId"] = dashboard_id
+    assert qcf.return_value.create.call_count == 2
+    for call in qcf.return_value.create.call_args_list:
+        assert call.kwargs["form_data"] == expected_form_data
+        assert "viz_type" not in call.kwargs["queries"][0]
+    assert payload == {"viz_type": "sunburst_v2", "filters": []}

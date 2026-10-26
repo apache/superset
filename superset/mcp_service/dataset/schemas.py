@@ -35,6 +35,7 @@ from pydantic import (
     model_validator,
     StrictBool,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.chart.schemas import (
@@ -64,7 +65,10 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
     OptionalRowCount,
@@ -566,6 +570,8 @@ class CreateDatasetRequest(BaseModel):
         rejects them, rather than silently treating a malformed value (e.g. an
         int or dict) as an omitted namespace.
         """
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             return v.strip() or None
         return v
@@ -574,6 +580,8 @@ class CreateDatasetRequest(BaseModel):
     @classmethod
     def _strip_table_name(cls, v: object) -> object:
         """Strip leading/trailing whitespace from table_name."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if isinstance(v, str):
             return v.strip()
         return v
@@ -631,12 +639,19 @@ class CreateVirtualDatasetRequest(BaseModel):
             raise ValueError("sql must not be empty")
         return v.strip()
 
-    @field_validator("dataset_name")
+    @field_validator("dataset_name", mode="before")
     @classmethod
-    def dataset_name_must_not_be_empty(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("dataset_name must not be empty")
-        return v.strip()
+    def dataset_name_must_not_be_empty(cls, v: object) -> object:
+        """Trim names and reject blanks before checking their length."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if isinstance(v, str):
+            if not v.strip():
+                raise PydanticCustomError(
+                    "empty_text", "dataset_name must not be empty"
+                )
+            return v.strip()
+        return v
 
 
 class CreateVirtualDatasetResponse(BaseModel):
@@ -739,6 +754,19 @@ class DatasetMetricProperties(OmittedMeansUnchanged):
         None, description="JSON-encoded string with extra metric metadata."
     )
 
+    @field_validator("metric_name", mode="before")
+    @classmethod
+    def reject_blank_metric_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "metric_name cannot be empty")
+        return value
+
     @field_validator("d3format")
     @classmethod
     def d3format_must_be_valid(cls, value: str | None) -> str | None:
@@ -773,8 +801,11 @@ class DatasetMetricProperties(OmittedMeansUnchanged):
                 "At least one metric property must be provided to update. "
                 f"Updatable properties: {sorted(UPDATABLE_METRIC_FIELDS)}."
             )
-        if "metric_name" in provided and not (self.metric_name or "").strip():
-            raise ValueError("metric_name cannot be empty or null")
+        if "metric_name" in provided and self.metric_name is None:
+            with field_validation_error("metric_name"):
+                raise PydanticCustomError(
+                    "empty_text", "metric_name cannot be empty or null"
+                )
         if "expression" in provided and not (self.expression or "").strip():
             raise ValueError("expression cannot be empty or null")
         if "extra" in provided and self.extra is not None:
@@ -1043,6 +1074,19 @@ class UpdateDatasetRequest(OmittedMeansUnchanged):
         "pick up schema changes in the underlying table or query.",
     )
 
+    @field_validator("table_name", mode="before")
+    @classmethod
+    def reject_blank_table_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "table_name cannot be empty")
+        return value
+
     @field_validator("dataset_id", mode="before")
     @classmethod
     def reject_bool_identifier(cls, value: object) -> object:
@@ -1084,8 +1128,11 @@ class UpdateDatasetRequest(OmittedMeansUnchanged):
                 "sync_columns must be true. Updatable properties: "
                 f"{sorted(UPDATABLE_DATASET_FIELDS)}."
             )
-        if "table_name" in provided and not (self.table_name or "").strip():
-            raise ValueError("table_name cannot be empty or null")
+        if "table_name" in provided and self.table_name is None:
+            with field_validation_error("table_name"):
+                raise PydanticCustomError(
+                    "empty_text", "table_name cannot be empty or null"
+                )
         if "sql" in provided and not (self.sql or "").strip():
             raise ValueError("sql cannot be empty or null")
         return self

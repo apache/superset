@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1291,6 +1291,12 @@ msgstr ""
 "Un grafico a candele mostra i valori di apertura, chiusura, massimo e "
 "minimo per ogni periodo. È comunemente usato per analisi finanziarie e di"
 " intervallo su serie temporali."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -13748,6 +13754,9 @@ msgstr "Nessuna espressione salvata trovata"
 msgid "No saved metrics found"
 msgstr "Nessuna metrica salvata trovata"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -22910,6 +22919,9 @@ msgstr "Formato orario"
 # tr, uk, zh, zh_TW]
 msgid "Time grain"
 msgstr "Granularità temporale"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, tr, uk]

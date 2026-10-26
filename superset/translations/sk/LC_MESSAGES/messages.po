@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1095,6 +1095,12 @@ msgstr ""
 "Sviečkový graf zobrazuje otváracie, uzatváracie, najvyššie a najnižšie "
 "hodnoty za každé obdobie. Bežne sa používa na finančnú a inú analýzu "
 "rozpätia časových radov."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddelený zoznam stĺpcov, ktoré sa majú spracovať ako data"
@@ -11305,6 +11311,9 @@ msgstr "Nebyly nalezeny žiadne uložené výrazy"
 msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žiadne uložené metriky"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -18788,6 +18797,9 @@ msgstr "Formát času"
 
 msgid "Time grain"
 msgstr "Časová granularita"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 #, fuzzy
 msgid "Time grain chart customization plugin"

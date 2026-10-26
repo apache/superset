@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1090,6 +1090,12 @@ msgstr ""
 "Um gráfico de candlestick mostra os valores de abertura, fechamento, "
 "máxima e mínima de cada período. É comumente usado para análises "
 "financeiras e de intervalo em séries temporais."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -12053,6 +12059,9 @@ msgstr "Nenhuma expressão salva foi encontrada"
 msgid "No saved metrics found"
 msgstr "Nenhuma métrica salva foi encontrada"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -20079,6 +20088,9 @@ msgstr "Formato de hora"
 
 msgid "Time grain"
 msgstr "Grão de tempo"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 #, fuzzy
 msgid "Time grain chart customization plugin"

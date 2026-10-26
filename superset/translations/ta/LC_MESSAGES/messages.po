@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1053,6 +1053,12 @@ msgstr ""
 "மெழுகுவர்த்தி விளக்கப்படம் ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு, மூடல், உயர்"
 " மற்றும் தாழ் மதிப்புகளைக் காட்டுகிறது. நிதி மற்றும் பிற நேரத் தொடர் "
 "வரம்பு பகுப்பாய்வுக்கு இது பொதுவாகப் பயன்படுத்தப்படுகிறது."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -10938,6 +10944,9 @@ msgstr "சேமிக்கப்பட்ட கோவைகள் (expressio
 msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -17951,6 +17960,9 @@ msgstr "நேர வடிவம்"
 
 msgid "Time grain"
 msgstr "நேர நுணுக்கம்"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 msgid "Time grain chart customization plugin"
 msgstr "நேர நுணுக்க சார்ட் தனிப்பயனாக்குதல் செருகுநிரல்"

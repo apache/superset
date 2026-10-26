@@ -34,7 +34,6 @@ from superset.utils.core import (
     extract_dataframe_dtypes,
     QueryStatus,
 )
-from superset.views.datasource.schemas import SamplesPayloadSchema
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -129,7 +128,7 @@ def get_samples(  # pylint: disable=too-many-arguments
     force: bool = False,
     page: int = 1,
     per_page: int = 1000,
-    payload: SamplesPayloadSchema | None = None,
+    payload: dict[str, Any] | None = None,
     datasource: Datasource | None = None,
     dashboard_id: int | None = None,
 ) -> dict[str, Any]:
@@ -140,6 +139,10 @@ def get_samples(  # pylint: disable=too-many-arguments
         )
 
     form_data = {"dashboardId": dashboard_id} if dashboard_id else None
+    if payload and "viz_type" in payload:
+        payload = dict(payload)
+        viz_type = payload.pop("viz_type")
+        form_data = {**(form_data or {}), "viz_type": viz_type}
     limit_clause = get_limit_clause(page, per_page)
     skip_count = skips_count_star(datasource)
     # Without a count, one row past the page is what tells "there is another
@@ -246,7 +249,7 @@ def get_samples(  # pylint: disable=too-many-arguments
 
 def _count_star_query_context(
     datasource: Datasource,
-    payload: SamplesPayloadSchema | None,
+    payload: dict[str, Any] | None,
     form_data: dict[str, Any] | None,
     force: bool,
 ) -> QueryContext:

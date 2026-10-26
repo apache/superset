@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-24 15:55+0000\n"
+"POT-Creation-Date: 2026-10-26 16:06+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1096,6 +1096,12 @@ msgstr ""
 "نمودار شمعی مقادیر باز شدن، بسته شدن، بالاترین و پایین‌ترین را برای هر "
 "دوره نشان می‌دهد. معمولاً برای تحلیل مالی و بازه سری‌های زمانی استفاده "
 "می‌شود."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -11755,6 +11761,9 @@ msgstr "هیچ عبارت ذخیره‌شده‌ای یافت نشد"
 msgid "No saved metrics found"
 msgstr "هیچ متریک ذخیره‌شده‌ای پیدا نشد"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
 msgstr ""
 
@@ -19528,6 +19537,9 @@ msgstr "قالب زمان"
 
 msgid "Time grain"
 msgstr "دانه زمانی"
+
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
 
 #, fuzzy
 msgid "Time grain chart customization plugin"
