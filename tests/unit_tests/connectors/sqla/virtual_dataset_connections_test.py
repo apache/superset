@@ -990,11 +990,11 @@ def test_expression_cache_key_reference_precedence(
         "is_timeseries": False,
     }
     if sink == "metric":
-        query.update(columns=[], metrics=["restricted"])
+        query["columns"] = []
+        query["metrics"] = ["restricted"]
     elif sink == "verbose":
-        query.update(
-            columns=["col1"], filter=[{"col": "restricted", "op": "==", "val": 1}]
-        )
+        query["columns"] = ["col1"]
+        query["filter"] = [{"col": "restricted", "op": "==", "val": 1}]
     elif sink == "rendered_reference":
         query["columns"] = [{"sqlExpression": "{{ 'restricted' }}", "label": "result"}]
     build = mocker.spy(virtual, "get_sqla_query")

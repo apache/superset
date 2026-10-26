@@ -4060,13 +4060,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             *(query_obj.get("groupby") or []),
         ]:
             add(value)
-        for value in query_obj.get("metrics") or []:
-            add(value, metric=True)
-        for value, _ascending in query_obj.get("orderby") or []:
-            add(value, metric=isinstance(value, str) and value in metrics)
+        for metric_value in query_obj.get("metrics") or []:
+            add(metric_value, metric=True)
+        for orderby_value, _ascending in query_obj.get("orderby") or []:
+            add(
+                orderby_value,
+                metric=isinstance(orderby_value, str) and orderby_value in metrics,
+            )
         for flt in query_obj.get("filter") or []:
-            value = flt.get("col")
-            add(value, metric=isinstance(value, str) and value not in columns)
+            filter_column = flt.get("col")
+            add(
+                filter_column,
+                metric=isinstance(filter_column, str) and filter_column not in columns,
+            )
         series_limit = query_obj.get("series_limit") or (
             query_obj.get("timeseries_limit")
             if query_obj.get("is_timeseries", True)
