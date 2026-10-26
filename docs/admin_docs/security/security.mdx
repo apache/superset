@@ -664,8 +664,10 @@ has important implications when working with virtual (SQL-based) datasets:
 
 When `ALLOW_ADHOC_SUBQUERY` is enabled, subqueries in chart columns, metrics and filters
 also receive the referenced datasets' RLS filters, and those filters contribute to the
-chart's cache key. Unqualified table names use the connection's execution schema on
-engines that cannot change schema per query, not an ignored dataset schema setting.
+chart's cache key. For unqualified table names on engines that cannot change schema
+per query, the connection's execution schema takes precedence when it can be
+discovered. The configured dataset schema remains the fallback for RLS lookup and
+cache keys when neither the connection parameters nor the inspector yields a schema.
 Expression RLS cache keys are collected without building the chart query or running
 series-limit prequeries; schema discovery is shared with the dataset SQL's RLS lookup.
 

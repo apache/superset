@@ -4029,14 +4029,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self.template_params_dict,
         )
 
-    def _get_query_sql_expressions(
-        self, query_obj: QueryObjectDict, template_processor: BaseTemplateProcessor
+    def _get_query_sql_expressions(  # noqa: C901
+        self,
+        query_obj: QueryObjectDict,
+        template_processor: BaseTemplateProcessor,
+        granularity: str | None,
     ) -> list[str]:
         """Find SQL-bearing chart fields without building a chart or its prequeries."""
-        # Real column names take precedence over verbose names in filter lookup.
-        columns = {col.verbose_name: col.expression for col in self.columns}
-        columns.update({col.column_name: col.expression for col in self.columns})
+        columns = {col.column_name: col.expression for col in self.columns}
+        # Only filters accept verbose names, with real names taking precedence.
+        filter_columns = {col.verbose_name: col.expression for col in self.columns}
+        filter_columns.update(columns)
         metrics = {metric.metric_name: metric.expression for metric in self.metrics}
+        selected_columns = query_obj.get("columns") or []
+        selected_metrics = query_obj.get("metrics") or []
+        adhoc_columns_by_label = {
+            col.get("label"): col
+            for col in selected_columns
+            if utils.is_adhoc_column(col)
+        }
+        metric_labels = {utils.get_metric_name(metric) for metric in selected_metrics}
         expressions: list[str] = []
 
         def add(value: Any, metric: bool = False) -> None:
@@ -4050,29 +4062,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # Adhoc columns can name a saved calculated column after
                     # rendering. SQL metrics use their SQL literally instead.
                     expressions.append(
-                        sql if "expressionType" in value else columns.get(sql) or sql
+                        sql if metric else columns.get(sql.strip()) or sql
                     )
                 add(value.get("column"))
                 add(value.get("column_name"))
 
-        for value in [
-            *(query_obj.get("columns") or []),
-            *(query_obj.get("groupby") or []),
-        ]:
+        def add_orderby(value: Any) -> None:
+            """ORDER BY prefers selected labels before stored metric/column names."""
+            if isinstance(value, str):
+                if value in metric_labels:
+                    # Selected metrics have already been collected.
+                    return
+                if value in adhoc_columns_by_label:
+                    add(adhoc_columns_by_label[value])
+                    return
+            add(
+                value,
+                metric=utils.is_adhoc_metric(value)
+                or (isinstance(value, str) and value in metrics),
+            )
+
+        def add_filter(value: Any) -> None:
+            """Filters accept verbose column names before stored metric names."""
+            if not isinstance(value, str):
+                add(value)
+            elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
+                add(granularity)
+            elif value in filter_columns:
+                expressions.append(filter_columns[value] or value)
+            elif value in metrics:
+                add(value, metric=True)
+            elif value in adhoc_columns_by_label:
+                add(adhoc_columns_by_label[value])
+
+        for value in query_obj.get("groupby") or selected_columns:
             add(value)
-        for metric_value in query_obj.get("metrics") or []:
+        for metric_value in selected_metrics:
             add(metric_value, metric=True)
         for orderby_value, _ascending in query_obj.get("orderby") or []:
-            add(
-                orderby_value,
-                metric=isinstance(orderby_value, str) and orderby_value in metrics,
-            )
+            add_orderby(orderby_value)
         for flt in query_obj.get("filter") or []:
-            filter_column = flt.get("col")
-            add(
-                filter_column,
-                metric=isinstance(filter_column, str) and filter_column not in columns,
-            )
+            add_filter(flt.get("col"))
         series_limit = query_obj.get("series_limit") or (
             query_obj.get("timeseries_limit")
             if query_obj.get("is_timeseries", True)
@@ -4087,8 +4117,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             else None,
             metric=True,
         )
-        add(query_obj.get("granularity"))
-        add(self.main_dttm_col if query_obj.get("granularity") else None)
+        add(granularity)
+        if (
+            granularity
+            and self.always_filter_main_dttm
+            and self.main_dttm_col in self.dttm_cols
+            and self.main_dttm_col != granularity
+        ):
+            add(self.main_dttm_col)
         extras = query_obj.get("extras") or {}
         expressions.extend(
             extras[key] for key in ("where", "having") if extras.get(key)
@@ -4142,7 +4178,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor = self.get_template_processor(**template_kwargs)
         predicates: set[str] = set()
         for expression in self._get_query_sql_expressions(
-            query_obj, template_processor
+            query_obj, template_processor, granularity
         ):
             expression = template_processor.process_template(expression)
             sql = f"SELECT {expression}"

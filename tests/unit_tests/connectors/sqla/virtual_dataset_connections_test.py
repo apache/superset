@@ -16,7 +16,9 @@
 # under the License.
 
 from collections.abc import Iterator
+from datetime import datetime
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -47,7 +49,7 @@ from superset.models.helpers import (
 )
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLStatement
-from superset.superset_typing import QueryObjectDict
+from superset.superset_typing import AdhocColumn, AdhocMetric, QueryObjectDict
 from tests.unit_tests.conftest import with_feature_flags
 
 
@@ -1111,3 +1113,269 @@ def test_expression_cache_key_reuses_catalog_discovery(
 
     assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
     assert catalog.call_count == 1
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["columns", "groupby", "filter"])
+@pytest.mark.parametrize("expression_type", [None, "SQL"])
+@pytest.mark.parametrize(
+    "reference", ["calculated", " calculated ", " {{ 'calculated' }} "]
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_adhoc_saved_column_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+    expression_type: str | None,
+    reference: str,
+) -> None:
+    """Rendered saved-column references separate two users' RLS result caches."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.columns.append(
+        TableColumn(
+            column_name="calculated",
+            type="INTEGER",
+            expression="(SELECT MAX(col1) FROM physical)",
+        )
+    )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    payload = {"sqlExpression": reference, "label": "axis"}
+    if expression_type:
+        payload["expressionType"] = expression_type
+    adhoc = cast(AdhocColumn, payload)
+    fields: QueryObjectDict = {"columns": [adhoc], "metrics": []}
+    if sink == "groupby":
+        fields["groupby"] = [adhoc]
+    elif sink == "filter":
+        fields["columns"] = ["col1"]
+        fields["filter"] = [{"col": adhoc, "op": "==", "val": 1}]
+    query = QueryObject(
+        datasource=virtual,
+        columns=fields["columns"],
+        groupby=fields.get("groupby"),
+        metrics=[],
+        filters=fields.get("filter"),
+    )
+    cache_keys = []
+    predicates = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+        predicates.append(extra_keys)
+        result = virtual.get_query_result(query)
+        assert result.status == "success"
+        assert result.df["col1" if sink == "filter" else "axis"].tolist() == (
+            ([1] if user_id == 1 else []) if sink == "filter" else [user_id]
+        )
+    assert cache_keys[0] != cache_keys[1]
+    assert predicates == [["(col1 = 1)"], ["(col1 = 2)"]]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable, Query], indirect=True)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_uses_only_executed_time_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """A valid SQL Lab time column and an unused broken primary column are safe."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT '2020-01-01' AS ds, 1 AS col1"
+    if isinstance(virtual, SqlaTable):
+        virtual.columns.extend(
+            [
+                TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+                TableColumn(
+                    column_name="unused",
+                    type="DATETIME",
+                    is_dttm=True,
+                    expression="{{ 1 / 0 }}",
+                ),
+            ]
+        )
+        virtual.main_dttm_col = "unused"
+        virtual.always_filter_main_dttm = False
+    else:
+        virtual.extra = {
+            "columns": [
+                {"column_name": "ds", "type": "DATETIME", "is_dttm": True},
+                {"column_name": "col1", "type": "INTEGER", "is_dttm": False},
+            ]
+        }
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        granularity="ds",
+        is_timeseries=True,
+        metrics=[],
+    )
+    # Execution succeeds before the cache lookup; cache collection must agree.
+    assert (
+        "ds"
+        in virtual.get_sqla_query(
+            columns=["col1"], granularity="ds", is_timeseries=True, metrics=[]
+        )
+        .sqla_query.compile()
+        .string
+    )
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("granularity", ["ds", "not_temporal"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_collects_effective_primary_time_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    granularity: str,
+) -> None:
+    """Fallback and always-filter-primary time expressions still contribute RLS."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT '2020-01-01' AS ds, 1 AS col1"
+    virtual.columns.extend(
+        [
+            TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+            TableColumn(
+                column_name="not_temporal", type="INTEGER", expression="{{ 1 / 0 }}"
+            ),
+            TableColumn(
+                column_name="primary",
+                type="DATETIME",
+                is_dttm=True,
+                expression="(SELECT '2020-01-01' FROM physical LIMIT 1)",
+            ),
+        ]
+    )
+    virtual.main_dttm_col = "primary"
+    virtual.always_filter_main_dttm = granularity == "ds"
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        granularity=granularity,
+        is_timeseries=True,
+        metrics=[],
+    )
+    assert "col1 = 1" in str(
+        virtual.get_sqla_query(
+            columns=["col1"],
+            granularity=granularity,
+            from_dttm=datetime(2020, 1, 1),
+            is_timeseries=True,
+            metrics=[],
+        ).sqla_query
+    )
+    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 2)"]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["metrics", "orderby", "series_limit_metric"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_sql_metric_cache_key_does_not_resolve_saved_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    sink: str,
+) -> None:
+    """SQL metrics use SQL literally, even if it names a saved calculated column."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.columns.append(
+        TableColumn(column_name="calculated", expression="{{ 1 / 0 }}")
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "calculated",
+        "label": "total",
+    }
+    query: QueryObjectDict = {
+        "columns": ["col1"],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    if sink == "metrics":
+        query["metrics"] = [metric]
+    elif sink == "orderby":
+        query["orderby"] = [(metric, True)]
+    else:
+        query["series_limit"] = 1
+        query["series_limit_metric"] = metric
+    assert (
+        str(
+            virtual.adhoc_metric_to_sqla(
+                metric, {c.column_name: c for c in virtual.columns}
+            )
+        )
+        == "calculated"
+    )
+    assert virtual.get_extra_cache_keys(query) == []
+
+
+def test_rls_schema_fallback_documented(mocker: MockerFixture) -> None:
+    """Document the configured-schema fallback retained when discovery is empty."""
+    from superset.utils.rls import get_rls_schema
+
+    database = MagicMock()
+    database.db_engine_spec.supports_dynamic_schema = False
+    database.resolve_query_default_schema.return_value = None
+    assert (
+        get_rls_schema(database, None, "configured", "SELECT * FROM physical")
+        == "configured"
+    )
+    documentation = (
+        Path(__file__).resolve().parents[4] / "docs/admin_docs/security/security.mdx"
+    ).read_text()
+    assert "execution schema takes precedence" in documentation
+    assert "dataset schema remains the fallback" in documentation
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["column_name", "adhoc_column", "groupby", "orderby"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_expression_cache_key_ignores_shadowed_references(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    sink: str,
+) -> None:
+    """Namespace aliases and overridden selections must not render unused SQL."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1, 1 AS caption"
+    virtual.columns.append(
+        TableColumn(
+            column_name="calculated", verbose_name="caption", expression="{{ 1 / 0 }}"
+        )
+    )
+    virtual.metrics.append(SqlMetric(metric_name="axis", expression="{{ 1 / 0 }}"))
+    query: QueryObjectDict = {
+        "columns": ["caption"],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    if sink == "adhoc_column":
+        query["columns"] = [{"sqlExpression": "caption", "label": "axis"}]
+    elif sink == "groupby":
+        query["columns"] = ["calculated"]
+        query["groupby"] = ["col1"]
+    elif sink == "orderby":
+        query["columns"] = [{"sqlExpression": "col1", "label": "axis"}]
+        query["orderby"] = [("axis", True)]
+    executed = virtual.get_sqla_query(
+        columns=query.get("columns"),
+        groupby=query.get("groupby"),
+        metrics=[],
+        orderby=query.get("orderby"),
+        is_timeseries=False,
+    )
+    assert "virtual_table" in str(executed.sqla_query)
+    assert virtual.get_extra_cache_keys(query) == []
