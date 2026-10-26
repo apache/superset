@@ -22333,6 +22333,12 @@ msgstr "Nije moguće dekodirati vrednost"
 msgid "Unable to encode value"
 msgstr "Nije moguće kodirati vrednost"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nije moguće preuzeti semantičke prikaze. Proverite konfiguraciju sloja."
 

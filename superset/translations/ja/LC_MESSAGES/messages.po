@@ -17206,6 +17206,12 @@ msgstr "値をデコードできません"
 msgid "Unable to encode value"
 msgstr "値をエンコードできません"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "セマンティックビューを取得できません。レイヤーの設定を確認してください。"
 

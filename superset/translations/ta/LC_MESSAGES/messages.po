@@ -18099,6 +18099,12 @@ msgstr "மதிப்பை டிகோட் செய்ய முடிய
 msgid "Unable to encode value"
 msgstr "மதிப்பை என்கோட் செய்ய முடியவில்லை"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 
