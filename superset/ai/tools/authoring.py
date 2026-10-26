@@ -36,6 +36,7 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 ToolCaller = Callable[[BaseModel], Any]
 
 _MCP_TOOL_MODULES = {
+    "get_chart_type_schema": "superset.mcp_service.chart.tool.get_chart_type_schema",
     "create_virtual_dataset": (
         "superset.mcp_service.dataset.tool.create_virtual_dataset"
     ),
@@ -85,13 +86,13 @@ async def _call_mcp_tool(tool_name: str, request: BaseModel) -> Any:
 
     from superset.mcp_service.app import mcp
 
-    arguments = {
-        "request": request.model_dump(
-            mode="json",
-            exclude={"sanitization_warnings"},
-            exclude_none=True,
-        )
-    }
+    arguments = request.model_dump(
+        mode="json",
+        exclude={"sanitization_warnings"},
+        exclude_none=True,
+    )
+    if tool_name != "get_chart_type_schema":
+        arguments = {"request": arguments}
     async with Client(mcp) as client:
         result = await client.call_tool(tool_name, arguments)
 
@@ -177,6 +178,29 @@ def _error_message(error: Any, fallback: str) -> str:
     if isinstance(suggestions, list) and suggestions:
         parts.append("Suggestions: " + "; ".join(map(str, suggestions[:3])))
     return " ".join(parts)
+
+
+class ChartTypeSchemaRequest(BaseModel):
+    chart_type: str
+    include_examples: bool = True
+
+
+class GetChartTypeSchemaTool(AITool):
+    """Discover the configuration supported by the registered chart tool."""
+
+    name: ClassVar[str] = "get_chart_type_schema"
+    description: ClassVar[str] = (
+        "Get the configuration schema and examples for a chart type before "
+        "calling generate_chart. Unsupported types return the available types."
+    )
+    input_schema: ClassVar[dict[str, Any]] = _tool_schema(ChartTypeSchemaRequest)
+
+    def __init__(self, caller: ToolCaller | None = None) -> None:
+        self._caller = caller
+
+    def run(self, **kwargs: Any) -> ToolOutput:
+        request = _validate(ChartTypeSchemaRequest, kwargs, "chart type schema")
+        return ToolOutput.of(_invoke(self._caller, self.name, request))
 
 
 class CreateVirtualDatasetTool(AITool):

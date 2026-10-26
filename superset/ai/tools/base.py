@@ -525,8 +525,9 @@ READ_ONLY_TOOL_NAMES: tuple[str, ...] = (
     "get_dashboard_context",
 )
 
-#: Asset mutations that a deployment must explicitly add to an agent profile.
+#: MCP authoring helpers that a deployment explicitly adds to an agent profile.
 AUTHORING_TOOL_NAMES: tuple[str, ...] = (
+    "get_chart_type_schema",
     "create_virtual_dataset",
     "generate_chart",
     "generate_dashboard",
@@ -558,6 +559,7 @@ def _all_tools() -> list[AITool]:
         CreateVirtualDatasetTool,
         GenerateChartTool,
         GenerateDashboardTool,
+        GetChartTypeSchemaTool,
     )
     from superset.ai.tools.context import GetChartContextTool, GetDashboardContextTool
     from superset.ai.tools.metadata import GetSchemaTool, ListDatabasesTool
@@ -572,6 +574,7 @@ def _all_tools() -> list[AITool]:
         ValidateSqlTool(),
         GetChartContextTool(),
         GetDashboardContextTool(),
+        GetChartTypeSchemaTool(),
         CreateVirtualDatasetTool(),
         GenerateChartTool(),
         GenerateDashboardTool(),

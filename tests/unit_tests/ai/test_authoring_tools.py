@@ -28,9 +28,11 @@ import pytest
 from superset.ai.tools.authoring import (
     _call_mcp_tool,
     _run_mcp_tool,
+    ChartTypeSchemaRequest,
     CreateVirtualDatasetTool,
     GenerateChartTool,
     GenerateDashboardTool,
+    GetChartTypeSchemaTool,
 )
 from superset.ai.tools.base import ToolError
 from superset.mcp_service.chart.schemas import GenerateChartRequest
@@ -272,4 +274,42 @@ def test_server_only_fields_are_not_offered_to_the_model() -> None:
     assert "sanitization_warnings" not in GenerateChartTool.input_schema["properties"]
     assert (
         "sanitization_warnings" not in GenerateDashboardTool.input_schema["properties"]
+    )
+
+
+def test_chart_type_schema_is_available_to_the_authoring_profile() -> None:
+    from superset.ai.tools.base import build_registry, BUNDLE_ALL
+
+    assert "get_chart_type_schema" in build_registry(BUNDLE_ALL).names()
+    expected = {"chart_type": "xy", "schema": {"type": "object"}, "examples": []}
+
+    def discover(request: Any) -> dict[str, Any]:
+        assert request.chart_type == "xy"
+        assert request.include_examples is False
+        return expected
+
+    output = GetChartTypeSchemaTool(caller=discover).run(
+        chart_type="xy", include_examples=False
+    )
+    assert output.payload == expected
+
+
+@pytest.mark.asyncio
+async def test_chart_type_schema_uses_flat_registered_tool_arguments() -> None:
+    client = MagicMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
+    client.call_tool = AsyncMock(
+        return_value=SimpleNamespace(
+            is_error=False,
+            structured_content={"chart_type": "xy"},
+            data=None,
+        )
+    )
+    with patch("fastmcp.Client", return_value=client):
+        await _call_mcp_tool(
+            "get_chart_type_schema", ChartTypeSchemaRequest(chart_type="xy")
+        )
+    client.call_tool.assert_awaited_once_with(
+        "get_chart_type_schema", {"chart_type": "xy", "include_examples": True}
     )
