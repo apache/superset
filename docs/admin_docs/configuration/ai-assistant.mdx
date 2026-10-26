@@ -523,3 +523,5 @@ production default, includes prompts and SQL in them.
   documented datasets produces far better answers than one without. If the
   assistant picks the wrong table, the usual fix is better descriptions or an
   `AI_EXTRA_PROMPT_SECTIONS` entry, not a different model.
+
+Chart generation returns the MCP result, including previews, partial preview errors, warnings, chart semantics, capabilities, and form data. A successful chart operation does not imply that every requested preview rendered successfully; the agent can inspect `preview_errors` before describing the result. Normal tool output limits still apply.

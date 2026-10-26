@@ -254,6 +254,7 @@ class GenerateChartTool(AITool):
         chart_id = chart.get("id") if isinstance(chart, dict) else None
         form_data_key = response.get("form_data_key")
         payload = {
+            **response,
             "success": bool(response.get("success", True)),
             "chart_id": chart_id,
             "form_data_key": form_data_key,
