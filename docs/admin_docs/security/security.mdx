@@ -666,6 +666,8 @@ When `ALLOW_ADHOC_SUBQUERY` is enabled, subqueries in chart columns, metrics and
 also receive the referenced datasets' RLS filters, and those filters contribute to the
 chart's cache key. Unqualified table names use the connection's execution schema on
 engines that cannot change schema per query, not an ignored dataset schema setting.
+Expression RLS cache keys are collected without building the chart query or running
+series-limit prequeries; schema discovery is shared with the dataset SQL's RLS lookup.
 
 For example, if you have:
 

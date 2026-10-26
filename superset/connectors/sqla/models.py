@@ -2886,9 +2886,12 @@ class SqlaTable(
             filtered_query_obj = {
                 k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
-            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
+            sqla_query = self.get_sqla_query(
+                **cast(Any, filtered_query_obj), execute_prequeries=False
+            )
             extra_cache_keys += sqla_query.extra_cache_keys
 
+        default_schema = None
         # For virtual datasets, include RLS predicates in the cache key
         if self.is_virtual and self.sql:
             default_schema = self._get_rls_schema()
@@ -2902,7 +2905,9 @@ class SqlaTable(
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
 
-        extra_cache_keys.extend(self._get_query_rls_cache_keys(query_obj))
+        extra_cache_keys.extend(
+            self._get_query_rls_cache_keys(query_obj, default_schema)
+        )
         return list(set(extra_cache_keys))
 
     @property

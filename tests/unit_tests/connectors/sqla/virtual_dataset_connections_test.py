@@ -680,3 +680,379 @@ def test_virtual_dataset_without_uri_database(
 
     extractor.assert_called_once()
     assert extractor.call_args.args[0].database is None
+
+
+@pytest.mark.parametrize("datasource_class", [SqlaTable, Query])
+@pytest.mark.parametrize("dynamic_schema", [False, True])
+@pytest.mark.parametrize("adhoc", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_cache_hit_schema_discovery_connection_budget(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    app_context: None,
+    datasource_class: type[SqlaTable] | type[Query],
+    dynamic_schema: bool,
+    adhoc: bool,
+) -> None:
+    """Expression cache keys must reuse the datasource's single inspector lookup."""
+    uri = f"sqlite:///{tmp_path / 'analytic.db'}"
+    engine = create_engine(uri, poolclass=NullPool)
+    connections = MagicMock()
+    event.listen(engine, "connect", connections)
+    database = Database(id=1, database_name="analytic", sqlalchemy_uri=uri)
+    mocker.patch.object(database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(
+        database.db_engine_spec, "supports_dynamic_schema", dynamic_schema
+    )
+    # SQLite needs its inspector to discover "main". The static-engine case
+    # deliberately disagrees with the dataset's configured schema.
+    virtual = datasource_class(
+        id=2,
+        sql="SELECT col1 FROM physical",
+        schema=None if dynamic_schema else "not_the_default",
+        database=database,
+    )
+    if isinstance(virtual, SqlaTable):
+        virtual.table_name = "virtual"
+        virtual.columns = [TableColumn(column_name="col1", type="INTEGER")]
+    else:
+        virtual.extra = {
+            "columns": [{"column_name": "col1", "type": "INTEGER", "is_dttm": False}]
+        }
+    physical = SqlaTable(id=1, table_name="physical", schema="main", database=database)
+    rule = MagicMock(clause="col1 = 1", group_key=None)
+    mocker.patch("superset.utils.rls.find_datasets", return_value=[physical])
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rule] if dataset.id == 1 else [],
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+        return_value=[],
+    )
+    cache = MagicMock(is_loaded=True, status="success", bq_memory_limited=False)
+    cache.df = pd.DataFrame({"restricted": [1]})
+    mocker.patch(
+        "superset.common.query_context_processor.QueryCacheManager.get",
+        return_value=cache,
+    )
+    processor = QueryContextProcessor(
+        MagicMock(
+            datasource=virtual,
+            force=False,
+            is_async_execution=False,
+            custom_cache_timeout=300,
+            result_type="full",
+        )
+    )
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {"sqlExpression": "(SELECT MAX(col1) FROM physical)", "label": "restricted"}
+        ]
+        if adhoc
+        else ["col1"],
+        metrics=[],
+    )
+    cache_key = mocker.spy(query, "cache_key")
+    result = processor.get_df_payload_result(query)
+
+    assert result.payload["status"] == "success"
+    assert cache_key.call_args.kwargs["extra_cache_keys"] == ["(col1 = 1)"]
+    assert connections.call_count == 1
+    cache.set_query_result.assert_not_called()
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "static_schema_datasource,extra_cache_macro",
+    [(SqlaTable, False), (SqlaTable, True), (Query, False)],
+    indirect=["static_schema_datasource"],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_hit_series_limit_does_not_execute_prequery(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    extra_cache_macro: bool,
+) -> None:
+    """No-join engines must not execute top-series queries for cache keys."""
+    virtual, _ = static_schema_datasource
+    # Use Druid's no-join planner with the fixture's SQLite transport.
+    mocker.patch.object(
+        virtual.database, "get_db_engine_spec", return_value=DruidEngineSpec
+    )
+    mocker.patch.object(DruidEngineSpec, "allows_joins", False)
+    if extra_cache_macro:
+        virtual.sql += " WHERE 1 = {{ cache_key_wrapper(1) }}"
+    execute = mocker.spy(virtual, "query")
+    cache = MagicMock(is_loaded=True, status="success", bq_memory_limited=False)
+    cache.df = pd.DataFrame({"col1": [1], "total": [1]})
+    mocker.patch(
+        "superset.common.query_context_processor.QueryCacheManager.get",
+        return_value=cache,
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+        return_value=[],
+    )
+    processor = QueryContextProcessor(
+        MagicMock(
+            datasource=virtual,
+            force=False,
+            is_async_execution=False,
+            custom_cache_timeout=300,
+            result_type="full",
+        )
+    )
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[
+            {"expressionType": "SQL", "sqlExpression": "SUM(col1)", "label": "total"}
+        ],
+        series_columns=["col1"],
+        series_limit=1,
+    )
+
+    result = processor.get_df_payload_result(query)
+
+    assert result.payload["status"] == "success"
+    execute.assert_not_called()
+    cache.set_query_result.assert_not_called()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"columns": ["calculated"]},
+        {
+            "columns": [
+                {
+                    "sqlExpression": "calculated",
+                    "label": "axis",
+                    "columnType": "BASE_AXIS",
+                    "timeGrain": "P1D",
+                }
+            ]
+        },
+        {"groupby": ["calculated"]},
+        {"columns": ["(SELECT MAX(col1) FROM physical)"], "metrics": ["restricted"]},
+        {"metrics": ["restricted"]},
+        {
+            "metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "MAX",
+                    "column": {"column_name": "calculated"},
+                    "label": "total",
+                }
+            ]
+        },
+        {"orderby": [("restricted", True)]},
+        {"orderby": [("calculated", True)]},
+        {"filter": [{"col": "calculated", "op": "==", "val": 1}]},
+        {"filter": [{"col": "caption", "op": "==", "val": 1}]},
+        {"filter": [{"col": "restricted", "op": "==", "val": 1}]},
+        {
+            "series_limit": 1,
+            "series_columns": ["col1"],
+            "series_limit_metric": "restricted",
+        },
+        {"timeseries_limit": 1, "timeseries_limit_metric": "restricted"},
+        {
+            "series_limit": 1,
+            "series_columns": ["col1"],
+            "series_limit_metric": {
+                "expressionType": "SQL",
+                "sqlExpression": "MAX({{ subquery }})",
+                "label": "total",
+            },
+        },
+        {"granularity": "calculated", "is_timeseries": True},
+        {"extras": {"where": "1 = {{ subquery }}"}},
+        {"extras": {"having": "1 = {{ subquery }}"}},
+        {"apply_fetch_values_predicate": True},
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_expression_cache_key_sibling_fields(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    fields: QueryObjectDict,
+) -> None:
+    """Every expression entry point contributes RLS without a full query build."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.template_params = '{"subquery": "(SELECT MAX(col1) FROM physical)"}'
+    virtual.columns.append(
+        TableColumn(
+            column_name="calculated",
+            verbose_name="caption",
+            is_dttm=True,
+            expression="{{ subquery }}",
+        )
+    )
+    virtual.metrics.append(
+        SqlMetric(
+            metric_name="restricted",
+            expression="MAX({{ subquery }})",
+        )
+    )
+    virtual.fetch_values_predicate = "1 = (SELECT MAX(col1) FROM physical)"
+    build = mocker.spy(virtual, "get_sqla_query")
+    query: QueryObjectDict = {
+        "columns": ["col1"],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    query.update(fields)
+
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+    build.assert_not_called()
+
+
+def test_series_limit_execution_still_runs_prequery(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Skipping prequeries for keys must not disable top-series execution."""
+    virtual, _ = static_schema_datasource
+    mocker.patch.object(
+        virtual.database, "get_db_engine_spec", return_value=DruidEngineSpec
+    )
+    mocker.patch.object(DruidEngineSpec, "allows_joins", False)
+    execute = mocker.spy(virtual, "query")
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[
+            {"expressionType": "SQL", "sqlExpression": "SUM(col1)", "label": "total"}
+        ],
+        series_columns=["col1"],
+        series_limit=1,
+    )
+
+    result = virtual.get_query_result(query)
+
+    assert result.status == "success"
+    assert result.df.to_dict(orient="list") == {"col1": [1], "total": [1]}
+    assert execute.call_count == 2
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["metric", "column", "verbose", "rendered_reference"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_expression_cache_key_reference_precedence(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """Name collisions and rendered column references retain the executed rules."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    protected = "(SELECT MAX(col1) FROM physical)"
+    unrelated = "(SELECT MAX(col1) FROM unrelated)"
+    virtual.columns.append(
+        TableColumn(
+            column_name="restricted",
+            expression=unrelated if sink == "metric" else protected,
+        )
+    )
+    virtual.columns.append(
+        TableColumn(
+            column_name="another",
+            verbose_name="restricted",
+            expression=unrelated,
+        )
+    )
+    virtual.metrics.append(
+        SqlMetric(
+            metric_name="restricted",
+            expression=protected if sink == "metric" else unrelated,
+        )
+    )
+    query: QueryObjectDict = {
+        "columns": ["restricted"],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    if sink == "metric":
+        query.update(columns=[], metrics=["restricted"])
+    elif sink == "verbose":
+        query.update(
+            columns=["col1"], filter=[{"col": "restricted", "op": "==", "val": 1}]
+        )
+    elif sink == "rendered_reference":
+        query["columns"] = [{"sqlExpression": "{{ 'restricted' }}", "label": "result"}]
+    build = mocker.spy(virtual, "get_sqla_query")
+
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+    build.assert_not_called()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("subquery", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_physical_expression_cache_key_schema_budget(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    subquery: bool,
+) -> None:
+    """Physical datasets discover a schema only once, and only for subqueries."""
+    physical, _ = static_schema_datasource
+    physical.sql = None
+    expression = "(SELECT MAX(col1) FROM physical)" if subquery else "col1 + 1"
+    query: QueryObjectDict = {
+        "columns": [
+            {"sqlExpression": expression, "label": str(index)} for index in range(3)
+        ],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    discover = mocker.spy(physical.database, "resolve_query_default_schema")
+    build = mocker.spy(physical, "get_sqla_query")
+
+    assert physical.get_extra_cache_keys(query) == (["(col1 = 1)"] if subquery else [])
+    assert discover.call_count == (1 if subquery else 0)
+    build.assert_not_called()
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_expression_cache_key_parse_failure_is_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Unparseable expressions must retain the collector's per-user sentinel."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    user_id = mocker.patch("superset.utils.rls.get_user_id", return_value=41)
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    query: QueryObjectDict = {
+        "columns": [{"sqlExpression": "(SELECT FROM !)", "label": "broken"}],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    build = mocker.spy(virtual, "get_sqla_query")
+
+    assert virtual.get_extra_cache_keys(query) == [
+        "rls-predicate-parse-failed-for-user-41"
+    ]
+    user_id.return_value = 42
+    assert virtual.get_extra_cache_keys(query) == [
+        "rls-predicate-parse-failed-for-user-42"
+    ]
+    build.assert_not_called()

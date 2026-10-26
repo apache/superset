@@ -4028,22 +4028,120 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self.template_params_dict,
         )
 
-    def _get_query_rls_cache_keys(self, query_obj: QueryObjectDict) -> list[str]:
-        """Include expression subqueries' RLS, not just the datasource SQL's rules.
+    def _get_query_sql_expressions(
+        self, query_obj: QueryObjectDict, template_processor: BaseTemplateProcessor
+    ) -> list[str]:
+        """Find SQL-bearing chart fields without building a chart or its prequeries."""
+        # Real column names take precedence over verbose names in filter lookup.
+        columns = {col.verbose_name: col.expression for col in self.columns}
+        columns.update({col.column_name: col.expression for col in self.columns})
+        metrics = {metric.metric_name: metric.expression for metric in self.metrics}
+        expressions: list[str] = []
 
-        Build (but do not execute) the query to cover rendered expressions in columns,
-        metrics, filters, ordering and stored expressions through their query-time
-        validation paths. These subqueries are not constrained by the outer dataset's
-        RLS, so neither its id nor global guest rules may be excluded here.
+        def add(value: Any, metric: bool = False) -> None:
+            """Resolve stored references in the namespace used by the query sink."""
+            if isinstance(value, str):
+                references = metrics if metric else columns
+                expressions.append(references.get(value) or value)
+            elif isinstance(value, dict):
+                if sql := value.get("sqlExpression"):
+                    sql = template_processor.process_template(sql)
+                    # Adhoc columns can name a saved calculated column after
+                    # rendering. SQL metrics use their SQL literally instead.
+                    expressions.append(
+                        sql if "expressionType" in value else columns.get(sql) or sql
+                    )
+                add(value.get("column"))
+                add(value.get("column_name"))
+
+        for value in [
+            *(query_obj.get("columns") or []),
+            *(query_obj.get("groupby") or []),
+            *(query_obj.get("series_columns") or []),
+        ]:
+            add(value)
+        for value in query_obj.get("metrics") or []:
+            add(value, metric=True)
+        for value, _ascending in query_obj.get("orderby") or []:
+            add(value, metric=isinstance(value, str) and value in metrics)
+        for flt in query_obj.get("filter") or []:
+            value = flt.get("col")
+            add(value, metric=isinstance(value, str) and value not in columns)
+        add(query_obj.get("series_limit_metric"), metric=True)
+        add(query_obj.get("timeseries_limit_metric"), metric=True)
+        add(query_obj.get("granularity"))
+        add(self.main_dttm_col if query_obj.get("granularity") else None)
+        extras = query_obj.get("extras") or {}
+        expressions.extend(
+            extras[key] for key in ("where", "having") if extras.get(key)
+        )
+        if (
+            query_obj.get("apply_fetch_values_predicate")
+            and self.fetch_values_predicate
+        ):
+            expressions.append(self.fetch_values_predicate)
+        return expressions
+
+    def _get_query_rls_cache_keys(
+        self, query_obj: QueryObjectDict, default_schema: str | None = None
+    ) -> list[str]:
+        """Collect expression-only RLS rules without building or executing SQL.
+
+        Only subquery expressions need table discovery. Reuse the
+        datasource SQL's resolved schema, or resolve it once for physical datasets.
+        Do not exclude the dataset's own id: an independent expression subquery is
+        not constrained by the outer query's RLS.
         """
         from superset.utils.rls import collect_rls_predicates_for_sql
 
         if not query_obj or not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             return []
-        sql = self.get_query_str_extended(query_obj, mutate=False).full_sql
-        return collect_rls_predicates_for_sql(
-            sql, self.database, self.catalog, self._get_rls_schema()
+        extras = query_obj.get("extras") or {}
+        granularity = query_obj.get("granularity")
+        if granularity is not None and granularity not in self.dttm_cols:
+            granularity = self.main_dttm_col
+        template_kwargs = {
+            key: query_obj.get(key)
+            for key in (
+                "columns",
+                "groupby",
+                "metrics",
+                "row_limit",
+                "row_offset",
+                "filter",
+            )
+        }
+        template_kwargs.update(
+            time_column=granularity,
+            time_grain=extras.get("time_grain_sqla"),
+            table_columns=[col.column_name for col in self.columns],
         )
+        template_kwargs.update(self.template_params_dict)
+        template_processor = self.get_template_processor(**template_kwargs)
+        predicates: set[str] = set()
+        for expression in self._get_query_sql_expressions(
+            query_obj, template_processor
+        ):
+            expression = template_processor.process_template(expression)
+            sql = f"SELECT {expression}"
+            try:
+                parsed = SQLStatement(sql, self.db_engine_spec.engine)
+            except SupersetParseError:
+                # The collector supplies a per-user failure key for unparseable SQL.
+                pass
+            else:
+                if not parsed.has_subquery():
+                    continue
+            if default_schema is None:
+                default_schema = self._get_rls_schema()
+            # A query root lets scope traversal find tables in scalar expressions
+            # and select-list fragments such as DISTINCT (SELECT ...).
+            predicates.update(
+                collect_rls_predicates_for_sql(
+                    sql, self.database, self.catalog, default_schema
+                )
+            )
+        return sorted(predicates)
 
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
@@ -5034,8 +5132,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        execute_prequeries: bool = True,
     ) -> SqlaQuery:
-        """Querying any sqla table from this common interface"""
+        """Build a chart query, optionally omitting execution of series prequeries.
+
+        Cache-key extraction disables prequeries: only template side effects are
+        needed, not the top-series rows used to constrain an executed chart.
+        """
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
@@ -6199,67 +6302,72 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     ]
 
-                # run prequery to get top groups
-                prequery_obj: QueryObjectDict = {
-                    "is_timeseries": False,
-                    "row_limit": series_limit,
-                    "metrics": metrics,
-                    "granularity": granularity,
-                    "groupby": groupby,
-                    "from_dttm": inner_from_dttm or from_dttm,
-                    "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": filter or [],
-                    "orderby": orderby,
-                    "extras": extras,
-                    "columns": get_non_base_axis_columns(columns),
-                    "order_desc": True,
-                }
+                if execute_prequeries:
+                    # run prequery to get top groups
+                    prequery_obj: QueryObjectDict = {
+                        "is_timeseries": False,
+                        "row_limit": series_limit,
+                        "metrics": metrics,
+                        "granularity": granularity,
+                        "groupby": groupby,
+                        "from_dttm": inner_from_dttm or from_dttm,
+                        "to_dttm": inner_to_dttm or to_dttm,
+                        "filter": filter or [],
+                        "orderby": orderby,
+                        "extras": extras,
+                        "columns": get_non_base_axis_columns(columns),
+                        "order_desc": True,
+                    }
 
-                result = self.query(prequery_obj)
-                prequeries.append(result.query)
-                dimensions = [
-                    c
-                    for c in result.df.columns
-                    if c not in metrics and c in groupby_series_columns
-                ]
-                top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_series_columns, columns_by_name
-                )
-
-                if group_others_when_limit_reached:
-                    # Apply Others grouping using the refactored method
-                    def _create_top_groups_condition(col_name: str, expr: Any) -> Any:
-                        return top_groups
-
-                    select_exprs, groupby_all_columns = (
-                        self._apply_series_others_grouping(
-                            select_exprs,
-                            groupby_all_columns,
-                            groupby_series_columns,
-                            _create_top_groups_condition,
-                        )
+                    result = self.query(prequery_obj)
+                    prequeries.append(result.query)
+                    dimensions = [
+                        c
+                        for c in result.df.columns
+                        if c not in metrics and c in groupby_series_columns
+                    ]
+                    top_groups = self._get_top_groups(
+                        result.df, dimensions, groupby_series_columns, columns_by_name
                     )
 
-                    # Reconstruct query with modified expressions
-                    qry = sa.select(*select_exprs)
-                    if groupby_all_columns:
-                        qry = qry.group_by(
-                            *self._groupby_clause_exprs(groupby_all_columns.values())
+                    if group_others_when_limit_reached:
+                        # Apply Others grouping using the refactored method
+                        def _create_top_groups_condition(
+                            col_name: str, expr: Any
+                        ) -> Any:
+                            return top_groups
+
+                        select_exprs, groupby_all_columns = (
+                            self._apply_series_others_grouping(
+                                select_exprs,
+                                groupby_all_columns,
+                                groupby_series_columns,
+                                _create_top_groups_condition,
+                            )
                         )
 
-                    # Re-apply WHERE and HAVING clauses lost during query reconstruction
-                    qry = self._reapply_query_filters(
-                        qry,
-                        apply_fetch_values_predicate,
-                        template_processor,
-                        granularity,
-                        time_filters,
-                        where_clause_and,
-                        having_clause_and,
-                    )
-                else:
-                    # Original behavior: filter to only top groups
-                    qry = qry.where(top_groups)
+                        # Reconstruct query with modified expressions
+                        qry = sa.select(*select_exprs)
+                        if groupby_all_columns:
+                            qry = qry.group_by(
+                                *self._groupby_clause_exprs(
+                                    groupby_all_columns.values()
+                                )
+                            )
+
+                        # Restore filters lost during query reconstruction.
+                        qry = self._reapply_query_filters(
+                            qry,
+                            apply_fetch_values_predicate,
+                            template_processor,
+                            granularity,
+                            time_filters,
+                            where_clause_and,
+                            having_clause_and,
+                        )
+                    else:
+                        # Original behavior: filter to only top groups
+                        qry = qry.where(top_groups)
 
         qry = qry.select_from(tbl)
         self.rename_shadowing_aliases(qry)

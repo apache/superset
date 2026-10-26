@@ -417,7 +417,7 @@ class Query(
             self.catalog,
             default_schema,
         )
-        predicates.extend(self._get_query_rls_cache_keys(query_obj))
+        predicates.extend(self._get_query_rls_cache_keys(query_obj, default_schema))
         return list(dict.fromkeys(predicates))
 
     def get_time_grains(self) -> list[TimeGrainDict]:
