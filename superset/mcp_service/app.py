@@ -131,7 +131,7 @@ Dashboard Management:
 - get_dashboard_data: Get bounded, filter-aware data across a dashboard's charts in one call (compact per-chart columns, sample rows, and row counts, selected in layout order) for analytical questions about a whole dashboard
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
-- duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
+- duplicate_dashboard: Duplicate an existing dashboard under a new title. By default the copy deep-copies charts so subsequent edits are isolated. Set duplicate_slices=false only to deliberately share the source charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, and filter-bar divider)
@@ -333,7 +333,7 @@ To find all items you have any connection to (created OR edit):
 - list_dashboards(request={{"created_by_me": true, "edited_by_me": true}})
 - list_datasets(request={{"created_by_me": true, "edited_by_me": true}})
 
-Use created_by_me for authorship, edited_by_me for edit access, or both
+edited_by_me means direct USER editor (owner), excluding role/group access. Use created_by_me for authorship, edited_by_me for direct editor membership, or both
 together for the union. These flags can be combined with 'filters' but not
 with 'search'.
 

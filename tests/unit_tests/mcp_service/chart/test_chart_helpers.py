@@ -435,6 +435,31 @@ def test_mcp_extra_filters_keep_dashboard_provenance(
         validate_filter_columns([chart_owned], {"category"}, {"total_amount"})
 
 
+def test_merge_extra_time_range_marks_only_unbounded_saved_ranges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A request range is dashboard provenance over unbounded saved ranges only."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    unbounded: dict[str, Any] = {"col": "ds", "op": "TEMPORAL_RANGE", "val": None}
+    bounded: dict[str, Any] = {
+        "col": "ds",
+        "op": "TEMPORAL_RANGE",
+        "val": "2024-01-01 : 2024-06-01",
+    }
+    query: dict[str, Any] = {"filters": [unbounded, bounded, None]}
+
+    merge_extra_form_data_filters_into_query(
+        query, {"time_range": "Last week"}, 1, "table"
+    )
+
+    assert query["time_range"] == "Last week"
+    assert unbounded["isExtra"] is True
+    assert "isExtra" not in bounded
+
+
 def test_merge_extra_form_data_time_grain_override_lands_in_extras(monkeypatch):
     """A time_grain_sqla override must reach the query object.
 
@@ -2170,3 +2195,45 @@ def test_deck_path_metric_keeps_canonical_path_grouping(
     sql = table.get_query_str(query_object.to_dict())
     assert "GROUP BY path" in sql, sql
     assert "COUNT(*)" in sql, sql
+
+
+def test_build_query_dicts_from_form_data_passes_enum_values_as_strings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Enum members in form_data reach the query as plain strings.
+
+    Template rendering rejects non-primitive context values, so an enum a mapper
+    forgets to unwrap must not leak into queries. Caller-owned data is preserved.
+    """
+    from copy import deepcopy
+    from enum import Enum
+
+    from superset.constants import TimeGrain
+
+    class _FutureEnum(Enum):
+        VALUE = "future"
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["state"],
+        "metrics": ["count"],
+        "adhoc_filters": [],
+        "granularity_sqla": "ds",
+        "time_grain_sqla": TimeGrain.MONTH,
+        "future_option": [{"nested": _FutureEnum.VALUE}],
+    }
+
+    original_form_data = deepcopy(form_data)
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert form_data == original_form_data
+    grain = queries[0]["extras"]["time_grain_sqla"]
+    assert grain == "P1M"
+    assert type(grain) is str
+    assert form_data["time_grain_sqla"] is TimeGrain.MONTH
+    assert form_data["future_option"][0]["nested"] is _FutureEnum.VALUE

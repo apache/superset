@@ -98,9 +98,8 @@ const Meta = styled.div`
 export interface ActionRowProps {
   record: ActivityRecord;
   /**
-   * True when the row belongs to the active group — the current (live)
-   * version at rest, or a historical version while previewed. Drives the
-   * active timeline dot.
+   * Whether the parent group carries the active highlight. Drives the
+   * timeline dot; the panel decides which group, if any, is highlighted.
    */
   isHighlighted: boolean;
   isLast: boolean;

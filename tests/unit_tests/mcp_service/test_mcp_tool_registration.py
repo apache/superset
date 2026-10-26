@@ -19,6 +19,8 @@
 
 import asyncio
 import logging
+import re
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -27,6 +29,7 @@ import pytest
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
 from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.utils import json
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
@@ -905,3 +908,23 @@ def test_committed_write_identifying_fields_are_the_container_ones() -> None:
                 named_scalars.setdefault(name, []).append(field)
 
     assert not named_scalars, named_scalars
+
+
+@pytest.mark.asyncio
+async def test_deleted_state_documentation_matches_list_schemas() -> None:
+    """Keep the documented trash-listing support aligned with every list tool."""
+    tools = await mcp.list_tools()
+    supported = {
+        tool.name
+        for tool in tools
+        if tool.name.startswith("list_")
+        and '"deleted_state":' in json.dumps(tool.parameters)
+    }
+
+    doc = (
+        Path(__file__).resolve().parents[3]
+        / "docs/admin_docs/configuration/mcp-server.mdx"
+    ).read_text(encoding="utf-8")
+    statement = re.search(r"`deleted_state` is only defined on ([^.]+)\.", doc)
+    assert statement is not None
+    assert set(re.findall(r"`(list_\w+)`", statement[1])) == supported
