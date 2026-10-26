@@ -15340,6 +15340,9 @@ msgstr ""
 msgid "Time grain"
 msgstr ""
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr ""
 
