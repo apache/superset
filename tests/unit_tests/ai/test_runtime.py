@@ -156,31 +156,37 @@ def test_tool_loop_feeds_results_back_to_the_model() -> None:
     assert runtime.result.tool_calls[0]["ok"] is True
 
 
-def test_prose_before_a_tool_call_is_not_part_of_the_answer() -> None:
-    """
-    Reasoning is separated from the answer.
-
-    A model narrating a hypothesis it may abandon must not have that narration
-    appended to what the user reads.
-    """
+@pytest.mark.parametrize("streaming", [True, False])
+def test_tool_turn_prose_stays_in_the_answer(
+    streaming: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the provider's thinking channel belongs in the reasoning pane."""
     call = ToolCall(id="c1", name="execute_sql", arguments={"sql": "SELECT 1"})
     provider = EchoProvider(
         [
             ScriptedTurn(
-                text="The orders table looks right, let me check.",
+                text="I'll check the row count.",
+                thinking="Choose a count query.",
                 tool_calls=(call,),
             ),
             ScriptedTurn(text="42 orders."),
         ]
     )
+    monkeypatch.setattr(provider, "supports_streaming", streaming)
     runtime = MessagesApiRuntime(provider)
-
     events = _run(runtime, _request(tools=StubTools()))
 
-    thoughts = [p["delta"] for p in _payloads(events, StreamEventType.THOUGHTS)]
-    assert "The orders table looks right, let me check." in thoughts
-    assert _payloads(events, StreamEventType.FINAL)[0]["content"] == "42 orders."
-    assert "let me check" not in runtime.result.answer
+    expected = "I'll check the row count.\n\n42 orders."
+    assert runtime.result.answer == expected
+    assert _payloads(events, StreamEventType.FINAL)[0]["content"] == expected
+    assert (
+        "".join(p["delta"] for p in _payloads(events, StreamEventType.ASSISTANT_DELTA))
+        == expected
+    )
+    assert runtime.result.thoughts == "Choose a count query."
+    assert [p["delta"] for p in _payloads(events, StreamEventType.THOUGHTS)] == [
+        "Choose a count query."
+    ]
 
 
 def test_thinking_is_surfaced_as_thoughts() -> None:
@@ -520,19 +526,13 @@ def test_a_non_streaming_provider_still_delivers_its_answer_in_chunks() -> None:
     assert "".join(payload["delta"] for payload in deltas) == "fine"
 
 
-def test_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
-    """
-    Prose accompanying a tool call is reasoning and must not read as the answer.
-
-    Streaming text as it arrives risks showing it before the runtime knows the
-    turn was a tool call; the client replaces its copy on the final frame, which
-    is what keeps the answer from contradicting itself.
-    """
+def test_provider_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
+    """Provider thinking never enters either the streamed or final answer."""
     tools = StubTools()
     provider = EchoProvider(
         [
             ScriptedTurn(
-                text="The orders table looks right, let me check.",
+                thinking="The orders table looks right, let me check.",
                 tool_calls=(ToolCall(id="c1", name="execute_sql", arguments={}),),
             ),
             ScriptedTurn(text="Nine hundred rows."),
@@ -542,10 +542,13 @@ def test_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
 
     events = _run(runtime, _request(tools=tools))
 
-    # The authoritative answer excludes the reasoning, however it was streamed.
     final = _payloads(events, StreamEventType.FINAL)[0]["content"]
     assert final == "Nine hundred rows."
     assert "let me check" in (runtime.result.thoughts or "")
+    assert (
+        "".join(p["delta"] for p in _payloads(events, StreamEventType.ASSISTANT_DELTA))
+        == final
+    )
 
 
 @pytest.mark.parametrize("cancellation", ["implicit", "explicit", "during_execute"])
