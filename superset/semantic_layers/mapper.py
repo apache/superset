@@ -82,7 +82,10 @@ from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
 )
-from superset.semantic_layers.exceptions import execute_semantic_query
+from superset.semantic_layers.exceptions import (
+    execute_semantic_query,
+    normalize_provider_request_errors,
+)
 from superset.semantic_layers.members import members_by_key
 from superset.semantic_layers.ordering import with_default_order
 from superset.superset_typing import (
@@ -216,6 +219,7 @@ class _ViewMetadata:
         return cls(tuple(view.get_metrics()), tuple(view.get_dimensions()))
 
 
+@normalize_provider_request_errors()
 def get_results(query_object: QueryObject) -> QueryResult:
     """
     Run 1+ queries based on `QueryObject` and return the results.

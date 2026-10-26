@@ -18,6 +18,8 @@
 """Trusted readiness and safe failure handling at real host entry points."""
 
 import logging
+from collections.abc import Callable
+from functools import partial
 from typing import cast
 from unittest.mock import MagicMock
 
@@ -40,6 +42,7 @@ from superset.constants import PASSWORD_MASK
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.exceptions import (
     execute_semantic_query,
+    normalize_provider_request_errors,
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
@@ -283,7 +286,7 @@ def _untrusted_transport_error(case: str) -> ProviderRequestError:
 @pytest.mark.parametrize(
     "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
 )
-@pytest.mark.parametrize("endpoint", ["query", "structure", "runtime"])
+@pytest.mark.parametrize("endpoint", ["query", "preparation", "structure", "runtime"])
 @pytest.mark.parametrize(
     "case",
     [
@@ -311,14 +314,19 @@ def test_transport_errors_rebuilt_at_every_public_boundary(
     valid: bool = case in {"provider", "subclass"}
     message: str
     with caplog.at_level(logging.DEBUG, logger="superset.semantic_layers"):
-        if endpoint == "query":
+        if endpoint in {"query", "preparation"}:
             captured: pytest.ExceptionInfo[
                 QueryObjectValidationError | SemanticLayerExecutionError
             ]
+            invoke: Callable[[], object] = (
+                normalize_provider_request_errors()(MagicMock(side_effect=error))
+                if endpoint == "preparation"
+                else partial(execute_semantic_query, MagicMock(side_effect=error))
+            )
             with pytest.raises(
                 (QueryObjectValidationError, SemanticLayerExecutionError)
             ) as captured:
-                execute_semantic_query(MagicMock(side_effect=error))
+                invoke()
             assert isinstance(captured.value, QueryObjectValidationError) == valid
             assert captured.value.__cause__ is None
             assert captured.value.__suppress_context__

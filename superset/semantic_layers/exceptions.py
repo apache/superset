@@ -18,7 +18,8 @@
 """Host-owned presentation and classification for semantic provider execution."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import Any, ParamSpec
 
 from billiard.exceptions import SoftTimeLimitExceeded
@@ -141,6 +142,15 @@ def log_provider_failure(message: str, error: Exception) -> None:
     logger.debug(message, exc_info=(type(error), error, error.__traceback__))
 
 
+@contextmanager
+def normalize_provider_request_errors() -> Iterator[None]:
+    """Give query preparation and dispatch the same safe transport failure."""
+    try:
+        yield
+    except ProviderRequestError as ex:
+        raise QueryObjectValidationError(provider_request_message(ex)) from None
+
+
 def execute_semantic_query(
     dispatcher: Callable[ProviderArguments, SemanticResult],
     *args: ProviderArguments.args,
@@ -148,12 +158,10 @@ def execute_semantic_query(
 ) -> SemanticResult:
     """Translate provider signals without changing host validation or retries."""
     try:
-        with provider_completeness():
+        with provider_completeness(), normalize_provider_request_errors():
             return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from None
-    except ProviderRequestError as ex:
-        raise QueryObjectValidationError(provider_request_message(ex)) from None
     except SemanticBackendError:
         logger.error("Semantic provider reported an execution failure")
         raise SemanticLayerExecutionError() from None

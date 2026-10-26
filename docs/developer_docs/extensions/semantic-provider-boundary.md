@@ -62,8 +62,11 @@ resolution rules, without adopting Superset's mask.
 
 This is a coordinated schema API upgrade. Update all overrides and direct callers
 with the host/core pin containing transport and readiness; there is no fallback
-that retries without safety arguments. The factory's transport/context/credentials
-contract is unchanged. No SQL parser limit or memo policy is added to the SDK.
+that retries without safety arguments. `SemanticLayer.from_configuration` also
+gains the required keyword-only `transport: ProviderTransport` parameter; update
+provider factories and direct callers alongside the host/core pin. The existing
+`cache_token`, `context`, and `credentials` parameters retain their contracts.
+No SQL parser limit or memo policy is added to the SDK.
 
 ## Error signals
 
@@ -80,7 +83,11 @@ If a retrieval budget prevents coverage proof, retain the provider's completenes
 classification; other transport errors propagate unchanged. A failed remote status
 is not Python cancellation. Preserve security, OAuth and cancellation control flow.
 Never retry without a filter or return an empty/partial successful result on failure.
-MCP preserves its QueryError envelope with host-safe guidance.
+Transport failures during query preparation (including provider construction and
+dimension/metric discovery), dispatch, and filter-value preparation use the same
+safe normalization. MCP `get_table` preserves its QueryError envelope with
+host-safe guidance. Semantic-layer structure and schema endpoints retain their
+own response contracts.
 
 Raise newly translated backend errors/refusals `from None`; never place backend
 responses, credentials or SQL in their public text. The host validates transport
