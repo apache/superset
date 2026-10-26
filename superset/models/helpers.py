@@ -2080,8 +2080,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
         checks, memoized per datasource instance.
 
-        An explicit datasource schema always wins. Otherwise the schema is
-        resolved through the query-aware ``get_default_schema_for_query`` (not
+        An explicit datasource schema wins only on engines that can switch
+        schemas per query. Otherwise the schema is resolved through the query-aware
+        ``get_default_schema_for_query`` (not
         the static ``get_default_schema``) so the value matches what the engine
         uses at runtime -- honoring dynamic-schema engines and URI/connect-arg
         schema rules -- exactly like the SQL Lab / executor denylist gate.
@@ -2091,12 +2092,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         at most once instead of issuing a fallback inspector round-trip per
         expression.
         """
-        if self.schema:
+        if self.schema and self.db_engine_spec.supports_dynamic_schema:
             return self.schema
         if not hasattr(self, "_denylist_default_schema"):
             catalog = self.catalog or self.database.get_default_catalog()
             self._denylist_default_schema = self.database.resolve_query_default_schema(
-                sql, None, catalog
+                sql, self.schema, catalog
             )
         return self._denylist_default_schema
 
@@ -3994,6 +3995,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
 
+    def _get_rls_schema(self) -> str:
+        """Resolve unqualified RLS table names against the schema used at execution.
+
+        Only dynamic-schema engines apply the datasource's schema to the connection.
+        Other engines resolve it from connection parameters or the inspector, using
+        the same query-aware resolver as SQL Lab authorization.
+        """
+        if self.db_engine_spec.supports_dynamic_schema:
+            return self.schema or self.database.get_default_schema(self.catalog) or ""
+        return (
+            self.database.resolve_query_default_schema(
+                self.sql, self.schema, self.catalog, self.template_params_dict
+            )
+            or ""
+        )
+
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
     ) -> tuple[Union[TableClause, Alias], Optional[str]]:
@@ -4015,9 +4032,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
         # For each table referenced in the virtual dataset, apply its RLS filters
         if parsed_script.statements:
-            default_schema = self.schema or self.database.get_default_schema(
-                self.catalog
-            )
+            default_schema = self._get_rls_schema()
             try:
                 rls_applied = False
                 # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
@@ -4028,7 +4043,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if apply_rls(
                         self.database,
                         self.catalog,
-                        self.schema or default_schema or "",
+                        default_schema,
                         statement,
                         exclude_dataset_id=self_id,
                         include_global_guest_rls=False,
@@ -4055,7 +4070,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         get_predicates_for_table(
                             table.qualify(
                                 catalog=self.catalog,
-                                schema=self.schema or default_schema or "",
+                                schema=default_schema,
                             ),
                             self.database,
                             self.database.get_default_catalog(),
