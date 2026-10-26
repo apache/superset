@@ -34291,6 +34291,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34334,7 +34338,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34676,6 +34681,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34719,7 +34728,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34839,6 +34849,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34882,7 +34896,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
