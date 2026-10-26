@@ -83,7 +83,8 @@ export default function Control(props: ControlProps) {
   };
 
   const onChange = useCallback(
-    (value: any, errors: any[]) => setControlValue(name, value, errors),
+    (value: any, errors?: any[], options?: { programmatic?: boolean }) =>
+      setControlValue(name, value, errors, options),
     [name, setControlValue],
   );
 
