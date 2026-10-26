@@ -55,11 +55,13 @@ from superset.ai.telemetry import (
     RunRecorder,
     TOOL_UNAVAILABLE,
 )
+from superset.ai.tools.base import _bound_text, truncate_payload
 from superset.ai.types import MessageRole, ProgressStage, TokenUsage
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
-#: How much of a tool's output is kept on the persisted message. The model
+#: Maximum UTF-8 bytes kept in the persisted audit output. The model
 #: still sees the whole thing; this is the audit copy.
 _RECORDED_OUTPUT_LIMIT = 2_000
 
@@ -531,17 +533,26 @@ class MessagesApiRuntime(BaseAgentRuntime):
         the caller can put the identical record on the wire, keeping the live view
         and the reloaded one in step.
         """
+        try:
+            payload = json.loads(result.content)
+        except ValueError:
+            output, output_truncated = _bound_text(
+                result.content, _RECORDED_OUTPUT_LIMIT
+            )
+        else:
+            output, output_truncated = truncate_payload(payload, _RECORDED_OUTPUT_LIMIT)
         record: dict[str, Any] = {
             "name": call.name,
             "arguments": call.arguments,
             "ok": not result.is_error,
-            "output": result.content[:_RECORDED_OUTPUT_LIMIT],
+            "output": output,
+            "output_truncated": output_truncated,
         }
         # A failure's text is its error, not its output. Recorded under both keys
         # because they are read by different things, and a reader that shows the
         # error under "Returned" is mislabelling it.
         if result.is_error:
-            record["error"] = result.content[:_RECORDED_OUTPUT_LIMIT]
+            record["error"] = output
         if detail:
             record.update(detail)
         self._result.tool_calls.append(record)

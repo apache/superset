@@ -546,3 +546,40 @@ def test_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> None:
     final = _payloads(events, StreamEventType.FINAL)[0]["content"]
     assert final == "Nine hundred rows."
     assert "let me check" in (runtime.result.thoughts or "")
+
+
+def test_history_bounds_json_without_changing_the_model_result() -> None:
+    from superset.utils import json
+
+    content = json.dumps({"rows": [{"label": "пример" * 100}] * 20, "total": 20})
+    call = ToolCall(id="c1", name="execute_sql", arguments={})
+    provider = EchoProvider([ScriptedTurn(tool_calls=(call,)), ScriptedTurn(text="ok")])
+    runtime = MessagesApiRuntime(provider)
+    events = _run(runtime, _request(tools=StubTools(output=content)))
+    record = runtime.result.tool_calls[0]
+    assert record["output_truncated"] is True
+    assert not record.get("truncated", False)
+    output = record["output"]
+    assert isinstance(output, str)
+    assert len(output.encode("utf-8")) <= 2000
+    assert json.loads(output)["_truncated"] is True
+    assert any(
+        result.content == content
+        for message in provider.requests[1].messages
+        for result in message.tool_results
+    )
+    checkpoint = _payloads(events, StreamEventType.CHECKPOINT)[0]
+    assert checkpoint["meta"]["output"] == record["output"]
+    assert checkpoint["meta"]["output_truncated"] is True
+
+
+def test_history_marks_plain_text_error_truncation() -> None:
+    runtime = MessagesApiRuntime(EchoProvider([]))
+    record = runtime._record_call(  # noqa: SLF001
+        ToolCall(id="c1", name="external_tool", arguments={}),
+        ToolResult(call_id="c1", content="ошибка" * 2000, is_error=True),
+    )
+    assert record["output_truncated"] is True
+    assert record["error"] == record["output"]
+    assert len(record["error"].encode("utf-8")) <= 2000
+    assert "truncated" in record["error"]

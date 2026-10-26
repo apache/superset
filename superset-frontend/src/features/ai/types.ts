@@ -202,6 +202,8 @@ export interface AiToolCall {
   truncated: boolean;
   /** Arguments the model passed, kept so a surprising result can be explained. */
   args?: JsonRecord;
+  /** The audit copy was clipped independently of the model result. */
+  outputTruncated?: boolean;
   /** Recorded tool output, clipped by the backend. */
   output?: string;
   error?: string;
@@ -367,6 +369,7 @@ export function parseToolCall(
     ok: value.ok !== false,
     durationMs: readNumber(value, 'duration_ms'),
     truncated: readBoolean(value, 'truncated'),
+    outputTruncated: readBoolean(value, 'output_truncated'),
     args: readRecord(value, 'arguments'),
     output: readString(value, 'output'),
     error: readString(value, 'error'),
