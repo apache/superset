@@ -589,6 +589,7 @@ def _map_query_object(
         if time_axis_column is not None and time_axis_column in normalized_columns
         else {}
     )
+    grouping_grains.update(_explicit_column_grains(query_object, dimension_names))
     grouping_dimensions: dict[str, Dimension] = resolve_dimensions(
         view_dimensions, usage=DimensionUsage.GROUP, grouping_grains=grouping_grains
     )
@@ -611,6 +612,7 @@ def _map_query_object(
         query_object,
         all_metrics,
         all_dimensions=all_dimensions,
+        view_dimensions=view_dimensions,
         ranking_dimensions=resolve_dimensions(
             view_dimensions,
             usage=DimensionUsage.SERIES_LIMIT,
@@ -626,6 +628,7 @@ def _map_query_object(
             time_offset,
             all_dimensions,
             is_time_series=offset_axis_column in normalized_columns,
+            view_dimensions=view_dimensions,
         )
         queries.append(
             SemanticQuery(
@@ -651,6 +654,7 @@ def _get_filters_from_query_object(
     all_dimensions: dict[str, Dimension],
     *,
     is_time_series: bool = False,
+    view_dimensions: tuple[Dimension, ...] = (),
 ) -> set[FilterExpression]:
     """
     Extract all filters from the query object, including time range filters.
@@ -697,6 +701,7 @@ def _get_filters_from_query_object(
             replaced_time_axis,
             replace_all_axis_ranges=time_offset is not None and is_time_series,
             time_shift=time_offset if not is_time_series else None,
+            view_dimensions=view_dimensions,
         )
     )
 
@@ -710,6 +715,7 @@ def _get_adhoc_filters(
     *,
     replace_all_axis_ranges: bool = False,
     time_shift: str | None = None,
+    view_dimensions: tuple[Dimension, ...] = (),
 ) -> set[FilterExpression]:
     """Replace axis predicates with the factory-derived bounds.
 
@@ -740,7 +746,10 @@ def _get_adhoc_filters(
         ):
             continue
         converted = _convert_query_object_filter(
-            filter_, all_dimensions, time_shift=time_shift
+            filter_,
+            all_dimensions,
+            time_shift=time_shift,
+            view_dimensions=view_dimensions,
         )
         if converted:
             filters.update(converted)
@@ -899,11 +908,51 @@ def _get_time_bounds(
     return offset_from, offset_to
 
 
+def _resolve_filter_grain(
+    dimension: Dimension,
+    raw_value: QueryFilterValues | None,
+    filter_grain: str | None,
+    view_dimensions: tuple[Dimension, ...],
+) -> tuple[Dimension, QueryFilterValues | None]:
+    """Match a drill bucket against its provider-declared grain variant."""
+    if filter_grain:
+        grain = _convert_time_grain(filter_grain)
+        grained = next(
+            (
+                dim
+                for dim in view_dimensions
+                if dim.name == dimension.name and dim.grain == grain
+            ),
+            None,
+        )
+        if grained is None:
+            raise QueryObjectValidationError(
+                "The time grain is not supported for the filter column in the "
+                "Semantic View."
+            )
+        dimension = grained
+        if (
+            isinstance(raw_value, (int, float))
+            and not isinstance(raw_value, bool)
+            and (
+                pa.types.is_timestamp(dimension.type)
+                or pa.types.is_date(dimension.type)
+            )
+        ):
+            # Chart-data temporal records use Unix milliseconds, not seconds.
+            raw_value = datetime.fromtimestamp(raw_value / 1000, tz=ZoneInfo("UTC"))
+            if _timestamp_target_tz(dimension.type) is None:
+                raw_value = raw_value.replace(tzinfo=None)
+
+    return dimension, raw_value
+
+
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
     *,
     time_shift: str | None = None,
+    view_dimensions: tuple[Dimension, ...] = (),
 ) -> set[FilterExpression] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter.
@@ -919,6 +968,9 @@ def _convert_query_object_filter(
     dimension = all_dimensions[col]
 
     raw_value: QueryFilterValues | None = filter_["val"]
+    dimension, raw_value = _resolve_filter_grain(
+        dimension, raw_value, filter_.get("grain"), view_dimensions
+    )
 
     # Special case for temporal range
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
@@ -1202,6 +1254,7 @@ def _get_group_limit_from_query_object(
     *,
     all_dimensions: dict[str, Dimension],
     ranking_dimensions: dict[str, Dimension],
+    view_dimensions: tuple[Dimension, ...] = (),
 ) -> GroupLimit | None:
     if query_object.series_limit > 0 and not query_object.series_columns:
         logger.debug(
@@ -1229,7 +1282,7 @@ def _get_group_limit_from_query_object(
     # Check if we need separate filters for the group limit subquery
     # This happens when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm
     group_limit_filters: set[FilterExpression] | None = _get_group_limit_filters(
-        query_object, all_dimensions
+        query_object, all_dimensions, view_dimensions=view_dimensions
     )
 
     return GroupLimit(
@@ -1245,6 +1298,8 @@ def _get_group_limit_from_query_object(
 def _get_group_limit_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
+    *,
+    view_dimensions: tuple[Dimension, ...] = (),
 ) -> set[FilterExpression] | None:
     """
     Get separate filters for the group limit subquery if needed.
@@ -1321,10 +1376,27 @@ def _get_group_limit_filters(
             all_dimensions,
             time_axis_column if time_bounds_emitted else None,
             replace_all_axis_ranges=time_bounds_emitted,
+            view_dimensions=view_dimensions,
         )
     )
 
     return filters if filters else None
+
+
+def _explicit_column_grains(
+    query_object: ValidatedQueryObject, dimension_names: set[str]
+) -> dict[str, Grain | None]:
+    """Read grains explicitly attached to physical BASE_AXIS references."""
+    return {
+        _normalize_column(column, dimension_names): _convert_time_grain(
+            column["timeGrain"]
+        )
+        for column in query_object.columns or []
+        if isinstance(column, dict)
+        and column.get("columnType") == "BASE_AXIS"
+        and column.get("isColumnReference") is True
+        and column.get("timeGrain")
+    }
 
 
 def _get_grain_time_axis_column(
@@ -1554,19 +1626,23 @@ def _validate_granularity(
             "The time column must be defined in the Semantic View dimensions."
         )
 
+    column_grains = _explicit_column_grains(query_object, dimension_names)
     if time_grain := query_object.extras.get("time_grain_sqla"):
         time_column = _get_grain_time_axis_column(query_object, all_dimensions)
-        if not time_column:
+        if not time_column and not column_grains:
             raise SemanticQueryInputError(
                 "A time column must be specified when a time grain is provided."
             )
+        if time_column:
+            column_grains.setdefault(time_column, _convert_time_grain(time_grain))
 
+    for time_column, grain in column_grains.items():
         supported_time_grains = {
             dimension.grain
             for dimension in view_dimensions
             if dimension.name == time_column and dimension.grain
         }
-        if _convert_time_grain(time_grain) not in supported_time_grains:
+        if grain not in supported_time_grains:
             raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."
