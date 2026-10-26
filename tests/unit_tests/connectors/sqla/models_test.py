@@ -2648,7 +2648,6 @@ def test_adhoc_column_to_sqla_wraps_undefined_error_in_metadata_lookup(
             {
                 "label": "my_col",
                 "sqlExpression": "{{ foo.bar }}",
-                "expressionType": "SQL",
             },
             template_processor=template_processor,
         )
