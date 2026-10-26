@@ -27,6 +27,9 @@ class SybaseEngineSpec(MssqlEngineSpec):
     similar to Microsoft SQL Server.
     """
 
+    # SQL Server session cancellation is not a portable T-SQL capability.
+    has_query_id_before_execute = False
+
     engine = "sybase"
     engine_name = "SAP Sybase"
     engine_aliases = {"sybase_sqlany"}  # Support SQL Anywhere dialect too

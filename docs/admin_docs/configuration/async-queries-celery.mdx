@@ -120,3 +120,16 @@ celery --app=superset.tasks.celery_app:app flower
 
 - [Blog: How to Set Up Global Async Queries (GAQ) in Apache Superset](https://medium.com/@ngigilevis/how-to-set-up-global-async-queries-gaq-in-apache-superset-a-complete-guide-9d2f4a047559)
   :::
+
+## Cancelling SQL Server queries
+
+For Microsoft SQL Server, Superset captures the connection's session ID before
+execution and sends `KILL` on a separate connection when cancellation is requested.
+The connection credentials need `ALTER ANY CONNECTION` on SQL Server, or
+`KILL DATABASE CONNECTION` on Azure SQL Database. Superset does not grant these
+permissions automatically. Cancellation terminates the target session and may
+require time for the server to roll back its work.
+
+This cancellation contract does not apply to Azure Synapse dedicated pools or
+SAP Sybase, which use different session protocols. Driver connection and network
+timeouts are still needed when the server cannot be reached to cancel a query.

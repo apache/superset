@@ -879,3 +879,49 @@ def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to
     )
     assert "database" not in url.query
     assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "path_db"
+
+
+def test_sql_server_session_cancellation() -> None:
+    from unittest.mock import call, Mock
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    cursor, query = Mock(), Mock()
+    cursor.fetchone.return_value = (73,)
+    handle = MssqlEngineSpec.get_cancel_query_id(cursor, query)
+    assert handle == "73"
+    cursor.execute.assert_called_once_with("SELECT @@SPID")
+    cancellation = Mock()
+    assert MssqlEngineSpec.cancel_query(cancellation, query, handle)
+    assert cancellation.execute.call_args_list == [
+        call("IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION"),
+        call("KILL 73"),
+    ]
+    cancellation.execute.side_effect = RuntimeError("ALTER ANY CONNECTION denied")
+    assert not MssqlEngineSpec.cancel_query(cancellation, query, handle)
+
+
+@pytest.mark.parametrize(
+    "handle", ["", "73; DROP TABLE t", "-1", "1.0", "73\n", "７３"]
+)
+def test_sql_server_rejects_invalid_cancellation_handles(handle: str) -> None:
+    from unittest.mock import Mock
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    cursor = Mock()
+    assert not MssqlEngineSpec.cancel_query(cursor, Mock(), handle)
+    cursor.execute.assert_not_called()
+
+
+def test_other_tsql_engines_do_not_inherit_sql_server_cancellation() -> None:
+    from unittest.mock import Mock
+
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+
+    for spec in (AzureSynapseSpec, SybaseEngineSpec):
+        cursor, query = Mock(), Mock()
+        assert spec.get_cancel_query_id(cursor, query) is None
+        assert not spec.cancel_query(cursor, query, "73")
+        cursor.execute.assert_not_called()

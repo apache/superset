@@ -20,7 +20,7 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy import types
@@ -32,6 +32,9 @@ from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
+
+if TYPE_CHECKING:
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +167,31 @@ class MssqlEngineSpec(BaseEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
+        """Capture the SQL Server session before executing its query."""
+        if not cls.has_query_id_before_execute:
+            return None
+        cursor.execute("SELECT @@SPID")
+        row = cursor.fetchone()
+        return str(row[0]) if row else None
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """Terminate the captured session using a separate cancellation connection."""
+        if not cls.has_query_id_before_execute or not cls.validate_cancel_query_id(
+            cancel_query_id, r"^[0-9]+$"
+        ):
+            return False
+        try:
+            # KILL cannot run inside the fresh cancellation connection's transaction.
+            cursor.execute("IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION")
+            cursor.execute(f"KILL {cancel_query_id}")
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("SQL Server query cancellation failed", exc_info=True)
+            return False
+        return True
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -325,6 +353,9 @@ class MssqlEngineSpec(BaseEngineSpec):
 
 
 class AzureSynapseSpec(MssqlEngineSpec):
+    # Dedicated SQL pools use a different session/cancellation protocol.
+    has_query_id_before_execute = False
+
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"
