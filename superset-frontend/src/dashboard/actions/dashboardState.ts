@@ -40,6 +40,12 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
+import {
+  isReviewRequired,
+  type ReviewRequiredResponse,
+} from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -260,20 +266,37 @@ export function savePublished(
         published: isPublished,
       }),
     })
-      .then(() => {
+      .then(response => {
         // Only update state if this is still the current dashboard
         // This prevents stale responses from affecting the UI after navigation
         const currentId = getState().dashboardInfo?.id;
-        if (currentId === id) {
-          dispatch(
-            addSuccessToast(
-              isPublished
-                ? t('This dashboard is now published')
-                : t('This dashboard is now hidden'),
-            ),
-          );
-          dispatch(togglePublished(isPublished));
+        if (currentId !== id) {
+          return;
         }
+        // A gated write (HTTP 202): publishing was captured for review, so
+        // viewers still see what they saw. Saying "now hidden" and flipping
+        // the badge here told the editor the opposite of what happened, and
+        // hid the fact that a second person still has to agree (129077).
+        if (isReviewRequired(response.json)) {
+          // The page the author saved from is now showing a stale
+          // picture of their own asset; tell the review banner to re-read
+          // so Request review appears without a reload (129074).
+          announceChangeCaptured();
+          const { text, options } = reviewRequiredToast(
+            (response.json as ReviewRequiredResponse).message,
+            (response.json as ReviewRequiredResponse).id,
+          );
+          dispatch(addSuccessToast(text, options));
+          return;
+        }
+        dispatch(
+          addSuccessToast(
+            isPublished
+              ? t('This dashboard is now published')
+              : t('This dashboard is now hidden'),
+          ),
+        );
+        dispatch(togglePublished(isPublished));
       })
       .catch(async (response: Response) => {
         const { error } = await getClientErrorObject(response);
@@ -592,8 +615,29 @@ export function saveDashboardRequest(
     };
 
     const onUpdateSuccess = (response: JsonObject): JsonObject => {
-      const updatedDashboard = (response.json as JsonObject)
-        .result as JsonObject;
+      const body = response.json as JsonObject;
+
+      // A captured write (HTTP 202) did not update the dashboard: the
+      // change is waiting for review and the live asset is untouched. The
+      // rest of this handler syncs state from the updated dashboard and
+      // navigates, both of which are wrong here -- and `result` is absent,
+      // so reading metadata off it throws and the save looks like it
+      // failed when it did exactly what it was meant to.
+      if (body.review_required) {
+        dispatch(saveDashboardFinished());
+        // Leave edit mode so the review banner is visible; it is the only
+        // place the author can now act on what they just submitted.
+        dispatch(setEditMode(false));
+        dispatch(
+          addSuccessToast(
+            (body.message as string) ??
+              t('Changes saved. Viewers still see the live version.'),
+          ),
+        );
+        return response;
+      }
+
+      const updatedDashboard = body.result as JsonObject;
       const lastModifiedTime = (response.json as JsonObject)
         .last_modified_time as number;
       // A successful save can change the source schema. Until its response
@@ -665,9 +709,23 @@ export function saveDashboardRequest(
 
     const onError = async (response: Response): Promise<void> => {
       logging.error(response);
-      const errorText = await getErrorText(response, 'dashboard');
       dispatch(saveDashboardFinished());
-      dispatch(addDangerToast(errorText));
+      // 409 from asset approval: another editor holds the dashboard. That is
+      // a lock, not a failure, so the server's own sentence is shown as it
+      // is -- read from the body, because `getErrorText` wraps it in "there
+      // was an error saving this dashboard", which a lock is not.
+      if (response.status === 409) {
+        const lockText = await response
+          .clone()
+          .json()
+          .then(body => body?.message)
+          .catch(() => undefined);
+        if (lockText) {
+          dispatch(addWarningToast(lockText));
+          return;
+        }
+      }
+      dispatch(addDangerToast(await getErrorText(response, 'dashboard')));
     };
 
     if (
@@ -1306,7 +1364,15 @@ export const persistDashboardLabelsColor =
     if (labelsColorMapMustSync || sharedLabelsColorsMustSync) {
       dispatch(setDashboardLabelsColorMapSynced());
       dispatch(setDashboardSharedLabelsColorsSynced());
-      storeDashboardColorConfig(id, metadata);
+      // This is a background housekeeping write that runs on page view. Under
+      // review the server refuses it (422) rather than capturing it, and
+      // nobody asked for it, so don't send it and never surface a failure.
+      if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+        return;
+      }
+      storeDashboardColorConfig(id, metadata).catch(() => {
+        // Best-effort sync: the next view retries.
+      });
     }
   };
 

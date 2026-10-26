@@ -116,6 +116,9 @@ import ExploreContainer from '../ExploreContainer';
 const ExploreVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/ExploreVersionHistory'),
 );
+const AssetReview = lazyWithRetry(
+  () => import('src/features/changeManagement/AssetReview'),
+);
 const ChartVersionPreview = lazyWithRetry(
   () => import('src/features/versionHistory/ChartVersionPreview'),
 );
@@ -1241,6 +1244,15 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
+          {isFeatureEnabled(FeatureFlag.ChangeManagement) && (
+            <Suspense fallback={null}>
+              <AssetReview
+                assetType="chart"
+                assetId={props.slice?.slice_id ?? null}
+                onApplied={() => window.location.reload()}
+              />
+            </Suspense>
+          )}
           {isChartVersionPreviewActive ? (
             <Suspense fallback={null}>
               <ChartVersionPreview />

@@ -41,6 +41,11 @@ import {
   DeleteModal,
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
+import {
+  announceAssetLocked,
+  announceRequestReview,
+} from 'src/features/changeManagement/events';
+import { useOpenChange } from 'src/features/changeManagement/useAssetReview';
 import { findPermission } from 'src/utils/findPermission';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -238,6 +243,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
+  const reviewEnabled = isFeatureEnabled(FeatureFlag.ChangeManagement);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
   const [showingRefreshModal, setShowingRefreshModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
@@ -609,11 +615,22 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     [boundActionCreators],
   );
 
+  const openChange = useOpenChange('dashboard', dashboardInfo.id);
+
   const handleEnterEditMode = useCallback(() => {
+    // One open change per asset (SOW 5.3). Explained before the work rather
+    // than refused after it, on state already loaded -- making the edit
+    // button wait on a request would cost every dashboard a round trip for
+    // a rule that is off by default. If that state has not arrived, editing
+    // proceeds and the server still refuses the save.
+    if (openChange?.is_open && !openChange.is_author) {
+      announceAssetLocked();
+      return;
+    }
     toggleEditMode();
     boundActionCreators.clearDashboardHistory?.();
     boundActionCreators.setUnsavedChanges(false);
-  }, [toggleEditMode, boundActionCreators]);
+  }, [toggleEditMode, boundActionCreators, openChange]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
@@ -745,30 +762,85 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                     </StyledUndoRedoButton>
                   </Tooltip>
                 </div>
-                <Button
-                  css={discardBtnStyle}
-                  buttonSize="small"
-                  onClick={discardChanges}
-                  buttonStyle="secondary"
-                  data-test="discard-changes-button"
-                  aria-label={
-                    hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                <Tooltip
+                  title={
+                    hasUnsavedChanges
+                      ? reviewEnabled
+                        ? t('Discard unsaved edits. Your saved changes stay.')
+                        : t('Discard unsaved edits.')
+                      : t('Leave edit mode. Your changes are saved.')
                   }
                 >
-                  {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
-                </Button>
-                <Button
-                  css={saveBtnStyle}
-                  buttonSize="small"
-                  disabled={!hasUnsavedChanges}
-                  buttonStyle="primary"
-                  onClick={overwriteDashboard}
-                  data-test="header-save-button"
-                  aria-label={t('Save')}
+                  <Button
+                    css={discardBtnStyle}
+                    buttonSize="small"
+                    onClick={discardChanges}
+                    buttonStyle="secondary"
+                    data-test="discard-changes-button"
+                    aria-label={
+                      hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                    }
+                  >
+                    {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
+                  </Button>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    hasUnsavedChanges
+                      ? reviewEnabled
+                        ? t(
+                            'Save your changes. Viewers still see the live version.',
+                          )
+                        : t('Save your changes.')
+                      : t('Nothing new to save.')
+                  }
                 >
-                  <Icons.SaveOutlined iconSize="m" />
-                  {t('Save')}
-                </Button>
+                  <span>
+                    <Button
+                      css={saveBtnStyle}
+                      buttonSize="small"
+                      disabled={!hasUnsavedChanges}
+                      buttonStyle={reviewEnabled ? 'secondary' : 'primary'}
+                      onClick={overwriteDashboard}
+                      data-test="header-save-button"
+                      aria-label={t('Save')}
+                    >
+                      <Icons.SaveOutlined iconSize="m" />
+                      {t('Save')}
+                    </Button>
+                  </span>
+                </Tooltip>
+                {reviewEnabled && (
+                  <Tooltip
+                    title={
+                      hasUnsavedChanges
+                        ? t(
+                            'Save, then ask another editor to approve before it goes live.',
+                          )
+                        : t('No changes to review yet.')
+                    }
+                  >
+                    <span>
+                      <Button
+                        css={saveBtnStyle}
+                        buttonSize="small"
+                        disabled={!hasUnsavedChanges}
+                        buttonStyle="primary"
+                        onClick={() => {
+                          // Save first: the request is made against the
+                          // change that saving captures, so there is
+                          // nothing to ask about until it exists.
+                          overwriteDashboard();
+                          announceRequestReview();
+                        }}
+                        data-test="header-request-review-button"
+                        aria-label={t('Request review')}
+                      >
+                        {t('Request review')}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                )}
               </div>
             )}
           </div>

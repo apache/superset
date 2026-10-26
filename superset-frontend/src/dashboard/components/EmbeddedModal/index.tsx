@@ -37,6 +37,12 @@ import {
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
+import {
+  isReviewRequired,
+  type ReviewRequiredResponse,
+} from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
@@ -75,14 +81,32 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   const enableEmbedded = useCallback(() => {
     setLoading(true);
-    makeApi<EmbeddedApiPayload, { result: EmbeddedDashboard }>({
+    makeApi<
+      EmbeddedApiPayload,
+      { result: EmbeddedDashboard } | ReviewRequiredResponse
+    >({
       method: 'POST',
       endpoint,
     })({
       allowed_domains: stringToList(allowedDomains),
     })
       .then(
-        ({ result }) => {
+        response => {
+          // A gated write (HTTP 202) was captured for review: embedding is
+          // unchanged, so keep the form as it was.
+          if (isReviewRequired(response)) {
+            // The page the author saved from is now showing a stale
+            // picture of their own asset; tell the review banner to re-read
+            // so Request review appears without a reload (129074).
+            announceChangeCaptured();
+            const { text, options } = reviewRequiredToast(
+              response.message,
+              response.id,
+            );
+            addInfoToast(text, options);
+            return;
+          }
+          const { result } = response;
           setEmbedded(result);
           setAllowedDomains(result.allowed_domains.join(', '));
           addInfoToast(t('Changes saved.'));
@@ -99,7 +123,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       .finally(() => {
         setLoading(false);
       });
-  }, [endpoint, allowedDomains]);
+  }, [endpoint, allowedDomains, addInfoToast, addDangerToast]);
 
   const disableEmbedded = useCallback(() => {
     setShowDeactivateConfirm(true);
@@ -107,9 +131,27 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   const confirmDeactivate = useCallback(() => {
     setLoading(true);
-    makeApi<{}>({ method: 'DELETE', endpoint })({})
+    makeApi<{}, {} | ReviewRequiredResponse>({
+      method: 'DELETE',
+      endpoint,
+    })({})
       .then(
-        () => {
+        response => {
+          // Captured for review: embedding is still active, so don't clear
+          // it or close the modal as if it had been deactivated.
+          if (isReviewRequired(response)) {
+            // The page the author saved from is now showing a stale
+            // picture of their own asset; tell the review banner to re-read
+            // so Request review appears without a reload (129074).
+            announceChangeCaptured();
+            const { text, options } = reviewRequiredToast(
+              response.message,
+              response.id,
+            );
+            addInfoToast(text, options);
+            setShowDeactivateConfirm(false);
+            return;
+          }
           setEmbedded(null);
           setAllowedDomains('');
           setShowDeactivateConfirm(false);

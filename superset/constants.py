@@ -335,3 +335,13 @@ class SemanticCacheStatus(StrEnum):
         if any(value in (cls.HIT, cls.MIXED) for value in values):
             return cls.MIXED
         return cls.MISS
+
+
+#: Prefix for the FAB view menu an extension's page permissions hang from.
+#:
+#: Gives the permissions a shape the security manager can recognise without
+#: keeping a registry of installed extensions, so they stay out of Alpha and
+#: Gamma even after the extension is uninstalled and only its permission rows
+#: remain. A colon cannot appear in an extension id, so this cannot collide
+#: with one, and it reads plainly in the Roles screen.
+EXTENSION_VIEW_MENU_PREFIX = "extension:"

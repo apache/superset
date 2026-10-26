@@ -55,6 +55,10 @@
       "types": "./lib/views/index.d.ts",
       "default": "./lib/views/index.js"
     },
+    "./pages": {
+      "types": "./lib/pages/index.d.ts",
+      "default": "./lib/pages/index.js"
+    },
     "./contributions": {
       "types": "./lib/contributions/index.d.ts",
       "default": "./lib/contributions/index.js"

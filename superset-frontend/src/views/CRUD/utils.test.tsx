@@ -20,9 +20,11 @@ import rison from 'rison';
 import { waitFor } from '@testing-library/react';
 import { SupersetClient } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
+import { Dashboard } from 'src/views/CRUD/types';
 import {
   checkUploadExtensions,
   handleChartDelete,
+  handleDashboardDelete,
   getAlreadyExists,
   getEncryptedExtraFieldsNeeded,
   getFilterValues,
@@ -767,6 +769,50 @@ test('handleChartDelete surfaces the blocking alert/report names from a 422', as
     await waitFor(() => expect(addDangerToast).toHaveBeenCalledTimes(1));
     expect(addDangerToast.mock.calls[0][0]).toContain('TC-081 rerun report');
     expect(addDangerToast.mock.calls[0][0]).toContain('blocked chart');
+  } finally {
+    deleteSpy.mockRestore();
+  }
+});
+
+test('handleChartDelete shows the server message and keeps the row when the delete needs review', async () => {
+  const message = 'Delete submitted for review. Nothing has been removed.';
+  const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockResolvedValue({
+    json: { id: 9, review_required: true, message },
+  } as never);
+  const addSuccessToast = jest.fn();
+  const refreshData = jest.fn();
+  try {
+    handleChartDelete(
+      { id: 1, slice_name: 'gated chart' } as Chart,
+      addSuccessToast,
+      jest.fn(),
+      refreshData,
+    );
+    await waitFor(() => expect(addSuccessToast).toHaveBeenCalledTimes(1));
+    expect(addSuccessToast).toHaveBeenCalledWith(message);
+    expect(refreshData).not.toHaveBeenCalled();
+  } finally {
+    deleteSpy.mockRestore();
+  }
+});
+
+test('handleDashboardDelete shows the server message and keeps the row when the delete needs review', async () => {
+  const message = 'Delete submitted for review. Nothing has been removed.';
+  const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockResolvedValue({
+    json: { id: 9, review_required: true, message },
+  } as never);
+  const addSuccessToast = jest.fn();
+  const refreshData = jest.fn();
+  try {
+    await handleDashboardDelete(
+      { id: 1, dashboard_title: 'gated dashboard' } as Dashboard,
+      refreshData,
+      addSuccessToast,
+      jest.fn(),
+    );
+    expect(addSuccessToast).toHaveBeenCalledWith(message);
+    expect(addSuccessToast).toHaveBeenCalledTimes(1);
+    expect(refreshData).not.toHaveBeenCalled();
   } finally {
     deleteSpy.mockRestore();
   }

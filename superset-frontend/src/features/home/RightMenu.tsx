@@ -120,6 +120,8 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
   `}
 `;
 
+import NotificationBell from 'src/features/changeManagement/NotificationBell';
+
 const RightMenu = ({
   align,
   settings,
@@ -730,6 +732,7 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
+      <NotificationBell />
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}

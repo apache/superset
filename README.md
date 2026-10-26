@@ -17,6 +17,300 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+# Asset approval — QA build
+
+Apache Superset with **maker-checker review** turned on: an edit to a
+dashboard, chart or dataset does not reach viewers until a second eligible
+editor approves it.
+
+This branch exists for testing that feature and nothing else. It is not
+proposed for merge, and the parts of it that belong in Superset go upstream
+as their own pull requests. Superset's own README follows this guide.
+
+---
+
+## Setting it up
+
+You need Docker with roughly 8 GB available to it. Everything below runs
+from the root of this checkout. The first run takes 15–25 minutes, nearly
+all of it image building and example loading.
+
+### One command
+
+```bash
+make asset-demo
+```
+
+It runs the three steps below in order. It builds the extension, starts the
+`docker-compose-light` stack on port 9002 and waits until Superset reports
+healthy, then seeds the accounts and the waiting change. It finishes by
+printing the URL. Re-running it is safe; on a stack that is already up it
+only rebuilds the extension and re-seeds.
+
+| command | what it does |
+|---|---|
+| `make asset-demo` | build, start, wait, seed: everything |
+| `make asset-demo-help` | print the commands, the logins and the happy flow in the terminal |
+| `make asset-demo-seed` | back to one change waiting for review |
+| `make asset-demo-examples` | load the example dashboards, if your environment skipped them |
+| `make asset-demo-logs` | follow the init and Superset logs |
+| `make asset-demo-down` | stop the stack, keeping its data |
+| `make asset-demo-nuke` | stop the stack and delete its database |
+
+A different port or project name: `make asset-demo ASSET_DEMO_PORT=9003 ASSET_DEMO_PROJECT=my-qa`.
+
+The steps it runs are spelled out below, if you would rather run them one at
+a time or need to see where something failed.
+
+### 1. Build the extension
+
+The review feature ships as a Superset extension. Its source is in the
+repository; its build output is not, so you build it once:
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval/frontend node:20 bash -lc "npm install --legacy-peer-deps && npm run build"
+```
+
+`--legacy-peer-deps` is required, not optional: the published
+`@apache-superset/core` still declares a peer dependency on React 17 while
+Superset itself is on React 18, so a plain `npm install` refuses to resolve.
+
+Then assemble the loadable bundle:
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval node:20 bash -lc "bash build.sh"
+```
+
+That writes `local_extensions/asset-approval/dist/`. It worked if it prints
+`built: 19 files` and the manifest lists two contributed pages.
+
+### 2. Start Superset
+
+```bash
+NODE_PORT=9002 docker compose -p asset-approval-qa -f docker-compose-light.yml up -d
+```
+
+The first run builds images and loads the example dashboards, which is the
+slow part. Follow it with:
+
+```bash
+docker compose -p asset-approval-qa logs -f superset-init-light
+```
+
+When that container exits, open **http://localhost:9002** and sign in as
+`admin` / `admin`.
+
+The example dashboards load on the first run, which is what the seed in the
+next step edits. If `docker/.env-local` exists on your machine and sets
+`SUPERSET_LOAD_EXAMPLES=no`, it wins over the default and they are skipped —
+the init log then shows three steps instead of four. Load them by hand with:
+
+```bash
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/superset load-examples
+```
+
+### 3. Seed the review flow
+
+```bash
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
+```
+
+This creates the cast (Alex, Priya, Sam and Morgan), makes Alex and Priya
+editors of an example dashboard, chart and dataset, and leaves exactly one change waiting for a
+reviewer. It prints what it set up, and it is safe to re-run at any time.
+
+---
+
+## Logins
+
+Every account below is a local QA fixture created by `qa/seed.py` (or by
+Superset's own init, for `admin`). It is the same cast as the demo
+recording. None of these passwords are used anywhere real.
+
+| user | name | password | role | editor of | use it for |
+|---|---|---|---|---|---|
+| `alex` | Alex Rivera | `general` | Alpha | USA Births Names, the first chart, the first dataset, Sales Dashboard (sole editor) | the author: making changes |
+| `priya` | Priya Shah | `general` | Alpha | USA Births Names, the first chart, the first dataset | the approver: reviewing them |
+| `sam` | Sam Carter | `general` | Gamma + "Viewer (data access)" | nothing | the viewer: seeing what everyone else sees |
+| `morgan` | Morgan Lee | `general` | Admin | nothing | an admin who is not an editor: proving there is no admin bypass |
+| `admin` | Superset Admin | `admin` | Admin | nothing | setup only |
+
+The seeded assets, all from `superset load-examples`:
+
+| asset | editors | what it is for |
+|---|---|---|
+| **USA Births Names** (dashboard) | alex, priya | the main walkthrough: a change here can be approved |
+| **Sales Dashboard** (dashboard) | alex only | the state where nobody else can approve |
+| first chart by id (**Deck.gl Grid** on a fresh load) | alex, priya | the chart walkthrough |
+| first dataset by id (**bart_lines** on a fresh load) | alex, priya | the dataset walkthrough |
+
+**Test as `alex`, `priya`, `sam` and `morgan`, never as `admin`.**
+Admin's blanket access deliberately does not count as editorship for approval, so admin sees
+a more permissive picture than a real user does. Permission and UI bugs only
+show up on the non-admin accounts.
+
+Alex and Priya are two editors because an author may never approve their own
+work: the gate looks for a *second* editor of the asset, so one account
+cannot demonstrate the flow at all. Sam is deliberately an editor of
+nothing: while a change sits in review their bell has no count, they have
+nothing in Approvals, and they see the asset exactly as it was. Morgan is an
+admin who edits nothing, so nothing waits for them and they get no Approve
+button.
+
+Use one browser profile (or a private window) per account, so you can switch
+between them without signing out each time.
+
+---
+
+## The happy flow, step by step
+
+Run `qa/seed.py` first (see [Starting over](#starting-over)). It leaves one
+change already waiting: `alex` renamed **USA Births Names** to
+"USA Births Names (Q4)" and asked for review. Steps 1–3 look at that change
+from each side; step 4 onwards walks a full round yourself. Each step says
+what you should see; anything else is a finding.
+
+### A. A change waits for review
+
+1. **As `sam`** — open **USA Births Names**.
+   - The title is still "USA Births Names". No banner, no badge, and the bell has no count.
+   - Settings has no Approvals entry for you. Opening `/approvals/` directly says "Nothing needs you right now".
+2. **As `morgan`** — open **USA Births Names**.
+   - No review banner and no Approve button. Morgan is an admin but not an editor, and there is no admin bypass.
+3. **As `priya`** — find the change.
+   - The bell shows **1**; its popover lists USA Births Names under "Needs your review".
+   - Home → **Pending reviews** lists it.
+   - **Settings → Manage → Approvals** (or the bell's "View all approvals") lists it as "Needs your review", with a **Review** button.
+
+### B. Review it on the dashboard
+
+4. **As `priya`** — click **Review**. It opens the dashboard itself.
+   - A banner reads "Reviewing changes from Alex Rivera · N changes", with **Show changes**, **What changed** and **Open live version**.
+   - The **Review changes** panel opens on its own, beside the charts. It shows the field diff (`dashboard_title`: old struck through, new in green), an "Add to the note" box, and **Request changes** / **Approve** pinned to its footer.
+   - **Show changes** previews the dashboard as it would look approved.
+5. **As `priya`** — press **Edit dashboard**.
+   - A dialog says "Alex Rivera is changing this dashboard", with when it was saved and **View changes**. Only one change per asset can be open. Cancel.
+6. **As `priya`** — **Request changes**, type a note, send.
+7. **As `alex`** — open **USA Births Names**.
+   - The banner says Priya requested changes and shows the note.
+   - The bell lists it under "Returned to you".
+
+### C. Make and send a change yourself
+
+8. **As `alex`** — **Edit dashboard**, change the title, **Save**.
+   - The toast says "Changes saved. Viewers still see the live version."
+   - The banner reads "Viewing your changes … viewers still see the live version", with **Show changes**, **What changed** and **Request review**.
+   - Check as `sam` in the other window: still the old title.
+9. **As `alex`** — **Request review**.
+   - The dialog shows "Who can approve: Priya Shah", an optional "Ask someone specific" picker, and "Your changes lock while they wait. Editing withdraws the request."
+   - Add a note and send. The banner turns to "Awaiting review … Priya Shah can approve", and you are never offered an Approve button.
+
+### D. Approve it
+
+10. **As `priya`** — open the dashboard again (bell or Approvals) and press **Approve** in the panel.
+    - It asks first: "Approve and publish? Viewers see these changes right away. The current version moves to version history."
+    - Confirm. The banner disappears and the new title is live.
+11. **As `sam`** — reload. The new title is there now.
+12. **As `priya`** — **⋯ → View version history**. The approval is the newest entry.
+
+### E. Charts
+
+13. **As `alex`** — open the seeded chart in Explore, change its name, **Save**.
+    - The chart shows the "viewers still see the live version" banner. **Charts** lists it with a **Changes pending** tag. As `sam`, the chart keeps its old name.
+14. **As `alex`** — **Request review** from the chart's banner.
+15. **As `priya`** — **Settings → Manage → Approvals → Review**, then Approve. The new name goes live.
+
+### F. Datasets
+
+16. **As `alex`** — **Datasets → edit** the seeded dataset, change something (for example a metric label on the Metrics tab), **Save**, **Confirm**.
+    - The toast says the changes are saved and viewers still see the live version, with a **Review changes →** link.
+17. **As `alex`** — follow **Review changes →**. It opens Approvals filtered to "Submitted by me".
+    - The dataset row is a Draft with **Request review**. Send it. The row flips to "Awaiting review".
+18. **As `priya`** — **Approvals → Review** on the dataset row.
+    - The "Review dataset changes" dialog opens on the tab that changed (Source / Metrics / Columns).
+    - It shows live struck through beside proposed in green, and how many charts and dashboards use the dataset.
+    - **Approve**. The change goes live.
+
+### G. Deletes wait too
+
+19. **As `alex`** — delete the seeded chart from the **Charts** list and confirm.
+    - The toast says the delete was submitted for review and nothing has been removed. The chart is still listed.
+    - Approving it as `priya` removes it; request changes to keep it.
+
+### H. When nobody else can approve
+
+20. **As `alex`** — on **Sales Dashboard** (Alex is its only editor), change the title, **Save**, **Request review**.
+    - The dialog says "No one else can approve this dashboard. Add another editor to submit.", with an **Editors** picker and "Changing editors doesn't need approval."
+21. **As `alex`** — add **Priya Shah** in that picker.
+    - The warning clears in place and the dialog switches to "Who can approve: Priya Shah". Send.
+    - Run the seed again afterwards to make Alex the only editor again.
+
+### I. The rules, from the outside
+
+22. **As `morgan`** — **Settings → Manage → Change review** opens a read-only page.
+    - "Require review before changes go live" — "Set in the instance configuration. Changing it needs a restart."
+    - The four facts below it, including **Admin bypass: Not available**.
+23. **Any editor, through the API** — a direct save returns **202** with "Changes saved. Viewers still see the live version.", and the live object does not change:
+
+        PUT /api/v1/dashboard/<id>   →   202 { "message": "Changes saved. Viewers still see the live version.", ... }
+
+### J. Turning it off
+
+With `CHANGE_MANAGEMENT` off (the default outside this branch), Superset behaves exactly as it does upstream: saves apply immediately, and there is no bell, banner or Approvals entry.
+
+---
+
+## Known gaps
+
+Understood already — no need to file these:
+
+- **No count on the Settings → Manage entry.** The design asks for the
+  number to appear there as well as on the bell. Superset's menu entries
+  carry no badge, so that needs a new capability rather than a placement
+  change. The bell itself counts correctly.
+- **No page per change request.** Review happens on the asset, or from the
+  list for a dataset. Links that used to point at a change request's own
+  page open the list instead.
+- **Deleting a chart customization under review** clears the filter from
+  your own view even though nothing was applied for anyone else. Superset
+  clears those locally before the request goes out, and this branch does not
+  reorder that.
+
+## Reporting what you find
+
+Say which account you were using, which numbered step you were on, and
+whether the change was new or one the seed created. Where the UI and the
+data disagree, the API is the tie-breaker:
+
+    /api/v1/change_request/count          what the bell should show
+    /api/v1/change_request/?show=for_me   what is waiting on you
+
+## Starting over
+
+Back to one change waiting for review, keeping everything else:
+
+```bash
+make asset-demo-seed
+```
+
+Back to nothing at all, database included (then `make asset-demo` to start again):
+
+```bash
+make asset-demo-nuke
+```
+
+The equivalent raw commands, if `make` is not available:
+
+```bash
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
+docker compose -p asset-approval-qa -f docker-compose-light.yml down -v
+```
+
+---
+---
+
+*Everything below is Apache Superset's own README, unchanged.*
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)

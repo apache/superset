@@ -27,6 +27,8 @@ import {
 import {
   getChartMetadataRegistry,
   ChartMetadata,
+  FeatureFlag,
+  SupersetClient,
   VizType,
 } from '@superset-ui/core';
 import ChartContainerComponent from 'src/explore/components/ExploreChartPanel';
@@ -299,5 +301,26 @@ describe('ChartContainer', () => {
         'This chart was updated to use the restored aggregation',
       ),
     ).toBeInTheDocument();
+  });
+
+  test('skips the background query_context backfill when asset approval is on', async () => {
+    window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+    const put = jest.spyOn(SupersetClient, 'put').mockResolvedValue({} as any);
+    render(
+      <ChartContainer
+        {...createProps({
+          slice: {
+            slice_id: 318,
+            query_context: null,
+            form_data: { viz_type: VizType.Histogram, datasource: '49__table' },
+          },
+        })}
+      />,
+      { useRedux: true },
+    );
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(put).not.toHaveBeenCalled();
+    put.mockRestore();
+    window.featureFlags = {};
   });
 });

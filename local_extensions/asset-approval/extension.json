@@ -1,0 +1,34 @@
+{
+  "publisher": "preset",
+  "name": "asset-approval",
+  "displayName": "Asset approval",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Maker-checker review for dashboards, charts and datasets. A change does not reach viewers until a second eligible editor approves it.",
+  "contributions": {
+    "pages": [
+      {
+        "path": "/approvals",
+        "name": "Approvals",
+        "nav": {
+          "label": "Approvals",
+          "category": "Manage"
+        },
+        "permission": "can_review"
+      },
+      {
+        "path": "/change-review-settings",
+        "name": "Change review",
+        "nav": {
+          "label": "Change review",
+          "category": "Manage"
+        }
+      }
+    ]
+  },
+  "backend": {
+    "files": [
+      "backend/src/**/*.py"
+    ]
+  }
+}

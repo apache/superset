@@ -220,6 +220,34 @@ test('stays quiet about shortfalls when the restore was complete', async () => {
   expect(mockToasts.addWarningToast).not.toHaveBeenCalled();
 });
 
+test('a restore that needs review shows the server message and changes nothing', async () => {
+  const message = 'Restore submitted for review. Nothing has been changed.';
+  (restoreVersion as jest.Mock).mockResolvedValue({
+    id: 31,
+    asset_id: 5,
+    review_required: true,
+    message,
+  });
+  const result = await restoreOnce();
+
+  await act(async () => {
+    await result.current.restoreModal?.props.onConfirm();
+  });
+
+  expect(mockToasts.addSuccessToast).toHaveBeenCalledTimes(1);
+  const [text, options] = mockToasts.addSuccessToast.mock.calls[0];
+  expect(text).toContain(message);
+  // A change request has no page of its own; the toast points at the
+  // list filtered to your own submissions.
+  expect(text).toContain('/approvals/submitted-by-me');
+  expect(options).toEqual(expect.objectContaining({ allowHtml: true }));
+  expect(mockToasts.addDangerToast).not.toHaveBeenCalled();
+  expect(mockToasts.addWarningToast).not.toHaveBeenCalled();
+  // Not restored: the preview stays and the list is not told it was.
+  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(result.current.restoreModal?.props.target).toBeNull();
+});
+
 test('includes the server reason when a restore fails', async () => {
   (restoreVersion as jest.Mock).mockRejectedValue(
     new Response(JSON.stringify({ message: 'Dashboard is read only' }), {

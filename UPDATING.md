@@ -87,6 +87,18 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- **`@superset-ui/core` is now offered to extensions through Module
+  Federation.** The host provides it in the share scope and
+  `superset-extensions init` declares it, so a newly scaffolded extension
+  resolves it to the host's copy. That is what makes `SupersetClient` usable
+  from an extension -- a bundled copy is never configured, so calls through it
+  go out without a CSRF token -- and what keeps the registries in that
+  package, which hold state in module-level closures, from silently splitting
+  in two. An extension built before this keeps bundling its own copy and is
+  unaffected; to use the host's it must add `@superset-ui/core` to the
+  `shared` block of its own webpack config, since Module Federation consumes
+  the share scope only for modules the remote declares.
+
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP

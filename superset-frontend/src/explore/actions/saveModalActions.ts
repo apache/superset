@@ -28,9 +28,14 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import { isEmpty } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
 import { removeLegacyAggregationTag } from 'src/explore/exploreUtils/legacyAggregationTag';
+import {
+  isReviewRequired,
+  type ReviewRequiredResponse,
+} from 'src/features/changeManagement/types';
 import { Operators } from '../constants';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { nanoid } from 'nanoid';
@@ -309,6 +314,31 @@ export const updateSlice =
         endpoint: `/api/v1/chart/${sliceId}`,
         jsonPayload: payload,
       });
+
+      // A gated write (HTTP 202) was captured for review and the live chart
+      // is untouched. `id` in that body is the change request's id, not the
+      // chart's, so the stock "overwritten" toast and the slice_id redirect
+      // would both point at the wrong thing. Say what happened and hand back
+      // the chart's own id so the caller stays on it and the review banner
+      // appears.
+      const body = response.json as ReviewRequiredResponse | undefined;
+      if (isReviewRequired(body)) {
+        // The page the author saved from is now showing a stale
+        // picture of their own asset; tell the review banner to re-read
+        // so Request review appears without a reload (129074).
+        announceChangeCaptured();
+        dispatch(
+          addSuccessToast(
+            body.message ??
+              t('Changes saved. Viewers still see the live version.'),
+          ),
+        );
+        return {
+          id: body.asset_id ?? sliceId,
+          review_required: true,
+          message: body.message,
+        };
+      }
 
       if (shouldAttachNormalization) {
         dispatch(

@@ -234,6 +234,13 @@ const ExploreChartPanel = ({
 
   const updateQueryContext = useCallback(
     async function fetchChartData() {
+      // With asset approval on, this background backfill would be captured as
+      // a change request on every Explore visit. Saved query contexts drive
+      // reports and exports, so it is not exempted server-side; it is skipped
+      // here and the context is written by the next reviewed save instead.
+      if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+        return;
+      }
       if (slice && slice.query_context === null && slice.form_data) {
         const queryContext = await buildV1ChartDataPayload({
           formData: slice.form_data,

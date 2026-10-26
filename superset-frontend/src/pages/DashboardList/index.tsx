@@ -66,6 +66,7 @@ import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmDescription,
   deleteActionLabel,
+  deleteReviewMessage,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
@@ -80,6 +81,10 @@ import {
 } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
+import ReviewStatusTag, {
+  useOpenChanges,
+} from 'src/features/changeManagement/ReviewStatusTag';
+import ReplacesPendingChange from 'src/features/changeManagement/ReplacesPendingChange';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -355,6 +360,11 @@ function DashboardList(props: DashboardListProps) {
       )}`,
     }).then(
       ({ json = {} }) => {
+        const reviewMessage = deleteReviewMessage(json);
+        if (reviewMessage) {
+          addSuccessToast(reviewMessage);
+          return;
+        }
         refreshData();
         addSuccessToast(
           softDelete
@@ -377,6 +387,10 @@ function DashboardList(props: DashboardListProps) {
       ),
     );
   }
+
+  // One request decorates the whole page; asking per row would turn this
+  // list into fifty requests.
+  const openChanges = useOpenChanges('dashboard');
 
   const columns = useMemo(
     () => [
@@ -434,10 +448,22 @@ function DashboardList(props: DashboardListProps) {
       {
         Cell: ({
           row: {
-            original: { status },
+            original: { status, id },
           },
         }: any) => (
-          <PublishedLabel isPublished={status === DashboardStatus.PUBLISHED} />
+          <>
+            <PublishedLabel
+              isPublished={status === DashboardStatus.PUBLISHED}
+            />
+            {/* The review tag sits beside Published rather than in a column
+                of its own: it is empty for most rows most of the time, and
+                an always-empty column costs every reader width for nothing. */}
+            <ReviewStatusTag
+              status={openChanges[String(id)]}
+              assetType="dashboard"
+              assetId={id}
+            />
+          </>
         ),
         Header: t('Status'),
         accessor: 'published',
@@ -571,14 +597,19 @@ function DashboardList(props: DashboardListProps) {
                       : t('Please confirm')
                   }
                   description={
-                    softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
-                    ) : (
-                      <>
-                        {t('Are you sure you want to delete')}{' '}
-                        <b>{original.dashboard_title}</b>?
-                      </>
-                    )
+                    <>
+                      {softDelete ? (
+                        archiveConfirmDescription(t('dashboard'))
+                      ) : (
+                        <>
+                          {t('Are you sure you want to delete')}{' '}
+                          <b>{original.dashboard_title}</b>?
+                        </>
+                      )}
+                      <ReplacesPendingChange
+                        status={openChanges[String(original.id)]}
+                      />
+                    </>
                   }
                   onConfirm={handleDelete}
                 >
@@ -938,14 +969,19 @@ function DashboardList(props: DashboardListProps) {
                 <DeleteModal
                   recoverable={softDelete}
                   description={
-                    softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
-                    ) : (
-                      <>
-                        {t('Are you sure you want to delete')}{' '}
-                        <b>{dashboardToDelete.dashboard_title}</b>?
-                      </>
-                    )
+                    <>
+                      {softDelete ? (
+                        archiveConfirmDescription(t('dashboard'))
+                      ) : (
+                        <>
+                          {t('Are you sure you want to delete')}{' '}
+                          <b>{dashboardToDelete.dashboard_title}</b>?
+                        </>
+                      )}
+                      <ReplacesPendingChange
+                        status={openChanges[String(dashboardToDelete.id)]}
+                      />
+                    </>
                   }
                   onConfirm={() => {
                     handleDashboardDelete(

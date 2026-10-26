@@ -543,7 +543,7 @@ const SaveModal = ({
         }
 
         //  Update or create slice
-        let value: { id: number };
+        let value: { id: number; review_required?: boolean };
         if (action === 'overwrite') {
           value = await actions.updateSlice(
             slice,
@@ -597,7 +597,9 @@ const SaveModal = ({
         }
 
         // Go to new dashboard url
-        if (gotodash && dashboardResult) {
+        // A change captured for review leaves the dashboard untouched, so
+        // stay on the chart: its review banner is where the author acts next.
+        if (gotodash && dashboardResult && !value.review_required) {
           let { url } = dashboardResult;
           // OUT_OF_TAB is a synthetic 'no tab' sentinel — it isn't a real
           // dashboard anchor, so skip appending it as a URL fragment.

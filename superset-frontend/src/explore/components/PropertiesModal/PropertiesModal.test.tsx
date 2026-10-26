@@ -18,13 +18,19 @@
  */
 
 import {
+  createStore,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import messageToastsReducer from 'src/components/MessageToasts/reducers';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  SupersetClient,
+} from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
 jest.mock('@superset-ui/core', () => ({
@@ -258,6 +264,29 @@ test('"Save" button should call "onSave" and "onHide"', async () => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
     expect(props.onHide).toHaveBeenCalledTimes(1);
   });
+});
+
+test('a review-required save shows the server message and does not claim the chart was updated', async () => {
+  const message = 'Changes saved. Viewers still see the live version.';
+  const putSpy = jest.spyOn(SupersetClient, 'put').mockResolvedValueOnce({
+    json: { id: 55, asset_id: 318, review_required: true, message },
+  } as never);
+  const props = createProps();
+  const store = createStore({}, { messageToasts: messageToastsReducer });
+  render(<PropertiesModal {...props} />, { useRedux: true, store });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+  const toasts = (
+    store.getState() as unknown as { messageToasts: { text: string }[] }
+  ).messageToasts;
+  expect(toasts.map(toast => toast.text)).toEqual([message]);
+  // The live chart is unchanged, so its stale copy must not be pushed back.
+  expect(props.onSave).not.toHaveBeenCalled();
+  putSpy.mockRestore();
 });
 
 test('Empty "Certified by" should clear "Certification details"', async () => {

@@ -85,6 +85,7 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
+import { REVIEW_PANEL_SLOT } from 'src/features/changeManagement/events';
 import { selectCanRestoreDashboard } from 'src/features/versionHistory/canRestoreDashboard';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { StickyTabsOffsetContext } from 'src/dashboard/components/gridComponents/TabsRenderer';
@@ -101,6 +102,12 @@ const DashboardVersionHistory = lazyWithRetry(
 );
 const PreviewBanner = lazyWithRetry(
   () => import('src/features/versionHistory/PreviewBanner'),
+);
+// Lazy for the same reason as PreviewBanner: most instances have review
+// switched off, and the component renders nothing when there is no open
+// change, so its code should not sit in the main bundle.
+const AssetReview = lazyWithRetry(
+  () => import('src/features/changeManagement/AssetReview'),
 );
 
 // @z-index-above-dashboard-charts + 1 = 11
@@ -203,6 +210,30 @@ const StyledContent = styled.div<{
      must also cover the version-history panel (98, the content-area
      overlay). */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
+`;
+
+/**
+ * The review panel's slot, in the grid's right-hand column.
+ *
+ * Same column and the same sticky treatment as Version history, which is
+ * the panel it was drawn to match. It has to be a sibling of the content
+ * rather than live inside it: nested, its height became the height of the
+ * row it was in and pushed the whole dashboard grid down the page.
+ */
+const ReviewColumn = styled.div`
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  /* The column starts below Superset's header, so a full 100vh runs that
+     far past the bottom of the window and takes the panel's footer --
+     Approve and Request changes -- off the screen with it. */
+  height: calc(100vh - ${MAIN_HEADER_HEIGHT}px);
+  z-index: 100;
+  &:empty {
+    display: none;
+  }
 `;
 
 // The version-history panel lives in the dashboard CONTENT area, below the
@@ -558,6 +589,12 @@ const DashboardBuilder = () => {
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
+  );
+  // A draft dashboard is outside the review gate until it is published
+  // (SOW 5.1); the notice says so rather than leaving the absence of a
+  // banner to be read as review being broken.
+  const dashboardUnpublished = useSelector<RootState, boolean>(
+    ({ dashboardState }) => dashboardState.isPublished === false,
   );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
@@ -955,6 +992,16 @@ const DashboardBuilder = () => {
         )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        {isFeatureEnabled(FeatureFlag.ChangeManagement) && (
+          <Suspense fallback={null}>
+            <AssetReview
+              assetType="dashboard"
+              assetId={Number(dashboardId)}
+              unpublished={dashboardUnpublished}
+              onApplied={() => window.location.reload()}
+            />
+          </Suspense>
+        )}
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
@@ -1058,6 +1105,9 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
+      {isFeatureEnabled(FeatureFlag.ChangeManagement) && (
+        <ReviewColumn id={REVIEW_PANEL_SLOT} />
+      )}
       {/* Guests have no version history to show; keep its viewport-sized host
           out of embedded documents so it cannot affect iframe sizing. */}
       {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
