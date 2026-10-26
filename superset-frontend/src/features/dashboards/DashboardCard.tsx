@@ -108,6 +108,7 @@ function DashboardCard({
       label: (
         <Tooltip
           placement="right"
+          trigger={['hover', 'focus']}
           title={
             allowEdit
               ? null
@@ -116,18 +117,21 @@ function DashboardCard({
                 )
           }
         >
-          <MenuItemButton
-            type="button"
-            className="action-button"
-            onClick={
-              allowEdit ? () => openDashboardEditModal(dashboard) : undefined
-            }
-            data-test="dashboard-card-option-edit-button"
-            disabled={!allowEdit}
-            aria-disabled={!allowEdit}
-          >
-            <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
-          </MenuItemButton>
+          <span tabIndex={allowEdit ? undefined : 0}>
+            <MenuItemButton
+              type="button"
+              className="action-button"
+              onClick={
+                allowEdit ? () => openDashboardEditModal(dashboard) : undefined
+              }
+              data-test="dashboard-card-option-edit-button"
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+            >
+              <Icons.EditOutlined iconSize="l" data-test="edit-alt" />{' '}
+              {t('Edit')}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -156,6 +160,7 @@ function DashboardCard({
       label: (
         <Tooltip
           placement="right"
+          trigger={['hover', 'focus']}
           title={
             allowEdit
               ? null
@@ -168,7 +173,7 @@ function DashboardCard({
                   )
           }
         >
-          <span>
+          <span tabIndex={allowEdit ? undefined : 0}>
             <MenuItemButton
               type="button"
               className="action-button"
