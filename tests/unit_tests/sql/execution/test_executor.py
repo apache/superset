@@ -30,6 +30,7 @@ These tests cover the SQL execution API including:
 """
 
 import sqlite3
+from collections.abc import Iterator
 from contextlib import closing
 from itertools import islice
 from pathlib import Path
@@ -41,13 +42,17 @@ import pandas as pd
 import pytest
 from flask import current_app, has_request_context
 from pytest_mock import MockerFixture
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 from superset_core.queries.types import (
     CacheOptions,
     QueryOptions,
     QueryStatus,
+    StatementResult,
 )
 
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from superset.sql.parse import LimitMethod, SQLScript
 
 # Note: database, database_with_dml, mock_db_session fixtures and
@@ -58,6 +63,35 @@ from .conftest import (
     create_mock_cursor,
     mock_query_execution,
 )
+
+
+@pytest.fixture
+def query_session(mocker: MockerFixture, tmp_path: Path) -> Iterator[Session]:
+    """Use independent metadata sessions to verify committed query outcomes."""
+    engine = create_engine(f"sqlite:///{tmp_path / 'queries.db'}")
+    Query.__table__.create(engine)
+    try:
+        with Session(engine) as session:
+            mocker.patch("superset.sql.execution.executor.db.session", session)
+            yield session
+    finally:
+        engine.dispose()
+
+
+@pytest.fixture
+def recorded_query(mocker: MockerFixture, query_session: Session) -> Query:
+    """Start execution with a persisted running query and no cached result."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = Query(
+        id=123, client_id="sync-query", database_id=1, sql="SELECT 1", status="running"
+    )
+    query_session.add(query)
+    query_session.commit()
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=query)
+    mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
+    return query
+
 
 # =============================================================================
 # Basic Execution Tests
@@ -764,24 +798,17 @@ def test_execute_custom_timeout(
     )
 
 
-@pytest.mark.parametrize("failure", ["database", "timeout", "oauth"])
-def test_execute_failure_finishes_query_record(
-    mocker: MockerFixture,
-    database: Database,
-    app_context: None,
-    mock_db_session: MagicMock,
-    default_sql_config: None,
-    failure: str,
-) -> None:
-    """An execution failure must not leave its audit record running."""
-    from sqlalchemy.orm import make_transient_to_detached
-
+@pytest.fixture
+def execution_error(failure: str) -> Exception:
+    """Share the SQL, timeout, and OAuth failures across finalization checks."""
     from superset.errors import ErrorLevel, SupersetErrorType
-    from superset.exceptions import OAuth2Error, SupersetTimeoutException
-    from superset.models.sql_lab import Query
-    from superset.sql.execution.executor import SQLExecutor
+    from superset.exceptions import (
+        OAuth2Error,
+        OAuth2RedirectError,
+        SupersetTimeoutException,
+    )
 
-    errors = {
+    return {
         "database": RuntimeError("Query failed"),
         "timeout": SupersetTimeoutException(
             error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
@@ -789,35 +816,50 @@ def test_execute_failure_finishes_query_record(
             level=ErrorLevel.ERROR,
         ),
         "oauth": OAuth2Error("Authentication required"),
-    }
-    query = Query(id=123, status="running")
-    make_transient_to_detached(query)
-    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=query)
-    mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
-    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=errors[failure])
-    mocker.patch(
-        "superset.sql.execution.executor.now_as_float",
-        return_value=1234000.0,
-        create=True,
-    )
+        "oauth_redirect": OAuth2RedirectError(
+            "https://example.com/auth", "tab-id", "https://example.com/callback"
+        ),
+    }[failure]
+
+
+@pytest.mark.parametrize("failure", ["database", "timeout", "oauth"])
+def test_execute_failure_finishes_query_record(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    query_session: Session,
+    recorded_query: Query,
+    failure: str,
+    execution_error: Exception,
+) -> None:
+    """An execution failure must not leave its audit record running."""
+    from superset.exceptions import OAuth2Error
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=execution_error)
+    mocker.patch("superset.sql.execution.executor.now_as_float", return_value=1234000.0)
     expected_status = (
         QueryStatus.TIMED_OUT if failure == "timeout" else QueryStatus.FAILED
     )
 
     if failure == "oauth":
-        with pytest.raises(OAuth2Error):
+        with pytest.raises(OAuth2Error) as caught:
             database.execute("SELECT 1")
+        assert caught.value is execution_error
     else:
         result = database.execute("SELECT 1")
         assert result.status == expected_status
-        assert result.query_id == query.id
-        assert result.error_message == query.error_message
+        assert result.query_id == 123
+        assert result.error_message
 
-    assert query.status == expected_status.value
-    assert query.error_message
-    assert query.end_time == 1234000.0
-    mock_db_session.rollback.assert_not_called()
-    mock_db_session.commit.assert_called_once()
+    assert not query_session.in_transaction()
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.status == expected_status.value
+        assert persisted.error_message
+        assert persisted.end_time == 1234000.0
 
 
 @pytest.mark.parametrize("failure", ["database", "timeout", "oauth", "oauth_redirect"])
@@ -830,47 +872,30 @@ def test_execute_preserves_error_when_failure_recording_fails(
     default_sql_config: None,
     failure: str,
     metadata_failure: str,
+    execution_error: Exception,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A metadata outage must not replace the execution error or OAuth redirect."""
     from sqlalchemy.orm import make_transient_to_detached
 
-    from superset.errors import ErrorLevel, SupersetErrorType
-    from superset.exceptions import (
-        OAuth2Error,
-        OAuth2RedirectError,
-        SupersetTimeoutException,
-    )
-    from superset.models.sql_lab import Query
+    from superset.exceptions import OAuth2Error, OAuth2RedirectError
     from superset.sql.execution.executor import SQLExecutor
 
     caplog.set_level("WARNING", logger="superset.sql.execution.executor")
-    error = {
-        "database": RuntimeError("Query failed"),
-        "timeout": SupersetTimeoutException(
-            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-            message="Query timed out",
-            level=ErrorLevel.ERROR,
-        ),
-        "oauth": OAuth2Error("Authentication required"),
-        "oauth_redirect": OAuth2RedirectError(
-            "https://example.com/auth", "tab-id", "https://example.com/callback"
-        ),
-    }[failure]
-    query = Query(id=123, status="running")
+    query = Query(id=123, status="running", end_time=None)
     make_transient_to_detached(query)
     mocker.patch.object(SQLExecutor, "_create_query_record", return_value=query)
     mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
-    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=error)
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=execution_error)
     mock_db_session.is_active = metadata_failure != "rollback"
     getattr(mock_db_session, metadata_failure).side_effect = RuntimeError(
         "Metadata unavailable"
     )
 
-    if isinstance(error, (OAuth2Error, OAuth2RedirectError)):
-        with pytest.raises(type(error)) as caught:
+    if isinstance(execution_error, (OAuth2Error, OAuth2RedirectError)):
+        with pytest.raises(type(execution_error)) as caught:
             database.execute("SELECT 1")
-        assert caught.value is error
+        assert caught.value is execution_error
     else:
         result = database.execute("SELECT 1")
         assert result.status == (
@@ -881,12 +906,10 @@ def test_execute_preserves_error_when_failure_recording_fails(
             if failure == "timeout"
             else "sqlite error: Query failed"
         )
-        assert result.query_id == query.id
+        assert result.query_id == 123
 
-    assert mock_db_session.rollback.call_count == (
-        2 if metadata_failure == "rollback" else 1
-    )
     assert "Failed to persist SQL query error" in caplog.text
+    assert "Metadata unavailable" in caplog.text
 
 
 @pytest.mark.parametrize("metadata_failure", ["rollback", "reload"])
@@ -895,52 +918,36 @@ def test_execute_failure_preserves_expired_query_identity(
     database: Database,
     app_context: None,
     default_sql_config: None,
+    query_session: Session,
+    recorded_query: Query,
     metadata_failure: str,
 ) -> None:
     """Keep the persisted ID even when rollback or an expired-attribute load fails."""
-    from sqlalchemy import create_engine, inspect
+    from sqlalchemy import inspect
     from sqlalchemy.exc import IntegrityError
-    from sqlalchemy.orm import Session
 
-    from superset.models.sql_lab import Query
-    from superset.sql.execution import executor
+    from superset.sql.execution.executor import SQLExecutor
 
-    engine = create_engine("sqlite://")
-    Query.__table__.create(engine)
-    with Session(engine) as session:
-        query = Query(id=123, client_id="sync-error", database_id=1, status="running")
-        session.add(query)
-        session.commit()
-        if metadata_failure == "rollback":
-            session.add(Query(client_id="invalid", database_id=None))
-            with pytest.raises(IntegrityError):
-                session.flush()
-            assert not session.is_active
-        assert "id" in inspect(query).expired_attributes
-        mocker.patch.object(
-            session,
-            "rollback" if metadata_failure == "rollback" else "execute",
-            side_effect=RuntimeError("Metadata unavailable"),
-        )
-        mocker.patch.object(executor.db, "session", session)
-        mocker.patch.object(
-            executor.SQLExecutor, "_create_query_record", return_value=query
-        )
-        mocker.patch.object(
-            executor.SQLExecutor, "_try_get_cached_result", return_value=None
-        )
-        mocker.patch.object(
-            executor.SQLExecutor,
-            "_execute_statements",
-            side_effect=RuntimeError("Query failed"),
-        )
+    if metadata_failure == "rollback":
+        query_session.add(Query(client_id="invalid", database_id=None))
+        with pytest.raises(IntegrityError):
+            query_session.flush()
+        assert not query_session.is_active
+    assert "id" in inspect(recorded_query).expired_attributes
+    mocker.patch.object(
+        query_session,
+        "rollback" if metadata_failure == "rollback" else "execute",
+        side_effect=RuntimeError("Metadata unavailable"),
+    )
+    mocker.patch.object(
+        SQLExecutor, "_execute_statements", side_effect=RuntimeError("Query failed")
+    )
 
-        result = database.execute("SELECT 1")
+    result = database.execute("SELECT 1")
 
-        assert result.status == QueryStatus.FAILED
-        assert result.error_message == "sqlite error: Query failed"
-        assert result.query_id == 123
-    engine.dispose()
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message == "sqlite error: Query failed"
+    assert result.query_id == 123
 
 
 @pytest.mark.parametrize("metadata_flush_fails", [False, True])
@@ -949,71 +956,46 @@ def test_execute_failure_preserves_usable_metadata_transaction(
     database: Database,
     app_context: None,
     default_sql_config: None,
-    tmp_path: Path,
+    query_session: Session,
+    recorded_query: Query,
     metadata_flush_fails: bool,
 ) -> None:
     """Keep unrelated pending writes unless a failed flush requires rollback."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
+    from superset.sql.execution.executor import SQLExecutor
 
-    from superset.models.sql_lab import Query
-    from superset.sql.execution import executor
+    other = Query(id=124, client_id="other", database_id=1, progress=0)
+    query_session.add(other)
+    query_session.commit()
 
-    engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}")
-    Query.__table__.create(engine)
-    with Session(engine) as session:
-        query = Query(
-            id=123,
-            client_id="sync-error",
-            database_id=1,
-            sql="SELECT 1",
-            status="running",
-        )
-        other = Query(id=124, client_id="other", database_id=1, progress=0)
-        session.add_all([query, other])
-        session.commit()
-
-        def fail_execution(*args: Any, **kwargs: Any) -> None:
-            other.progress = 37
-            session.add(
-                Query(
-                    id=125,
-                    client_id="pending",
-                    database_id=None if metadata_flush_fails else 1,
-                )
+    def fail_execution(*args: Any, **kwargs: Any) -> None:
+        other.progress = 37
+        query_session.add(
+            Query(
+                id=125,
+                client_id="pending",
+                database_id=None if metadata_flush_fails else 1,
             )
-            if metadata_flush_fails:
-                session.flush()
-            raise RuntimeError("Query failed")
-
-        mocker.patch.object(executor.db, "session", session)
-        mocker.patch.object(
-            executor.SQLExecutor, "_create_query_record", return_value=query
         )
-        mocker.patch.object(
-            executor.SQLExecutor, "_try_get_cached_result", return_value=None
-        )
-        mocker.patch.object(
-            executor.SQLExecutor, "_execute_statements", side_effect=fail_execution
-        )
+        if metadata_flush_fails:
+            query_session.flush()
+        raise RuntimeError("Query failed")
 
-        result = database.execute("SELECT 1")
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=fail_execution)
 
-        assert result.status == QueryStatus.FAILED
-        assert result.query_id == 123
-        with Session(engine) as verification_session:
-            recorded = verification_session.get(Query, 123)
-            assert recorded is not None
-            assert recorded.status == "failed"
-            assert recorded.error_message == result.error_message
-            assert recorded.end_time is not None
-            other_recorded = verification_session.get(Query, 124)
-            assert other_recorded is not None
-            assert other_recorded.progress == (0 if metadata_flush_fails else 37)
-            assert (
-                verification_session.get(Query, 125) is None
-            ) is metadata_flush_fails
-    engine.dispose()
+    result = database.execute("SELECT 1")
+
+    assert result.status == QueryStatus.FAILED
+    assert result.query_id == 123
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.status == "failed"
+        assert persisted.error_message == result.error_message
+        assert persisted.end_time is not None
+        other_recorded = verification.get(Query, 124)
+        assert other_recorded is not None
+        assert other_recorded.progress == (0 if metadata_flush_fails else 37)
+        assert (verification.get(Query, 125) is None) is metadata_flush_fails
 
 
 @pytest.mark.parametrize("failure", ["database", "timeout", "oauth"])
@@ -1022,86 +1004,218 @@ def test_execute_failure_preserves_concurrent_stop(
     database: Database,
     app_context: None,
     default_sql_config: None,
-    tmp_path: Path,
-    failure: str,
+    query_session: Session,
+    recorded_query: Query,
+    execution_error: Exception,
 ) -> None:
     """A stop committed after the error handler's read must win its later write."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-
     from superset.constants import QUERY_EARLY_CANCEL_KEY
-    from superset.errors import ErrorLevel, SupersetErrorType
-    from superset.exceptions import OAuth2Error, SupersetTimeoutException
-    from superset.models.sql_lab import Query
+    from superset.exceptions import OAuth2Error
     from superset.sql.execution import executor
 
-    error = {
-        "database": RuntimeError("Query failed"),
-        "timeout": SupersetTimeoutException(
-            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-            message="Query timed out",
-            level=ErrorLevel.ERROR,
-        ),
-        "oauth": OAuth2Error("Authentication required"),
-    }[failure]
-    engine = create_engine(f"sqlite:///{tmp_path / 'stop.db'}")
-    Query.__table__.create(engine)
-
     def stop_before_failure_write() -> float:
-        """Accept Stop in another session after failure metadata has been staged."""
-        with Session(engine) as stop_session:
-            stopped = stop_session.get(Query, 123)
+        """Accept Stop in another session between the status read and write."""
+        with Session(query_session.get_bind()) as other:
+            stopped = other.get(Query, 123)
             assert stopped is not None
             stopped.status = "stopped"
             stopped.end_time = 1234000.0
             stopped.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            stop_session.commit()
+            other.commit()
         return 9999000.0
 
-    with Session(engine) as session:
-        query = Query(
-            id=123,
-            client_id="sync-stop",
-            database_id=1,
-            sql="SELECT 1",
-            status="running",
-        )
-        session.add(query)
-        session.commit()
-        mocker.patch.object(executor.db, "session", session)
-        mocker.patch.object(
-            executor.SQLExecutor, "_create_query_record", return_value=query
-        )
-        mocker.patch.object(
-            executor.SQLExecutor, "_try_get_cached_result", return_value=None
-        )
-        mocker.patch.object(
-            executor.SQLExecutor, "_execute_statements", side_effect=error
-        )
-        mocker.patch.object(
-            executor, "now_as_float", side_effect=stop_before_failure_write
-        )
+    mocker.patch.object(
+        executor.SQLExecutor, "_execute_statements", side_effect=execution_error
+    )
+    mocker.patch.object(executor, "now_as_float", side_effect=stop_before_failure_write)
 
-        if isinstance(error, OAuth2Error):
-            with pytest.raises(OAuth2Error) as caught:
-                database.execute("SELECT 1")
-            assert caught.value is error
-        else:
-            result = database.execute("SELECT 1")
-            assert result.status == QueryStatus.STOPPED
-            assert result.query_id == 123
-            assert result.error_message is None
+    if isinstance(execution_error, OAuth2Error):
+        with pytest.raises(OAuth2Error) as caught:
+            database.execute("SELECT 1")
+        assert caught.value is execution_error
+    else:
+        result = database.execute("SELECT 1")
+        assert result.status == QueryStatus.STOPPED
+        assert result.query_id == 123
+        assert result.error_message is None
 
-        # A later caller's commit must not flush stale failure metadata either.
-        session.commit()
-        with Session(engine) as verification_session:
-            recorded = verification_session.get(Query, 123)
-            assert recorded is not None
-            assert recorded.status == "stopped"
-            assert recorded.end_time == 1234000.0
-            assert recorded.error_message is None
-            assert recorded.extra[QUERY_EARLY_CANCEL_KEY] is True
-    engine.dispose()
+    assert not query_session.in_transaction()
+    # A later caller's commit must not flush stale failure metadata either.
+    query_session.commit()
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.status == "stopped"
+        assert persisted.end_time == 1234000.0
+        assert persisted.error_message is None
+        assert persisted.extra[QUERY_EARLY_CANCEL_KEY] is True
+
+
+def test_cache_write_failure_preserves_success(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    query_session: Session,
+    recorded_query: Query,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An unavailable cache cannot turn a committed success into a SQL error."""
+    from superset.sql.execution import executor
+
+    caplog.set_level("WARNING", logger="superset.sql.execution.executor")
+    statements = [
+        StatementResult(
+            original_sql="SELECT 1",
+            executed_sql="SELECT 1",
+            data=pd.DataFrame({"value": [1]}),
+            row_count=1,
+            execution_time_ms=1,
+        )
+    ]
+    mocker.patch.object(
+        executor.SQLExecutor, "_execute_statements", return_value=statements
+    )
+    mocker.patch.object(executor.SQLExecutor, "_generate_cache_key", return_value="key")
+    write = mocker.patch.object(
+        executor.cache_manager.data_cache,
+        "set",
+        side_effect=RuntimeError("Cache unavailable"),
+    )
+
+    result = database.execute("SELECT 1")
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.query_id == 123
+    assert result.statements == statements
+    assert write.called
+    assert "Failed to cache query result" in caplog.text
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.status == "success"
+        assert persisted.error_message is None
+        assert persisted.rows == 1
+
+
+def test_execute_failure_preserves_recorded_end_time(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    query_session: Session,
+    recorded_query: Query,
+) -> None:
+    """Failure finalization preserves the end time already recorded by execution."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    recorded_query.end_time = 1234000.0
+    query_session.commit()
+    mocker.patch.object(
+        SQLExecutor, "_execute_statements", side_effect=RuntimeError("Query failed")
+    )
+
+    result = database.execute("SELECT 1")
+
+    assert result.status == QueryStatus.FAILED
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.end_time == 1234000.0
+
+
+def test_failed_query_record_creation_recovers_metadata_session(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    query_session: Session,
+) -> None:
+    """Recover a failed audit INSERT even before execute receives a Query object."""
+    from sqlalchemy import func, select
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
+    mocker.patch.object(database, "id", None)
+
+    result = database.execute("SELECT 1")
+
+    assert result.status == QueryStatus.FAILED
+    assert result.query_id is None
+    assert query_session.is_active
+    assert not query_session.in_transaction()
+    assert query_session.scalar(select(func.count()).select_from(Query)) == 0
+
+
+def test_successful_execution_preserves_concurrent_stop(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    query_session: Session,
+    recorded_query: Query,
+) -> None:
+    """An accepted Stop during the final fetch wins over success publication."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    # Keep the executing session's copy stale while another session accepts Stop.
+    assert recorded_query.status == "running"
+
+    def finish_after_stop(*args: Any, **kwargs: Any) -> list[StatementResult]:
+        with Session(query_session.get_bind()) as other:
+            stopped = other.get(Query, 123)
+            assert stopped is not None
+            stopped.status = "stopped"
+            stopped.end_time = 1234000.0
+            other.commit()
+        return [StatementResult(original_sql="SELECT 1", executed_sql="SELECT 1")]
+
+    mocker.patch.object(
+        SQLExecutor, "_execute_statements", side_effect=finish_after_stop
+    )
+    cache_write = mocker.patch.object(SQLExecutor, "_store_in_cache")
+
+    result = database.execute("SELECT 1")
+
+    assert result.status == QueryStatus.STOPPED
+    assert result.query_id == 123
+    assert result.statements == []
+    assert not query_session.in_transaction()
+    cache_write.assert_not_called()
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.status == "stopped"
+        assert persisted.end_time == 1234000.0
+
+
+def test_worker_deadline_finalizes_query_and_propagates(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    query_session: Session,
+    recorded_query: Query,
+) -> None:
+    """The MCP abandonment signal remains a BaseException after audit cleanup."""
+    from superset.mcp_service.worker import WorkerDeadlineExceeded
+    from superset.sql.execution.executor import SQLExecutor
+
+    error = WorkerDeadlineExceeded()
+    assert not isinstance(error, Exception)
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=error)
+
+    with pytest.raises(WorkerDeadlineExceeded) as caught:
+        database.execute("SELECT 1")
+
+    assert caught.value is error
+    with Session(query_session.get_bind()) as verification:
+        persisted = verification.get(Query, 123)
+        assert persisted is not None
+        assert persisted.status == "timed_out"
+        assert persisted.end_time is not None
+        assert persisted.error_message
 
 
 # =============================================================================

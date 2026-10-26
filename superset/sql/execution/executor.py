@@ -578,6 +578,9 @@ class SQLExecutor:
             StatementResult,
         )
 
+        from superset.sql.execution.cancellation import WorkerDeadlineExceeded
+        from superset.sql.execution.utils import commit_query_unless_stopped
+
         opts: QueryOptionsType = options or QueryOptionsType()
         start_time = time.time()
         query: Query | None = None
@@ -664,7 +667,16 @@ class SQLExecutor:
             query.status = "success"
             query.rows = total_rows
             query.progress = 100
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            if not commit_query_unless_stopped(query):
+                result = QueryResultType(
+                    status=QueryStatus.STOPPED,
+                    statements=[],
+                    query_id=query.id,
+                    error_message=query.error_message,
+                    total_execution_time_ms=total_execution_time_ms,
+                )
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return result
 
             result = QueryResultType(
                 status=QueryStatus.SUCCESS,
@@ -679,6 +691,14 @@ class SQLExecutor:
 
             return result
 
+        except WorkerDeadlineExceeded:
+            self._create_error_result(
+                QueryStatus.TIMED_OUT,
+                "Query exceeded the execution deadline",
+                start_time,
+                query=query,
+            )
+            raise
         except SupersetTimeoutException:
             return self._create_error_result(
                 QueryStatus.TIMED_OUT,
@@ -1032,24 +1052,28 @@ class SQLExecutor:
         from superset.sql.execution.utils import commit_query_unless_stopped
 
         query_id = None
-        if query is not None:
-            try:
+        try:
+            if query is not None:
                 # Read the persisted identity without loading expired attributes.
                 query_id = inspect(query).identity[0]
-                # A failed metadata flush must be rolled back before recording failure.
-                if not db.session.is_active:
-                    db.session.rollback()  # pylint: disable=consider-using-transaction
-                query.status = status.value
-                query.error_message = error_message
-                query.end_time = now_as_float()
+            # Creation can fail before the caller receives a Query object.
+            if not db.session.is_active:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            if query is not None:
+                # Loading an expired timestamp must not flush unguarded metadata.
+                with db.session.no_autoflush:
+                    query.end_time = query.end_time or now_as_float()
+                    query.status = status.value
+                    query.error_message = error_message
                 if not commit_query_unless_stopped(query):
                     status = QueryStatus.STOPPED
                     error_message = query.error_message
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("Failed to persist SQL query error", exc_info=True)
-                # Metadata recovery must not replace the original execution error.
-                with contextlib.suppress(Exception):
-                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                    db.session.commit()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to persist SQL query error", exc_info=True)
+            # Metadata recovery must not replace the original execution error.
+            with contextlib.suppress(Exception):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
 
         return QueryResultType(
             status=status,
@@ -1319,54 +1343,57 @@ class SQLExecutor:
         if result.status != QueryStatus.SUCCESS:
             return
 
-        cache_key = self._generate_cache_key(sql, opts)
-        if cache_key is None:
-            return
+        try:
+            cache_key = self._generate_cache_key(sql, opts)
+            if cache_key is None:
+                return
 
-        timeout = (
-            (opts.cache.timeout if opts.cache else None)
-            or self.database.cache_timeout
-            or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
-        )
+            timeout = (
+                (opts.cache.timeout if opts.cache else None)
+                or self.database.cache_timeout
+                or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
+            )
 
-        # Serialize statement results for caching.
-        # Convert DataFrames to list-of-dicts so the cache backend
-        # does not need to pickle pandas objects (which can fail to
-        # deserialize correctly with some backends or pandas versions).
-        cached_data = {
-            "statements": [
-                {
-                    "original_sql": stmt.original_sql,
-                    "executed_sql": stmt.executed_sql,
-                    "data": (
-                        stmt.data.to_dict(orient="records")
-                        if isinstance(stmt.data, pd.DataFrame)
-                        else stmt.data
-                    ),
-                    "columns": (
-                        list(stmt.data.columns)
-                        if isinstance(stmt.data, pd.DataFrame)
-                        else []
-                    ),
-                    "dtypes": (
-                        [str(dtype) for dtype in stmt.data.dtypes]
-                        if isinstance(stmt.data, pd.DataFrame)
-                        else []
-                    ),
-                    "row_count": stmt.row_count,
-                    "truncated": stmt.truncated,
-                    "execution_time_ms": stmt.execution_time_ms,
-                }
-                for stmt in result.statements
-            ],
-            "total_execution_time_ms": result.total_execution_time_ms,
-        }
+            # Serialize statement results for caching.
+            # Convert DataFrames to list-of-dicts so the cache backend
+            # does not need to pickle pandas objects (which can fail to
+            # deserialize correctly with some backends or pandas versions).
+            cached_data = {
+                "statements": [
+                    {
+                        "original_sql": stmt.original_sql,
+                        "executed_sql": stmt.executed_sql,
+                        "data": (
+                            stmt.data.to_dict(orient="records")
+                            if isinstance(stmt.data, pd.DataFrame)
+                            else stmt.data
+                        ),
+                        "columns": (
+                            list(stmt.data.columns)
+                            if isinstance(stmt.data, pd.DataFrame)
+                            else []
+                        ),
+                        "dtypes": (
+                            [str(dtype) for dtype in stmt.data.dtypes]
+                            if isinstance(stmt.data, pd.DataFrame)
+                            else []
+                        ),
+                        "row_count": stmt.row_count,
+                        "truncated": stmt.truncated,
+                        "execution_time_ms": stmt.execution_time_ms,
+                    }
+                    for stmt in result.statements
+                ],
+                "total_execution_time_ms": result.total_execution_time_ms,
+            }
 
-        cache_manager.data_cache.set(
-            cache_key,
-            cached_data,
-            timeout=timeout,
-        )
+            cache_manager.data_cache.set(
+                cache_key,
+                cached_data,
+                timeout=timeout,
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to cache query result", exc_info=True)
 
     def _connection_carries_user_identity(self) -> bool:
         """
