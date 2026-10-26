@@ -394,7 +394,7 @@ test('bulk delete confirm never claims a semantic view has no dependents', async
 
   expect(
     await within(modal).findByText(
-      /charts built on the selected semantic view/i,
+      /deletion is blocked while any assets depend on the selected semantic views/i,
     ),
   ).toBeInTheDocument();
   expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
@@ -569,7 +569,7 @@ test.each([0, 2])(
       const modal = await screen.findByRole('dialog');
       expect(modal).not.toHaveTextContent('Deleting');
       if (count) {
-        expect(modal).toHaveTextContent('2 charts on 1 dashboard');
+        expect(modal).toHaveTextContent('2 charts and 1 dashboard');
         expect(modal).toHaveTextContent(
           'Archiving it will make dependent charts unavailable until it is recovered.',
         );
