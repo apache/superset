@@ -59,7 +59,7 @@ import mcp.types as mt
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.client.client import CallToolResult
-from fastmcp.tools.tool import Tool
+from fastmcp.tools import Tool
 from fastmcp.utilities.json_schema import dereference_refs
 from jsonschema import Draft202012Validator
 
@@ -213,7 +213,9 @@ async def measure_inventory() -> dict[str, Any]:
     compact = {tool.name: tool for tool in compact_listings["text_only"].tools}
     tools: dict[str, Any] = {}
     for tool in listings["text_only"].tools:
-        annotations = tool.annotations.model_dump() if tool.annotations else {}
+        annotations = (
+            tool.annotations.model_dump(by_alias=True) if tool.annotations else {}
+        )
         output_schema = structured[tool.name].outputSchema
         tools[tool.name] = {
             "annotations": {key: annotations.get(key) for key in ANNOTATION_KEYS},
@@ -717,8 +719,8 @@ async def test_unregistered_tool_is_unreachable_on_every_path() -> None:
     """A tool absent from the registry (e.g. disabled) has no path in."""
     native, compatibility = await build_both()
     for name in ("execute_sql", "list_dashboards"):
-        native.remove_tool(name)
-        compatibility.remove_tool(name)
+        native.local_provider.remove_tool(name)
+        compatibility.local_provider.remove_tool(name)
     results = await call_three_ways(native, compatibility, "execute_sql", {})
     for path, result in results.items():
         assert result.is_error is True, path
