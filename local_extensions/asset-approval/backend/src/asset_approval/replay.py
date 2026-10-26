@@ -43,6 +43,7 @@ from asset_approval.exceptions import (
 from asset_approval.gate import (
     COMMAND_KEY,
     replaying,
+    RESTORE_COMMAND,
     RESTORE_VERSION_COMMAND,
     UPSERT_EMBEDDED_COMMAND,
 )
@@ -98,9 +99,13 @@ class EmbeddedUpsertReplay:
 
     Every other governed write has a host command to re-invoke. This one
     does not, so the extension supplies the missing object: the same two
-    DAO arguments the dashboard API passes, and the same commit the API
-    performs after it. The gate is suspended for the whole replay, so
-    calling the wrapped DAO here does not re-capture the change.
+    DAO arguments the dashboard API passes. It deliberately does NOT
+    perform the API's commit -- an approval is one transaction, and
+    committing inside it published the embedded config while the request it
+    came from was still pending, so a later failure left the two disagreeing
+    (QA-26). ``approve`` commits once, for the replay and the decision
+    together. The gate is suspended for the whole replay, so calling the
+    wrapped DAO here does not re-capture the change.
     """
 
     def __init__(self, dashboard: Model, allowed_domains: list[str]) -> None:
@@ -109,12 +114,9 @@ class EmbeddedUpsertReplay:
 
     def run(self) -> Any:
         # pylint: disable=import-outside-toplevel
-        from superset import db
         from superset.daos.dashboard import EmbeddedDashboardDAO
 
-        embedded = EmbeddedDashboardDAO.upsert(self._dashboard, self._allowed_domains)
-        db.session.commit()  # pylint: disable=consider-using-transaction
-        return embedded
+        return EmbeddedDashboardDAO.upsert(self._dashboard, self._allowed_domains)
 
 
 def build_dashboard_command(
@@ -186,6 +188,9 @@ def build_command(change_request: ChangeRequest) -> Any:
 
     if args.get(COMMAND_KEY) == RESTORE_VERSION_COMMAND:
         return build_restore_version_command(change_request, body)
+
+    if args.get(COMMAND_KEY) == RESTORE_COMMAND:
+        return build_restore_command(change_request, body)
 
     if asset_type == AssetType.DASHBOARD:
         return build_dashboard_command(change_request.asset_id, body, args)
@@ -259,6 +264,26 @@ class DatasetSaveWithRefresh:
                 "could not be refreshed from the source. Nothing was changed."
             ) from ex
         return model
+
+
+def build_restore_command(change_request: ChangeRequest, body: dict[str, Any]) -> Any:
+    """The un-archive the author asked for, for any asset kind.
+
+    The uuid comes from the capture rather than from the live asset,
+    because a soft-deleted row is exactly what the command expects to be
+    handed and exactly what ``load_asset`` may not return.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.chart.restore import RestoreChartCommand
+    from superset.commands.dashboard.restore import RestoreDashboardCommand
+    from superset.commands.dataset.restore import RestoreDatasetCommand
+
+    command_cls = {
+        AssetType.DASHBOARD: RestoreDashboardCommand,
+        AssetType.CHART: RestoreChartCommand,
+        AssetType.DATASET: RestoreDatasetCommand,
+    }[AssetType(change_request.asset_type)]
+    return command_cls(body["uuid"])
 
 
 def build_restore_version_command(

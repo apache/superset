@@ -39,7 +39,9 @@ from asset_approval.exceptions import (
     NoEligibleApproverError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
+    StaleBaselineError,
 )
+from asset_approval.changes import moved_since
 from asset_approval.models import ChangeRequest
 from asset_approval.replay import apply_change, load_asset
 from asset_approval.types import AssetType, ChangeStatus
@@ -119,7 +121,7 @@ def submit(
     change_request = find(change_request_id)
     user_id = get_user_id()
     if change_request.author_fk != user_id:
-        raise ApprovalForbiddenError()
+        raise ApprovalForbiddenError("review")
     if ChangeStatus(change_request.status) not in {
         ChangeStatus.DRAFT,
         ChangeStatus.CHANGES_REQUESTED,
@@ -173,6 +175,19 @@ def approve(
     if seen_revision and revision_of(change_request) != seen_revision:
         raise ReviewedVersionStaleError()
 
+    # The reviewer read the right version of the *request*; this asks
+    # whether the request still fits the *asset*. Approving replays the
+    # author's body over whatever is live now, so an asset that moved while
+    # the request waited would have the older content published back over
+    # it without a word (QA-24).
+    if moved := moved_since(
+        load_asset(
+            AssetType(change_request.asset_type), change_request.asset_id
+        ),
+        change_request.base_dict,
+    ):
+        raise StaleBaselineError(moved)
+
     applied = apply_change(change_request)
 
     change_request.set_status(ChangeStatus.APPROVED)
@@ -195,15 +210,17 @@ def request_changes(change_request_id: int, review_note: str) -> ChangeRequest:
     Not a rejection: the record stays open and the author keeps working on
     it (Decision 3, Visa Q7).
     """
-    if not review_note or not review_note.strip():
-        raise ReviewNoteRequiredError()
-
     change_request = find(change_request_id)
     user_id = get_user_id()
-    # Authorize first; see ``approve``.
+    # Authorize first; see ``approve``. Before the note is validated, too:
+    # telling someone their note is too short, and only then that they were
+    # never allowed to send the change back, answers in the wrong order and
+    # reads as though a better note would have worked (QA-10).
     asset = _asset_for(change_request)
     if not can_approve(change_request, asset, user_id):
-        raise ApprovalForbiddenError()
+        raise ApprovalForbiddenError("review")
+    if not review_note or not review_note.strip():
+        raise ReviewNoteRequiredError()
     if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
         raise InvalidTransitionError(change_request.status, "sent back")
 
@@ -220,7 +237,7 @@ def withdraw(change_request_id: int) -> ChangeRequest:
     """Take a pending request back, so the author can keep editing."""
     change_request = find(change_request_id)
     if change_request.author_fk != get_user_id():
-        raise ApprovalForbiddenError()
+        raise ApprovalForbiddenError("withdraw")
     if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
         raise InvalidTransitionError(change_request.status, "withdrawn")
 
@@ -251,7 +268,7 @@ def discard(change_request_id: int) -> ChangeRequest:
     if change_request.author_fk != user_id and not (
         user_id is not None and is_strict_editor(asset, user_id)
     ):
-        raise ApprovalForbiddenError()
+        raise ApprovalForbiddenError("discard")
     if not change_request.is_open:
         raise InvalidTransitionError(change_request.status, "discarded")
 

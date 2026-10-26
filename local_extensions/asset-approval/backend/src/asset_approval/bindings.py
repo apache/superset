@@ -25,6 +25,7 @@ from asset_approval.gate import (
     gate_write,
     refuse_import_overwrite,
     refuse_unreviewable_write,
+    RESTORE_COMMAND,
     RESTORE_VERSION_COMMAND,
     UPSERT_EMBEDDED_COMMAND,
 )
@@ -49,7 +50,24 @@ def install_review_commands() -> None:
             cls.review_command = kind
 
 
+def _tell_core_the_promise_is_kept() -> None:
+    """Register this gate with core, so core stops refusing writes.
+
+    ``CHANGE_MANAGEMENT`` promises review, but core has no way to know
+    whether anything is enforcing it: an extension that fails to import is
+    logged and skipped, and every edit then went live unreviewed (QA-12).
+    Core now refuses writes while the flag is on and no gate has said it is
+    here. This is the gate saying so, from the function that installs it --
+    not from the entrypoint, because the tests build their app without one
+    and would otherwise be refused too.
+    """
+    from superset.change_management import register_write_gate
+
+    register_write_gate("preset.asset-approval")
+
+
 def install_bindings() -> None:
+    _tell_core_the_promise_is_kept()
     # ---- dashboards ----------------------------------------------------
     gate_run(
         "superset.commands.dashboard.update",
@@ -227,6 +245,16 @@ def install_bindings() -> None:
         _gate_version_restore,
         validate_first=False,
     )
+
+    # ---- un-archive ----------------------------------------------------
+    # The delete that archived the asset went through review; restoring it
+    # put it back in front of viewers on one editor's say-so (QA-17).
+    for module_path, class_name in (
+        ("superset.commands.dashboard.restore", "RestoreDashboardCommand"),
+        ("superset.commands.chart.restore", "RestoreChartCommand"),
+        ("superset.commands.dataset.restore", "RestoreDatasetCommand"),
+    ):
+        gate_run(module_path, class_name, _gate_restore, validate_first=False)
 
     # ---- imports -------------------------------------------------------
     # Bound ahead of ``run``, not inside ``_import`` where the overwrite
@@ -434,6 +462,29 @@ def _import_gate(kind: str) -> Any:
             refuse_import_overwrite(kind)
 
     return gate
+
+
+def _gate_restore(command: Any) -> None:
+    """Capture an un-archive as a change request.
+
+    ``validate`` is run here rather than by ``gate_run`` because it is the
+    only thing that resolves the uuid the caller passed to an asset -- and
+    a restore of something that is not there, or that the caller may not
+    touch, must raise the command's own error rather than become a change
+    request nobody can approve.
+    """
+    from asset_approval.models import asset_type_for
+
+    entity = command.validate()
+    asset_type = asset_type_for(entity)
+    if asset_type is None:
+        return
+    gate_write(
+        asset_type,
+        entity.id,
+        {"uuid": str(command._model_uuid)},
+        command_args={COMMAND_KEY: RESTORE_COMMAND},
+    )
 
 
 def _gate_version_restore(command: Any) -> None:

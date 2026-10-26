@@ -119,7 +119,24 @@ def _named_list_differs(current: Any, proposed: Any, key: str) -> bool:
     return False
 
 
+def _unset_boolean(current: Any, proposed: Any) -> bool:
+    """Whether this is a never-written boolean column being told it is false.
+
+    A ``Boolean`` column whose row predates it holds NULL, and every reader
+    in Superset treats that as false. The dataset schema declares
+    ``load_default=False``, so a PUT carries ``always_filter_main_dttm:
+    false`` whether or not the author touched it -- and against a NULL that
+    read as a real change, so a dataset save that altered only exempt
+    fields was held for review, on an asset that may have no second editor
+    to release it (QA-25).
+    """
+    one_missing = (current is None) != (proposed is None)
+    return one_missing and isinstance(current if proposed is None else proposed, bool)
+
+
 def _differs(current: Any, proposed: Any, field: str) -> bool:
+    if _unset_boolean(current, proposed):
+        return bool(current) != bool(proposed)
     if field in JSON_FIELDS:
         return _parsed(current) != _parsed(proposed)
     if field in NAMED_LIST_FIELDS:
@@ -236,3 +253,75 @@ def layout_summary(current: Any, proposed: Any) -> dict[str, int] | None:
     if not (added or removed or moved):
         return None
     return {"added": len(added), "removed": len(removed), "changed": len(moved)}
+
+
+def baseline_of(asset: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    """What the asset holds, right now, in the fields this payload reviews.
+
+    Recorded with the capture so an approval can tell whether the asset
+    moved while the request waited. Only the reviewed fields: an exempt
+    change applied during the review is allowed to coexist with it, and
+    measuring those too would refuse the very edit SOW 5.4 tells an author
+    to make in order to get their change approved.
+
+    Values are stored as JSON, so each is reduced to something that
+    survives the round trip -- a relationship list becomes its ids, and a
+    column Superset keeps as a JSON string is parsed, both so the
+    comparison at approval time is by meaning rather than by spelling.
+    """
+    if asset is None:
+        return {}
+    baseline: dict[str, Any] = {}
+    for field in payload:
+        if field in IGNORED_FIELDS or field in EXEMPT_FIELDS:
+            continue
+        if not hasattr(asset, field):
+            continue
+        try:
+            baseline[field] = _comparable(getattr(asset, field), field)
+        except Exception:  # noqa: BLE001 -- a baseline must never block a write
+            logger.warning(
+                "asset-approval: could not record a baseline for %r", field
+            )
+    return baseline
+
+
+def _comparable(value: Any, field: str) -> Any:
+    """One field reduced to the form the baseline comparison uses."""
+    if field in JSON_FIELDS:
+        return _parsed(value)
+    if field in NAMED_LIST_FIELDS:
+        key = NAMED_LIST_FIELDS[field]
+        return sorted(
+            str(name) for name in _by_name(value, key) if name is not None
+        )
+    if isinstance(value, (list, tuple)):
+        return sorted(
+            str(item if isinstance(item, int) else _field_value(item, "id"))
+            for item in value
+        )
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def moved_since(asset: Any, baseline: dict[str, Any]) -> list[str]:
+    """Reviewed fields whose live value no longer matches the baseline.
+
+    An empty baseline answers "nothing moved": a request captured before
+    baselines were recorded, or one carrying a diff body, is approved on
+    the terms it was approved on before -- the check is an addition, not a
+    retroactive refusal of work already in the queue.
+    """
+    if not baseline or asset is None:
+        return []
+    moved = []
+    for field, was in baseline.items():
+        try:
+            if _comparable(getattr(asset, field, None), field) != was:
+                moved.append(field)
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "asset-approval: could not compare the baseline for %r", field
+            )
+    return sorted(moved)

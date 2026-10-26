@@ -52,6 +52,7 @@ class ChangeRequestCreated(ChangeManagementException):
         count: int = 1,
         change_request_ids: list[int] | None = None,
         operation: str = "update",
+        updated_existing: bool = False,
     ):
         self.change_request_id = change_request_id
         self.asset_type = asset_type
@@ -63,6 +64,11 @@ class ChangeRequestCreated(ChangeManagementException):
         #: "update" or "delete". The response copy differs: telling someone
         #: their delete was "saved" misdescribes what is now waiting.
         self.operation = operation
+        #: Whether this folded into a draft the author already had open.
+        #: SOW 5.5 asks for a distinct message there, and the copy existed,
+        #: but nothing ever told the response which case it was -- so a
+        #: second save read exactly like the first (QA-11).
+        self.updated_existing = updated_existing
         super().__init__(
             f"Changes to {count} {asset_type}(s) were submitted for review."
             if count > 1
@@ -136,15 +142,28 @@ class ChangeRequestNotFoundError(ChangeManagementException):
 class ApprovalForbiddenError(ChangeManagementException):
     """This user may not approve this change.
 
-    Covers all three refusals the SOW names, deliberately with one message:
-    not an editor, the submitter themselves, or an administrator who is not
-    an editor (Visa Q1 ruled out admin bypass in V1). Distinguishing them in
-    the response would disclose who is and is not an editor of an asset to
-    someone who has just been told they have no say over it.
+    Covers all three refusals the SOW names, deliberately with one message
+    per action: not an editor, the submitter themselves, or an administrator
+    who is not an editor (Visa Q1 ruled out admin bypass in V1). *Why* the
+    answer is no is never disclosed -- that would tell someone who has just
+    been told they have no say over an asset exactly who does.
+
+    *What* was refused is said plainly, though, which it was not: a viewer
+    who pressed Discard, or an author who pressed Withdraw on a change that
+    had already moved on, was told "You cannot approve this change" about a
+    button that does not approve anything (QA-10).
     """
 
-    def __init__(self) -> None:
-        super().__init__("You cannot approve this change.")
+    #: One message per action, phrased for the button the person pressed.
+    MESSAGES = {
+        "approve": "You cannot approve this change.",
+        "review": "You cannot review this change.",
+        "withdraw": "Only the author can withdraw this change.",
+        "discard": "You cannot discard this change.",
+    }
+
+    def __init__(self, action: str = "approve") -> None:
+        super().__init__(self.MESSAGES.get(action, self.MESSAGES["approve"]))
 
 
 class NoEligibleApproverError(ChangeManagementException):
@@ -202,6 +221,31 @@ class ReviewedVersionStaleError(ChangeManagementException):
         super().__init__(
             "This change was updated after you opened it. Review the new "
             "version before approving."
+        )
+
+
+class StaleBaselineError(ChangeManagementException):
+    """Approving a change captured against an older version of the asset.
+
+    The approval replays the author's body, so it overwrites whatever is
+    live when it runs -- not what was live when the author wrote it. If the
+    asset moved in the meantime, through a path the gate does not cover or
+    while the feature was switched off, approving silently republished the
+    old content over the new (QA-24, and the "no baseline check" half of
+    S-03). Refusing says so instead, and names the fields that moved.
+    """
+
+    #: A conflict, not a bad request: the call was fine, the asset moved.
+    status = 409
+
+    def __init__(self, fields: list[str]) -> None:
+        self.fields = fields
+        named = ", ".join(fields)
+        super().__init__(
+            f"This {'field has' if len(fields) == 1 else 'asset has'} changed "
+            f"since this change was captured ({named}). Approving would "
+            "publish the older version over it. Ask the author to save "
+            "again, or discard the change."
         )
 
 

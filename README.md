@@ -141,7 +141,7 @@ The seeded assets, all from `superset load-examples`:
 |---|---|---|
 | **USA Births Names** (dashboard) | alex, priya | the main walkthrough: a change here can be approved |
 | **Sales Dashboard** (dashboard) | alex only | the state where nobody else can approve |
-| first chart by id (**Deck.gl Grid** on a fresh load) | alex, priya | the chart walkthrough |
+| first chart by id (**Funnel**, id 1, on a fresh load) | alex, priya | the chart walkthrough |
 | first dataset by id (**bart_lines** on a fresh load) | alex, priya | the dataset walkthrough |
 
 **Test as `alex`, `priya`, `sam` and `morgan`, never as `admin`.**

@@ -48,9 +48,7 @@ DELETE_MESSAGE = "Delete submitted for review. Nothing has been removed."
 BULK_DELETE_MESSAGE = "%s deletes waiting for review. Nothing has been removed."
 
 
-def captured_response(
-    api: Any, ex: ChangeRequestCreated, *, updated_existing: bool = False
-) -> Response:
+def captured_response(api: Any, ex: ChangeRequestCreated) -> Response:
     """Answer a write that was captured for review."""
     deleting = ex.operation == "delete"
     if ex.count > 1:
@@ -61,7 +59,7 @@ def captured_response(
         # Never "Changes saved" for a delete: the asset is untouched and
         # saying it was saved describes the wrong act entirely.
         message = DELETE_MESSAGE
-    elif updated_existing:
+    elif ex.updated_existing:
         message = UPDATED_MESSAGE
     else:
         message = SAVED_MESSAGE

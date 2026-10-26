@@ -48,6 +48,7 @@ from flask_session import Session
 from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from superset.change_management import install_fail_closed_guard
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
@@ -1132,6 +1133,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         self.init_all_dependencies_and_extensions()
+
+        # After the extensions, because the gate that satisfies this guard
+        # installs as one: with CHANGE_MANAGEMENT on and no gate registered,
+        # writes are refused rather than quietly going live.
+        install_fail_closed_guard(self.superset_app)
 
         # Must run after all versioned models are imported and mappers configured.
         self.init_versioning()

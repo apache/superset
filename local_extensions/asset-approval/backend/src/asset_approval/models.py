@@ -150,6 +150,23 @@ class ChangeRequest(AuditMixinNullable, Model):
         """
         return self.captured.get("command_args", {})
 
+    @property
+    def base_dict(self) -> dict[str, Any]:
+        """What the asset held, in the reviewed fields, when this was captured.
+
+        The approval replays the author's body, so it overwrites whatever is
+        live at the moment it runs -- not whatever was live when the author
+        wrote it. Turn the feature off, edit the asset, turn it back on, and
+        approving the waiting request published the old title over the new
+        one with nothing said (QA-24). Comparing these values against the
+        live asset is how an approval knows the ground moved under it.
+
+        Empty for requests captured before this was recorded, and for diff
+        bodies, which describe an operation rather than the asset's fields.
+        An empty baseline skips the check rather than inventing one.
+        """
+        return self.captured.get("base", {})
+
     def set_status(self, status: ChangeStatus) -> None:
         """Move the request, keeping ``active_slot`` consistent.
 
@@ -164,7 +181,9 @@ class ChangeRequest(AuditMixinNullable, Model):
 
     @staticmethod
     def serialize_payload(
-        body: dict[str, Any], command_args: dict[str, Any] | None = None
+        body: dict[str, Any],
+        command_args: dict[str, Any] | None = None,
+        base: dict[str, Any] | None = None,
     ) -> str:
         """Serialize a captured write for storage.
 
@@ -174,11 +193,15 @@ class ChangeRequest(AuditMixinNullable, Model):
         same edit compare equal, which the "nothing changed" refusal
         (SOW 3) relies on.
         """
-        return json.dumps(
-            {"body": body, "command_args": command_args or {}},
-            sort_keys=True,
-            default=str,
-        )
+        captured: dict[str, Any] = {
+            "body": body,
+            "command_args": command_args or {},
+        }
+        if base:
+            # Only when there is one, so a request captured without a
+            # baseline stores exactly the shape it always did.
+            captured["base"] = base
+        return json.dumps(captured, sort_keys=True, default=str)
 
 
 def asset_type_for(model: Any) -> AssetType | None:

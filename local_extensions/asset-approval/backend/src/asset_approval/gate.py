@@ -46,7 +46,7 @@ from asset_approval.exceptions import (
     UnattributableWriteRefusedError,
     UnreviewableWriteRefusedError,
 )
-from asset_approval.changes import is_empty_change
+from asset_approval.changes import baseline_of, is_empty_change
 from asset_approval.models import ChangeRequest
 from asset_approval.types import (
     AssetType,
@@ -76,6 +76,14 @@ COMMAND_KEY = "command"
 #: ``command_args[COMMAND_KEY]`` of a captured version restore. Shared by all
 #: three asset kinds, each of which has its own restore command.
 RESTORE_VERSION_COMMAND = "restore_version"
+
+#: ``command_args[COMMAND_KEY]`` of a captured un-archive. Restoring a
+#: soft-deleted asset puts it back in front of viewers, so it is a publish
+#: like any other -- and because the delete that archived it went through
+#: review, leaving the restore ungated let one editor undo a decision two
+#: people made (QA-17). Distinct from ``RESTORE_VERSION_COMMAND``, which
+#: rolls content back without ever having been archived.
+RESTORE_COMMAND = "restore"
 
 #: ``command_args[COMMAND_KEY]`` of a captured embedded-config upsert. The
 #: host build has no command for this write -- the dashboard API calls the
@@ -179,6 +187,7 @@ def gate_write(
         and combine is None
         and not (command_args or {}).get(COMMAND_KEY)
     )
+    live = None
     if comparable:
         # Imported here: `replay` imports this module, so taking it at the
         # top would close a cycle.
@@ -190,7 +199,6 @@ def gate_write(
             # Unreadable means unknowable, and an unknowable change is not
             # an empty one. Falling through captures it for review, which
             # is the direction a gate is allowed to be wrong in.
-            live = None
             logger.warning(
                 "asset-approval: could not load %s %s to test for an empty "
                 "change; capturing it",
@@ -207,6 +215,12 @@ def gate_write(
         # approve it. Refusing is the only safe answer: the SOW requires the
         # gate to fail closed on every write path (SOW 3, 5.7).
         raise UnattributableWriteRefusedError(asset_type.value, asset_id)
+
+    # What the asset holds right now in the fields this change reviews, so
+    # an approval can tell whether the asset moved while the request waited
+    # (QA-24). Only full-state bodies have one; a diff describes an
+    # operation, not the asset's fields.
+    base = baseline_of(live, payload) if comparable else {}
 
     existing = find_open_request(asset_type, asset_id)
     if existing is not None and existing.author_fk != author_id:
@@ -235,15 +249,26 @@ def gate_write(
         if combine is not None and Operation(existing.operation) is operation:
             payload = combine(existing.payload_dict, payload)
         change_request_id = _update_own_request(
-            existing.id, payload, note, command_args, operation
+            existing.id, payload, note, command_args, operation, base=base
         )
     else:
         change_request_id = _insert_request(
-            asset_type, asset_id, payload, author_id, note, command_args, operation
+            asset_type,
+            asset_id,
+            payload,
+            author_id,
+            note,
+            command_args,
+            operation,
+            base=base,
         )
 
     raise ChangeRequestCreated(
-        change_request_id, asset_type.value, asset_id, operation=operation.value
+        change_request_id,
+        asset_type.value,
+        asset_id,
+        operation=operation.value,
+        updated_existing=existing is not None,
     )
 
 
@@ -262,8 +287,12 @@ def _display_name(user: Any) -> str | None:
     return full or getattr(user, "username", None)
 
 
-def _serialized(payload: dict[str, Any], command_args: dict[str, Any] | None) -> str:
-    return ChangeRequest.serialize_payload(payload, command_args)
+def _serialized(
+    payload: dict[str, Any],
+    command_args: dict[str, Any] | None,
+    base: dict[str, Any] | None = None,
+) -> str:
+    return ChangeRequest.serialize_payload(payload, command_args, base)
 
 
 def _insert_request(
@@ -274,6 +303,7 @@ def _insert_request(
     note: str | None,
     command_args: dict[str, Any] | None = None,
     operation: Operation = Operation.UPDATE,
+    base: dict[str, Any] | None = None,
 ) -> int:
     """Write a new request on its own connection and commit it.
 
@@ -292,7 +322,7 @@ def _insert_request(
         "operation": operation.value,
         "status": ChangeStatus.DRAFT.value,
         "active_slot": OPEN_SLOT,
-        "payload": _serialized(payload, command_args),
+        "payload": _serialized(payload, command_args, base),
         "author_fk": author_id,
         "note": note,
         "created_on": now,
@@ -331,6 +361,7 @@ def _update_own_request(
     command_args: dict[str, Any] | None = None,
     operation: Operation = Operation.UPDATE,
     clear_note: bool = False,
+    base: dict[str, Any] | None = None,
 ) -> int:
     """Fold a further edit into the author's existing open request.
 
@@ -342,7 +373,7 @@ def _update_own_request(
     table = ChangeRequest.__table__
     now = datetime.now(timezone.utc)
     values: dict[str, Any] = {
-        "payload": _serialized(payload, command_args),
+        "payload": _serialized(payload, command_args, base),
         "operation": operation.value,
         "changed_on": now,
         # A fresh edit returns a bounced request to the author's hands.

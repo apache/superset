@@ -48,6 +48,7 @@ from asset_approval.exceptions import (
     ReplayFailedError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
+    StaleBaselineError,
 )
 from asset_approval.gate import (
     COMMAND_KEY,
@@ -697,9 +698,13 @@ class ChangeRequestRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except (ReviewNoteRequiredError, NoEligibleApproverError) as ex:
             return self.response(422, message=str(ex))
-        except (InvalidTransitionError, ReviewedVersionStaleError) as ex:
-            # Both are conflicts rather than bad requests: the call was
-            # fine, the request had already moved on.
+        except (
+            InvalidTransitionError,
+            ReviewedVersionStaleError,
+            StaleBaselineError,
+        ) as ex:
+            # Conflicts rather than bad requests: the call was fine, either
+            # the request or the asset under it had already moved on.
             return self.response(409, message=str(ex))
         except ReplayFailedError as ex:
             return self.response(ex.status, message=str(ex))
