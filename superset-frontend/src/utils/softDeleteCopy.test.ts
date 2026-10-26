@@ -241,3 +241,13 @@ test('bulk impact does not imply every affected chart belongs to a dashboard', (
     'linked to 4 charts and 1 dashboard',
   );
 });
+
+test.each(['/superset/dashboard/7/', '/analytics/superset/dashboard/7/'])(
+  'recovery link respects the application prefix for %s',
+  url => {
+    (applicationRoot as jest.Mock).mockReturnValue('/analytics');
+    expect(recoveredToast('Saved', 'Dashboard', url).text).toContain(
+      'href="/analytics/superset/dashboard/7/"',
+    );
+  },
+);

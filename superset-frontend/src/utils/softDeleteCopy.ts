@@ -163,7 +163,7 @@ export function recoveredToast(
   }
   const linkText = t('View %(type)s', { type: typeLabel });
   return {
-    text: `${escape(message)} <a href="${escape(url)}">${escape(linkText)} →</a>`,
+    text: `${escape(message)} <a href="${escape(ensureAppRoot(url))}">${escape(linkText)} →</a>`,
     options: { allowHtml: true },
   };
 }
