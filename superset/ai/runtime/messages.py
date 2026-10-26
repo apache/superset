@@ -81,17 +81,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
     """
     Alternates model calls and tool calls until the model stops asking.
 
-    Two behaviours are worth understanding before changing this class.
+    Provider text stays in the answer, including text accompanying tool calls.
+    Only the provider's separate thinking channel becomes a ``thoughts`` event.
 
-    First, prose the model emits *before* a tool call is treated as reasoning,
-    not answer: it becomes a ``thoughts`` event and is dropped from the answer.
-    A model narrating "the orders table looks right, let me check" is stating a
-    hypothesis it may abandon, and appending that to the answer produces a
-    reply that contradicts itself.
-
-    Second, the loop always terminates and never raises for an operational
-    failure. By the time it runs, response headers have been flushed and an
-    exception can no longer become an HTTP status, so every failure is an event.
+    The loop never raises for an operational failure. Response headers have
+    already been flushed, so failures are reported as events.
     """
 
     def __init__(self, provider: Any) -> None:
@@ -206,21 +200,14 @@ class MessagesApiRuntime(BaseAgentRuntime):
             self._record_thoughts(response.thinking)
             yield thoughts_event(response.thinking)
 
+        if response.text:
+            answer_parts.append(response.text)
+            # Keep text already shown to the user if a later tool is cancelled.
+            self._result.answer = "\n\n".join(answer_parts).strip()
+
         if not response.wants_tools:
             self._finished = True
-            if response.text:
-                answer_parts.append(response.text)
-                # Recorded as it arrives, not just at the end, so a run stopped
-                # after this point still persists what the user already saw.
-                self._result.answer = "\n\n".join(
-                    part for part in answer_parts if part
-                ).strip()
             return
-
-        # Prose accompanying a tool call is reasoning, not answer.
-        if response.text:
-            self._record_thoughts(response.text)
-            yield thoughts_event(response.text)
 
         conversation.append(
             Message(
@@ -384,13 +371,10 @@ class MessagesApiRuntime(BaseAgentRuntime):
             breaker=self._breaker,
         ):
             if event.kind is StreamEventKind.TEXT:
-                text_parts.append(event.text)
-                # Forwarded as it arrives. Text is buffered as well, because the
-                # turn is only known to be an answer once the model stops without
-                # asking for a tool — prose before a tool call is reasoning, and
-                # is re-routed as such in ``_consume``. A reader that has already
-                # seen it replaces its copy on the ``final`` frame.
                 if event.text:
+                    if not text_parts and self._result.answer:
+                        yield assistant_delta_event("\n\n")
+                    text_parts.append(event.text)
                     self._streamed_text = True
                     yield assistant_delta_event(event.text)
             elif event.kind is StreamEventKind.THINKING:
