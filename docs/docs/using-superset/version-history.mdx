@@ -311,8 +311,10 @@ When copying a dashboard **and its charts**, archived chart slots in the copy
 become placeholders saying "This archived chart was not copied." Their layout
 positions and sizes are preserved, but they do not link to the archived original.
 Restoring that original chart later therefore does not attach it to the copy.
-Live charts are still cloned. The source dashboard is unchanged, and ordinary
-dashboard saves and chart restores keep their existing reattachment behavior.
+Only live charts included in the copied layout are cloned, so opening an older
+version does not bring along charts added later. The source dashboard is unchanged,
+and ordinary dashboard saves and chart restores keep their existing reattachment
+behavior.
 This rule does not change copying a dashboard without copying its charts.
 
 Copying with charts refuses a layout slot that still references a live chart
