@@ -108,3 +108,104 @@ let $value = 1;
   expect(globalThis.__read).toEqual([undefined, 7]);
   delete globalThis.__read;
 });
+
+test('a line-commented default export is configurable and lenient', () => {
+  const code = `"use strict";
+Object.${DEFINE}(exports, "__esModule", {
+    value: true
+});
+globalThis.__read = exports.default;
+Object.${DEFINE}(exports, // Wrap in memo
+"default", {
+    enumerable: true,
+    ${GET}: function() {
+        return _default;
+    }
+});
+const _default = 5;
+`;
+  const patched = mirrorBabelExportSemantics(code);
+  expect(patched).toContain('try { return _default;');
+  const exports = load(patched);
+  expect(globalThis.__read).toBeUndefined();
+  delete globalThis.__read;
+  expect(Object.getOwnPropertyDescriptor(exports, 'default')).toMatchObject({
+    configurable: true,
+  });
+  expect(exports.default).toBe(5);
+});
+
+test('a doc-commented default export is configurable and lenient', () => {
+  const code = `Object.${DEFINE}(exports, /** doc */ "default", {
+    enumerable: true,
+    ${GET}: function() {
+        return _default;
+    }
+});
+const _default = 5;
+`;
+  const patched = mirrorBabelExportSemantics(code);
+  expect(patched).toContain('try { return _default;');
+  expect(
+    Object.getOwnPropertyDescriptor(load(patched), 'default'),
+  ).toMatchObject({ configurable: true });
+});
+
+test('a from[k] re-export is configurable and lenient', () => {
+  const code = `function _exportStar(from, to) {
+    Object.keys(from).forEach(function(k) {
+        if (k !== "default") Object.${DEFINE}(to, k, {
+            enumerable: true,
+            ${GET}: function() {
+                return from[k];
+            }
+        });
+    });
+    return from;
+}
+_exportStar({ a: 1 }, exports);
+`;
+  const patched = mirrorBabelExportSemantics(code);
+  expect(patched).toContain('try { return from[k];');
+  const exports = load(patched);
+  expect(Object.getOwnPropertyDescriptor(exports, 'a')).toMatchObject({
+    configurable: true,
+  });
+  expect(exports.a).toBe(1);
+});
+
+test('throws on an unrecognised direct defineProperty export', () => {
+  const unknown = `Object.${DEFINE}(exports, "x", {
+    enumerable: true,
+    ${GET}() { return 1; }
+});`;
+  expect(() => mirrorBabelExportSemantics(unknown)).toThrow(
+    /did not match any known shape/,
+  );
+});
+
+test('createTransformer patches sync and async output and salts the cache key', async () => {
+  const raw = `${helper}
+${exportsBlock(`    ${GET} answer () {
+        return answer;
+    }`)}
+const answer = 1;
+`;
+  const swc = {
+    process: jest.fn(() => ({ code: raw })),
+    processAsync: jest.fn(async () => raw),
+    getCacheKey: jest.fn(() => 'base'),
+  };
+  jest.doMock('@swc/jest', () => ({ createTransformer: () => swc }));
+  let transformer;
+  jest.isolateModules(() => {
+    // eslint-disable-next-line global-require
+    transformer = require('./swcJestTransformer').createTransformer({});
+  });
+  jest.dontMock('@swc/jest');
+  expect(transformer.process().code).toContain('configurable: true');
+  expect(await transformer.processAsync()).toContain('try { return answer;');
+  expect(transformer.getCacheKey()).toMatch(
+    /^base-babel-export-semantics-v\d+$/,
+  );
+});

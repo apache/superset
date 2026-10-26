@@ -38,11 +38,21 @@ import { createTransformer as createSwcTransformer } from '@swc/jest';
  * that is still mid-evaluation, so the getters are made lenient to match
  * Babel: an uninitialised export reads as `undefined`.
  */
-// SWC keeps a leading doc comment of a default export inside the call, as
-// `Object.defineProperty(exports, /** ... */ "default", {`, hence the optional
-// block comment before the name.
-const EXPORT_GETTER_DESCRIPTOR =
-  /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,)(\s*)(get:)/g;
+// SWC keeps a leading comment of a default export inside the call, as
+// `Object.defineProperty(exports, /** ... */ "default", {` or
+// `Object.defineProperty(exports, // ...\n"default", {`, hence the optional
+// block or line comments before the name.
+const COMMENTS = String.raw`(?:(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)\s*)*`;
+const DESCRIPTOR_HEAD = String.raw`Object\.defineProperty\((?:target, name|to, k|exports,\s*${COMMENTS}"[^"]+")`;
+const EXPORT_GETTER_DESCRIPTOR = new RegExp(
+  String.raw`(${DESCRIPTOR_HEAD}, \{\s*enumerable: true,)(\s*)(get:)`,
+  'g',
+);
+// A direct `Object.defineProperty(exports, "name", { enumerable, get` export
+// (no `_export(` call), as emitted for single-export modules.
+const DIRECT_EXPORT_GETTER = new RegExp(
+  String.raw`Object\.defineProperty\(exports,\s*${COMMENTS}"(?!__esModule")[^"]+", \{\s*enumerable: true,\s*get\b`,
+);
 // `_export(exports, { get name () { return binding; }, ... });` is how SWC
 // declares named exports; the leniency below is scoped to this block and to
 // the `Object.defineProperty(exports, ...)` descriptors, never to getters in
@@ -52,8 +62,10 @@ const EXPORT_BLOCK_GETTER =
   /(get [\w$]+ \(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*);/g;
 // The `get: function() { return binding; }` form SWC uses for a single export
 // or a re-export (`from[k]`), matched together with its descriptor.
-const EXPORT_DESCRIPTOR_GETTER =
-  /(Object\.defineProperty\((?:target, name|to, k|exports,\s*(?:\/\*[\s\S]*?\*\/\s*)?"[^"]+"), \{\s*enumerable: true,\s*)(get: function\(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*|from\[k\]);/g;
+const EXPORT_DESCRIPTOR_GETTER = new RegExp(
+  String.raw`(${DESCRIPTOR_HEAD}, \{\s*enumerable: true,\s*)(get: function\(\) \{\s*)return ([\w$]+(?:\.[\w$]+)*|from\[k\]);`,
+  'g',
+);
 
 // Only a TDZ ReferenceError is swallowed; any other error still propagates.
 // The istanbul hint keeps the injected try/catch out of coverage instrumentation
@@ -82,7 +94,7 @@ export function mirrorBabelExportSemantics(code) {
   // non-configurable, surfacing later as scattered "Cannot redefine property"
   // errors or TDZ ReferenceErrors in unrelated suites.
   if (
-    /\b_export\(/.test(code) &&
+    (/\b_export\(/.test(code) || DIRECT_EXPORT_GETTER.test(code)) &&
     /enumerable: true,\s*get\b/.test(code) &&
     !patched.includes('configurable: true')
   ) {
@@ -120,7 +132,7 @@ const withPatch =
   };
 
 // Bump when the post-processing changes so cached transforms are invalidated.
-const CACHE_SALT = 'babel-export-semantics-v7';
+const CACHE_SALT = 'babel-export-semantics-v8';
 
 export function createTransformer(swcOptions) {
   const swc = createSwcTransformer(swcOptions);
