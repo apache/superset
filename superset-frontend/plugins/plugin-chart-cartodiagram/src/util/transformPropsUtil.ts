@@ -443,13 +443,12 @@ export const reserveLabelColors = (
 };
 
 /**
- * Create the chart configurations depending on the referenced Superset chart.
+ * Prepare untransformed chart inputs for each map location.
  *
  * @param selectedChart The configuration of the referenced Superset chart
  * @param geomColumn The name of the geometry column
  * @param geomFormat The format of the geometries
  * @param chartProps The properties provided within this OL plugin
- * @param chartTransformer The transformer function
  * @returns The chart configurations
  */
 export const getChartConfigs = (
@@ -457,7 +456,6 @@ export const getChartConfigs = (
   geomColumn: string,
   geomFormat: GeometryFormat,
   chartProps: ChartProps,
-  chartTransformer: any,
   sliceId: number,
 ) => {
   const chartFormDataSnake = selectedChart.params;
@@ -466,10 +464,8 @@ export const getChartConfigs = (
 
   const baseConfig = {
     ...chartProps,
-    // We overwrite width and height, which are not needed
-    // here, but leads to unnecessary updating of the UI.
-    width: null,
-    height: null,
+    width: undefined,
+    height: undefined,
     formData: chartFormData,
     rawFormData: chartFormDataSnake,
     datasource: {},
@@ -530,7 +526,6 @@ export const getChartConfigs = (
         },
       ],
     };
-    const transformedProps = chartTransformer(config);
 
     let geojsonFeature;
 
@@ -549,7 +544,7 @@ export const getChartConfigs = (
       type: 'Feature',
       geometry: geojsonFeature.geometry,
       properties: {
-        ...transformedProps,
+        ...config,
       },
     };
 

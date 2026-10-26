@@ -94,6 +94,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     chartConfigs,
     chartSize,
     chartVizType,
+    chartTransformer,
     layerConfigs,
     mapMaxExtent,
     mapExtentPadding,
@@ -551,6 +552,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
         name: CHART_LAYER_NAME,
         chartConfigs: currentChartConfigs,
         chartVizType,
+        chartTransformer,
         chartSizeValues: chartSize.values,
         chartBackgroundCssColor: cssColor,
         chartBackgroundBorderRadius,
@@ -563,6 +565,16 @@ export const OlChartMap = (props: OlChartMapProps) => {
       olMap.addLayer(newChartLayer);
     } else {
       let recreateCharts = false;
+      if (
+        chartTransformer !== chartLayer.chartTransformer ||
+        theme !== chartLayer.theme ||
+        locale !== chartLayer.locale
+      ) {
+        chartLayer.chartTransformer = chartTransformer;
+        chartLayer.theme = theme;
+        chartLayer.locale = locale;
+        recreateCharts = true;
+      }
       if (chartVizType !== chartLayer.chartVizType) {
         chartLayer.setChartVizType(chartVizType, true);
         recreateCharts = true;
@@ -588,6 +600,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     theme,
     currentChartConfigs,
     chartVizType,
+    chartTransformer,
     chartSize.values,
     chartBackgroundColor,
     chartBackgroundBorderRadius,

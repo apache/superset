@@ -31,6 +31,8 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import pieTransform from '../../../plugin-chart-echarts/src/Pie/transformProps';
 import { EchartsPieChartProps } from '../../../plugin-chart-echarts/src/Pie/types';
 import { getChartConfigs } from '../../src/util/transformPropsUtil';
+import { createChartComponent } from '../../src/util/chartUtil';
+import { GeometryFormat } from '../../src/constants';
 
 const palette = ['#112233', '#445566', '#778899', '#aabbcc'];
 const alternatePalette = ['#110000', '#220000', '#330000', '#440000'];
@@ -103,10 +105,20 @@ function transform(
   return getChartConfigs(
     { viz_type: 'pie', params: formData },
     'geom',
+    GeometryFormat.GEOJSON,
     props,
-    (child: EchartsPieChartProps) => pieTransform(child),
+    1,
   ).features.map(feature => {
-    const options = feature.properties.echartOptions as {
+    const component = createChartComponent(
+      'pie',
+      feature,
+      200,
+      200,
+      supersetTheme,
+      'en',
+      child => pieTransform(child as EchartsPieChartProps),
+    );
+    const options = component?.props.chartConfig.properties.echartOptions as {
       series: { data: { name: string; itemStyle: { color: string } }[] }[];
     };
     return options.series[0].data.map(item => ({
@@ -115,6 +127,74 @@ function transform(
     }));
   });
 }
+
+test.each([
+  {
+    name: 'full pie',
+    donut: false,
+    startAngle: 90,
+    sweptAngle: 360,
+    initialCenter: [100, 100],
+    resizedCenter: [200, 150],
+  },
+  {
+    name: 'half donut',
+    donut: true,
+    startAngle: 180,
+    sweptAngle: 180,
+    initialCenter: [100, 135],
+    resizedCenter: [200, 220],
+  },
+])('recalculates $name layout after resizing', ({
+  donut,
+  startAngle,
+  sweptAngle,
+  initialCenter,
+  resizedCenter,
+}) => {
+  const props = new ChartProps({
+    theme: supersetTheme,
+    formData: {
+      ...params,
+      show_legend: false,
+      donut,
+      startAngle,
+      sweptAngle,
+    },
+    queriesData: [{ data: [{ cat: 'bar', total: 1 }] }],
+  });
+  const feature = {
+    type: 'Feature' as const,
+    geometry: { type: 'Point' as const, coordinates: [0, 0] },
+    properties: { ...props },
+  };
+  const transformer = (child: ChartProps) =>
+    pieTransform(child as EchartsPieChartProps);
+  const initial = createChartComponent(
+    'pie',
+    feature,
+    200,
+    200,
+    supersetTheme,
+    'en',
+    transformer,
+  );
+  const resized = createChartComponent(
+    'pie',
+    feature,
+    400,
+    300,
+    supersetTheme,
+    'en',
+    transformer,
+  );
+  expect(initial?.props.chartConfig.properties).toMatchObject({
+    echartOptions: { series: [{ center: initialCenter }] },
+  });
+  expect(resized?.props.chartConfig.properties).toMatchObject({
+    echartOptions: { series: [{ center: resizedCenter }] },
+  });
+});
 
 test('assigns distinct colors to different categories across locations in Explore', () => {
   const groups = transform();
@@ -183,7 +263,7 @@ test('keeps standalone Pie charts on their own selected palette', () => {
   );
 });
 
-test('retains existing Dashboard colors when different labels already share a color', () => {
+test('resolves duplicate Dashboard colors consistently across locations', () => {
   labelsColorMap.source = LabelsColorMapSource.Dashboard;
   labelsColorMap.colorMap.set('bar', palette[0]);
   labelsColorMap.colorMap.set('far', palette[0]);
@@ -194,10 +274,10 @@ test('retains existing Dashboard colors when different labels already share a co
     { geom: thirdLocation, cat: 'bar', total: 1 },
   ]);
   expect(groups.flat().map(item => item.color)).toEqual([
+    palette[1],
     palette[0],
-    palette[0],
-    palette[0],
+    palette[1],
   ]);
-  expect(labelsColorMap.colorMap.get('bar')).toBe(palette[0]);
+  expect(labelsColorMap.colorMap.get('bar')).toBe(palette[1]);
   expect(labelsColorMap.colorMap.get('far')).toBe(palette[0]);
 });

@@ -17,17 +17,21 @@
  * under the License.
  */
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { ChartConfig, ChartConfigFeature } from '../types';
+import { ChartProps } from '@superset-ui/core';
+import { isEqual } from 'lodash-es';
+import { ChartConfig, ChartConfigFeature, ChartTransformer } from '../types';
 import ChartWrapper from '../components/ChartWrapper';
 
 /**
  * Create a chart component for a location.
  *
  * @param chartVizType The superset visualization type
- * @param chartConfigs The chart configurations
+ * @param chartConfig The untransformed chart configuration
  * @param chartWidth The chart width
  * @param chartHeight The chart height
  * @param chartTheme The chart theme
+ * @param chartLocale The chart locale
+ * @param chartTransformer The embedded chart transformer
  * @returns The chart as React component
  */
 export const createChartComponent = (
@@ -37,20 +41,43 @@ export const createChartComponent = (
   chartHeight: number,
   chartTheme: SupersetTheme,
   chartLocale: string,
-) => (
-  <ChartWrapper
-    vizType={chartVizType}
-    chartConfig={chartConfig}
-    width={chartWidth}
-    height={chartHeight}
-    theme={chartTheme}
-    locale={chartLocale}
-  />
-);
+  chartTransformer?: ChartTransformer,
+) => {
+  if (
+    !chartTransformer ||
+    !Number.isFinite(chartWidth) ||
+    !Number.isFinite(chartHeight) ||
+    chartWidth <= 0 ||
+    chartHeight <= 0
+  ) {
+    return null;
+  }
+
+  try {
+    const properties = chartTransformer({
+      ...chartConfig.properties,
+      width: chartWidth,
+      height: chartHeight,
+      theme: chartTheme,
+    } as ChartProps);
+
+    return (
+      <ChartWrapper
+        vizType={chartVizType}
+        chartConfig={{ ...chartConfig, properties }}
+        width={chartWidth}
+        height={chartHeight}
+        theme={chartTheme}
+        locale={chartLocale}
+      />
+    );
+  } catch {
+    return null;
+  }
+};
 
 /**
- * Simplifies a chart configuration by removing
- * non-serializable properties.
+ * Simplifies a chart configuration by removing render-time dimensions and refs.
  *
  * @param config The chart configuration to simplify.
  * @returns The simplified chart configuration.
@@ -62,7 +89,7 @@ export const simplifyConfig = (config: ChartConfig) => {
       type: f.type,
       geometry: f.geometry,
       properties: Object.keys(f.properties)
-        .filter(k => k !== 'refs')
+        .filter(k => !['refs', 'width', 'height'].includes(k))
         .reduce((prev, cur) => ({ ...prev, [cur]: f.properties[cur] }), {}),
     })),
   };
@@ -82,7 +109,5 @@ export const isChartConfigEqual = (
 ) => {
   const simplifiedConfigA = simplifyConfig(configA);
   const simplifiedConfigB = simplifyConfig(configB);
-  return (
-    JSON.stringify(simplifiedConfigA) === JSON.stringify(simplifiedConfigB)
-  );
+  return isEqual(simplifiedConfigA, simplifiedConfigB);
 };
