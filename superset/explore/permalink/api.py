@@ -36,6 +36,7 @@ from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateEr
 from superset.explore.permalink.schemas import ExplorePermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))
 
     @expose("/permalink/<string:key>", methods=("GET",))
@@ -165,5 +166,5 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))

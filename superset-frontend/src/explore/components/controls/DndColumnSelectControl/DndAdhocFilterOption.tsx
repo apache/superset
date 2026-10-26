@@ -31,6 +31,7 @@ export interface DndAdhocFilterOptionProps {
   onClickClose: (index: number) => void;
   onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   options: OptionSortType[];
+  semanticSelectionVersion?: string;
   datasource: Record<string, any>;
   partitionColumn?: string;
   index: number;
@@ -40,6 +41,7 @@ export default function DndAdhocFilterOption({
   adhocFilter,
   options,
   datasource,
+  semanticSelectionVersion,
   onFilterEdit,
   onShiftOptions,
   onClickClose,
@@ -54,6 +56,7 @@ export default function DndAdhocFilterOption({
       adhocFilter={adhocFilter}
       options={options}
       datasource={datasource}
+      semanticSelectionVersion={semanticSelectionVersion}
       onFilterEdit={onFilterEdit}
       partitionColumn={partitionColumn}
     >

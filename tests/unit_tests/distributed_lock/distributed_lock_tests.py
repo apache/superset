@@ -29,7 +29,7 @@ from superset import db
 from superset.distributed_lock import DistributedLock
 from superset.distributed_lock.utils import get_key
 from superset.exceptions import AcquireDistributedLockFailedException
-from superset.key_value.types import JsonKeyValueCodec
+from superset.key_value.types import JsonKeyValueCodec, RowLock
 
 MAIN_KEY = get_key("ns", a=1, b=2)
 OTHER_KEY = get_key("ns2", a=1, b=2)
@@ -208,7 +208,7 @@ def test_distributed_lock_kv_release_only_deletes_own_lock() -> None:
 
 
 def test_distributed_lock_kv_release_row_locks_the_entry() -> None:
-    """The KV release reads the entry with ``for_update=True`` so the ownership
+    """The KV release reads the entry with an exclusive row lock so the ownership
     check and the delete are atomic against a concurrent expire+re-acquire (the KV
     equivalent of the Redis compare-and-delete). A token mismatch leaves it alone."""
     from superset.commands.distributed_lock.release import ReleaseDistributedLock
@@ -229,7 +229,7 @@ def test_distributed_lock_kv_release_row_locks_the_entry() -> None:
         cmd._release_kv()
 
     # The entry was row-locked for the ownership-checked delete...
-    assert get_entry.call_args.kwargs.get("for_update") is True
+    assert get_entry.call_args.kwargs.get("lock") == RowLock()
     # ...and, since the token did not match, another holder's lock was NOT deleted.
     db_mock.session.delete.assert_not_called()
 
