@@ -263,3 +263,24 @@ def test_contribution_on_decimal_columns_with_nulls():
     )
     assert processed_df["label"].tolist() == ["x", "y", "z"]
     assert processed_df["a"].tolist() == [0.25, 0.0, 0.75]
+
+
+def test_contribution_row_selects_pivoted_columns_by_metric_label():
+    """A bare metric label selects every pivoted `(metric, dimension)` column,
+    leaving the other metrics (e.g. a hidden sort-only one) out of the row total."""
+    df = DataFrame(
+        {
+            ("count", "X"): [1, 2],
+            ("count", "Y"): [3, 2],
+            ("sales", "X"): [100, 100],
+            ("sales", "Y"): [100, 100],
+        }
+    )
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.ROW,
+        columns=["count"],
+    )
+    assert processed_df[("count", "X")].tolist() == [0.25, 0.5]
+    assert processed_df[("count", "Y")].tolist() == [0.75, 0.5]
+    assert processed_df[("sales", "X")].tolist() == [100, 100]
