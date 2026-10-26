@@ -1184,6 +1184,70 @@ def test_adhoc_saved_column_cache_keys_are_user_scoped(
     assert predicates == [["(col1 = 1)"], ["(col1 = 2)"]]
 
 
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("protected_first", [True, False])
+@pytest.mark.parametrize("exact_name", [True, False])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_duplicate_verbose_filter_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    protected_first: bool,
+    exact_name: bool,
+) -> None:
+    """Filters prefer real names, then the first verbose match, in SQL and keys."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1, 1 AS plain, 1 AS caption"
+    protected = TableColumn(
+        column_name="calculated",
+        verbose_name="caption",
+        type="INTEGER",
+        expression="(SELECT MAX(col1) FROM physical)",
+    )
+    plain = TableColumn(column_name="plain", verbose_name="caption", type="INTEGER")
+    virtual.columns.extend(
+        [protected, plain] if protected_first else [plain, protected]
+    )
+    if exact_name:
+        virtual.columns.append(TableColumn(column_name="caption", type="INTEGER"))
+    # The saved metric fallback must lose to the resolved saved column.
+    virtual.metrics.append(SqlMetric(metric_name="caption", expression="{{ 1 / 0 }}"))
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[],
+        filters=[{"col": "caption", "op": "==", "val": 1}],
+    )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    cache_keys = []
+    predicates = []
+    uses_subquery = protected_first and not exact_name
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+        predicates.append(extra_keys)
+        result = virtual.get_query_result(query)
+        assert result.status == "success"
+        assert result.df["col1"].tolist() == (
+            [] if uses_subquery and user_id == 2 else [1]
+        )
+    assert (cache_keys[0] != cache_keys[1]) == uses_subquery
+    assert predicates == (
+        [["(col1 = 1)"], ["(col1 = 2)"]] if uses_subquery else [[], []]
+    )
+
+
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable, Query], indirect=True)
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
 def test_cache_key_uses_only_executed_time_column(

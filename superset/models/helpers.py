@@ -4029,6 +4029,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self.template_params_dict,
         )
 
+    def _get_filter_column(
+        self,
+        name: str,
+        columns_by_name: dict[str, "TableColumn"],
+    ) -> Optional["TableColumn"]:
+        """Resolve real names before the first matching verbose filter label."""
+        col = columns_by_name.get(name)
+        if col is not None:
+            return col
+        return next((col for col in self.columns if col.verbose_name == name), None)
+
     def _get_query_sql_expressions(  # noqa: C901
         self,
         query_obj: QueryObjectDict,
@@ -4036,10 +4047,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         granularity: str | None,
     ) -> list[str]:
         """Find SQL-bearing chart fields without building a chart or its prequeries."""
-        columns = {col.column_name: col.expression for col in self.columns}
-        # Only filters accept verbose names, with real names taking precedence.
-        filter_columns = {col.verbose_name: col.expression for col in self.columns}
-        filter_columns.update(columns)
+        columns_by_name = {col.column_name: col for col in self.columns}
+        columns = {name: col.expression for name, col in columns_by_name.items()}
         metrics = {metric.metric_name: metric.expression for metric in self.metrics}
         selected_columns = query_obj.get("columns") or []
         selected_metrics = query_obj.get("metrics") or []
@@ -4088,8 +4097,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 add(value)
             elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
                 add(granularity)
-            elif value in filter_columns:
-                expressions.append(filter_columns[value] or value)
+            elif (col := self._get_filter_column(value, columns_by_name)) is not None:
+                expressions.append(col.expression or value)
             elif value in metrics:
                 add(value, metric=True)
             elif value in adhoc_columns_by_label:
@@ -5678,18 +5687,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
             else:
-                # Check if it's a regular column first
-                col_obj = columns_by_name.get(cast(str, flt_col))
-                # If not found in columns, check if it's a metric
-                # This supports filtering on metric columns for any chart type
-                if col_obj is None:
-                    # Fall back to verbose_name so filters produced by
-                    # right-click "Drill to detail by" (which can pass a
-                    # column's verbose label) still resolve to a real column.
-                    col_obj = next(
-                        (c for c in self.columns if c.verbose_name == flt_col),
-                        None,
-                    )
+                # Drill-to-detail filters can use verbose labels. Share their
+                # resolution order with the RLS cache-key collector.
+                col_obj = self._get_filter_column(cast(str, flt_col), columns_by_name)
                 if (
                     col_obj is None
                     and isinstance(flt_col, str)
