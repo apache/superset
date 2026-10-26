@@ -467,6 +467,7 @@ categories:
 
     - name: Wordfully
       url: https://wordfully.ai
+      contributors: ["@vlbaluk"]
 
     - name: XNET
       url: https://xnetmobile.com/
