@@ -27,12 +27,27 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
+from superset.extensions import security_manager
 from superset.models.slice import Slice
+from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.date_parser import is_no_time_range
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+
+
+def _uses_stock_raise_for_access() -> bool:
+    """Check the resolved method against the original stock function.
+
+    The semantic preflight passes empty queries. Instance wrappers and operator
+    reassignment of the base-class method must keep the completed-context path.
+    """
+    return (
+        getattr(security_manager.raise_for_access, "__func__", None)
+        is STOCK_RAISE_FOR_ACCESS
+    )
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -41,9 +56,11 @@ def create_query_object_factory() -> QueryObjectFactory:
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
     _query_object_factory: QueryObjectFactory
+    _authorize_semantic_before_metadata: bool
 
-    def __init__(self) -> None:
+    def __init__(self, authorize_semantic_before_metadata: bool = False) -> None:
         self._query_object_factory = create_query_object_factory()
+        self._authorize_semantic_before_metadata = authorize_semantic_before_metadata
 
     def create(  # pylint: disable=too-many-arguments
         self,
@@ -72,6 +89,30 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
 
+        if (
+            self._authorize_semantic_before_metadata
+            and datasource_model_instance is not None
+            and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
+        ):
+            # Guest dashboard and payload checks need the completed query context,
+            # and an operator EXTRA_RAISE_FOR_ACCESS_BYPASS hook or a custom
+            # security manager's raise_for_access may read the request's queries;
+            # keep their authorization path and timing unchanged.
+            if (
+                not security_manager.is_guest_user()
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+                and _uses_stock_raise_for_access()
+            ):
+                QueryContext(
+                    datasource=datasource_model_instance,
+                    queries=[],
+                    slice_=slice_,
+                    form_data=form_data,
+                    result_type=result_type,
+                    result_format=result_format,
+                    cache_values={},
+                ).raise_for_access()
+
         # The server pagination var is extracted from form data as the
         # row limit for server pagination is more
         # This particular flag server_pagination only exists for table viz type
@@ -89,6 +130,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     datasource_model_instance=cast(
                         "BaseDatasource", datasource_model_instance
                     ),
+                    force_query=force,
                     server_pagination=server_pagination,
                     preserve_null_row_limit=preserve_null_row_limit,
                     **query_obj,
@@ -131,7 +173,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         query_object: QueryObject,
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
-        self._apply_filters(query_object)
+        self._apply_filters(query_object, form_data)
         self._add_tooltip_columns(query_object, form_data)
         self._add_currency_column(query_object, form_data, datasource)
         return query_object
@@ -275,6 +317,50 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             query_object.granularity = main_dttm_col
             return
 
+        if (
+            not x_axis
+            and query_object.granularity is None
+            and query_object.is_timeseries
+        ):
+            # A chart saved before the x-axis control existed keeps its time
+            # column in ``form_data`` under the legacy ``granularity_sqla`` key
+            # and never wrote it into the stored query object. The paths that
+            # rebuild a query from form data resolve that key
+            # (``extractExtras.ts`` for Explore, ``form_data_query_context`` for
+            # the Excel export and MCP tools), but anything that replays the
+            # stored ``query_context`` verbatim reaches the
+            # ``not granularity and is_timeseries`` guard in ``models/helpers``
+            # and fails with "Datetime column not provided as part table
+            # configuration". Prefer ``granularity`` over ``granularity_sqla``,
+            # then the dataset's main datetime column, to match those consumers.
+            # Candidates are matched against the dataset's
+            # temporal columns so one that has since been dropped, or is no
+            # longer temporal, is ignored. ``granularity_sqla`` can also hold an
+            # adhoc column (the viz migrations in ``migrate_viz/base.py`` handle
+            # that shape). It is matched by its ``sqlExpression``, since a dict
+            # cannot be looked up in the ``temporal_columns`` set.
+            candidates = (
+                candidate.get("sqlExpression")
+                if isinstance(candidate, dict)
+                else candidate
+                for candidate in (
+                    (form_data or {}).get("granularity"),
+                    (form_data or {}).get("granularity_sqla"),
+                    getattr(datasource, "main_dttm_col", None),
+                )
+            )
+            query_object.granularity = next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if isinstance(candidate, str) and candidate in temporal_columns
+                ),
+                None,
+            )
+            # Inferring a legacy time column must not remove an independent
+            # temporal filter as an explicit granularity override would.
+            return
+
         if granularity := query_object.granularity:
             filter_to_remove = None
             if is_adhoc_column(x_axis):  # type: ignore
@@ -339,6 +425,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
+            # Keep independent predicates when the Time Column is unchanged.
+            # A swapped x-axis drill can carry the overriding column's bucket.
+            # Sunburst levels are independent of the Time Column, so their
+            # non-dashboard predicates remain valid when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -347,10 +437,36 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and (
+                            filter_to_remove == granularity
+                            or (
+                                (form_data or {}).get("viz_type") == "sunburst_v2"
+                                # Dashboard filters can come from a swapped x-axis.
+                                and not filter.get("isExtra")
+                            )
+                        )
+                    )
                 ]
 
-    def _apply_filters(self, query_object: QueryObject) -> None:
+    def _apply_filters(
+        self, query_object: QueryObject, form_data: dict[str, Any] | None = None
+    ) -> None:
+        """Apply the time range, retaining the source of dashboard overrides."""
+        extra_form_data: object = (form_data or {}).get("extra_form_data")
+        dashboard_time_override: bool = (
+            isinstance(extra_form_data, dict)
+            and "time_range" in extra_form_data
+            and extra_form_data["time_range"] == query_object.time_range
+        )
         if query_object.time_range:
             for filter_object in query_object.filter:
                 if filter_object["op"] == "TEMPORAL_RANGE":
+                    saved: object = filter_object.get("val")
+                    was_unbounded: bool = saved is None or (
+                        isinstance(saved, str) and is_no_time_range(saved)
+                    )
                     filter_object["val"] = query_object.time_range
+                    if dashboard_time_override and was_unbounded:
+                        filter_object["isExtra"] = True

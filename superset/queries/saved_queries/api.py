@@ -29,7 +29,10 @@ from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.query.delete import DeleteSavedQueryCommand
 from superset.commands.query.exceptions import (
     SavedQueryDeleteFailedError,
@@ -54,10 +57,10 @@ from superset.queries.saved_queries.schemas import (
     openapi_spec_methods_override,
     validate_label,
 )
-from superset.utils import json
-from superset.utils.core import send_export_zip
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     statsd_metrics,
@@ -301,8 +304,9 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 for file_name, file_content in ExportSavedQueriesCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except SavedQueryNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -392,32 +396,18 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportSavedQueriesCommand(

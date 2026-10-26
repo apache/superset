@@ -53,9 +53,11 @@ def _make_guest_user(datasets: list[int] | None = None) -> GuestUser:
 
 
 def _make_datasource(dataset_id: int) -> MagicMock:
-    """Return a minimal datasource mock with a numeric id."""
-    ds = MagicMock()
+    """Return a minimal SQL dataset mock with a numeric id."""
+    ds: MagicMock = MagicMock()
     ds.id = dataset_id
+    # The allowlist names SQL datasets, so the mock is one.
+    ds.type = "table"
     ds.perm = "datasource_access"
     return ds
 

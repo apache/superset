@@ -37,7 +37,14 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricInfo,
     SemanticLayerError,
 )
-from superset.mcp_service.utils.query_utils import validate_names
+from superset.mcp_service.utils.query_utils import (
+    validate_names,
+    validate_selection_names,
+)
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +78,8 @@ async def get_compatible_metrics(
     with a ValidationError.
 
     For external semantic views, delegates to the view's
-    ``get_compatible_metrics`` implementation.
+    ``get_compatible_metrics`` implementation after rejecting unknown
+    selected metric and dimension names with a ValidationError.
 
     Example:
     ```json
@@ -93,23 +101,36 @@ async def get_compatible_metrics(
         )
     )
 
+    if request.view_id is not None and not is_semantic_layers_enabled():
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
+
     if not user_can_view_data_model_metadata():
         return SemanticLayerError.create(
             error="You don't have permission to access dataset details for your role.",
             error_type=DATA_MODEL_METADATA_ERROR_TYPE,
         )
 
-    if request.dataset_id is None and request.view_id is None:
+    if (request.dataset_id is None) == (request.view_id is None):
         return SemanticLayerError.create(
-            error="Provide either dataset_id (built-in) or view_id (external).",
-            error_type="ValidationError",
-        )
-    if request.dataset_id is not None and request.view_id is not None:
-        return SemanticLayerError.create(
-            error="Provide only one of dataset_id or view_id, not both.",
+            error=(
+                "Provide either dataset_id (built-in) or view_id (external)."
+                if request.dataset_id is None
+                else "Provide only one of dataset_id or view_id, not both."
+            ),
             error_type="ValidationError",
         )
 
+    return await _resolve_compatible_metrics(request, ctx)
+
+
+async def _resolve_compatible_metrics(
+    request: GetCompatibleMetricsRequest,
+    ctx: Context,
+) -> CompatibleMetricsResponse | SemanticLayerError:
+    """Resolve members after the tool validates availability and source selection."""
     try:
         # ------------------------------------------------------------------
         # Built-in dataset path
@@ -204,6 +225,17 @@ async def get_compatible_metrics(
                 error_type="AccessDenied",
             )
 
+        selection_errors: list[str] = validate_selection_names(
+            request.selected_metrics,
+            request.selected_dimensions,
+            {m.metric_name for m in view.metrics},
+            {col.column_name for col in view.columns},
+        )
+        if selection_errors:
+            return SemanticLayerError.create(
+                error="; ".join(selection_errors), error_type="ValidationError"
+            )
+
         compatible_names: list[str] = view.get_compatible_metrics(
             request.selected_metrics,
             request.selected_dimensions,
@@ -229,6 +261,9 @@ async def get_compatible_metrics(
                 source="external",
                 view_id=view.id,
                 view_name=view.name,
+                semantic_selection_version=(
+                    view.implementation.selection_identity_version
+                ),
             )
             for name in compatible_names
         ]

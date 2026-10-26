@@ -26,7 +26,7 @@
 # `ibm-db` ships no Linux arm64 wheel, breaking the multi-platform
 # (amd64+arm64) dev Docker image build; `oceanbase_py` pins
 # `sqlalchemy-utils>=0.38.3,<0.39`, which conflicts outright with Superset's
-# own `sqlalchemy-utils==0.42.1` pin -- there's no version of both that can
+# own `sqlalchemy-utils==0.43.0` pin -- there's no version of both that can
 # coexist in one resolved environment. Both testcontainers CI jobs install
 # their driver on demand instead, only for their own matrix leg -- see
 # .github/workflows/testcontainers.yml.
@@ -43,5 +43,21 @@
 # already provides. databend/risingwave/firebird/ydb are the same story:
 # none has a dedicated testcontainers module, so each test uses a generic
 # DockerContainer plus whatever driver its own extra above already
-# provides.
+# provides. bigquery is the same story too, and for the same reason as
+# db2/oceanbase above -- testcontainers-python has no BigQueryContainer in
+# any release yet (still an open upstream PR), so its test vendors one
+# locally against a generic DockerContainer (see
+# tests/testcontainers/db_engine_specs/_bigquery_container.py) using the
+# google-cloud-bigquery client the bigquery extra above already provides.
 testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5
+
+# gevent (pulled in via the `gevent` extra above) has no direct version
+# requirement on zope.interface, so the resolver was free to pick the
+# oldest version satisfying gevent's own loose constraint: 5.4.0. That
+# version's metaclass treats every class attribute as an interface member,
+# including `__firstlineno__`, the implicit attribute Python 3.13 (PEP 626
+# byte-code line tracking) adds to every class -- so importing gevent
+# (and anything that imports it, e.g. the gunicorn+gevent worker class)
+# raises `zope.interface.exceptions.InvalidInterface` outright on 3.13.
+# 7.2 is the first release with explicit handling for it.
+zope.interface>=7.2
