@@ -1108,6 +1108,26 @@ def test_legacy_record_column_inference(
     pd.testing.assert_frame_equal(_records_to_dataframe(records, []), expected)
 
 
+def test_records_to_dataframe_unparseable_dtype_falls_back_to_inference() -> None:
+    """A dtype string pandas cannot parse falls back to value inference."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    result = _records_to_dataframe(
+        [{"value": "a"}, {"value": None}], ["value"], ["not-a-dtype"]
+    )
+
+    assert list(result["value"].iloc[:1]) == ["a"]
+    assert pd.isna(result["value"].iloc[1])
+
+
+def test_records_to_dataframe_unparseable_dtype_without_values_raises() -> None:
+    """Without a non-null value there is nothing to infer from, so it raises."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    with pytest.raises(TypeError):
+        _records_to_dataframe([{"value": None}], ["value"], ["not-a-dtype"])
+
+
 @pytest.mark.parametrize("use_msgpack", [True, False])
 @pytest.mark.parametrize("row_count", [1, 50_000])
 def test_nested_payload_limit_does_not_charge_duplicate_sidecar(
