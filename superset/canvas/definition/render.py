@@ -25,7 +25,10 @@ placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
 children's placements are in its own grid units. ``layoutConstraints`` gives
 the span limits a widget declares, so a client that lets the user drag and
-resize clamps to the same bounds the server validates against. ``widgets``
+resize clamps to the same bounds the server validates against. For a container
+it also carries the row minimum its own content imposes, which validation
+enforces by growing the container to fit (see ``_fit``) and which no declared
+limit describes. ``widgets``
 holds the content of the widget entities placements hold, keyed by UUID:
 whoever can read the canvas can read the widgets it places.
 
@@ -90,7 +93,9 @@ def render_context(
 
     placements: dict[str, dict[str, int]] = {}
     stored_layouts: dict[str, dict[str, Any]] = {}
-    for _, children, columns in grids:
+    # Rows each grid container's children take up, for the row minimum below.
+    content_rows: dict[str, int] = {}
+    for parent, children, columns in grids:
         layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
         rects, _ = resolve_grid(layouts, columns)
         for child, rect, layout in zip(children, rects, layouts, strict=True):
@@ -101,6 +106,9 @@ def render_context(
                 "rowSpan": rect.row_span,
             }
             stored_layouts[child] = layout
+        extent = max((r.row + r.row_span - 1 for r in rects), default=0)
+        chrome = node_types[parent].ui.chrome_rows if parent in node_types else 0
+        content_rows[parent] = extent + chrome if extent else 0
     return {
         "widgetTypes": type_ids,
         "placements": placements,
@@ -110,18 +118,35 @@ def render_context(
         "layoutConstraints": {
             node_id: constraints
             for node_id, widget in node_types.items()
-            if node_id in placements and (constraints := _span_constraints(widget.ui))
+            if node_id in placements
+            and (
+                constraints := _span_constraints(
+                    widget.ui, content_rows.get(node_id, 0)
+                )
+            )
         },
         "widgets": widget_payload(widgets),
     }
 
 
-def _span_constraints(ui: WidgetUi) -> dict[str, int]:
-    """A widget's declared span limits, omitting the ones it leaves open."""
+def _span_constraints(ui: WidgetUi, content_rows: int = 0) -> dict[str, int]:
+    """
+    A widget's span limits, omitting the ones it leaves open.
+
+    ``content_rows`` is the rows a container's children occupy. Validation
+    grows a container to fit them and never shrinks it, so that is a real
+    minimum even though the widget declares none: without it a client dragging
+    a container's top edge down would compute the shrink against 1, send a
+    span the server replaces, and move the container's bottom edge down into
+    whatever sits below instead of shrinking it.
+    """
+    # A minimum of one row is what every widget already gets, so it is left
+    # out rather than sent as a constraint that constrains nothing.
+    rows = max(ui.min_row_span or 0, content_rows)
     limits = {
         "minColSpan": ui.min_col_span,
         "maxColSpan": ui.max_col_span,
-        "minRowSpan": ui.min_row_span,
+        "minRowSpan": rows if rows > 1 else None,
         "maxRowSpan": ui.max_row_span,
     }
     return {name: limit for name, limit in limits.items() if limit is not None}

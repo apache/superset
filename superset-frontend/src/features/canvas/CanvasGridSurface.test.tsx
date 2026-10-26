@@ -314,7 +314,7 @@ test('a view-only surface renders the widgets with no handles', () => {
     screen.queryByRole('button', { name: 'Move widget' }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('button', { name: 'Resize widget' }),
+    screen.queryByRole('button', { name: /^Resize widget from/ }),
   ).not.toBeInTheDocument();
 });
 

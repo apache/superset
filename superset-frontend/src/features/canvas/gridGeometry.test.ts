@@ -213,3 +213,37 @@ test('every corner leaves a zero delta exactly where it was', () => {
     ).toEqual(widget);
   });
 });
+
+test('a container cannot be shrunk below the rows its content needs', () => {
+  // The server grows a container to fit its children and never shrinks it, so
+  // a span below that is replaced on write. Dragging a north corner anchors
+  // the bottom edge, so computing the shrink against a minimum of 1 would send
+  // a row the server keeps with a span it discards -- the container's bottom
+  // edge would move *down* into the widgets below instead of shrinking.
+  const group: GridPlacement = { col: 1, row: 1, colSpan: 24, rowSpan: 6 };
+  const full = { minRowSpan: 6 };
+
+  // Dragging the north-east corner down three rows: nothing gives.
+  expect(resizedPlacement(group, { cols: 0, rows: 3 }, 24, full, 'ne')).toEqual(
+    group,
+  );
+
+  // Without the content minimum it would report a shrink to three rows at
+  // row 4, whose bottom edge sits at row 9 rather than the original 6.
+  const unconstrained = resizedPlacement(
+    group,
+    { cols: 0, rows: 3 },
+    24,
+    {},
+    'ne',
+  );
+  expect(unconstrained).toEqual({ col: 1, row: 4, colSpan: 24, rowSpan: 3 });
+
+  // Growing upwards is still allowed, anchored on the bottom edge. Measured
+  // on a container with room above it: one at row 1 is already against the
+  // top of the grid, so it has nowhere to grow.
+  const lower: GridPlacement = { col: 1, row: 3, colSpan: 24, rowSpan: 6 };
+  expect(
+    resizedPlacement(lower, { cols: 0, rows: -2 }, 24, full, 'ne'),
+  ).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 8 });
+});

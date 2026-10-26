@@ -231,7 +231,7 @@ test('a canvas that is not editable gets no drag or resize handles', () => {
     screen.queryByRole('button', { name: 'Move widget' }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('button', { name: 'Resize widget' }),
+    screen.queryByRole('button', { name: /^Resize widget from/ }),
   ).not.toBeInTheDocument();
 });
 

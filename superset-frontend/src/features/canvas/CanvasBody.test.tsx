@@ -254,7 +254,7 @@ test('the published canvas has no handles, even for someone who may edit', () =>
     screen.queryByRole('button', { name: 'Move widget' }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('button', { name: 'Resize widget' }),
+    screen.queryByRole('button', { name: /^Resize widget from/ }),
   ).not.toBeInTheDocument();
   expect(
     screen.queryByRole('button', { name: /Publish/ }),

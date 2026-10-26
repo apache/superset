@@ -173,6 +173,37 @@ def test_layout_constraints_carry_declared_span_limits() -> None:
     }
 
 
+def test_a_container_reports_the_row_minimum_its_content_imposes() -> None:
+    """
+    Validation grows a container to fit its children and never shrinks it, so
+    the rows they occupy are a real minimum even where the widget declares
+    none. Without it a client dragging a container's top edge down computes
+    the shrink against 1, sends a span the server replaces, and the
+    container's bottom edge moves down into whatever sits below.
+    """
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    definition = normalize_definition(
+        canvas(
+            {
+                "g": node("group", layout={"colSpan": 24}, children=["tall"]),
+                # Fills six rows of the group's own grid.
+                "tall": node("chart-1", layout={"colSpan": 6, "rowSpan": 6}),
+            },
+            children=["g"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    # Validation already grew the group to fit, so this is also its span.
+    assert context["placements"]["g"]["rowSpan"] == 6
+    assert context["layoutConstraints"]["g"]["minRowSpan"] == 6
+    # The child declares nothing, so it reports nothing.
+    assert "tall" not in context["layoutConstraints"]
+
+
 def test_layout_constraints_skip_nodes_that_are_not_on_a_grid() -> None:
     """A child of a container with its own layout model can't be dragged."""
     rules, resolver = canvas_widget_types(), FakeResolver()
