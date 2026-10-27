@@ -1199,6 +1199,14 @@ async def test_mixed_value_types_are_preserved(mcp_server: object) -> None:
 REGION_VALUES: list[Any] = ["APAC", "EMEA", "North America", "LATAM"]
 _DATASET_IDS = itertools.count(1)
 
+# Closing guidance of a rejection that lists candidate values.
+RECOVERY = (
+    "Tell the user the value was not found. If a listed value plausibly means "
+    "what they asked for, name it (or the few that might) and ask whether to "
+    "apply it instead of listing every value; otherwise ask which value they "
+    "want. Do not report the filter as applied."
+)
+
 
 def _mock_values_dataset(
     values: list[Any],
@@ -1307,8 +1315,7 @@ async def test_value_missing_from_the_data_is_rejected(mcp_server: object) -> No
         "Filter 'Region' has no value 'Asia Pacific' in column 'region'. Unknown "
         "selections can produce empty chart results. No filter values were "
         "applied. Available values: 'APAC', 'EMEA', 'LATAM', "
-        "'North America' (4 in total). Tell the user the value was not found "
-        "and offer these values instead of reporting the filter as applied."
+        "'North America' (4 in total). " + RECOVERY
     )
     dataset.raise_for_access.assert_called_once_with()
     dataset.values_for_column.assert_called_once_with(
@@ -1318,6 +1325,62 @@ async def test_value_missing_from_the_data_is_rejected(mcp_server: object) -> No
         array_elements=False,
         search=None,
     )
+
+
+@pytest.mark.asyncio
+async def test_unknown_abbreviation_lists_all_candidates_with_recovery_guidance(
+    mcp_server: object,
+) -> None:
+    """An abbreviation absent from the column lists every candidate to propose."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(["Asia-Pacific", "EMEA", "North America"])
+
+    data = await _apply_region(mcp_server, ["APAC"], dataset, captured)
+
+    assert "state" not in captured
+    assert data["permalink_key"] is None
+    assert data["applied_filters"] == []
+    assert (
+        "Available values: 'Asia-Pacific', 'EMEA', 'North America' (3 in total)."
+        in data["error"]
+    )
+    assert RECOVERY in data["error"]
+    assert "Closest matches" not in data["error"]
+    assert "offer these values" not in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_mixed_unknown_values_list_candidates_for_values_without_close_matches(
+    mcp_server: object,
+) -> None:
+    """A close match for one rejected value does not hide the list from another."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(["Asia-Pacific", "EMEA", "North America"])
+
+    data = await _apply_region(mcp_server, ["Emeaa", "APAC"], dataset, captured)
+
+    assert "state" not in captured
+    assert data["applied_filters"] == []
+    assert "Closest matches for 'Emeaa': 'EMEA'." in data["error"]
+    assert (
+        "Available values: 'Asia-Pacific', 'EMEA', 'North America' (3 in total)."
+        in data["error"]
+    )
+    assert RECOVERY in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_literal_abbreviation_present_in_column_is_applied_unchanged(
+    mcp_server: object,
+) -> None:
+    """A stored abbreviation applies as sent, never swapped for a longer name."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(["APAC", "Asia-Pacific", "EMEA"])
+
+    data = await _apply_region(mcp_server, ["APAC"], dataset, captured)
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["APAC"]
 
 
 @pytest.mark.asyncio

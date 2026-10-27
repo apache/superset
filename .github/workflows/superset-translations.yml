@@ -110,13 +110,18 @@ jobs:
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         env:
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # The checkout above does not persist credentials, and an anonymous
+          # fetch only works against a public repository. Authenticate this
+          # one fetch so the comparison also works in private forks/mirrors.
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           # For PRs use the base branch; for direct pushes compare against the previous commit.
           BASE_REF="$PR_BASE_REF"
           if [ -n "$BASE_REF" ]; then
-            git fetch --depth=1 origin "$BASE_REF"
+            git -c "http.extraheader=$AUTH_HEADER" fetch --depth=1 origin "$BASE_REF"
           else
-            git fetch --depth=2 origin "$GITHUB_REF"
+            git -c "http.extraheader=$AUTH_HEADER" fetch --depth=2 origin "$GITHUB_REF"
           fi
           git worktree add /tmp/base-worktree FETCH_HEAD
 

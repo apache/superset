@@ -68,10 +68,18 @@ from superset.semantic_layers.dimension_resolution import (
     resolve_dimensions,
 )
 from superset.semantic_layers.exceptions import (
+    discover_dimensions,
+    discover_metrics,
+    DiscoveryTarget,
     execute_semantic_query,
+    provider_code,
     SemanticLayerQueryRejectedError,
 )
-from superset.semantic_layers.execution import configured_namespace, SemanticBindingMemo
+from superset.semantic_layers.execution import (
+    configured_namespace,
+    metadata_namespace,
+    SemanticBindingMemo,
+)
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -152,6 +160,7 @@ class _MetadataGenerations:
     """Session-local generations, captured before discovery and forgotten on Save."""
 
     generations: dict[uuid.UUID, str] = field(default_factory=dict)
+    namespaces: dict[sa.engine.Engine, str] = field(default_factory=dict)
 
     @classmethod
     def for_session(cls, session: Session) -> _MetadataGenerations:
@@ -164,18 +173,14 @@ class _MetadataGenerations:
         """Web, task and MCP operations share a credential-independent identity."""
         if layer.uuid not in self.generations:
             namespace: str = configured_namespace()
-            url: sa.engine.URL = session.get_bind(mapper=SemanticLayer).engine.url
-            driver: str = url.drivername.split("+", 1)[0]
-            identity: list[str | int | None] = (
-                ["namespace", namespace]
-                if namespace
-                else [
-                    driver,
-                    url.host,
-                    url.port,
-                    url.database,
-                ]
-            )
+            if not namespace:
+                engine: sa.engine.Engine = session.get_bind(mapper=SemanticLayer).engine
+                if engine not in self.namespaces:
+                    self.namespaces[engine] = metadata_namespace(
+                        session.connection(bind_arguments={"mapper": SemanticLayer})
+                    )
+                namespace = self.namespaces[engine]
+            identity: list[str] = ["namespace", namespace]
             scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
             self.generations[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
         return self.generations[layer.uuid]
@@ -340,6 +345,9 @@ class SemanticView(AuditMixinNullable, Model):
     supports_samples: bool = False
     supports_drill_to_detail: bool = False
 
+    # Semantic views have no dataset-level SQL predicate for fetching filter values.
+    fetch_values_predicate: None = None
+
     # Use integer as the primary key for cross-database auto-increment
     # compatibility (sa.Identity() is not supported in MySQL or SQLite).
     # The uuid column is a secondary unique identifier used in URLs and perms.
@@ -422,7 +430,8 @@ class SemanticView(AuditMixinNullable, Model):
         configuration: dict[str, Any] = json.loads(self.configuration)
         key: tuple[str, str] = (self.name, json.dumps(configuration, sort_keys=True))
         if key not in views:
-            views[key] = layer.get_semantic_view(self.name, configuration)
+            with provider_code():
+                views[key] = layer.get_semantic_view(self.name, configuration)
         return views[key]
 
     # =========================================================================
@@ -606,6 +615,16 @@ class SemanticView(AuditMixinNullable, Model):
     def type(self) -> str:
         return "semantic_view"
 
+    def _provider_metrics(self) -> set[Metric]:
+        """Read the provider's metrics, classifying faults as backend errors."""
+        return discover_metrics(lambda: self.implementation, DiscoveryTarget.of(self))
+
+    def _provider_dimensions(self) -> set[Dimension]:
+        """Read the provider's dimensions, classifying faults as backend errors."""
+        return discover_dimensions(
+            lambda: self.implementation, DiscoveryTarget.of(self)
+        )
+
     @property
     def metrics(self) -> list[MetricMetadata]:
         return [
@@ -616,7 +635,7 @@ class SemanticView(AuditMixinNullable, Model):
                 description=metric.description,
                 d3format=metric.d3format,
             )
-            for metric in self.implementation.get_metrics()
+            for metric in self._provider_metrics()
         ]
 
     @property
@@ -629,7 +648,8 @@ class SemanticView(AuditMixinNullable, Model):
         # kept uses the same default/ambiguity policy as query mapping.
         return list(
             resolve_dimensions(
-                self.implementation.get_dimensions(), usage=DimensionUsage.METADATA
+                self._provider_dimensions(),
+                usage=DimensionUsage.METADATA,
             ).values()
         )
 
@@ -693,7 +713,7 @@ class SemanticView(AuditMixinNullable, Model):
     @property
     def data(self) -> ExplorableData:
         dimensions = self._unique_dimensions
-        metrics = list(self.implementation.get_metrics())
+        metrics = list(self._provider_metrics())
         verbose_map = {
             **{metric.name: metric.verbose_name or metric.name for metric in metrics},
             **{
@@ -917,7 +937,7 @@ class SemanticView(AuditMixinNullable, Model):
         # ISO duration so the explore-time-grain dropdown shows each grain
         # once even when multiple time columns expose the same set.
         seen: dict[str, TimeGrainDict] = {}
-        for dimension in self.implementation.get_dimensions():
+        for dimension in self._provider_dimensions():
             if not dimension.grain:
                 continue
             seen.setdefault(
@@ -931,9 +951,7 @@ class SemanticView(AuditMixinNullable, Model):
         return list(seen.values())
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:
-        dimension_names = {
-            dimension.name for dimension in self.implementation.get_dimensions()
-        }
+        dimension_names = {dimension.name for dimension in self._provider_dimensions()}
         return all(column_name in dimension_names for column_name in column_names)
 
     @property
@@ -977,10 +995,10 @@ class SemanticView(AuditMixinNullable, Model):
     ) -> tuple[set[Metric], set[Dimension]]:
         """Resolve both compatibility projections through one selection policy."""
         metric_map: dict[str, Metric] = {
-            metric.name: metric for metric in self.implementation.get_metrics()
+            metric.name: metric for metric in self._provider_metrics()
         }
         dim_map: dict[str, Dimension] = resolve_dimensions(
-            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+            self._provider_dimensions(), usage=DimensionUsage.COMPATIBILITY
         )
         return (
             {metric_map[name] for name in selected_metrics if name in metric_map},
