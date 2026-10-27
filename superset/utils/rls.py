@@ -319,7 +319,9 @@ def collect_rls_predicates_for_sql(
     Collect all RLS predicates that would be applied to tables in the given SQL.
 
     This is used for cache key generation for virtual datasets to ensure that
-    different users with different RLS rules get different cache keys.
+    different users with different RLS rules get different cache keys. Each
+    predicate is tagged with its qualified table so exchanging rules between
+    tables cannot collapse distinct scopes into the same unordered key set.
 
     :param sql: The SQL query to analyze
     :param database: The database the query runs against
@@ -330,7 +332,7 @@ def collect_rls_predicates_for_sql(
         (kept consistent with what's actually applied at query time).
     :param resolve_catalog: Optional memoized resolver shared by cache-key collectors,
         including engines that require a connection to discover the default catalog.
-    :return: List of RLS predicate strings that would be applied
+    :return: Table-tagged RLS predicate strings that would be applied
     """
     from superset.sql.parse import SQLScript
 
@@ -344,7 +346,7 @@ def collect_rls_predicates_for_sql(
         default_catalog = (resolve_catalog or database.get_default_catalog)()
         return sorted(
             {
-                predicate
+                json.dumps(["rls", table.catalog, table.schema, table.table, predicate])
                 for table in tables
                 for predicate in get_predicates_for_table(
                     table,

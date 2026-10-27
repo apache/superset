@@ -51,7 +51,13 @@ from superset.models.helpers import (
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLStatement
 from superset.superset_typing import AdhocColumn, AdhocMetric, QueryObjectDict
+from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
+
+PHYSICAL_RLS_KEYS = {
+    tenant: json.dumps(["rls", None, "main", "physical", f"(col1 = {tenant})"])
+    for tenant in (1, 2)
+}
 
 
 @pytest.fixture(
@@ -162,9 +168,9 @@ def test_adhoc_subquery_rls_cache_uses_connection_schema(
         orderby=adhoc_subquery.get("orderby"),
     )
 
-    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[2]]
 
 
 @pytest.mark.parametrize("sink", ["stored", "rendered", "save", "fragment"])
@@ -228,9 +234,9 @@ def test_stored_subquery_rls_uses_connection_schema(
         query = QueryObject(datasource=virtual, columns=[], metrics=["restricted"])
 
     if cache_key:
-        assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+        assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[1]]
         rule.clause = "col1 = 2"
-        assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 2)"]
+        assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[2]]
     else:
         result = virtual.get_query_result(query)
         assert result.status == "success"
@@ -405,7 +411,7 @@ def test_virtual_dataset_avoids_schema_connections(
     result = processor.get_df_payload_result(query)
 
     assert cache_key.call_args.kwargs["extra_cache_keys"] == (
-        ["(col1 = 1)"] if with_rls else []
+        [PHYSICAL_RLS_KEYS[1]] if with_rls else []
     )
 
     assert result.payload["status"] == "success"
@@ -563,8 +569,8 @@ def test_virtual_dataset_rls_cache_uses_connection_schema(
     rule.clause = "col1 = 2"
     second_keys = virtual.get_extra_cache_keys({})
 
-    assert first_keys == ["(col1 = 1)"]
-    assert second_keys == ["(col1 = 2)"]
+    assert first_keys == [PHYSICAL_RLS_KEYS[1]]
+    assert second_keys == [PHYSICAL_RLS_KEYS[2]]
     assert first_keys != second_keys
 
 
@@ -630,9 +636,9 @@ def test_virtual_dataset_rls_cache_preserves_unresolved_schema(
     """An undiscoverable default must not remove tenant predicates from cache keys."""
     virtual, rule = unresolved_schema_datasource
 
-    assert virtual.get_extra_cache_keys({}) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys({}) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys({}) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys({}) == [PHYSICAL_RLS_KEYS[2]]
 
 
 def test_virtual_dataset_rls_retry_preserves_unresolved_schema(
@@ -765,7 +771,7 @@ def test_cache_hit_schema_discovery_connection_budget(
     result = processor.get_df_payload_result(query)
 
     assert result.payload["status"] == "success"
-    assert cache_key.call_args.kwargs["extra_cache_keys"] == ["(col1 = 1)"]
+    assert cache_key.call_args.kwargs["extra_cache_keys"] == [PHYSICAL_RLS_KEYS[1]]
     assert connections.call_count == 1
     cache.set_query_result.assert_not_called()
     engine.dispose()
@@ -920,9 +926,9 @@ def test_expression_cache_key_sibling_fields(
     }
     query.update(fields)
 
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
     build.assert_not_called()
 
 
@@ -1002,9 +1008,9 @@ def test_expression_cache_key_reference_precedence(
         query["columns"] = [{"sqlExpression": "{{ 'restricted' }}", "label": "result"}]
     build = mocker.spy(virtual, "get_sqla_query")
 
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
     build.assert_not_called()
 
 
@@ -1030,7 +1036,9 @@ def test_physical_expression_cache_key_schema_budget(
     discover = mocker.spy(physical.database, "resolve_query_default_schema")
     build = mocker.spy(physical, "get_sqla_query")
 
-    assert physical.get_extra_cache_keys(query) == (["(col1 = 1)"] if subquery else [])
+    assert physical.get_extra_cache_keys(query) == (
+        [PHYSICAL_RLS_KEYS[1]] if subquery else []
+    )
     assert discover.call_count == (1 if subquery else 0)
     build.assert_not_called()
 
@@ -1112,7 +1120,7 @@ def test_expression_cache_key_reuses_catalog_discovery(
         "is_timeseries": False,
     }
 
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
     assert catalog.call_count == 1
 
 
@@ -1182,7 +1190,7 @@ def test_adhoc_saved_column_cache_keys_are_user_scoped(
             ([1] if user_id == 1 else []) if sink == "filter" else [user_id]
         )
     assert cache_keys[0] != cache_keys[1]
-    assert predicates == [["(col1 = 1)"], ["(col1 = 2)"]]
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
@@ -1245,7 +1253,7 @@ def test_duplicate_verbose_filter_cache_keys_are_user_scoped(
         )
     assert (cache_keys[0] != cache_keys[1]) == uses_subquery
     assert predicates == (
-        [["(col1 = 1)"], ["(col1 = 2)"]] if uses_subquery else [[], []]
+        [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]] if uses_subquery else [[], []]
     )
 
 
@@ -1340,9 +1348,9 @@ def test_cache_key_collects_effective_primary_time_column(
             metrics=[],
         ).sqla_query
     )
-    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[2]]
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
@@ -1504,9 +1512,9 @@ def test_groupby_alias_retains_saved_column_rls(
         is_timeseries=False,
     )
     assert "col1 = 1" in str(executed.sqla_query)
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
 
 
 @pytest.mark.parametrize(
@@ -1670,7 +1678,7 @@ def test_single_render_subquery_cache_keys_are_user_scoped(
         extra_keys = virtual.get_extra_cache_keys(query.to_dict())
         predicates.append(extra_keys)
         cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
-    assert predicates == [["(col1 = 1)"], ["(col1 = 2)"]]
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
     assert cache_keys[0] != cache_keys[1]
 
 
@@ -1710,9 +1718,9 @@ def test_stored_expression_cache_collection_renders_once(
     else:
         virtual.fetch_values_predicate = f"1 = {expression}"
         query["apply_fetch_values_predicate"] = True
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
-    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
 
 
 @pytest.mark.parametrize("name", ["a{#b", "a{%b", "{{ 1/0 }}"])
@@ -1775,5 +1783,141 @@ def test_bare_column_names_are_not_templates_in_cache_collection(
     assert executed.df.iloc[:, 0].tolist() == [1]
 
     render = mocker.spy(BaseTemplateProcessor, "process_template")
-    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[1]]
     assert name not in [call.args[1] for call in render.call_args_list]
+
+
+@pytest.mark.parametrize("base_reads_both", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_swapped_table_rules_have_distinct_cache_keys(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    session: Session,
+    mocker: MockerFixture,
+    base_reads_both: bool,
+) -> None:
+    """Swapping predicates between tables must not reuse another viewer's result."""
+    virtual, _ = static_schema_datasource
+    database = virtual.database
+    engine = database._get_sqla_engine()  # pylint: disable=protected-access
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "CREATE TABLE t1 (tenant_id INTEGER, amount INTEGER)"
+        )
+        connection.exec_driver_sql(
+            "CREATE TABLE t2 (tenant_id INTEGER, amount INTEGER)"
+        )
+        connection.exec_driver_sql("INSERT INTO t1 VALUES (1, 10), (2, 20)")
+        connection.exec_driver_sql("INSERT INTO t2 VALUES (1, 100), (2, 200)")
+    tables = [
+        SqlaTable(id=i, table_name=name, schema="main", database=database)
+        for i, name in ((3, "t1"), (4, "t2"))
+    ]
+    session.add_all(tables)
+    session.flush()
+    virtual.sql = (
+        "SELECT t1.amount + t2.amount AS amount FROM t1 CROSS JOIN t2"
+        if base_reads_both
+        else "SELECT amount FROM t1"
+    )
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = [TableColumn(column_name="amount", type="INTEGER")]
+    else:
+        virtual.extra = {
+            "columns": [{"column_name": "amount", "type": "INTEGER", "is_dttm": False}]
+        }
+    metric = "MAX(amount)"
+    if not base_reads_both:
+        metric += " + (SELECT SUM(amount) FROM t2)"
+    query = QueryObject(
+        datasource=virtual,
+        columns=[],
+        metrics=[{"expressionType": "SQL", "sqlExpression": metric, "label": "value"}],
+    )
+    rule1 = MagicMock(clause="tenant_id = 1", group_key=None)
+    rule2 = MagicMock(clause="tenant_id = 2", group_key=None)
+    keys = []
+    results = []
+    for rules in ((rule1, rule2), (rule2, rule1)):
+        mocker.patch(
+            "superset.connectors.sqla.models.security_manager.get_rls_filters",
+            side_effect=lambda dataset, rules=rules: (
+                [rules[dataset.id - 3]] if dataset.id in (3, 4) else []
+            ),
+        )
+        keys.append(
+            query.cache_key(
+                extra_cache_keys=virtual.get_extra_cache_keys(query.to_dict())
+            )
+        )
+        result = virtual.get_query_result(query)
+        assert result.status == "success"
+        results.append(result.df["value"].item())
+    assert results == [210, 120]
+    assert keys[0] != keys[1]
+
+
+@pytest.mark.parametrize(
+    "validator",
+    [
+        "adhoc",
+        "stored",
+        "stored_fragment",
+        "rendered",
+        "select",
+        "metric_select",
+        "orderby",
+        "metric_orderby",
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_comment_keywords_survive_rls_expression_unwrap(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    validator: str,
+) -> None:
+    """Synthetic clauses must not be stripped at keywords inside comments."""
+    virtual, _ = static_schema_datasource
+    expression = (
+        "/* SELECT reporting value */ (SELECT MAX(col1) FROM physical)"
+        if validator in {"adhoc", "stored"}
+        else "/* SELECT reporting value ORDER BY */ (SELECT MAX(col1) FROM physical)"
+    )
+    if validator == "stored_fragment":
+        expression = expression.replace("*/ ", "*/ DISTINCT ", 1)
+    database = virtual.database
+    if validator == "adhoc":
+        validated = helpers.validate_adhoc_subquery(
+            expression, database, None, "main", "sqlite"
+        )
+    elif validator in {"stored", "stored_fragment"}:
+        validated = validate_stored_expression_at_query_time(
+            expression, database, None, "main", "sqlite"
+        )
+    elif validator == "rendered":
+        validated = validate_rendered_expression(expression, database, None, "main")
+    else:
+        method = getattr(virtual, f"_process_{validator}_expression")
+        validated = method(expression, "sqlite", "main", None)
+    assert validated is not None
+    assert "col1 = 1" in validated
+    engine = database._get_sqla_engine()  # pylint: disable=protected-access
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql(f"SELECT {validated}").scalar() == 1
+
+
+@pytest.mark.parametrize(
+    "method", ["select", "metric_select", "orderby", "metric_orderby"]
+)
+def test_comment_unwrap_preserves_numeric_precision(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    method: str,
+) -> None:
+    """Unwrapping comments must not introduce Postgres ROUND/DECIMAL rewrites."""
+    virtual, _ = static_schema_datasource
+    expression = "/* SELECT reporting ORDER BY */ ROUND(AVG(col1), 2)"
+    processed = getattr(virtual, f"_process_{method}_expression")(
+        expression, "postgresql", "main", None
+    )
+    assert processed is not None
+    prefix = "SELECT 1 ORDER BY" if "orderby" in method else "SELECT"
+    SQLStatement(f"{prefix} {processed}", "postgresql")
+    assert "CAST" not in processed.upper()

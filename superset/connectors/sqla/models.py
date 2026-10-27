@@ -2905,7 +2905,8 @@ class SqlaTable(
                 exclude_dataset_id=self.id,
                 resolve_catalog=resolve_catalog,
             )
-            # Add each predicate as a separate cache key component
+            # Keep each predicate associated with its qualified table, including
+            # when merging rules discovered in independent expression subqueries.
             extra_cache_keys.extend(rls_predicates)
 
         extra_cache_keys.extend(

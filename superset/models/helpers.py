@@ -501,6 +501,22 @@ SQLA_QUERY_KEYS = {
 }
 
 
+def _unwrap_select_clause(sql: str, engine: str, *, orderby: bool = False) -> str:
+    """Remove an intact synthetic prefix, or extract a rewritten clause from its AST.
+
+    Preserve source SQL when the prefix is intact: regenerating unmodified
+    dialect-specific expressions can change their semantics. RLS and comment
+    normalization can move comments before the prefix; use the parsed clause
+    in that case, never a keyword search through the formatted text.
+    """
+    prefix = "SELECT 1 ORDER BY " if orderby else "SELECT "
+    if sql.startswith(prefix):
+        return sql[len(prefix) :].strip()
+    return SQLStatement(sql, engine).format_select_clause(
+        orderby=orderby, apply_dialect=False
+    )
+
+
 def validate_adhoc_subquery(
     sql: str,
     database: Database,
@@ -546,12 +562,9 @@ def validate_adhoc_subquery(
     # syntax.
     if not rls_applied:
         return sql
-    rewritten = parsed_statement.format()
     if wrapped:
-        return re.split(r"SELECT\s+", rewritten, maxsplit=1, flags=re.IGNORECASE)[
-            1
-        ].strip()
-    return rewritten
+        return parsed_statement.format_select_clause()
+    return parsed_statement.format()
 
 
 def validate_stored_expression_at_query_time(
@@ -615,9 +628,7 @@ def validate_stored_expression_at_query_time(
                 raise QueryObjectValidationError(
                     _("Custom SQL fields cannot be safely rewritten with RLS filters.")
                 )
-            return re.split(r"SELECT\s+", validated, maxsplit=1, flags=re.IGNORECASE)[
-                1
-            ].strip()
+            return SQLStatement(validated, engine).format_select_clause()
         return expression
 
     logger.warning("Skipping query-time validation of unparseable stored expression")
@@ -671,13 +682,7 @@ def validate_rendered_expression(
     except QueryClauseValidationException as ex:
         raise QueryObjectValidationError(ex.message) from ex
 
-    prefix, expression = re.split(
-        r"SELECT\s+",
-        wrapped,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )
-    return expression.strip()
+    return _unwrap_select_clause(wrapped, engine)
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -2210,7 +2215,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # `SELECT SELECT ...` fails the sqlglot parse.
                 sql_to_check = (
                     expression
-                    if expression.strip().upper().startswith("SELECT")
+                    if SQLStatement(expression, context.engine).is_select()
                     else f"SELECT {expression}"
                 )
                 parsed = SQLScript(sql_to_check, engine=context.engine)
@@ -2255,13 +2260,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"SELECT\s+",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine)
 
         return None
 
@@ -2278,13 +2277,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_metric_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"SELECT\s+",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine)
         return None
 
     def _process_orderby_expression(
@@ -2305,13 +2298,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"ORDER\s+BY",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine, orderby=True)
 
         return None
 
@@ -2328,13 +2315,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_metric_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"ORDER\s+BY",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine, orderby=True)
         return None
 
     def make_sqla_column_compatible(
