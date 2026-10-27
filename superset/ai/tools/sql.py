@@ -44,6 +44,7 @@ from decimal import Decimal
 from typing import Any, Callable, ClassVar
 
 from superset.ai.tools.base import AITool, ToolError, ToolOutput
+from superset.result_set import dedup
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +226,7 @@ def _columns_and_records(
     had asked for perfectly legitimately.
     """
     if hasattr(data, "columns") and hasattr(data, "to_dict"):
+        data = data.set_axis(dedup([str(name) for name in data.columns]), axis="columns")
         columns = [
             {"name": str(name), "type": str(data[name].dtype)} for name in data.columns
         ]

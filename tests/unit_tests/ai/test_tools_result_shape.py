@@ -40,6 +40,27 @@ def test_dataframe_results_are_normalised() -> None:
     assert records == [{"one": 1, "two": "a"}, {"one": 2, "two": "b"}]
 
 
+def test_duplicate_dataframe_labels_preserve_every_column() -> None:
+    """Use SQL Lab's collision-safe naming without discarding or mutating data."""
+    import pandas as pd
+
+    from superset.ai.tools.sql import _columns_and_records
+
+    frame = pd.DataFrame(
+        [[1, "second", 3, 4]], columns=["value", "value", "value__1", "value"]
+    )
+    columns, records = _columns_and_records(frame)
+
+    assert [c["name"] for c in columns] == [
+        "value", "value__2", "value__1", "value__3"
+    ]
+    assert records == [
+        {"value": 1, "value__2": "second", "value__1": 3, "value__3": 4}
+    ]
+    assert columns[1]["type"] == "object"
+    assert frame.columns.tolist() == ["value", "value", "value__1", "value"]
+
+
 def test_list_results_are_normalised() -> None:
     """A list of mappings yields the same shape, without dtypes."""
     from superset.ai.tools.sql import _columns_and_records
