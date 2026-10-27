@@ -78,6 +78,10 @@ export interface ChatTab {
   messageCount?: number;
   /** The server conversation this tab is backed by. */
   threadId?: string;
+  /** The profile persisted on the server. */
+  agentKey?: string;
+  /** A local selection to apply on the next send. */
+  pendingAgentKey?: string;
 }
 
 /**

@@ -124,14 +124,14 @@ def test_post_replay_keeps_run_and_accepted_context(
         client,
         conversation,
         model="first-model",
-        agent_key="first-agent",
+        agent_key="analyst",
         page_context=context,
     )
     replay = _post(
         client,
         conversation,
         model="different-model",
-        agent_key="different-agent",
+        agent_key="default",
         page_context={"dashboard_id": 43},
     )
     assert first.status_code == replay.status_code == 202
@@ -139,12 +139,12 @@ def test_post_replay_keeps_run_and_accepted_context(
     assert session.query(AIChatMessage).count() == 2
     assistant = session.query(AIChatMessage).filter_by(role="assistant").one()
     assert assistant.extra["model"] == "first-model"
-    assert assistant.extra["agent_key"] == "first-agent"
+    assert assistant.extra["agent_key"] == "analyst"
     assert assistant.extra["page_context"] == context
     for call in submitted.call_args_list:
         assert call.args[0].run_id == first.json["result"]["run_id"]
         assert call.args[0].model == "first-model"
-        assert call.args[0].profile_key == "first-agent"
+        assert call.args[0].profile_key == "analyst"
         assert call.args[0].page_context == context
 
 

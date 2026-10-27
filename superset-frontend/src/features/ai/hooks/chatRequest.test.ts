@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { SupersetClient } from '@superset-ui/core';
 import {
   ChatRequestAbortedError,
   ChatStreamEventError,
@@ -28,6 +29,7 @@ import {
   loadStoredAgentKey,
   normalizeChatAgents,
   parseSseEvents,
+  startRun,
   streamRun,
 } from './chatRequest';
 import type { AiToolCall } from '../types';
@@ -64,8 +66,37 @@ const mockStream = (chunks: string[], ok = true) => {
 const originalFetch = global.fetch;
 afterEach(() => {
   global.fetch = originalFetch;
+  jest.restoreAllMocks();
   jest.useRealTimers();
 });
+
+test.each([
+  { agentKey: undefined, selection: {} },
+  { agentKey: 'default', selection: { agent_key: 'default' } },
+  { agentKey: 'analyst', selection: { agent_key: 'analyst' } },
+])(
+  'startRun distinguishes explicit profile $agentKey from no selection',
+  async ({ agentKey, selection }) => {
+    const post = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+      response: new Response(null, { status: 202 }),
+      json: { result: { message_uuid: 'message-1', run_id: 'run-1' } },
+    });
+    await startRun({
+      threadUuid: 'thread-1',
+      content: 'question',
+      requestId: 'request-1',
+      agentKey,
+    });
+    expect(post).toHaveBeenCalledWith({
+      endpoint: '/api/v1/ai/thread/thread-1/message',
+      jsonPayload: {
+        content: 'question',
+        request_id: 'request-1',
+        ...selection,
+      },
+    });
+  },
+);
 
 test('parseSseEvents keeps a frame that is split across reads', () => {
   const first = parseSseEvents('event: thoughts\ndata: {"delta":"he');

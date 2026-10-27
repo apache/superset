@@ -99,6 +99,10 @@ class AppendAIChatMessageCommand(CreateMixin, BaseCommand):
             status=self._status,
             extra=self._extra,
         )
+        if self._created and message.role == MessageRole.ASSISTANT:
+            # Commit the selection with acceptance; a replay must not reset it.
+            if (agent_key := message.extra.get("agent_key")) is not None:
+                self._model.agent_key = agent_key
         return message
 
     def validate(self) -> None:

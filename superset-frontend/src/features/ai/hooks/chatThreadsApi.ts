@@ -172,4 +172,5 @@ export const threadToTab = (
     : undefined,
   messageCount: thread.messageCount,
   threadId: thread.uuid,
+  agentKey: thread.agentKey,
 });
