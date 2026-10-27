@@ -1351,6 +1351,21 @@ function DatasourceEditor({
     addDangerToast,
   ]);
 
+  // A sync must merge against the live column state: `datasource.columns` is
+  // the snapshot from when the editor opened, so merging against it reverted
+  // any column edit made since. Refs, because the request resolves after the
+  // callback's closure was captured.
+  const currentColumns = useMemo(
+    () => [...databaseColumns, ...calculatedColumns],
+    [databaseColumns, calculatedColumns],
+  );
+  const currentColumnsRef = useRef(currentColumns);
+  const datasourceRef = useRef(datasource);
+  useEffect(() => {
+    currentColumnsRef.current = currentColumns;
+    datasourceRef.current = datasource;
+  }, [currentColumns, datasource]);
+
   const syncMetadata = useCallback(async () => {
     // Abort previous syncMetadata if still pending
     if (abortControllers.current.syncMetadata) {
@@ -1365,19 +1380,36 @@ function DatasourceEditor({
     try {
       const newCols = await fetchSyncedColumns(datasource, signal);
 
+      const liveDatasource = datasourceRef.current;
       const columnChanges = updateColumns(
-        datasource.columns,
+        currentColumnsRef.current,
         newCols,
         addSuccessToast,
       );
+      // A column deleted this session but still in the source comes back as
+      // its saved row, so saving updates it instead of re-creating its name.
+      const added = new Set(columnChanges.added);
+      const savedColumns = new Map(
+        liveDatasource.columns
+          .filter(col => !col.expression)
+          .map(col => [col.column_name, col]),
+      );
+      const finalColumns = columnChanges.finalColumns.map(col => {
+        const saved = added.has(col.column_name)
+          ? savedColumns.get(col.column_name)
+          : undefined;
+        return saved
+          ? { ...saved, type: col.type, is_dttm: saved.is_dttm || col.is_dttm }
+          : col;
+      });
       setColumns({
-        databaseColumns: columnChanges.finalColumns.filter(
+        databaseColumns: finalColumns.filter(
           col => !col.expression,
         ) as Column[],
       });
 
-      if (datasource.id !== undefined) {
-        clearDatasetCache(datasource.id);
+      if (liveDatasource.id !== undefined) {
+        clearDatasetCache(liveDatasource.id);
       }
 
       addSuccessToast(t('Metadata has been synced'));
