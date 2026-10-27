@@ -241,6 +241,11 @@ Content that arrives from your warehouse or asset metadata — table comments,
 chart titles, column labels — is marked as untrusted in the prompt, because a
 value in a database is data and not an instruction.
 
+Message and suggestion requests accept at most 100,000 bytes of compact,
+ASCII-escaped JSON in `page_context`, with at most 20 nested objects or arrays.
+These limits include fields that are not rendered in the prompt. Invalid context
+is rejected before saving a message or starting a run.
+
 ### Cancellation
 
 Cancellation is cooperative: a run stops at its next step boundary. A run inside
