@@ -252,10 +252,6 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "version": extension.version,
         "description": manifest.description or "",
         "dependencies": manifest.dependencies,
-        # Only the pages that actually got a URL rule. A page whose path was
-        # already taken was refused at boot and is filtered out here, so the
-        # frontend never offers a menu entry -- or accepts a component -- for
-        # a page that would 404 on a cold load.
         "contributions": {
             **manifest.contributions.model_dump(exclude_none=True),
             # Every declared page is reported, with what became of it.

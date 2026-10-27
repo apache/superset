@@ -100,8 +100,10 @@ test('refusing a page does not throw, so one page cannot kill the bundle', () =>
 });
 
 test('a page the server refused says so, not that the author got it wrong', () => {
-  // The path was taken by Superset or another extension. Nothing in the
-  // extension's own source shows that, so the message has to point outward.
+  // Nothing in the extension's own source shows why there is no rule, so the
+  // message has to point outward -- and at both causes, since a path that is
+  // already served and a page added after the server started arrive here
+  // identically.
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
     register('acme.tools', { path: '/review-queue', name: 'X' }, [
@@ -109,9 +111,10 @@ test('a page the server refused says so, not that the author got it wrong', () =
     ]);
 
     expect(getPages()).toEqual([]);
-    expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('this deployment already serves'),
-    );
+    const message = error.mock.calls[0][0] as string;
+    expect(message).toContain('registered no route for it');
+    expect(message).toContain('already served');
+    expect(message).toContain('restart it');
   } finally {
     error.mockRestore();
   }

@@ -488,7 +488,11 @@ const RightMenu = ({
             );
 
             sectionItems.push({
-              key: child.label,
+              // `name` where there is one, because an extension-contributed
+              // entry carries a unique one and its label is the author's to
+              // choose: a page labelled like a host entry would otherwise
+              // give two children the same key.
+              key: child.name ?? child.label,
               label: isFrontendRoute(child.url) ? (
                 <Link to={stripAppRoot(child.url || '')}>
                   {menuItemDisplay}

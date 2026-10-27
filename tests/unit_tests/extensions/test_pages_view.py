@@ -30,7 +30,7 @@ import pytest
 from flask import Flask, g
 from pydantic import ValidationError
 from superset_core.extensions.types import Contributions, Manifest, Page
-from werkzeug.exceptions import Forbidden, NotFound
+from werkzeug.exceptions import NotFound
 
 from superset.constants import EXTENSION_VIEW_MENU_PREFIX
 from superset.extensions import view
@@ -72,13 +72,15 @@ class FakeSecurityManager:
         self.asked: list[tuple[str, str]] = []
         self.rollbacks = 0
         self.admin_role = SimpleNamespace(name="Admin", permissions=[])
-        self.roles: dict[str, object] = {"Admin": self.admin_role}
+        self.roles: dict[str, SimpleNamespace] = {"Admin": self.admin_role}
 
     def can_access(self, permission: str, view: str) -> bool:
         self.asked.append((permission, view))
         return (permission, view) in self.granted
 
-    def find_permission_view_menu(self, permission: str, view: str) -> object | None:
+    def find_permission_view_menu(
+        self, permission: str, view: str
+    ) -> SimpleNamespace | None:
         if (permission, view) not in self.existing:
             return None
         # FAB's PermissionView carries `role`, the roles holding it. The
@@ -97,16 +99,18 @@ class FakeSecurityManager:
         self.existing.add((permission, view))
         self.created.append((permission, view))
 
-    def find_role(self, name: str) -> object | None:
+    def find_role(self, name: str) -> SimpleNamespace | None:
         return self.roles.get(name)
 
-    def add_permission_role(self, role: object, perm_view: object) -> None:
+    def add_permission_role(
+        self, role: SimpleNamespace, perm_view: SimpleNamespace
+    ) -> None:
         # Stored as the (permission, view_menu) pair the rest of this file
         # asserts against, and the pair `find_permission_view_menu` derives
         # `role` from -- so a grant made here is visible to the next lookup.
         held = (perm_view.permission.name, perm_view.view_menu.name)
-        if held not in role.permissions:  # type: ignore[attr-defined]
-            role.permissions.append(held)  # type: ignore[attr-defined]
+        if held not in role.permissions:
+            role.permissions.append(held)
 
     # Named to match SupersetSecurityManager. A fake that invents its own
     # attribute names lets production code call something that is not there.
@@ -544,11 +548,20 @@ def test_a_malformed_permission_is_rejected_by_the_manifest(permission: str) -> 
         Page(path="/a", name="A", permission=permission)
 
 
-def test_a_signed_in_user_without_the_permission_gets_403_not_the_shell(
+def test_a_signed_in_user_without_the_permission_gets_the_shell_with_403(
     monkeypatch: pytest.MonkeyPatch, app: Flask
 ) -> None:
-    with pytest.raises(Forbidden):
-        render_with(monkeypatch, app, permission="can_review", granted=False)
+    """Refused, but answered with a page rather than a JSON error body.
+
+    ``show_http_exception`` renders HTML only for 404 and 500, so aborting
+    here answered a browser with the generic "unexpected error" issue code.
+    The shell at 403 gives a cold load the same "not authorized" screen the
+    client shows when the user arrives in-app, and keeps the status honest.
+    """
+    assert render_with(monkeypatch, app, permission="can_review", granted=False) == (
+        "SHELL",
+        403,
+    )
 
 
 def test_a_signed_in_user_with_the_permission_gets_the_shell(
@@ -910,7 +923,7 @@ def test_permission_syncing_can_be_switched_off(
 
 
 def test_a_settled_deployment_does_not_look_up_the_role(
-    app: Flask, security: FakeSecurityManager
+    app: Flask, security: FakeSecurityManager, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Every worker runs this at every start, so the quiet path stays quiet.
 
@@ -920,10 +933,12 @@ def test_a_settled_deployment_does_not_look_up_the_role(
     security.existing.add(("can_review", VIEW_MENU))
     security.admin_role.permissions.append(("can_review", VIEW_MENU))
     looked_up: list[str] = []
-    security.find_role = lambda name: (  # type: ignore[assignment]
-        looked_up.append(name),
-        security.roles.get(name),
-    )[1]
+
+    def find_role(name: str) -> SimpleNamespace | None:
+        looked_up.append(name)
+        return security.roles.get(name)
+
+    monkeypatch.setattr(security, "find_role", find_role)
 
     register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
