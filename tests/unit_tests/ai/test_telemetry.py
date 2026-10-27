@@ -33,8 +33,8 @@ from pytest_mock import MockerFixture
 from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
     LLMTransportError,
-    RetryPolicy,
     Message,
+    RetryPolicy,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -381,7 +381,9 @@ def test_redaction_hides_provider_error_text(
     _configure(mocker, [sink], redact=True)
 
     provider = EchoProvider([ScriptedTurn(error=LLMTransportError(f"rejected {SQL}"))])
-    mocker.patch.object(provider, "retry_policy", return_value=RetryPolicy(max_attempts=1))
+    mocker.patch.object(
+        provider, "retry_policy", return_value=RetryPolicy(max_attempts=1)
+    )
     _drive(provider)
 
     assert sink.errors
@@ -692,7 +694,9 @@ def test_a_failed_round_trip_is_a_span_and_an_error(
     _configure(mocker, [sink])
 
     provider = EchoProvider([ScriptedTurn(error=LLMTransportError("upstream 503"))])
-    mocker.patch.object(provider, "retry_policy", return_value=RetryPolicy(max_attempts=1))
+    mocker.patch.object(
+        provider, "retry_policy", return_value=RetryPolicy(max_attempts=1)
+    )
     _drive(provider)
 
     assert sink.model_calls[0][1].error_type == "LLMTransportError"

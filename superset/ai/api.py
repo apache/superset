@@ -289,9 +289,7 @@ class AIRestApi(BaseSupersetApi):
             pagination = ThreadListSchema().load(request.args)
         except ValidationError as ex:
             return self.response_422(message=ex.messages)
-        threads = AIChatThreadDAO.find_all_for_user(
-            self._user_id(), **pagination
-        )
+        threads = AIChatThreadDAO.find_all_for_user(self._user_id(), **pagination)
         counts = AIChatMessageDAO.counts_for_threads(threads)
         return self.response(
             200,

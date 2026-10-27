@@ -192,7 +192,6 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
             thread.changed_by_fk = user_id
         db.session.add(thread)
 
-
     @classmethod
     def delete_older_than(cls, cutoff: datetime) -> int:
         """Delete conversations last changed before ``cutoff`` and their rows."""
@@ -225,7 +224,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
 
     @classmethod
     def counts_for_threads(cls, threads: list[AIChatThread]) -> dict[int, int]:
-        """Count messages for an already ownership-filtered page without loading them."""
+        """Aggregate counts for an owned page without loading message bodies."""
         if not threads:
             return {}
         return dict(

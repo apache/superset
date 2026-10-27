@@ -226,7 +226,9 @@ def _columns_and_records(
     had asked for perfectly legitimately.
     """
     if hasattr(data, "columns") and hasattr(data, "to_dict"):
-        data = data.set_axis(dedup([str(name) for name in data.columns]), axis="columns")
+        data = data.set_axis(
+            dedup([str(name) for name in data.columns]), axis="columns"
+        )
         columns = [
             {"name": str(name), "type": str(data[name].dtype)} for name in data.columns
         ]

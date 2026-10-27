@@ -41,38 +41,67 @@ def conversations(session: Session, mocker: MockerFixture) -> None:
     mocker.patch("superset.ai.api.AIRestApi._reject_if_unconfigured", return_value=None)
     mocker.patch("superset.ai.api.AIRestApi._user_id", return_value=1)
     mocker.patch("superset.utils.log.DBEventLogger.log")
-    for owner, title, count in ((1, "older", 2), (1, "empty", 0), (1, "newer", 3), (2, "foreign", 5)):
+    for owner, title, count in (
+        (1, "older", 2),
+        (1, "empty", 0),
+        (1, "newer", 3),
+        (2, "foreign", 5),
+    ):
         thread = AIChatThread(created_by_fk=owner, title=title)
-        thread.messages = [AIChatMessage(role="user", content="question") for _ in range(count)]
+        thread.messages = [
+            AIChatMessage(role="user", content="question") for _ in range(count)
+        ]
         session.add(thread)
     session.commit()
     session.expire_all()
 
 
 @pytest.mark.usefixtures("conversations")
-@pytest.mark.parametrize("query", [
-    "limit=-1", "limit=0", "limit=101", "limit=1.5", "limit=bad", "limit=",
-    "offset=-1", "offset=1.5", "offset=bad", "offset=9223372036854775808",
-])
+@pytest.mark.parametrize(
+    "query",
+    [
+        "limit=-1",
+        "limit=0",
+        "limit=101",
+        "limit=1.5",
+        "limit=bad",
+        "limit=",
+        "offset=-1",
+        "offset=1.5",
+        "offset=bad",
+        "offset=9223372036854775808",
+    ],
+)
 def test_invalid_pagination_returns_422(client: FlaskClient, query: str) -> None:
     response = client.get(f"/api/v1/ai/thread/?{query}")
     assert response.status_code == 422
 
 
 @pytest.mark.usefixtures("conversations")
-@pytest.mark.parametrize("query,titles,counts", [
-    ("", ["newer", "empty", "older"], [3, 0, 2]),
-    ("?limit=1&offset=1", ["empty"], [0]),
-    ("?offset=3", [], []),
-])
+@pytest.mark.parametrize(
+    "query,titles,counts",
+    [
+        ("", ["newer", "empty", "older"], [3, 0, 2]),
+        ("?limit=1&offset=1", ["empty"], [0]),
+        ("?offset=3", [], []),
+    ],
+)
 def test_thread_page_uses_aggregate_counts(
-    client: FlaskClient, session: Session, query: str, titles: list[str], counts: list[int]
+    client: FlaskClient,
+    session: Session,
+    query: str,
+    titles: list[str],
+    counts: list[int],
 ) -> None:
     statements: list[str] = []
 
     def record(
-        _conn: Any, _cursor: Any, statement: str, _params: Any,
-        _context: Any, _many: bool,
+        _conn: Any,
+        _cursor: Any,
+        statement: str,
+        _params: Any,
+        _context: Any,
+        _many: bool,
     ) -> None:
         if statement.lstrip().upper().startswith("SELECT") and "ai_chat_" in statement:
             statements.append(statement)
