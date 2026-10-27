@@ -117,9 +117,7 @@ jobs:
           AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
           # Compare against the first parent of the checked-out commit: the
           # base commit the PR merge ref was built on, or the previous commit
-          # for a direct push. Fetching the branch tip instead picks up
-          # anything merged while this job was queued, so the PR gets blamed
-          # for the difference.
+          # for a direct push.
           git -c "http.extraheader=$AUTH_HEADER" fetch --depth=2 origin "$GITHUB_SHA"
           git worktree add /tmp/base-worktree "$GITHUB_SHA^1"
 
