@@ -24,6 +24,48 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
+  values with "Text must not be empty"; omit the field to keep the stored title.
+  MCP chart names and theme names are capped at 250 characters, matching their
+  model columns (the published chart-name limit was 255).
+
+- **MCP authentication hooks and disabled API keys:** Custom `MCP_USER_RESOLVER`
+  functions that read `access_token.client_id` must use
+  `get_verifier_client_id(access_token)` from
+  `superset.mcp_service.composite_token_verifier` instead. FastMCP 4's `MultiAuth`
+  qualifies `client_id`; the helper returns the originating verifier's ID on
+  both FastMCP 3 and 4. This ID routes authentication; it is not proof that the
+  bearer is valid. When API keys are disabled (`MCP_API_KEY_ENABLED=False`, or
+  `FAB_API_KEY_ENABLED=False` without an MCP override), an explicit API-key
+  pass-through token raises `PermissionError` instead of falling through to
+  another identity. `tools/list` returns an empty list for that client, not
+  public tools. Remove the API-key credential to use another authentication
+  method, or explicitly enable API-key authentication.
+
+- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
+  query (no post-processing or time offsets, and not a report's client-processed
+  result), a dimension column of nullable integers that holds a value beyond
+  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
+  strings (the existing contract for large integers), and CSV, Excel and Arrow
+  exports carry the exact integer. Consumers that parsed these values as JSON
+  numbers receive a string for them. Metric columns are unchanged, and results
+  cached before the upgrade keep the old values until they expire.
+
+- **Bulk semantic view creation is capped and time-bounded.** With
+  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
+  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
+  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
+  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
+  up. Clients adding more views should split them across requests and retry
+  timed-out views.
+
+- `superset-frontend` type-checks with TypeScript 7, whose native compiler no
+  longer ships the JavaScript compiler API. The webpack dev server therefore
+  no longer runs `fork-ts-checker-webpack-plugin`, and the `DISABLE_TS_CHECKER`
+  environment variable is gone; run `npm run type` (or `npm run type -- --watch`)
+  for type errors and `npm run plugins:build` to refresh package `.d.ts` output.
+  Storybook's prop tables now come from `react-docgen` instead of
+  `react-docgen-typescript`.
 - MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
   row-collapsing post-processing leaves input coverage unverified, not only when
   truncation is observed. Output row counts do not prove complete input coverage.
@@ -35,6 +77,22 @@ assists people when migrating to a new version.
   `list_databases` reject unknown request fields instead of silently ignoring
   them, with suggestions for supported fields. Use `created_by_me` for authorship
   or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
+
+- The extension storage write routes (`PUT`/`DELETE` under
+  `/api/v1/extensions/<publisher>/<name>/storage/`) are no longer exempt from
+  CSRF protection. They inherited the exemption from Flask-AppBuilder's
+  `BaseApi`; they now behave like every other Superset REST API that is not in
+  `WTF_CSRF_EXEMPT_LIST`. The browser already sends the token. Any other client
+  that writes extension storage, whether it authenticates with a session
+  cookie, a JWT bearer token or an API key, must first call
+  `GET /api/v1/security/csrf_token/` with its credential, then send the
+  returned token in the `X-CSRFToken` header together with the session cookie
+  set by that call (the token is bound to the session). The client's role must
+  also have `can_read` on `SecurityRestApi` (shown as `can read on SecurityRestApi`
+  in the role editor) to fetch the token. Over HTTPS, Flask-WTF
+  also requires a same-origin `Referer` header on the write
+  (`WTF_CSRF_SSL_STRICT`, on by default); browsers send one, scripted clients
+  must add it.
 
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
@@ -175,9 +233,13 @@ assists people when migrating to a new version.
   Providers must accept required keyword-only `cache_token` and `context` on
   `from_configuration`; the optional `from_configuration_with_cache_token` hook
   is removed. Local metadata caches must include `cache_token` in their keys
-  before lookup or eager discovery for complete invalidation. When tenants share
-  a metadata database or web, Celery and MCP use different database host aliases,
-  configure
+  before lookup or eager discovery for complete invalidation. The default namespace
+  uses the active metadata database's durable installation identity rather than
+  its address, so web, Celery and MCP agree across host/port/database aliases.
+  This causes a one-time cache miss for semantic-layer results after deployment
+  when using the default namespace; update all roles together. Existing explicit
+  namespaces retain their key scheme. When tenants share a metadata database or
+  a full database clone must be isolated from its source, configure
   `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
   resolves identically in all three contexts. A metadata session must not span
   workspaces. Saves handled by old instances during a rolling deployment do not
@@ -878,14 +940,17 @@ them had no effect and they can be deleted from custom configs.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
+This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
+(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
+releases, it is the same minimal image.
 
 **What operators should expect:**
 

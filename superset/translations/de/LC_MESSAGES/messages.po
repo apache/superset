@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-22 18:22-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1259,6 +1259,9 @@ msgstr "Wird abgebrochen"
 msgid "About"
 msgstr "Über"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Zugriff"
 
@@ -1703,6 +1706,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregationsmethode"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3572,6 +3578,12 @@ msgstr "Das Ändern dieser semantischen Schicht ist verboten"
 msgid "Changing this semantic view is forbidden"
 msgstr "Das Ändern dieser semantischen Sicht ist verboten"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "Das Ändern dieser Aufgabe ist verboten"
 
@@ -3720,6 +3732,10 @@ msgstr "Diagrammtitel"
 
 msgid "Chart type"
 msgstr "Diagrammtyp"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
@@ -4217,6 +4233,10 @@ msgstr "Farbe des Zielortes"
 
 msgid "Color scheme"
 msgstr "Farbschema"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4836,8 +4856,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Anzahl"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Land"
@@ -5305,6 +5342,10 @@ msgstr "Dashboard Titel"
 msgid "Dashboard updated %s"
 msgstr "Dashboard aktualisiert %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Dashboard-Nutzung"
 
@@ -5546,6 +5587,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Das Datensatzschema ist ungültig, verursacht durch: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7535,6 +7580,10 @@ msgstr "Fehlgeschlagen"
 msgid "Failed at retrieving results"
 msgstr "Fehler beim Abrufen der Ergebnisse"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Design konnte nicht angewendet werden: Ungültiges JSON"
 
@@ -7823,7 +7872,13 @@ msgstr "Diagramme filtern"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -8951,6 +9006,11 @@ msgstr "Ungültiger Längen-/Breitengrad"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Ungültiges Metrik-Objekt: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Ungültige Numpy-Funktion: %(operator)s"
@@ -9298,6 +9358,9 @@ msgstr "Letztes Jahr"
 msgid "Lat"
 msgstr "Lat"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Breitengrad"
 
@@ -9575,6 +9638,9 @@ msgstr "Gruppen auflisten"
 
 msgid "List Roles"
 msgstr "Rollen auflisten"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "Benutzer*innen auflisten"
@@ -9946,6 +10012,9 @@ msgstr "Mittelwert der Werte über einen bestimmten Zeitraum"
 msgid "Mean values"
 msgstr "Mittelwerte"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10178,6 +10247,9 @@ msgstr "Minimum"
 msgid "Minimum Font Size"
 msgstr "Minimale Schriftgröße"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimaler Radius"
 
@@ -10185,6 +10257,16 @@ msgid "Minimum Width"
 msgstr "Minimale Breite"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -10765,6 +10847,9 @@ msgid ""
 msgstr ""
 "Kein Validator mit dem Namen %(validator_name)s gefunden (konfiguriert "
 "für die Engine %(engine_spec)s )"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Position der Knotenbeschriftung"
@@ -14010,6 +14095,12 @@ msgstr "Semantische Sichten"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Semantische Schicht"
 
@@ -14064,6 +14155,11 @@ msgstr "Parameter der semantischen Sicht sind ungültig."
 
 msgid "Semantic view updated"
 msgstr "Semantische Sicht aktualisiert"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
 
 msgid "Semantic views"
 msgstr "Semantische Sichten"
@@ -14403,11 +14499,11 @@ msgstr "Zeitstempel der Diagrammabfragen anzeigen"
 msgid "Show column headers"
 msgstr "Spaltenüberschriften anzeigen"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Spalten Zwischensumme anzeigen"
-
-msgid "Show columns total"
-msgstr "Spaltensumme anzeigen"
 
 msgid "Show empty columns"
 msgstr "Leere Spalten anzeigen"
@@ -14487,11 +14583,11 @@ msgstr "Abfragekennungen anzeigen"
 msgid "Show row labels"
 msgstr "Zeilenbeschriftung anzeigen"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Zwischensumme der Zeilen anzeigen"
-
-msgid "Show rows total"
-msgstr "Zeilensumme anzeigen"
 
 msgid "Show series values on the chart"
 msgstr "Reihenwerte im Diagramm anzeigen"
@@ -14726,6 +14822,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Einige erforderliche Filter auf anderen Registerkarten enthalten Werte "
 "und werden nicht gelöscht"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -15211,6 +15310,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Summe"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Summe der Werte über einen bestimmten Zeitraum"
 
@@ -15521,6 +15629,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Vorlagen-Parameter"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -16772,6 +16883,9 @@ msgstr "Die Werte überschneiden sich mit anderen Breakpoints"
 msgid "The version of the service"
 msgstr "Die Version des Dienstes"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Der sichtbare Titel der Ebene"
 
@@ -17278,6 +17392,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17627,6 +17744,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18037,6 +18161,12 @@ msgstr ""
 "Zu viele Sub-Slices angefordert. Die maximal erlaubte Anzahl ist %(max)s,"
 " aber %(count)s wurden angefordert."
 
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr "Werkzeugbereich"
 
@@ -18360,6 +18490,12 @@ msgstr "Wert kann nicht dekodiert werden"
 
 msgid "Unable to encode value"
 msgstr "Wert kann nicht kodiert werden"
+
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
@@ -18750,6 +18886,13 @@ msgstr ""
 "Zeitstempel ist"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -18757,6 +18900,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Farbverlauf verwenden"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -19075,6 +19221,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Ansichtsfenster"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtuell"
@@ -19756,6 +19905,9 @@ msgstr "X Achsenbeschriftung"
 msgid "X Axis Label Interval"
 msgstr "x-Achsenbeschriftung Intervall"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "x-Achsen-Zahlenformat"
 
@@ -19801,6 +19953,9 @@ msgstr "y-Achsenformat"
 
 msgid "Y Axis Label"
 msgstr "Y Achsenbeschriftung"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Titel der y-Achse"
@@ -20349,6 +20504,11 @@ msgstr "Ihre Abfrage wurde angehalten"
 
 msgid "Your report could not be deleted"
 msgstr "Ihr Bericht konnte nicht gelöscht werden"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

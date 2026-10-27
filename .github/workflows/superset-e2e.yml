@@ -119,6 +119,26 @@ jobs:
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
+      # A pg_dump of the loaded examples database. Keyed on everything that
+      # shapes the loaded rows: every backend Python file (loaders, importers,
+      # models), the example configs, migrations, the dependency pins, the CI
+      # config, and this workflow (it pins the Postgres image). The post-job
+      # save only happens on a miss; `playwright_testdata` in bashlib.sh
+      # restores the dump on a hit and writes it on a miss.
+      # hashFiles digests contents only, so renaming or removing an example
+      # file would otherwise leave the key unchanged.
+      - name: Fingerprint example file paths
+        id: examples-paths
+        run: echo "hash=$(find superset/examples -type f | LC_ALL=C sort | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore cached examples dump
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/superset-playwright-testdata
+          key: >-
+            playwright-testdata-${{ steps.examples-paths.outputs.hash }}-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
+            'superset/examples/**', 'superset/migrations/**', 'requirements/*.txt',
+            'pyproject.toml', 'tests/integration_tests/superset_test_config.py',
+            '.github/workflows/superset-e2e.yml', '.github/workflows/bashlib.sh') }}
       - name: Import test data
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -127,6 +147,8 @@ jobs:
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -135,6 +157,29 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      # The instrumented production assets, keyed on the frontend sources and
+      # lockfile. `build-instrumented-assets` skips the webpack build when the
+      # manifest is already there. (The cached-dependencies helpers that used
+      # to cache these call a retired cache API and never saved anything, so
+      # every Playwright job was rebuilding.)
+      - name: Restore instrumented assets
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # webpack writes the service worker one level up from the assets
+          # directory (see the `../service-worker.js` filename rule in
+          # webpack.config.js), and the GAQ tests assert on console errors,
+          # so it has to travel with the assets.
+          path: |
+            superset/static/assets
+            superset/static/service-worker.js
+          key: >-
+            instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
+            '.github/workflows/bashlib.sh',
+            'superset-frontend/package-lock.json',
+            'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
+            'superset-frontend/packages/**', 'superset-frontend/plugins/**',
+            'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
+            'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
       - name: Install npm dependencies
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -351,6 +396,26 @@ jobs:
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
+      # A pg_dump of the loaded examples database. Keyed on everything that
+      # shapes the loaded rows: every backend Python file (loaders, importers,
+      # models), the example configs, migrations, the dependency pins, the CI
+      # config, and this workflow (it pins the Postgres image). The post-job
+      # save only happens on a miss; `playwright_testdata` in bashlib.sh
+      # restores the dump on a hit and writes it on a miss.
+      # hashFiles digests contents only, so renaming or removing an example
+      # file would otherwise leave the key unchanged.
+      - name: Fingerprint example file paths
+        id: examples-paths
+        run: echo "hash=$(find superset/examples -type f | LC_ALL=C sort | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore cached examples dump
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/superset-playwright-testdata
+          key: >-
+            playwright-testdata-${{ steps.examples-paths.outputs.hash }}-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
+            'superset/examples/**', 'superset/migrations/**', 'requirements/*.txt',
+            'pyproject.toml', 'tests/integration_tests/superset_test_config.py',
+            '.github/workflows/superset-e2e.yml', '.github/workflows/bashlib.sh') }}
       - name: Import test data
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -359,6 +424,8 @@ jobs:
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -367,6 +434,29 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      # The instrumented production assets, keyed on the frontend sources and
+      # lockfile. `build-instrumented-assets` skips the webpack build when the
+      # manifest is already there. (The cached-dependencies helpers that used
+      # to cache these call a retired cache API and never saved anything, so
+      # every Playwright job was rebuilding.)
+      - name: Restore instrumented assets
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # webpack writes the service worker one level up from the assets
+          # directory (see the `../service-worker.js` filename rule in
+          # webpack.config.js), and the GAQ tests assert on console errors,
+          # so it has to travel with the assets.
+          path: |
+            superset/static/assets
+            superset/static/service-worker.js
+          key: >-
+            instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
+            '.github/workflows/bashlib.sh',
+            'superset-frontend/package-lock.json',
+            'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
+            'superset-frontend/packages/**', 'superset-frontend/plugins/**',
+            'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
+            'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
       - name: Install npm dependencies
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from

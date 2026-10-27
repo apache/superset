@@ -15,7 +15,7 @@ explicitly delegates containment caching, and configure persistent shared
 `DATA_CACHE_CONFIG` plus Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every
 web and worker process. The default `NullCache` data backend disables containment.
 
-See the [semantic containment setup and validation guide](/developer-docs/extensions/contribution-types#semantic-result-containment-caching)
+See the [semantic containment setup and validation guide](/developer-docs/extensions/extension-points/semantic-layers#semantic-result-containment-caching)
 for the two-backend example, supported backends, timeout semantics, emitted
 metrics and concurrency limitations. Restart every web/worker process after
 configuration changes and verify the effective-state metric before a canary.
