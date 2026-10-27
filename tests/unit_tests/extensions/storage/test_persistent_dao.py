@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import binascii
 from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
@@ -768,6 +769,28 @@ def test_enc_type_reads_values_written_before_base64_encoding(
         # The pre-fix write path: the plain EncryptedType bind on raw bytes.
         legacy = EncryptedType.process_bind_param(enc, b'{"a": 1}', None)
         assert enc.process_result_value(legacy, None) == b'{"a": 1}'
+        # The column may also hand back text rather than bytes.
+        assert enc.process_result_value(legacy.decode(), None) == b'{"a": 1}'
+
+
+def test_enc_type_passes_none_through(app: Flask) -> None:
+    """NULL stays NULL in both directions."""
+    with app.app_context():
+        enc = _enc_type(user_fk=None)
+        assert enc.process_bind_param(None, None) is None
+        assert enc.process_result_value(None, None) is None
+
+
+def test_enc_type_rejects_plaintext_that_is_neither_base64_nor_bytes(
+    app: Flask,
+) -> None:
+    """A decrypted value that is not one of the two known forms is an error."""
+    with app.app_context():
+        enc = _enc_type(user_fk=None)
+        enc._update_key()
+        ciphertext = enc.engine.encrypt("'not bytes'")
+        with pytest.raises(binascii.Error):
+            enc.process_result_value(ciphertext, None)
 
 
 # ── list ──────────────────────────────────────────────────────────────────────
