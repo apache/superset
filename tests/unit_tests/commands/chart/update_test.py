@@ -145,7 +145,7 @@ def test_type_only_update_checks_retained_datasource(
     else:
         lookup.assert_called_once_with(42, datasource_type)
     if outcome in {"allowed", "denied"}:
-        access.assert_called_once_with(datasource=datasource, allow_editorship=True)
+        access.assert_called_once_with(datasource=datasource)
 
 
 def _editorship_exc() -> SupersetSecurityException:
@@ -479,9 +479,7 @@ def test_update_chart_accepts_semantic_view_datasource(
     cmd.validate()
 
     get_datasource_by_id.assert_called_once_with(11, "semantic_view")
-    raise_for_access.assert_called_once_with(
-        datasource=datasource, allow_editorship=True
-    )
+    raise_for_access.assert_called_once_with(datasource=datasource)
     assert cmd._properties["datasource_name"] == "my_semantic_view"
 
 
