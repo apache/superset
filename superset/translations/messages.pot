@@ -8686,9 +8686,6 @@ msgstr ""
 msgid "Loading"
 msgstr ""
 
-msgid "Loading chart data..."
-msgstr ""
-
 msgid "Loading chart preview..."
 msgstr ""
 
@@ -18744,4 +18741,13 @@ msgid ""
 msgstr ""
 
 msgid "View in Recently Archived →"
+msgstr ""
+
+msgid "A new assistant response is ready."
+msgstr ""
+
+msgid "Assistant updates"
+msgstr ""
+
+msgid "Conversation"
 msgstr ""
