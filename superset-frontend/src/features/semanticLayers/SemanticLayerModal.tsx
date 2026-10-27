@@ -26,6 +26,7 @@ import {
   Select,
   Button,
   Loading,
+  Flex,
 } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -541,7 +542,9 @@ export default function SemanticLayerModal({
       <ModalContent>
         <SemanticLayerSetupHelp />
         {loading ? (
-          <Loading />
+          <Flex justify="center" align="center" style={{ minHeight: 200 }}>
+            <Loading position="normal" />
+          </Flex>
         ) : (
           <>
             {/* COPY-TBD: semantic setup guidance, pending product copy. */}

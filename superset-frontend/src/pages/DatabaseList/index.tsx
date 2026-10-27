@@ -1155,6 +1155,7 @@ function DatabaseList({
       />
       <SemanticLayerModal
         show={semanticLayerModalOpen}
+        onCreated={refreshData}
         onHide={() => {
           setSemanticLayerModalOpen(false);
           refreshData();

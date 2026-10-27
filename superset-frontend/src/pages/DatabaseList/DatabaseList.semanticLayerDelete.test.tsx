@@ -587,3 +587,67 @@ test('failed authorized upload lookup leaves uploads disabled', async () => {
     fetchMock.callHistory.calls('glob:*/api/v1/database/?q=*'),
   ).toHaveLength(1);
 });
+
+test('a layer created after Cancel refreshes the Connections list', async () => {
+  setupMocks({ dependents: [], rows: [] });
+  fetchMock.get('glob:*/api/v1/semantic_layer/types', {
+    result: [{ id: 'example', name: 'Example provider' }],
+  });
+  fetchMock.post('glob:*/api/v1/semantic_layer/schema/configuration', {
+    result: { type: 'object', properties: {} },
+  });
+  let finishCreate!: (value: { result: { uuid: string } }) => void;
+  fetchMock.post(
+    'glob:*/api/v1/semantic_layer/',
+    () =>
+      new Promise(resolve => {
+        finishCreate = resolve;
+      }),
+  );
+  renderDatabaseList();
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(0),
+  );
+  const initialLoads = fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+
+  await userEvent.click(screen.getByTestId('btn-create-new'));
+  await userEvent.click(
+    await screen.findByRole('menuitem', { name: 'Semantic Layer' }),
+  );
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Semantic layer type',
+  });
+  await waitFor(() => expect(typePicker).toBeEnabled());
+  fireEvent.mouseDown(typePicker);
+  await userEvent.click(
+    await screen.findByText('Example provider', {
+      selector: '.ant-select-item-option-content',
+    }),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const create = await screen.findByRole('button', { name: 'Create' });
+  await waitFor(() => expect(create).toBeEnabled());
+  await userEvent.click(create);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/semantic_layer/'),
+    ).toHaveLength(1),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(initialLoads),
+  );
+  const loadsBeforeCreate =
+    fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length;
+
+  await act(async () => finishCreate({ result: { uuid: 'new-layer' } }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(CONNECTIONS_ROUTE).length,
+    ).toBeGreaterThan(loadsBeforeCreate),
+  );
+});

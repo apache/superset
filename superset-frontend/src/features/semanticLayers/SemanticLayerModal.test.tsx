@@ -803,6 +803,85 @@ test('a successful edit after Cancel refreshes the parent without stale modal UI
   expect(props.addSuccessToast).not.toHaveBeenCalled();
 });
 
+test('a failed create after Cancel does not show a stale danger toast', async () => {
+  let failCreate!: (error: Error) => void;
+  mockedPost
+    .mockReset()
+    .mockResolvedValueOnce({
+      json: { result: { type: 'object', properties: {} } },
+    })
+    .mockReturnValueOnce(
+      new Promise((_, reject) => {
+        failCreate = reject;
+      }),
+    );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} semanticLayerUuid={undefined} />,
+  );
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Semantic layer type',
+  });
+  fireEvent.mouseDown(typePicker);
+  fireEvent.click(await screen.findByText('Example'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const create = await screen.findByRole('button', { name: 'Create' });
+  await waitFor(() => expect(create).toBeEnabled());
+  fireEvent.click(create);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(2));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      show={false}
+    />,
+  );
+  await act(async () => failCreate(new Error('late create failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('a failed edit after Cancel does not show a stale danger toast', async () => {
+  mockJsonFormsChangeTriggered = true;
+  let failUpdate!: (error: Error) => void;
+  const mockedPut = SupersetClient.put as jest.Mock;
+  mockedPut.mockReset().mockReturnValueOnce(
+    new Promise((_, reject) => {
+      failUpdate = reject;
+    }),
+  );
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
+  await waitFor(() => expect(mockedPut).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => failUpdate(new Error('late update failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('schema loading keeps an in-flow spinner in a reserved modal body', async () => {
+  let finishSchema!: (value: { json: { result: JsonSchema } }) => void;
+  mockedPost.mockReset().mockReturnValueOnce(
+    new Promise(resolve => {
+      finishSchema = resolve;
+    }),
+  );
+  render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+
+  const spinner = screen.getByRole('status', { name: 'Loading' });
+  expect(spinner).toHaveClass('normal');
+  expect(spinner.parentElement).toHaveStyle({ minHeight: '200px' });
+  await act(async () =>
+    finishSchema({ json: { result: { type: 'object', properties: {} } } }),
+  );
+});
+
 test('setup guidance distinguishes loading and empty provider types', async () => {
   let resolveTypes!: (value: { json: { result: [] } }) => void;
   mockedGet.mockReset().mockReturnValue(

@@ -2936,12 +2936,12 @@ BUG_REPORT_ICON = None  # Recommended size: 16x16
 
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
+DOCUMENTATION_TEXT = "Documentation"
+DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # Optional setup guide shown in the semantic layer and semantic view dialogs.
 # Use an absolute HTTP(S) URL; unset deployments show no setup-guide link.
 SEMANTIC_LAYER_DOCUMENTATION_URL: str | None = None
-DOCUMENTATION_TEXT = "Documentation"
-DOCUMENTATION_ICON = None  # Recommended size: 16x16
 
 # What is the Last N days relative in the time selector to:
 # 'today' means it is midnight (00:00:00) in the local timezone
