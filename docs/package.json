@@ -83,7 +83,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
     "oxfmt": "^0.73.0",
-    "oxlint": "^1.88.0",
+    "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2004",
     "typescript": "7.0.2",
     "webpack": "^5.112.0"
