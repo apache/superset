@@ -238,11 +238,25 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
         )
 
     @classmethod
-    def claim_pending(cls, message_uuid: str | UUID) -> bool:
+    def claim_pending(
+        cls, message_uuid: str | UUID, *, worker_task_id: str | None = None
+    ) -> bool:
         """Atomically move one pending assistant message into execution."""
         parsed = _coerce_uuid(message_uuid)
         if parsed is None:
             return False
+        updates: dict[str, Any] = {"status": MessageStatus.STREAMING.value}
+        if worker_task_id is not None:
+            from superset.utils import json
+
+            message = (
+                db.session.query(AIChatMessage).filter_by(uuid=parsed).one_or_none()
+            )
+            if message is None:
+                return False
+            updates["extra_json"] = json.dumps(
+                {**message.extra, "worker_task_id": worker_task_id}
+            )
         return (
             db.session.query(AIChatMessage)
             .filter(
@@ -251,7 +265,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
                 AIChatMessage.status == MessageStatus.PENDING.value,
             )
             .update(
-                {AIChatMessage.status: MessageStatus.STREAMING.value},
+                updates,
                 synchronize_session=False,
             )
             == 1

@@ -150,6 +150,7 @@ class MessageExtra(TypedDict, total=False):
     """
 
     run_id: str
+    worker_task_id: str
     agent_key: str | None
     model: str | None
     page_context: dict[str, Any] | str | None
