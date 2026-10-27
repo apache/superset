@@ -23,12 +23,14 @@ error and still lets you create a new conversation.
 
 ## Enabling it
 
-Two things are required: the feature flag, and a provider.
+Enable the assistant and its extension-hosted UI, configure a provider, and apply
+the database migrations.
 
 ```python
 # superset_config.py
 FEATURE_FLAGS = {
     "AI_ASSISTANT": True,
+    "ENABLE_EXTENSIONS": True,
 }
 
 AI_LLM_PROVIDER_CLASS = "superset.ai.llm.anthropic.AnthropicProvider"
@@ -48,8 +50,9 @@ Install the matching extra:
 pip install "apache-superset[ai-anthropic]"   # or [ai-openai]
 ```
 
-Then run `superset init` so the assistant's permissions are created and assigned
-to roles. Without this the endpoints return `403`.
+Then run `superset db upgrade` to create the conversation tables, followed by
+`superset init` to create and assign the assistant's permissions. Without the
+permission setup the endpoints return `403`.
 
 Conversations are stored in Superset's metadata database, so no extra
 infrastructure is needed for the default configuration.
@@ -459,17 +462,22 @@ SUPERSET_AI_LLM_API_KEY=your-token
 SUPERSET_AI_MODEL_DEFAULT=your-model-name
 ```
 
-```bash
-docker compose up
-```
-
-The assistant appears once both a URL and a key are present; with neither set the
-stack behaves exactly as it did before. The model providers are optional extras,
-so add whichever one you need to `docker/requirements-local.txt`:
+Before starting the stack, add the matching provider dependency to
+`docker/requirements-local.txt`; the bootstrap installs it in each container.
+For the OpenAI-compatible provider:
 
 ```
 openai>=1.60.0,<2
 ```
+
+Then start the stack:
+
+```bash
+docker compose up
+```
+
+The assistant is enabled once both a URL and a key are present. With neither set,
+the stack starts with the assistant disabled.
 
 The local stack also logs traces to the container output and, unlike the
 production default, includes prompts and SQL in them.
