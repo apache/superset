@@ -498,6 +498,14 @@ class DashboardCopySchema(Schema):
         validate=validate_json_metadata,
         required=True,
     )
+    replace_metadata = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": "Use json_metadata as the complete copy settings instead of "
+            "merging with the source dashboard's settings. Defaults to false. "
+            "Chart-specific settings are pruned and remapped in both modes."
+        },
+    )
     duplicate_slices = fields.Boolean(
         metadata={
             "description": "Whether or not to also copy all charts on the dashboard"
