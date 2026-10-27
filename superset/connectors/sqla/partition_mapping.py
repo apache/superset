@@ -1847,15 +1847,13 @@ def _evaluate_with_text_forms(
         if combined is not None:
             text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
             return True, combined[: len(values)]
-        # The text form was refused, or everything was. Either way nothing
-        # mirrors: a transform that cannot read the instant as text cannot
-        # be checked against the typed answer, and an unchecked typed
-        # answer is how `TO_DATE(:value, 'YYYY-MM-DD')` -- ORA-01830 on
-        # the text -- asked every time range for year 0012. The query path
-        # stops there, still at one round trip. The preview, which passes
-        # ``errors``, asks the typed values alone so it can say which.
-        if errors is None:
-            return True, None
+        # The text form was refused, or everything was. Oracle refuses the
+        # text of every correct transform too -- `CAST(:value AS DATE)`
+        # cannot read '2026-01-12 06:30:00' under the default
+        # ``NLS_DATE_FORMAT`` -- so declining here cost Oracle every time
+        # range. The typed values are asked alone, a second round trip only
+        # on this path, and `_declined_for_reading_by_type` checks what they
+        # answer against the instants they were asked about instead.
         typed = evaluate_transform(database, catalog, schema, transform, values)
         if typed is not None:
             text_answers.extend((index, TEXT_REFUSED) for index in indexes)
@@ -1892,10 +1890,9 @@ def evaluate_transform(
     :param text_answers: optional sink. When given, every date or timestamp in
         ``values`` is also asked as the text a simple filter would bind, in the
         same round trip, and ``(index, answer)`` is appended for each -- see
-        `_declined_for_reading_by_type` for why. A transform that refuses the
-        text evaluates to ``None``: its typed answer cannot be checked, so it is
-        not trusted. With ``errors`` too (the preview) the typed values are then
-        asked alone, and ``(index, TEXT_REFUSED)`` is appended if they answer.
+        `_declined_for_reading_by_type` for why. Where the text is refused the
+        typed values are asked alone, and ``(index, TEXT_REFUSED)`` is appended
+        for each if they answer.
     """
     if not values:
         return None
@@ -3299,7 +3296,36 @@ def _as_filter_text(value: date) -> str:
     return value.isoformat()
 
 
+#: How far a temporal answer may sit from the instant it was asked about and
+#: still be read as a bucket of it. The coarsest grain is a year, so a year
+#: and a day leaves room for the boundary and an offset; Oracle's
+#: ``NLS_DATE_FORMAT`` misreading lands nearly two millennia away.
+_BUCKET_REACH = timedelta(days=367)
+
+
+def _is_bucket_of(value: date, answer: Any) -> bool:
+    """
+    Whether ``answer`` can be a time bucket of ``value``.
+
+    The only check left for a typed answer whose text form the engine refused.
+    A date or timestamp within `_BUCKET_REACH` of the instant passes, which is
+    what ``CAST(:value AS DATE)`` and ``TRUNC(:value, 'HH')`` answer on Oracle.
+    Anything else cannot be told from a misreading -- a number has no instant
+    to compare against -- so it does not.
+    """
+    if not isinstance(answer, date):
+        return False
+
+    def as_instant(moment: date) -> datetime:
+        if isinstance(moment, datetime):
+            return moment.replace(tzinfo=None)
+        return datetime.combine(moment, time.min)
+
+    return abs(as_instant(answer) - as_instant(value)) <= _BUCKET_REACH
+
+
 def _declined_for_reading_by_type(
+    values: list[Any],
     evaluated: list[Any],
     text_answers: list[tuple[int, Any]],
     shape_errors: list[str] | None,
@@ -3323,27 +3349,39 @@ def _declined_for_reading_by_type(
     request path, whose gates decline some text before it reaches the engine
     -- which is how the preview at a time of day said valid for exactly this
     transform. Reported to ``shape_errors`` and the log when it declines.
+
+    Where the engine refused the text (`TEXT_REFUSED`), there is no second
+    answer to compare, and Oracle refuses it for correct transforms as often
+    as for broken ones. The typed answer is then held to `_is_bucket_of` the
+    instant instead, which is the year 0012 misreading's tell.
     """
     disagreement = next(
         (
-            (evaluated[index], text_answer)
+            (index, text_answer)
             for index, text_answer in text_answers
-            if text_answer is not None and text_answer != evaluated[index]
+            if text_answer is not None
+            and (
+                not _is_bucket_of(values[index], evaluated[index])
+                if text_answer is TEXT_REFUSED
+                else text_answer != evaluated[index]
+            )
         ),
         None,
     )
     if disagreement is None:
         return False
-    typed_answer, text_answer = disagreement
+    index, text_answer = disagreement
+    typed_answer = evaluated[index]
     if text_answer is TEXT_REFUSED:
         reason = str(
             _(
-                "The transform answered %(typed)s for a timestamp but could not "
-                "read the same instant written as text, which a filter typed as "
-                "text sends. Without that answer the timestamp's cannot be "
-                "checked, so filters on this mapping will not be mirrored. "
-                "Write the transform so it reads :value both as a timestamp and "
-                "as text.",
+                "The transform could not read %(value)s written as text, which "
+                "a filter typed as text sends, so its answer for the timestamp "
+                "can only be checked by being a date or timestamp within a year "
+                "of it. It answered %(typed)s, so filters on this mapping will "
+                "not be mirrored. Write the transform so it reads :value both "
+                "as a timestamp and as text.",
+                value=_as_filter_text(values[index]),
                 typed=typed_answer,
             )
         )
@@ -3442,7 +3480,7 @@ def build_mirrored_predicates(
     if not _bounds_are_ordered(evaluated, spans):
         return []
 
-    if _declined_for_reading_by_type(evaluated, text_answers, shape_errors):
+    if _declined_for_reading_by_type(flat, evaluated, text_answers, shape_errors):
         return []
 
     # Declining here is the last chance to decline at all: once these

@@ -2888,50 +2888,73 @@ def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
     assert cast(MagicMock, table.database.get_df).call_count == 1
 
 
-def test_a_chart_bound_is_not_mirrored_when_its_text_form_is_refused(
-    app: Flask,
+def _refusing_text(typed_answer: Any) -> Any:
+    """Raise ORA-01830 on the text ``'2026-01-12 06:30:00'``; answer the typed
+    literal with ``typed_answer``."""
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        if "'2026-01-12 06:30:00'" in sql:
+            raise RuntimeError("ORA-01830: date format picture ends before ...")
+        return pd.DataFrame([[typed_answer]], columns=["v0"])
+
+    return answer
+
+
+@pytest.mark.parametrize(
+    "typed_answer, mirrored",
+    [
+        # Oracle's TO_DATE(:value, 'YYYY-MM-DD') under the default
+        # NLS_DATE_FORMAT: the typed bound comes back in year 0012.
+        (datetime(12, 1, 26), False),
+        # CAST(:value AS DATE) and TRUNC(:value, 'HH') on Oracle: the text is
+        # refused under the same NLS_DATE_FORMAT, but the typed answer is right.
+        (datetime(2026, 1, 12, 6, 30), True),
+        (datetime(2026, 1, 12, 6, 0), True),
+        (date(2026, 1, 1), True),
+        # Further than any bucket of the instant can be.
+        (datetime(2027, 3, 1), False),
+        # A number has no instant to compare against.
+        (1768198200, False),
+    ],
+)
+def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
+    app: Flask, typed_answer: Any, mirrored: bool
 ) -> None:
     """
-    Oracle's ``TO_DATE(:value, 'YYYY-MM-DD')`` onto a day key raises ORA-01830
-    on ``'2026-01-12 06:30:00'`` and turns the typed bound into year 0012.
-    Falling back to the typed answer alone left it unchecked, so every time
-    range came back empty. A refused text form now declines the mirror, still
-    in one round trip.
+    Oracle refuses the text ``'2026-01-12 06:30:00'`` for every transform
+    under its default ``NLS_DATE_FORMAT``, broken or not. Declining on the
+    refusal alone kept ``TO_DATE(:value, 'YYYY-MM-DD')`` from emptying every
+    time range, and cost ``CAST(:value AS DATE)`` its pruning with it. The
+    typed answer is asked alone instead -- a second round trip, only on this
+    path -- and kept where it can be a bucket of the instant.
     """
     table = _temporal_partition_table("sqlite://", "TIMESTAMP")
     mapping = resolve_partition_mapping(table)
     assert mapping is not None
-
-    def refuse_text(sql: str, **kwargs: Any) -> pd.DataFrame:
-        if "'2026-01-12 06:30:00'" in sql:
-            raise RuntimeError("ORA-01830: date format picture ends before ...")
-        return pd.DataFrame([[datetime(12, 1, 26)]], columns=["v0"])
-
-    table.database.get_df = MagicMock(side_effect=refuse_text)  # type: ignore[method-assign]
+    table.database.get_df = MagicMock(side_effect=_refusing_text(typed_answer))  # type: ignore[method-assign]
+    shape_errors: list[str] = []
 
     with app.app_context():
         predicates = build_mirrored_predicates(
             table,
             mapping,
             [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
         )
 
-    assert predicates == []
-    assert cast(MagicMock, table.database.get_df).call_count == 1
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 2
 
 
 def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
-    """The preview asks the typed value alone, so it can say why."""
+    """The preview names the text it could not read and the typed answer."""
     table = _temporal_partition_table("sqlite://", "TIMESTAMP")
     mapping = resolve_partition_mapping(table)
     assert mapping is not None
-
-    def refuse_text(sql: str, **kwargs: Any) -> pd.DataFrame:
-        if "'2026-01-12 06:30:00'" in sql:
-            raise RuntimeError("ORA-01830: date format picture ends before ...")
-        return pd.DataFrame([[datetime(12, 1, 26)]], columns=["v0"])
-
-    table.database.get_df = MagicMock(side_effect=refuse_text)  # type: ignore[method-assign]
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(datetime(12, 1, 26))
+    )
     errors: list[str] = []
     shape_errors: list[str] = []
 
@@ -2945,8 +2968,8 @@ def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
         )
 
     assert predicates == []
-    assert shape_errors
-    assert "written as text" in shape_errors[0]
+    assert "2026-01-12 06:30:00 written as text" in shape_errors[0]
+    assert "within a year" in shape_errors[0]
 
 
 def test_an_engine_with_no_temporal_literal_declines_a_temporal_answer() -> None:
