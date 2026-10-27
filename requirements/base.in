@@ -24,8 +24,8 @@ urllib3>=2.8.0,<3.0.0
 werkzeug>=3.1.9,<4.0.0
 # Security: CVE-2025-68146 - TOCTOU symlink vulnerability
 filelock>=3.20.3,<4.0.0
-# Security: decompression bomb fix (required by aiohttp 3.13.3)
-brotli>=1.2.0,<2.0.0
+# Security: decompression bomb fix (required by aiohttp 3.13.3); CVE-2026-111497
+brotli>=1.2.1,<2.0.0
 numexpr>=2.9.0
 # Security: CVE-2026-34073 (MEDIUM) - Improper Certificate Validation
 cryptography>=50.0.1,<51.0.0
