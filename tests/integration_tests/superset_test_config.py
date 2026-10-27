@@ -54,6 +54,43 @@ if "SUPERSET__SQLALCHEMY_EXAMPLES_URI" in os.environ:  # noqa: F405
 if "UPLOAD_FOLDER" in os.environ:  # noqa: F405
     UPLOAD_FOLDER = os.environ["UPLOAD_FOLDER"]  # noqa: F405
 
+# pytest-xdist: under `pytest -n <N>` every worker process carries
+# PYTEST_XDIST_WORKER ("gw0", "gw1", ...). Each worker then gets its own
+# metadata database, examples database and Redis database indexes, so
+# workers never see each other's state. scripts/python_tests.sh migrates and
+# seeds one database per worker and .github/workflows/bashlib.sh starts one
+# Celery worker per xdist worker, both by exporting the same
+# PYTEST_XDIST_WORKER value, so they land on the same per-worker resources. A
+# plain `pytest` run (no xdist) leaves all of this untouched.
+XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER")  # noqa: F405
+
+
+def per_worker_database_uri(uri: str, worker: str) -> str:
+    """Return ``uri`` pointing at the per-worker copy of its database.
+
+    File-based SQLite databases get the worker in the file name
+    (``superset.db`` -> ``superset-gw0.db``); server databases get it as a
+    suffix on the database name (``superset`` -> ``superset_gw0``).
+    """
+    url = make_url(uri)
+    if url.get_backend_name() == "sqlite":
+        if not url.database:  # in-memory
+            return uri
+        root, ext = os.path.splitext(url.database)  # noqa: F405
+        url = url.set(database=f"{root}-{worker}{ext}")
+    else:
+        url = url.set(database=f"{url.database}_{worker}")
+    return url.render_as_string(hide_password=False)
+
+
+if XDIST_WORKER:
+    SQLALCHEMY_DATABASE_URI = per_worker_database_uri(
+        SQLALCHEMY_DATABASE_URI, XDIST_WORKER
+    )
+    SQLALCHEMY_EXAMPLES_URI = per_worker_database_uri(
+        SQLALCHEMY_EXAMPLES_URI, XDIST_WORKER
+    )
+
 if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
     logger.warning(  # noqa: F405
         "SQLite Database support for metadata databases will be "
@@ -123,9 +160,22 @@ PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")  # noqa: F405
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")  # noqa: F405
-REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)  # noqa: F405
-REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)  # noqa: F405
-REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)  # noqa: F405
+REDIS_CELERY_DB = int(os.environ.get("REDIS_CELERY_DB", 2))  # noqa: F405
+REDIS_RESULTS_DB = int(os.environ.get("REDIS_RESULTS_DB", 3))  # noqa: F405
+REDIS_CACHE_DB = int(os.environ.get("REDIS_CACHE_DB", 4))  # noqa: F405
+
+# Each xdist worker shifts the three Redis database indexes above by three,
+# so gw0..gw3 use 2-13 of Redis's default 16 databases (see XDIST_WORKER).
+if XDIST_WORKER:
+    _redis_db_shift = 3 * int(XDIST_WORKER.removeprefix("gw"))
+    REDIS_CELERY_DB += _redis_db_shift
+    REDIS_RESULTS_DB += _redis_db_shift
+    REDIS_CACHE_DB += _redis_db_shift
+    if REDIS_CACHE_DB > 15:
+        raise ValueError(
+            f"xdist worker {XDIST_WORKER} needs Redis database {REDIS_CACHE_DB}; "
+            "Redis ships 16 databases, so run at most 4 workers"
+        )
 
 RATELIMIT_ENABLED = False
 
