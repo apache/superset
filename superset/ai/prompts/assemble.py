@@ -253,7 +253,7 @@ def validate_core_section(section: PromptSection) -> None:
                 f"Core prompt section {section.key!r} names a schema-qualified "
                 f"identifier ({match.group(1)!r}). Core ships no domain "
                 f"knowledge: use a placeholder, or move the fact into a "
-                f"knowledge section supplied by a KnowledgeProvider."
+                f"deployment knowledge section."
             )
 
 
