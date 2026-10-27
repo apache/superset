@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 13:08+0200\n"
+"POT-Creation-Date: 2026-10-27 12:52+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -9567,6 +9567,9 @@ msgid "No saved expressions found"
 msgstr ""
 
 msgid "No saved metrics found"
+msgstr ""
+
+msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."

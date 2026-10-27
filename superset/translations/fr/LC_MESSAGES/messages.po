@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 13:08+0200\n"
+"POT-Creation-Date: 2026-10-27 12:52+0200\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -11054,6 +11054,9 @@ msgstr "Aucune expression sauvegardée trouvée"
 
 msgid "No saved metrics found"
 msgstr "Aucune mesure sauvegardée trouvée"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""

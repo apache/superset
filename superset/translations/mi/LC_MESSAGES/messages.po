@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 13:08+0200\n"
+"POT-Creation-Date: 2026-10-27 12:52+0200\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -11453,6 +11453,9 @@ msgstr "Kāore i kitea he kīanga kua tiakina"
 
 msgid "No saved metrics found"
 msgstr "Kāore i kitea he ine kua tiakina"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""

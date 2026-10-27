@@ -14661,6 +14661,391 @@
         ],
         "type": "object"
       },
+      "WidgetRestApi.get": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get.Subject"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "props": {},
+          "revision": {
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get.Subject1"
+            },
+            "type": "array"
+          },
+          "widget_type": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "widget_type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.Subject1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get_list.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get_list.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get_list.Subject"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "props": {},
+          "revision": {
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get_list.Subject1"
+            },
+            "type": "array"
+          },
+          "widget_type": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "widget_type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.Subject1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.post": {
+        "properties": {
+          "description": {
+            "description": "What the widget shows, its business meaning and any caveats. Agents read it to understand the widget without loading its full configuration.",
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "description": "A list of subject IDs (users, roles, or groups) that can alter the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The display name of the widget.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "props": {
+            "description": "The widget's type-specific values, as a JSON object.",
+            "type": "object"
+          },
+          "schema_version": {
+            "default": 1,
+            "description": "The version of the widget's schema that the props conform to.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "viewers": {
+            "description": "A list of subject IDs (users, roles, or groups) that can view the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "widget_type": {
+            "description": "The namespaced id of the registered widget this is an instance of.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "widget_type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.put": {
+        "properties": {
+          "description": {
+            "description": "What the widget shows, its business meaning and any caveats. Agents read it to understand the widget without loading its full configuration.",
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "description": "A list of subject IDs (users, roles, or groups) that can alter the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The display name of the widget.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "props": {
+            "description": "The widget's type-specific values, as a JSON object.",
+            "type": "object"
+          },
+          "schema_version": {
+            "description": "The version of the widget's schema that the props conform to.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "viewers": {
+            "description": "A list of subject IDs (users, roles, or groups) that can view the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "advanced_data_type_convert_schema": {
         "properties": {
           "type": {
@@ -17101,6 +17486,10 @@
                         "widgetTypes": {
                           "description": "The widget type of each resolvable node",
                           "type": "object"
+                        },
+                        "widgets": {
+                          "description": "The widgets placements hold by UUID, with their widgetType, schemaVersion, name and props",
+                          "type": "object"
                         }
                       },
                       "type": "object"
@@ -17426,7 +17815,7 @@
     },
     "/api/v1/canvas/{pk}": {
       "delete": {
-        "description": "Deletes the canvas, its inline widget instances and its operation log. Persisted widget instances it placed are separate entities and are not deleted.",
+        "description": "Deletes the canvas and its operation log. The widgets it placed are separate entities and are not deleted.",
         "parameters": [
           {
             "in": "path",
@@ -39178,6 +39567,495 @@
         "summary": "Get the user avatar",
         "tags": [
           "User"
+        ]
+      }
+    },
+    "/api/v1/widget/": {
+      "get": {
+        "description": "Gets a list of saved widgets, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/WidgetRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a list of widgets",
+        "tags": [
+          "Widgets"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetRestApi.post"
+              }
+            }
+          },
+          "description": "Widget schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/WidgetRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Widget created, with its revision as the ETag"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create a widget",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get metadata information about this API resource",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get related fields data",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/{widget_uuid}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Widget deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a widget",
+        "tags": [
+          "Widgets"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/WidgetRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Widget detail, with its revision as the ETag"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a widget",
+        "tags": [
+          "Widgets"
+        ]
+      },
+      "put": {
+        "description": "Send the revision the change is based on in the If-Match header; a stale revision is rejected with 409 and the current revision.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetRestApi.put"
+              }
+            }
+          },
+          "description": "Widget schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/WidgetRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Widget updated, with its new revision as the ETag"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The widget was changed since the given revision"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a widget",
+        "tags": [
+          "Widgets"
         ]
       }
     },

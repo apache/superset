@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 13:08+0200\n"
+"POT-Creation-Date: 2026-10-27 12:52+0200\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -10944,6 +10944,9 @@ msgstr "Nav atrastas saglabātas izteiksmes"
 
 msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""

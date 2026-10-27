@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-26 13:08+0200\n"
+"POT-Creation-Date: 2026-10-27 12:52+0200\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -11309,6 +11309,9 @@ msgstr "没有已保存的表达式"
 #, fuzzy
 msgid "No saved metrics found"
 msgstr "没有已保存的指标"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""

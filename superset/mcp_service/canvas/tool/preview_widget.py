@@ -23,7 +23,7 @@ import logging
 from typing import Any
 
 import requests
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from flask import current_app
 from mcp.types import ImageContent, TextContent
 from superset_core.mcp.decorators import tool, ToolAnnotations
