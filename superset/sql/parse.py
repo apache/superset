@@ -1146,13 +1146,20 @@ def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
     `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
     `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
     comes back as a single `And` leaf rather than its own `y` and `z` leaves.
-    This recurses instead, so a condition `AND`-ed together with others stays
-    found regardless of how it is grouped.
+    This walks an explicit stack instead, so a condition `AND`-ed together with
+    others stays found regardless of how it is grouped, and a long chain of
+    predicates cannot hit the recursion limit.
     """
-    condition = condition.unnest()
-    if not isinstance(condition, exp.And):
-        return [condition]
-    return _flatten_and(condition.this) + _flatten_and(condition.expression)
+    leaves: list[exp.Expression] = []
+    stack = [condition]
+    while stack:
+        node = stack.pop().unnest()
+        if isinstance(node, exp.And):
+            stack.append(node.expression)
+            stack.append(node.this)
+        else:
+            leaves.append(node)
+    return leaves
 
 
 class SQLStatement(BaseSQLStatement[exp.Expression]):
