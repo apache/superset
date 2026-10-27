@@ -382,13 +382,15 @@ class DeadlineScheduler:
 
 _SCHEDULER: DeadlineScheduler | None = None
 _SCHEDULER_LOCK: Lock | None = None
+_SCHEDULER_LOCK_INIT: Lock = Lock()
 
 
 def _scheduler() -> DeadlineScheduler:
     global _SCHEDULER, _SCHEDULER_LOCK  # pylint: disable=global-statement
     # Resolve the factory after a preloaded gevent worker patches threading.
-    if _SCHEDULER_LOCK is None:
-        _SCHEDULER_LOCK = threading.Lock()
+    with _SCHEDULER_LOCK_INIT:
+        if _SCHEDULER_LOCK is None:
+            _SCHEDULER_LOCK = threading.Lock()
     with _SCHEDULER_LOCK:
         if _SCHEDULER is None:
             _SCHEDULER = DeadlineScheduler()
@@ -397,9 +399,10 @@ def _scheduler() -> DeadlineScheduler:
 
 def _reset_scheduler_after_fork() -> None:
     """A child cannot reuse the parent's worker or potentially held lock."""
-    global _SCHEDULER, _SCHEDULER_LOCK  # pylint: disable=global-statement
+    global _SCHEDULER, _SCHEDULER_LOCK, _SCHEDULER_LOCK_INIT  # pylint: disable=global-statement
     _SCHEDULER = None
     _SCHEDULER_LOCK = None
+    _SCHEDULER_LOCK_INIT = Lock()
 
 
 if hasattr(os, "register_at_fork"):

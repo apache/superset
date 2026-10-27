@@ -26,6 +26,7 @@ from superset_core.semantic_layers.context import ExecutionMethod
 from superset_core.semantic_layers.transport import ProviderTransport
 from werkzeug.test import TestResponse
 
+from superset.semantic_layers.exceptions import _is_provider_fault
 from superset.semantic_layers.execution import SemanticBindingMemo
 from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer
@@ -135,7 +136,10 @@ def test_masking_static_schema_receives_transport(mocker: MockerFixture) -> None
     factory.assert_called_once_with()
 
 
-def test_binding_injects_transport_only_on_memo_miss(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("host_failure", [False, True])
+def test_binding_injects_transport_only_on_memo_miss(
+    mocker: MockerFixture, host_failure: bool
+) -> None:
     capability: MagicMock = MagicMock(spec=ProviderTransport)
     factory: MagicMock = mocker.patch(
         "superset.semantic_layers.execution.build_provider_transport",
@@ -160,6 +164,16 @@ def test_binding_injects_transport_only_on_memo_miss(mocker: MockerFixture) -> N
     mocker.patch.dict("superset.semantic_layers.execution.registry", {"test": provider})
     layer: SemanticLayer = SemanticLayer(type="test", configuration="{}")
     memo: SemanticBindingMemo = SemanticBindingMemo()
+    if host_failure:
+        error: RuntimeError = RuntimeError("host transport construction failed")
+        factory.side_effect = error
+        raised: pytest.ExceptionInfo[RuntimeError]
+        with pytest.raises(RuntimeError) as raised:
+            memo.bind(layer)
+        assert raised.value is error
+        assert not _is_provider_fault(error)
+        provider.from_configuration.assert_not_called()
+        return
     assert memo.bind(layer) is memo.bind(layer)
     factory.assert_called_once_with()
     provider.from_configuration.assert_called_once()

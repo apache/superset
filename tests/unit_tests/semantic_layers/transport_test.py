@@ -1499,6 +1499,7 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
         network._RESOLVER_LOCK.acquire()
         assert transport._SCHEDULER_LOCK is not None
         transport._SCHEDULER_LOCK.acquire()
+        transport._SCHEDULER_LOCK_INIT.acquire()
         pid: int = os.fork()
         if pid == 0:
             signal.alarm(4)
@@ -1530,6 +1531,7 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
             network._RESOLVER_SLOTS.release()
         network._RESOLVER_LOCK.release()
         transport._SCHEDULER_LOCK.release()
+        transport._SCHEDULER_LOCK_INIT.release()
         status: int
         _, status = os.waitpid(pid, 0)
         assert os.waitstatus_to_exitcode(status) == 0
@@ -1778,3 +1780,39 @@ def test_scheduler_start_failure_does_not_publish_an_unstarted_worker(
     with pytest.raises(RuntimeError, match="thread startup failed"):
         semantic_layer_http._scheduler()
     assert semantic_layer_http._SCHEDULER is None
+
+
+def test_scheduler_lock_initialization_is_serialized_across_os_threads() -> None:
+    """Widen first-use interleavings without leaving orphan workers in pytest."""
+    script: str = textwrap.dedent("""
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier, Lock
+        from types import SimpleNamespace
+        from superset.semantic_layers import transport
+
+        original: type[transport.DeadlineScheduler] = transport.DeadlineScheduler
+        barrier: Barrier = Barrier(4)
+        def make_lock() -> Lock:
+            time.sleep(0.05)
+            return Lock()
+        def make_scheduler() -> transport.DeadlineScheduler:
+            time.sleep(0.05)
+            return original()
+        transport.threading = SimpleNamespace(Lock=make_lock)
+        transport.DeadlineScheduler = make_scheduler
+        def get_scheduler(index: int) -> object:
+            barrier.wait(timeout=5)
+            return transport._scheduler()
+        with ThreadPoolExecutor(4) as pool:
+            schedulers: list[object] = list(pool.map(get_scheduler, range(4)))
+        assert len({id(scheduler) for scheduler in schedulers}) == 1
+    """)
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

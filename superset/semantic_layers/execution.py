@@ -39,6 +39,7 @@ from superset_core.semantic_layers.context import (
     SemanticExecutionContext,
 )
 from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 
 from superset import db, security_manager
@@ -332,13 +333,14 @@ class SemanticBindingMemo:
             provider: type[ProviderLayer[Any, Any]] = registry[layer.type]
             configuration: dict[str, Any] = json.loads(layer.configuration)
             cache_token: str = layer.metadata_generation
+            transport: ProviderTransport = build_provider_transport()
             with provider_code():
                 bound: ProviderLayer[Any, Any] = provider.from_configuration(
                     configuration,
                     cache_token=cache_token,
                     context=context,
                     credentials=None,
-                    transport=build_provider_transport(),
+                    transport=transport,
                 )
             self.bindings[key] = (bound, {})
         return self.bindings[key]
