@@ -176,6 +176,8 @@ class HostProviderTransport(ProviderTransport):
 
     def _validated_url(self, url: str) -> SplitResult:
         parts: SplitResult = self._prepared_url(url)
+        if parts.username is not None or parts.password is not None:
+            raise ProviderRequestError(Failure.INVALID_URL)
         if parts.scheme not in (
             {"https", "http"} if self._allow_internal else {"https"}
         ):

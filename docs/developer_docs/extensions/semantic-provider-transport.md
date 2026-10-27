@@ -66,8 +66,10 @@ exhausted.
 
 DNS, connect, TLS, headers and body reads all share the deadline. A timed-out or
 truncated response is never returned as success. Resolution uses at most eight
-shared workers; an OS resolver already running cannot be cancelled, but the caller
-stops waiting at its deadline. Connected sockets are interrupted by one shared,
+shared workers and at most eight outstanding submissions. At capacity, new
+lookups fail immediately with `TIMEOUT`. A caller stops waiting at its deadline,
+but its submission retains capacity until the worker completes it. An OS resolver
+already running cannot be cancelled; this bound does not recover stalled workers. Connected sockets are interrupted by one shared,
 lazily started scheduler. Neither component starts at module import.
 
 ## Responses and errors
@@ -95,6 +97,10 @@ and effective port. Other redirects fail with `HTTP_STATUS` without reading thei
 bodies. Redirects do not reset the deadline. No automatic retries are made.
 
 ## Destination policy
+
+URLs containing userinfo (`https://user:password@host/`) are refused as
+`INVALID_URL`, both on the initial request and on redirects. Supply credentials
+through the request headers instead.
 
 By default, only HTTPS endpoints whose DNS answers are all public are allowed.
 The host applies its shared `is_safe_ip` policy, including special IPv6 ranges.

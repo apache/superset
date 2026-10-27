@@ -353,19 +353,22 @@ def public_tls(
         local: str = "127.0.0.1" if host.endswith(".example.test") else host
         return real_resolve(local, *args, **kwargs)
 
-    original: Any = requests.Session.merge_environment_settings
-
-    def trust_test_ca(self: requests.Session, *args: Any) -> dict[str, Any]:
-        settings: dict[str, Any] = original(self, *args)
-        if get_ident() != owner:
-            return settings
-        settings["verify"] = str(cert)
-        return settings
-
     monkeypatch.setattr(network.socket, "getaddrinfo", resolve)
     monkeypatch.setattr(network, "is_safe_ip", lambda address: True)
-    monkeypatch.setattr(requests.Session, "merge_environment_settings", trust_test_ca)
+    monkeypatch.setattr(requests.adapters, "DEFAULT_CA_BUNDLE_PATH", str(cert))
     return context, resolved
+
+
+def test_public_tls_fixture_preserves_verification_choice(
+    public_tls: tuple[ssl.SSLContext, list[str]],
+) -> None:
+    """Trust installation must not override a caller disabling verification."""
+    session: semantic_layer_http._DirectSession
+    with semantic_layer_http._DirectSession() as session:
+        settings: semantic_layer_http._Settings = session.merge_environment_settings(
+            "https://public.example.test/", {}, False, False, None
+        )
+    assert settings["verify"] is False
 
 
 def test_public_tls_ignores_background_loopback_lookups(
@@ -402,6 +405,27 @@ def test_default_path_verifies_the_configured_hostname(
     names: list[str] = [host for host in resolved if not host[0].isdigit()]
     assert names == ["public.example.test", "other.example.test"]
     assert set(resolved) - set(names) == set()  # Numeric connects do not resolve again.
+
+
+def test_default_path_rejects_an_untrusted_certificate(
+    public_tls: tuple[ssl.SSLContext, list[str]], tmp_path: Path
+) -> None:
+    """A matching hostname alone does not establish certificate trust."""
+    untrusted: Path = tmp_path / "untrusted"
+    untrusted.mkdir()
+    cert: Path
+    key: Path
+    cert, key = _certificate(untrusted, "public.example.test")
+    context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    port: int
+    seen: list[str]
+    with _server(context=context) as (port, seen):
+        with pytest.raises(ProviderRequestError, match="could not be reached"):
+            provider_request(
+                "fixture", "GET", f"https://public.example.test:{port}/", timeout=2
+            )
+    assert seen == []
 
 
 def test_default_path_follows_same_origin_get_redirects_only(
@@ -539,6 +563,22 @@ def test_missing_prepared_url_is_invalid_before_parsing(
     send.assert_not_called()
 
 
+@pytest.mark.parametrize("userinfo", ["user:pass", "user", ":pass"])
+def test_first_hop_userinfo_is_refused_before_sending(
+    monkeypatch: pytest.MonkeyPatch, userinfo: str
+) -> None:
+    """Provider credentials belong in headers, not URL authority."""
+    send: Mock = Mock(side_effect=AssertionError("Userinfo reached adapter"))
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request(
+            "fixture", "GET", f"https://{userinfo}@provider.example/", timeout=2
+        )
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
+
+
 def test_flag_allows_local_http_development_endpoints() -> None:
     with _server() as (port, seen), _internal_hosts(True):
         response: ProviderResponse = provider_request(
@@ -595,7 +635,7 @@ def test_transport_failure_hides_the_destination(
             provider_request(
                 "DJ",
                 "GET",
-                "https://user:pass@dj.internal.example.com:8443/x?token=t",
+                "https://dj.internal.example.com:8443/x?token=t&password=pass",
                 timeout=1,
             )
     assert "dj.internal" not in str(raised.value)
@@ -614,7 +654,7 @@ def test_failure_logs_never_carry_url_secrets(
     listener.bind(("127.0.0.1", 0))
     port: int = listener.getsockname()[1]
     listener.close()  # Nothing listens: the connection is refused or blocked.
-    url: str = f"https://user:SECRET_PW@127.0.0.1:{port}/x?token=SECRET_TOKEN"
+    url: str = f"https://127.0.0.1:{port}/x?token=SECRET_TOKEN&password=SECRET_PW"
     with _internal_hosts(allowed), caplog.at_level("WARNING"):
         with pytest.raises(ProviderRequestError):
             provider_request("Cube", "GET", url, timeout=2)
@@ -1444,6 +1484,8 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
         transport._scheduler()
         resolver: ThreadPoolExecutor | None = network._RESOLVER
         scheduler: transport.DeadlineScheduler | None = transport._SCHEDULER
+        for _ in range(network._RESOLVER_LIMIT):
+            assert network._RESOLVER_SLOTS.acquire(blocking=False)
         network._RESOLVER_LOCK.acquire()
         transport._SCHEDULER_LOCK.acquire()
         pid: int = os.fork()
@@ -1473,6 +1515,8 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
                 traceback.print_exc()
                 os._exit(1)
             os._exit(0)
+        for _ in range(network._RESOLVER_LIMIT):
+            network._RESOLVER_SLOTS.release()
         network._RESOLVER_LOCK.release()
         transport._SCHEDULER_LOCK.release()
         status: int
@@ -1532,7 +1576,7 @@ def test_non_string_label_cannot_chain_library_secrets(
 ) -> None:
     from unittest.mock import Mock
 
-    raw: str = "https://user:raw-secret@private.test/path?token=raw-secret"
+    raw: str = "https://private.test/path?token=raw-secret"
     send: Mock = Mock(side_effect=requests.ConnectionError(raw))
     monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
     with pytest.raises(ProviderRequestError) as raised:
