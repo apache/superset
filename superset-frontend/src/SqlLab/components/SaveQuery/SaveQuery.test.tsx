@@ -564,4 +564,34 @@ describe('SavedQuery', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByRole('textbox')[0]).toHaveValue('My saved query');
   });
+
+  test('clears the inline error when the name changes and closes after a successful retry', async () => {
+    const duplicateError = 'A saved query with this name already exists';
+    const mockOnSave = jest
+      .fn()
+      .mockRejectedValueOnce(new Error(duplicateError))
+      .mockResolvedValueOnce(undefined);
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+    const modalSaveBtn = () =>
+      screen.getAllByRole('button', { name: /save/i })[1];
+    await userEvent.click(modalSaveBtn());
+    expect(await screen.findByText(duplicateError)).toBeInTheDocument();
+
+    await userEvent.type(screen.getAllByRole('textbox')[0], ' 2');
+    expect(screen.queryByText(duplicateError)).not.toBeInTheDocument();
+
+    await userEvent.click(modalSaveBtn());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: /save query/i }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(mockOnSave).toHaveBeenCalledTimes(2);
+  });
 });

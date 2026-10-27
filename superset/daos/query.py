@@ -90,3 +90,30 @@ class QueryDAO(BaseDAO[Query]):
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):
     base_filter = SavedQueryFilter
+
+    @staticmethod
+    def validate_label_uniqueness(
+        label: str,
+        owner_id: int | None,
+        db_id: int | None,
+        saved_query_id: int | None = None,
+    ) -> bool:
+        """
+        Validate that no other saved query of the same owner and database uses
+        this label. The comparison is exact on the label as stored.
+
+        :param label: The (already stripped) saved query label
+        :param owner_id: The id of the user owning the saved query
+        :param db_id: The id of the database the saved query targets
+        :param saved_query_id: The saved query's own id, excluded from the
+            comparison (only for validating on updates)
+        :return: True when the label is not taken
+        """
+        query = db.session.query(SavedQuery).filter(
+            SavedQuery.label == label,
+            SavedQuery.created_by_fk == owner_id,
+            SavedQuery.db_id.is_(None) if db_id is None else SavedQuery.db_id == db_id,
+        )
+        if saved_query_id is not None:
+            query = query.filter(SavedQuery.id != saved_query_id)
+        return not db.session.query(query.exists()).scalar()

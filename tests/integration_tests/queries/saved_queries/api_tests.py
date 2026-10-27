@@ -779,6 +779,128 @@ class TestSavedQueryApi(SupersetTestCase):
         model = db.session.query(SavedQuery).get(saved_query.id)
         assert model.label == "label1"
 
+    def _post_saved_query(self, label: str, db_id: int):
+        return self.client.post(
+            "api/v1/saved_query/",
+            json={
+                "schema": "schema1",
+                "label": label,
+                "sql": "SELECT col1, col2 from table1",
+                "db_id": db_id,
+            },
+        )
+
+    def _delete_saved_queries_by_label(self, label: str) -> None:
+        db.session.query(SavedQuery).filter(SavedQuery.label == label).delete(
+            synchronize_session=False
+        )
+        db.session.commit()
+
+    def test_create_saved_query_duplicate_label_ignores_surrounding_whitespace(
+        self,
+    ) -> None:
+        """
+        Saved Query API: Test create rejects a padded copy of an existing label
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        try:
+            assert self._post_saved_query(
+                "padded label", example_db.id
+            ).status_code == (201)
+            rv = self._post_saved_query("  padded label  ", example_db.id)
+            assert rv.status_code == 422
+        finally:
+            self._delete_saved_queries_by_label("padded label")
+
+    def test_create_saved_query_same_label_different_database(self) -> None:
+        """
+        Saved Query API: Test the same label is allowed on a different database
+        """
+        example_db = get_example_database()
+        other_db = Database(database_name="other_db", sqlalchemy_uri="sqlite://")
+        db.session.add(other_db)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            assert self._post_saved_query(
+                "shared label", example_db.id
+            ).status_code == (201)
+            assert self._post_saved_query("shared label", other_db.id).status_code == (
+                201
+            )
+        finally:
+            self._delete_saved_queries_by_label("shared label")
+            db.session.delete(other_db)
+            db.session.commit()
+
+    def test_create_saved_query_same_label_different_user(self) -> None:
+        """
+        Saved Query API: Test the same label is allowed for a different user
+        """
+        example_db = get_example_database()
+        self.insert_default_saved_query(
+            label="other users label", username="gamma_sqllab"
+        )
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self._post_saved_query("other users label", example_db.id)
+            assert rv.status_code == 201
+        finally:
+            self._delete_saved_queries_by_label("other users label")
+
+    def test_update_saved_query_keeps_own_label(self) -> None:
+        """
+        Saved Query API: Test update may resubmit the saved query's own label
+        """
+        saved_query = self.insert_default_saved_query(label="own label")
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.put(
+                f"api/v1/saved_query/{saved_query.id}",
+                json={"label": "own label", "description": "changed"},
+            )
+            assert rv.status_code == 200
+        finally:
+            self._delete_saved_queries_by_label("own label")
+
+    def test_update_saved_query_rejects_padded_duplicate_label(self) -> None:
+        """
+        Saved Query API: Test update rejects a padded copy of another label
+        """
+        self.insert_default_saved_query(label="taken label")
+        saved_query = self.insert_default_saved_query(label="free label")
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.put(
+                f"api/v1/saved_query/{saved_query.id}", json={"label": " taken label "}
+            )
+            assert rv.status_code == 422
+        finally:
+            self._delete_saved_queries_by_label("taken label")
+            self._delete_saved_queries_by_label("free label")
+
+    def test_update_saved_query_legacy_duplicate_stays_editable(self) -> None:
+        """
+        Saved Query API: Test a pre-existing duplicate can be edited as long as
+        its label is not changed
+        """
+        first = self.insert_default_saved_query(label="legacy label")
+        self.insert_default_saved_query(label="legacy label")
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.put(
+                f"api/v1/saved_query/{first.id}",
+                json={"description": "edited", "sql": "SELECT 1"},
+            )
+            assert rv.status_code == 200
+            rv = self.client.put(
+                f"api/v1/saved_query/{first.id}", json={"label": "legacy label"}
+            )
+            assert rv.status_code == 200
+        finally:
+            self._delete_saved_queries_by_label("legacy label")
+
     @pytest.mark.usefixtures("create_saved_queries")
     def test_update_saved_query_blank_label(self) -> None:
         """

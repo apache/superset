@@ -111,6 +111,7 @@ const SaveQuery = ({
     query.description || '',
   );
   const [label, setLabel] = useState<string>(defaultLabel);
+  const [labelError, setLabelError] = useState<string>('');
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   // Saving a dataset runs the SQL to introspect columns, so it needs a
@@ -150,21 +151,34 @@ const SaveQuery = ({
     if (!isSaved) setLabel(defaultLabel);
   }, [defaultLabel]);
 
-  const close = () => setShowSave(false);
+  const close = () => {
+    setShowSave(false);
+    setLabelError('');
+  };
 
-  const onSaveWrapper = async () => {
+  // A rejected save keeps the modal open with the user's input so the name
+  // can be changed and the save retried.
+  const submit = async (action: SaveQueryProps['onSave']) => {
+    setLabelError('');
+    try {
+      await action(queryPayload(), query.id);
+    } catch (error) {
+      setLabelError(error instanceof Error ? error.message : '');
+      return;
+    }
+    close();
+  };
+
+  const onSaveWrapper = () => {
     logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
-    await onSave(queryPayload(), query.id);
-    close();
+    return submit(onSave);
   };
 
-  const onUpdateWrapper = async () => {
-    await onUpdate(queryPayload(), query.id);
-    close();
-  };
+  const onUpdateWrapper = () => submit(onUpdate);
 
   const onLabelChange = (e: ChangeEvent<HTMLInputElement>) => {
     setLabel(e.target.value);
+    setLabelError('');
   };
 
   const onDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -175,7 +189,12 @@ const SaveQuery = ({
     <Form layout="vertical">
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Name')} htmlFor="save-query-name">
+          <FormItem
+            label={t('Name')}
+            htmlFor="save-query-name"
+            validateStatus={labelError ? 'error' : undefined}
+            help={labelError || undefined}
+          >
             <Input
               id="save-query-name"
               type="text"
