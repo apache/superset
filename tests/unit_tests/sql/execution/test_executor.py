@@ -3663,15 +3663,17 @@ def test_truncation_survives_cache_round_trip(
 
 
 @pytest.mark.parametrize("custom_timeout", [None, 7])
+@pytest.mark.parametrize("owner_mode", ["timeout", "cursor", "default"])
 def test_execute_passes_sql_timeout_to_execution_owner(
     mocker: MockerFixture,
     database: Database,
     app_context: None,
     custom_timeout: int | None,
+    owner_mode: str,
 ) -> None:
     from contextlib import nullcontext
 
-    from superset.sql.execution.cancellation import timeout_scope
+    from superset.sql.execution.cancellation import cursor_scope, timeout_scope
 
     mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
     mocker.patch.dict(
@@ -3684,14 +3686,32 @@ def test_execute_passes_sql_timeout_to_execution_owner(
         },
     )
     owner = mocker.Mock(side_effect=lambda seconds: nullcontext())
-    signal_timeout = mocker.patch("superset.sql.execution.executor.utils.timeout")
-    token = timeout_scope.set(owner)
+    signal_timeout = mocker.patch(
+        "superset.sql.execution.executor.utils.timeout", return_value=nullcontext()
+    )
+    token = timeout_scope.set(owner if owner_mode == "timeout" else None)
+    cursor_token = cursor_scope.set(
+        mocker.Mock(side_effect=lambda *args: nullcontext())
+        if owner_mode != "default"
+        else None
+    )
     try:
         result = database.execute(
             "SELECT 1", options=QueryOptions(timeout_seconds=custom_timeout)
         )
     finally:
+        cursor_scope.reset(cursor_token)
         timeout_scope.reset(token)
     assert result.status == QueryStatus.SUCCESS
-    owner.assert_called_once_with(custom_timeout or 30)
-    signal_timeout.assert_not_called()
+    if owner_mode == "timeout":
+        owner.assert_called_once_with(custom_timeout or 30)
+    else:
+        owner.assert_not_called()
+    if owner_mode == "default":
+        seconds = custom_timeout or 30
+        signal_timeout.assert_called_once_with(
+            seconds=seconds,
+            error_message=f"Query exceeded the {seconds} seconds timeout.",
+        )
+    else:
+        signal_timeout.assert_not_called()
