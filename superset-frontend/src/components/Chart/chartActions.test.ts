@@ -741,6 +741,26 @@ describe('chart actions', () => {
         expect(initialBody.tab_id.length).toBeGreaterThan(0);
       });
 
+      test('keeps an Arrow render on the JSON async path when async execution applies', async () => {
+        await expect(
+          actions.requestChartDataResolved({
+            formData: { viz_type: 'my_viz' } as QueryFormData,
+            resultFormat: 'arrow',
+          }),
+        ).rejects.toThrow('unexpected response status (202)');
+
+        // Both the async submit and its read-back are built as JSON requests.
+        expect(
+          buildV1ChartDataPayloadStub.mock.calls.map(
+            ([args]) => args.resultFormat,
+          ),
+        ).toEqual(['json', 'json']);
+        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+        expect(JSON.parse(String(history[0].options.body)).async_mode).toBe(
+          true,
+        );
+      });
+
       test('re-issues synchronously after async completion, reading the warm cache', async () => {
         // 1: initial async request → 202; 2: the post-completion re-issue is
         // synchronous and returns the payload inline (200). No third call and no
