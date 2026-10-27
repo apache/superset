@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 16:06+0000\n"
+"POT-Creation-Date: 2026-10-27 16:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4242,9 +4242,7 @@ msgid "Could not automatically fetch: %s. This is often blocked by the remote se
 msgstr ""
 
 #, python-format
-msgid ""
-"Could not check which charts and dashboards depend on the selected %s. "
-"Archiving them may make charts unavailable."
+msgid "Could not check which charts and dashboards depend on the selected %s. Archiving them may make charts unavailable."
 msgstr ""
 
 #, python-format
@@ -14646,10 +14644,11 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 #, python-format
-msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
-"Archiving them will make dependent charts unavailable until they are "
-"recovered."
+msgid "The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid "The selected %(type)s are used by %(charts)s. Archiving them will make dependent charts unavailable until they are recovered."
 msgstr ""
 
 #, python-format
@@ -14726,6 +14725,10 @@ msgid "The time unit for each block. Should be a smaller unit than domain_granul
 msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
+msgstr ""
+
+#, python-format
+msgid "The transform answered %(typed)s for a timestamp but could not read the same instant written as text, which a filter typed as text sends. Without that answer the timestamp's cannot be checked, so filters on this mapping will not be mirrored. Write the transform so it reads :value both as a timestamp and as text."
 msgstr ""
 
 msgid "The transform answered with a value the driver and the database do not agree on how to write into a query, so the mirrored predicate would ask for a partition key no row holds. A transform whose result carries neither a quote nor a backslash still mirrors."
@@ -15137,19 +15140,13 @@ msgid "These %(type)s will be moved to Recently Archived and may be permanently 
 msgstr ""
 
 #, python-format
-msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there within %(days)s day."
-msgid_plural ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there within %(days)s days."
+msgid "These %(type)s will be moved to Recently Archived. You can recover them there within %(days)s day."
+msgid_plural "These %(type)s will be moved to Recently Archived. You can recover them there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
-msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there."
+msgid "These %(type)s will be moved to Recently Archived. You can recover them there."
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
@@ -15160,9 +15157,11 @@ msgid "This %(schedule)s executes as another user. Only admins can change its co
 msgstr ""
 
 #, python-format
-msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
-"will make dependent charts unavailable until it is recovered."
+msgid "This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid "This %(type)s is used by %(charts)s. Archiving it will make dependent charts unavailable until it is recovered."
 msgstr ""
 
 #, python-format
@@ -15170,19 +15169,13 @@ msgid "This %(type)s will be moved to Recently Archived and may be permanently d
 msgstr ""
 
 #, python-format
-msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there within %(days)s day."
-msgid_plural ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there within %(days)s days."
+msgid "This %(type)s will be moved to Recently Archived. You can recover it there within %(days)s day."
+msgid_plural "This %(type)s will be moved to Recently Archived. You can recover it there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
-msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there."
+msgid "This %(type)s will be moved to Recently Archived. You can recover it there."
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
@@ -16671,6 +16664,9 @@ msgid "View all charts"
 msgstr ""
 
 msgid "View as table"
+msgstr ""
+
+msgid "View in Recently Archived →"
 msgstr ""
 
 msgid "View in SQL Lab"
@@ -18665,19 +18661,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-#, python-format
-msgid ""
-"The selected %(type)s are used by %(charts)s. Archiving them will make "
-"dependent charts unavailable until they are recovered."
-msgstr ""
-
-#, python-format
-msgid ""
-"This %(type)s is used by %(charts)s. Archiving it will make dependent charts"
-" unavailable until it is recovered."
-msgstr ""
-
-msgid "View in Recently Archived →"
 msgstr ""

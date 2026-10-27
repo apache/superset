@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-26 16:06+0000\n"
+"POT-Creation-Date: 2026-10-27 16:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -293,6 +293,11 @@ msgstr ""
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
 
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -531,6 +536,11 @@ msgid "%s aggregates(s)"
 msgstr "%s การรวม"
 
 #, python-format
+msgid "%s chart"
+msgid_plural "%s charts"
+msgstr[0] ""
+
+#, python-format
 msgid "%s chart updated"
 msgid_plural "%s charts updated"
 msgstr[0] ""
@@ -549,6 +559,11 @@ msgstr[0] "%s คอลัมน์"
 #, fuzzy, python-format
 msgid "%s column(s)"
 msgstr "%s คอลัมน์"
+
+#, python-format
+msgid "%s dashboard"
+msgid_plural "%s dashboards"
+msgstr[0] ""
 
 #, python-format
 msgid "%s dashboard updated"
@@ -4129,6 +4144,10 @@ msgstr "คุณแน่ใจหรือไม่ว่าต้องกา
 msgid "Are you sure you want to delete %s?"
 msgstr "คุณแน่ใจหรือไม่ว่าต้องการลบ %s?"
 
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -6037,15 +6056,6 @@ msgstr ""
 msgid "Charts"
 msgstr "แผนภูมิ"
 
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -7724,6 +7734,12 @@ msgstr "ประมาณการต้นทุน"
 msgid ""
 "Could not automatically fetch: %s. This is often blocked by the remote "
 "server (CORS); copy its contents in manually instead."
+msgstr ""
+
+#, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
+"Archiving them may make charts unavailable."
 msgstr ""
 
 #, python-format
@@ -9874,8 +9890,21 @@ msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12341,6 +12370,9 @@ msgstr ""
 msgid "Extensions"
 msgstr "ส่วนขยาย"
 
+msgid "Extensions are not enabled on this server"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -13679,6 +13711,11 @@ msgstr "รับวันที่ที่ระบุสำหรับวั
 #, fuzzy
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "ให้สิทธิ์การเข้าถึงแคตตาล็อกหลายรายการในการเชื่อมต่อฐานข้อมูลเดียว"
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -20563,9 +20600,6 @@ msgstr ""
 msgid "Recently Archived"
 msgstr ""
 
-msgid "Recently archived"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20866,6 +20900,9 @@ msgid "Remove mapping"
 msgstr ""
 
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -26241,6 +26278,11 @@ msgid ""
 "%(example)s."
 msgstr ""
 
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -27532,6 +27574,19 @@ msgstr "กำลังสร้างภาพหน้าจอ โปรด�
 
 #, python-format
 msgid ""
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"Archiving them will make dependent charts unavailable until they are "
+"recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"The selected %(type)s are used by %(charts)s. Archiving them will make "
+"dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
 msgstr ""
@@ -27714,6 +27769,15 @@ msgstr ""
 #, fuzzy
 msgid "The time unit used for the grouping of blocks"
 msgstr "หน่วยเวลาที่ใช้สำหรับการจัดกลุ่มบล็อก"
+
+#, python-format
+msgid ""
+"The transform answered %(typed)s for a timestamp but could not read the "
+"same instant written as text, which a filter typed as text sends. Without"
+" that answer the timestamp's cannot be checked, so filters on this "
+"mapping will not be mirrored. Write the transform so it reads :value both"
+" as a timestamp and as text."
+msgstr ""
 
 msgid ""
 "The transform answered with a value the driver and the database do not "
@@ -28412,17 +28476,17 @@ msgstr ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s day."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s day."
 msgid_plural ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s days."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
 msgstr[0] ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -28439,23 +28503,35 @@ msgstr ""
 
 #, python-format
 msgid ""
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"will make dependent charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is used by %(charts)s. Archiving it will make dependent "
+"charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s day."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s day."
 msgid_plural ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s days."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
 msgstr[0] ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
@@ -29116,7 +29192,9 @@ msgstr "ส่วนนี้มีตัวเลือกที่ช่วย
 msgid "This section contains validation errors"
 msgstr "ส่วนนี้มีข้อผิดพลาดในการตรวจสอบ"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
 msgstr ""
 
 msgid ""
@@ -29249,11 +29327,11 @@ msgstr "การดำเนินการนี้จะยกเลิก (�
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -31364,6 +31442,9 @@ msgstr "ดูแผนภูมิทั้งหมด"
 #, fuzzy
 msgid "View as table"
 msgstr "ดูเป็นตาราง"
+
+msgid "View in Recently Archived →"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,

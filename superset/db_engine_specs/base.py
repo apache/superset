@@ -1192,6 +1192,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.allows_alias_in_select
 
     @classmethod
+    def get_limit_method(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> LimitMethod:
+        """
+        Method for dynamic `limit_method`.
+
+        In Oracle the limit syntax is version-dependent, so Superset needs to inspect
+        the database configuration in order to determine it. This method allows
+        engine-specs to define dynamic values for the attribute.
+        """
+        return cls.limit_method
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.

@@ -3028,26 +3028,133 @@ class SqlaTable(
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if columns := query_obj.get("columns"):
-            calculated_columns: dict[str, Any] = {
-                c.column_name: c.expression for c in self.columns if c.expression
-            }
-            for column_ in columns:
-                if utils.is_adhoc_column(column_):
-                    templatable_statements.append(column_["sqlExpression"])
-                elif isinstance(column_, str) and column_ in calculated_columns:
-                    templatable_statements.append(calculated_columns[column_])
-        if metrics := query_obj.get("metrics"):
-            metrics_by_name: dict[str, Any] = {
-                m.metric_name: m.expression for m in self.metrics
-            }
-            for metric in metrics:
-                if utils.is_adhoc_metric(metric) and (
-                    sql := metric.get("sqlExpression")
+        calculated_columns: dict[str, Any] = {
+            c.column_name: c.expression for c in self.columns if c.expression
+        }
+        calculated_columns_by_verbose_name: dict[str, Any] = {
+            c.verbose_name: c.expression
+            for c in self.columns
+            if c.expression and c.verbose_name
+        }
+        metrics_by_name: dict[str, Any] = {
+            m.metric_name: m.expression for m in self.metrics
+        }
+
+        def column_expression(column_: Any) -> Any:
+            """The templatable expression behind an adhoc or calculated column."""
+            if utils.is_adhoc_column(column_):
+                # ``adhoc_column_to_sqla`` looks the expression up against the
+                # dataset's columns before treating it as SQL of its own, so an
+                # adhoc column that only names a calculated column renders that
+                # column's expression instead of this string. The frontend
+                # builds that shape for an ``x_axis`` column reference.
+                expression = column_["sqlExpression"] or ""
+                return calculated_columns.get(expression.strip(), expression)
+            if isinstance(column_, str):
+                return calculated_columns.get(column_)
+            return None
+
+        def metric_expression(metric: Any) -> Any:
+            """The templatable expression behind an adhoc or saved metric."""
+            if utils.is_adhoc_metric(metric):
+                if sql_expression := metric.get("sqlExpression"):
+                    return sql_expression
+                # A SIMPLE adhoc metric has no expression of its own, but
+                # ``adhoc_metric_to_sqla`` wraps its aggregate around the
+                # column's rendered expression, so a macro in a calculated
+                # column reaches the SQL through it.
+                metric_column = metric.get("column") or {}
+                column_name = metric_column.get("column_name")
+                return calculated_columns.get(column_name) if column_name else None
+            if isinstance(metric, str):
+                return metrics_by_name.get(metric)
+            return None
+
+        def filter_expression(flt: Any) -> Any:
+            """The templatable expression a filter's ``col`` resolves to."""
+            col = flt.get("col")
+            if expression := column_expression(col):
+                return expression
+            if isinstance(col, str):
+                # A filter column that is not a column name is resolved against
+                # the columns' verbose names (right-click "Drill to detail by"
+                # passes those) and then against the saved metrics, for a
+                # filter that becomes a HAVING clause.
+                return calculated_columns_by_verbose_name.get(
+                    col
+                ) or metrics_by_name.get(col)
+            return None
+
+        # ``get_sqla_query`` resolves ``groupby`` through the same column lookup
+        # as ``columns``, and prefers it when both are set, so a calculated
+        # column grouped on is rendered exactly like a selected one. In
+        # practice ``QueryObject.to_dict()`` never emits a ``groupby`` key of
+        # its own (``_rename_deprecated_fields`` folds it into ``columns`` at
+        # construction time, and that is the only real caller of this
+        # method), so this is defensive: it only matters for a caller that
+        # builds a ``QueryObjectDict`` directly rather than through
+        # ``QueryObject``.
+        for column_ in [
+            *(query_obj.get("columns") or []),
+            *(query_obj.get("groupby") or []),
+        ]:
+            if expression := column_expression(column_):
+                templatable_statements.append(expression)
+        for metric in query_obj.get("metrics") or []:
+            if expression := metric_expression(metric):
+                templatable_statements.append(expression)
+        # ``get_sqla_query`` renders these through the same template processor as
+        # the columns and metrics above, so a macro in them must trigger the
+        # extraction too, otherwise two users whose rendered SQL differs share a
+        # cache key:
+        #   - an adhoc metric in ``orderby``, or an ``orderby`` entry naming a
+        #     saved metric or calculated column not selected by the query
+        #   - ``series_limit_metric`` (and its legacy ``timeseries_limit_metric``
+        #     alias), via ``_get_series_orderby``
+        #   - a filter whose ``col`` resolves to a calculated column or a saved
+        #     metric
+        #   - the temporal column named by ``granularity``
+        for order_by in query_obj.get("orderby") or []:
+            entry = order_by[0] if isinstance(order_by, (list, tuple)) else order_by
+            if expression := metric_expression(entry) or column_expression(entry):
+                templatable_statements.append(expression)
+        for limit_metric in (
+            query_obj.get("series_limit_metric"),
+            query_obj.get("timeseries_limit_metric"),
+        ):
+            if expression := metric_expression(limit_metric):
+                templatable_statements.append(expression)
+        for flt in query_obj.get("filter") or []:
+            if isinstance(flt, dict) and (expression := filter_expression(flt)):
+                templatable_statements.append(expression)
+        if (raw_granularity := query_obj.get("granularity")) is not None:
+            # The temporal column reaches the select list and the time filter
+            # through ``get_timestamp_expression``, which renders its
+            # expression. ``get_sqla_query`` falls back to ``main_dttm_col``
+            # whenever ``granularity`` is not one of the temporal columns,
+            # which includes an empty string, so the fallback is checked on
+            # that condition rather than on ``granularity``'s truthiness.
+            granularity = (
+                self.main_dttm_col
+                if raw_granularity not in self.dttm_cols
+                else raw_granularity
+            )
+            if granularity:
+                if expression := calculated_columns.get(granularity):
+                    templatable_statements.append(expression)
+                # When the dataset always filters on ``main_dttm_col`` and it
+                # differs from the column ``granularity`` resolved to,
+                # ``get_sqla_query`` adds a second, independent time filter on
+                # ``main_dttm_col``, rendering that column's own expression
+                # regardless of which column was actually named.
+                if (
+                    self.always_filter_main_dttm
+                    and self.main_dttm_col
+                    and self.main_dttm_col in self.dttm_cols
+                    and self.main_dttm_col != granularity
+                    and (expression := calculated_columns.get(self.main_dttm_col))
                 ):
-                    templatable_statements.append(sql)
-                elif isinstance(metric, str) and metric in metrics_by_name:
-                    templatable_statements.append(metrics_by_name[metric])
+                    templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
