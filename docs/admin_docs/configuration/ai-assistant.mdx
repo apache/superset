@@ -180,6 +180,11 @@ rules along with everything else. Your deployment then owns them.
 `AI_SYSTEM_PROMPT_MUTATOR` is a last-mile callable applied after assembly,
 mirroring `SQL_QUERY_MUTATOR`.
 
+On-demand knowledge providers are not implemented. The unused
+`AI_KNOWLEDGE_PROVIDERS` setting and profile `knowledge_domains` field have been
+removed from this draft. Use small `AI_EXTRA_PROMPT_SECTIONS` for deployment
+guidance; these sections are included on every turn.
+
 ## Where turns execute
 
 `AI_ASSISTANT_EXECUTION_MODE` decides where the work happens.
@@ -212,8 +217,11 @@ Streams need Redis commands the general-purpose cache client does not expose,
 which is why the bus is configured separately rather than reusing `CACHE_CONFIG`.
 
 Selecting `"worker"` with the in-memory event bus raises rather than leaving
-every stream silently empty, and so does selecting the Redis bus without a
-usable connection.
+every stream silently empty. Redis and Redis Sentinel backend configurations are
+supported; constructing a backend does not verify network connectivity.
+
+Worker cancellation uses this same Redis connection and a flag with a 15-minute
+TTL. It does not depend on the general cache being shared between processes.
 
 A turn is deliberately **not** retried after a worker crash: inference costs
 money, and re-running a turn the user may already have partly seen would charge
@@ -226,6 +234,16 @@ can be queued again after an uncertain broker acknowledgement; only one delivery
 can claim it for execution. Retrying a completed turn does not regenerate its
 answer. An inline reconnect waits for the original producer's stored result
 rather than starting another inference; live deltas still belong to that producer.
+
+Provider transport failures use the provider's `retry_policy()` and a circuit
+breaker scoped to the run (five consecutive failures). Permanent request errors
+are not retried. Streaming calls can retry only before the first provider event;
+an interrupted partial answer is reported as failed without replaying its text
+or tool calls. These retries do not restart the entire turn.
+
+The conversation list accepts `limit` from 1 to 100 (default 50) and a nonnegative
+`offset` up to 2,147,483,647 (default 0). Invalid values return `422`. Message
+counts are aggregated for the requested page without loading conversation bodies.
 
 ## Safety and limits
 
