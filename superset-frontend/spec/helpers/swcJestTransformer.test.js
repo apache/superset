@@ -260,9 +260,10 @@ ${exportsBlock(`    ${GET} answer () {
     }`)}
 const answer = 1;
 `;
+  const MAP = { sentinel: true };
   const swc = {
-    process: jest.fn(() => ({ code: raw })),
-    processAsync: jest.fn(async () => raw),
+    process: jest.fn(() => ({ code: raw, map: MAP })),
+    processAsync: jest.fn(async () => ({ code: raw, map: MAP })),
     getCacheKey: jest.fn(() => 'base'),
   };
   jest.doMock('@swc/jest', () => ({ createTransformer: () => swc }));
@@ -272,8 +273,12 @@ const answer = 1;
     transformer = require('./swcJestTransformer').createTransformer({});
   });
   jest.dontMock('@swc/jest');
-  expect(transformer.process().code).toContain('configurable: true');
-  expect(await transformer.processAsync()).toContain('try { return answer;');
+  const sync = transformer.process();
+  expect(sync.code).toContain('configurable: true');
+  expect(sync.map).toBe(MAP);
+  const asyncResult = await transformer.processAsync();
+  expect(asyncResult.code).toContain('try { return answer;');
+  expect(asyncResult.map).toBe(MAP);
   expect(transformer.getCacheKey()).toMatch(
     /^base-babel-export-semantics-v\d+$/,
   );
