@@ -51,11 +51,32 @@ MAX_CHARTS = 50
 MAX_FILTERS = 25
 MAX_TABLES = 20
 
+MAX_HELPER_DIRECTIVES = 10
+MAX_HELPER_CHARS = 4_000
+
 #: Page types the client may report. An unknown value renders as "other" rather
 #: than being echoed back into the prompt.
 KNOWN_PAGE_TYPES = frozenset(
     {"sqllab", "explore", "dashboard", "chart", "home", "other"}
 )
+
+
+def render_helper_directives(context: Any) -> str:
+    """Bound browser-supplied instructions for a user-role prompt message."""
+    if not isinstance(context, dict):
+        return ""
+    directives = context.get("helper_directives")
+    if not isinstance(directives, list):
+        return ""
+    bounded = [
+        value[:MAX_HELPER_CHARS].strip()
+        for value in directives[:MAX_HELPER_DIRECTIVES]
+        if isinstance(value, str)
+    ]
+    text = "\n\n".join(value for value in bounded if value)
+    return (
+        f"# Additional user instructions\n\n{text}"[:MAX_HELPER_CHARS] if text else ""
+    )
 
 
 def render_page_context(context: Any) -> str:

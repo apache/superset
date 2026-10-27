@@ -110,7 +110,7 @@ export interface CheckpointPayload {
 export interface AIActionPayload {
   /** Sent as the user's message. */
   prompt: string;
-  /** Prepended to the conversation as a system directive. */
+  /** Additional user instructions; cannot override operator policies. */
   systemPrompt?: string;
   /** Name for the conversation the action opens. */
   tabName?: string;

@@ -295,7 +295,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
 
     yield session_event(request.thread_uuid, request.assistant_message_uuid)
 
-    from superset.ai.page_context import render_page_context
+    from superset.ai.page_context import render_helper_directives, render_page_context
 
     messages = AIChatMessageDAO.find_for_thread(thread)
     for index, message in enumerate(messages):
@@ -309,7 +309,11 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     # usually an answer to a different question than the reader assumed, and the
     # page context is where that difference lives.
     rendered_context = render_page_context(request.page_context)
-    state["page_context"] = rendered_context
+    directives = render_helper_directives(request.page_context)
+    recorded_context = "\n\n".join(
+        section for section in (rendered_context, directives) if section
+    )
+    state["page_context"] = recorded_context
     system_prompt = _build_system_prompt(tools, rendered_context)
     pinned_model = request.model or profile.model
     model = _resolved_model(provider, pinned_model, profile)
@@ -319,6 +323,9 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         model=model,
         question=_latest_question(history),
     )
+    if directives:
+        # Browser helpers have user authority; the actual question stays last.
+        history.insert(len(history) - 1, Message(MessageRole.USER, directives))
 
     run_request = RunRequest(
         messages=history,
@@ -360,7 +367,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
             "model": model,
             "tool_calls": result.tool_calls,
             "turns": result.turns,
-            **_recorded_context(rendered_context),
+            **_recorded_context(recorded_context),
         },
     )
 

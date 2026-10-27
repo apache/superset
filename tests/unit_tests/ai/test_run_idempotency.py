@@ -121,6 +121,43 @@ def test_post_replay_keeps_run_and_accepted_context(
         assert call.args[0].page_context == context
 
 
+@pytest.mark.parametrize("mode", ["inline", "worker"])
+def test_helper_directives_reach_the_provider_as_user_instructions(
+    client: FlaskClient,
+    session: Session,
+    mocker: MockerFixture,
+    conversation: str,
+    provider: EchoProvider,
+    mode: str,
+) -> None:
+    """Browser helpers guide the turn without becoming operator instructions."""
+    from superset.ai.orchestrator import execute_turn
+    from superset.models.ai import AIChatMessage
+
+    mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": mode})
+    submitted = mocker.patch("superset.ai.tasks.submit_turn")
+    result = _post(
+        client,
+        conversation,
+        page_context={"helper_directives": ["Be terse", "Use bullet points"]},
+    ).json["result"]
+    if mode == "worker":
+        execute_turn(submitted.call_args.args[0])
+    else:
+        client.get(f"{conversation}/stream?run_id={result['run_id']}").get_data()
+
+    request = provider.requests[0]
+    user_messages = [m.content for m in request.messages if m.role.value == "user"]
+    assert len(user_messages) == 2
+    assert "Be terse" in user_messages[0]
+    assert "Use bullet points" in user_messages[0]
+    assert user_messages[-1] == "one question"
+    assert "Be terse" not in request.system
+    session.expire_all()
+    assistant = session.query(AIChatMessage).filter_by(role="assistant").one()
+    assert "Be terse" in assistant.extra["page_context"]
+
+
 @pytest.mark.parametrize("reversed_delivery", [False, True])
 def test_queued_turn_history_stops_at_its_own_placeholder(
     client: FlaskClient,
