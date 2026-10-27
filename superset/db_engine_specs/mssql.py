@@ -96,6 +96,7 @@ class MssqlEngineSpec(BaseEngineSpec):
     max_column_name_length = 128
     allows_cte_in_subquery = False
     supports_multivalues_insert = True
+    supports_cancel_on_live_cursor = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -325,6 +326,8 @@ class MssqlEngineSpec(BaseEngineSpec):
 
 
 class AzureSynapseSpec(MssqlEngineSpec):
+    supports_cancel_on_live_cursor = False
+
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"

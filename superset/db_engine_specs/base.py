@@ -768,6 +768,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # owner cancel a query whose caller has given up.
     has_query_id_during_execute = False
 
+    # Execution owners may call cursor.cancel() from another thread when the
+    # driver exposes it. This does not enable SQL Lab's cross-process stop path.
+    supports_cancel_on_live_cursor = False
+
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
         """Build the bounded-read retry form of system-authored sampling SQL.
