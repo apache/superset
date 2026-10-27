@@ -313,10 +313,12 @@ def test_an_empty_tool_list_is_a_valid_profile() -> None:
     assert registry.get("chat").tools == ()
 
 
-def test_knowledge_domains_are_coerced_to_a_tuple() -> None:
-    """A configured list becomes the immutable form the profile declares."""
-    registry = _build({"analyst": {"knowledge_domains": ["finance", "sales"]}})
-    assert registry.get("analyst").knowledge_domains == ("finance", "sales")
+def test_unimplemented_knowledge_domains_are_rejected() -> None:
+    """A profile must not silently accept a setting with no runtime effect."""
+    from superset.ai.profiles import AgentProfileError
+
+    with pytest.raises(AgentProfileError, match="knowledge_domains"):
+        _build({"analyst": {"knowledge_domains": ["finance", "sales"]}})
 
 
 def test_overrides_are_read_from_config_by_default(mocker: MockerFixture) -> None:
