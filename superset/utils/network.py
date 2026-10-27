@@ -21,7 +21,7 @@ import socket
 import subprocess
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextvars import ContextVar
-from threading import Lock
+from threading import BoundedSemaphore, Lock
 from typing import Any, Protocol
 
 import requests
@@ -279,6 +279,8 @@ PROVIDER_DEADLINE: ContextVar[ConnectionDeadline | None] = ContextVar(
 )
 _RESOLVER: ThreadPoolExecutor | None = None
 _RESOLVER_LOCK: Lock = Lock()
+_RESOLVER_LIMIT: int = 8
+_RESOLVER_SLOTS: BoundedSemaphore = BoundedSemaphore(_RESOLVER_LIMIT)
 
 
 class NonPublicAddressError(OSError):
@@ -293,15 +295,22 @@ def _resolve_addresses(
     if timeout <= 0:
         raise TimeoutError
     with _RESOLVER_LOCK:
-        if _RESOLVER is None:
-            _RESOLVER = ThreadPoolExecutor(8, "provider-dns")
-        lookup: Future[Any] = _RESOLVER.submit(
-            socket.getaddrinfo, host, port, socket.AF_UNSPEC, socket.SOCK_STREAM
-        )
-    try:
-        answers: Any = lookup.result(timeout=timeout)
-    finally:
-        lookup.cancel()  # Queued work is disposable; running system DNS cannot stop.
+        slots: BoundedSemaphore = _RESOLVER_SLOTS
+        if not slots.acquire(blocking=False):
+            raise TimeoutError("Provider DNS capacity exhausted")
+        try:
+            if _RESOLVER is None:
+                _RESOLVER = ThreadPoolExecutor(_RESOLVER_LIMIT, "provider-dns")
+            lookup: Future[Any] = _RESOLVER.submit(
+                socket.getaddrinfo, host, port, socket.AF_UNSPEC, socket.SOCK_STREAM
+            )
+        except BaseException:
+            slots.release()
+            raise
+    # Never cancel timed-out submissions: cancellation leaves the work item queued.
+    # Only worker completion returns capacity, including queued and running work.
+    lookup.add_done_callback(lambda _: slots.release())
+    answers: Any = lookup.result(timeout=timeout)
     addresses: list[str] = list(dict.fromkeys(str(info[4][0]) for info in answers))
     if not addresses:
         raise OSError("No destination address")
@@ -416,9 +425,10 @@ class PinnedHTTPAdapter(HTTPAdapter):
 
 def _reset_resolver_after_fork() -> None:
     """Discard executor state and locks whose owning threads do not survive fork."""
-    global _RESOLVER, _RESOLVER_LOCK  # pylint: disable=global-statement
+    global _RESOLVER, _RESOLVER_LOCK, _RESOLVER_SLOTS  # pylint: disable=global-statement
     _RESOLVER = None
     _RESOLVER_LOCK = Lock()
+    _RESOLVER_SLOTS = BoundedSemaphore(_RESOLVER_LIMIT)
 
 
 if hasattr(os, "register_at_fork"):

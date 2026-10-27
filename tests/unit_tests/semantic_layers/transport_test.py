@@ -35,11 +35,13 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib.machinery import ModuleSpec
+from io import BytesIO
 from pathlib import Path
 from threading import get_ident, Lock, Thread
 from types import ModuleType
 from typing import Any, cast, TypeAlias
 from unittest.mock import Mock, patch
+from urllib.parse import urlsplit
 
 import pytest
 import requests
@@ -56,6 +58,7 @@ from superset_core.semantic_layers.transport import (
     ProviderTransport,
     RequestBudget,
 )
+from urllib3.response import HTTPResponse
 
 from superset.semantic_layers import transport as semantic_layer_http
 from superset.utils import network
@@ -350,19 +353,22 @@ def public_tls(
         local: str = "127.0.0.1" if host.endswith(".example.test") else host
         return real_resolve(local, *args, **kwargs)
 
-    original: Any = requests.Session.merge_environment_settings
-
-    def trust_test_ca(self: requests.Session, *args: Any) -> dict[str, Any]:
-        settings: dict[str, Any] = original(self, *args)
-        if get_ident() != owner:
-            return settings
-        settings["verify"] = str(cert)
-        return settings
-
     monkeypatch.setattr(network.socket, "getaddrinfo", resolve)
     monkeypatch.setattr(network, "is_safe_ip", lambda address: True)
-    monkeypatch.setattr(requests.Session, "merge_environment_settings", trust_test_ca)
+    monkeypatch.setattr(requests.adapters, "DEFAULT_CA_BUNDLE_PATH", str(cert))
     return context, resolved
+
+
+def test_public_tls_fixture_preserves_verification_choice(
+    public_tls: tuple[ssl.SSLContext, list[str]],
+) -> None:
+    """Trust installation must not override a caller disabling verification."""
+    session: semantic_layer_http._DirectSession
+    with semantic_layer_http._DirectSession() as session:
+        settings: semantic_layer_http._Settings = session.merge_environment_settings(
+            "https://public.example.test/", {}, False, False, None
+        )
+    assert settings["verify"] is False
 
 
 def test_public_tls_ignores_background_loopback_lookups(
@@ -401,6 +407,27 @@ def test_default_path_verifies_the_configured_hostname(
     assert set(resolved) - set(names) == set()  # Numeric connects do not resolve again.
 
 
+def test_default_path_rejects_an_untrusted_certificate(
+    public_tls: tuple[ssl.SSLContext, list[str]], tmp_path: Path
+) -> None:
+    """A matching hostname alone does not establish certificate trust."""
+    untrusted: Path = tmp_path / "untrusted"
+    untrusted.mkdir()
+    cert: Path
+    key: Path
+    cert, key = _certificate(untrusted, "public.example.test")
+    context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    port: int
+    seen: list[str]
+    with _server(context=context) as (port, seen):
+        with pytest.raises(ProviderRequestError, match="could not be reached"):
+            provider_request(
+                "fixture", "GET", f"https://public.example.test:{port}/", timeout=2
+            )
+    assert seen == []
+
+
 def test_default_path_follows_same_origin_get_redirects_only(
     public_tls: tuple[ssl.SSLContext, list[str]],
 ) -> None:
@@ -418,6 +445,138 @@ def test_default_path_follows_same_origin_get_redirects_only(
             provider_request("MetricFlow", "GET", f"{base}/away", timeout=2)
     assert response.json() == {"ok": True}
     assert [entry.split()[1] for entry in seen] == ["/accounts", "/accounts/", "/away"]
+
+
+@pytest.mark.parametrize(
+    "location,followed",
+    [
+        ("https://evil.example\\@provider.example/", False),
+        ("https://evil.example%5C@provider.example/", False),
+        ("https://attacker:pw@provider.example/x", False),
+        ("https://@provider.example/x", True),
+        ("https://:pw@provider.example/x", False),
+        ("https://provider.example@evil.example/", False),
+        ("https://PROVIDER.EXAMPLE/next", True),
+        ("https://provider.example./next", False),
+        ("https://provider.example:443/next", True),
+        ("https://provider.example:0/next", True),
+        ("http://provider.example/next", False),
+        ("/next", True),
+        ("/next\t", False),
+        ("/next\n", False),
+        ("/next\x00", False),
+        ("/next\x7f", False),
+        ("/next path", False),
+    ],
+)
+def test_redirect_checks_prepared_destination(
+    monkeypatch: pytest.MonkeyPatch, location: str, followed: bool
+) -> None:
+    """Exercise Requests preparation before capturing adapter-bound credentials."""
+    sent: list[requests.PreparedRequest] = []
+
+    def send(
+        adapter: network.PinnedHTTPAdapter,
+        request: requests.PreparedRequest,
+        **kwargs: Any,
+    ) -> requests.Response:
+        sent.append(request)
+        response: requests.Response = requests.Response()
+        response.status_code = 302 if len(sent) == 1 else 200
+        assert request.url is not None
+        response.url = request.url
+        response.request = request
+        response.raw = HTTPResponse(body=BytesIO(b"ok"), preload_content=False)
+        if len(sent) == 1:
+            response.headers["Location"] = location
+        return response
+
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    if followed:
+        assert (
+            provider_request(
+                "fixture",
+                "GET",
+                "https://provider.example/start",
+                timeout=2,
+                headers={"Authorization": "Bearer private", "X-API-Key": "private"},
+            ).status
+            == 200
+        )
+    else:
+        with pytest.raises(ProviderRequestError):
+            provider_request(
+                "fixture",
+                "GET",
+                "https://provider.example/start",
+                timeout=2,
+                headers={"Authorization": "Bearer private", "X-API-Key": "private"},
+            )
+    assert len(sent) == (2 if followed else 1)
+    assert all(urlsplit(request.url).hostname == "provider.example" for request in sent)
+    assert all(request.headers["X-API-Key"] == "private" for request in sent)
+    assert all(request.headers["Authorization"] == "Bearer private" for request in sent)
+
+
+@pytest.mark.parametrize("suffix", ["\\@provider.example/", "/path\n", "/a b"])
+def test_ambiguous_first_hop_is_rejected_before_adapter(
+    monkeypatch: pytest.MonkeyPatch, suffix: str
+) -> None:
+    """First-hop validation must not accept syntax Requests interprets differently."""
+    send: Mock = Mock(side_effect=AssertionError("Invalid URL reached adapter"))
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", f"https://evil.example{suffix}", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
+
+
+def test_hostless_prepared_url_is_invalid_before_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-HTTP preparation can succeed without yielding a network hostname."""
+    send: Mock = Mock(side_effect=AssertionError("Invalid URL reached adapter"))
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", "mailto:provider@example.test", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
+
+
+def test_missing_prepared_url_is_invalid_before_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing result from preparation must not be passed to the URL parser."""
+    prepare: Mock = Mock(return_value=None)
+    parse: Mock = Mock(wraps=urlsplit)
+    send: Mock = Mock(side_effect=AssertionError("Invalid URL reached adapter"))
+    monkeypatch.setattr(requests.PreparedRequest, "prepare_url", prepare)
+    monkeypatch.setattr(semantic_layer_http, "urlsplit", parse)
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", "https://provider.example/", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    prepare.assert_called_once_with("https://provider.example/", None)
+    parse.assert_not_called()
+    send.assert_not_called()
+
+
+@pytest.mark.parametrize("userinfo", ["user:pass", "user", ":pass"])
+def test_first_hop_userinfo_is_refused_before_sending(
+    monkeypatch: pytest.MonkeyPatch, userinfo: str
+) -> None:
+    """Provider credentials belong in headers, not URL authority."""
+    send: Mock = Mock(side_effect=AssertionError("Userinfo reached adapter"))
+    monkeypatch.setattr(network.PinnedHTTPAdapter, "send", send)
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request(
+            "fixture", "GET", f"https://{userinfo}@provider.example/", timeout=2
+        )
+    assert raised.value.failure == ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
 
 
 def test_flag_allows_local_http_development_endpoints() -> None:
@@ -476,7 +635,7 @@ def test_transport_failure_hides_the_destination(
             provider_request(
                 "DJ",
                 "GET",
-                "https://user:pass@dj.internal.example.com:8443/x?token=t",
+                "https://dj.internal.example.com:8443/x?token=t&password=pass",
                 timeout=1,
             )
     assert "dj.internal" not in str(raised.value)
@@ -495,7 +654,7 @@ def test_failure_logs_never_carry_url_secrets(
     listener.bind(("127.0.0.1", 0))
     port: int = listener.getsockname()[1]
     listener.close()  # Nothing listens: the connection is refused or blocked.
-    url: str = f"https://user:SECRET_PW@127.0.0.1:{port}/x?token=SECRET_TOKEN"
+    url: str = f"https://127.0.0.1:{port}/x?token=SECRET_TOKEN&password=SECRET_PW"
     with _internal_hosts(allowed), caplog.at_level("WARNING"):
         with pytest.raises(ProviderRequestError):
             provider_request("Cube", "GET", url, timeout=2)
@@ -1224,26 +1383,6 @@ def test_cross_scheme_redirect_returns_status_without_reading_body(
     send.assert_called_once()
 
 
-def test_explicit_zero_port_is_not_the_default_origin(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from unittest.mock import MagicMock
-
-    response: MagicMock = MagicMock(
-        status_code=302,
-        url="https://fixture.test:0/",
-        headers={"Location": "https://fixture.test:443/"},
-    )
-    response.__enter__.return_value = response
-    send: MagicMock = MagicMock(return_value=response)
-    monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
-    with pytest.raises(ProviderRequestError) as raised:
-        provider_request("fixture", "GET", response.url, timeout=1)
-    assert raised.value.failure == ProviderRequestFailure.HTTP_STATUS
-    send.assert_called_once()
-    response.raw.read1.assert_not_called()
-
-
 def test_completed_body_does_not_require_a_second_full_copy() -> None:
     """Keep an 8 MiB body to one buffer, allowing allocator slack and one chunk."""
     import tracemalloc
@@ -1345,6 +1484,8 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
         transport._scheduler()
         resolver: ThreadPoolExecutor | None = network._RESOLVER
         scheduler: transport.DeadlineScheduler | None = transport._SCHEDULER
+        for _ in range(network._RESOLVER_LIMIT):
+            assert network._RESOLVER_SLOTS.acquire(blocking=False)
         network._RESOLVER_LOCK.acquire()
         transport._SCHEDULER_LOCK.acquire()
         pid: int = os.fork()
@@ -1374,6 +1515,8 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
                 traceback.print_exc()
                 os._exit(1)
             os._exit(0)
+        for _ in range(network._RESOLVER_LIMIT):
+            network._RESOLVER_SLOTS.release()
         network._RESOLVER_LOCK.release()
         transport._SCHEDULER_LOCK.release()
         status: int
@@ -1433,7 +1576,7 @@ def test_non_string_label_cannot_chain_library_secrets(
 ) -> None:
     from unittest.mock import Mock
 
-    raw: str = "https://user:raw-secret@private.test/path?token=raw-secret"
+    raw: str = "https://private.test/path?token=raw-secret"
     send: Mock = Mock(side_effect=requests.ConnectionError(raw))
     monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
     with pytest.raises(ProviderRequestError) as raised:

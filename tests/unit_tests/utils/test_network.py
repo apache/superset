@@ -398,3 +398,66 @@ def test_pinned_connect_applies_socket_options_before_connect(
             sock.setsockopt.assert_called_once_with(
                 socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
             )
+
+
+def test_resolver_bounds_timed_out_queued_submissions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Timeouts retain their slots until workers drain the submitted lookups."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import BoundedSemaphore, Event
+
+    from superset.utils import network
+
+    release: Event = Event()
+    slots: BoundedSemaphore = BoundedSemaphore(2)
+    monkeypatch.setattr(network, "_RESOLVER_SLOTS", slots, raising=False)
+
+    def resolve(*args: object) -> list[tuple[None, None, None, None, tuple[str, int]]]:
+        assert release.wait(5)
+        return [(None, None, None, None, ("8.8.8.8", 443))]
+
+    monkeypatch.setattr(network.socket, "getaddrinfo", resolve)
+    executor: ThreadPoolExecutor
+    with ThreadPoolExecutor(1) as executor:
+        monkeypatch.setattr(network, "_RESOLVER", executor)
+        submit: MagicMock
+        with patch.object(executor, "submit", wraps=executor.submit) as submit:
+            try:
+                _attempt: int
+                for _attempt in range(10):
+                    with pytest.raises(TimeoutError):
+                        network.resolve_public_addresses(
+                            "fixture.test", 443, timeout=0.01
+                        )
+                assert submit.call_count == 2
+            finally:
+                release.set()
+        executor.shutdown(wait=True)
+    # Completion, not the caller timeout, returned both slots.
+    assert slots.acquire(blocking=False)
+    assert slots.acquire(blocking=False)
+    assert not slots.acquire(blocking=False)
+    slots.release()
+    slots.release()
+
+
+def test_resolver_submission_failure_returns_capacity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An executor refusing submission must not strand an admission slot."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import BoundedSemaphore
+
+    from superset.utils import network
+
+    slots: BoundedSemaphore = BoundedSemaphore(1)
+    executor: ThreadPoolExecutor
+    with ThreadPoolExecutor(1) as executor:
+        executor.shutdown(wait=True)
+    monkeypatch.setattr(network, "_RESOLVER", executor)
+    monkeypatch.setattr(network, "_RESOLVER_SLOTS", slots)
+    with pytest.raises(RuntimeError, match="cannot schedule"):
+        network.resolve_public_addresses("fixture.test", 443, timeout=1)
+    assert slots.acquire(blocking=False)
+    slots.release()

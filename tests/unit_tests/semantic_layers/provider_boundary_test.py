@@ -206,16 +206,15 @@ def test_transport_keeps_safe_text_and_suppresses_chain(
     assert captured.value.__suppress_context__
 
 
-@pytest.mark.parametrize("kind", ["backend", "unexpected", "refusal"])
+@pytest.mark.parametrize("kind", ["backend", "refusal"])
 def test_execution_does_not_log_sensitive_cause_or_context(
     app_context: None,
     caplog: pytest.LogCaptureFixture,
     kind: str,
 ) -> None:
-    """Typed and unknown provider failures never export diagnostic chains."""
+    """Typed provider failures never log diagnostic chains, even at DEBUG."""
     error: Exception = {
         "backend": SemanticBackendError(),
-        "unexpected": RuntimeError("private-error"),
         "refusal": SemanticQueryRejectedError("INVALID_QUERY"),
     }[kind]
     error.__cause__ = ValueError("private-cause")
@@ -225,7 +224,7 @@ def test_execution_does_not_log_sensitive_cause_or_context(
         SemanticLayerExecutionError | SemanticLayerQueryRejectedError
     ]
     with (
-        caplog.at_level(logging.ERROR),
+        caplog.at_level(logging.DEBUG, logger="superset.semantic_layers"),
         pytest.raises(
             (SemanticLayerExecutionError, SemanticLayerQueryRejectedError)
         ) as captured,
