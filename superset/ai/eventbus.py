@@ -260,8 +260,14 @@ def get_event_bus() -> BaseEventBus:
     if kind == "memory":
         return _memory_bus()
 
+    backend = get_event_bus_backend()
+    try:
+        if not backend.ping():
+            raise RuntimeError("Redis did not acknowledge PING.")
+    except Exception as ex:  # pylint: disable=broad-except
+        raise RuntimeError("AI event bus Redis connection check failed.") from ex
     return RedisStreamEventBus(
-        cache=get_event_bus_backend(),
+        cache=backend,
         prefix=current_app.config.get("AI_ASSISTANT_EVENT_STREAM_PREFIX", "ai-events-"),
         ttl_seconds=current_app.config.get("AI_ASSISTANT_EVENT_TTL_SECONDS", 900),
     )
@@ -284,7 +290,11 @@ def get_event_bus_backend() -> Any:
         RedisSentinelCacheBackend,
     )
 
-    config = current_app.config.get("AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG") or {}
+    config = {
+        "CACHE_REDIS_SOCKET_TIMEOUT": 5,
+        "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": 5,
+        **(current_app.config.get("AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG") or {}),
+    }
     cache_type = config.get("CACHE_TYPE")
 
     if cache_type == "RedisCache":

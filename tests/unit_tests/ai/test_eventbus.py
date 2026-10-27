@@ -601,6 +601,7 @@ def test_get_event_bus_returns_a_redis_bus_configured_from_config(
     from superset.coordination import cache_backend
 
     cache = FakeStreamCache()
+    mocker.patch("redis.Redis.ping", return_value=True)
     mocker.patch.dict(
         current_app.config,
         {

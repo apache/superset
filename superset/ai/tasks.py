@@ -205,4 +205,7 @@ def submit_turn(request: TurnRequest) -> None:
     flushed response headers, so it can still turn this into an honest error
     instead of a stream that never produces anything.
     """
+    from superset.ai.eventbus import get_event_bus
+
+    get_event_bus()
     run_turn.delay(request.to_payload())
