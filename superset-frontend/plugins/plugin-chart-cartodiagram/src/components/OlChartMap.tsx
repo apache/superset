@@ -26,7 +26,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
 import { toLonLat, transformExtent } from 'ol/proj';
 import { debounce } from 'lodash-es';
-import { fitMapToData } from '../util/mapUtil';
+import { fitMapToData, fitMapToCharts } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
 import {
