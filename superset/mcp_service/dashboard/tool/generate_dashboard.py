@@ -224,9 +224,10 @@ def generate_dashboard(  # noqa: C901
       Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Layout: by default, charts are arranged in an auto-generated 2-column
-      grid. A valid ``position_json`` replaces that grid for custom rows,
-      header bands, or MARKDOWN/HEADER components. Invalid explicit layouts
-      fall back to the auto-generated grid and return a warning.
+      grid. When ``position_json`` is supplied, a valid layout replaces that
+      grid for custom rows, header bands, or MARKDOWN/HEADER components.
+      Invalid explicit layouts fall back to the auto-generated grid and
+      return a warning.
       Each component's ``parents`` is recomputed from its ``children`` edges
       before saving, so an omitted or incomplete ``parents`` array is fine.
 
