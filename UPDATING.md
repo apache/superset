@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Chart-sourced annotation layers follow the host chart's time range and
+  time grain.** On an Event, Interval or Time Series annotation layer that
+  reads another chart, **Override time range** and **Override time grain** now
+  take effect: the source chart's query is run with the host chart's time
+  range (including a dashboard time range filter) or time grain. These
+  checkboxes previously had no effect on charts with a generic x-axis, and
+  **Override time range** is checked by default when a source chart is picked,
+  so existing layers that relied on the source chart's own saved time range
+  will start showing only the annotations inside the host's range. Uncheck
+  **Override time range** or **Override time grain** on the layer to keep the
+  source chart's own settings. Explicit `overrides` values sent through the
+  chart data API (for example `{"time_range": "Last year"}`) are also applied.
+
 - MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
   values with "Text must not be empty"; omit the field to keep the stored title.
   MCP chart names and theme names are capped at 250 characters, matching their
