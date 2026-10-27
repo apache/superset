@@ -748,7 +748,7 @@ async def run_in_worker(
 
 
 class QueryCancellation:
-    """Bridge engine cancellation to a separate, freshly scoped metadata session."""
+    """Cancel through an owned live cursor or a freshly scoped metadata session."""
 
     def __init__(
         self,
@@ -767,6 +767,8 @@ class QueryCancellation:
         self.schema = schema
         self.cancel_id: str | None = None
         self.context = copy_context()
+        self._cursor_lock = threading.Lock()
+        self._cursor_active = True
 
     def capture(self) -> None:
         """Capture an engine handle without making unsupported drivers fail.
@@ -791,7 +793,10 @@ class QueryCancellation:
     def register(self) -> None:
         """Publish a usable handle, including one obtained after the deadline."""
         with self.call.lock:
-            if self.spec.has_implicit_cancel():
+            if self.spec.has_implicit_cancel() or (
+                self.spec.supports_cancel_on_live_cursor is True
+                and callable(getattr(self.cursor, "cancel", None))
+            ):
                 self.call.cancel_query = self.cancel_live_cursor
             elif (
                 self.cancel_id is not None
@@ -812,15 +817,23 @@ class QueryCancellation:
         self.call.check()
 
     def cancel_live_cursor(self) -> None:
-        """Use the same implicit driver cancellation as engine handle_cursor."""
-        try:
-            self.cursor.cancel()
-        except Exception:
-            logger.warning(
-                "MCP call %s: cursor cancellation failed",
-                self.call.call_id,
-                exc_info=True,
-            )
+        """Keep the driver's original cursor alive until cancellation finishes."""
+        with self._cursor_lock:
+            if not self._cursor_active:
+                return
+            try:
+                self.cursor.cancel()
+            except Exception:
+                logger.warning(
+                    "MCP call %s: cursor cancellation failed",
+                    self.call.call_id,
+                    exc_info=True,
+                )
+
+    def deactivate(self) -> None:
+        """Drain native cancellation before the owner closes or reuses its cursor."""
+        with self._cursor_lock:
+            self._cursor_active = False
 
     def cancel(self) -> None:
         """Resolve a fresh Database and acting user on the cancellation worker."""
@@ -895,3 +908,4 @@ def warehouse_cursor(
         check_deadline.reset(deadline_token)
         with call.lock:
             call.cancel_query = None
+        cancellation.deactivate()

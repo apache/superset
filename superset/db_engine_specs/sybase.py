@@ -27,6 +27,8 @@ class SybaseEngineSpec(MssqlEngineSpec):
     similar to Microsoft SQL Server.
     """
 
+    supports_cancel_on_live_cursor = False
+
     engine = "sybase"
     engine_name = "SAP Sybase"
     engine_aliases = {"sybase_sqlany"}  # Support SQL Anywhere dialect too
