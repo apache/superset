@@ -864,6 +864,29 @@ test('a failed edit after Cancel does not show a stale danger toast', async () =
   expect(props.addDangerToast).not.toHaveBeenCalled();
 });
 
+test('cancel during error parsing suppresses a stale save danger toast', async () => {
+  mockJsonFormsChangeTriggered = true;
+  let finishError!: (value: { error: string }) => void;
+  jest.mocked(getClientErrorObject).mockReturnValueOnce(
+    new Promise(resolve => {
+      finishError = resolve;
+    }),
+  );
+  const mockedPut = SupersetClient.put as jest.Mock;
+  mockedPut.mockReset().mockRejectedValueOnce(new Error('save failed'));
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
+  await waitFor(() => expect(getClientErrorObject).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => finishError({ error: 'save failed' }));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
 test('schema loading keeps an in-flow spinner in a reserved modal body', async () => {
   let finishSchema!: (value: { json: { result: JsonSchema } }) => void;
   mockedPost.mockReset().mockReturnValueOnce(
