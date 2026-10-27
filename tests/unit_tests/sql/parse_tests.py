@@ -2873,6 +2873,30 @@ LATERAL generate_series(1, value) AS i;
         ("SELECT * FROM t ORDER BY c LIMIT 555", "clickhouse", 555),
         ("SELECT * FROM t LIMIT 5 OFFSET 3", "clickhouse", 5),
         ("SELECT * FROM t LIMIT 3, 5", "clickhouse", 5),
+        # Oracle before 12c caps rows with a `ROWNUM` filter in the outer
+        # `WHERE`, alone or `AND`-ed with other conditions.
+        ("SELECT * FROM t WHERE ROWNUM <= 5", "oracle", 5),
+        ("SELECT * FROM t WHERE rownum < 5", "oracle", 4),
+        ("SELECT * FROM t WHERE 5 >= ROWNUM", "oracle", 5),
+        ("SELECT * FROM t WHERE 5 > ROWNUM", "oracle", 4),
+        ("SELECT * FROM t WHERE (ROWNUM <= (5))", "oracle", 5),
+        ("SELECT * FROM t WHERE x = 1 AND ROWNUM <= 5", "oracle", 5),
+        ("SELECT * FROM t WHERE ROWNUM <= 9 AND x = 1 AND ROWNUM < 4", "oracle", 3),
+        ("SELECT * FROM t WHERE ROWNUM < 0", "oracle", 0),
+        ("SELECT * FROM (SELECT * FROM t) WHERE ROWNUM <= 11", "oracle", 11),
+        # ... but not when the comparison doesn't bound the outer result.
+        ("SELECT * FROM t WHERE x = 1 OR ROWNUM <= 5", "oracle", None),
+        ("SELECT * FROM t WHERE ROWNUM >= 5", "oracle", None),
+        ("SELECT * FROM t WHERE ROWNUM <= :n", "oracle", None),
+        ("SELECT * FROM t WHERE t.rownum <= 5", "oracle", None),
+        # A quoted "rownum" is a column of that name, not the pseudocolumn.
+        ('SELECT * FROM t WHERE "rownum" <= 5', "oracle", None),
+        ('SELECT * FROM t WHERE "ROWNUM" <= 5', "oracle", None),
+        ("SELECT * FROM t WHERE x = 1", "oracle", None),
+        ("SELECT * FROM (SELECT * FROM t WHERE ROWNUM <= 5)", "oracle", None),
+        ("SELECT a FROM t WHERE ROWNUM <= 5 UNION SELECT a FROM u", "oracle", None),
+        # `ROWNUM` is only Oracle's pseudocolumn; elsewhere it is a plain column.
+        ("SELECT * FROM t WHERE rownum <= 5", "postgresql", None),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
@@ -3302,6 +3326,175 @@ def test_set_limit_value(
     statement = SQLStatement(sql, engine)
     statement.set_limit_value(limit, method)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        (
+            "SELECT 1 AS col1 FROM dual",
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    1 AS col1
+  FROM dual
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+        # The ordering stays inside, so `ROWNUM` numbers the sorted rows.
+        (
+            "SELECT n FROM t ORDER BY n DESC FETCH FIRST 5 ROWS ONLY",
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    n
+  FROM t
+  ORDER BY
+    n DESC
+  FETCH FIRST 5 ROWS ONLY
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+        (
+            "WITH c AS (SELECT n FROM t) SELECT n FROM c ORDER BY n",
+            """
+WITH c AS (
+  SELECT
+    n
+  FROM t
+)
+SELECT
+  *
+FROM (
+  SELECT
+    n
+  FROM c
+  ORDER BY
+    n
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+        (
+            "SELECT n FROM t UNION ALL SELECT n FROM u",
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    n
+  FROM t
+  UNION ALL
+  SELECT
+    n
+  FROM u
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+    ],
+)
+def test_set_limit_value_oracle_rownum(sql: str, expected: str) -> None:
+    """
+    Oracle before 12c has no `FETCH FIRST`, so the cap is a `ROWNUM` filter.
+    """
+    statement = SQLStatement(sql, "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+    assert statement.format() == expected
+    assert statement.get_limit_value() == 11
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT a.n, b.n FROM a JOIN b ON a.n = b.n", ["n", "n_2"]),
+        ("SELECT a.n, b.N, n_2 FROM t", ["n", "N_3", "n_2"]),
+        ("SELECT a.n AS v, b.n AS v, c.n AS V FROM t", ["v", "v_2", "V_3"]),
+        # Quoted names are case-sensitive, unquoted ones are not.
+        ('SELECT 1 AS "x", 2 AS "x", 3 AS x FROM dual', ["x", "x_2", "x"]),
+        ("(SELECT a.n, b.n FROM a, b)", ["n", "n_2"]),
+        # A set operation takes its names from its leftmost query.
+        ("SELECT a.n, b.n FROM a, b UNION ALL SELECT 1, 1 FROM dual", ["n", "n_2"]),
+        # Legacy Oracle caps names at 30 bytes, suffix included.
+        (
+            "SELECT a.cccccccccccccccccccccccccccccc, "
+            "b.cccccccccccccccccccccccccccccc FROM a, b",
+            ["c" * 30, "c" * 28 + "_2"],
+        ),
+        # The limit is in bytes: "ç" takes two, so the stem keeps 14 of them.
+        (
+            "SELECT a.ççççççççççççççç, b.ççççççççççççççç FROM a, b",
+            ["ç" * 15, "ç" * 14 + "_2"],
+        ),
+        ("SELECT n FROM t", ["n"]),
+    ],
+)
+def test_set_limit_value_oracle_rownum_renames_duplicates(
+    sql: str, expected: list[str]
+) -> None:
+    """
+    Oracle rejects a wrapped query with repeated output names (ORA-00918).
+    """
+    statement = SQLStatement(sql, "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+
+    inner = statement._parsed.args["from_"].this.this
+    while isinstance(inner, (exp.SetOperation, exp.Subquery)):
+        inner = inner.this
+    assert [projection.alias_or_name for projection in inner.expressions] == expected
+
+
+def test_set_limit_value_oracle_rownum_keeps_unnamed_projections() -> None:
+    """
+    Star projections and unnamed expressions have no name to make unique.
+    """
+    statement = SQLStatement("SELECT a.*, b.*, 1 + 1, 1 + 1 FROM a, b", "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+    assert statement.format(comments=False) == (
+        "SELECT\n  *\nFROM (\n  SELECT\n    a.*,\n    b.*,\n    1 + 1,\n"
+        "    1 + 1\n  FROM a, b\n)\nWHERE\n  ROWNUM <= 11"
+    )
+
+
+def test_deduplicate_oracle_output_names_ignores_non_select() -> None:
+    """
+    Only a `SELECT` list has output names to rename.
+    """
+    from superset.sql.parse import _deduplicate_oracle_output_names
+
+    values = parse_one("VALUES (1, 1)", dialect="postgres")
+    _deduplicate_oracle_output_names(values)
+    assert values.sql() == "VALUES (1, 1)"
+
+
+@pytest.mark.parametrize(
+    "sql, limit, expected",
+    [
+        ("SELECT n FROM t", 10, 10),
+        ("SELECT n FROM t WHERE ROWNUM <= 5", 10, 5),
+        ("SELECT n FROM t WHERE ROWNUM <= 50", 10, 10),
+        ("SELECT * FROM (SELECT n FROM t) WHERE ROWNUM <= 11", 11, 11),
+    ],
+)
+def test_cap_limit_value_oracle_rownum(sql: str, limit: int, expected: int) -> None:
+    """
+    A `ROWNUM` cap keeps a smaller `ROWNUM` filter and isn't stacked on itself.
+    """
+    statement = SQLStatement(sql, "oracle")
+    statement.cap_limit_value(limit, LimitMethod.WRAP_ROWNUM)
+    assert statement.get_limit_value() == expected
+    if expected < limit or sql.startswith("SELECT * FROM ("):
+        assert statement.format() == SQLStatement(sql, "oracle").format()
 
 
 @pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
