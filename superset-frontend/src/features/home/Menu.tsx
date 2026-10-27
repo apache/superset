@@ -23,7 +23,7 @@ import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
-import { usePages } from 'src/core/pages';
+import { findPageByPath, usePages } from 'src/core/pages';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -356,6 +356,26 @@ export function Menu({
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
+    // A contributed page is asked of the registry, and asked first.
+    //
+    // Its key is none of `MenuKeys`, so the `default` branch cleared the
+    // selection and left the entry unhighlighted while its own page was open.
+    // Asking the registry rather than matching here keeps one definition of
+    // which paths a page owns -- `isFrontendRoute` and `derivePage` read the
+    // same one -- and it answers by longest match with segment boundaries, so
+    // a page at `/reports/archive` wins over one at `/reports`, and
+    // `/reports-weekly` belongs to neither.
+    //
+    // Before the host cases rather than after, because those match by
+    // unbounded prefix: a page at `/dashboard-review` would otherwise
+    // underline Dashboards. The order cannot cost a host screen its own
+    // highlight, since the server refuses a page whose path it already
+    // serves and a refused page is never registered.
+    const contributed = findPageByPath(path);
+    if (contributed) {
+      setActiveTabs([`extension:${contributed.path}`]);
+      return;
+    }
     switch (true) {
       case path.startsWith(Paths.Dashboard):
         setActiveTabs([MenuKeys.Dashboards]);
@@ -374,7 +394,11 @@ export function Menu({
       default:
         setActiveTabs(defaultTabSelection);
     }
-  }, [location.pathname]);
+    // `contributedPages` is a dependency because a bundle registers long
+    // after the first render: without it a cold load onto a contributed page
+    // would never highlight its entry, there being no navigation to re-run
+    // this.
+  }, [location.pathname, contributedPages]);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
