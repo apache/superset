@@ -117,6 +117,10 @@ const SaveQuery = ({
   // that settles afterwards cannot restore an error or close a modal the user
   // has since moved on from.
   const generation = useRef(0);
+  // Identifies the request that owns the `submitting` state. Closing the modal
+  // revokes it, so an obsolete request settling later cannot re-enable the
+  // buttons while a newer request is still pending.
+  const submissionToken = useRef(0);
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   // Saving a dataset runs the SQL to introspect columns, so it needs a
@@ -158,6 +162,7 @@ const SaveQuery = ({
 
   const close = () => {
     generation.current += 1;
+    submissionToken.current += 1;
     setShowSave(false);
     setLabelError('');
     setSubmitting(false);
@@ -167,6 +172,8 @@ const SaveQuery = ({
   // can be changed and the save retried.
   const submit = async (action: SaveQueryProps['onSave']) => {
     const submittedGeneration = generation.current;
+    submissionToken.current += 1;
+    const token = submissionToken.current;
     setLabelError('');
     setSubmitting(true);
     try {
@@ -177,7 +184,9 @@ const SaveQuery = ({
       }
       return;
     } finally {
-      setSubmitting(false);
+      if (submissionToken.current === token) {
+        setSubmitting(false);
+      }
     }
     if (generation.current === submittedGeneration) {
       close();
