@@ -92,7 +92,9 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
     mocker.patch(
         "superset.sql_lab.event_logger.log_context", return_value=nullcontext()
     )
-    post = mocker.patch("superset.db_engine_specs.impala.get_ssrf_safe_requester").return_value.post
+    post = mocker.patch(
+        "superset.db_engine_specs.impala.get_ssrf_safe_requester"
+    ).return_value.post
 
     with pytest.raises(SqlLabQueryStoppedException):
         execute_query(query, cursor)
