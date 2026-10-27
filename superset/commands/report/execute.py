@@ -21,7 +21,7 @@ import urllib.request
 from collections.abc import Sequence
 from contextlib import closing
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
 from uuid import UUID
@@ -123,6 +123,7 @@ from superset.utils.csv import (
     get_chart_csv_data,
     get_chart_dataframe,
 )
+from superset.utils.dates import naive_utcnow
 from superset.utils.decorators import (
     logs_context,
     transaction,
@@ -334,9 +335,7 @@ def persist_owned_report_execution_terminal_error(
                 .update(
                     {
                         ReportSchedule.last_state: ReportState.ERROR,
-                        ReportSchedule.last_eval_dttm: datetime.now(
-                            timezone.utc
-                        ).replace(tzinfo=None),
+                        ReportSchedule.last_eval_dttm: naive_utcnow(),
                     },
                     synchronize_session="fetch",
                 )
@@ -412,7 +411,7 @@ def persist_owned_report_execution_terminal_error(
                 or report_schedule.execution_owner == str(execution_id)
             )
         )
-        ended_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        ended_at = naive_utcnow()
         working_log.state = ReportState.ERROR
         working_log.error_message = error_message
         working_log.end_dttm = ended_at
@@ -494,7 +493,7 @@ class BaseReportState:
     ) -> None:
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
-        self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        self._start_dttm: datetime = naive_utcnow()
         self._execution_id = execution_id
         self._report_execution_context = report_execution_context
         self._delivery_started = False
@@ -516,9 +515,7 @@ class BaseReportState:
         """Return the monotonic deadline for Slack delivery in this execution."""
         report_deadline = None
         if self._report_schedule.working_timeout is not None:
-            elapsed = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - self._start_dttm
-            ).total_seconds()
+            elapsed = (naive_utcnow() - self._start_dttm).total_seconds()
             remaining = max(
                 float(self._report_schedule.working_timeout) - elapsed,
                 0,
@@ -613,9 +610,7 @@ class BaseReportState:
                     .update(
                         {
                             ReportSchedule.last_state: state,
-                            ReportSchedule.last_eval_dttm: datetime.now(
-                                timezone.utc
-                            ).replace(tzinfo=None),
+                            ReportSchedule.last_eval_dttm: naive_utcnow(),
                         },
                         synchronize_session=False,
                     )
@@ -629,9 +624,7 @@ class BaseReportState:
             self._report_schedule.last_value_row_json = None
 
         self._report_schedule.last_state = state
-        self._report_schedule.last_eval_dttm = datetime.now(timezone.utc).replace(
-            tzinfo=None
-        )
+        self._report_schedule.last_eval_dttm = naive_utcnow()
 
     def update_report_schedule_slack_v2(self) -> None:
         """Update every Slack v1 recipient atomically to Slack v2."""
@@ -695,7 +688,7 @@ class BaseReportState:
                     uuid=self._execution_id,
                 )
                 db.session.add(log)
-            log.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
+            log.end_dttm = naive_utcnow()
             log.value = self._report_schedule.last_value
             log.value_row_json = self._report_schedule.last_value_row_json
             log.state = effective_state
@@ -1105,7 +1098,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = naive_utcnow()
 
         user, _ = resolve_executor_user(self._report_schedule)
 
@@ -1169,9 +1162,7 @@ class BaseReportState:
                 if for_delivery:
                     self._validate_screenshot(imge)
                 imges.append(imge)
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "report_capture_complete %s elapsed_seconds=%.2f "
                 "remaining_seconds=%s screenshot_count=%s",
@@ -1186,9 +1177,7 @@ class BaseReportState:
             )
         except SoftTimeLimitExceeded as ex:
             self._reject_capture("capture_interrupted")
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.warning(
                 "report_capture_terminal %s elapsed_seconds=%.2f "
                 "remaining_seconds=%s terminal_reason=celery_soft_timeout",
@@ -1211,9 +1200,7 @@ class BaseReportState:
             raise
         except Exception as ex:
             self._reject_capture("capture_failed")
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.error(
                 "report_capture_terminal %s elapsed_seconds=%.2f "
                 "remaining_seconds=%s terminal_reason=%s",
@@ -1421,7 +1408,7 @@ class BaseReportState:
                 ReportScheduleCsvFailedError,
             )
 
-        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = naive_utcnow()
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
@@ -1473,9 +1460,7 @@ class BaseReportState:
                 endpoint=endpoint,
                 log_context=self._log_context,
             )
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "%s data generation from %s as user %s took %.2fs - execution_id: %s",
                 label,
@@ -1485,9 +1470,7 @@ class BaseReportState:
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.warning(
                 "%s generation timeout after %.2fs - execution_id: %s",
                 label,
@@ -1504,9 +1487,7 @@ class BaseReportState:
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.exception(
                 "%s generation failed after %.2fs - execution_id: %s",
                 label,
@@ -1522,7 +1503,7 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
-        start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+        start_time: datetime = naive_utcnow()
 
         url: str
         user, username = resolve_executor_user(self._report_schedule)
@@ -1568,9 +1549,7 @@ class BaseReportState:
                         timeout=timeout,
                     )
                 )
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
                 url,
@@ -1579,9 +1558,7 @@ class BaseReportState:
                 self._execution_id,
             )
         except SoftTimeLimitExceeded as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.warning(
                 "DataFrame generation timeout after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -1593,9 +1570,7 @@ class BaseReportState:
         except ReportExecutionBudgetExceededError:
             raise
         except Exception as ex:
-            elapsed_seconds = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds = (naive_utcnow() - start_time).total_seconds()
             logger.error(
                 "DataFrame generation failed after %.2fs - execution_id: %s",
                 elapsed_seconds,
@@ -1991,8 +1966,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=self._report_schedule.grace_period)
+            and naive_utcnow() - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
 
@@ -2008,8 +1982,7 @@ class BaseReportState:
         return (
             last_success is not None
             and self._report_schedule.grace_period
-            and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=self._report_schedule.grace_period)
+            and naive_utcnow() - timedelta(seconds=self._report_schedule.grace_period)
             < last_success.end_dttm
         )
 
@@ -2272,9 +2245,7 @@ class BaseReportState:
         return (
             working_timeout is not None
             and entered_at is not None
-            and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=working_timeout)
-            > entered_at
+            and naive_utcnow() - timedelta(seconds=working_timeout) > entered_at
         )
 
     def next(self) -> None:
@@ -2308,7 +2279,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
             )
             last_touched = self._report_schedule.last_eval_dttm
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            now = naive_utcnow()
             if last_touched and (now - last_touched).total_seconds() < max_delay:
                 logger.info(
                     "Skipping crontab execution for report %s — retries "
@@ -2457,10 +2428,7 @@ class ReportWorkingState(BaseReportState):
                 self._report_schedule
             )
             elapsed_seconds = (
-                (
-                    datetime.now(timezone.utc).replace(tzinfo=None)
-                    - last_working.end_dttm
-                ).total_seconds()
+                (naive_utcnow() - last_working.end_dttm).total_seconds()
                 if last_working
                 else None
             )
@@ -2815,7 +2783,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             # inside the state machine, where failures are logged and terminalized.
             user, username = get_executor_user(self._model)
 
-            start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
+            start_time: datetime = naive_utcnow()
             with override_user(user):
                 # Pre-commit any permalink rows before the state machine's
                 # @transaction() opens. When called inside a transaction,
@@ -2888,9 +2856,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     execution_claim,
                 ).run()
 
-            elapsed_seconds: float = (
-                datetime.now(timezone.utc).replace(tzinfo=None) - start_time
-            ).total_seconds()
+            elapsed_seconds: float = (naive_utcnow() - start_time).total_seconds()
             logger.info(
                 "Report execution as user %s completed in %.2fs - execution_id: %s",
                 username,
