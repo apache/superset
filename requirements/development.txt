@@ -368,6 +368,7 @@ flask-wtf==1.3.0
 fonttools==4.62.0
     # via
     #   -r requirements/development.in
+    #   apache-superset
     #   matplotlib
 freezegun==1.5.1
     # via apache-superset
