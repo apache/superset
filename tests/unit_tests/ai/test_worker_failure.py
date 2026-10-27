@@ -118,7 +118,7 @@ def test_parent_worker_failure_finalises_only_unfinished_runs(
 
 def test_worker_task_pins_early_acknowledgement() -> None:
     """The no-redelivery contract must not inherit Helm's late-ack setting."""
-    subprocess.run(
+    subprocess.run(  # noqa: S603 - fixed test code in an isolated interpreter
         [
             sys.executable,
             "-c",
