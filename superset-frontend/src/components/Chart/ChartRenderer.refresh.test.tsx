@@ -86,7 +86,7 @@ beforeAll(() => {
     metadata: new ChartMetadata({ name: 'Refresh test chart', thumbnail: '' }),
     Chart: TestChart,
     transformProps: chartProps => {
-      testChartTransformed();
+      testChartTransformed(chartProps.formData);
       return {
         queriesData: chartProps.queriesData,
         label: chartProps.formData.label,
@@ -691,6 +691,72 @@ test('draws the previous data without a colour setting cleared on the dashboard'
   expect(screen.getByTestId('refresh-test-chart')).toHaveTextContent('value=1');
   expect(screen.getByTestId('refresh-test-chart-scheme')).toBeEmptyDOMElement();
 });
+
+test.each([
+  ['color_scheme', 'colorScheme', 'supersetColors', 'bnbColors'],
+  ['own_color_scheme', 'ownColorScheme', 'supersetColors', 'bnbColors'],
+  ['label_colors', 'labelColors', { boy: '#111111' }, { boy: '#222222' }],
+  ['shared_label_colors', 'sharedLabelColors', ['boy'], ['boy', 'girl']],
+  [
+    'map_label_colors',
+    'mapLabelColors',
+    { boy: '#111111' },
+    { boy: '#222222' },
+  ],
+])(
+  'draws the previous data with the %s the dashboard set without a query',
+  async (key, chartPropsKey, queried, current) => {
+    // Label colour edits and shared colour sync change formData without
+    // running a query, so the response and its request form data stay as
+    // they were.
+    const previous = queriesResponse(1);
+    const queriedFormData = {
+      ...labelledFormData('before'),
+      [key]: queried,
+    } as ChartRendererProps['formData'];
+    const currentFormData = {
+      ...labelledFormData('before'),
+      [key]: current,
+    } as ChartRendererProps['formData'];
+    const { rerender } = render(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="rendered"
+        formData={queriedFormData}
+        latestQueryFormData={queriedFormData}
+        queriesResponse={previous}
+      />,
+    );
+    await waitForChartLoad();
+
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="rendered"
+        formData={currentFormData}
+        latestQueryFormData={queriedFormData}
+        queriesResponse={previous}
+      />,
+    );
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="loading"
+        formData={currentFormData}
+        latestQueryFormData={queriedFormData}
+        queriesResponse={previous}
+      />,
+    );
+    await waitForChartLoad();
+
+    expect(screen.getByTestId('refresh-test-chart')).toHaveTextContent(
+      'value=1 label=before',
+    );
+    expect(testChartTransformed).toHaveBeenLastCalledWith(
+      expect.objectContaining({ [chartPropsKey]: current }),
+    );
+  },
+);
 
 test('shows the regular spinner for a dashboard chart mounted while its query is in flight', async () => {
   // Nothing tells this chart which form data the response in the store was
