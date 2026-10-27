@@ -3514,6 +3514,27 @@ def test_flatten_and(condition: str, expected: list[str]) -> None:
     assert [leaf.sql() for leaf in leaves] == expected
 
 
+def test_flatten_and_deep_chain_does_not_recurse() -> None:
+    """
+    A parenthesized `AND` chain deeper than the recursion limit is flattened
+    iteratively, returning every leaf in order.
+    """
+    import sys
+
+    from superset.sql.parse import _flatten_and
+
+    depth = sys.getrecursionlimit() + 100
+    leaves = [
+        exp.EQ(this=exp.column(f"c{i}"), expression=exp.Literal.number(i))
+        for i in range(depth)
+    ]
+    chain: exp.Expression = leaves[0]
+    for leaf in leaves[1:]:
+        chain = exp.Paren(this=exp.And(this=chain, expression=leaf))
+
+    assert _flatten_and(chain) == leaves
+
+
 @pytest.mark.parametrize(
     "sql, limit, expected",
     [
