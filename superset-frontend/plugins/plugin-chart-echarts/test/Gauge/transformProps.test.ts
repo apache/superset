@@ -875,10 +875,10 @@ describe('getIntervalBoundsAndColors', () => {
       'supersetColors' as string,
     );
     expect(
-      getIntervalBoundsAndColors('4, 10', '1, 2', [], colorFn, 0, 10),
+      getIntervalBoundsAndColors('4, 10', '2, 1', [], colorFn, 0, 10),
     ).toEqual([
-      [0.4, '#1f77b4'],
-      [1, '#ff7f0e'],
+      [0.4, '#ff7f0e'],
+      [1, '#1f77b4'],
     ]);
   });
 });
