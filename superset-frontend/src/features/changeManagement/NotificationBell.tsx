@@ -23,6 +23,7 @@ import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Badge, Popover } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { fetchList, fetchPendingCount } from './api';
+import { approvalsPath } from './approvalsPath';
 import { ago, isStale } from './display';
 import { displayName } from './types';
 import type { ChangeRequest, PendingCount } from './types';
@@ -198,7 +199,7 @@ export default function NotificationBell() {
       ) : null}
 
       <Footer>
-        <a href="/approvals/">{t('View all approvals')}</a>
+        <a href={approvalsPath()}>{t('View all approvals')}</a>
       </Footer>
     </PanelBody>
   );

@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Tag } from '@superset-ui/core/components';
 import { fetchList } from './api';
+import { approvalsPath } from './approvalsPath';
 import { ago, age, assetUrl, isStale } from './display';
 import { displayName, STATUS_LABEL } from './types';
 import type { ApprovalsView, ChangeRequest } from './types';
@@ -176,7 +177,7 @@ export default function PendingReviews() {
       )}
 
       <Footer>
-        <a href="/approvals/">{t('View all approvals')}</a>
+        <a href={approvalsPath()}>{t('View all approvals')}</a>
       </Footer>
     </div>
   );

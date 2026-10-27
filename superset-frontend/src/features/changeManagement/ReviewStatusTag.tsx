@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Tag } from '@superset-ui/core/components';
 import { fetchOpenByAsset } from './api';
+import { approvalsPath } from './approvalsPath';
 import type { ChangeStatus, ReviewAssetType } from './types';
 
 /**
@@ -94,14 +95,14 @@ function LinkedReviewTag({
   const history = useHistory();
 
   const openRequest = useCallback(() => {
-    history.push('/approvals/');
+    history.push(approvalsPath());
   }, [history]);
 
   return (
     // A real anchor, so it is keyboard- and middle-click-reachable; the
     // click handler swaps the generic list for this asset's own request.
     <a
-      href="/approvals/"
+      href={approvalsPath()}
       onClick={event => {
         event.preventDefault();
         openRequest();

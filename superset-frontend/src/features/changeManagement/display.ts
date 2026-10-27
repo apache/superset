@@ -19,6 +19,7 @@
 import { escape } from 'lodash-es';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t } from '@apache-superset/core/translation';
+import { approvalsPath } from './approvalsPath';
 import type {
   ChangeRequest,
   DatasetDetail,
@@ -141,9 +142,9 @@ export function reviewRequiredToast(
     message ?? t('Changes saved. Viewers still see the live version.');
   const linkText = t('Review changes');
   return {
-    text: `${escape(text)} <a href="/approvals/submitted-by-me">${escape(
-      linkText,
-    )} →</a>`,
+    text: `${escape(text)} <a href="${approvalsPath(
+      'submitted-by-me',
+    )}">${escape(linkText)} →</a>`,
     options: { allowHtml: true, duration: 10000 },
   };
 }
