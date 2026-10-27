@@ -35,7 +35,6 @@ from contextlib import (
     suppress,
 )
 from copy import deepcopy
-from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Iterator, Optional, TYPE_CHECKING, TypeVar
@@ -96,6 +95,7 @@ from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_query_source_from_request, get_username
 from superset.utils.database import find_user_for_impersonation
+from superset.utils.dates import naive_utcnow
 from superset.utils.oauth2 import (
     check_for_oauth2,
     execute_with_oauth2_retry,
@@ -1206,13 +1206,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
         statement = script.statements[-1]
+        limit_method = self.db_engine_spec.get_limit_method(self)
         if force or (
             self.db_engine_spec.engine == "mssql"
             and statement.get_limit_value() is None
         ):
-            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.set_limit_value(limit, limit_method)
         else:
-            statement.cap_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.cap_limit_value(limit, limit_method)
 
         return script.format()
 
@@ -1796,7 +1797,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     user = relationship(
         security_manager.user_model, backref="logs", foreign_keys=[user_id]
     )
-    dttm = Column(DateTime, default=datetime.utcnow)
+    dttm = Column(DateTime, default=naive_utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
 
@@ -1813,4 +1814,4 @@ class FavStar(UUIDMixin, Model):
     user_id = Column(Integer, ForeignKey("ab_user.id"))
     class_name = Column(String(50))
     obj_id = Column(Integer)
-    dttm = Column(DateTime, default=datetime.utcnow)
+    dttm = Column(DateTime, default=naive_utcnow)

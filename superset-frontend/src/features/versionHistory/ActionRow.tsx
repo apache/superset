@@ -17,6 +17,7 @@
  * under the License.
  */
 import { KeyboardEvent } from 'react';
+import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import type { ActivityRecord } from './types';
 import {
@@ -25,15 +26,19 @@ import {
   formatVersionDateTimeShort,
 } from './display';
 
-const Row = styled.div`
-  ${({ theme }) => `
+const Row = styled.div<{ interactive: boolean }>`
+  ${({ theme, interactive }) => `
     display: flex;
     align-items: stretch;
     gap: ${theme.sizeUnit * 4}px;
-    cursor: pointer;
+    cursor: ${interactive ? 'pointer' : 'default'};
     border-radius: ${theme.borderRadius}px;
-    &:hover {
+    ${
+      interactive
+        ? `&:hover {
       background-color: ${theme.colorBgTextHover};
+    }`
+        : ''
     }
   `}
 `;
@@ -113,6 +118,7 @@ export default function ActionRow({
   onPreview,
 }: ActionRowProps) {
   const label = describeRecord(record);
+  const interactive = record.version_uuid != null;
   const meta = `${formatAuthor(record.changed_by)} · ${formatVersionDateTimeShort(
     record.issued_at,
   )}`;
@@ -130,10 +136,11 @@ export default function ActionRow({
   return (
     <Row
       // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- timeline layout uses a focusable row with explicit keyboard activation
-      role="button"
-      tabIndex={0}
-      onClick={onPreview}
-      onKeyDown={handleKeyDown}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? onPreview : undefined}
+      onKeyDown={interactive ? handleKeyDown : undefined}
+      interactive={interactive}
       data-test="version-history-action-row"
     >
       <Rail>
@@ -143,6 +150,7 @@ export default function ActionRow({
       <Content>
         <Title title={label}>{label}</Title>
         <Meta>{meta}</Meta>
+        {!interactive && <Meta>{t('No saved version to preview')}</Meta>}
       </Content>
     </Row>
   );
