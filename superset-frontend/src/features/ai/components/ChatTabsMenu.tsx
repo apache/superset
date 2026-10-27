@@ -297,7 +297,7 @@ export const ChatTabsMenu = ({
               </ActionButton>
               {/* A conversation with messages is confirmed before deletion; an
                   empty one is discarded without a prompt. */}
-              {tab.messages.length > 0 ? (
+              {tab.messages.length > 0 || (tab.messageCount ?? 0) > 0 ? (
                 <Popconfirm
                   title={t('Delete this conversation?')}
                   description={t('This cannot be undone.')}

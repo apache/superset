@@ -25,6 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import ChatTabsMenu, { formatRelativeTime } from './ChatTabsMenu';
 import type { ChatTab } from '../types';
+import { threadToTab } from '../hooks/chatThreadsApi';
 
 const MINUTE_MS = 60_000;
 
@@ -97,6 +98,20 @@ test('a conversation with messages is confirmed before deletion', async () => {
         ],
       }),
     ],
+    props,
+  );
+
+  await userEvent.click(within(menu).getByLabelText('Delete conversation'));
+
+  expect(props.onDeleteTab).not.toHaveBeenCalled();
+  await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  expect(props.onDeleteTab).toHaveBeenCalledWith('tab-1');
+});
+
+test('an unopened server conversation is confirmed before deletion', async () => {
+  const props = handlers();
+  const menu = await openMenu(
+    [threadToTab({ uuid: 'tab-1', messageCount: 2 })],
     props,
   );
 
