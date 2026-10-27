@@ -1236,3 +1236,51 @@ test('a drag inside a modal the widget opened does not move the widget', () => {
   // And the grid is still usable afterwards.
   recover(onPlace);
 });
+
+test('the preview follows a scroll made without moving the pointer', () => {
+  // The release folds the scroll offset in, so the preview has to as well:
+  // otherwise the outline shows the pre-scroll cells and the drop saves the
+  // scrolled ones, and the widget lands where nothing was ever previewed.
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  // Armed by a pointer move, then scrolled with the pointer held still.
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH });
+  const previewRow = () =>
+    getComputedStyle(screen.getByTestId('canvas-drop-preview')).gridRow;
+  expect(previewRow()).toBe('2/span 4');
+
+  scrollTo(ROW_PITCH * 2);
+  fireEvent.scroll(onPlace.container.firstChild as HTMLElement);
+
+  // Two further rows of content have passed under the pointer.
+  expect(previewRow()).toBe('4/span 4');
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH });
+
+  // And the drop matches what was previewed.
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 1,
+    row: 4,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+test('a press held while scrolling is not turned into a drag', () => {
+  // Scrolling past a widget with the button down is not a gesture, so an
+  // unarmed press must not arm on scroll alone.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  scrollTo(ROW_PITCH * 4);
+  fireEvent.scroll(onPlace.container.firstChild as HTMLElement);
+
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+
+  pointer(body, 'pointerup', { clientX: 0, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});

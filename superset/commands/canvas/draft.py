@@ -248,6 +248,10 @@ class CommitCanvasDraftCommand:
                 OPERATIONS.validate_python(draft.ops),
                 strict=True,
                 widgets=draft.widgets,
+                # Each operation was resolved on its own as the user made it,
+                # so the replay has to resolve them the same way or the
+                # published canvas differs from the plan that was approved.
+                stepwise=True,
             ).run()
         DeleteCanvasDraftCommand(self._token).run()
         return result

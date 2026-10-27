@@ -78,6 +78,12 @@ interface Gesture {
   dx: number;
   dy: number;
   /**
+   * Where the pointer was last seen. Scrolling moves the content without
+   * moving the pointer, so recomputing then needs the position it held.
+   */
+  lastX: number;
+  lastY: number;
+  /**
    * Where the widget sat when it was grabbed. The gesture resolves against
    * this, not against the current placement: a write landing mid-gesture (a
    * sibling's drop pushing this one down, or a draft poll) would otherwise
@@ -618,6 +624,8 @@ export default function CanvasGridSurface({
         startTop: box?.top ?? 0,
         dx: 0,
         dy: 0,
+        lastX: event.clientX,
+        lastY: event.clientY,
         origin,
         armed,
         capture: event.currentTarget,
@@ -664,7 +672,32 @@ export default function CanvasGridSurface({
         // it, and the widget's own controls would never fire.
         current.capture.setPointerCapture(current.pointerId);
       }
-      update({ ...current, ...moved, armed });
+      update({
+        ...current,
+        ...moved,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        armed,
+      });
+    };
+
+    /**
+     * Scrolling moves the content under a still pointer, so the widget has
+     * travelled even though no pointer event fires. The release folds that in,
+     * so without this the drop would land somewhere the preview never showed.
+     *
+     * Only an armed gesture follows it: a press held while the user scrolls is
+     * not a drag, and arming on scroll alone would move a widget the user only
+     * meant to scroll past.
+     */
+    const onScroll = () => {
+      const { current } = live;
+      if (!current || !current.armed) return;
+      const at = originOf(current);
+      update({
+        ...current,
+        ...travelled(current, current.lastX, current.lastY, at.left, at.top),
+      });
     };
 
     const onUp = (event: PointerEvent) => {
@@ -711,10 +744,14 @@ export default function CanvasGridSurface({
     window.addEventListener('pointermove', onMove, true);
     window.addEventListener('pointerup', onUp, true);
     window.addEventListener('pointercancel', onCancel, true);
+    // Capture phase for `scroll` as well, which does not bubble: a listener
+    // here still sees a scroll on any element on its way down.
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       window.removeEventListener('pointermove', onMove, true);
       window.removeEventListener('pointerup', onUp, true);
       window.removeEventListener('pointercancel', onCancel, true);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [gestureLive, commit, targetOf, update]);
 

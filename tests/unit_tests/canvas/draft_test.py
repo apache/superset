@@ -192,7 +192,12 @@ def test_commit_replays_the_ops_strictly_and_deletes_the_draft(
     canvas_id, base_revision, replayed = command.call_args.args
     assert (canvas_id, base_revision) == (7, 3)
     assert [op.id for op in replayed] == ["chart"]
-    assert command.call_args.kwargs == {"strict": True, "widgets": {}}
+    assert command.call_args.kwargs == {
+        "strict": True,
+        "widgets": {},
+        # Each operation resolved on its own, as the draft resolved it.
+        "stepwise": True,
+    }
     assert result is not None
     assert result.revision == 4
     assert store.entries == {}

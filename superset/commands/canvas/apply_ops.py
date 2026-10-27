@@ -112,25 +112,58 @@ def apply_or_raise(
     definition: dict[str, Any],
     ops: list[Operation],
     pending: dict[str, StoredWidget] | None = None,
+    first_index: int = 0,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
     Apply ``ops`` to a copy of ``definition``, as one atomic batch; widgets
     they create or change are added to ``pending``.
+
+    ``first_index`` is where these operations start in the caller's own list,
+    so an error reported against a slice still names the operation the caller
+    sent.
     """
     try:
         return apply_operations(definition, ops, pending=pending)
     except OperationError as ex:
         raise DefinitionInvalidError(
             str(ex),
-            issues=[Issue(pointer("ops", ex.index), ex.message)],
-            operation_index=ex.index,
+            issues=[Issue(pointer("ops", first_index + ex.index), ex.message)],
+            operation_index=first_index + ex.index,
         ) from ex
     except DefinitionValidationError as ex:
         raise DefinitionInvalidError(
             "The operations produce an invalid definition",
             issues=ex.issues,
-            operation_index=ex.operation,
+            operation_index=(
+                None if ex.operation is None else first_index + ex.operation
+            ),
         ) from ex
+
+
+def apply_stepwise(
+    definition: dict[str, Any],
+    ops: list[Operation],
+    pending: dict[str, StoredWidget] | None = None,
+) -> tuple[dict[str, Any], list[AppliedOperation]]:
+    """
+    Apply ``ops`` one at a time, resolving layout after each.
+
+    For replaying a draft. A draft applies each operation as the user makes
+    it and resolves layout then, so a later operation sees where the one
+    before it pushed the widgets. Replaying them as a single batch resolves
+    collisions only once and can reach a different layout -- drag a widget
+    over another and back, and the one that was pushed aside stays pushed in
+    the draft but returns on publish. The canvas would then not match the plan
+    that was approved.
+
+    One resolve per operation rather than one for the batch, which is why this
+    is kept to the commit path.
+    """
+    applied: list[AppliedOperation] = []
+    for index, op in enumerate(ops):
+        definition, step = apply_or_raise(definition, [op], pending, index)
+        applied.extend(step)
+    return definition, applied
 
 
 class ApplyCanvasOperationsCommand(BaseCommand):
@@ -147,6 +180,7 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         ops: list[Operation],
         strict: bool = False,
         widgets: dict[str, StoredWidget] | None = None,
+        stepwise: bool = False,
     ) -> None:
         self._canvas_ref = str(canvas_id_or_uuid)
         self._canvas_id = 0
@@ -156,6 +190,8 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self._strict = strict
         # Widgets a draft created or changed, saved with the canvas.
         self._widgets = dict(widgets or {})
+        # Replaying a draft, whose operations were each resolved on their own.
+        self._stepwise = stepwise
 
     def run(self) -> ApplyResult:
         canvas = CanvasDAO.find_by_id_or_uuid(self._canvas_ref)
@@ -177,7 +213,8 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             self._check_overlap(current, named_touches(self._ops))
 
         pending = dict(self._widgets)
-        definition, applied = apply_or_raise(CanvasDAO.load(canvas), self._ops, pending)
+        apply = apply_stepwise if self._stepwise else apply_or_raise
+        definition, applied = apply(CanvasDAO.load(canvas), self._ops, pending)
 
         if self._base_revision != current:
             self._check_overlap(current, applied_touches(applied))
