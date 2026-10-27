@@ -329,6 +329,7 @@ class CeleryConfig:
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.ai.tasks",
     )
     broker_connection_retry_on_startup = True
     worker_prefetch_multiplier = 10
@@ -341,6 +342,10 @@ class CeleryConfig:
         },
     }
     beat_schedule = {
+        "ai.prune_conversations": {
+            "task": "ai.prune_conversations",
+            "schedule": crontab(minute=30, hour=3),
+        },
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
