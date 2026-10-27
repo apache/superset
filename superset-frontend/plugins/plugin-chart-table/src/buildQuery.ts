@@ -402,9 +402,14 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       });
     }
 
+    // The summary row is a display feature: a file download keeps one query so it is one file
+    // (several queries are bundled into a zip).
+    const isFileExport = ['csv', 'xlsx'].includes(formData.result_format ?? '');
+
     if (
       metrics?.length &&
       formData.show_totals &&
+      !isFileExport &&
       queryMode === QueryMode.Aggregate
     ) {
       const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);

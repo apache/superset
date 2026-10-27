@@ -198,6 +198,26 @@ test('keeps the selected semantic grain through axis removal and re-addition', (
   expect(form.time_grain_sqla).toBe(TimeGranularity.MONTH);
 });
 
+test.each([
+  ['json', 2],
+  ['csv', 1],
+  ['xlsx', 1],
+])(
+  'show_totals with result_format %s builds %i query(ies), so a download is one file',
+  (resultFormat, expectedQueries) => {
+    const { queries } = buildQueryUncached({
+      ...basicFormData,
+      groupby: ['col1'],
+      metrics: ['aaa'],
+      query_mode: QueryMode.Aggregate,
+      show_totals: true,
+      result_format: resultFormat,
+    } as TableChartFormData);
+
+    expect(queries).toHaveLength(expectedQueries);
+  },
+);
+
 const extraQueryFormData: TableChartFormData = {
   ...basicFormData,
   time_grain_sqla: TimeGranularity.MONTH,
