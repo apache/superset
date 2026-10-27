@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { navigateWithState } from 'src/utils/navigationUtils';
+import { isConditionOperator } from 'src/filters/components/Condition/utils';
 
 /**
  * Synthetic dataMask key for URL Rison filters that don't match any native
@@ -490,6 +491,11 @@ function convertRisonToNativeValue(
       }
       return comparator;
 
+    case 'filter_condition':
+      return Array.isArray(comparator) && !['IN', 'NOT IN'].includes(operator)
+        ? { op: operator, val: comparator[0] }
+        : { op: operator, val: comparator };
+
     case 'filter_time_range':
     case 'filter_timecolumn':
       return comparator;
@@ -547,7 +553,12 @@ export function injectRisonFiltersIntelligently(
     if (matchingFilterId) {
       const matchedFilter = nativeFilters[matchingFilterId];
       const filterId = matchedFilter?.id ?? matchingFilterId;
-      if (matchedFilter && filterId) {
+      // A Condition filter holds a single operator, so e.g. BETWEEN can't be
+      // shown in it. Leave such filters unmatched so they still apply.
+      const fitsFilter =
+        matchedFilter?.filterType !== 'filter_condition' ||
+        isConditionOperator(risonFilter.operator);
+      if (matchedFilter && filterId && fitsFilter) {
         const columnName =
           matchedFilter.targets?.[0]?.column?.name ?? risonFilter.subject;
 

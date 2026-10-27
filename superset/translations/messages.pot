@@ -424,6 +424,10 @@ msgid "%s imported"
 msgstr ""
 
 #, python-format
+msgid "%s is not supported for this column type"
+msgstr ""
+
+#, python-format
 msgid "%s item"
 msgid_plural "%s items"
 msgstr[0] ""
@@ -3884,6 +3888,15 @@ msgstr ""
 msgid "Condition"
 msgstr ""
 
+msgid "Condition filter"
+msgstr ""
+
+msgid "Condition operator"
+msgstr ""
+
+msgid "Condition value"
+msgstr ""
+
 msgid "Conditional Formatting"
 msgstr ""
 
@@ -6104,6 +6117,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a value"
+msgstr ""
+
 msgid "Enter alert name"
 msgstr ""
 
@@ -6886,6 +6902,9 @@ msgid "Filter Type"
 msgstr ""
 
 msgid "Filter by"
+msgstr ""
+
+msgid "Filter by choosing a column, an operator and a value, e.g. price > 100"
 msgstr ""
 
 msgid "Filter charts"
@@ -10422,6 +10441,9 @@ msgstr ""
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr ""
 
+msgid "Please enter a condition"
+msgstr ""
+
 msgid "Please enter a new password"
 msgstr ""
 
@@ -12150,6 +12172,9 @@ msgid "Select a theme"
 msgstr ""
 
 msgid "Select a time grain for the visualization. The grain is the time interval represented by a single point on the chart."
+msgstr ""
+
+msgid "Select a value"
 msgstr ""
 
 msgid "Select a visualization type"
@@ -15000,6 +15025,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
+msgid "This column is numeric. Please enter a number."
+msgstr ""
+
 #, python-format
 msgid "This column might be incompatible with current %s"
 msgstr ""
@@ -16201,6 +16229,9 @@ msgid "User doesn't have the proper permissions."
 msgstr ""
 
 msgid "User info"
+msgstr ""
+
+msgid "User must enter a condition before applying the filter"
 msgstr ""
 
 msgid "User must select a value before applying the chart customization"
@@ -17730,6 +17761,9 @@ msgstr ""
 
 #. do-not-translate
 msgid "dttm"
+msgstr ""
+
+msgid "e.g. %value%"
 msgstr ""
 
 msgid "e.g. ********"
