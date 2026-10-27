@@ -27,6 +27,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+from flask import g
 from flask_appbuilder.security.sqla.models import Role
 from pytest_mock import MockerFixture
 
@@ -47,7 +48,14 @@ DATASETS = [3]
 
 
 @pytest.fixture
-def screenshot_task(mocker: MockerFixture, full_api_access: None) -> MagicMock:
+def dashboard() -> MagicMock:
+    return MagicMock(id=DASHBOARD_ID, digest="digest")
+
+
+@pytest.fixture
+def screenshot_task(
+    mocker: MockerFixture, full_api_access: None, dashboard: MagicMock
+) -> MagicMock:
     """
     Enable the endpoint and stub everything around the task dispatch (dashboard
     lookup, permalink, cache bookkeeping, lock) so the dispatch arguments are
@@ -66,7 +74,6 @@ def screenshot_task(mocker: MockerFixture, full_api_access: None) -> MagicMock:
     mocker.patch.object(security_manager, "find_role", return_value=Role(name="Public"))
     mocker.patch.object(security_manager, "_is_guest_token_revoked", return_value=False)
 
-    dashboard = MagicMock(id=DASHBOARD_ID, digest="digest")
     mocker.patch(
         "flask_appbuilder.models.sqla.interface.SQLAInterface.get"
     ).return_value = dashboard
@@ -80,9 +87,6 @@ def screenshot_task(mocker: MockerFixture, full_api_access: None) -> MagicMock:
 
     screenshot_cls = "superset.dashboards.api.DashboardScreenshot"
     mocker.patch(
-        f"{screenshot_cls}.get_api_request_cache_key", return_value="request-key"
-    )
-    mocker.patch(
         f"{screenshot_cls}.get_current_api_generation_cache_key", return_value=None
     )
     mocker.patch(
@@ -94,6 +98,97 @@ def screenshot_task(mocker: MockerFixture, full_api_access: None) -> MagicMock:
     )
 
     return mocker.patch("superset.dashboards.api.cache_dashboard_screenshot")
+
+
+@pytest.fixture
+def request_key_lookup(mocker: MockerFixture, screenshot_task: MagicMock) -> MagicMock:
+    """
+    The mocked generation lookup; its first positional argument is the request
+    cache key the endpoint derived for the caller.
+    """
+    return mocker.patch(
+        "superset.dashboards.api.DashboardScreenshot"
+        ".get_current_api_generation_cache_key",
+        return_value=None,
+    )
+
+
+def _guest_token(
+    username: str,
+    attributes: dict[str, Any] | None = None,
+    rls: list[GuestTokenRlsRule] | None = None,
+) -> bytes:
+    return security_manager.create_guest_access_token(
+        user={"username": username, "attributes": attributes or {}},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "embedded-uuid"}],
+        rls=RLS_RULES if rls is None else rls,
+        datasets=DATASETS,
+    )
+
+
+def _request_key(client: Any, lookup: MagicMock, raw_token: bytes) -> str:
+    lookup.reset_mock()
+    # The app context (and its ``g``) outlives a single request in these tests,
+    # so drop the guest resolved for an earlier request.
+    for attribute in ("_login_user", "user"):
+        g.pop(attribute, None)
+    response = client.post(
+        f"/api/v1/dashboard/{DASHBOARD_ID}/cache_dashboard_screenshot/",
+        json={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        headers={client.application.config["GUEST_TOKEN_HEADER_NAME"]: raw_token},
+    )
+    assert response.status_code == 202, response.json
+    return str(lookup.call_args.args[0])
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_screenshot_request_key_is_stable_for_the_same_guest(
+    client: Any, request_key_lookup: MagicMock, username: str
+) -> None:
+    first = _request_key(client, request_key_lookup, _guest_token(username))
+    second = _request_key(client, request_key_lookup, _guest_token(username))
+
+    assert first == second
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_screenshot_request_key_differs_for_guests_with_different_attributes(
+    client: Any, request_key_lookup: MagicMock, username: str
+) -> None:
+    """
+    Guest attributes can change rendered content, so guests sharing a dashboard,
+    state, username and digest still need separate screenshots.
+    """
+    first = _request_key(
+        client, request_key_lookup, _guest_token(username, {"tenant": "a"})
+    )
+    second = _request_key(
+        client, request_key_lookup, _guest_token(username, {"tenant": "b"})
+    )
+
+    assert first != second
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_screenshot_request_key_differs_for_guests_with_different_rls_without_digest(
+    client: Any,
+    request_key_lookup: MagicMock,
+    dashboard: MagicMock,
+    username: str,
+) -> None:
+    """
+    The digest is ``None`` when no thumbnail executor resolves for the caller;
+    the request key must still separate guests with different row level rules.
+    """
+    dashboard.digest = None
+    other_rls: list[GuestTokenRlsRule] = [{"dataset": "3", "clause": "region = 'US'"}]
+
+    first = _request_key(client, request_key_lookup, _guest_token(username))
+    second = _request_key(
+        client, request_key_lookup, _guest_token(username, rls=other_rls)
+    )
+
+    assert first != second
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
