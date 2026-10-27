@@ -151,6 +151,7 @@ def test_parameters_json_schema() -> None:
 
     assert json_schema == {
         "type": "object",
+        "additionalProperties": False,
         "properties": {
             "access_token": {"type": "string"},
             "database": {"type": "string"},

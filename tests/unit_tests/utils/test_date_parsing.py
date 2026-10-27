@@ -137,8 +137,9 @@ def test_epoch_format_invalid_values(caplog):
     assert "Unable to convert column epoch to datetime, ignoring" in caplog.text
 
     # The column should remain unchanged when conversion fails
-    assert df["epoch"].dtype == object
-    assert df["epoch"].iloc[0] == "not_a_number"
+    pd.testing.assert_series_equal(
+        df["epoch"], pd.Series(["not_a_number", "invalid", "abc"], name="epoch")
+    )
 
 
 @pytest.mark.parametrize(

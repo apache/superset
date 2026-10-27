@@ -288,6 +288,12 @@ class SupersetResultSet:
                                 series = pd.to_datetime(
                                     series, utc=True, errors="coerce"
                                 )
+                                series = series.where(
+                                    series.between(
+                                        pd.Timestamp.min.tz_localize("UTC"),
+                                        pd.Timestamp.max.tz_localize("UTC"),
+                                    )
+                                )
                                 pa_data[i] = pa.Array.from_pandas(
                                     series,
                                     type=pa.timestamp("ns", tz=tz),

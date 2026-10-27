@@ -664,9 +664,9 @@ def test_timezone_cache_hit_dtype_matches_sync(
     mocker.patch.object(executor, "_generate_cache_key", return_value="tz-key")
     executor._store_in_cache(sync, sql, QueryOptions())
     cached = executor._get_from_cache(sql, QueryOptions())
-    if data_kind != "populated" and not isinstance(tz, ZoneInfo):
-        # Unparseable timezone metadata cannot be inferred without any values.
-        assert cached is None
+    if cached is None:
+        assert data_kind != "populated"
+        assert not isinstance(tz, ZoneInfo)
         return
     assert cached is not None
     for result in (
@@ -1040,7 +1040,7 @@ def test_async_unsupported_nested_types_use_arrow_strings(
     assert actual["value"][0] != sync.statements[0].data["value"][0]
     assert type(actual["value"][0]) is not type(sync.statements[0].data["value"][0])
     assert actual["value"][1] == '{"a": [3]}'
-    assert actual["value"][2] is None
+    assert pd.isna(actual["value"][2])
 
 
 def test_legacy_nested_oversized_integer_matches_sync() -> None:

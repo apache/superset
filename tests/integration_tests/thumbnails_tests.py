@@ -17,6 +17,7 @@
 # from superset import db
 # from superset.models.dashboard import Dashboard
 
+import multiprocessing
 import urllib.request
 from unittest import skipUnless
 from unittest.mock import patch
@@ -49,7 +50,16 @@ CHART_URL = "/api/v1/chart/"
 DASHBOARD_URL = "/api/v1/dashboard/"
 
 
+@skipUnless("fork" in multiprocessing.get_all_start_methods(), "Requires fork support")
 class TestThumbnailsSeleniumLive(LiveServerTestCase):
+    def _spawn_live_server(self) -> None:
+        """Use fork for Flask-Testing's non-picklable local server worker."""
+        with patch(
+            "flask_testing.utils.multiprocessing.Process",
+            new=multiprocessing.get_context("fork").Process,
+        ):
+            super()._spawn_live_server()
+
     def create_app(self):
         return app
 

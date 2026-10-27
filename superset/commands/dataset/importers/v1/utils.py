@@ -770,7 +770,7 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
     for column_name, sqla_type in dtype.items():
         if isinstance(sqla_type, (Date, DateTime)):
             try:
-                df[column_name] = pd.to_datetime(df[column_name])
+                df[column_name] = pd.to_datetime(df[column_name]).dt.as_unit("ns")
             except OutOfBoundsDatetime:
                 # Row-level fallback: coerce only OOB values; re-raise for malformed
                 # strings. Whole-column errors="coerce" would silently swallow
@@ -782,7 +782,7 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                         result.append(pd.NaT)
                         continue
                     try:
-                        result.append(pd.to_datetime(val))
+                        result.append(pd.to_datetime(val).as_unit("ns"))
                     except OutOfBoundsDatetime:
                         result.append(pd.NaT)
                     # Other exceptions (e.g. malformed strings) propagate

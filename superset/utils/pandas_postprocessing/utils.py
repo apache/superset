@@ -255,7 +255,8 @@ def _append_columns(
     if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        _base_df.loc[:, overwritten.keys()] = append_df
+        for column in overwritten:
+            _base_df[column] = append_df[column]
     if not appended:
         return _base_df
     # Select before renaming: `append_df` may carry columns the mapping does not

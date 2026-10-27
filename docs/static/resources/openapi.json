@@ -4279,6 +4279,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "nullable": true,
@@ -4363,6 +4364,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4382,6 +4384,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Subject1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4401,6 +4404,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Tag": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4422,6 +4426,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4442,6 +4447,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -22876,15 +22882,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "description": "Table schema",
-            "in": "path",
-            "name": "schema_name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -26781,15 +26778,6 @@
     "/api/v1/log/recent_activity/": {
       "get": {
         "parameters": [
-          {
-            "description": "The id of the user",
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
           {
             "content": {
               "application/json": {
