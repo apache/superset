@@ -936,7 +936,10 @@ def test_orchestrated_model_matches_provider_and_audit_trail(
     )
     mocker.patch(
         "superset.daos.ai.AIChatMessageDAO.find_for_thread",
-        return_value=[SimpleNamespace(role="user", content=QUESTION)],
+        return_value=[
+            SimpleNamespace(uuid="question", role="user", content=QUESTION),
+            SimpleNamespace(uuid="m", role="assistant", content=""),
+        ],
     )
     finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
     mocker.patch("superset.ai.eventbus.get_event_bus")
