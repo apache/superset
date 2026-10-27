@@ -41,6 +41,7 @@ import { replaceDashboardSemanticDatasets } from 'src/dashboard/actions/dashboar
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setActiveTabs } from 'src/dashboard/actions/dashboardState';
+import { URL_PARAMS } from 'src/constants';
 import {
   clearDashboardHistory,
   UPDATE_COMPONENTS,
@@ -890,3 +891,57 @@ test('syncs active tabs to the URL once the permalink hydration lands', async ()
     window.history.replaceState({}, '', '/');
   }
 });
+
+test.each([
+  ['no deep link', '', '', []],
+  ['a hash', '#TAB-A', '', ['ROOT_ID', 'TABS-root', 'TAB-A']],
+  [
+    'a focused chart',
+    '',
+    `&${URL_PARAMS.dashboardFocusedChart.name}=1`,
+    ['ROOT_ID', 'TABS-root', 'TAB-A'],
+  ],
+])(
+  'with explicit active_tabs and %s, the retained click path ends up %j',
+  async (_name, hash, extraSearch, expectedPath) => {
+    window.history.replaceState(
+      {},
+      '',
+      `/dashboard/1/?active_tabs=TAB-B${extraSearch}${hash}`,
+    );
+    mockGetUrlParam.mockImplementation((param: UrlParam) =>
+      new URLSearchParams(window.location.search).get(param.name),
+    );
+    const store = createStore(
+      {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: {
+          sliceIds: [],
+          directPathToChild: ['ROOT_ID', 'TABS-root', 'TAB-A'],
+        },
+        dashboardLayout: { past: [], future: [], present: {} },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+      reducerIndex,
+    );
+
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      { store, useRouter: true },
+    );
+
+    try {
+      await waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+      expect(
+        (store.getState() as unknown as RootState).dashboardState
+          .directPathToChild,
+      ).toEqual(expectedPath);
+    } finally {
+      unmount();
+      window.history.replaceState({}, '', '/');
+    }
+  },
+);

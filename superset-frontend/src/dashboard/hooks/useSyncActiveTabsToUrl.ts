@@ -49,9 +49,6 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
   const activeTabs = useSelector(
     (state: RootState) => state.dashboardState.activeTabs,
   );
-  const directPathToChild = useSelector(
-    (state: RootState) => state.dashboardState.directPathToChild,
-  );
   const layout = useSelector(
     (state: RootState) => state.dashboardLayout?.present ?? {},
   );
@@ -88,10 +85,12 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
       params.delete(URL_PARAMS.activeTabs.name);
     }
     // A deep link hash outranks `active_tabs` on load, so it is dropped once
-    // the selected tabs no longer include the tabs on its path.
+    // the selected tabs no longer include a tab the hash targets. The path is
+    // resolved from the layout, as a tab click replaces `directPathToChild`.
+    const hashId = history.location.hash.slice(1);
     const hashIsStale =
-      Boolean(history.location.hash) &&
-      (directPathToChild ?? []).some(
+      Boolean(hashId) &&
+      [...(layout[hashId]?.parents ?? []), hashId].some(
         id => layout[id]?.type === TAB_TYPE && !activeTabs?.includes(id),
       );
     history.replace({
@@ -99,5 +98,5 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
       search: params.toString(),
       ...(hashIsStale && { hash: '' }),
     });
-  }, [activeTabs, directPathToChild, editMode, enabled, history, layout]);
+  }, [activeTabs, editMode, enabled, history, layout]);
 }

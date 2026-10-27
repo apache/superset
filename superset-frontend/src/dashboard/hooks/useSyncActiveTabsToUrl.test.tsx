@@ -34,13 +34,15 @@ jest.mock('src/utils/getBootstrapData', () => ({
 type TabsState = {
   activeTabs: string[];
   editMode: boolean;
-  directPathToChild?: string[];
 };
 
 const layout = {
-  'TAB-first': { type: 'TAB' },
-  'TAB-second': { type: 'TAB' },
-  'CHART-1': { type: 'CHART' },
+  'TAB-first': { type: 'TAB', parents: ['ROOT_ID', 'TABS-root'] },
+  'TAB-second': { type: 'TAB', parents: ['ROOT_ID', 'TABS-root'] },
+  'CHART-1': {
+    type: 'CHART',
+    parents: ['ROOT_ID', 'TABS-root', 'TAB-first'],
+  },
 };
 
 const setup = (initial: Partial<TabsState> = {}, enabled = true) => {
@@ -117,10 +119,10 @@ test('keeps the other params and the hash', () => {
     '',
     '/superset/dashboard/7/?native_filters_key=abc#CHART-1',
   );
-  setup({ activeTabs: ['TAB-a'] });
+  setup({ activeTabs: ['TAB-first'] });
 
   expect(window.location.search).toBe(
-    '?native_filters_key=abc&active_tabs=TAB-a',
+    '?native_filters_key=abc&active_tabs=TAB-first',
   );
   expect(window.location.hash).toBe('#CHART-1');
 });
@@ -179,10 +181,7 @@ test('does not sync stale tabs after navigating away from a dashboard', () => {
 
 test('drops a deep link hash once the tabs on its path are deselected', () => {
   window.history.replaceState({}, '', '/superset/dashboard/7/#TAB-first');
-  const { update } = setup({
-    activeTabs: ['TAB-first'],
-    directPathToChild: ['TAB-first'],
-  });
+  const { update } = setup({ activeTabs: ['TAB-first'] });
   expect(window.location.hash).toBe('#TAB-first');
 
   update({ activeTabs: ['TAB-second'] });
@@ -193,10 +192,7 @@ test('drops a deep link hash once the tabs on its path are deselected', () => {
 
 test('keeps a deep link hash while the tabs on its path stay selected', () => {
   window.history.replaceState({}, '', '/superset/dashboard/7/#CHART-1');
-  setup({
-    activeTabs: ['TAB-first'],
-    directPathToChild: ['TAB-first', 'CHART-1'],
-  });
+  setup({ activeTabs: ['TAB-first'] });
 
   expect(window.location.search).toBe('?active_tabs=TAB-first');
   expect(window.location.hash).toBe('#CHART-1');

@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  createContext,
-  FC,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, FC, useEffect, useMemo, useRef, useState } from 'react';
 import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
