@@ -259,6 +259,18 @@ msgid "%(object)s does not exist in this database."
 msgstr ""
 
 #, python-format
+msgid "%(origin)s is blocked by the Content Security Policy. Ask an administrator to allow this domain."
+msgstr ""
+
+#, python-format
+msgid "%(origin)s is blocked by the Content Security Policy. Enable it to allow this content to load."
+msgstr ""
+
+#, python-format
+msgid "%(origin)s is now allowed to be embedded."
+msgstr ""
+
+#, python-format
 msgid "%(prefix)s %(title)s"
 msgstr ""
 
@@ -565,6 +577,14 @@ msgstr ""
 
 #, python-format
 msgid "%s%s"
+msgstr ""
+
+#, python-format
+msgid "'%(value)s' is not a valid origin. Provide a bare scheme://host[:port] value with no wildcard, path, query or fragment."
+msgstr ""
+
+#, python-format
+msgid "'%(value)s' is not an allowed CSP directive. Allowed: %(allowed)s."
 msgstr ""
 
 msgid "(Removed)"
@@ -5256,6 +5276,12 @@ msgid "Deleted"
 msgstr ""
 
 #, python-format
+msgid "Deleted %(num)d CSP allowlist entry"
+msgid_plural "Deleted %(num)d CSP allowlist entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Deleted %(num)d annotation"
 msgid_plural "Deleted %(num)d annotations"
 msgstr[0] ""
@@ -6035,13 +6061,25 @@ msgstr ""
 msgid "Embed"
 msgstr ""
 
+msgid "Embed / Iframe"
+msgstr ""
+
+msgid "Embed URL"
+msgstr ""
+
 msgid "Embed code"
 msgstr ""
 
 msgid "Embed dashboard"
 msgstr ""
 
+msgid "Embed external content via a URL"
+msgstr ""
+
 msgid "Embedded authentication failed. The guest token may exceed the request-header size limit. Reduce the token payload; large inline RLS lists can be replaced with an entitlements-table lookup."
+msgstr ""
+
+msgid "Embedded content"
 msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
@@ -6093,6 +6131,9 @@ msgid "Enable cross-filtering"
 msgstr ""
 
 msgid "Enable data zooming controls"
+msgstr ""
+
+msgid "Enable domain in CSP"
 msgstr ""
 
 msgid "Enable embedding"
@@ -6188,6 +6229,9 @@ msgid "Enter CA_BUNDLE"
 msgstr ""
 
 msgid "Enter Primary Credentials"
+msgstr ""
+
+msgid "Enter a URL above to embed content"
 msgstr ""
 
 msgid "Enter a name for this sheet"
@@ -6719,6 +6763,10 @@ msgstr ""
 
 #, python-format
 msgid "Failed to add %s: %s"
+msgstr ""
+
+#, python-format
+msgid "Failed to allow %(origin)s in the CSP."
 msgstr ""
 
 msgid "Failed to apply theme: Invalid JSON"
@@ -9512,6 +9560,9 @@ msgstr ""
 msgid "No Tags created"
 msgstr ""
 
+msgid "No URL configured"
+msgstr ""
+
 msgid "No actions"
 msgstr ""
 
@@ -10385,6 +10436,9 @@ msgid "Paste"
 msgstr ""
 
 msgid "Paste Private Key here"
+msgstr ""
+
+msgid "Paste a URL to embed, e.g. https://example.com"
 msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
@@ -15271,6 +15325,10 @@ msgstr ""
 msgid "This column must contain date/time information."
 msgstr ""
 
+#, python-format
+msgid "This component requires the \"%(id)s\" extension, which is not available."
+msgstr ""
+
 msgid "This control filters the whole chart based on the selected time range. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time."
 msgstr ""
 
@@ -15348,6 +15406,9 @@ msgid "This defines the element to be plotted on the chart"
 msgstr ""
 
 msgid "This dimension is not compatible with the current selections. Select a compatible dimension."
+msgstr ""
+
+msgid "This domain is not allowed to be embedded"
 msgstr ""
 
 msgid "This email is already associated with an account. Please choose another one."
