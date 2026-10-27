@@ -222,8 +222,12 @@ usable connection.
 
 A turn is deliberately **not** retried after a worker crash: inference costs
 money, and re-running a turn the user may already have partly seen would charge
-twice. A hard-killed worker can leave a non-terminal message; stale-run recovery
-is not automatic.
+twice. The task explicitly uses early acknowledgement. When Celery observes a
+child failure or hard time limit, its parent records an error and publishes the
+terminal stream events. Only the delivery that claimed a running message can
+finalize it; a failed duplicate cannot overwrite another delivery's result.
+Losing the entire Celery parent or host cannot run these callbacks; automatic
+reconciliation of that outage is not provided.
 
 Retry a failed message submission with the same `request_id`. The assistant
 keeps the original run identifier and its accepted context. An unclaimed run
