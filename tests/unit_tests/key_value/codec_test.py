@@ -147,3 +147,9 @@ def test_binary_codec_round_trips():
     raw = b"\x00\x01binary\xffdata"
     assert codec.decode(raw) == raw
     assert codec.encode(codec.decode(raw)) == raw
+
+
+def test_json_codec_rejects_bytes():
+    """Raw bytes must raise rather than be silently stringified."""
+    with pytest.raises(KeyValueCodecEncodeException):
+        JsonKeyValueCodec().encode(b"hello")  # type: ignore[arg-type]

@@ -115,6 +115,9 @@ class KeyValueCodec(ABC):
 
 class JsonKeyValueCodec(KeyValueCodec):
     def encode(self, value: dict[Any, Any]) -> bytes:
+        # JSON has no binary type; raw bytes must not be silently stringified
+        if isinstance(value, (bytes, bytearray)):
+            raise KeyValueCodecEncodeException("Cannot JSON-encode a bytes value")
         try:
             return bytes(json.dumps(value), encoding="utf-8")
         except TypeError as ex:
