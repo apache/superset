@@ -20,6 +20,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   memo,
   ReactElement,
@@ -122,6 +123,8 @@ const Tabs = (props: TabsProps): ReactElement => {
   const activeTabs = useSelector(
     (state: RootState) => state.dashboardState.activeTabs,
   );
+  const activeTabsRef = useRef(activeTabs);
+  activeTabsRef.current = activeTabs;
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
@@ -185,7 +188,17 @@ const Tabs = (props: TabsProps): ReactElement => {
     if (prevActiveKey) {
       props.setActiveTab(activeKey, prevActiveKey);
     } else {
-      props.setActiveTab(activeKey);
+      // A deep link can select a tab other than the one seeded into
+      // `activeTabs` (e.g. from `active_tabs`); replace that sibling so only
+      // one tab per TABS component stays active.
+      const seededSibling = props.component.children.find(
+        tabId => tabId !== activeKey && activeTabsRef.current?.includes(tabId),
+      );
+      if (seededSibling) {
+        props.setActiveTab(activeKey, seededSibling);
+      } else {
+        props.setActiveTab(activeKey);
+      }
     }
   }, [props.setActiveTab, prevActiveKey, activeKey]);
 

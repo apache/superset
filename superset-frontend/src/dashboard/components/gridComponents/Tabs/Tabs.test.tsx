@@ -526,6 +526,32 @@ test.each([
         }),
       ]),
     );
-    expect(props.setActiveTab.mock.calls[0]).toEqual([tabIds[expectedIndex]]);
+    expect(props.setActiveTab.mock.calls[0]).toEqual(
+      expectedIndex === activeTabIndex
+        ? [tabIds[expectedIndex]]
+        : [tabIds[expectedIndex], tabIds[activeTabIndex]],
+    );
   },
 );
+
+test('a deep link replaces the sibling tab seeded from active_tabs', () => {
+  const props = createProps();
+  props.editMode = false;
+  const [tabA, tabB] = props.component.children;
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState: {
+      dashboardState: {
+        directPathToChild: [
+          ...props.component.parents,
+          props.component.id,
+          tabA,
+        ],
+        activeTabs: [tabB],
+      },
+    },
+  });
+
+  expect(props.setActiveTab.mock.calls).toEqual([[tabA, tabB]]);
+});

@@ -197,3 +197,14 @@ test('keeps a deep link hash while the tabs on its path stay selected', () => {
   expect(window.location.search).toBe('?active_tabs=TAB-first');
   expect(window.location.hash).toBe('#CHART-1');
 });
+
+test('drops a hash targeting a chart once its tab is deselected', () => {
+  window.history.replaceState({}, '', '/superset/dashboard/7/#CHART-1');
+  const { update } = setup({ activeTabs: ['TAB-first'] });
+  expect(window.location.hash).toBe('#CHART-1');
+
+  update({ activeTabs: ['TAB-second'] });
+
+  expect(window.location.search).toBe('?active_tabs=TAB-second');
+  expect(window.location.hash).toBe('');
+});
