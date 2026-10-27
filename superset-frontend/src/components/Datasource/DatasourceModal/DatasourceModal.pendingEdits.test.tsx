@@ -53,13 +53,20 @@ type AceNode = HTMLElement & {
   };
 };
 
-/** Flushes the real controls' debounces while leaving their callbacks intact. */
-async function settleInputs() {
-  await act(async () => {
-    await new Promise(resolve =>
-      setTimeout(resolve, Math.max(Constants.FAST_DEBOUNCE, 300) + 25),
-    );
+// Controls debounce their onChange by FAST_DEBOUNCE (SQL controls use an
+// explicit 300ms, see DatasourceEditor.tsx), via a real setTimeout. Faking
+// timers just long enough to advance past that, mirroring the sibling
+// DatasourceModal.test.tsx / CollectionTable.debounce.test.tsx pattern,
+// settles the same callback deterministically and without the wall-clock
+// wait — real timers resume immediately after so userEvent's own internal
+// timing is unaffected.
+/** Flushes the real controls' debounces without burning real wall-clock time. */
+function flushDebounce() {
+  jest.useFakeTimers();
+  act(() => {
+    jest.advanceTimersByTime(Math.max(Constants.FAST_DEBOUNCE, 300) + 25);
   });
+  jest.useRealTimers();
 }
 
 beforeEach(() => {
@@ -135,7 +142,7 @@ test.each(['metric', 'calculated column'] as const)(
     act(() => existingEditor?.env.editor.setValue(existingExpression));
     fireEvent.click(within(panel).getByRole('button', { name: /add item/i }));
     expect(within(panel).getByDisplayValue(placeholder)).toBeVisible();
-    await settleInputs();
+    flushDebounce();
     expect(within(panel).getByDisplayValue(placeholder)).toBeVisible();
 
     await userEvent.click(within(panel).getByDisplayValue(placeholder));
@@ -143,7 +150,7 @@ test.each(['metric', 'calculated column'] as const)(
     const nameInput = within(panel).getByDisplayValue(placeholder);
     fireEvent.change(nameInput, { target: { value: itemName } });
     fireEvent.blur(nameInput);
-    await settleInputs();
+    flushDebounce();
     await userEvent.click(
       within(
         within(panel).getByRole('row', { name: new RegExp(existingItemName) }),
@@ -164,7 +171,7 @@ test.each(['metric', 'calculated column'] as const)(
     );
     const editor = expandedRow.querySelector<AceNode>('.ace_editor');
     act(() => editor?.env.editor.setValue(expression));
-    await settleInputs();
+    flushDebounce();
 
     await userEvent.click(screen.getByTestId('datasource-modal-save'));
     await userEvent.click(
@@ -193,13 +200,16 @@ test.each(['metric', 'calculated column'] as const)(
       ]),
     );
   },
-  // This test does real work: a full modal render with two AceEditor
-  // mounts, several userEvent interactions, and three real (not
-  // fake-timer) debounce waits via settleInputs(). The 'metric' case adds
-  // an extra expand/collapse round trip on top of that, and has timed out
-  // past the default 20s budget on otherwise-unrelated master pushes under
-  // CI load (e.g. runs 40370481814 and 40410835505, both on commit sha
-  // prefixes unrelated to this file). Give it real headroom instead of
+  // This test still does real work after flushDebounce() above removed the
+  // wall-clock dependency: a full modal render with two AceEditor mounts
+  // and several userEvent interactions, completing in ~5-6s locally. The
+  // 'metric' case adds an extra expand/collapse round trip on top of that,
+  // and timed out past the default 20s budget on otherwise-unrelated
+  // master pushes under CI load (runs 40370481814 and 40410835505, both on
+  // commit shas unrelated to this file) even before flushDebounce()
+  // removed ~1s of guaranteed real sleep and the risk of the real
+  // setTimeout it replaced not firing promptly under that same load. 30s
+  // keeps real headroom for that remaining render/interaction cost without
   // retrying flakes.
-  40000,
+  30000,
 );
