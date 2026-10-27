@@ -71,6 +71,33 @@ def conversation(
     return f"/api/v1/ai/thread/{response.json['result']['uuid']}"
 
 
+def test_worker_transport_failure_is_not_accepted_and_can_retry(
+    client: FlaskClient, conversation: str, session: Session, mocker: MockerFixture,
+) -> None:
+    from flask import current_app
+
+    from superset.ai.eventbus import MemoryEventBus
+    from superset.ai.tasks import run_turn
+    from superset.models.ai import AIChatMessage
+
+    mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": "worker"})
+    bus = mocker.patch("superset.ai.eventbus.get_event_bus", side_effect=RuntimeError("connection check failed"))
+    delay = mocker.patch.object(run_turn, "delay")
+
+    assert _post(client, conversation).status_code == 500
+    delay.assert_not_called()
+    assistant = session.query(AIChatMessage).filter_by(role="assistant").one()
+    run_id = assistant.extra["run_id"]
+
+    bus.side_effect = None
+    bus.return_value = MemoryEventBus()
+    retry = _post(client, conversation)
+    assert retry.status_code == 202
+    assert retry.json["result"]["run_id"] == run_id
+    assert session.query(AIChatMessage).count() == 2
+    delay.assert_called_once()
+
+
 def _post(client: FlaskClient, conversation: str, **updates: Any) -> Any:
     """Submit the same idempotency key unless a test overrides it."""
     return client.post(
