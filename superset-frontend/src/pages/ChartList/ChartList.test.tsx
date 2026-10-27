@@ -261,7 +261,7 @@ describe('ChartList', () => {
 
     const dialog = await screen.findByRole('dialog');
     expect(
-      within(dialog).getByText(`Archive ${mockCharts[0].slice_name}?`),
+      within(dialog).getByText(mockCharts[0].slice_name, { selector: 'bdi' }),
     ).toBeInTheDocument();
     expect(
       within(dialog).getByRole('button', { name: 'Archive' }),

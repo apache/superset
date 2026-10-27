@@ -6122,6 +6122,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             if keep_first
             else {}
         )
+        chart_count: int = db.session.query(Slice).count()
+        orphan_count: int = (
+            db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+        )
         self.login(ADMIN_USERNAME)
         copied_id: int | None = None
         try:
@@ -6140,6 +6144,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             expected: set[str] = {"copy-subset-first"} if keep_first else set()
             assert {chart.slice_name for chart in copied.slices} == expected
             assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count + (
+                len(expected) if duplicate_slices else 0
+            )
+            assert (
+                db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+                == orphan_count
+            )
         finally:
             db.session.rollback()
             if copied_id is not None:
@@ -6157,8 +6168,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     def _layout_access_fixture(self) -> Iterator[dict[str, int]]:
         """A dashboard Gamma edits, whose member chart Gamma cannot read,
         plus a chart Gamma owns, an unrelated chart Gamma cannot read, a
-        chart Gamma reads through a granted dataset but does not edit, and
-        an archived member."""
+        chart Gamma reads through a granted dataset but does not edit, a
+        viewer-restricted chart on that dataset, and an archived member."""
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.helpers import skip_visibility_filter
 
@@ -6173,6 +6184,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         readable: Slice = self.insert_chart(
             "layout-access-readable", [admin.id], granted.id
         )
+        restricted: Slice = self.insert_chart(
+            "layout-access-restricted", [admin.id], granted.id
+        )
+        restricted.viewers = [
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .one()
+        ]
         member: Slice = self.insert_chart(
             "layout-access-member", [admin.id], dataset_id
         )
@@ -6193,6 +6212,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "own": own.id,
             "foreign": foreign.id,
             "readable": readable.id,
+            "restricted": restricted.id,
         }
         archived.deleted_at = datetime.now()
         db.session.commit()
@@ -6229,6 +6249,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ("existing_and_own", ("member", "archived", "own"), 200),
             ("readable_not_edited", ("member", "archived", "readable"), 200),
             ("unreadable_new_chart", ("member", "archived", "foreign"), 422),
+            ("restricted_viewers", ("member", "archived", "restricted"), 422),
         ]
     )
     def test_update_dashboard_layout_chart_access(
@@ -6244,6 +6265,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 json={"json_metadata": json.dumps({"positions": positions})},
             )
             assert rv.status_code == status, rv.data
+            if case == "restricted_viewers":
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['restricted']}"
+                ]
             expected: set[str] = (
                 set(layout) if status == 200 else {"member", "archived"}
             )
@@ -6255,6 +6281,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ("own_chart", ("own",), 200),
             ("readable_not_edited", ("readable",), 200),
             ("unreadable_new_chart", ("member", "foreign"), 422),
+            ("restricted_viewers", ("member", "restricted"), 422),
         ]
     )
     def test_copy_dashboard_layout_chart_access(
@@ -6273,6 +6300,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 },
             )
             assert rv.status_code == status, rv.data
+            if case == "restricted_viewers":
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['restricted']}"
+                ]
+                assert self._member_names(ids) == {"member", "archived"}
             copies: int = (
                 db.session.query(Dashboard)
                 .filter(Dashboard.dashboard_title == "layout-access-copy")
@@ -6544,6 +6577,83 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 dashboard_slices.c.dashboard_id == ids["dashboard"]
             )
         }
+
+    @parameterized.expand([("default", None), ("merge", False), ("replace", True)])
+    def test_copy_dashboard_metadata_comes_from_snapshot(
+        self, case: str, replace_metadata: bool | None
+    ) -> None:
+        """Only an explicit replacement opts out of source metadata inheritance."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("snapshot-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("snapshot-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "snapshot-source", None, [admin.id], slices=[first, second]
+        )
+        dashboard.json_metadata = json.dumps(
+            {"live_only": "absent from snapshot", "refresh_frequency": 900}
+        )
+        db.session.commit()
+        source_metadata: str = dashboard.json_metadata
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "snapshot-copy",
+                    **(
+                        {"replace_metadata": replace_metadata}
+                        if replace_metadata is not None
+                        else {}
+                    ),
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": {
+                                "CHART-first": {
+                                    "type": "CHART",
+                                    "meta": {"chartId": first.id},
+                                }
+                            },
+                            "color_scheme": "supersetColors",
+                            "expanded_slices": {
+                                str(first.id): True,
+                                str(second.id): True,
+                            },
+                            "timed_refresh_immune_slices": [first.id, second.id],
+                            "chart_configuration": {
+                                str(first.id): {"id": first.id},
+                                str(second.id): {"id": second.id},
+                            },
+                        }
+                    ),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            metadata: dict[str, Any] = copied.params_dict
+            assert ("live_only" not in metadata) is bool(replace_metadata)
+            assert metadata["refresh_frequency"] == (0 if replace_metadata else 900)
+            assert metadata["color_scheme"] == "supersetColors"
+            assert metadata["expanded_slices"] == {str(first.id): True}
+            assert metadata["timed_refresh_immune_slices"] == [first.id]
+            assert metadata["chart_configuration"] == {str(first.id): {"id": first.id}}
+            assert {chart.id for chart in copied.slices} == {first.id}
+            assert dashboard.json_metadata == source_metadata
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            db.session.delete(first)
+            db.session.delete(second)
+            db.session.commit()
 
     def test_copy_dashboard_logs_database_error(self) -> None:
         """A database error behind the generic copy 400 is logged with its cause."""
