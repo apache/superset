@@ -4147,10 +4147,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Render with the same processor so its removal state reaches this collector.
         if self.sql:
             self.get_rendered_sql(template_processor)
-        if query_obj.get("is_timeseries", True) or (
+        collect_time_column = query_obj.get("is_timeseries", True) or (
             granularity not in removed_filters
             and utils.DTTM_ALIAS not in removed_filters
-        ):
+        )
+        if collect_time_column:
             add(granularity)
         if (
             granularity
@@ -4193,6 +4194,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
         if series_limit and has_series_groupby:
+            # The join planner builds its own time filter without checking
+            # removal. Prequeries rebuild a normal query and honor removal.
+            if (
+                not collect_time_column
+                and self.db_engine_spec.allows_joins
+                and self.db_engine_spec.allows_subqueries
+                and not self.db_engine_spec.time_groupby_inline
+            ):
+                add(granularity)
             add(
                 query_obj.get("series_limit_metric")
                 or query_obj.get("timeseries_limit_metric"),

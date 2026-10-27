@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from collections.abc import Iterator
+from collections.abc import Hashable, Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -2659,3 +2659,109 @@ def test_adhoc_sql_looking_saved_name_matches_datasource_execution(
         assert virtual.get_extra_cache_keys(query.to_dict()) == (
             [] if isinstance(virtual, SqlaTable) else [PHYSICAL_RLS_KEYS[user_id]]
         )
+
+
+@pytest.mark.parametrize(
+    "planner", ["join", "no_joins", "no_subqueries", "inline", "no_series_groupby"]
+)
+@pytest.mark.parametrize("removed_column", ["ds", "__timestamp"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_removed_time_filter_series_limit_cache_matches_execution(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    planner: str,
+    removed_column: str,
+) -> None:
+    """Only the join planner reapplies a removed time filter to top series."""
+    virtual, rule = static_schema_datasource
+    spec = virtual.db_engine_spec
+    mocker.patch.object(spec, "allows_joins", planner != "no_joins")
+    mocker.patch.object(spec, "allows_subqueries", planner != "no_subqueries")
+    mocker.patch.object(spec, "time_groupby_inline", planner == "inline")
+    virtual.sql = (
+        "SELECT 1 AS col1 /*{% set _t = get_time_filter('"
+        + removed_column
+        + "', remove_filter=True) %}*/"
+    )
+    time_expression = (
+        "{{ \"(SELECT CASE WHEN MAX(col1) = 1 THEN '2020-01-01' "
+        "ELSE '2022-01-01' END FROM physical)\" }}"
+    )
+    columns = [
+        *virtual.columns,
+        TableColumn(
+            column_name="ds",
+            type="DATETIME",
+            is_dttm=True,
+            expression=time_expression,
+            database=virtual.database,
+        ),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": removed_column,
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "2019-01-01 : 2021-01-01",
+            }
+        ]
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[
+            {"expressionType": "SQL", "sqlExpression": "SUM(col1)", "label": "total"}
+        ],
+        granularity="ds",
+        is_timeseries=False,
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2021, 1, 1),
+        series_columns=["missing"] if planner == "no_series_groupby" else ["col1"],
+        series_limit=1,
+    )
+    rows: list[list[int]] = []
+    cache_keys: list[str] = []
+    rls_keys: list[list[Hashable]] = []
+    render_counts: list[int] = []
+    uses_inner_time_filter = planner == "join"
+    execute = mocker.spy(virtual, "query")
+    render = mocker.spy(BaseTemplateProcessor, "process_template")
+    for tenant in (1, 2):
+        rule.clause = f"col1 = {tenant}"
+        execute.reset_mock()
+        result = virtual.get_query_result(query)
+        assert execute.call_count == (
+            2 if planner in {"no_joins", "no_subqueries"} else 1
+        )
+        assert result.status == "success"
+        rows.append(result.df["col1"].tolist())
+        assert ("FROM physical" in result.query) == uses_inner_time_filter
+
+        render.reset_mock()
+        with patch.object(
+            virtual, "get_sqla_query", side_effect=AssertionError("cache built a query")
+        ):
+            extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+            rls_keys.append(extra_keys)
+            render_counts.append(
+                [call.args[1] for call in render.call_args_list].count(time_expression)
+            )
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+
+    assert rows == ([[1], []] if uses_inner_time_filter else [[1], [1]])
+    assert (cache_keys[0] != cache_keys[1]) == uses_inner_time_filter
+    assert rls_keys == (
+        [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
+        if uses_inner_time_filter
+        else [[], []]
+    )
+    assert render_counts == [int(uses_inner_time_filter)] * 2
