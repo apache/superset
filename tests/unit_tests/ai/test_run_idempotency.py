@@ -557,10 +557,12 @@ def test_claim_database_error_does_not_finalize_someone_elses_run(
     )
 
 
+@pytest.mark.parametrize("worker_mode", [False, True])
 def test_two_database_sessions_can_only_claim_once(
     app: Any,
     tmp_path: Path,
     mocker: MockerFixture,
+    worker_mode: bool,
 ) -> None:
     """Competing database connections exercise the conditional UPDATE itself."""
     from sqlalchemy import create_engine
@@ -584,22 +586,25 @@ def test_two_database_sessions_can_only_claim_once(
     sessions.remove()
     barrier = Barrier(2)
 
-    def claim() -> bool:
+    def claim(delivery_id: str) -> bool:
         """Use a separate session and Flask context for each contender."""
         with app.app_context():
             try:
                 barrier.wait(timeout=10)
-                return _claim_pending(message_uuid)
+                return _claim_pending(
+                    message_uuid, delivery_id if worker_mode else None
+                )
             finally:
                 sessions.remove()
 
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            results = [pool.submit(claim) for _ in range(2)]
-            assert sorted(result.result(timeout=15) for result in results) == [
-                False,
-                True,
-            ]
+            results = [pool.submit(claim, str(index)) for index in range(2)]
+            claimed = [result.result(timeout=15) for result in results]
+            assert sorted(claimed) == [False, True]
+            if worker_mode:
+                stored = sessions.query(AIChatMessage).one()
+                assert stored.extra["worker_task_id"] == str(claimed.index(True))
     finally:
         sessions.remove()
         engine.dispose()
