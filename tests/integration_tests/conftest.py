@@ -33,6 +33,11 @@ from superset import db, security_manager
 from superset.extensions import feature_flag_manager
 from superset.utils.database import get_example_database, remove_database
 from superset.utils.json import json_dumps_w_dates
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    _cleanup as _cleanup_birth_names_dashboard,
+    _create_dashboards as _create_birth_names_dashboard,
+    load_birth_names_data,  # noqa: F401
+)
 from tests.integration_tests.test_app import app, login
 
 if TYPE_CHECKING:
@@ -42,6 +47,25 @@ if TYPE_CHECKING:
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def birth_names_table_first(load_birth_names_data: None) -> None:  # noqa: F811
+    """Make ``birth_names`` the first SqlaTable of the session, with id 1.
+
+    Many tests hard-code ``datasource_id=1`` (``insert_chart(..., 1)`` and
+    friends) or assert on ``[examples].[birth_names](id:1)``. In a serial run
+    that works because the first module to use
+    ``load_birth_names_dashboard_with_slices`` creates the ``birth_names``
+    SqlaTable in a fresh database and its teardown deletes the dashboard,
+    slices, columns and metrics but leaves the table row behind. Doing that
+    once up front gives every session the same starting state, including
+    each pytest-xdist worker, which otherwise reaches those tests with no
+    table 1 at all or with some other table in that slot.
+    """
+    with app.app_context():
+        dash_id, slice_ids = _create_birth_names_dashboard()
+        _cleanup_birth_names_dashboard(dash_id, slice_ids)
 
 
 @pytest.fixture
