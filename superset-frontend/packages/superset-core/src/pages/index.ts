@@ -132,7 +132,10 @@ export interface ResolvedPage extends Page {
  * extension importing either gets a second module instance with its own
  * React context, and `useLocation()` throws at runtime. Use `useSubPath` and
  * `useNavigate` below, which read the host's router from inside the host
- * bundle, and `@superset-ui/core` -- which is shared -- for `SupersetClient`.
+ * bundle, and `@superset-ui/core`, which the host offers in the share scope,
+ * for `SupersetClient`. The share is a runtime arrangement and says nothing
+ * to TypeScript, so that package has to be declared in your own
+ * `package.json` as well for the import to compile.
  *
  * Registering the same path twice within one extension replaces the first
  * registration and logs a warning. Across extensions it cannot happen: the

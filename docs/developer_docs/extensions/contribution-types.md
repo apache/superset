@@ -233,6 +233,21 @@ scaffolded by `superset-extensions init` declare the share already; an older
 extension needs `@superset-ui/core` added to the `shared` block of its webpack
 config to use the host's copy rather than bundling its own.
 
+A `shared` entry is a runtime instruction, and TypeScript never sees it. The
+package has to be installed locally too for the import to compile: as a peer
+dependency, to record that the host supplies it at runtime, and as a dev
+dependency, so `tsc` can read its types. The scaffold does not do this yet, so
+an import of `SupersetClient` in a freshly generated extension will not
+resolve until you add it.
+
+Be careful which types you then get. The copy published to npm is not the one
+the host runs -- both currently carry the same version number with about two
+years between them -- and neither side of the share declares a
+`requiredVersion`, so nothing warns you. A symbol the published types export
+but the host no longer does will compile and be `undefined` at runtime. Where
+`@apache-superset/core` covers what you need, prefer it: it is the package
+this host versions alongside itself.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.

@@ -35,8 +35,13 @@ assists people when migrating to a new version.
 
 - **`@superset-ui/core` is now offered to extensions through Module
   Federation.** The host provides it in the share scope and
-  `superset-extensions init` declares it, so a newly scaffolded extension
-  resolves it to the host's copy. That is what makes `SupersetClient` usable
+  `superset-extensions init` declares the share, so a newly scaffolded
+  extension resolves it to the host's copy *at runtime*. The share is
+  invisible to TypeScript, so the package must also be installed locally --
+  as a peer dependency to record that the host supplies it, and as a dev
+  dependency for its types -- which the scaffold does not yet do, so an
+  import of `SupersetClient` does not compile until you add it. That is what
+  makes `SupersetClient` usable
   from an extension -- a bundled copy is never configured, so calls through it
   go out without a CSRF token -- and what keeps the registries in that
   package, which hold state in module-level closures, from silently splitting
