@@ -622,6 +622,18 @@ def test_extract_tables_show_tables_starrocks_catalog_schema() -> None:
     ) == {Table("tbl", "schema_a", "catalog_1")}
 
 
+@pytest.mark.parametrize("clause", ["DROP KEY k", "DROP CHECK c"])
+def test_starrocks_alter_table_drop_with_explicit_kind(clause: str) -> None:
+    """
+    sqlglot routes ``ALTER TABLE ... DROP KEY|CHECK`` through ``_parse_drop``
+    with an explicit ``kind``; the StarRocks override must accept it.
+    """
+    from superset.sql.dialects.starrocks import StarRocks
+
+    ast = sqlglot.parse_one(f"ALTER TABLE t {clause}", dialect=StarRocks)
+    assert ast.find(exp.Drop) is not None
+
+
 def test_extract_tables_show_create_table() -> None:
     """
     Test `SHOW CREATE TABLE`.
