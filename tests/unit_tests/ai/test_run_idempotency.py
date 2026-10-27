@@ -72,7 +72,10 @@ def conversation(
 
 
 def test_worker_transport_failure_is_not_accepted_and_can_retry(
-    client: FlaskClient, conversation: str, session: Session, mocker: MockerFixture,
+    client: FlaskClient,
+    conversation: str,
+    session: Session,
+    mocker: MockerFixture,
 ) -> None:
     from flask import current_app
 
@@ -81,7 +84,10 @@ def test_worker_transport_failure_is_not_accepted_and_can_retry(
     from superset.models.ai import AIChatMessage
 
     mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": "worker"})
-    bus = mocker.patch("superset.ai.eventbus.get_event_bus", side_effect=RuntimeError("connection check failed"))
+    bus = mocker.patch(
+        "superset.ai.eventbus.get_event_bus",
+        side_effect=RuntimeError("connection check failed"),
+    )
     delay = mocker.patch.object(run_turn, "delay")
 
     assert _post(client, conversation).status_code == 500
