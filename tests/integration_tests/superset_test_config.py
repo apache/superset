@@ -156,7 +156,14 @@ ENABLE_VERSIONING_CAPTURE = True
 
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
 
-PUBLIC_ROLE_LIKE = "Gamma"
+# The Public role starts with no permissions. The public_role_like_* fixtures
+# in tests/integration_tests/fixtures/public_role.py grant it Gamma / TestRole
+# permissions for a test and clear it again afterwards, and most of the suite
+# asserts anonymous requests are rejected on that cleared baseline. Starting
+# from a cleared role makes that baseline hold from the first test on, in a
+# serial run and on every pytest-xdist worker alike, instead of depending on
+# which fixture happened to run first.
+PUBLIC_ROLE_LIKE = None
 AUTH_ROLE_PUBLIC = "Public"
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")  # noqa: F405
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")  # noqa: F405
