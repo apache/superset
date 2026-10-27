@@ -390,6 +390,40 @@ def test_cancel_chart_query_for_user_cancels_its_own_query() -> None:
     assert cache.store == {_cancel_requested_key(1, "client-1"): True}
 
 
+def test_cancel_chart_query_for_user_bypasses_the_database_base_filter() -> None:
+    """Stop must work for ``all_datasource_access`` users with no database grants.
+
+    The database base filter hides every database from such a user, so the
+    lookup only succeeds when it skips the filter.
+    """
+    from superset.tasks.query_cancel import cancel_chart_query_for_user
+
+    cache = _FakeCache()
+    cache.store["chart-query-cancel:1:client-1"] = {
+        "database_id": 5,
+        "cancel_query_id": "engine-1",
+    }
+    database = MagicMock()
+
+    def find_by_id(_id: int, skip_base_filter: bool = False) -> MagicMock | None:
+        # A user without per-database grants only sees the row unfiltered.
+        return database if skip_base_filter else None
+
+    with _registry_env(1, cache):
+        with (
+            patch(
+                "superset.daos.database.DatabaseDAO.find_by_id",
+                side_effect=find_by_id,
+            ),
+            patch(
+                "superset.tasks.query_cancel.cancel_chart_query", return_value=True
+            ) as cancel,
+        ):
+            assert cancel_chart_query_for_user("client-1") is True
+
+    cancel.assert_called_once_with(database, "engine-1")
+
+
 def test_cancel_chart_query_for_user_does_not_discard_a_newer_handle() -> None:
     """A stale handle's cancellation must not clobber a fresher cursor's handle.
 
