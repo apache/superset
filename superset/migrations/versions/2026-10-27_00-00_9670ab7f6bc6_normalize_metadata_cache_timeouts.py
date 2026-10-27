@@ -49,17 +49,17 @@ def upgrade() -> None:
     """Convert legacy non-negative integer strings to integer timeouts."""
     connection = op.get_bind()
     for database_id, raw_extra in connection.execute(
-        select(_DATABASES.c.id, _DATABASES.c.extra)
+        select(_DATABASES.c.id, _DATABASES.c.extra).with_for_update()
     ):
         try:
             extra = simplejson.loads(raw_extra, use_decimal=True)
         except (TypeError, ValueError, InvalidOperation):
             continue
-        if not isinstance(extra, dict):
+        if not isinstance(extra, dict) or not isinstance(
+            extra.get("metadata_cache_timeout"), dict
+        ):
             continue
-        timeouts = extra.get("metadata_cache_timeout")
-        if not isinstance(timeouts, dict):
-            continue
+        timeouts = extra["metadata_cache_timeout"]
 
         changed = False
         for key in _TIMEOUT_KEYS:
@@ -76,11 +76,16 @@ def upgrade() -> None:
             changed = True
 
         if changed:
-            connection.execute(
+            result = connection.execute(
                 _DATABASES.update()
-                .where(_DATABASES.c.id == database_id)
+                .where(_DATABASES.c.id == database_id, _DATABASES.c.extra == raw_extra)
                 .values(extra=json.dumps(extra))
             )
+            if result.rowcount != 1:
+                raise RuntimeError(
+                    f"Database {database_id} configuration changed during migration; "
+                    "retry the upgrade with database configuration edits paused."
+                )
 
 
 def downgrade() -> None:

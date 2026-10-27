@@ -300,6 +300,38 @@ def test_upgrade_uses_alembic_transaction(
     assert _read_extra(engine) == extra
 
 
+def test_upgrade_refuses_stale_configuration(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """A row changed after the read must not be overwritten by the old snapshot."""
+    original = '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}'
+    edited = json.dumps(
+        {"metadata_cache_timeout": {"schema_cache_timeout": "600"}, "other": "edited"}
+    )
+    _seed(engine, original)
+    injected = False
+
+    def edit_before_update(
+        conn: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Change the actual stored row between its SELECT and the migration UPDATE."""
+        nonlocal injected
+        if not injected and statement.lstrip().upper().startswith("UPDATE"):
+            injected = True
+            conn.execute(dbs.update().where(dbs.c.id == 1).values(extra=edited))
+
+    event.listen(engine, "before_cursor_execute", edit_before_update)
+    with engine.begin() as connection:
+        with pytest.raises(RuntimeError, match="configuration changed"):
+            _run(migration.upgrade, connection, mocker)
+        assert connection.execute(select(dbs.c.extra)).scalar_one() == edited
+
+
 def test_downgrade_keeps_integer_timeouts(
     engine: Engine, mocker: MockerFixture
 ) -> None:
