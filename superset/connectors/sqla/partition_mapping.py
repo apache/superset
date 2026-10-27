@@ -1816,6 +1816,53 @@ def _from_suffix_sql(from_suffix: str, engine: str) -> str | None:
         return None
 
 
+def _evaluate_with_text_forms(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    values: list[Any],
+    errors: list[str] | None,
+    text_answers: list[tuple[int, Any]],
+) -> tuple[bool, list[Any] | None]:
+    """
+    `evaluate_transform` with each temporal value also asked as text -- see its
+    ``text_answers`` parameter. ``(False, None)`` where ``values`` holds no
+    temporal value, so the caller evaluates them the ordinary way.
+    """
+    indexes = [
+        index
+        for index, value in enumerate(values)
+        if isinstance(value, date) and not is_unmirrorable(value)
+    ]
+    if indexes:
+        combined = evaluate_transform(
+            database,
+            catalog,
+            schema,
+            transform,
+            values + [_as_filter_text(values[index]) for index in indexes],
+            errors=errors,
+        )
+        if combined is not None:
+            text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
+            return True, combined[: len(values)]
+        # The text form was refused, or everything was. Either way nothing
+        # mirrors: a transform that cannot read the instant as text cannot
+        # be checked against the typed answer, and an unchecked typed
+        # answer is how `TO_DATE(:value, 'YYYY-MM-DD')` -- ORA-01830 on
+        # the text -- asked every time range for year 0012. The query path
+        # stops there, still at one round trip. The preview, which passes
+        # ``errors``, asks the typed values alone so it can say which.
+        if errors is None:
+            return True, None
+        typed = evaluate_transform(database, catalog, schema, transform, values)
+        if typed is not None:
+            text_answers.extend((index, TEXT_REFUSED) for index in indexes)
+        return True, typed
+    return False, None
+
+
 def evaluate_transform(
     database: Database,
     catalog: str | None,
@@ -1845,29 +1892,20 @@ def evaluate_transform(
     :param text_answers: optional sink. When given, every date or timestamp in
         ``values`` is also asked as the text a simple filter would bind, in the
         same round trip, and ``(index, answer)`` is appended for each -- see
-        `_declined_for_reading_by_type` for why. A transform that refuses text
-        is asked again with ``values`` alone, so a refusal never costs pruning.
+        `_declined_for_reading_by_type` for why. A transform that refuses the
+        text evaluates to ``None``: its typed answer cannot be checked, so it is
+        not trusted. With ``errors`` too (the preview) the typed values are then
+        asked alone, and ``(index, TEXT_REFUSED)`` is appended if they answer.
     """
     if not values:
         return None
 
     if text_answers is not None:
-        indexes = [
-            index
-            for index, value in enumerate(values)
-            if isinstance(value, date) and not is_unmirrorable(value)
-        ]
-        if indexes:
-            combined = evaluate_transform(
-                database,
-                catalog,
-                schema,
-                transform,
-                values + [_as_filter_text(values[index]) for index in indexes],
-            )
-            if combined is not None:
-                text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
-                return combined[: len(values)]
+        answered, result = _evaluate_with_text_forms(
+            database, catalog, schema, transform, values, errors, text_answers
+        )
+        if answered:
+            return result
 
     # Dedupe so a 200-value `IN` list costs one column, not 200.
     distinct: list[Any] = []
@@ -3247,6 +3285,11 @@ def _render_literal(database: Database, value: Any) -> str:
     return _compile_literal(sa.literal(value), _dialect_for(database))
 
 
+#: `evaluate_transform`'s ``text_answers`` entry for a temporal value whose
+#: text form the transform refused while the value itself evaluated.
+TEXT_REFUSED = object()
+
+
 def _as_filter_text(value: date) -> str:
     """``value`` as the text a simple filter on a temporal column carries."""
     if isinstance(value, datetime):
@@ -3291,18 +3334,32 @@ def _declined_for_reading_by_type(
     )
     if disagreement is None:
         return False
-    reason = str(
-        _(
-            "The transform gives a different partition value for a "
-            "timestamp (%(typed)s) than for the same instant written as "
-            "text (%(text)s). A time range and a filter typed as text both "
-            "reach it, so it cannot be right for both; filters on this "
-            "mapping will not be mirrored. Write the transform so it reads "
-            ":value the same way in either form.",
-            typed=disagreement[0],
-            text=disagreement[1],
+    typed_answer, text_answer = disagreement
+    if text_answer is TEXT_REFUSED:
+        reason = str(
+            _(
+                "The transform answered %(typed)s for a timestamp but could not "
+                "read the same instant written as text, which a filter typed as "
+                "text sends. Without that answer the timestamp's cannot be "
+                "checked, so filters on this mapping will not be mirrored. "
+                "Write the transform so it reads :value both as a timestamp and "
+                "as text.",
+                typed=typed_answer,
+            )
         )
-    )
+    else:
+        reason = str(
+            _(
+                "The transform gives a different partition value for a "
+                "timestamp (%(typed)s) than for the same instant written as "
+                "text (%(text)s). A time range and a filter typed as text both "
+                "reach it, so it cannot be right for both; filters on this "
+                "mapping will not be mirrored. Write the transform so it reads "
+                ":value the same way in either form.",
+                typed=typed_answer,
+                text=text_answer,
+            )
+        )
     logger.warning("Partition transform reads :value by type: %s", reason)
     if shape_errors is not None:
         shape_errors.append(reason)

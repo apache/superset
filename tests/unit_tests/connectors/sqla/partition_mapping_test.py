@@ -2888,6 +2888,67 @@ def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
     assert cast(MagicMock, table.database.get_df).call_count == 1
 
 
+def test_a_chart_bound_is_not_mirrored_when_its_text_form_is_refused(
+    app: Flask,
+) -> None:
+    """
+    Oracle's ``TO_DATE(:value, 'YYYY-MM-DD')`` onto a day key raises ORA-01830
+    on ``'2026-01-12 06:30:00'`` and turns the typed bound into year 0012.
+    Falling back to the typed answer alone left it unchecked, so every time
+    range came back empty. A refused text form now declines the mirror, still
+    in one round trip.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    def refuse_text(sql: str, **kwargs: Any) -> pd.DataFrame:
+        if "'2026-01-12 06:30:00'" in sql:
+            raise RuntimeError("ORA-01830: date format picture ends before ...")
+        return pd.DataFrame([[datetime(12, 1, 26)]], columns=["v0"])
+
+    table.database.get_df = MagicMock(side_effect=refuse_text)  # type: ignore[method-assign]
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+        )
+
+    assert predicates == []
+    assert cast(MagicMock, table.database.get_df).call_count == 1
+
+
+def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
+    """The preview asks the typed value alone, so it can say why."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    def refuse_text(sql: str, **kwargs: Any) -> pd.DataFrame:
+        if "'2026-01-12 06:30:00'" in sql:
+            raise RuntimeError("ORA-01830: date format picture ends before ...")
+        return pd.DataFrame([[datetime(12, 1, 26)]], columns=["v0"])
+
+    table.database.get_df = MagicMock(side_effect=refuse_text)  # type: ignore[method-assign]
+    errors: list[str] = []
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            errors=errors,
+            shape_errors=shape_errors,
+        )
+
+    assert predicates == []
+    assert shape_errors
+    assert "written as text" in shape_errors[0]
+
+
 def test_an_engine_with_no_temporal_literal_declines_a_temporal_answer() -> None:
     """
     Where the engine spec has no `convert_dttm` rendering for the column, the

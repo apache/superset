@@ -881,10 +881,10 @@ def test_preview_renders_a_probed_value_read_from_a_dataframe(
     """
     import pandas as pd
 
-    frame = pd.DataFrame([[1768435200]], columns=["v0"])
+    value = pd.DataFrame([[1768435200]], columns=["v0"]).iat[0, 0]
     with patch(
         "superset.models.core.Database.get_df",
-        return_value=frame,
+        side_effect=_probe_by_shape(value, value),
     ):
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
@@ -906,10 +906,10 @@ def test_preview_renders_a_probed_timestamp_read_from_a_dataframe(
     """A transform returning a date hits the same renderer gap as an integer."""
     import pandas as pd
 
-    frame = pd.DataFrame([[pd.Timestamp("2026-01-15")]], columns=["v0"])
+    value = pd.Timestamp("2026-01-15")
     with patch(
         "superset.models.core.Database.get_df",
-        return_value=frame,
+        side_effect=_probe_by_shape(value, value),
     ):
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
