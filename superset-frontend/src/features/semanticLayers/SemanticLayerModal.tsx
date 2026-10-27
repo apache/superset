@@ -93,6 +93,7 @@ interface SemanticLayerModalProps {
   show: boolean;
   onHide: () => void;
   onCreated?: () => void;
+  onUpdated?: () => void;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   semanticLayerUuid?: string;
@@ -102,6 +103,7 @@ export default function SemanticLayerModal({
   show,
   onHide,
   onCreated,
+  onUpdated,
   addDangerToast,
   addSuccessToast,
   semanticLayerUuid,
@@ -379,7 +381,11 @@ export default function SemanticLayerModal({
           endpoint: `/api/v1/semantic_layer/${semanticLayerUuid}`,
           jsonPayload: { name, configuration: formData },
         });
-        if (request !== saveRequestRef.current) return;
+        if (request !== saveRequestRef.current) {
+          // Cancel refreshed the parent before the update committed.
+          onUpdated?.();
+          return;
+        }
         addSuccessToast(t('Semantic layer updated'));
       } else {
         await SupersetClient.post({

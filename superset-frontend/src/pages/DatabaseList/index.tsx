@@ -1164,6 +1164,7 @@ function DatabaseList({
       />
       <SemanticLayerModal
         show={!!slCurrentlyEditing}
+        onUpdated={refreshData}
         onHide={() => {
           setSlCurrentlyEditing(null);
           refreshData();

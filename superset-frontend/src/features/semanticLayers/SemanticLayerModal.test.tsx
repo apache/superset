@@ -773,6 +773,36 @@ test('A pending clear prevents edits and a closed editor ignores its late respon
   expect(props.addSuccessToast).not.toHaveBeenCalled();
 });
 
+test('a successful edit after Cancel refreshes the parent without stale modal UI', async () => {
+  mockJsonFormsChangeTriggered = true;
+  const onUpdated = jest.fn();
+  let finishUpdate!: (value: { json: object }) => void;
+  const mockedPut = SupersetClient.put as jest.Mock;
+  mockedPut.mockReset().mockReturnValueOnce(
+    new Promise(resolve => {
+      finishUpdate = resolve;
+    }),
+  );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} onUpdated={onUpdated} />,
+  );
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
+  await waitFor(() => expect(mockedPut).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  rerender(
+    <SemanticLayerModal {...props} onUpdated={onUpdated} show={false} />,
+  );
+  await act(async () => finishUpdate({ json: {} }));
+
+  expect(onUpdated).toHaveBeenCalledTimes(1);
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
+});
+
 test('setup guidance distinguishes loading and empty provider types', async () => {
   let resolveTypes!: (value: { json: { result: [] } }) => void;
   mockedGet.mockReset().mockReturnValue(
