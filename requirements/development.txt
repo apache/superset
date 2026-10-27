@@ -529,7 +529,7 @@ jmespath==1.1.0
     #   boto3
     #   botocore
     #   pymongosql
-joserfc==1.7.3
+joserfc==1.7.7
     # via
     #   -r requirements/development.in
     #   fastmcp-slim
@@ -945,7 +945,7 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.31
+python-multipart==0.0.32
     # via
     #   -r requirements/development.in
     #   fastmcp-slim
