@@ -504,4 +504,64 @@ describe('SavedQuery', () => {
     await userEvent.type(nameInput, 'My query');
     await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
   });
+
+  test('keeps the modal open and shows the error inline when saving is rejected', async () => {
+    const duplicateError = 'A saved query with this name already exists';
+    const mockOnSave = jest.fn().mockRejectedValue(new Error(duplicateError));
+
+    render(<SaveQuery {...mockedProps} onSave={mockOnSave} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Baseline Query');
+    await userEvent.click(screen.getAllByRole('button', { name: /save/i })[1]);
+
+    await waitFor(() => expect(mockOnSave).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(duplicateError)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+    expect(nameInput).toHaveValue('Baseline Query');
+  });
+
+  test('keeps the modal open and shows the error inline when updating is rejected', async () => {
+    const duplicateError = 'A saved query with this name already exists';
+    const mockOnUpdate = jest.fn().mockRejectedValue(new Error(duplicateError));
+
+    render(<SaveQuery {...mockedProps} onUpdate={mockOnUpdate} />, {
+      useRedux: true,
+      store: mockStore({
+        ...mockState,
+        sqlLab: {
+          ...mockState.sqlLab,
+          queryEditors: [
+            {
+              id: mockedProps.queryEditorId,
+              dbId: 1,
+              catalog: null,
+              schema: 'main',
+              sql: 'SELECT * FROM t',
+              name: 'My saved query',
+              remoteId: 42,
+            },
+          ],
+        },
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await userEvent.click(screen.getByRole('button', { name: /update/i }));
+
+    await waitFor(() => expect(mockOnUpdate).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(duplicateError)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /save query/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('textbox')[0]).toHaveValue('My saved query');
+  });
 });

@@ -723,6 +723,62 @@ class TestSavedQueryApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    def test_create_saved_query_duplicate_label(self) -> None:
+        """
+        Saved Query API: Test create rejects a label already used by the same
+        user on the same database
+        """
+        example_db = get_example_database()
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/saved_query/"
+
+        post_data = {
+            "schema": "schema1",
+            "label": "duplicate label",
+            "description": "some description",
+            "sql": "SELECT col1, col2 from table1",
+            "db_id": example_db.id,
+        }
+        created_ids: list[int] = []
+        try:
+            rv = self.client.post(uri, json=post_data)
+            assert rv.status_code == 201
+            created_ids.append(json.loads(rv.data.decode("utf-8"))["id"])
+
+            rv = self.client.post(uri, json=post_data)
+            if rv.status_code == 201:
+                created_ids.append(json.loads(rv.data.decode("utf-8"))["id"])
+            assert rv.status_code == 422
+            assert "A saved query with this name already exists" in rv.data.decode(
+                "utf-8"
+            )
+        finally:
+            # Rollback changes
+            db.session.query(SavedQuery).filter(SavedQuery.id.in_(created_ids)).delete(
+                synchronize_session=False
+            )
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_update_saved_query_duplicate_label(self) -> None:
+        """
+        Saved Query API: Test update rejects renaming to a label already used
+        by another saved query of the same user on the same database
+        """
+        saved_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
+        )
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/saved_query/{saved_query.id}"
+
+        rv = self.client.put(uri, json={"label": "label2"})
+        assert rv.status_code == 422
+        assert "A saved query with this name already exists" in rv.data.decode("utf-8")
+
+        model = db.session.query(SavedQuery).get(saved_query.id)
+        assert model.label == "label1"
+
     @pytest.mark.usefixtures("create_saved_queries")
     def test_update_saved_query_blank_label(self) -> None:
         """
