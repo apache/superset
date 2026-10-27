@@ -716,6 +716,11 @@ probe without its literal semantics, so search returns
 `unsupported/unsupported_search`, exact probes return
 `unsupported/unsupported_target`, and proposals for that column are not
 validated.
+Templates that read the raw `filter` context variable also make search and exact
+probes unsupported, because those predicates differ from native selections.
+These probes are rejected before query execution. Listings, empty searches, and
+parent proposals remain supported; proposals use the native `IN` shape and still
+follow the filter-macro restriction above.
 
 For a simultaneous parent/child change, first establish the parent's exact choice,
 then supply `proposed_filter_values: [{"filter_id": "parent-id", "values": ["EMEA"]}]`

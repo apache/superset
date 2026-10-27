@@ -719,13 +719,10 @@ def _parent_extra(context: _Discovery, filter_id: str) -> dict[str, Any]:
     return extra
 
 
-def _templates_observe_metrics(conf: dict[str, Any], dataset: SqlaTable) -> bool:
-    """Whether Jinja rendered for a dropdown query could read its metrics list.
-
-    The dashboard dropdown renders templates with only its sort metric, so an
-    internal evidence metric must not be visible to any template that reads
-    ``metrics`` or renders another metric through the ``metric`` macro.
-    """
+def _templates_observe_context(
+    conf: dict[str, Any], dataset: SqlaTable, variables: set[str]
+) -> bool:
+    """Whether rendered dropdown templates could read the given context names."""
     if not is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
         return False
     texts: list[Any] = [
@@ -745,15 +742,15 @@ def _templates_observe_metrics(conf: dict[str, Any], dataset: SqlaTable) -> bool
     ]
     env = None
     for text in texts:
-        if not isinstance(text, str) or "metric" not in text:
+        if not isinstance(text, str) or not any(name in text for name in variables):
             continue
         env = env or dataset.get_template_processor().env
         try:
             names = meta.find_undeclared_variables(env.parse(text))
         except (SecurityError, TemplateSyntaxError):
-            # An unparseable template cannot be shown not to read metrics.
+            # An unparseable template cannot be shown not to read these names.
             return True
-        if names & {"metrics", "metric"}:
+        if names & variables:
             return True
     return False
 
@@ -810,7 +807,7 @@ def _native_query(  # noqa: C901
     query.setdefault("extras", {})["preserve_literal_values"] = True
     query["metrics"] = [metric] if metric else []
     if target.column.type_generic == GenericDataType.NUMERIC and not (
-        _templates_observe_metrics(conf, target.dataset)
+        _templates_observe_context(conf, target.dataset, {"metrics", "metric"})
     ):
         # Pandas represents both SQL NULL and database NaN as NaN in float
         # columns. COUNT(target) distinguishes those groups without another query.
@@ -832,6 +829,16 @@ def _native_query(  # noqa: C901
         if metric or not item.search
         else []
     )
+    if (
+        proposal is None
+        and (item.search or "exact_value" in item.model_fields_set)
+        and _templates_observe_context(conf, target.dataset, {"filter"})
+    ):
+        # Raw filter access bypasses macro bookkeeping and exposes probes that
+        # differ from native selections. Proposals retain the native IN shape.
+        raise _DiscoveryUnavailableError(
+            "unsupported_search" if item.search else "unsupported_target"
+        )
     if proposal is not None:
         query["filters"].append(
             {

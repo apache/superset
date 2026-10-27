@@ -2404,6 +2404,7 @@ def test_metrics_template_renders_as_the_dashboard_dropdown(
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("variable", ["metrics", "filter"])
 @pytest.mark.parametrize(
     ("source", "observes"),
     [
@@ -2419,55 +2420,61 @@ def test_metrics_template_renders_as_the_dashboard_dropdown(
         ("unparseable", True),
     ],
 )
-def test_metrics_observation_covers_every_rendered_template(
-    native_query: dict[str, Any], mocker: MockerFixture, source: str, observes: bool
+def test_context_observation_covers_every_rendered_template(
+    native_query: dict[str, Any],
+    mocker: MockerFixture,
+    source: str,
+    observes: bool,
+    variable: str,
 ) -> None:
     """Each template the query renders is checked, failing closed when unparseable."""
     from superset.connectors.sqla.models import SqlMetric
 
     dataset = native_query["dataset"]
     conf = _filter("amount")
+    expression = "{{ " + variable + " | length }}"
     rls: list[Any] = []
     guest_rls: list[dict[str, Any]] = []
     if source == "sql_text_only":
-        dataset.sql = "select 'metrics' as amount"
+        dataset.sql = f"select '{variable}' as amount"
     elif source == "sql":
-        dataset.sql = "select {{ metrics | length }} as amount"
+        dataset.sql = f"select {expression} as amount"
     elif source == "column":
-        dataset.columns.append(
-            TableColumn(column_name="m", expression="{{ metrics | length }}")
-        )
+        dataset.columns.append(TableColumn(column_name="m", expression=expression))
     elif source == "metric":
-        dataset.metrics = [
-            SqlMetric(metric_name="m", expression="{{ metrics | length }}")
-        ]
+        dataset.metrics = [SqlMetric(metric_name="m", expression=expression)]
     elif source == "metric_macro":
         dataset.sql = "select {{ metric('m') }} as amount"
+        observes = variable == "metrics"
     elif source == "adhoc_filter":
         conf["adhoc_filters"] = [
-            {"expressionType": "SQL", "sqlExpression": "{{ metrics | length }} > 0"}
+            {"expressionType": "SQL", "sqlExpression": f"{expression} > 0"}
         ]
     elif source == "rls":
-        rls = [Mock(clause="{{ metrics | length }} > 0")]
+        rls = [Mock(clause=f"{expression} > 0")]
     elif source == "guest_rls":
-        guest_rls = [{"clause": "{{ metrics | length }} > 0"}]
+        guest_rls = [{"clause": f"{expression} > 0"}]
     elif source == "unparseable":
-        dataset.sql = "select {{ metrics"
+        dataset.sql = "select {{ " + variable
     mocker.patch("superset.security_manager.get_rls_filters", return_value=rls)
     mocker.patch(
         "superset.security_manager.get_guest_rls_filters", return_value=guest_rls
     )
-    assert choices._templates_observe_metrics(conf, dataset) is observes
+    variables = {"metrics", "metric"} if variable == "metrics" else {"filter"}
+    assert choices._templates_observe_context(conf, dataset, variables) is observes
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
-def test_metrics_observation_is_off_without_template_processing(
-    native_query: dict[str, Any],
+@pytest.mark.parametrize("variable", ["metrics", "filter"])
+def test_context_observation_is_off_without_template_processing(
+    native_query: dict[str, Any], variable: str
 ) -> None:
-    """Without template processing nothing renders, so the count stays."""
-    native_query["dataset"].sql = "select {{ metrics | length }} as amount"
+    """Context observation does not constrain queries without template processing."""
+    native_query["dataset"].sql = "select {{ " + variable + " | length }} as amount"
     assert (
-        choices._templates_observe_metrics(_filter("amount"), native_query["dataset"])
+        choices._templates_observe_context(
+            _filter("amount"), native_query["dataset"], {variable}
+        )
         is False
     )
 
@@ -2498,6 +2505,124 @@ def test_float_null_evidence_without_the_count_is_never_complete(
     assert _available(summaries[0]).status == status
     assert _available(summaries[0]).reason == reason
     assert _available(summaries[0]).values == values
+
+
+_RAW_FILTER_IN_SQL = (
+    "select * from sales where country = 'France' "
+    "{% for f in filter if f.col == 'country' %}"
+    "and country in {{ f.val|where_in }}{% endfor %}"
+)
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        (
+            "select 'France' as country where {{ 1 if not filter else 0 }} = 1",
+            ["France"],
+        ),
+        ("select 'France' as country where {{ filter | length }} = 0", ["France"]),
+        ("select 'France' as country where {{ 1 if filter else 0 }} = 1", []),
+        (
+            "select * from sales where country = 'France' "
+            "{% for f in filter if f.col == 'country' and f.op == 'ILIKE' %}"
+            "and country like '{{ f.val }}'{% endfor %}",
+            ["France"],
+        ),
+        (_RAW_FILTER_IN_SQL, ["France"]),
+    ],
+)
+@pytest.mark.parametrize(
+    "probe", [{"search": "Fran"}, {"exact_value": "France"}, {"exact_value": None}]
+)
+def test_raw_filter_template_probes_are_unsupported(
+    sqlite_native_execution: dict[str, Any],
+    sql: str,
+    expected: list[str],
+    probe: dict[str, str | None],
+) -> None:
+    """Raw filter access cannot turn a changed domain into a complete probe."""
+    sqlite_native_execution["dataset"].sql = sql
+    dashboard = _dashboard(_filter("country"))
+    summaries, _ = choices.discover_filter_values(
+        dashboard, _request(filter_value_requests=[{"filter_id": "country"}])
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == expected
+    sqlite_native_execution["database_reads"].reset_mock()
+
+    summaries, metadata = choices.discover_filter_values(
+        dashboard,
+        _request(filter_value_requests=[{"filter_id": "country", **probe}]),
+    )
+    available = _available(summaries[0])
+    assert available.status == "unsupported"
+    assert available.reason == (
+        "unsupported_search" if "search" in probe else "unsupported_target"
+    )
+    assert available.values == []
+    assert metadata.query_count == 0
+    sqlite_native_execution["database_reads"].assert_not_called()
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    "template",
+    [
+        "select * from sales where 'filter' = 'filter'",
+        "{# filter #}select * from sales",
+        "select * from sales where '{{ 'filter' }}' = 'filter'",
+        "{% set filter = [] %}select * from sales where {{ filter | length }} = 0",
+        "{% for filter in [] %}{{ filter }}{% endfor %}select * from sales",
+    ],
+)
+@pytest.mark.parametrize("probe", [{"search": "Fran"}, {"exact_value": "France"}])
+def test_filter_text_and_local_variables_allow_probes(
+    sqlite_native_execution: dict[str, Any], template: str, probe: dict[str, str]
+) -> None:
+    """Only undeclared context access, not text or local variables, blocks probes."""
+    sqlite_native_execution["dataset"].sql = template
+    summaries, metadata = choices.discover_filter_values(
+        _dashboard(_filter("country")),
+        _request(filter_value_requests=[{"filter_id": "country", **probe}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["France"]
+    assert metadata.query_count == 1
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_raw_filter_templates_allow_empty_search_and_parent_proposals(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """Listings and native IN proposals preserve the template's expected shape."""
+    sqlite_native_execution["dataset"].sql = _RAW_FILTER_IN_SQL
+    dashboard = _dashboard(
+        _filter("country"), _filter("region", cascadeParentIds=["country"])
+    )
+    summaries, metadata = choices.discover_filter_values(
+        dashboard,
+        _request(filter_value_requests=[{"filter_id": "country", "search": ""}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["France"]
+    assert metadata.query_count == 1
+
+    snapshot = {"dataMask": {"country": _mask(["Germany"])}}
+    original = deepcopy(snapshot)
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "country", "values": ["France"]}],
+    )
+    summaries, metadata = choices.discover_filter_values(
+        dashboard, request, snapshot_state=snapshot
+    )
+    assert metadata.validated_proposed_filter_values == request.proposed_filter_values
+    assert metadata.query_count == 2
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["EMEA"]
+    assert snapshot == original
 
 
 _SWALLOWED_COUNTRY_SQL = (

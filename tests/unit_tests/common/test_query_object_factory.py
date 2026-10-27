@@ -63,11 +63,13 @@ def apply_max_row_limit(
 
 @fixture
 def query_object_factory(
-    app_config: dict[str, Any], connector_registry: Mock
+    app_config: dict[str, Any],
+    connector_registry: Mock,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> QueryObjectFactory:
     import superset.common.query_object_factory as mod
 
-    mod.apply_max_row_limit = apply_max_row_limit
+    monkeypatch.setattr(mod, "apply_max_row_limit", apply_max_row_limit)
     return QueryObjectFactory(app_config, connector_registry)
 
 
