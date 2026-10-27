@@ -1016,8 +1016,18 @@ def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> No
     """Format a temporal column in place with an explicit d3 time format.
 
     The caller gates this on ``is_strftime_expressible``, so every directive in
-    ``d3_time_format`` means the same thing here as it does in the browser. Null
-    values are left as-is rather than rendered as the string ``"NaT"``.
+    ``d3_time_format`` means the same thing here as it does in the browser, and
+    strips the format first, because ``TimeFormatterRegistry.get`` trims before
+    it builds the formatter. ``str.strip`` is not character-for-character
+    ``String.prototype.trim``: a leading ``U+FEFF`` is trimmed in the browser
+    and kept here, and ``U+001C``-``U+001F`` and ``U+0085`` the other way
+    round. None of them is a directive, so a format carrying one renders apart
+    from the chart by that character alone.
+
+    A null is left as it is. Without the ``pd.notna`` guard it would not come
+    out as the string ``"NaT"``: ``pd.NaT.strftime`` raises ``ValueError:
+    NaTType does not support strftime``, so a single missing timestamp would
+    fail the whole report.
 
     An aware value is read in UTC. ``createD3TimeFormatter`` builds the
     formatter with ``utcFormat`` unless the format asks for local time, which
@@ -1545,7 +1555,12 @@ def table(
         # adaptive granularity and string temporal columns are left to a
         # follow-up: they need a full server-side d3-time-format port rather
         # than ``strftime``.
-        time_format = config.get("d3TimeFormat")
+        # ``TimeFormatterRegistry.get`` trims the format before building the
+        # formatter while d3 itself does not, so ``utcFormat(" %Y ")`` returns
+        # ``" 2024 "`` and without the strip the report keeps padding the chart
+        # dropped. One that is only whitespace strips to empty and falls
+        # through unformatted, like one whose directives cannot be reproduced.
+        time_format = (config.get("d3TimeFormat") or "").strip()
         if (
             time_format
             and is_strftime_expressible(time_format)

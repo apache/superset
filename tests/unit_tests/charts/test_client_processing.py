@@ -3074,8 +3074,12 @@ def test_table_skips_a_time_format_on_a_non_datetime_column(
 
 def test_table_time_format_keeps_nulls() -> None:
     """
-    A missing timestamp stays missing rather than being rendered as the string
-    ``"NaT"``, which is what ``strftime`` on a ``NaT`` would produce.
+    A missing timestamp stays missing, and does not fail the report.
+
+    ``strftime`` on a ``NaT`` does not produce the string ``"NaT"``; it raises
+    ``ValueError: NaTType does not support strftime``, so without the
+    ``pd.notna`` guard one null would fail the whole report rather than print
+    anything.
     """
     df = pd.DataFrame.from_dict(
         {"ds": {0: pd.Timestamp("2024-01-15"), 1: pd.NaT}},
@@ -3089,6 +3093,32 @@ def test_table_time_format_keeps_nulls() -> None:
 
     assert formatted["ds"].tolist()[0] == "2024"
     assert pd.isna(formatted["ds"].tolist()[1])
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    ["  %Y-%m-%d  ", " %Y-%m-%d", "%Y-%m-%d ", "\t%Y-%m-%d\n", "\r%Y-%m-%d\x0b"],
+)
+def test_table_time_format_strips_surrounding_whitespace(time_format: str) -> None:
+    """
+    A padded format renders like the chart, which trims before formatting.
+
+    ``TimeFormatterRegistry.get`` trims the format string before building the
+    formatter, while d3 itself does not: ``utcFormat(" %Y ")`` returns
+    ``" 2024 "``. Without the strip the report kept the padding the chart had
+    already dropped. Every character here is whitespace to both ``str.strip``
+    and ``String.prototype.trim``; the handful they disagree on is in
+    ``format_time_column``.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-01-15")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == ["2024-01-15"]
 
 
 @pytest.mark.parametrize(
