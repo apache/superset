@@ -294,7 +294,13 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
 
     from superset.ai.page_context import render_page_context
 
-    history = _build_history(AIChatMessageDAO.find_for_thread(thread))
+    messages = AIChatMessageDAO.find_for_thread(thread)
+    for index, message in enumerate(messages):
+        if str(message.uuid) == request.assistant_message_uuid:
+            history = _build_history(messages[:index])
+            break
+    else:
+        raise ValueError("The assistant message is not in this conversation.")
     # Recorded as well as prompted with, so the transcript can show what the
     # assistant was told about the user's screen. An answer that looks wrong is
     # usually an answer to a different question than the reader assumed, and the

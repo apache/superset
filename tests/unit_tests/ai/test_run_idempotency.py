@@ -121,6 +121,69 @@ def test_post_replay_keeps_run_and_accepted_context(
         assert call.args[0].page_context == context
 
 
+@pytest.mark.parametrize("reversed_delivery", [False, True])
+def test_queued_turn_history_stops_at_its_own_placeholder(
+    client: FlaskClient,
+    session: Session,
+    mocker: MockerFixture,
+    conversation: str,
+    provider: EchoProvider,
+    reversed_delivery: bool,
+) -> None:
+    """Queueing a later question cannot change the answer to an earlier one."""
+    from superset.ai.orchestrator import execute_turn
+    from superset.models.ai import AIChatMessage
+
+    mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": "worker"})
+    submitted = mocker.patch("superset.ai.tasks.submit_turn")
+    for key in ("first", "second"):
+        response = _post(
+            client, conversation, content=f"{key} question", request_id=key
+        )
+        assert response.status_code == 202
+    deliveries = [call.args[0] for call in submitted.call_args_list]
+    if reversed_delivery:
+        deliveries.reverse()
+    for turn in deliveries:
+        execute_turn(turn)
+
+    session.expire_all()
+    answers = {
+        message.request_id: message.content
+        for message in session.query(AIChatMessage).filter_by(role="assistant")
+    }
+    assert answers == {
+        "first": "echo: first question",
+        "second": "echo: second question",
+    }
+    first_request = provider.requests[1 if reversed_delivery else 0]
+    assert [message.content for message in first_request.messages] == ["first question"]
+
+
+def test_missing_history_boundary_does_not_run_inference(
+    client: FlaskClient,
+    session: Session,
+    mocker: MockerFixture,
+    conversation: str,
+    provider: EchoProvider,
+) -> None:
+    """An unavailable placeholder must not fall back to the whole conversation."""
+    from superset.ai.orchestrator import execute_turn
+    from superset.models.ai import AIChatMessage
+
+    mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": "worker"})
+    submitted = mocker.patch("superset.ai.tasks.submit_turn")
+    assert _post(client, conversation).status_code == 202
+    mocker.patch("superset.daos.ai.AIChatMessageDAO.find_for_thread", return_value=[])
+    execute_turn(submitted.call_args.args[0])
+
+    assert provider.requests == []
+    session.expire_all()
+    assert (
+        session.query(AIChatMessage).filter_by(role="assistant").one().status == "error"
+    )
+
+
 def test_assistant_commit_already_has_its_run_context(
     client: FlaskClient,
     session: Session,
