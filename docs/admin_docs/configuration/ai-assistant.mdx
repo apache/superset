@@ -210,6 +210,17 @@ Selecting `"worker"` with the in-memory event bus raises rather than leaving
 every stream silently empty, and so does selecting the Redis bus without a
 usable connection.
 
+Before queuing a worker turn, Superset checks Redis connectivity and
+authentication with `PING`. A failed check returns an error without enqueueing
+the turn; retry the same `request_id` after restoring connectivity. Direct Redis
+and Sentinel connections default to five-second socket/connect timeouts here;
+override `CACHE_REDIS_SOCKET_TIMEOUT` and `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT` in
+`AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG` for your deployment. A successful probe
+does not guarantee later availability or permissions for every stream command.
+
+Worker cancellation uses this same shared Redis backend and a 15-minute flag
+TTL, independently of `CACHE_CONFIG`.
+
 A turn is deliberately **not** retried after a worker crash: inference costs
 money, and re-running a turn the user may already have partly seen would charge
 twice. The task explicitly uses early acknowledgement. When Celery observes a
@@ -429,8 +440,10 @@ latency to every turn that uses it.
 ## Retention
 
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
-The default Celery beat schedule runs `ai.prune_conversations` daily at 03:30.
-Deployments with a custom schedule must include this task to enforce retention.
+The default Celery beat schedules, including the bundled Helm configuration,
+run `ai.prune_conversations` daily at 03:30. The bundled Helm Celery imports also
+register `superset.ai.tasks`. Deployments with custom Celery configuration must
+include that module and the pruning schedule to enforce retention.
 Set the retention period to zero or a negative value to disable pruning.
 
 ## Trying it locally
