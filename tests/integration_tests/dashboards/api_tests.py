@@ -6914,7 +6914,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert mock_set_current_cache_key.call_count == 2
 
     @parameterized.expand(
-        [("pending", StatusValues.PENDING), ("computing", StatusValues.COMPUTING)]
+        [
+            ("pending", StatusValues.PENDING),
+            ("computing", StatusValues.COMPUTING),
+            ("error", StatusValues.ERROR),
+        ]
     )
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
@@ -6922,7 +6926,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     def test_force_does_not_join_refresh_carrying_previous_image(
         self, case: str, refresh_status: StatusValues
     ) -> None:
-        """A forced download waits for new bytes without clearing ordinary refreshes."""
+        """Only forced requests replace generations carrying an older capture."""
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -6977,14 +6981,23 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             refresh = self._cache_screenshot(dashboard.id)
             assert refresh.status_code == 202
             permalink_key = refresh.json["dashboard_url"].rstrip("/").rsplit("/", 1)[-1]
-            in_progress = ScreenshotCachePayload.from_dict(
-                cache.get("refresh-generation")
-            )
-            in_progress.status = refresh_status
-            cache.set("refresh-generation", in_progress.to_dict())
+            retained = ScreenshotCachePayload.from_dict(cache.get("refresh-generation"))
+            retained.status = refresh_status
+            cache.set("refresh-generation", retained.to_dict())
             retained_response = self.client.get(refresh.json["image_url"])
             assert retained_response.status_code == 200
             assert retained_response.data == old_image
+
+            ordinary = self._cache_screenshot(
+                dashboard.id, payload={"permalinkKey": permalink_key}, force=False
+            )
+            assert ordinary.status_code == 200
+            assert ordinary.json["cache_key"] == refresh.json["cache_key"]
+            assert ordinary.json["task_status"] == refresh_status.value
+            ordinary_image = self.client.get(ordinary.json["image_url"])
+            assert ordinary_image.status_code == 200
+            assert ordinary_image.data == old_image
+            task.delay.assert_called_once()
 
             forced = self._cache_screenshot(
                 dashboard.id, payload={"permalinkKey": permalink_key}, force=True
