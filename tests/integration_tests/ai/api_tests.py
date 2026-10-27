@@ -346,16 +346,37 @@ class TestAIApi(SupersetTestCase):
         """Conversations are deleted whole."""
         self.login("admin")
         uuid = self._create_thread()["uuid"]
-        self.client.post(f"{AI_BASE}/thread/{uuid}/message", json={"content": "hi"})
+        accepted = self.client.post(
+            f"{AI_BASE}/thread/{uuid}/message", json={"content": "hi"}
+        ).json["result"]
+        assert self.client.delete(f"{AI_BASE}/thread/{uuid}").status_code == 422
+        _read_stream(
+            self.client,
+            f"{AI_BASE}/thread/{uuid}/stream?run_id={accepted['run_id']}",
+        )
+        assert (
+            self.client.post(
+                f"{AI_BASE}/feedback",
+                json={
+                    "message_uuid": accepted["assistant_message_uuid"],
+                    "liked": True,
+                },
+            ).status_code
+            == 200
+        )
 
         assert self.client.delete(f"{AI_BASE}/thread/{uuid}").status_code == 200
         remaining = (
             db.session.query(AIChatMessage)
-            .join(AIChatThread)
-            .filter(AIChatThread.uuid == uuid)
+            .filter(
+                AIChatMessage.uuid.in_(
+                    [accepted["message_uuid"], accepted["assistant_message_uuid"]]
+                )
+            )
             .count()
         )
         assert remaining == 0
+        assert db.session.query(AIChatFeedback).count() == 0
 
     # ------------------------------------------------------------------
     # streaming

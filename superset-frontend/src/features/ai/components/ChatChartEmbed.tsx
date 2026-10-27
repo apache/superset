@@ -30,7 +30,7 @@ import { t } from '@apache-superset/core/translation';
 import { Loading } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
-import { makeUrl } from 'src/utils/pathUtils';
+import { makeUrl } from 'src/utils/navigationUtils';
 
 const VALID_KEY_PATTERN = /^[a-zA-Z0-9_-]+$/;
 const MIN_HEIGHT = 100;
