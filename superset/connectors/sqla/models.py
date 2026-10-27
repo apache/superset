@@ -2115,7 +2115,7 @@ class SqlaTable(
             return sql_expression
         try:
             return template_processor.process_template(sql_expression)
-        except SupersetSyntaxErrorException as ex:
+        except (TemplateError, SupersetSyntaxErrorException) as ex:
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in adhoc column: %(msg)s",
