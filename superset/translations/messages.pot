@@ -10154,9 +10154,6 @@ msgstr ""
 msgid "Open in Explore"
 msgstr ""
 
-msgid "Open in Explore instead"
-msgstr ""
-
 msgid "Open in SQL Lab"
 msgstr ""
 
@@ -16700,9 +16697,6 @@ msgid "View all charts"
 msgstr ""
 
 msgid "View as table"
-msgstr ""
-
-msgid "View in Explore instead"
 msgstr ""
 
 msgid "View in SQL Lab"
