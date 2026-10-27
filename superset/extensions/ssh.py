@@ -57,9 +57,7 @@ _SSH_KEY_TYPES: tuple[type[PKey], ...] = (Ed25519Key, ECDSAKey, RSAKey)
 def _load_private_key(pem: str, password: str | None) -> PKey:
     """Load a private key PEM regardless of algorithm (ed25519, ECDSA, RSA).
 
-    paramiko 3.2+ has ``PKey.from_path()`` for polymorphic loading, but it
-    requires a filesystem path; writing private key material to disk would be a
-    security regression. Each per-class loader only accepts its own format, so
+    Each per-class loader only accepts its own format, so
     iterate over the supported types on the in-memory ``StringIO`` and return
     the first that parses cleanly.
     """

@@ -610,7 +610,7 @@ numpy = "2"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
-paramiko = "3"  # GPL
+paramiko = "5"  # GPL
 pyxlsb = "1"  # GPL
 
 [tool.uv.sources]
