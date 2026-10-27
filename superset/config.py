@@ -2109,6 +2109,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "deletion_retention.prune_purge_audit",
             "schedule": crontab(minute=30, hour=3),
         },
+        "ai.prune_conversations": {
+            "task": "ai.prune_conversations",
+            "schedule": crontab(minute=30, hour=3),
+        },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
         #     "task": "prune_query",
@@ -3525,8 +3529,8 @@ AI_ASSISTANT_MAX_HISTORY_CHARS = 100_000
 # infer today's date or weekday.
 AI_ASSISTANT_TIMEZONE = "UTC"
 
-# Days a conversation is retained. Pruning is performed by the
-# ``ai.prune_conversations`` Celery task, which must be scheduled to run.
+# Days a conversation is retained. The default Celery beat config runs
+# ``ai.prune_conversations`` daily; non-positive values disable pruning.
 AI_ASSISTANT_MESSAGE_RETENTION_DAYS = 30
 
 # Ordered KnowledgeProvider instances or dotted paths contributing
