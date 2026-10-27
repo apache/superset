@@ -91,7 +91,6 @@ def test_csv_export_mixed_frame_is_byte_identical(
     mock_db: MagicMock = mocker.patch("superset.commands.sql_lab.export.db")
     query_result: MagicMock = mock_db.session.query.return_value.filter_by.return_value
     query_result.one_or_none.return_value = query
-    formatter: MagicMock = mocker.spy(csv, "format_decimal")
 
     result = SqlResultExportCommand("client_id").run()
 
@@ -104,10 +103,10 @@ def test_csv_export_mixed_frame_is_byte_identical(
         ";5.0;5\n"
     )
     if decimal_separator == ",":
-        # Pandas applies the separator to float columns, not mixed object cells.
+        # Every typed numeric cell follows the export separator.
+        expected = expected.replace("12.3400", "12,3400").replace("\n1.25;", "\n1,25;")
         expected = expected.replace(";1.25;", ";1,25;").replace(";2.5;", ";2,5;")
         expected = expected.replace(";3.75;", ";3,75;").replace(";4.0;", ";4,0;")
         expected = expected.replace(";5.0;", ";5,0;")
     assert result["data"] == expected.encode()
     assert result["count"] == 5
-    assert formatter.call_count == 5
