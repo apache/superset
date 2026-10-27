@@ -91,6 +91,13 @@ const MAX_INPUT_HISTORY = 50;
 /** A conversation title derived from a message is clipped to this. */
 const MAX_TAB_NAME_LENGTH = 30;
 
+const THREAD_POLL_INTERVAL_MS = 2000;
+
+const isInFlightMessage = (message: ChatMessageWithMeta): boolean =>
+  message.role === 'assistant' &&
+  Boolean(message.runId) &&
+  (message.status === 'pending' || message.status === 'streaming');
+
 export type ChatRunStatus = 'running' | 'cancelling';
 
 /** Shared empty lists keep effect dependencies stable while a chat is empty. */
@@ -401,7 +408,10 @@ export const useChatBot = (): UseChatBotReturn => {
   );
 
   const activeRun = activeRunsByTab[activeTabId];
-  const isLoading = Boolean(activeRun);
+  const restoredRun = messages.find(isInFlightMessage);
+  const pollingThreadId =
+    !activeRun && restoredRun ? activeTab?.threadId : undefined;
+  const isLoading = Boolean(activeRun || restoredRun);
   const isStreamingResponse = activeRun?.isStreaming ?? false;
   const liveThoughts = activeRun?.liveThoughts ?? '';
   const liveToolLog = activeRun?.liveToolLog ?? '';
@@ -409,7 +419,7 @@ export const useChatBot = (): UseChatBotReturn => {
   const livePageContext = activeRun?.livePageContext;
   const liveAnswer = activeRun?.liveAnswer ?? '';
   const checkpoint = activeRun?.checkpoint ?? null;
-  const activeRunStatus = activeRun?.status ?? null;
+  const activeRunStatus = activeRun?.status ?? (restoredRun ? 'running' : null);
 
   const pageContext = usePageContext();
   const pageContextRef = useRef(pageContext);
@@ -502,6 +512,29 @@ export const useChatBot = (): UseChatBotReturn => {
     },
     [updateTabs],
   );
+
+  useEffect(() => {
+    if (!pollingThreadId) {
+      return undefined;
+    }
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        await refreshThreadMessages(pollingThreadId);
+      } catch (caught) {
+        await fail(caught, t('The conversation could not be loaded.'));
+      }
+      if (!stopped) {
+        timer = setTimeout(poll, THREAD_POLL_INTERVAL_MS);
+      }
+    };
+    timer = setTimeout(poll, THREAD_POLL_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [fail, pollingThreadId, refreshThreadMessages]);
 
   const handleNewChat = useCallback(async (): Promise<string> => {
     try {
@@ -696,6 +729,16 @@ export const useChatBot = (): UseChatBotReturn => {
     const tabId = activeTabIdRef.current;
     const run = activeRunsByTabRef.current[tabId];
     if (!run) {
+      const tab = chatTabsRef.current.find(candidate => candidate.id === tabId);
+      const savedRun = tab?.messages.find(isInFlightMessage);
+      if (tab?.threadId && savedRun?.runId) {
+        try {
+          await cancelChatRun(tab.threadId, savedRun.runId);
+          await refreshThreadMessages(tab.threadId);
+        } catch (caught) {
+          logging.warn('[ai] the assistant was not told to stop', caught);
+        }
+      }
       return;
     }
     // A run paused at a checkpoint is not reading, so the gate is released first
@@ -716,7 +759,7 @@ export const useChatBot = (): UseChatBotReturn => {
       }
       clearRunIfMatches(tabId, run.requestId);
     }
-  }, [clearRunIfMatches, updateRunState]);
+  }, [clearRunIfMatches, refreshThreadMessages, updateRunState]);
 
   // -----------------------------------------------------------------------
   // Sending
@@ -743,7 +786,13 @@ export const useChatBot = (): UseChatBotReturn => {
       const source = messageOverride ?? inputValue;
       const trimmedMessage = source.trim();
       const originTabId = activeTabIdRef.current;
-      if (!trimmedMessage || activeRunsByTabRef.current[originTabId]) {
+      if (
+        !trimmedMessage ||
+        activeRunsByTabRef.current[originTabId] ||
+        chatTabsRef.current
+          .find(tab => tab.id === originTabId)
+          ?.messages.some(isInFlightMessage)
+      ) {
         return;
       }
       const agentKey = chatTabsRef.current.find(
