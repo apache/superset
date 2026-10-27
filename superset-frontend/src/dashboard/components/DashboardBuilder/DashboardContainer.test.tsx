@@ -30,6 +30,8 @@ import {
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import { applyDashboardLabelsColorOnLoad } from 'src/dashboard/actions/dashboardState';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { CHART_TYPE } from '../../util/componentTypes';
 import DashboardContainer from './DashboardContainer';
 import * as nativeFiltersActions from '../../actions/nativeFilters';
@@ -343,6 +345,139 @@ test('handles filters with no charts in scope', async () => {
     ]),
   );
 });
+
+test.each([
+  { chartsInScope: [999], tabsInScope: ['TAB-STALE'] },
+  { chartsInScope: [sliceId], tabsInScope: ['TAB-STALE'] },
+])(
+  'repairs hydrated filter scopes %j before building chart queries',
+  async staleScopes => {
+    const otherChartId = sliceId + 1;
+    const filter = {
+      ...defaultTestFilter,
+      scope: { rootPath: ['TAB-A'], excluded: [] },
+    };
+    const selectedMask = {
+      id: filter.id,
+      filterState: { value: ['UK'] },
+      extraFormData: {
+        filters: [{ col: 'country', op: 'IN' as const, val: ['UK'] }],
+      },
+    };
+    const { store } = setupWithStore({
+      dashboardState: {
+        ...mockState.dashboardState,
+        sliceIds: [sliceId, otherChartId],
+      },
+      dashboardLayout: {
+        ...mockState.dashboardLayout,
+        present: {
+          ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
+          GRID_ID: { id: 'GRID_ID', type: 'GRID', children: [] },
+          'TABS-1': {
+            id: 'TABS-1',
+            type: 'TABS',
+            children: ['TAB-A', 'TAB-B'],
+            parents: ['ROOT_ID'],
+          },
+          'TAB-A': {
+            id: 'TAB-A',
+            type: 'TAB',
+            children: ['CHART-A'],
+            parents: ['ROOT_ID', 'TABS-1'],
+          },
+          'TAB-B': {
+            id: 'TAB-B',
+            type: 'TAB',
+            children: ['CHART-B'],
+            parents: ['ROOT_ID', 'TABS-1'],
+          },
+          'CHART-A': {
+            id: 'CHART-A',
+            type: CHART_TYPE,
+            meta: { chartId: sliceId },
+            parents: ['ROOT_ID', 'TABS-1', 'TAB-A'],
+          },
+          'CHART-B': {
+            id: 'CHART-B',
+            type: CHART_TYPE,
+            meta: { chartId: otherChartId },
+            parents: ['ROOT_ID', 'TABS-1', 'TAB-B'],
+          },
+        },
+      },
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [filter],
+        },
+      },
+      nativeFilters: { filters: { [filter.id]: filter } },
+      dataMask: { [filter.id]: selectedMask },
+    });
+
+    await waitFor(() => {
+      expect(store.getState().nativeFilters.filters[filter.id]).toMatchObject({
+        chartsInScope: [sliceId],
+        tabsInScope: ['TAB-A'],
+      });
+    });
+    const hydratedState = store.getState();
+    setInScopeStatusMock.mockClear();
+
+    act(() => {
+      store.dispatch({
+        type: HYDRATE_DASHBOARD,
+        data: {
+          ...hydratedState,
+          dashboardInfo: {
+            ...hydratedState.dashboardInfo,
+            metadata: {
+              ...hydratedState.dashboardInfo.metadata,
+              native_filter_configuration: [{ ...filter, ...staleScopes }],
+            },
+          },
+          nativeFilters: {
+            filters: { [filter.id]: { ...filter, ...staleScopes } },
+          },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(store.getState().nativeFilters.filters[filter.id]).toMatchObject({
+        chartsInScope: [sliceId],
+        tabsInScope: ['TAB-A'],
+      });
+    });
+    const state = store.getState();
+    expect(state.dataMask[filter.id]).toMatchObject(selectedMask);
+    const queryArgs = {
+      chartConfiguration: {},
+      filters: {},
+      nativeFilters: state.nativeFilters.filters,
+      dataMask: state.dataMask,
+      extraControls: {},
+      allSliceIds: [sliceId, otherChartId],
+    };
+    expect(
+      getFormDataWithExtraFilters({
+        ...queryArgs,
+        chart: state.charts[sliceId],
+        sliceId,
+      }).extra_form_data,
+    ).toEqual(selectedMask.extraFormData);
+    expect(
+      getFormDataWithExtraFilters({
+        ...queryArgs,
+        chart: { ...state.charts[sliceId], id: otherChartId },
+        sliceId: otherChartId,
+      }).extra_form_data,
+    ).toBeUndefined();
+    expect(setInScopeStatusMock).toHaveBeenCalledTimes(1);
+  },
+);
 
 test('does not dispatch when there are no filters', () => {
   const stateWithoutFilters = createTestState({
