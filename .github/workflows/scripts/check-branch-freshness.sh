@@ -55,7 +55,14 @@ if [ "${EVENT_NAME:-}" = "workflow_dispatch" ] || [ "${EVENT_NAME:-}" = "pull_re
   exit 0
 fi
 
-latest_sha="$(gh api "repos/${REPO}/commits/${branch}" --jq .sha)"
+# Fail open: if the API call fails transiently, treat the run as current so a
+# network blip costs at most a redundant build rather than failing the
+# required job and skipping the build entirely.
+if ! latest_sha="$(gh api "repos/${REPO}/commits/${branch}" --jq .sha)"; then
+  echo "::warning::Could not look up the tip of ${branch}; assuming ${BUILD_SHA} is current."
+  echo "${OUTPUT_NAME}=true" >>"$GITHUB_OUTPUT"
+  exit 0
+fi
 if [ "${latest_sha}" = "${BUILD_SHA}" ]; then
   echo "${OUTPUT_NAME}=true" >>"$GITHUB_OUTPUT"
 else
