@@ -1138,6 +1138,7 @@ def test_aggregate_function_column_spec(native_type: str) -> None:
         GenericDataType.NUMERIC,
         False,
     )
+    assert AggregateFunctionState().compile() == "AggregateFunction"
 
 
 def test_select_star_finalizes_aggregate_function_columns() -> None:
