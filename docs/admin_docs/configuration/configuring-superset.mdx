@@ -619,15 +619,18 @@ def FLASK_APP_MUTATOR(app: Flask) -> None:
     app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 ```
 
-## Reacting to chart and dashboard creation
+## Reacting to chart, dashboard and canvas creation
 
-`AFTER_ASSET_CREATE` is an optional hook that runs after a chart or dashboard
-is created, letting deployments react to new assets without forking the
+`AFTER_ASSET_CREATE` is an optional hook that runs after a chart, dashboard or
+canvas is created, letting deployments react to new assets without forking the
 creation commands or views — for example to auto-categorize the asset, write
 an audit log entry, or fire a notification.
 
-The hook receives the model instance and the asset type string (`"chart"` or
-`"dashboard"`):
+The hook receives the model instance and the asset type string (`"chart"`,
+`"dashboard"` or `"canvas"`). Branch on the asset type rather than assuming a
+model shape: a hook that reads `slice_name` or `dashboard_title` for anything
+that is not a chart raises on every canvas create, and because the hook runs
+inside the creation transaction, that cancels the creation.
 
 ```python
 # superset_config.py
@@ -638,17 +641,20 @@ def _after_asset_create(model, asset_type):
     # The model is pending in the session but may not be flushed yet, so
     # flush first if you need database-assigned fields like ``id``.
     db.session.flush()
+    # Only read fields the asset type actually has: a chart has
+    # ``slice_name``, a dashboard ``dashboard_title``, a canvas ``title``.
     audit_log.write(f"{asset_type} {model.id} created by {model.created_by}")
 
 
 AFTER_ASSET_CREATE = _after_asset_create
 ```
 
-It defaults to `None`, which is a no-op: with nothing configured, chart and
-dashboard creation behaves exactly as it did before this hook existed.
+It defaults to `None`, which is a no-op: with nothing configured, chart,
+dashboard and canvas creation behaves exactly as it did before this hook
+existed.
 
 The hook runs before the surrounding database transaction commits, so an
-exception raised inside it aborts the chart or dashboard creation, while work
+exception raised inside it aborts the asset's creation, while work
 it does outside the session (an external audit write, a notification) is not
 undone if the transaction later rolls back. Keep it fast and
 side-effect-light, and avoid raising unless you intend to cancel the
@@ -657,7 +663,7 @@ create command never flushes first), so `id`, `created_by`, and other
 database-assigned fields can still be `None` unless the hook flushes the
 session itself, as in the example above.
 
-The hook fires for any chart or dashboard created through the REST API
+The hook fires for any chart, dashboard or canvas created through the REST API
 (including Explore's Save As) and for blank dashboards created from the UI's
 "+ New dashboard" button. MCP-generated charts go through the same path, but
 MCP-generated dashboards currently build the dashboard directly and skip the

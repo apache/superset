@@ -47,7 +47,7 @@ from typing import Any
 
 from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
-from superset_core.widgets import WidgetUi
+from superset_core.widgets import Widget, WidgetUi
 
 from superset.canvas.definition.grid import resolve_grid
 from superset.canvas.definition.pending import widget_payload
@@ -93,8 +93,7 @@ def render_context(
 
     placements: dict[str, dict[str, int]] = {}
     stored_layouts: dict[str, dict[str, Any]] = {}
-    # Rows each grid container's children take up, for the row minimum below.
-    content_rows: dict[str, int] = {}
+    grid_extents: dict[str, int] = {}
     for parent, children, columns in grids:
         layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
         rects, _ = resolve_grid(layouts, columns)
@@ -106,9 +105,9 @@ def render_context(
                 "rowSpan": rect.row_span,
             }
             stored_layouts[child] = layout
-        extent = max((r.row + r.row_span - 1 for r in rects), default=0)
-        chrome = node_types[parent].ui.chrome_rows if parent in node_types else 0
-        content_rows[parent] = extent + chrome if extent else 0
+        grid_extents[parent] = max((r.row + r.row_span - 1 for r in rects), default=0)
+
+    content_rows = _content_rows(nodes, node_types, grid_extents)
     return {
         "widgetTypes": type_ids,
         "placements": placements,
@@ -127,6 +126,55 @@ def render_context(
         },
         "widgets": widget_payload(widgets),
     }
+
+
+def _content_rows(
+    nodes: dict[str, Any],
+    node_types: dict[str, type[Widget]],
+    grid_extents: dict[str, int],
+) -> dict[str, int]:
+    """
+    Rows each container's content needs, which validation grows it to fit.
+
+    Mirrors ``_resolve_layouts``: a grid container takes the extent of its own
+    children, a container that is not a grid takes the tallest of its
+    children's, and either way its chrome is added on top. Deepest first, so a
+    container holding a container sees the inner one's height already resolved
+    -- which is the case that makes a non-grid container's own minimum
+    anything other than zero.
+    """
+    parents = {
+        child: node_id
+        for node_id, node in nodes.items()
+        for child in (node.get("children") or [])
+    }
+
+    def depth(node_id: str) -> int:
+        levels = 0
+        while (node_id := parents.get(node_id, ROOT_ID)) != ROOT_ID:
+            levels += 1
+        return levels
+
+    containers = sorted(
+        (i for i, w in node_types.items() if w.behavior.container),
+        key=depth,
+        reverse=True,
+    )
+    content_rows: dict[str, int] = {}
+    for node_id in containers:
+        widget = node_types[node_id]
+        if widget.behavior.grid_columns is not None:
+            rows = grid_extents.get(node_id, 0)
+        else:
+            rows = max(
+                (
+                    content_rows.get(child, 0)
+                    for child in (nodes[node_id].get("children") or [])
+                ),
+                default=0,
+            )
+        content_rows[node_id] = rows + widget.ui.chrome_rows if rows else 0
+    return content_rows
 
 
 def _span_constraints(ui: WidgetUi, content_rows: int = 0) -> dict[str, int]:

@@ -566,6 +566,48 @@ test("a write's span limits replace the fetched ones", async () => {
   );
 });
 
+test('a gesture queued behind a failing write is dropped with it', async () => {
+  // The queue is cleared on failure. Without that, `finally` would send the
+  // queued drop on top of a layout the user has just been told was undone --
+  // a second request, based on a revision the first write never reached.
+  let fail: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    fail = () =>
+      resolve(
+        new Response(JSON.stringify({ message: 'no' }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+  });
+  fetchMock.patch(endpoint, () => held);
+
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => {
+    result.current.place('kpi', MOVED);
+    // Queued: the first request is still open.
+    result.current.place('trend', QUEUED);
+  });
+
+  expect(result.current.placements.trend).toEqual(QUEUED);
+
+  await act(async () => {
+    fail();
+  });
+
+  // Only the first request went out; the queued one was dropped with it.
+  await waitFor(() => expect(result.current.error).toBeDefined());
+  expect(fetchMock.callHistory.calls()).toHaveLength(1);
+  // Both gestures are off the screen, not just the one that failed.
+  expect(result.current.placements.trend).toEqual(TREND);
+  expect(result.current.placements.kpi).toEqual(KPI);
+  // And nothing is still believed to be in flight.
+  expect(result.current.saving).toBe(false);
+});
+
 test('the reported revision follows the writes, so a commit can use it', async () => {
   // The regression this guards: publishing a draft sends the revision the
   // definition was fetched at. A drag moves the draft on immediately, so a

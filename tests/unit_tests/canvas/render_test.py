@@ -204,6 +204,79 @@ def test_a_container_reports_the_row_minimum_its_content_imposes() -> None:
     assert "tall" not in context["layoutConstraints"]
 
 
+def test_the_row_minimum_includes_a_container_s_chrome() -> None:
+    """
+    Validation grows a container to its content *plus* its chrome, so the
+    minimum has to carry the chrome too. Measured on a container that has
+    some: one with no chrome cannot tell the two apart.
+    """
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    rules["panel"] = type(
+        "PanelWidget",
+        (Widget,),
+        {
+            "widget_type": "panel",
+            "name": "Panel",
+            "controls_class": Props,
+            "behavior": WidgetBehavior(
+                container=True, grid_columns=12, structural=True
+            ),
+            # A header of its own, above whatever it holds.
+            "ui": WidgetUi(chrome_rows=1),
+        },
+    )
+    definition = normalize_definition(
+        canvas(
+            {
+                "p": node("panel-1", layout={"colSpan": 24}, children=["tall"]),
+                "tall": node("chart-1", layout={"colSpan": 6, "rowSpan": 6}),
+            },
+            children=["p"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    # Six rows of content and one of chrome.
+    assert context["placements"]["p"]["rowSpan"] == 7
+    assert context["layoutConstraints"]["p"]["minRowSpan"] == 7
+
+
+def test_the_row_minimum_reaches_through_a_container_that_is_not_a_grid() -> None:
+    """
+    A container without its own grid takes the tallest of its children's
+    content heights, as validation does, and ``_fit`` grows it to that. Left
+    at zero it would report no minimum, and dragging its top edge down would
+    send a span the server replaces -- moving its bottom edge down into
+    whatever sits below instead of resizing it.
+    """
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    definition = normalize_definition(
+        canvas(
+            {
+                # 'tabs' holds no grid of its own; each 'tab' does.
+                "t": node("tabs-1", layout={"colSpan": 24}, children=["one"]),
+                "one": node("tab-1", layout={}, children=["tall"]),
+                "tall": node("chart-1", layout={"colSpan": 6, "rowSpan": 8}),
+            },
+            children=["t"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    # The height travels up from the chart, through the tab's grid, to 'tabs'.
+    # The tab itself reports nothing: it is not on a grid, so it has no
+    # placement and nothing can resize it.
+    assert "one" not in context["layoutConstraints"]
+    assert context["layoutConstraints"]["t"]["minRowSpan"] == 8
+    assert context["placements"]["t"]["rowSpan"] == 8
+
+
 def test_layout_constraints_skip_nodes_that_are_not_on_a_grid() -> None:
     """A child of a container with its own layout model can't be dragged."""
     rules, resolver = canvas_widget_types(), FakeResolver()
