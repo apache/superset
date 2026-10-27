@@ -441,7 +441,9 @@ latency to every turn that uses it.
 ## Retention
 
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
-Pruning is not automatic — schedule it if you want it enforced.
+The default Celery beat schedule runs `ai.prune_conversations` daily at 03:30.
+Deployments with a custom schedule must include this task to enforce retention.
+Set the retention period to zero or a negative value to disable pruning.
 
 ## Trying it locally
 
