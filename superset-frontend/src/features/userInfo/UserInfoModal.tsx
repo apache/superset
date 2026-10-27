@@ -113,6 +113,7 @@ function UserInfoModal({
       >
         <Input.Password
           name="current_password"
+          autoComplete="current-password"
           placeholder={t('Enter your current password')}
         />
       </FormItem>
