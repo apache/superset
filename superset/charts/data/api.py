@@ -22,6 +22,7 @@ import re
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
+import pyarrow as pa
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
@@ -81,6 +82,10 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
+
+# Arrow schema-metadata key holding a chart-data query's non-data fields as
+# JSON; read back by ``arrowBufferToQueryData`` in @superset-ui/core.
+ARROW_QUERY_METADATA_KEY = b"superset.query"
 
 
 class ChartDataRestApi(ChartRestApi):
@@ -500,10 +505,21 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(
                     message="Arrow result format supports exactly one query."
                 )
-            return Response(
-                queries[0]["data"],
+            if execution_result and app.config.get("CHART_DATA_INCLUDE_TIMING"):
+                queries[0]["timing"] = execution_result.queries[
+                    0
+                ].timing.as_public_dict()
+            # The query's sidecar metadata travels in the Arrow schema, so it
+            # gets the same guest redaction as the JSON branch below.
+            redact_sensitive_query_fields(queries)
+            resp = Response(
+                self._arrow_with_query_metadata(queries[0]),
                 mimetype="application/vnd.apache.arrow.stream",
             )
+            resp.headers["X-Superset-Semantic-Cache"] = SemanticCacheStatus.combine(
+                query.get("semantic_cache_status") for query in queries
+            ).value
+            return resp
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
@@ -608,6 +624,37 @@ class ChartDataRestApi(ChartRestApi):
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
+
+    @staticmethod
+    def _arrow_with_query_metadata(query: dict[str, Any]) -> bytes:
+        """
+        Embed a query result's non-data fields in its Arrow IPC stream.
+
+        The Arrow bytes produced by the query context processor carry only the
+        DataFrame. Charts also depend on the fields a JSON response carries next
+        to ``data`` (``label_map`` for drill-by, ``annotation_data``, cache and
+        filter metadata, ...), so those are serialized exactly as the JSON
+        branch serializes them and stored under the
+        ``ARROW_QUERY_METADATA_KEY`` schema-metadata key, where the frontend
+        reads them back.
+        """
+        sidecar = {key: value for key, value in query.items() if key != "data"}
+        metadata = json.dumps(
+            sidecar,
+            default=json.json_int_dttm_ser,
+            ignore_nan=True,
+        )
+        table = pa.ipc.open_stream(query["data"]).read_all()
+        table = table.replace_schema_metadata(
+            {
+                **(table.schema.metadata or {}),
+                ARROW_QUERY_METADATA_KEY: metadata.encode("utf-8"),
+            }
+        )
+        sink = pa.BufferOutputStream()
+        with pa.ipc.new_stream(sink, table.schema) as writer:
+            writer.write_table(table)
+        return sink.getvalue().to_pybytes()
 
     @staticmethod
     def _get_default_export_filename(

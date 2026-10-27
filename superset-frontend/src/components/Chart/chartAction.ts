@@ -442,7 +442,7 @@ const v1ChartDataRequest = async (
   asyncMode: boolean,
   queryForceNonces?: string[],
 ): Promise<ChartDataRequestResponse> => {
-  const payload = await buildV1ChartDataPayload({
+  const builtPayload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
     resultType,
     resultFormat,
@@ -451,6 +451,15 @@ const v1ChartDataRequest = async (
     setDataMask,
     ownState,
   });
+  // An Arrow IPC stream describes a single table, so a chart whose query
+  // context has several queries (e.g. the mixed time-series chart) falls back
+  // to JSON instead of hitting the endpoint's single-query Arrow constraint.
+  const useArrow =
+    resultFormat === 'arrow' && builtPayload.queries.length === 1;
+  const payload =
+    resultFormat === 'arrow' && !useArrow
+      ? { ...builtPayload, result_format: 'json' }
+      : builtPayload;
 
   // The dashboard id is added to query params for tracking purposes
   const { slice_id: sliceId } = formData;
@@ -484,15 +493,15 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body,
-    parseMethod,
+    // Arrow bytes must never be run through SupersetClient's JSON parsing,
+    // regardless of what this viz type's own ChartMetadata.parseMethod says
+    // (that field exists for json-bigint vs. json, a JSON-vs-JSON choice):
+    // 'raw' hands back the untouched Response.
+    parseMethod: useArrow ? 'raw' : parseMethod,
   };
 
-  if (resultFormat === 'arrow') {
-    // Arrow responses aren't JSON, so SupersetClient must not try to parse
-    // them as such: 'raw' hands back the untouched Response (see
-    // getChartDataRequest, which forces parseMethod to 'raw' whenever
-    // resultFormat is 'arrow', regardless of this viz type's own
-    // ChartMetadata.parseMethod). Only a chart type that opted in via
+  if (useArrow) {
+    // Only a chart type that opted in via
     // ChartMetadata.supportsArrowFormat ever reaches this branch; async
     // mode is never requested for Arrow (see getChartDataRequest), so the
     // response here is always either the final result or an HTTP error
@@ -550,10 +559,6 @@ export async function getChartDataRequest({
     };
   }
   const [parseMethod] = getQuerySettings(formData);
-  // Arrow bytes must never be run through SupersetClient's JSON parsing,
-  // regardless of what this viz type's own ChartMetadata.parseMethod says
-  // (that field exists for json-bigint vs. json, a JSON-vs-JSON choice).
-  const effectiveParseMethod = resultFormat === 'arrow' ? 'raw' : parseMethod;
   return v1ChartDataRequest(
     formData,
     resultFormat,
@@ -562,7 +567,7 @@ export async function getChartDataRequest({
     querySettings,
     setDataMask,
     ownState,
-    effectiveParseMethod,
+    parseMethod,
     asyncMode,
     queryForceNonces,
   );
