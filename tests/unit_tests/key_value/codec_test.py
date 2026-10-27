@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import nullcontext
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -42,12 +43,24 @@ from superset.key_value.types import (
             {"foo": [1, 2, 3]},
         ),
         (
+            # `superset.utils.json`'s default serializer (`base_json_conv`)
+            # converts bare sets to lists rather than raising, unlike stdlib
+            # `json`; this no longer raises now that the codec uses it.
             {1, 2, 3},
-            KeyValueCodecEncodeException(),
+            [1, 2, 3],
         ),
         (
             object(),
             KeyValueCodecEncodeException(),
+        ),
+        (
+            # Regression test: stdlib `json` can't serialize `datetime` values
+            # and raises `TypeError`, which this codec maps to
+            # `KeyValueCodecEncodeException`. The codec uses
+            # `superset.utils.json`, whose `dumps` serializes datetimes to
+            # ISO 8601 strings, so this must round-trip without raising.
+            {"foo": datetime(2024, 1, 1, 12, 0, 0)},
+            {"foo": "2024-01-01T12:00:00"},
         ),
     ],
 )

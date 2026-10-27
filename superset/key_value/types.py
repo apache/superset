@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import pickle
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -29,6 +28,7 @@ from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
     KeyValueCodecEncodeException,
 )
+from superset.utils import json
 from superset.utils.backports import StrEnum
 
 if TYPE_CHECKING:
