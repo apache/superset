@@ -66,11 +66,14 @@ def _quote_formula(value: Any) -> Any:
     against there is how a downstream viewer or a re-import reads the text, not
     how XlsxWriter stored it.
 
-    Which *unprefixed* strings the writer treats as formulas is a wider
-    question than ``FORMULA_PREFIXES``, and this guard does not answer it: a
-    string wrapped in ``{=`` and ``}`` is stored as an array formula, which
-    neither the quote nor the ``strings_to_formulas`` workbook option prevents.
-    That gap is its own change.
+    ``FORMULA_PREFIXES`` is not the whole of what the writer stores as a
+    formula. ``_write_token_as_string`` reaches ``_write_formula`` from two
+    branches: a string starting ``=``, which this guard covers, and one wrapped
+    in ``{=`` and ``}``, which it does not, since ``{`` is not a prefix here.
+    That second form is stored as an array formula and goes out unquoted. The
+    quote does stop it, ``'{=1+1}`` being stored as a plain string, where the
+    ``strings_to_formulas`` workbook option is no help. Extending the prefix
+    check is the fix, and that is its own change.
 
     The value is quoted as it arrived rather than stripped, so the cell keeps
     whatever spacing came with it.
