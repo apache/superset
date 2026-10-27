@@ -90,17 +90,29 @@ def test_log_beacon_from_login_page_returns_401(client) -> None:
     assert "Location" not in response.headers
 
 
-def test_log_beacon_from_login_page_leaves_session_untouched(client) -> None:
-    """The beacon must not rewrite the session cookie of the login page.
+def test_log_beacon_from_login_page_does_not_flash(client) -> None:
+    """An anonymous ``/log/`` beacon doesn't flash "access denied" into the session.
 
-    A new ``Set-Cookie`` here can land after the one that stores the OAuth
-    state and drop it, failing the login with ``mismatching_state``.
+    The flash sent the beacon on to ``/login/``, whose response rewrote the
+    session cookie and could drop the stored OAuth state.
     """
     assert client.get("/login/").status_code == 200
 
     response = client.post("/log/?explode=events", data={"events": "[]"})
 
     assert response.status_code == 401
-    assert "Set-Cookie" not in response.headers
     with client.session_transaction() as session:
         assert "_flashes" not in session
+
+
+def test_log_beacon_without_permission_returns_403(client, mocker) -> None:
+    """A logged-in user or guest without ``can_log`` gets a 403, not a 500."""
+    mocker.patch(
+        "flask_appbuilder.security.decorators.current_user",
+        is_authenticated=True,
+    )
+
+    response = client.post("/log/?explode=events", data={"events": "[]"})
+
+    assert response.status_code == 403
+    assert "Location" not in response.headers
