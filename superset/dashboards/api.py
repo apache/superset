@@ -206,6 +206,7 @@ from superset.tasks.export_dashboard_excel import (
     EXPORT_LOCK_TTL_SECONDS,
     guest_lock_slot,
 )
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -2441,6 +2442,7 @@ class DashboardRestApi(
             thumb_size,
             permalink_key,
             cache_scope,
+            guest_key=get_current_guest_subscriber_key(),
         )
 
         def build_response(
