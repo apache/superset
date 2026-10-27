@@ -71,9 +71,7 @@ export const resolveLegacyIntervalColors = (
   // edited, persist -- a different color than the chart renders. Leave every
   // band unresolved so such charts keep rendering through the renderer's own
   // legacy path.
-  if (
-    indices.slice(0, boundCount).some(index => index > schemeColors.length)
-  ) {
+  if (indices.slice(0, boundCount).some(index => index > schemeColors.length)) {
     return Array.from({ length: boundCount }, () => '');
   }
   // Bounds without an explicit legacy index keep their positional color,
