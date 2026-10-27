@@ -1992,6 +1992,145 @@ def sqlite_native_execution(
     engine.dispose()
 
 
+@pytest.fixture
+def cached_native_execution(
+    sqlite_native_execution: dict[str, Any], mocker: MockerFixture
+) -> dict[str, Any]:
+    """Exercise native queries against an isolated, populated dataframe cache."""
+    from flask_caching import Cache
+
+    from superset.common.query_context import QueryContext
+    from superset.common.utils import query_cache_manager
+    from superset.constants import CacheRegion
+    from superset.extensions import cache_manager
+
+    data_cache = Cache(config={"CACHE_TYPE": "SimpleCache"})
+    data_cache.init_app(current_app)
+    mocker.patch.object(cache_manager, "_data_cache", data_cache)
+    mocker.patch.dict(query_cache_manager._cache, {CacheRegion.DATA: data_cache})
+    sqlite_native_execution["acquisition"] = mocker.spy(QueryContext, "get_df_payload")
+    return sqlite_native_execution
+
+
+@pytest.mark.parametrize("use_cache", [True, False])
+@pytest.mark.parametrize("force_refresh", [False, True])
+@pytest.mark.parametrize("mode", ["list", "contains", "exact"])
+def test_discovery_cache_controls_refresh_stale_choices(
+    cached_native_execution: dict[str, Any],
+    use_cache: bool,
+    force_refresh: bool,
+    mode: str,
+) -> None:
+    """Explicit refreshes see new options while default calls reuse the dataframe."""
+    dashboard = _dashboard(_filter("country"))
+    probe = (
+        {"search": "Ita"}
+        if mode == "contains"
+        else {"exact_value": "Italy"}
+        if mode == "exact"
+        else {}
+    )
+    request = _request(filter_value_requests=[{"filter_id": "country", **probe}])
+    initial, _ = choices.discover_filter_values(dashboard, request)
+    initial_values = ["France", "Germany", "Old", "US"] if mode == "list" else []
+    assert _available(initial[0]).status == "complete"
+    assert _available(initial[0]).values == initial_values
+    reads = cached_native_execution["database_reads"]
+    assert reads.call_count == 1
+
+    with cached_native_execution["engine"].begin() as connection:
+        connection.execute(
+            text("insert into sales (region, country) values ('EMEA', 'Italy')")
+        )
+    cached, _ = choices.discover_filter_values(dashboard, request)
+    assert _available(cached[0]).values == initial_values
+    assert cached_native_execution["acquisition"].spy_return["is_cached"] is True
+    assert reads.call_count == 1
+
+    refresh_request = _request(
+        filter_value_requests=[{"filter_id": "country", **probe}],
+        use_cache=use_cache,
+        force_refresh=force_refresh,
+    )
+    context = choices.validate_discovery_configuration(dashboard, refresh_request)
+    refreshed, metadata = choices.discover_filter_values(
+        dashboard, refresh_request, discovery_context=context
+    )
+    expected_refresh = force_refresh or not use_cache
+    available = _available(refreshed[0])
+    assert available.status == "complete"
+    assert available.values == (
+        sorted([*initial_values, "Italy"]) if expected_refresh else initial_values
+    )
+    assert metadata.query_count == 1
+    assert reads.call_count == (2 if expected_refresh else 1)
+    assert bool(cached_native_execution["acquisition"].spy_return["is_cached"]) is (
+        not expected_refresh
+    )
+
+
+@pytest.mark.parametrize("use_cache", [True, False])
+@pytest.mark.parametrize("force_refresh", [False, True])
+def test_discovery_cache_controls_refresh_parent_proposals(
+    cached_native_execution: dict[str, Any], use_cache: bool, force_refresh: bool
+) -> None:
+    """A cached absent parent option cannot defeat an explicit preview refresh."""
+    dashboard = _dashboard(_filter(), _filter("country", cascadeParentIds=["region"]))
+    snapshot = {"dataMask": {"region": _mask(["EMEA"])}}
+    original_snapshot = deepcopy(snapshot)
+    request = _request(
+        filter_value_requests=[{"filter_id": "country"}],
+        proposed_filter_values=[{"filter_id": "region", "values": ["APAC"]}],
+    )
+    initial, metadata = choices.discover_filter_values(
+        dashboard, request, snapshot_state=snapshot
+    )
+    assert _available(initial[0]).reason == "proposal_invalid"
+    assert metadata.validated_proposed_filter_values == []
+    assert metadata.query_count == 1
+    reads = cached_native_execution["database_reads"]
+    assert reads.call_count == 1
+
+    with cached_native_execution["engine"].begin() as connection:
+        connection.execute(
+            text("insert into sales (region, country) values ('APAC', 'Japan')")
+        )
+    cached, _ = choices.discover_filter_values(
+        dashboard, request, snapshot_state=snapshot
+    )
+    assert _available(cached[0]).reason == "proposal_invalid"
+    assert cached_native_execution["acquisition"].spy_return["is_cached"] is True
+    assert reads.call_count == 1
+
+    refreshed, metadata = choices.discover_filter_values(
+        dashboard,
+        _request(
+            filter_value_requests=[{"filter_id": "country"}],
+            proposed_filter_values=[{"filter_id": "region", "values": ["APAC"]}],
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+        ),
+        snapshot_state=snapshot,
+    )
+    available = _available(refreshed[0])
+    if force_refresh or not use_cache:
+        assert available.status == "complete"
+        assert available.values == ["Japan"]
+        assert (
+            metadata.validated_proposed_filter_values == request.proposed_filter_values
+        )
+        assert metadata.query_count == 2
+        assert reads.call_count == 3
+    else:
+        assert available.status == "unavailable"
+        assert available.reason == "proposal_invalid"
+        assert available.values == []
+        assert metadata.validated_proposed_filter_values == []
+        assert metadata.query_count == 1
+        assert reads.call_count == 1
+    assert snapshot == original_snapshot
+
+
 def _time_prefilter() -> dict[str, Any]:
     """Represent the native editor's saved Time column plus temporal pre-filter."""
     return {

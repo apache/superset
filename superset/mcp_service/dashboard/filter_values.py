@@ -122,6 +122,7 @@ class _Discovery:
     mask_error_reasons: dict[str, FilterValueReason] = field(default_factory=dict)
     normalized_masks: set[str] = field(default_factory=set)
     url_params: dict[str, str] = field(default_factory=dict)
+    force: bool = False
 
 
 def _check_budget(context: _Discovery) -> None:
@@ -294,6 +295,7 @@ def validate_discovery_configuration(  # noqa: C901
         configs,
         {},
         started=time.monotonic() if started_at is None else started_at,
+        force=request.force_refresh or not request.use_cache,
     )
     requests = _requests(configured, request)
     for item in requests:
@@ -877,7 +879,7 @@ def _native_query(  # noqa: C901
             "form_data": form_data,
             "result_type": "full",
             "result_format": "json",
-            "force": False,
+            "force": context.force,
         }
     )
     loaded_query = query_context.queries[0]

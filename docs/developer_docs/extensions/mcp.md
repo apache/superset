@@ -738,6 +738,9 @@ limit. Size limiting removes whole option values and marks affected lists
 envelope that cannot fit returns a compact size-limit error. Choice calls bypass
 the outer tool-response cache;
 authorized query caching remains available after authorization validation.
+Set `force_refresh: true` or `use_cache: false` to bypass cached query results for
+every requested dropdown and parent-proposal validation query. With the default
+cache settings, these queries can reuse authorized cached results.
 Warehouse admission failures (busy errors) fail the whole call, so callers must
 retry rather than treat them as an invalid choice or a partial result.
 `query_not_executed` distinguishes failures before execution from `query_failed`.
