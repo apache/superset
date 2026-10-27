@@ -2016,3 +2016,69 @@ def test_save_keeps_an_echoed_transform_only_while_the_flag_is_off(
     )
     assert on[0]["partition_value_transform"] is None
     assert on[0]["partition_transform_is_monotonic"] is False
+
+
+def _legacy_mapping_orm(partition_column: str | None) -> MagicMock:
+    columns = []
+    for name in ("event_time", "dt_epoch"):
+        column = MagicMock()
+        column.column_name = name
+        columns.append(column)
+    orm = MagicMock()
+    orm.database.backend = "sqlite"
+    orm.columns = columns
+    orm.main_dttm_col = "event_time"
+    orm.partition_column = partition_column
+    orm.partition_mapped_column = None
+    return orm
+
+
+def _legacy_mapping_payload(partition_column: str) -> dict[str, Any]:
+    return {
+        "main_dttm_col": "event_time",
+        "partition_column": partition_column,
+        "partition_mapped_column": None,
+        "columns": [{"column_name": "event_time"}, {"column_name": "dt_epoch"}],
+    }
+
+
+@pytest.mark.parametrize("feature_enabled", [True, False])
+def test_legacy_save_refuses_a_reference_the_request_breaks(
+    app: Flask, feature_enabled: bool
+) -> None:
+    """Storing a mapping is not flag-gated: reading one is."""
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = feature_enabled
+    try:
+        error = _partition_mapping_reference_error(
+            _legacy_mapping_orm("dt_epoch"), _legacy_mapping_payload("no_such_column")
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert error is not None
+    assert "no_such_column" in error
+
+
+def test_legacy_save_survives_a_reference_already_broken_in_storage(
+    app: Flask,
+) -> None:
+    """
+    This endpoint's client does GET-then-POST, so it echoes a reference stored
+    broken. Refusing it meant the dataset could not be saved at all.
+    """
+    from superset.views.datasource.views import _partition_mapping_reference_error
+
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        error = _partition_mapping_reference_error(
+            _legacy_mapping_orm("no_such_column"),
+            _legacy_mapping_payload("no_such_column"),
+        )
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    assert error is None

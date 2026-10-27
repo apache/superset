@@ -216,8 +216,6 @@ folders:
     - uuid: 00000000-0000-0000-0000-000000000005
       type: column
       name: profit
-partition_column: null
-partition_mapped_column: null
 uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt
@@ -246,8 +244,6 @@ columns:
   datetime_format: null
   extra:
     certified_by: User
-  partition_value_transform: null
-  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000005
 - column_name: ds
   verbose_name: null
@@ -262,8 +258,6 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
-  partition_value_transform: null
-  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000006
 - column_name: user_id
   verbose_name: null
@@ -278,8 +272,6 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
-  partition_value_transform: null
-  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000007
 - column_name: revenue
   verbose_name: null
@@ -294,8 +286,6 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
-  partition_value_transform: null
-  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000008
 - column_name: expenses
   verbose_name: null
@@ -310,8 +300,6 @@ columns:
   python_date_format: null
   datetime_format: null
   extra: null
-  partition_value_transform: null
-  partition_transform_is_monotonic: false
   uuid: 00000000-0000-0000-0000-000000000009
 version: 1.0.0
 database_uuid: {database.uuid}
@@ -440,3 +428,48 @@ def test_export_two_datasets_same_table_name_different_schema(
     assert schemas_in_yaml == {"prod", "dev"}, (
         f"Expected both prod and dev schemas in export, got {schemas_in_yaml}"
     )
+
+
+def test_export_writes_the_partition_mapping_only_when_set(session: Session) -> None:
+    """
+    An older Superset's import schemas refuse a field they do not know, so the
+    mapping fields stay out of the bundle while they hold their defaults -- and
+    only then. The importer reads an omitted field as its default.
+    """
+    from superset.commands.dataset.export import ExportDatasetsCommand
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    table = SqlaTable(
+        table_name="web_events",
+        database=database,
+        columns=[
+            TableColumn(
+                column_name="event_time",
+                partition_value_transform="unix_timestamp(:value)",
+                partition_transform_is_monotonic=True,
+            ),
+            TableColumn(column_name="dt_epoch"),
+        ],
+        partition_column="dt_epoch",
+        partition_mapped_column="event_time",
+    )
+    db.session.add(table)
+    db.session.flush()
+
+    payload = yaml.safe_load(ExportDatasetsCommand._file_content(table))
+
+    assert payload["partition_column"] == "dt_epoch"
+    assert payload["partition_mapped_column"] == "event_time"
+    columns = {column["column_name"]: column for column in payload["columns"]}
+    assert columns["event_time"]["partition_value_transform"] == (
+        "unix_timestamp(:value)"
+    )
+    assert columns["event_time"]["partition_transform_is_monotonic"] is True
+    assert "partition_value_transform" not in columns["dt_epoch"]
+    assert "partition_transform_is_monotonic" not in columns["dt_epoch"]
