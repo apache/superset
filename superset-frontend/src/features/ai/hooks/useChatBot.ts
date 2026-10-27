@@ -102,6 +102,7 @@ interface ActiveChatRun {
   tabId: string;
   threadId: string;
   runId?: string;
+  resolveCheckpoint?: () => void;
   controller: AbortController;
   isStreaming: boolean;
   liveThoughts: string;
@@ -372,8 +373,6 @@ export const useChatBot = (): UseChatBotReturn => {
     [],
   );
 
-  /** Resolved when the user answers a checkpoint; see `streamRun`. */
-  const checkpointGateRef = useRef<{ resolve: () => void } | null>(null);
   const mountedRef = useRef(true);
   useEffect(
     () => () => {
@@ -665,6 +664,7 @@ export const useChatBot = (): UseChatBotReturn => {
         if (!current || current.requestId !== requestId) {
           return previous;
         }
+        current.resolveCheckpoint?.();
         const { [tabId]: _removed, ...rest } = previous;
         return rest;
       });
@@ -672,22 +672,18 @@ export const useChatBot = (): UseChatBotReturn => {
     [updateRuns],
   );
 
-  const releaseCheckpointGate = useCallback(() => {
-    checkpointGateRef.current?.resolve();
-    checkpointGateRef.current = null;
-  }, []);
-
   const handleCheckpointContinue = useCallback(() => {
-    releaseCheckpointGate();
     const tabId = activeTabIdRef.current;
     const run = activeRunsByTabRef.current[tabId];
     if (run) {
+      run.resolveCheckpoint?.();
       updateRunState(tabId, run.requestId, current => ({
         ...current,
         checkpoint: null,
+        resolveCheckpoint: undefined,
       }));
     }
-  }, [releaseCheckpointGate, updateRunState]);
+  }, [updateRunState]);
 
   const handleCancelRun = useCallback(async () => {
     const tabId = activeTabIdRef.current;
@@ -697,7 +693,7 @@ export const useChatBot = (): UseChatBotReturn => {
     }
     // A run paused at a checkpoint is not reading, so the gate is released first
     // or the abort would not be noticed until the user pressed Continue.
-    releaseCheckpointGate();
+    run.resolveCheckpoint?.();
     updateRunState(tabId, run.requestId, current => ({
       ...current,
       status: 'cancelling',
@@ -711,9 +707,9 @@ export const useChatBot = (): UseChatBotReturn => {
         // stopped, so a failure here is worth a log and nothing more.
         logging.warn('[ai] the assistant was not told to stop', caught);
       }
+      clearRunIfMatches(tabId, run.requestId);
     }
-    clearRunIfMatches(tabId, run.requestId);
-  }, [clearRunIfMatches, releaseCheckpointGate, updateRunState]);
+  }, [clearRunIfMatches, updateRunState]);
 
   // -----------------------------------------------------------------------
   // Sending
@@ -917,6 +913,11 @@ export const useChatBot = (): UseChatBotReturn => {
           agentKey: selectedAgent,
           pageContext: contextPayload,
         });
+        if (controller.signal.aborted) {
+          // Stop may precede the POST response that gives us the server run ID.
+          await cancelChatRun(threadId, run.runId);
+          return;
+        }
         updateRunState(targetTabId, requestId, current => ({
           ...current,
           runId: run.runId,
@@ -965,12 +966,12 @@ export const useChatBot = (): UseChatBotReturn => {
               return Promise.resolve();
             }
             return new Promise<void>(resolve => {
-              checkpointGateRef.current = { resolve };
               updateRunState(targetTabId, requestId, current => ({
                 ...current,
                 liveToolLog: currentToolLog,
                 liveToolCalls: [...toolCallSteps],
                 checkpoint: parsed,
+                resolveCheckpoint: resolve,
               }));
             });
           },
