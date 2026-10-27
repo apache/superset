@@ -159,6 +159,40 @@ def test_outcome_classification(result: Any, expected: str) -> None:
     assert _outcome_of(result).value == expected
 
 
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+def test_drain_closes_abandoned_iterator_on_its_own_loop(
+    cleanup_fails: bool, mocker: MockerFixture
+) -> None:
+    """Disconnects must run the provider's async cleanup before closing its loop."""
+    import asyncio
+    from collections.abc import AsyncIterator
+
+    from superset.ai.events import done_event, StreamEvent
+    from superset.ai.orchestrator import _drain
+
+    loop = asyncio.new_event_loop()
+    mocker.patch("superset.ai.orchestrator.asyncio.new_event_loop", return_value=loop)
+    cleaned = []
+
+    async def source() -> AsyncIterator[StreamEvent]:
+        try:
+            yield done_event(True)
+        finally:
+            cleaned.append(asyncio.get_running_loop())
+            if cleanup_fails:
+                raise RuntimeError("cleanup failed")
+
+    stream = _drain(source())
+    next(stream)
+    if cleanup_fails:
+        with pytest.raises(RuntimeError, match="cleanup failed"):
+            stream.close()
+    else:
+        stream.close()
+    assert cleaned == [loop]
+    assert loop.is_closed()
+
+
 def test_every_outcome_maps_to_a_terminal_status() -> None:
     """
     No outcome leaves a message stuck in a non-terminal state.
@@ -527,10 +561,10 @@ def test_completed_turn_keeps_streamed_reasoning_in_history(
         return_value=SimpleNamespace(),
     )
     mocker.patch(
-        "superset.daos.ai.AIChatMessageDAO.find_for_thread",
+        "superset.daos.ai.AIChatMessageDAO.find_for_thread_before",
         return_value=[_stored("user", "Question")],
     )
-    mocker.patch("superset.ai.orchestrator._mark_streaming")
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
     finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
     events = list(
         _run(

@@ -415,16 +415,20 @@ def _drain(source: AsyncIterator[StreamEvent]) -> Iterator[StreamEvent]:
     ``__anext__``, so each event reaches the client as it is produced rather
     than after the run completes.
     """
+    iterator = source.__aiter__()
     loop = asyncio.new_event_loop()
     try:
-        iterator = source.__aiter__()
         while True:
             try:
                 yield loop.run_until_complete(iterator.__anext__())
             except StopAsyncIteration:
                 return
     finally:
-        loop.close()
+        try:
+            if close := getattr(iterator, "aclose", None):
+                loop.run_until_complete(close())
+        finally:
+            loop.close()
 
 
 def _build_history(messages: list[Any]) -> list[Message]:

@@ -303,3 +303,23 @@ def test_feedback_is_one_verdict_per_user_per_message(session: Session) -> None:
     session.add(AIChatFeedback(message_id=message.id, liked=False, created_by_fk=1))
     with pytest.raises(IntegrityError):
         session.flush()
+
+
+def test_thread_deletion_removes_feedback_without_database_cascades(
+    session: Session,
+) -> None:
+    """ORM deletion must cover feedback on SQLite without foreign keys enabled."""
+    from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
+
+    _create_tables(session)
+    thread = _thread()
+    message = AIChatMessage(thread=thread, role="assistant", content="answer")
+    feedback = AIChatFeedback(message=message, liked=True, created_by_fk=1)
+    session.add(feedback)
+    session.commit()
+
+    session.delete(thread)
+    session.commit()
+
+    for model in (AIChatThread, AIChatMessage, AIChatFeedback):
+        assert session.query(model).count() == 0
