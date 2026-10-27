@@ -82,12 +82,10 @@ def raise_for_chart_datasource_access(datasource: Any) -> None:
     database, so editorship of one (being its creator) must not stand in for a
     database, catalog, or schema grant: require the real grant.
     """
-    security_manager.raise_for_access(
-        datasource=datasource,
-        allow_editorship=(
-            getattr(datasource, "type", None) != DatasourceType.SAVEDQUERY
-        ),
-    )
+    if getattr(datasource, "type", None) == DatasourceType.SAVEDQUERY:
+        security_manager.raise_for_access(datasource=datasource, allow_editorship=False)
+        return
+    security_manager.raise_for_access(datasource=datasource)
 
 
 def validate_query_context_datasource(
