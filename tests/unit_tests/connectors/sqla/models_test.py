@@ -2692,3 +2692,50 @@ def test_data_exposes_editors_when_empty(mocker: MockerFixture) -> None:
     )
 
     assert dataset.data["editors"] == []
+
+
+@pytest.mark.parametrize(
+    "sql_expression",
+    [
+        "SUM({{ foo.bar }})",
+        "SUM({{ [].x.y }})",
+    ],
+)
+def test_adhoc_metric_to_sqla_wraps_template_undefined_error(
+    sql_expression: str,
+) -> None:
+    """A real Jinja ``UndefinedError`` raised while rendering an adhoc SQL metric
+    must surface as a ``QueryObjectValidationError`` (a 4xx), not a raw 500."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": sql_expression,
+        "label": "bad_metric",
+    }
+
+    with pytest.raises(QueryObjectValidationError):
+        table.adhoc_metric_to_sqla(
+            metric,
+            {},
+            template_processor=JinjaTemplateProcessor(database=database, table=table),
+        )
+
+
+def test_process_select_expression_wraps_template_undefined_error() -> None:
+    """A real Jinja ``UndefinedError`` raised while rendering an adhoc column or
+    filter expression must surface as a ``QueryObjectValidationError``."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+
+    with pytest.raises(QueryObjectValidationError):
+        table._process_select_expression(
+            "{{ [].x.y }}",
+            "sqlite",
+            "main",
+            JinjaTemplateProcessor(database=database, table=table),
+        )
