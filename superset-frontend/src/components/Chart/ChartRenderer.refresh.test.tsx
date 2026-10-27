@@ -940,6 +940,9 @@ test.each([
     await waitForChartLoad();
 
     expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
+    // Even when an auto-refresh suppresses the spinner, the chart can't be
+    // drawn, so the spinner fills the box until the new response lands.
+    expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
   },
 );
 
