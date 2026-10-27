@@ -91,6 +91,8 @@ class TurnRequest:
     #: which is the only party that knows which tab is open, what is typed in
     #: the editor and which filters are applied.
     page_context: dict[str, Any] | None = None
+    #: Delivery that won the execution claim, assigned by the Celery worker.
+    worker_task_id: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         """Serialise for the task broker."""
@@ -102,6 +104,7 @@ class TurnRequest:
             "profile_key": self.profile_key,
             "model": self.model,
             "page_context": self.page_context,
+            "worker_task_id": self.worker_task_id,
         }
 
     @classmethod
@@ -207,7 +210,7 @@ def stream_turn(request: TurnRequest) -> Generator[StreamEvent, None, None]:
     A database claim failure raises without rewriting the shared message: the
     caller has not established ownership of its execution.
     """
-    if not _claim_pending(request.assistant_message_uuid):
+    if not _claim_pending(request.assistant_message_uuid, request.worker_task_id):
         logger.info("AI message %s is already claimed", request.assistant_message_uuid)
         return
 
@@ -496,11 +499,11 @@ def _build_system_prompt(tools: Any, rendered_context: str) -> str:
 
 
 @transaction()
-def _claim_pending(message_uuid: str) -> bool:
+def _claim_pending(message_uuid: str, worker_task_id: str | None = None) -> bool:
     """Claim a placeholder once, before any inference can start."""
     from superset.daos.ai import AIChatMessageDAO
 
-    return AIChatMessageDAO.claim_pending(message_uuid)
+    return AIChatMessageDAO.claim_pending(message_uuid, worker_task_id=worker_task_id)
 
 
 def _finalise_message(

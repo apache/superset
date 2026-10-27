@@ -498,4 +498,3 @@ def test_prune_task_is_registered_in_the_default_daily_schedule() -> None:
     assert entry["task"] == "ai.prune_conversations"
     assert entry["schedule"].minute == {30}
     assert entry["schedule"].hour == {3}
-

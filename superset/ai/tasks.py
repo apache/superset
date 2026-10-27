@@ -32,7 +32,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from flask import current_app
+from celery.worker.request import Request
+from flask import current_app, has_app_context
 
 from superset.ai.orchestrator import execute_turn, TurnRequest
 from superset.extensions import celery_app
@@ -41,21 +42,117 @@ from superset.utils.decorators import transaction
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="ai.run_turn", bind=True, soft_time_limit=None)
-def run_turn(self: Any, payload: dict[str, Any]) -> str:  # noqa: ARG001
+class TurnWorkerRequest(Request):
+    """Finalize the transcript from the parent when a child cannot run cleanup."""
+
+    def on_failure(
+        self, exc_info: Any, send_failed_event: bool = True, return_ok: bool = False
+    ) -> None:
+        try:
+            super().on_failure(exc_info, send_failed_event, return_ok)
+        finally:
+            self._record_failure()
+
+    def on_timeout(self, soft: bool, timeout: float) -> None:
+        try:
+            super().on_timeout(soft, timeout)
+        finally:
+            if not soft:
+                self._record_failure()
+
+    def _record_failure(self) -> None:
+        try:
+            payload = self.args[0] if self.args else self.kwargs["payload"]
+            if has_app_context():
+                _record_worker_failure(payload, self.id)
+            else:
+                from superset.tasks.celery_app import flask_app
+
+                with flask_app.app_context():
+                    _record_worker_failure(payload, self.id)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Could not finalize failed AI task %s", self.id)
+
+
+def _record_worker_failure(payload: dict[str, Any], worker_task_id: str) -> None:
+    """Persist failure before notifying readers; never enqueue the turn again."""
+    from superset.ai.eventbus import get_event_bus
+    from superset.ai.events import done_event, error_event, final_event
+
+    request = TurnRequest.from_payload(payload)
+    content = _mark_worker_failed(request, worker_task_id)
+    if content is None:
+        return
+    bus = get_event_bus()
+    for event in (final_event(content), error_event(content), done_event(ok=False)):
+        bus.publish(request.run_id, event)
+
+
+@transaction()
+def _mark_worker_failed(request: TurnRequest, worker_task_id: str) -> str | None:
+    """Leave completed or cancelled messages intact, including racing writes."""
+    from superset.ai.types import MessageStatus, RunOutcome
+    from superset.daos.ai import AIChatMessageDAO
+    from superset.extensions import db
+    from superset.models.ai import AIChatMessage
+    from superset.utils import json
+
+    message = AIChatMessageDAO.find_by_uuid_for_user(
+        request.assistant_message_uuid, request.user_id
+    )
+    if (
+        message is None
+        or str(message.thread.uuid) != request.thread_uuid
+        or message.extra.get("run_id") != request.run_id
+    ):
+        return None
+    content = message.content or (
+        "The response was interrupted. Check any completed actions before retrying."
+    )
+    statuses = [MessageStatus.PENDING]
+    if message.extra.get("worker_task_id") == worker_task_id:
+        statuses.append(MessageStatus.STREAMING)
+    updated = (
+        db.session.query(AIChatMessage)
+        .filter(
+            AIChatMessage.id == message.id,
+            AIChatMessage.role == "assistant",
+            AIChatMessage.status.in_(statuses),
+            AIChatMessage.extra_json == message.extra_json,
+        )
+        .update(
+            {
+                AIChatMessage.status: MessageStatus.ERROR.value,
+                AIChatMessage.content: content,
+                AIChatMessage.extra_json: json.dumps(
+                    {**message.extra, "outcome": RunOutcome.ERROR.value}
+                ),
+            },
+            synchronize_session=False,
+        )
+    )
+    return content if updated else None
+
+
+@celery_app.task(
+    name="ai.run_turn",
+    bind=True,
+    soft_time_limit=None,
+    acks_late=False,
+    Request="superset.ai.tasks:TurnWorkerRequest",
+)
+def run_turn(self: Any, payload: dict[str, Any]) -> str:
     """
     Answer one assistant turn.
 
-    ``acks_late`` is deliberately not set: a turn costs money to run, so
-    re-delivering it after a worker crash would double-charge for an answer the
-    user may already have seen part of. Losing a turn is the better failure —
-    the user can ask again, and the message row records that it failed.
-
-    Not retried for the same reason.
+    Early acknowledgement is explicit because replaying tool side effects is
+    unsafe. The parent request finalizes unfinished messages on child failure
+    or a hard time limit; this task does not retry the turn.
     """
     from superset.utils.core import override_user
 
     request = TurnRequest.from_payload(payload)
+    request.worker_task_id = self.request.id
     # The turn runs as the user who asked for it. Without this the worker has no
     # `g.user`, and every tool that checks permissions — which is all of the ones
     # that touch data — refuses, so the model reports an authentication problem
