@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -1022,6 +1022,12 @@ msgstr ""
 "le plus haut et le plus bas de chaque période. Il est couramment utilisé "
 "pour l'analyse financière et d'autres analyses de plage de séries "
 "temporelles."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Liste de Colonnes séparée par des virgules à traiter comme des dates"
@@ -2192,6 +2198,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 "Une erreur s'est produite lors de la récupération des entrée de sécurité "
@@ -2665,6 +2675,9 @@ msgstr "Voulez-vous vraiment supprimer les %s sélectionnés?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Voulez-vous vraiment supprimer les annotations sélectionnées?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Voulez-vous vraiment supprimer les graphiques sélectionnés?"
 
@@ -2768,6 +2781,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Flèche"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Affecter un jeu de paramètres à."
@@ -3426,6 +3442,24 @@ msgstr "Impossible d'imbriquer les dossiers dans les dossiers par défaut."
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Impossible d'analyser la chaîne de temps [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -3614,6 +3648,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Modifier ce tableau de bord est interdit"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "Modifier ce graphique est interdit"
 
@@ -3648,6 +3685,9 @@ msgid "Changing this task is forbidden"
 msgstr "Modifier cette tâche est interdit"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4868,6 +4908,11 @@ msgstr "Impossible de se connecter à la base de données : « %(database)s �
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Impossible de récupérer tous les graphiques sauvegardés"
 
@@ -5985,6 +6030,12 @@ msgstr "Vraiment tout effacer?"
 msgid "Delete annotation"
 msgstr "Supprimer l'annotation"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6050,6 +6101,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d couche d'annotation supprimée"
 msgstr[1] "%(num)d couches d'annotation supprimées"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6528,6 +6585,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Brouillon"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9259,6 +9322,9 @@ msgstr "Problème 1000 - Le jeu de données est trop volumineux pour être inter
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problème 1001 - La base de données est soumise à une charge inhabituelle."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -10940,6 +11006,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Aucun enregistrement n'a été trouvé"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Aucun résultat"
 
@@ -10981,6 +11051,9 @@ msgstr "Aucune expression sauvegardée trouvée"
 
 msgid "No saved metrics found"
 msgstr "Aucune mesure sauvegardée trouvée"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11415,6 +11488,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11988,6 +12064,9 @@ msgstr "Hauteur des pixels de chaque série"
 msgid "Pixels"
 msgstr "Pixels"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Simple"
 
@@ -12357,6 +12436,9 @@ msgstr "Feuilles partagées publiquement et privées"
 # sr_Latn]
 msgid "Publicly shared sheets only"
 msgstr "Uniquement les feuilles partagées publiquement"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Publié"
@@ -14652,6 +14734,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Afficher les bulles"
 
@@ -14857,6 +14942,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 msgid "Show total"
@@ -15100,6 +15188,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -16109,6 +16200,12 @@ msgstr "Cette annotation a été modifiée"
 msgid "The background color of the charts."
 msgstr "La couleur de fond des graphiques."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16368,6 +16465,9 @@ msgstr "Le nom d'affichage de votre tableau de bord"
 
 msgid "The distance between cells, in pixels"
 msgstr "La distance entre les cellules, en pixels"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -17199,6 +17299,12 @@ msgstr "Le titre visible de la couche"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "La façon dont les points de repères sont disposés sur l'axe X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "La largeur de l'isoligne en pixels"
 
@@ -17232,6 +17338,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 msgid "Theme imported"
@@ -17424,6 +17533,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Il y a eu un problème lors de l'annulation de la tâche : %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Il y a eu un problème lors de la suppression de %s"
 
@@ -17454,6 +17567,10 @@ msgid "There was an issue deleting the selected annotations: %s"
 msgstr ""
 "Il y a eu un problème lors de la suppression des annotations "
 "sélectionnées : %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17674,12 +17791,22 @@ msgstr ""
 "Cela peut être soit une adresse IP (ex 127.0.0.1) ou un nom de domaine "
 "(ex mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Ce graphique applique des filtres croisés aux graphiques dont les jeux de"
 " données contiennent des colonnes du même nom."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ce graphique a été déplacé vers un autre champ de filtrage."
@@ -17869,9 +17996,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ceci définit l'élément à tracer sur le graphique"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -18076,6 +18209,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18195,6 +18331,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Cela a été déclenché par :"
 msgstr[1] "Ceci peut être déclenché par :"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18344,6 +18483,9 @@ msgstr "Format de temps"
 msgid "Time grain"
 msgstr "Fragment de temps"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Plugin de personnalisation du fragment de temps"
 
@@ -18476,6 +18618,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19099,6 +19244,9 @@ msgstr "Jeu de données sans titre"
 msgid "Untitled Query"
 msgstr "Requête sans titre"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19110,6 +19258,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Requête sans titre"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Non vérifié"
@@ -20209,6 +20360,21 @@ msgstr "Options de moustaches et de valeurs aberrantes"
 msgid "Why do I need to create a database?"
 msgstr "Pourquoi ai-je besoin de créer une base de données ?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Largeur"
 
@@ -21108,6 +21274,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "ne peut pas être vide"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "barre de la cellule"

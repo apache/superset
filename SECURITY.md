@@ -98,6 +98,12 @@ The realtime notification permission is distinct from the permission to read the
 
 An entity's version history — its change-record activity stream, field-level before/after diffs, and the author identity and timestamps attached to each change — is not part of the base *Read data* capability. Reading it requires **object-level editorship** of the entity (owner, editor, or Admin), the same capability required to restore a version. A principal who can read an entity's current state but is not an editor of it — including an **embedded guest token** and any **view-only** (read-but-not-edit) role — is not entitled to its version history, change metadata, or author identity, and such requests are refused. Related-entity records in a cross-entity activity view remain silently filtered to the reader's own read access. A bug that discloses version history, change-record diffs, or author identity to a principal lacking object-level editorship is in scope.
 
+### Canvases and Widgets
+
+Canvases (behind the `CANVAS` feature flag) follow the dashboard model. Admins, a canvas's editors and its viewers may read it; writing it requires object-level editorship (Admin always has it). Embedded guest tokens have no canvas access.
+
+Reading a canvas also grants reading the definitions of the widgets it places, as reading a dashboard does for its charts. The grant is scoped to that canvas: a widget is not readable through a canvas that does not place it, and the grant does not extend to editing the widget, which requires editorship of the widget itself. It never covers data: querying a placed widget still requires access to its datasource. A bug that discloses a widget definition through a canvas that does not place it, or widget data without datasource access, is in scope.
+
 ### Vulnerability Scope
 
 The test for whether a finding is in scope is a single question:

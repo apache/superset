@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1324,6 +1324,12 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr "캔들스틱 차트는 각 기간의 시가, 종가, 고가, 저가를 보여 줍니다. 금융 및 기타 시계열 범위 분석에 자주 사용됩니다."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2985,6 +2991,10 @@ msgid "An error occurred while fetching function names."
 msgstr "함수 이름을 가져오는 중 오류가 발생했습니다."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -3609,6 +3619,9 @@ msgstr "선택한 %s을(를) 삭제하시겠습니까?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "선택한 어노테이션을 삭제하시겠습니까?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -3766,6 +3779,9 @@ msgstr "영역 차트는 동일한 척도로 변수를 나타낸다는 점에서
 #, fuzzy
 msgid "Arrow"
 msgstr "화살표"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4800,6 +4816,24 @@ msgstr "기본 폴더 안에 폴더를 중첩할 수 없습니다"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "시간 문자열 [%(human_readable)s]을(를) 파싱할 수 없습니다"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 #, fuzzy
 msgid "Captcha"
 msgstr "차트 보기"
@@ -5085,6 +5119,9 @@ msgstr "이 설정을 변경하면 다른 사람이 소유한 차트를 포함�
 msgid "Changing this Dashboard is forbidden"
 msgstr "이 대시보드를 변경하는 것은 금지되어 있습니다"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "이 차트를 변경하는 것은 불가능합니다"
 
@@ -5139,6 +5176,9 @@ msgid "Changing this task is forbidden"
 msgstr "이 차트를 변경하는 것은 불가능합니다"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6945,6 +6985,11 @@ msgstr "데이터베이스에 연결할 수 없습니다: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -8502,6 +8547,12 @@ msgstr "정말 모두 삭제하시겠습니까?"
 msgid "Delete annotation"
 msgstr "주석"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -8587,6 +8638,11 @@ msgstr[0] "%(num)d개의 주석이 삭제되었습니다"
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d개의 주석 레이어가 삭제되었습니다"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -9255,6 +9311,12 @@ msgstr "LIMIT 설정에 따라 %(rows)s 행을 다운로드합니다. 전체 결
 #, fuzzy
 msgid "Draft"
 msgstr "초안"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -13456,6 +13518,9 @@ msgstr "이슈 1000 - 데이터 소스가 쿼리하기에 너무 큽니다."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "문제 1001 - 데이터베이스에 비정상적인 부하가 걸려 있습니다."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16078,6 +16143,10 @@ msgstr ""
 msgid "No records found"
 msgstr "레코드를 찾을 수 없습니다"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 #, fuzzy
 msgid "No results"
 msgstr "결과"
@@ -16142,6 +16211,9 @@ msgstr "표현식"
 #, fuzzy
 msgid "No saved metrics found"
 msgstr "저장된 Query"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -16805,6 +16877,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -17716,6 +17791,9 @@ msgstr "각 시리즈의 픽셀 높이"
 msgid "Pixels"
 msgstr "픽셀"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18311,6 +18389,9 @@ msgstr "공개 및 비공개 공유 시트"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "공개 공유 시트만"
+
+msgid "Publish"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21620,6 +21701,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 #, fuzzy
 msgid "Show Bubbles"
 msgstr "테이블 보기"
@@ -21917,6 +22001,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 #, fuzzy
@@ -22247,6 +22334,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -23743,6 +23833,12 @@ msgstr "주석 레이어"
 msgid "The background color of the charts."
 msgstr "새 차트 생성"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -24100,6 +24196,9 @@ msgstr "대시보드 추가"
 #, fuzzy
 msgid "The distance between cells, in pixels"
 msgstr "셀 간의 거리(픽셀)"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -25188,6 +25287,12 @@ msgstr "레이어의 표시 제목"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X축에서 눈금이 배치되는 방식"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -25231,6 +25336,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 #, fuzzy
@@ -25464,6 +25572,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr ""
 
@@ -25499,6 +25611,10 @@ msgstr "선택한 %s 삭제 중에 문제가 발생했습니다: %s"
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "선택한 주석 삭제 중에 문제가 발생했습니다: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25773,6 +25889,12 @@ msgid ""
 "mydatabase.com)."
 msgstr "IP 주소(예: 127.0.0.1) 또는 도메인 이름(예: mydatabase.com)을 입력할 수 있습니다."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -25781,6 +25903,10 @@ msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr "이 차트는 동일한 이름의 열을 포함하는 데이터셋을 가진 차트에 교차 필터를 적용합니다."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26035,9 +26161,15 @@ msgstr "이 데이터셋은 외부에서 관리되며 Superset에서 편집할 �
 msgid "This defines the element to be plotted on the chart"
 msgstr "이는 차트에 표시될 요소를 정의합니다"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -26290,6 +26422,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -26446,6 +26581,9 @@ msgstr "시각화 유형 선택"
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "이것은 다음에 의해 트리거되었습니다:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -26677,6 +26815,9 @@ msgstr "D3 포멧"
 msgid "Time grain"
 msgstr "시간 단위"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -26875,6 +27016,9 @@ msgstr ""
 msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -27788,6 +27932,9 @@ msgstr "차트 수정"
 msgid "Untitled Query"
 msgstr "Query 공유"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -27799,6 +27946,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Query 공유"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -29409,6 +29559,21 @@ msgstr "수염/이상값 옵션"
 msgid "Why do I need to create a database?"
 msgstr "데이터베이스 선택"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -30769,6 +30934,9 @@ msgstr[0] ""
 #, fuzzy
 msgid "cannot be empty"
 msgstr "비울 수 없습니다"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

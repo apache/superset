@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1001,6 +1001,12 @@ msgstr ""
 "மெழுகுவர்த்தி விளக்கப்படம் ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு, மூடல், உயர்"
 " மற்றும் தாழ் மதிப்புகளைக் காட்டுகிறது. நிதி மற்றும் பிற நேரத் தொடர் "
 "வரம்பு பகுப்பாய்வுக்கு இது பொதுவாகப் பயன்படுத்தப்படுகிறது."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -2158,6 +2164,10 @@ msgstr "பயனர் மதிப்புகளைப் பெறும்�
 msgid "An error occurred while fetching function names."
 msgstr "செயல்பாட்டுப் (function) பெயர்களைப் பெறும்போது ஒரு பிழை ஏற்பட்டது."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr "உரிமையாளர்களின் மதிப்புகளைப் பெறும்போது ஒரு பிழை ஏற்பட்டது: %s"
@@ -2619,6 +2629,9 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட %s-ஐ நி�
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "தேர்ந்தெடுக்கப்பட்ட சிறுகுறிப்புகளை நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "தேர்ந்தெடுக்கப்பட்ட சார்ட்டுகளை நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
 
@@ -2718,6 +2731,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "அம்பு (Arrow)"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "அளவுருக்களின் தொகுப்பை இவ்வாறு ஒதுக்கவும்"
@@ -3338,6 +3354,24 @@ msgstr "இயல்புநிலை கோப்புறைகளுக்�
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "[%(human_readable)s] நேர சரத்தை (time string) பாகுபடுத்த முடியவில்லை"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "கேப்ட்சா (Captcha)"
 
@@ -3527,6 +3561,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "இந்தத் டேஷ்போர்டை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "இந்தச் சார்ட்டை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
@@ -3564,6 +3601,9 @@ msgid "Changing this task is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4778,6 +4818,11 @@ msgstr "\"%(database)s\" தரவுத்தளத்துடன் இணை
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "சேமிக்கப்பட்ட அனைத்து சார்ட்டுகளையும் பெற முடியவில்லை"
 
@@ -5865,6 +5910,12 @@ msgstr "நிச்சயமாக அனைத்தையும் நீக�
 msgid "Delete annotation"
 msgstr "சிறுகுறிப்பை நீக்கு"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -5932,6 +5983,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d சிறுகுறிப்பு அடுக்கு நீக்கப்பட்டது"
 msgstr[1] "%(num)d சிறுகுறிப்பு அடுக்குகள் நீக்கப்பட்டன"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6383,6 +6440,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "வரைவு (Draft)"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9065,6 +9128,9 @@ msgstr "சிக்கல் 1000 - தரவுத்தொகுப்பு 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "சிக்கல் 1001 - தரவுத்தளம் வழக்கத்திற்கு மாறான சுமையில் உள்ளது."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -10681,6 +10747,10 @@ msgstr ""
 msgid "No records found"
 msgstr "பதிவுகள் எதுவும் காணப்படவில்லை"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "முடிவுகள் இல்லை"
 
@@ -10718,6 +10788,9 @@ msgstr "சேமிக்கப்பட்ட கோவைகள் (expressio
 
 msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11117,6 +11190,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11657,6 +11733,9 @@ msgstr "ஒவ்வொரு தொடரின் பிக்சல் உய
 msgid "Pixels"
 msgstr "பிக்சல்கள் (Pixels)"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "சாதாரண (Plain)"
 
@@ -12010,6 +12089,9 @@ msgid "Public and privately shared sheets"
 msgstr ""
 
 msgid "Publicly shared sheets only"
+msgstr ""
+
+msgid "Publish"
 msgstr ""
 
 msgid "Published"
@@ -14196,6 +14278,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "குமிழிகளைக் காண்பி"
 
@@ -14402,6 +14487,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 msgid "Show total"
@@ -14620,6 +14708,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 #, fuzzy
@@ -15584,6 +15675,12 @@ msgstr "குறிப்பு புதுப்பிக்கப்பட�
 msgid "The background color of the charts."
 msgstr "சார்ட்டுகளின் பின்னணி நிறம்."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -15801,6 +15898,9 @@ msgstr "உங்கள் டாஷ்போர்டின் காட்ச�
 
 msgid "The distance between cells, in pixels"
 msgstr "செல்களுக்கு இடையிலான தூரம், பிக்சல்களில்"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -16505,6 +16605,12 @@ msgstr "அடுக்கின் காணக்கூடிய தலைப�
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X-அச்சில் குறிகள் (Ticks) அமைக்கப்பட்டுள்ள விதம்"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "ஐசோலைனின் (Isoline) அகலம் பிக்சல்களில்"
 
@@ -16532,6 +16638,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 msgid "Theme imported"
@@ -16705,6 +16814,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "%s ஐ நீக்குவதில் சிக்கல் ஏற்பட்டது"
 
@@ -16731,6 +16844,10 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட %s: %s ஐ ந
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "தேர்ந்தெடுக்கப்பட்ட குறிப்புகளை நீக்குவதில் சிக்கல் ஏற்பட்டது: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -16928,12 +17045,22 @@ msgid ""
 "mydatabase.com)."
 msgstr "இது IP முகவரி (உதாரணமாக 127.0.0.1) அல்லது டொமைன் பெயராக இருக்கலாம்."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "ஒரே பெயரைக் கொண்ட நெடுவரிசைகளைக் கொண்ட சார்ட்டுகளுக்கு இந்தச் சார்ட் "
 "குறுக்கு வடிகட்டிகளைப் பயன்படுத்துகிறது."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "இந்த சார்ட் வேறு வடிகட்டி எல்லைக்கு மாற்றப்பட்டுள்ளது."
@@ -17119,9 +17246,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "இது சார்ட்டில் வரையப்பட வேண்டிய உறுப்பை வரையறுக்கிறது"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -17292,6 +17425,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17410,6 +17546,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "இது எதனால் தூண்டப்பட்டது:"
 msgstr[1] "இவை எதனால் தூண்டப்படலாம்:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -17550,6 +17689,9 @@ msgstr "நேர வடிவம்"
 msgid "Time grain"
 msgstr "நேர நுணுக்கம்"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "நேர நுணுக்க சார்ட் தனிப்பயனாக்குதல் செருகுநிரல்"
 
@@ -17674,6 +17816,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "டோக்கன் கோரிக்கை URI"
@@ -18248,6 +18393,9 @@ msgstr "தலைப்பில்லாத தரவுத்தொகுப�
 msgid "Untitled Query"
 msgstr "தலைப்பில்லாத வினவல்"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -18259,6 +18407,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "தலைப்பில்லாத வினவல்"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "சரிபார்க்கப்படாதது"
@@ -19295,6 +19446,21 @@ msgstr "விஸ்கர்/அவுட்லையர் விருப்�
 msgid "Why do I need to create a database?"
 msgstr "நான் ஏன் ஒரு தரவுத்தளத்தை உருவாக்க வேண்டும்?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "அகலம்"
 
@@ -20140,6 +20306,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "காலியாக இருக்க முடியாது"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

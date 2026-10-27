@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -1193,6 +1193,12 @@ msgstr ""
 "Свећасти графикон приказује вредности отварања, затварања, максимум и "
 "минимум за сваки период. Обично се користи за финансијску и другу анализу"
 " опсега временских серија."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2592,6 +2598,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Дошло је до грешке приликом преузимања имена функција."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -3144,6 +3154,9 @@ msgstr "Да ли сте сигурни да желите да обришете 
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Да ли сте сигурни да желите да обришете изабране анотације?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Да ли сте сигурни да желите да обришете изабране графиконе?"
@@ -3267,6 +3280,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Arrow"
 msgstr "Стрелица"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Assign a set of parameters as"
@@ -4051,6 +4067,24 @@ msgstr "Није могуће угнездити фасцикле у подра�
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Није могуће рашчланити временски низ [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Captcha"
 msgstr "Captcha"
@@ -4275,6 +4309,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Промена ове контролне табле је забрањена"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Changing this chart is forbidden"
 msgstr "Промена овог графикона је забрањена"
@@ -4316,6 +4353,9 @@ msgid "Changing this task is forbidden"
 msgstr "Промена овог задатка је забрањена"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -5777,6 +5817,11 @@ msgstr "Није могуће повезати се са базом подата
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Could not fetch all saved charts"
@@ -7154,6 +7199,12 @@ msgstr "Стварно обрисати све?"
 msgid "Delete annotation"
 msgstr "Обриши анотацију"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -7237,6 +7288,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Обрисан је %(num)d слој анотација"
 msgstr[1] "Обрисана су %(num)d слоја анотација"
 msgstr[2] "Обрисано је %(num)d слојева анотација"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -7807,6 +7865,12 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Draft"
 msgstr "Нацрт"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -11088,6 +11152,9 @@ msgstr "Проблем 1000 - Скуп података је превише ве
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Проблем 1001 - База података је под необичним оптерећењем."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
@@ -13104,6 +13171,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Нису пронађени записи"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "No results"
 msgstr "Нема резултата"
@@ -13154,6 +13225,9 @@ msgstr "Нису пронађени сачувани изрази"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "No saved metrics found"
 msgstr "Нису пронађене сачуване метрике"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -13668,6 +13742,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -14360,6 +14437,9 @@ msgstr "Висина сваке серије у пикселима"
 msgid "Pixels"
 msgstr "Пиксели"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Plain"
 msgstr "Обичан"
@@ -14794,6 +14874,9 @@ msgstr "Јавно и приватно дељени листови"
 
 msgid "Publicly shared sheets only"
 msgstr "Само јавно дељени листови"
+
+msgid "Publish"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Published"
@@ -17514,6 +17597,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Show Bubbles"
 msgstr "Прикажи балончиће"
@@ -17764,6 +17850,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
@@ -18026,6 +18115,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -19232,6 +19324,12 @@ msgstr "Анотација је ажурирана"
 msgid "The background color of the charts."
 msgstr "Боја позадине графикона."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -19516,6 +19614,9 @@ msgstr "Приказани назив ваше контролне табле"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The distance between cells, in pixels"
 msgstr "Размак између ћелија, у пикселима"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -20400,6 +20501,12 @@ msgstr "Видљив наслов слоја"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Начин на који су ознаке распоређене на X-оси"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "The width of the Isoline in pixels"
 msgstr "Ширина изолиније у пикселима"
@@ -20432,6 +20539,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 # ru, uk]
@@ -20637,6 +20747,10 @@ msgstr ""
 msgid "There was an issue cancelling the task: %s"
 msgstr "Дошло је до проблема при отказивању задатка: %s"
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "There was an issue deleting %s"
@@ -20670,6 +20784,10 @@ msgstr "Дошло је до проблема при брисању одабра
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Дошло је до проблема при брисању одабраних напомена: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -20905,6 +21023,12 @@ msgstr ""
 "Ово може бити или IP адреса (нпр. 127.0.0.1) или име домена (нпр. "
 "mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -20912,6 +21036,10 @@ msgid ""
 msgstr ""
 "Овај графикон примењује укрштене филтере на графиконе чији скупови "
 "података садрже колоне са истим именом."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
@@ -21124,9 +21252,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ово дефинише елемент који ће бити приказан на графикону"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # ru, uk]
@@ -21335,6 +21469,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -21469,6 +21606,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "Ово је покренуто следећим:"
 msgstr[1] "Ово може бити покренуто следећим:"
 msgstr[2] "Ово може бити покренуто следећим:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -21646,6 +21786,9 @@ msgstr "Формат времена"
 msgid "Time grain"
 msgstr "Временска грануларност"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # uk]
 msgid "Time grain chart customization plugin"
 msgstr "Додатак за прилагођавање графикона према временској гранулацији"
@@ -21810,6 +21953,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # ru, sk, uk]
 msgid "Token Request URI"
@@ -22508,6 +22654,9 @@ msgstr "Неименован скуп података"
 msgid "Untitled Query"
 msgstr "Неименован упит"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -22521,6 +22670,9 @@ msgstr ""
 # zh_TW]
 msgid "Untitled query"
 msgstr "Неименован упит"
+
+msgid "Untitled tab"
+msgstr ""
 
 # uk]
 msgid "Unverified"
@@ -23800,6 +23952,21 @@ msgstr "Опције за усове/екстремне вредности"
 msgid "Why do I need to create a database?"
 msgstr "Зашто треба да направим базу података?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Width"
@@ -24832,6 +24999,9 @@ msgstr[2] ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "cannot be empty"
 msgstr "не може бити празно"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "трака ћелије"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1043,6 +1043,12 @@ msgstr ""
 "Sviečkový graf zobrazuje otváracie, uzatváracie, najvyššie a najnižšie "
 "hodnoty za každé obdobie. Bežne sa používa na finančnú a inú analýzu "
 "rozpätia časových radov."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddelený zoznam stĺpcov, ktoré sa majú spracovať ako data"
@@ -2207,6 +2213,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Pri načítavaní názvov funkciuí došlo k chybe."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2671,6 +2681,9 @@ msgstr "Opravdu chcete zmazať vybrané %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Opravdu chcete zmazať vybrané anotace?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Opravdu chcete zmazať vybrané grafy?"
 
@@ -2771,6 +2784,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Šipka"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Priradiť sadu parametrov ako"
@@ -3422,6 +3438,24 @@ msgstr "Nemožno vkládat priečinka do predvolených priečinkov"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nemožno spracovať časový reťazec [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -3609,6 +3643,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Zmena tejto nástenky je zakázána"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "Zmena tohoto grafu je zakázána"
 
@@ -3646,6 +3683,9 @@ msgid "Changing this task is forbidden"
 msgstr "Zmena tejto sady dat je zakázána"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4869,6 +4909,11 @@ msgstr "Nemožno sa pripojiť k databázy: „%(database)s“"
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nepodarilo sa načítať všetky uložené grafy"
 
@@ -6001,6 +6046,12 @@ msgstr "Opravdu zmazať vše?"
 msgid "Delete annotation"
 msgstr "Zmazať anotaci"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6073,6 +6124,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Smazána %(num)d vrstva anotací"
 msgstr[1] "Smazány %(num)d vrstvy anotací"
 msgstr[2] "Zmazané %(num)d vrstev anotací"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6562,6 +6620,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Koncept"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9328,6 +9392,9 @@ msgstr "Problém 1000 - Sada dat je príliš velká na dotazovanie."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problém 1001 - Databáza je pod neobvyklou záteží."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -11044,6 +11111,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Nebyly nalezeny žiadne záznamy"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Žiadne výsledky"
 
@@ -11085,6 +11156,9 @@ msgstr "Nebyly nalezeny žiadne uložené výrazy"
 
 msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žiadne uložené metriky"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11512,6 +11586,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12091,6 +12168,9 @@ msgstr "Výška každé série v pixelech"
 msgid "Pixels"
 msgstr "Pixely"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Prostý"
 
@@ -12460,6 +12540,9 @@ msgstr "Verejne a súkromne zdieľané hárky"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Iba verejne zdieľané hárky"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Zveřejneno"
@@ -14779,6 +14862,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Zobraziť bubliny"
 
@@ -14990,6 +15076,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 msgid "Show total"
@@ -15228,6 +15317,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -16247,6 +16339,12 @@ msgstr "Anotace bola aktualizována"
 msgid "The background color of the charts."
 msgstr "Farba pozadí grafů."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16494,6 +16592,9 @@ msgstr "Zobrazovaný názov vaší nástenky"
 
 msgid "The distance between cells, in pixels"
 msgstr "Vzdálenost mezi bunkami v pixelech"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -17274,6 +17375,12 @@ msgstr "Viditelný názov vrstvy"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Spôsob, jakým sú značky rozloženy na ose X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Šírka izolinie v pixelech"
 
@@ -17305,6 +17412,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 #, fuzzy
@@ -17493,6 +17603,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Pri mazanie %s došlo k problému"
 
@@ -17519,6 +17633,10 @@ msgstr "Pri mazanie vybraných %s došlo k problému: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Pri mazanie vybraných anotací došlo k problému: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17726,12 +17844,22 @@ msgstr ""
 "Môže to být buď IP adresa (např. 127.0.0.1), alebo názov domény (např. "
 "mojedatabaze.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Tento graf aplikuje krížové filtre na grafy, jejichž sady dat obsahují "
 "stĺpce sa stejným názvom."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tento graf bol cezunut do iného rozsahu filtra."
@@ -17920,9 +18048,15 @@ msgstr "Táto sada dat je spravována externe a nemožno ji upravovať v Superse
 msgid "This defines the element to be plotted on the chart"
 msgstr "Toto definuje prvek, ktorý sa má vykreslit v grafu"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 #, fuzzy
@@ -18119,6 +18253,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18239,6 +18376,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "To bolo spustené:"
 msgstr[1] "To môže být spustené:"
 msgstr[2] "To môže být spustené:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18387,6 +18527,9 @@ msgstr "Formát času"
 msgid "Time grain"
 msgstr "Časová granularita"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Plugin časové granularity pre prispôsobenie grafu"
@@ -18521,6 +18664,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
@@ -19152,6 +19298,9 @@ msgstr "Nepojmenovaná sada dat"
 msgid "Untitled Query"
 msgstr "Nepojmenovaný dotaz"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19163,6 +19312,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Nepojmenovaný dotaz"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -20230,6 +20382,21 @@ msgstr "Možnosti vousů/odlehlých hodnot"
 msgid "Why do I need to create a database?"
 msgstr "Proč potrebuji vytvoriť databázy?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Šírka"
 
@@ -21111,6 +21278,9 @@ msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nesmí být prázdne"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

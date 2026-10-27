@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1043,6 +1043,12 @@ msgstr ""
 "Ka whakaatu te kauwhata kānara i ngā uara whakatuwhera, kati, teitei, me "
 "te iti mō ia wā. He maha ngā wā e whakamahia ana mō te tātari pūtea me "
 "ētahi atu tātari awa wā."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2227,6 +2233,10 @@ msgid "An error occurred while fetching function names."
 msgstr "I puta he hapa i te tikitanga o ngā ingoa taumahi."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2708,6 +2718,9 @@ msgstr "Kei te tino hiahia koe ki te muku i %s kua tīpakohia?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā tohu kua tīpakohia?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā kauwhata kua tīpakohia?"
 
@@ -2820,6 +2833,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Pere"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Tūtohua tētahi huinga tawhā hei"
@@ -3498,6 +3514,24 @@ msgstr "Kāore e taea te whakakomo māhoe ki roto i ngā māhoe taunoa"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Kāore e taea te poroporo i te aho wā [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 #, fuzzy
 msgid "Captcha"
 msgstr "Hanga kauwhata"
@@ -3694,6 +3728,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "He tapu te whakarereke i tēnei Papatohu"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "He tapu te whakarereke i tēnei kauwhata"
 
@@ -3731,6 +3768,9 @@ msgid "Changing this task is forbidden"
 msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4994,6 +5034,11 @@ msgstr "Kāore i taea te hono ki te pātengi raraunga: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 
@@ -6145,6 +6190,12 @@ msgstr "Muku katoa Tino hiahia?"
 msgid "Delete annotation"
 msgstr "Muku tohu"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6214,6 +6265,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Kua mukua %(num)d papa tohu"
 msgstr[1] "Kua mukua %(num)d papa tohu"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6713,6 +6770,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Tuhinga"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9591,6 +9654,9 @@ msgstr "Take 1000 - He rahi rawa te rārangi raraunga hei pātai."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Take 1001 - Kei raro i tētahi uta rerekē te pātengi raraunga."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -11338,6 +11404,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Kāore i kitea he rekoata"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Kāore he hua"
 
@@ -11380,6 +11450,9 @@ msgstr "Kāore i kitea he kīanga kua tiakina"
 
 msgid "No saved metrics found"
 msgstr "Kāore i kitea he ine kua tiakina"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11816,6 +11889,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12401,6 +12477,9 @@ msgstr ""
 " e ngā tupua rua, hei tauira, \"{{ ds }}\". Kātahi, whakamātauhia anō tō "
 "pātai."
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr ""
 "Tēnā tirohia tō pātai mō ngā hapa wetereo i, tata ki \"%(syntax_error)s\""
@@ -12782,6 +12861,9 @@ msgstr "Ngā rau i tohatohatia tūmatanui me tūmataiti"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Ngā rau i tohatohatia tūmatanui anake"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Kua Whakaputaina"
@@ -15184,6 +15266,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Whakaatu Pōro"
 
@@ -15397,6 +15482,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 msgid "Show total"
@@ -15644,6 +15732,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -16694,6 +16785,12 @@ msgstr "Kua whakahouhia te tohu"
 msgid "The background color of the charts."
 msgstr "Te tae papamuri o ngā kauwhata."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16945,6 +17042,9 @@ msgstr "Tāpiri te ingoa o te papatohu"
 
 msgid "The distance between cells, in pixels"
 msgstr "Te tawhiti i waenga i ngā pūtau, i ngā pika"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -17767,6 +17867,12 @@ msgstr "Te taitara kite o te papa"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Te huarahi ka whakatakotohia ai ngā tika i te tukutuku-X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Te whānui o te Isoline i ngā pika"
 
@@ -17800,6 +17906,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 #, fuzzy
@@ -17987,6 +18096,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "I puta he take i te mukutanga o %s"
 
@@ -18013,6 +18126,10 @@ msgstr "I puta he take i te mukutanga o %s kua tīpakohia: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "I puta he take i te mukutanga o ngā tohu kua tīpakohia: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -18218,12 +18335,22 @@ msgstr ""
 "Ka taea e tēnei te noho hei wāhitau IP (hei tauira 127.0.0.1), hei ingoa "
 "rohe rānei (hei tauira mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Ka whakahaeretia e tēnei kauwhata ngā tātari-whiti ki ngā kauwhata kei ō "
 "rātou rārangi raraunga he tīwae me te ingoa ōrite."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Kua nekehia tēnei kauwhata ki tētahi korahi tātari rerekē."
@@ -18423,9 +18550,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ka tautuhi tēnei i te huānga ka whakatakotohia ki te kauwhata"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 #, fuzzy
@@ -18652,6 +18785,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18774,6 +18910,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "I whakaohongia tēnei e:"
 msgstr[1] "Ka taea pea te whakaohongia e:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18922,6 +19061,9 @@ msgstr "Hōputu wā"
 msgid "Time grain"
 msgstr "Māeneene wā"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Mono tātari māeneene wā"
@@ -19058,6 +19200,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19709,6 +19854,9 @@ msgstr "Rārangi Raraunga Kāore i Taitarahia"
 msgid "Untitled Query"
 msgstr "Pātai Kāore i Taitarahia"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19720,6 +19868,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Pātai kāore i taitarahia"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -20827,6 +20978,21 @@ msgstr "Kōwhiringa whīhau/wāhitauwehe"
 msgid "Why do I need to create a database?"
 msgstr "Kei te hiahia koe ki te tāpiri i tētahi pātengi raraunga hou?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Whānui"
 
@@ -21725,6 +21891,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "kāore e taea te noho kau"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

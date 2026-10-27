@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -1051,6 +1051,12 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr "K线图显示每个周期的开盘、收盘、最高和最低值。常用于金融及其他时间序列区间分析。"
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2212,6 +2218,10 @@ msgid "An error occurred while fetching function names."
 msgstr "获取函数名称时出错。"
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr "获取行级安全主体值时出错：%s"
 
@@ -2655,6 +2665,9 @@ msgstr "确实要删除选定的 %s 吗？"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "确实要删除选定的注释吗？"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "确实要删除所选图表吗？"
 
@@ -2750,6 +2763,9 @@ msgstr "时间序列面积图与折线图相似，因为它们表示具有相同
 
 msgid "Arrow"
 msgstr "箭头"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "将一组参数指定为"
@@ -3428,6 +3444,24 @@ msgstr "无法在默认文件夹中嵌套文件夹"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "无法解析时间字符串[%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "验证码"
 
@@ -3623,6 +3657,9 @@ msgstr "更改这些设置将影响使用此数据集的所有图表，包括其
 msgid "Changing this Dashboard is forbidden"
 msgstr "无法修改该看板"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "禁止更改此图表"
 
@@ -3658,6 +3695,9 @@ msgid "Changing this task is forbidden"
 msgstr "禁止更改此任务"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 #, fuzzy
@@ -4898,6 +4938,11 @@ msgstr "不能连接到数据库\"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "无法获取所有保存的图表"
 
@@ -6040,6 +6085,12 @@ msgstr "确定删除全部？"
 msgid "Delete annotation"
 msgstr "删除注释"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6103,6 +6154,11 @@ msgstr[0] "删除了 %(num)d 个注释"
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "删除了 %(num)d 个注释层"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6557,6 +6613,12 @@ msgstr "根据 LIMIT 配置，正在下载 %(rows)s 行数据。如需获取完�
 
 msgid "Draft"
 msgstr "草稿"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9422,6 +9484,9 @@ msgstr "Issue 1000 - 数据集太大，无法进行查询。"
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - 数据库负载异常。"
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -11193,6 +11258,10 @@ msgstr ""
 msgid "No records found"
 msgstr "没有找到任何记录"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 #, fuzzy
 msgid "No results"
 msgstr "无结果"
@@ -11237,6 +11306,9 @@ msgstr "没有已保存的表达式"
 #, fuzzy
 msgid "No saved metrics found"
 msgstr "没有已保存的指标"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11676,6 +11748,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12257,6 +12332,9 @@ msgstr "每个序列的像素高度"
 msgid "Pixels"
 msgstr "像素"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "平铺"
 
@@ -12643,6 +12721,9 @@ msgstr "公开和私下共享的表格"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "仅公开共享的表格"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "已发布"
@@ -14962,6 +15043,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "显示气泡"
 
@@ -15170,6 +15254,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 #, fuzzy
@@ -15396,6 +15483,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -16435,6 +16525,12 @@ msgstr "注释已更新。"
 msgid "The background color of the charts."
 msgstr "图表的背景颜色。"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16680,6 +16776,9 @@ msgstr "看板的显示名称"
 
 msgid "The distance between cells, in pixels"
 msgstr "单元格之间的距离，以像素为单位"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -17406,6 +17505,12 @@ msgstr "图层的可见标题"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X轴刻度的布局方式"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 #, fuzzy
 msgid "The width of the Isoline in pixels"
 msgstr "等值线的宽度（以像素为单位）"
@@ -17440,6 +17545,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 msgid "Theme imported"
@@ -17608,6 +17716,10 @@ msgstr "归档时出现问题：%s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "取消任务时出现问题：%s"
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "删除时出现问题：%s"
@@ -17635,6 +17747,10 @@ msgstr "删除所选 %s 时出现问题: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "删除所选注释时出现问题：%s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17829,10 +17945,20 @@ msgid ""
 "mydatabase.com)."
 msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatabase.com)。"
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr "此图表将交叉筛选应用于那些数据集包含具有相同名称列的图表。"
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "此图表已移至其他过滤器范围内。"
@@ -18022,9 +18148,15 @@ msgstr "此数据集由外部管理，无法在Superset中编辑"
 msgid "This defines the element to be plotted on the chart"
 msgstr "这定义了要在图表上绘制的元素"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -18228,6 +18360,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18350,6 +18485,9 @@ msgstr "不支持此可视化类型。"
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "这是由以下因素引发的："
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18495,6 +18633,9 @@ msgstr "时间格式"
 msgid "Time grain"
 msgstr "时间粒度（grain）"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "时间粒度图表自定义插件"
 
@@ -18620,6 +18761,9 @@ msgstr ""
 msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19267,6 +19411,9 @@ msgstr "未命名的数据集"
 msgid "Untitled Query"
 msgstr "未命名的查询"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19278,6 +19425,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "未命名的查询"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "未验证"
@@ -20316,6 +20466,21 @@ msgstr "异常值/离群值选项"
 msgid "Why do I need to create a database?"
 msgstr "为什么我需要创建一个数据库？"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "宽度"
 
@@ -21215,6 +21380,9 @@ msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "不能为空"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "单元格栏"

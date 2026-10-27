@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1012,6 +1012,12 @@ msgstr ""
 "Mum grafiği her dönem için açılış, kapanış, en yüksek ve en düşük "
 "değerleri gösterir. Genellikle finansal ve diğer zaman serisi aralık "
 "analizlerinde kullanılır."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Tarih olarak ayrıştırılacak sütunların virgülle ayrılmış listesi"
@@ -2192,6 +2198,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Bir hata, işlev isimlerini alırken gerçekleşti."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2669,6 +2679,9 @@ msgstr "Seçilmiş   %s silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Seçilen annotasyonları silmek istediğinizden emin misiniz?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Seçilen grafikleri silmek istediğinizden emin misiniz?"
 
@@ -2770,6 +2783,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Ok"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr ""
@@ -3423,6 +3439,24 @@ msgstr "Varsayılan klasörlerde nest klasörler değil"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Cannot parse time string [  %(human_readable)s ]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -3607,6 +3641,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Bu Gösterim Paneli'ı değiştirmek yasaktır"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "Bu grafiği değiştirmek yasaktır"
 
@@ -3650,6 +3687,9 @@ msgid "Changing this task is forbidden"
 msgstr "Bu görevin değiştirilmesi yasaktır"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4861,6 +4901,11 @@ msgstr "Veritabanına bağlanılamadı: “%(database)s”"
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Tüm kayıtlı grafikler getirilemedi"
 
@@ -5997,6 +6042,12 @@ msgstr "Hepsini silmek istiyor musunuz?"
 msgid "Delete annotation"
 msgstr "Delete annotasyon"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6060,6 +6111,11 @@ msgstr[0] "Deleted   %(num)d annotation"
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Deleted   %(num)d annotasyon tabakası"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6526,6 +6582,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Taslak"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9272,6 +9334,9 @@ msgstr "Sorun 1000 - Veri kümesi sorgu için çok büyük."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - Veritabanı alışılmadık bir yük altında."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -10994,6 +11059,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Hiçbir kayıt bulunamadı"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Sonuç bulunamadı"
 
@@ -11038,6 +11107,9 @@ msgstr "Bululmuş ifadeler bulunamadı"
 
 msgid "No saved metrics found"
 msgstr "Bullanmamış ölçümler bulunamadı"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11463,6 +11535,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12042,6 +12117,9 @@ msgstr "Pixel yükseklik her serisi"
 msgid "Pixels"
 msgstr "Piksel"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Ova"
 
@@ -12407,6 +12485,9 @@ msgstr "Genel ve özel olarak paylaşılan sayfalar"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Yalnızca genel olarak paylaşılan sayfalar"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Paylaşıldı"
@@ -14796,6 +14877,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Göster Bubbles"
 
@@ -15008,6 +15092,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 #, fuzzy
@@ -15245,6 +15332,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -16298,6 +16388,12 @@ msgstr "Annotasyon güncellendi"
 msgid "The background color of the charts."
 msgstr "Grafiğin adını ekleyin"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16547,6 +16643,9 @@ msgstr "Gösterim Paneliın adını ekleyin"
 
 msgid "The distance between cells, in pixels"
 msgstr "Hücreler arasındaki mesafe, pikselde"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -17326,6 +17425,12 @@ msgstr "tabakanın görünür başlığı"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "İşaretlerin X-aksi üzerinde ortaya çıkmasının yolu"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Isoline'nin pikseldeki genişliği"
 
@@ -17359,6 +17464,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 #, fuzzy
@@ -17559,6 +17667,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Görev iptal edilirken bir sorun oluştu: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Bir sorun var   %s "
 
@@ -17587,6 +17699,10 @@ msgstr "Seçilmiş   %s 'ı bir sorun vardı:   %s "
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Seçilen annotasyonları bir sorun vardı:   %s "
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17801,12 +17917,22 @@ msgid ""
 "mydatabase.com)."
 msgstr "Bu bir IP adresi (e.g. 127.0.0.1) veya bir alan adı (e.g. mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Bu grafik verisetleri ile aynı isme sahip sütunları içeren grafiklere "
 "çapraz filtreleme uygular."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Bu grafik farklı bir filtre alanına taşındı."
@@ -17993,9 +18119,15 @@ msgstr "Bu veri kümesi dışsal olarak yönetilir ve Superset'te düzenlenebili
 msgid "This defines the element to be plotted on the chart"
 msgstr "Bu, elementin grafikte arsaıldığını tanımlar"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -18195,6 +18327,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18313,6 +18448,9 @@ msgstr "Bu görselleştirme türü desteklenmez."
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Bu tetiklendi:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18457,6 +18595,9 @@ msgstr "Zaman formatı"
 msgid "Time grain"
 msgstr "Zaman tahıl"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Zaman tahıl grafiği özelleştirme eklenti"
 
@@ -18593,6 +18734,9 @@ msgstr ""
 msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "Hediye İste URIRIRI"
@@ -19229,6 +19373,9 @@ msgstr "Başlıksız Veriseti"
 msgid "Untitled Query"
 msgstr "Başlıksız Sorgu"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19240,6 +19387,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Başlıksız sorgu"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -20302,6 +20452,21 @@ msgstr "Whisker/outlier seçenekleri"
 msgid "Why do I need to create a database?"
 msgstr "Veritabanına bağlan"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Genişlik genişliği Genişlik genişliği"
 
@@ -21207,6 +21372,9 @@ msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "boş bırakılamaz"
+
+msgid "canvases"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

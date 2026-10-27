@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1052,6 +1052,12 @@ msgstr ""
 "Een candlestick-grafiek toont openings-, slot-, hoogste en laagste "
 "waarden per periode. Wordt vaak gebruikt voor financiële en andere "
 "tijdreeks-bereikanalyses."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2290,6 +2296,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Er is een fout opgetreden bij het ophalen van functienamen."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2776,6 +2786,9 @@ msgstr "Weet u zeker dat u de geselecteerde %s wilt verwijderen?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Weet u zeker dat u de geselecteerde aantekeningen wilt verwijderen?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Weet je zeker dat je de geselecteerde grafieken wilt verwijderen?"
 
@@ -2892,6 +2905,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Pijl"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Een set parameters toewijzen als"
@@ -3606,6 +3622,24 @@ msgstr "Kan mappen niet in standaardmappen nesten"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Kan tijdstring [%(human_readable)s] niet parsen"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 #, fuzzy
 msgid "Captcha"
 msgstr "Grafiek aanmaken"
@@ -3804,6 +3838,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Het is verboden dit dashboard te veranderen"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "Het is verboden deze grafiek te wijzigen"
 
@@ -3841,6 +3878,9 @@ msgid "Changing this task is forbidden"
 msgstr "Veranderen van deze dataset is verboden"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -5150,6 +5190,11 @@ msgstr "Kan niet verbinden met de database: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Kon niet alle opgeslagen grafieken ophalen"
 
@@ -6358,6 +6403,12 @@ msgstr "Ben je zeker dat je alles wil verwijderen?"
 msgid "Delete annotation"
 msgstr "Aantekening verwijderen"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6429,6 +6480,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d Aantekeningenlaag verwijderd"
 msgstr[1] "%(num)d aantekeninglagen verwijderd"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6939,6 +6996,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Concept"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9915,6 +9978,9 @@ msgstr "Issue 1000 - De dataset is te groot om te vragen."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - De database staat onder een ongebruikelijke belasting."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -11734,6 +11800,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Geen gegevens gevonden"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Geen resultaten"
 
@@ -11776,6 +11846,9 @@ msgstr "Geen opgeslagen expressies gevonden"
 
 msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -12222,6 +12295,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12837,6 +12913,9 @@ msgstr "Pixelhoogte van elke serie"
 msgid "Pixels"
 msgstr "Pixels"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Gewoon"
 
@@ -13226,6 +13305,9 @@ msgstr "Openbaar en privé gedeelde bladen"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Alleen openbaar gedeelde bladen"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Gepubliceerd"
@@ -15687,6 +15769,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Toon bubbels"
 
@@ -15902,6 +15987,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 #, fuzzy
@@ -16153,6 +16241,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -17229,6 +17320,12 @@ msgstr "De annotatie is bijgewerkt"
 msgid "The background color of the charts."
 msgstr "Voeg de naam van de grafiek toe"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -17510,6 +17607,9 @@ msgstr "Naam van het dashboard toevoegen"
 
 msgid "The distance between cells, in pixels"
 msgstr "De afstand tussen cellen, in pixels"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -18384,6 +18484,12 @@ msgstr "Toon de waarde bovenaan de balk"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "De manier waarop de tikken worden uiteengezet op de X-as"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "De breedte van de Isoline in pixels"
 
@@ -18421,6 +18527,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 #, fuzzy
@@ -18613,6 +18722,10 @@ msgstr ""
 msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "Er was een probleem bij het verwijderen van: %s"
@@ -18642,6 +18755,10 @@ msgid "There was an issue deleting the selected annotations: %s"
 msgstr ""
 "Er was een probleem met het verwijderen van de geselecteerde "
 "aantekeningen: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -18852,12 +18969,22 @@ msgstr ""
 "Dit kan een IP-adres zijn (bijv. 127.0.0.1) of een domeinnaam (bijv. "
 "mijndatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Deze grafiek past kruisfilters toe op grafieken waarvan de datasets "
 "kolommen met dezelfde naam bevatten."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Deze grafiek is verplaatst naar een ander filterbereik."
@@ -19048,9 +19175,15 @@ msgstr "Deze dataset wordt extern beheerd en kan niet worden bewerkt in Superset
 msgid "This defines the element to be plotted on the chart"
 msgstr "Dit definieert het element dat op de grafiek moet worden uitgezet"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -19291,6 +19424,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -19420,6 +19556,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Dit werd veroorzaakt door:"
 msgstr[1] ""
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19574,6 +19713,9 @@ msgstr "Tijd opmaak"
 msgid "Time grain"
 msgstr "Tijdsinterval"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 #, fuzzy
 msgid "Time grain chart customization plugin"
 msgstr "Tijdsinterval filter plugin"
@@ -19712,6 +19854,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -20381,6 +20526,9 @@ msgstr "Naamloze Dataset"
 msgid "Untitled Query"
 msgstr "Naamloze Query"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -20392,6 +20540,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Naamloze zoekopdracht"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -21536,6 +21687,21 @@ msgstr "Opties whisker/outlier"
 msgid "Why do I need to create a database?"
 msgstr "Wilt u een nieuwe database toevoegen?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Breedte"
 
@@ -22452,6 +22618,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "mag niet leeg zijn"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

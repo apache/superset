@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1072,6 +1072,12 @@ msgstr ""
 "Свічковий графік показує ціни відкриття, закриття, максимум і мінімум за "
 "кожен період. Зазвичай використовується для фінансового та іншого аналізу"
 " діапазонів часових рядів."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Перелік стовпців, розділених комами, які слід розпізнавати як дати"
@@ -2208,6 +2214,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Не вдалось одержати назви функцій."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2663,6 +2673,9 @@ msgstr "Певні, що бажаєте вилучити вибрані %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Певні, що бажаєте вилучити вибрані анотації?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Певні, що бажаєте вилучити вибрані діаграми?"
 
@@ -2761,6 +2774,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Стрілка"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Задайте набір параметрів як"
@@ -3395,6 +3411,24 @@ msgstr "Неможливо вкласти теки в типові теки"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Неможливо розібрати часовий рядок [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -3579,6 +3613,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Редагування цього звіту заборонено"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "Редагування цієї діаграми заборонено"
 
@@ -3616,6 +3653,9 @@ msgid "Changing this task is forbidden"
 msgstr "Редагування цього набору даних заборонено"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4821,6 +4861,11 @@ msgstr "Не вдалося підʼєднатися до бази даних: �
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Не вдалося одержати всі збережені діаграми"
 
@@ -5923,6 +5968,12 @@ msgstr "Справді вилучити все?"
 msgid "Delete annotation"
 msgstr "Вилучити анотацію"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -5992,6 +6043,14 @@ msgstr[0] "Вилучено %(num)d шар анотації"
 msgstr[1] "Вилучено %(num)d шари анотацій"
 msgstr[2] "Вилучено %(num)d шарів анотацій"
 msgstr[3] "Вилучено %(num)d шар анотації"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6474,6 +6533,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Чорновик"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9157,6 +9222,9 @@ msgstr "Помилка 1000 — набір даних занадто велик�
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Проблема 1001 — незвичне навантаження на базу даних."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -10832,6 +10900,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Не знайдено жодного запису"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Немає результатів"
 
@@ -10872,6 +10944,9 @@ msgstr "Не знайдено жодного збереженого виразу
 
 msgid "No saved metrics found"
 msgstr "Не знайдено жодного збереженого показника"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11292,6 +11367,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11861,6 +11939,9 @@ msgstr "Висота пікселів кожного ряду"
 msgid "Pixels"
 msgstr "Пікселі"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Простий"
 
@@ -12223,6 +12304,9 @@ msgstr "Публічно та приватно поширені аркуші"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Лише публічно поширені аркуші"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Оприлюднений"
@@ -14502,6 +14586,9 @@ msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Показати бульбашки"
 
@@ -14709,6 +14796,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 msgid "Show total"
@@ -14945,6 +15035,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15950,6 +16043,12 @@ msgstr "Анотацію оновлено"
 msgid "The background color of the charts."
 msgstr "Колір тла діаграм."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16190,6 +16289,9 @@ msgstr "Назва звіту, яку бачитимуть користувач�
 
 msgid "The distance between cells, in pixels"
 msgstr "Відстань між комірками, у пікселях"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -16966,6 +17068,12 @@ msgstr "Видима назва шару"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Розташування поділок на осі X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Ширина лінії рівня в пікселях"
 
@@ -16998,6 +17106,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 msgid "Theme imported"
@@ -17172,6 +17283,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Трапилась проблема під час вилучення %s"
 
@@ -17198,6 +17313,10 @@ msgstr "Трапилась проблема під час вилучення в�
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Трапилась проблема під час вилучення вибраних анотації: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17403,12 +17522,22 @@ msgstr ""
 "Це може бути або адреса IP (наприклад, 127.0.0.1), або домен (наприклад, "
 "mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Ця діаграма застосовує перехресні фільтри до інших діаграм, чиї набори "
 "даних містять стовпці з однаковими назвами."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Цю діаграму переміщено до іншого набору фільтрів."
@@ -17592,9 +17721,15 @@ msgstr "Цей набір даних керується зовні, його н�
 msgid "This defines the element to be plotted on the chart"
 msgstr "Визначає елемент, який показується на діаграмі"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -17784,6 +17919,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17905,6 +18043,9 @@ msgstr[0] "Причина спрацювання:"
 msgstr[1] "Причини спрацювання:"
 msgstr[2] "Причини спрацювання:"
 msgstr[3] "Причина спрацювання:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18052,6 +18193,9 @@ msgstr "Формат часу"
 msgid "Time grain"
 msgstr "Одиниця часу"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Модуль налаштування одиниці часу"
 
@@ -18184,6 +18328,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "Посилання запиту жетону"
@@ -18797,6 +18944,9 @@ msgstr "Без назви"
 msgid "Untitled Query"
 msgstr "Без назви"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -18808,6 +18958,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Без назви"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Не перевірено"
@@ -19869,6 +20022,21 @@ msgstr "Налаштування вусів/вкидів"
 msgid "Why do I need to create a database?"
 msgstr "Навіщо потрібно створювати базу даних?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Ширина"
 
@@ -20742,6 +20910,9 @@ msgstr[3] ""
 
 msgid "cannot be empty"
 msgstr "не може бути порожнім"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

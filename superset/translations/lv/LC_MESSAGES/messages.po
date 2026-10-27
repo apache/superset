@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-22 18:22-0700\n"
+"POT-Creation-Date: 2026-10-26 18:57+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1050,6 +1050,12 @@ msgstr ""
 "Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
 "zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
 " analīzei."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -2193,6 +2199,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Radās kļūda, ielādējot funkciju nosaukumus."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2650,6 +2660,9 @@ msgstr "Vai tiešām vēlaties dzēst atlasīto %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētās anotācijas?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētās diagrammas?"
 
@@ -2750,6 +2763,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Bulta"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Piešķirt parametru kopu kā"
@@ -3391,6 +3407,24 @@ msgstr "Nevar ievietot mapes noklusējuma mapēs"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nevar parsēt laika virkni [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -3575,6 +3609,9 @@ msgstr ""
 msgid "Changing this Dashboard is forbidden"
 msgstr "Šī infopaneļa maiņa ir aizliegta"
 
+msgid "Changing this canvas is forbidden"
+msgstr ""
+
 msgid "Changing this chart is forbidden"
 msgstr "Šī diagrammas maiņa ir aizliegta"
 
@@ -3612,6 +3649,9 @@ msgid "Changing this task is forbidden"
 msgstr "Šīs datu kopas maiņa ir aizliegta"
 
 msgid "Changing this theme is forbidden"
+msgstr ""
+
+msgid "Changing this widget is forbidden."
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -4814,6 +4854,11 @@ msgstr "Nevarēja savienoties ar datubāzi: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr ""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nevarēja iegūt visas saglabātās diagrammas"
 
@@ -5919,6 +5964,12 @@ msgstr "Tiešām dzēst visu?"
 msgid "Delete annotation"
 msgstr "Dzēst anotāciju"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -5986,6 +6037,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Dzēsts %(num)d anotācijas slānis"
 msgstr[1] "Dzēsti %(num)d anotācijas slāņi"
 msgstr[2] "Dzēsti %(num)d anotācijas slāņi"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6460,6 +6518,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Melnraksts"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9148,6 +9212,9 @@ msgstr "Problēma 1000 — Datu kopa ir pārāk liela vaicāšanai."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problēma 1001 — Datubāze ir neparasti noslogota."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -10830,6 +10897,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Ieraksti nav atrasti"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Nav rezultātu"
 
@@ -10870,6 +10941,9 @@ msgstr "Nav atrastas saglabātas izteiksmes"
 
 msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
+
+msgid "No saved version to preview"
+msgstr ""
 
 msgid "No selection modes are available for this control."
 msgstr ""
@@ -11293,6 +11367,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11862,6 +11939,9 @@ msgstr "Katras sērijas augstums pikseļos"
 msgid "Pixels"
 msgstr "Pikseļi"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Vienkāršs"
 
@@ -12225,6 +12305,9 @@ msgstr "Publiski un privāti koplietotās lapas"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Tikai publiski koplietotās lapas"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Publicēts"
@@ -14497,6 +14580,9 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "Rādīt burbuļus"
 
@@ -14702,6 +14788,9 @@ msgid "Show the main ticks on axes."
 msgstr ""
 
 msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
 msgstr ""
 
 msgid "Show total"
@@ -14936,6 +15025,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15941,6 +16033,12 @@ msgstr "Anotācija ir atjaunināta"
 msgid "The background color of the charts."
 msgstr "Diagrammu fona krāsa."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16184,6 +16282,9 @@ msgstr "Jūsu informācijas paneļa parādāmais nosaukums"
 
 msgid "The distance between cells, in pixels"
 msgstr "Attālums starp šūnām pikseļos"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -16960,6 +17061,12 @@ msgstr "Slāņa redzamais virsraksts"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Veids, kā atzīmes ir izvietotas uz X ass"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Izolīnijas platums pikseļos"
 
@@ -16992,6 +17099,9 @@ msgid "Theme could not be created."
 msgstr ""
 
 msgid "Theme could not be updated."
+msgstr ""
+
+msgid "Theme does not exist"
 msgstr ""
 
 msgid "Theme imported"
@@ -17168,6 +17278,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Dzēšot %s, radās problēma"
 
@@ -17194,6 +17308,10 @@ msgstr "Dzēšot atlasītos %s, radās problēma: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Dzēšot atlasītās anotācijas, radās problēma: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17398,12 +17516,22 @@ msgstr ""
 "Tā var būt IP adrese (piem., 127.0.0.1) vai domēna nosaukums (piem., "
 "mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Šī diagramma piemēro šķērsfiltrus diagrammām, kuru datu kopas satur "
 "kolonnas ar vienādu nosaukumu."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Šī diagramma ir pārvietota uz citu filtru tvērumu."
@@ -17588,9 +17716,15 @@ msgstr "Šī datu kopa tiek pārvaldīta ārēji un nav rediģējama Superset"
 msgid "This defines the element to be plotted on the chart"
 msgstr "Tas definē elementu, kas tiks attēlots diagrammā"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -17778,6 +17912,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17897,6 +18034,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "To izraisīja:"
 msgstr[1] "To var izraisīt:"
 msgstr[2] "To var izraisīt:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18044,6 +18184,9 @@ msgstr "Laika formāts"
 msgid "Time grain"
 msgstr "Laika graudulība"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "Laika granulu diagrammas pielāgošanas spraudnis"
 
@@ -18175,6 +18318,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr "Talona pieprasījuma URI"
@@ -18793,6 +18939,9 @@ msgstr "Datu kopa bez nosaukuma"
 msgid "Untitled Query"
 msgstr "Vaicājums bez nosaukuma"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -18804,6 +18953,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Vaicājums bez nosaukuma"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Nepārbaudīts"
@@ -19856,6 +20008,21 @@ msgstr "Ūsu/izlecēju opcijas"
 msgid "Why do I need to create a database?"
 msgstr "Kapēc man vajag izveidot datubāzi?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Platums"
 
@@ -20733,6 +20900,9 @@ msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nevar būt tukšs"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

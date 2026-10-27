@@ -28,6 +28,7 @@
 
 import type {
   authentication,
+  canvas,
   chat,
   commands,
   core,
@@ -42,6 +43,7 @@ import type {
 /** The host namespaces exposed to extensions on `window.superset`. */
 export interface Namespaces {
   authentication: typeof authentication;
+  canvas: typeof canvas;
   core: typeof core;
   chat: typeof chat;
   commands: typeof commands;

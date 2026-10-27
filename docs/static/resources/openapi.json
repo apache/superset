@@ -918,6 +918,446 @@
         },
         "type": "object"
       },
+      "CanvasRestApi.get": {
+        "properties": {
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/CanvasRestApi.get.User"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/CanvasRestApi.get.User1"
+          },
+          "css": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasRestApi.get.Subject"
+            },
+            "type": "array"
+          },
+          "external_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "is_managed_externally": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "slug": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/CanvasRestApi.get.Theme"
+          },
+          "theme_id": {
+            "default": null,
+            "nullable": true
+          },
+          "title": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "url": {
+            "readOnly": true
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasRestApi.get.Subject1"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get.Subject1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get.Theme": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "json_data": {
+            "nullable": true,
+            "type": "string"
+          },
+          "theme_name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CanvasRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get_list": {
+        "properties": {
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/CanvasRestApi.get_list.User"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/CanvasRestApi.get_list.User1"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/CanvasRestApi.get_list.Subject"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "url": {
+            "readOnly": true
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get_list.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.post": {
+        "properties": {
+          "certification_details": {
+            "description": "Details of the certification.",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this canvas.",
+            "nullable": true,
+            "type": "string"
+          },
+          "css": {
+            "description": "Custom CSS applied to the canvas page.",
+            "nullable": true,
+            "type": "string"
+          },
+          "definition": {
+            "description": "Initial canvas definition. Changed afterwards only through the definition operations endpoint.",
+            "nullable": true,
+            "type": "object"
+          },
+          "description": {
+            "description": "What the canvas shows, for readers and agents.",
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "description": "Subject ids (users, roles or groups) that can edit the canvas. Defaults to the creating user.",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "external_url": {
+            "description": "Where the canvas is managed when managed externally.",
+            "nullable": true,
+            "type": "string"
+          },
+          "is_managed_externally": {
+            "description": "Whether the canvas is managed by an external system, e.g. as code.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "slug": {
+            "description": "Readable key for the canvas URL, e.g. /canvas/sales-overview/. Unique, not all digits, and not 'list'.",
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "pattern": "^(?!\\d+$)(?!list$)[\\w-]+$",
+            "type": "string"
+          },
+          "theme_id": {
+            "description": "Theme applied to the canvas; the default theme when unset.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "title": {
+            "description": "The canvas' title.",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "description": "Subject ids (users, roles or groups) that can view the canvas.",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "CanvasRestApi.put": {
+        "properties": {
+          "certification_details": {
+            "description": "Details of the certification.",
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "description": "Person or group that has certified this canvas.",
+            "nullable": true,
+            "type": "string"
+          },
+          "css": {
+            "description": "Custom CSS applied to the canvas page.",
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "What the canvas shows, for readers and agents.",
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "description": "Subject ids (users, roles or groups) that can edit the canvas. Defaults to the creating user.",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "external_url": {
+            "description": "Where the canvas is managed when managed externally.",
+            "nullable": true,
+            "type": "string"
+          },
+          "is_managed_externally": {
+            "description": "Whether the canvas is managed by an external system, e.g. as code.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "slug": {
+            "description": "Readable key for the canvas URL, e.g. /canvas/sales-overview/. Unique, not all digits, and not 'list'.",
+            "maxLength": 255,
+            "minLength": 1,
+            "nullable": true,
+            "pattern": "^(?!\\d+$)(?!list$)[\\w-]+$",
+            "type": "string"
+          },
+          "theme_id": {
+            "description": "Theme applied to the canvas; the default theme when unset.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "title": {
+            "description": "The canvas' title.",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "description": "Subject ids (users, roles or groups) that can view the canvas.",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "CatalogsResponseSchema": {
         "properties": {
           "result": {
@@ -14221,6 +14661,391 @@
         ],
         "type": "object"
       },
+      "WidgetRestApi.get": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get.Subject"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "props": {},
+          "revision": {
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get.Subject1"
+            },
+            "type": "array"
+          },
+          "widget_type": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "widget_type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.Subject1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get_list.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/WidgetRestApi.get_list.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get_list.Subject"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "props": {},
+          "revision": {
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "$ref": "#/components/schemas/WidgetRestApi.get_list.Subject1"
+            },
+            "type": "array"
+          },
+          "widget_type": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "widget_type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.Subject1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.post": {
+        "properties": {
+          "description": {
+            "description": "What the widget shows, its business meaning and any caveats. Agents read it to understand the widget without loading its full configuration.",
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "description": "A list of subject IDs (users, roles, or groups) that can alter the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The display name of the widget.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "props": {
+            "description": "The widget's type-specific values, as a JSON object.",
+            "type": "object"
+          },
+          "schema_version": {
+            "default": 1,
+            "description": "The version of the widget's schema that the props conform to.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "viewers": {
+            "description": "A list of subject IDs (users, roles, or groups) that can view the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "widget_type": {
+            "description": "The namespaced id of the registered widget this is an instance of.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "widget_type"
+        ],
+        "type": "object"
+      },
+      "WidgetRestApi.put": {
+        "properties": {
+          "description": {
+            "description": "What the widget shows, its business meaning and any caveats. Agents read it to understand the widget without loading its full configuration.",
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "description": "A list of subject IDs (users, roles, or groups) that can alter the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The display name of the widget.",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "props": {
+            "description": "The widget's type-specific values, as a JSON object.",
+            "type": "object"
+          },
+          "schema_version": {
+            "description": "The version of the widget's schema that the props conform to.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "viewers": {
+            "description": "A list of subject IDs (users, roles, or groups) that can view the widget.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "advanced_data_type_convert_schema": {
         "properties": {
           "type": {
@@ -14392,11 +15217,6 @@
         "type": "array"
       },
       "get_delete_ids_schema": {
-        "example": [
-          1,
-          2,
-          3
-        ],
         "items": {
           "type": "integer"
         },
@@ -16101,6 +16921,1080 @@
         "summary": "Invalidate cache records and remove the database records",
         "tags": [
           "CacheRestApi"
+        ]
+      }
+    },
+    "/api/v1/canvas/": {
+      "delete": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canvases deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete canvases",
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/CanvasRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasRestApi.post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "uuid": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Canvas created"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create a canvas",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/draft": {
+      "delete": {
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a canvas draft",
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The draft's definition, revisions and resolved layout"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a canvas draft",
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "patch": {
+        "description": "The same operations as the definition route, validated the same way, applied to the draft only. `revision` must be the draft's current revision.",
+        "responses": {
+          "200": {
+            "description": "The draft after the write"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The draft changed since `revision`"
+          },
+          "422": {
+            "description": "An operation failed or produced an invalid definition"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Apply operations to a canvas draft",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/draft/commit": {
+      "post": {
+        "description": "Replays the draft's operations on the canvas and deletes the draft. Rejected with 409 if the canvas changed since the draft started.",
+        "responses": {
+          "200": {
+            "description": "The canvas revision after the commit"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The draft or the canvas changed"
+          },
+          "422": {
+            "description": "An operation no longer applies"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Commit a canvas draft",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get related fields data",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/schema": {
+      "get": {
+        "description": "JSON Schemas for the definition, its operations and grid placement, plus how each registered widget takes part in a canvas: nesting, child layout and filter roles. A widget's props schema is served by the widget API.",
+        "responses": {
+          "200": {
+            "description": "The canvas contract"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the canvas definition schema and widget behavior",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{id_or_uuid}/definition": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "description": "The canvas id or UUID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "crossFilterScopes": {
+                          "description": "The node ids each cross-filter source drives; empty while cross-filters are turned off",
+                          "type": "object"
+                        },
+                        "customizationScopes": {
+                          "description": "The node ids each customization drives",
+                          "type": "object"
+                        },
+                        "definition": {
+                          "type": "object"
+                        },
+                        "filterScopes": {
+                          "description": "The node ids each filter drives, resolved from the tree and the definition's scope overrides",
+                          "type": "object"
+                        },
+                        "gridColumns": {
+                          "description": "The column count of each grid container",
+                          "type": "object"
+                        },
+                        "placements": {
+                          "description": "Resolved grid position of every node on a grid, auto-placed nodes included",
+                          "type": "object"
+                        },
+                        "revision": {
+                          "type": "integer"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "widgetTypes": {
+                          "description": "The widget type of each resolvable node",
+                          "type": "object"
+                        },
+                        "widgets": {
+                          "description": "The widgets placements hold by UUID, with their widgetType, schemaVersion, name and props",
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The definition, its revision and resolved filter scopes"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a canvas' definition",
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "patch": {
+        "description": "Applies `ops` in order to the latest definition, atomically. Changes made since `base_revision` are merged unless they touched the same node and field group (layout, a scope kind, or a settings section), or moved or removed an edited node; then the whole request is rejected with 409 and the conflicting node ids.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "description": "The canvas id or UUID",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "base_revision": {
+                    "type": "integer"
+                  },
+                  "ops": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "base_revision",
+                  "ops"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The new revision, the applied operations and scopes"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "Conflicting or stale write"
+          },
+          "422": {
+            "description": "An operation failed or produced an invalid definition"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Apply operations to a canvas' definition",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{id_or_uuid}/definition/changes": {
+      "get": {
+        "description": "Returns every operation applied after `since`, grouped by revision. Responds 409 with `stale` when `since` predates the retained operation log; the client should reload the whole definition.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "description": "The canvas id or UUID",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": true,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operations applied since the given revision"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The operation log no longer covers `since`"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a canvas' definition changes since a revision",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{id_or_uuid}/draft": {
+      "post": {
+        "description": "Copies the canvas's current definition into a draft only the caller can see. Send the returned token in the `X-Canvas-Draft` header to read, change, commit or delete the draft; it never goes in a URL.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The draft's token and revisions"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Start a private draft of a canvas",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{id_or_uuid}/placement/{placement_id}/data": {
+      "post": {
+        "description": "Runs the query the placement's stored `dataBinding` describes, as the caller, narrowed by `runtime_filters` on the binding's dataset. With the `X-Canvas-Draft` header, reads the placement from the caller's draft of this canvas. Each dataset includes the query that ran when the caller can view queries.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "description": "The canvas id or UUID",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "placement_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_filters": {
+                    "items": {
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "datasetId": {
+                          "type": "integer"
+                        },
+                        "values": {
+                          "items": {},
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "datasets": {
+                          "items": {
+                            "properties": {
+                              "inline_data": {
+                                "items": {
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              },
+                              "language": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "query": {
+                                "type": "string"
+                              },
+                              "row_count": {
+                                "type": "integer"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The placement's datasets"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a placement's data",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/{pk}": {
+      "delete": {
+        "description": "Deletes the canvas and its operation log. The widgets it placed are separate entities and are not deleted.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canvas deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a canvas",
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/CanvasRestApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Canvases"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanvasRestApi.put"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Canvas updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a canvas' title, description and sharing",
+        "tags": [
+          "Canvases"
         ]
       }
     },
@@ -37672,6 +39566,734 @@
         "summary": "Get the user avatar",
         "tags": [
           "User"
+        ]
+      }
+    },
+    "/api/v1/widget/": {
+      "get": {
+        "description": "Gets a list of saved widgets, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/WidgetRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a list of widgets",
+        "tags": [
+          "Widgets"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetRestApi.post"
+              }
+            }
+          },
+          "description": "Widget schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/WidgetRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Widget created, with its revision as the ETag"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create a widget",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get metadata information about this API resource",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get related fields data",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widget/{widget_uuid}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Widget deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a widget",
+        "tags": [
+          "Widgets"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/WidgetRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Widget detail, with its revision as the ETag"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a widget",
+        "tags": [
+          "Widgets"
+        ]
+      },
+      "put": {
+        "description": "Send the revision the change is based on in the If-Match header; a stale revision is rejected with 409 and the current revision.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WidgetRestApi.put"
+              }
+            }
+          },
+          "description": "Widget schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/WidgetRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Widget updated, with its new revision as the ETag"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The widget was changed since the given revision"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a widget",
+        "tags": [
+          "Widgets"
+        ]
+      }
+    },
+    "/api/v1/widgets/type/{widget_type}/control-schema": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Control JSON Schema"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the base control schema for a widget type",
+        "tags": [
+          "Dashboard Controls (experimental)"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "control_values": {
+                    "type": "object"
+                  },
+                  "paths": {
+                    "description": "When given, return a `{path: schema}` map of just these drill-in subtrees instead of the whole schema.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "series": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "object"
+                    },
+                    "warning": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Control JSON Schema, or a map of path to schema"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the enriched control schema (or requested subtrees)",
+        "tags": [
+          "Dashboard Controls (experimental)"
+        ]
+      }
+    },
+    "/api/v1/widgets/type/{widget_type}/validate": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "widget_type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "control_values": {
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "errors": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "values": {
+                          "nullable": true,
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Validation result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Validate control values for a widget type",
+        "tags": [
+          "Dashboard Controls (experimental)"
+        ]
+      }
+    },
+    "/api/v1/widgets/types": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A list of widget types"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List widget types that have a schema-driven control panel",
+        "tags": [
+          "Dashboard Controls (experimental)"
         ]
       }
     }
