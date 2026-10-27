@@ -322,9 +322,6 @@ export const useChatBot = (): UseChatBotReturn => {
    */
   const [justCompletedId, setJustCompletedId] = useState<string | undefined>();
   const [agents, setAgents] = useState<AiAgent[]>([DEFAULT_CHAT_AGENT]);
-  const [selectedAgent, setSelectedAgent] = useState<string>(() =>
-    loadStoredAgentKey(AGENT_STORAGE_KEY),
-  );
 
   const [messageHistory, setMessageHistory] = useState<string[]>(() =>
     readJson<string[]>(HISTORY_STORAGE_KEY, []),
@@ -383,6 +380,25 @@ export const useChatBot = (): UseChatBotReturn => {
 
   const activeTab = chatTabs.find(tab => tab.id === activeTabId);
   const messages = activeTab?.messages ?? [];
+  const selectedAgent =
+    activeTab?.pendingAgentKey ?? activeTab?.agentKey ?? DEFAULT_AGENT_KEY;
+  const setSelectedAgent = useCallback(
+    (key: string) => {
+      updateTabs(previous =>
+        previous.map(tab =>
+          tab.id === activeTabIdRef.current
+            ? { ...tab, pendingAgentKey: key }
+            : tab,
+        ),
+      );
+      try {
+        localStorage.setItem(AGENT_STORAGE_KEY, key);
+      } catch (caught) {
+        logging.warn('[ai] could not remember the selected agent', caught);
+      }
+    },
+    [updateTabs],
+  );
 
   const activeRun = activeRunsByTab[activeTabId];
   const isLoading = Boolean(activeRun);
@@ -433,14 +449,6 @@ export const useChatBot = (): UseChatBotReturn => {
     }
   }, [messageHistory]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(AGENT_STORAGE_KEY, selectedAgent);
-    } catch (caught) {
-      logging.warn('[ai] could not remember the selected agent', caught);
-    }
-  }, [selectedAgent]);
-
   // Follows the transcript as it grows, including while a run streams. Guarded
   // because `scrollIntoView` is absent in environments without a layout engine,
   // and failing to scroll must not take the panel down.
@@ -467,7 +475,7 @@ export const useChatBot = (): UseChatBotReturn => {
   );
 
   const refreshThreadMessages = useCallback(
-    async (threadId: string) => {
+    async (threadId: string, submittedAgentKey?: string) => {
       const { thread, messages: threadMessages } = await getThread(threadId);
       if (!mountedRef.current) {
         return;
@@ -481,6 +489,11 @@ export const useChatBot = (): UseChatBotReturn => {
             ? {
                 ...refreshed,
                 name: tab.name || refreshed.name,
+                // A selection made for the next turn must survive this refresh.
+                pendingAgentKey:
+                  tab.pendingAgentKey === submittedAgentKey
+                    ? undefined
+                    : tab.pendingAgentKey,
                 messages: mergeMessages(refreshed.messages, tab.messages),
               }
             : tab,
@@ -492,10 +505,7 @@ export const useChatBot = (): UseChatBotReturn => {
 
   const handleNewChat = useCallback(async (): Promise<string> => {
     try {
-      const thread = await createThread(
-        undefined,
-        selectedAgent === DEFAULT_AGENT_KEY ? undefined : selectedAgent,
-      );
+      const thread = await createThread(undefined, selectedAgent);
       const tab = threadToTab(thread);
       updateTabs(previous => [tab, ...previous]);
       setActiveTabId(tab.id);
@@ -505,7 +515,7 @@ export const useChatBot = (): UseChatBotReturn => {
     } catch (caught) {
       await fail(caught, t('The conversation could not be created.'));
       // A local tab still lets the user type; the thread is created on send.
-      const tab = createNewTab();
+      const tab = { ...createNewTab(), agentKey: selectedAgent };
       updateTabs(previous => [tab, ...previous]);
       setActiveTabId(tab.id);
       activeTabIdRef.current = tab.id;
@@ -608,10 +618,7 @@ export const useChatBot = (): UseChatBotReturn => {
       if (tab?.threadId) {
         return { tabId, threadId: tab.threadId };
       }
-      const thread = await createThread(
-        undefined,
-        selectedAgent === DEFAULT_AGENT_KEY ? undefined : selectedAgent,
-      );
+      const thread = await createThread(undefined, selectedAgent);
       updateTabs(previous =>
         previous.map(candidate =>
           candidate.id === tabId
@@ -742,6 +749,9 @@ export const useChatBot = (): UseChatBotReturn => {
       if (!trimmedMessage || activeRunsByTabRef.current[originTabId]) {
         return;
       }
+      const agentKey = chatTabsRef.current.find(
+        tab => tab.id === originTabId,
+      )?.pendingAgentKey;
 
       const requestId = generateId();
       const controller = new AbortController();
@@ -915,7 +925,7 @@ export const useChatBot = (): UseChatBotReturn => {
           threadUuid: threadId,
           content: trimmedMessage,
           requestId,
-          agentKey: selectedAgent,
+          agentKey,
           pageContext: contextPayload,
         });
         updateRunState(targetTabId, requestId, current => ({
@@ -991,7 +1001,7 @@ export const useChatBot = (): UseChatBotReturn => {
         // The server's copy carries the tool calls, so it supersedes what was
         // assembled from the frames (see `mergeMessages`).
         try {
-          await refreshThreadMessages(threadId);
+          await refreshThreadMessages(threadId, agentKey);
         } catch (caught) {
           logging.warn('[ai] could not re-read the conversation', caught);
         }
@@ -1042,7 +1052,6 @@ export const useChatBot = (): UseChatBotReturn => {
       isRunCurrent,
       nameTabFromMessage,
       refreshThreadMessages,
-      selectedAgent,
       setMessagesForTab,
       updateRunState,
       updateRuns,
@@ -1206,7 +1215,10 @@ export const useChatBot = (): UseChatBotReturn => {
         if (threads.length === 0) {
           // Created eagerly so the first message does not pay for it, and so the
           // panel is never in a state with no conversation at all.
-          const thread = await createThread();
+          const thread = await createThread(
+            undefined,
+            loadStoredAgentKey(AGENT_STORAGE_KEY),
+          );
           if (cancelled || !mountedRef.current) {
             return;
           }
@@ -1249,11 +1261,6 @@ export const useChatBot = (): UseChatBotReturn => {
         }
         const normalized = normalizeChatAgents(fetched);
         setAgents(normalized);
-        setSelectedAgent(current =>
-          normalized.some(agent => agent.key === current)
-            ? current
-            : DEFAULT_AGENT_KEY,
-        );
       } catch (caught) {
         // A missing profile list is not fatal: the backend picks a default, so
         // the panel stays usable without a selector.
