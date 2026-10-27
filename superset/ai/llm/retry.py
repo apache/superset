@@ -34,7 +34,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextvars import ContextVar
 from types import MappingProxyType
 from typing import TypeVar
@@ -43,6 +43,7 @@ from superset.ai.llm.base import (
     LLMConfigurationError,
     LLMError,
     LLMTransportError,
+    ProviderStreamEvent,
     RetryPolicy,
 )
 
@@ -213,3 +214,36 @@ async def with_retries(
             f"RetryPolicy.max_attempts must be at least 1, got {policy.max_attempts}."
         )
     raise last_error
+
+
+async def stream_with_retries(
+    fn: Callable[[], AsyncIterator[ProviderStreamEvent]],
+    policy: RetryPolicy,
+    *,
+    breaker: CircuitBreaker,
+) -> AsyncIterator[ProviderStreamEvent]:
+    """Retry opening a stream; never replay events already received."""
+
+    async def start() -> tuple[
+        AsyncIterator[ProviderStreamEvent], ProviderStreamEvent | None
+    ]:
+        stream = fn()
+        try:
+            return stream, await anext(stream, None)
+        except BaseException:
+            if close := getattr(stream, "aclose", None):
+                await close()
+            raise
+
+    stream, first = await with_retries(start, policy, breaker=breaker)
+    try:
+        if first is not None:
+            yield first
+        async for event in stream:
+            yield event
+    except LLMTransportError:
+        breaker.record_failure()
+        raise
+    finally:
+        if close := getattr(stream, "aclose", None):
+            await close()

@@ -49,6 +49,7 @@ from superset.ai.llm.base import (
     ToolResult,
 )
 from superset.ai.runtime.base import BaseAgentRuntime, RunRequest, RunResult
+from superset.ai.llm.retry import CircuitBreaker, stream_with_retries, with_retries
 from superset.ai.telemetry import (
     current_run,
     POLICY_DENIED,
@@ -104,6 +105,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
         #: Whether any answer text has already been sent as it was generated. The
         #: finished answer is only replayed in chunks when it has not.
         self._streamed_text = False
+        self._breaker = CircuitBreaker(name="ai-messages")
 
     @property
     def result(self) -> RunResult:
@@ -114,6 +116,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
         self._finished = False
         self._last_response = None
         self._streamed_text = False
+        self._breaker.reset()
         answer_parts: list[str] = []
 
         yield thinking_event(ProgressStage.START, "Working on your question")
@@ -363,7 +366,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
         )
 
         if not self.provider.supports_streaming:
-            self._last_response = await self.provider.complete(completion)
+            self._last_response = await with_retries(
+                lambda: self.provider.complete(completion),
+                self.provider.retry_policy(),
+                breaker=self._breaker,
+            )
             return
 
         text_parts: list[str] = []
@@ -371,7 +378,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
         tool_calls: list[ToolCall] = []
         usage = None
 
-        async for event in self.provider.stream(completion):
+        async for event in stream_with_retries(
+            lambda: self.provider.stream(completion),
+            self.provider.retry_policy(),
+            breaker=self._breaker,
+        ):
             if event.kind is StreamEventKind.TEXT:
                 text_parts.append(event.text)
                 # Forwarded as it arrives. Text is buffered as well, because the
