@@ -19,10 +19,12 @@
 import {
   ChartDataResponseResult,
   ChartProps,
+  ExtraFormData,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   RgbaColor,
+  TimeGranularity,
 } from '@superset-ui/core';
 import type { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
@@ -55,6 +57,8 @@ export type EchartsWaterfallFormData = QueryFormData &
     xAxis: QueryFormColumn;
     xAxisLabel: string;
     xAxisTimeFormat?: string;
+    timeGrainSqla?: TimeGranularity;
+    extraFormData?: ExtraFormData;
     xTicksLayout?: WaterfallFormXTicksLayout;
     showXAxis: boolean;
     yAxisLabel: string;

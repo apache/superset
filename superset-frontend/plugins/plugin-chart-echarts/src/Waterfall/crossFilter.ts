@@ -17,15 +17,18 @@
  * under the License.
  */
 import {
+  BinaryQueryObjectFilterClause,
   DataRecordValue,
   getColumnLabel,
   getTimeFormatter,
   QueryFormColumn,
   QueryObjectFilterClause,
+  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { NULL_STRING } from '../constants';
 import { formatSeriesName } from '../utils/series';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 
 /** Matches `optionLabel` in `src/utils/common.ts`. */
 const EMPTY_STRING = '<empty string>';
@@ -135,6 +138,48 @@ function formatDimensionValue(
   });
 }
 
+type FilterContext = {
+  coltypeMapping?: Record<string, number>;
+  timeFormat?: string;
+  timeGrain?: TimeGranularity;
+};
+
+type CategoryDimension = {
+  col: QueryFormColumn;
+  value: DataRecordValue;
+  /** The X axis is the column a time grain buckets. Breakdowns stay exact. */
+  bucket: boolean;
+};
+
+function isTemporalColumn(
+  col: QueryFormColumn,
+  coltypeMapping?: Record<string, number>,
+): boolean {
+  return coltypeMapping?.[getColumnLabel(col)] === GenericDataType.Temporal;
+}
+
+/**
+ * Range covering the clicked bucket. Absent when the column is not temporal,
+ * no grain is set, or the grain has no frontend bucket bounds.
+ */
+function temporalBucketFilter(
+  col: QueryFormColumn,
+  value: DataRecordValue,
+  formattedVal: string,
+  { coltypeMapping, timeGrain }: FilterContext,
+): BinaryQueryObjectFilterClause | undefined {
+  if (!timeGrain || !isTemporalColumn(col, coltypeMapping)) {
+    return undefined;
+  }
+  const filter = getTemporalXAxisDrillByFilter(
+    col,
+    value,
+    timeGrain,
+    formattedVal,
+  );
+  return filter?.op === 'TEMPORAL_RANGE' ? filter : undefined;
+}
+
 function dimensionFilter(
   col: QueryFormColumn,
   value: DataRecordValue,
@@ -149,6 +194,7 @@ function drillFilter(
   col: QueryFormColumn,
   value: DataRecordValue,
   formattedVal: string,
+  grain?: TimeGranularity,
 ): QueryObjectFilterClause {
   if (value == null) {
     return { col, op: 'IS NULL', formattedVal };
@@ -158,21 +204,25 @@ function drillFilter(
     op: '==',
     val: toJsonSafeFilterValue(value),
     formattedVal,
+    // Equality is applied to the truncated column, so a bucket start matches
+    // every row in the bucket. TEMPORAL_RANGE would be replaced by the query
+    // time range.
+    ...(grain ? { grain } : {}),
   };
 }
 
-function categoryColumns(category: WaterfallCategory): Array<{
-  col: QueryFormColumn;
-  value: DataRecordValue;
-}> {
-  const columns = [{ col: category.xColumn, value: category.xValue }];
+function categoryDimensions(category: WaterfallCategory): CategoryDimension[] {
+  const dimensions: CategoryDimension[] = [
+    { col: category.xColumn, value: category.xValue, bucket: true },
+  ];
   if (!category.xOnly && category.breakdownColumn) {
-    columns.push({
+    dimensions.push({
       col: category.breakdownColumn,
       value: category.breakdownValue ?? null,
+      bucket: false,
     });
   }
-  return columns;
+  return dimensions;
 }
 
 function categoryLabel(
@@ -180,11 +230,55 @@ function categoryLabel(
   coltypeMapping?: Record<string, number>,
   timeFormat?: string,
 ): string {
-  return categoryColumns(category)
+  return categoryDimensions(category)
     .map(({ col, value }) =>
       formatDimensionValue(col, value, coltypeMapping, timeFormat),
     )
     .join(', ');
+}
+
+function crossFilterClause(
+  dimension: CategoryDimension,
+  context: FilterContext,
+): QueryObjectFilterClause {
+  const formattedVal = formatDimensionValue(
+    dimension.col,
+    dimension.value,
+    context.coltypeMapping,
+    context.timeFormat,
+  );
+  if (dimension.bucket) {
+    const range = temporalBucketFilter(
+      dimension.col,
+      dimension.value,
+      formattedVal,
+      context,
+    );
+    if (range) {
+      return range;
+    }
+  }
+  return dimensionFilter(dimension.col, dimension.value);
+}
+
+function detailClause(
+  dimension: CategoryDimension,
+  context: FilterContext,
+): QueryObjectFilterClause {
+  const formattedVal = formatDimensionValue(
+    dimension.col,
+    dimension.value,
+    context.coltypeMapping,
+    context.timeFormat,
+  );
+  const grain =
+    dimension.bucket &&
+    dimension.value != null &&
+    context.timeGrain &&
+    isTemporalColumn(dimension.col, context.coltypeMapping)
+      ? context.timeGrain
+      : undefined;
+  return drillFilter(dimension.col, dimension.value, formattedVal, grain);
 }
 
 export function getWaterfallCrossFilterDataMask({
@@ -192,27 +286,39 @@ export function getWaterfallCrossFilterDataMask({
   selectedKeys,
   coltypeMapping,
   timeFormat,
+  timeGrain,
 }: {
   category: WaterfallCategory;
   selectedKeys: string[];
   coltypeMapping?: Record<string, number>;
   timeFormat?: string;
+  timeGrain?: TimeGranularity;
 }) {
   const key = getWaterfallCrossFilterKey(category);
   const isCurrentValueSelected = Boolean(key && selectedKeys.includes(key));
   const active = Boolean(key) && !isCurrentValueSelected;
+  const context: FilterContext = { coltypeMapping, timeFormat, timeGrain };
   const label = active
     ? categoryLabel(category, coltypeMapping, timeFormat)
     : null;
   const filters: QueryObjectFilterClause[] = active
-    ? categoryColumns(category).map(({ col, value }) =>
-        dimensionFilter(col, value),
+    ? categoryDimensions(category).map(dimension =>
+        crossFilterClause(dimension, context),
       )
     : [];
+  const temporalRange = filters.find(
+    (filter): filter is BinaryQueryObjectFilterClause =>
+      filter.op === 'TEMPORAL_RANGE',
+  );
 
   return {
     dataMask: {
-      extraFormData: { filters },
+      extraFormData: {
+        filters,
+        // The backend copies the query time range onto every TEMPORAL_RANGE
+        // filter, so the clicked bucket has to be that time range too.
+        ...(temporalRange ? { time_range: String(temporalRange.val) } : {}),
+      },
       filterState: {
         label,
         value: label,
@@ -227,19 +333,55 @@ export function getWaterfallDrillFilters({
   category,
   coltypeMapping,
   timeFormat,
+  timeGrain,
 }: {
   category: WaterfallCategory;
   coltypeMapping?: Record<string, number>;
   timeFormat?: string;
+  timeGrain?: TimeGranularity;
 }): QueryObjectFilterClause[] {
   if (category.isGrandTotal) {
     return [];
   }
-  return categoryColumns(category).map(({ col, value }) =>
-    drillFilter(
-      col,
-      value,
-      formatDimensionValue(col, value, coltypeMapping, timeFormat),
-    ),
+  const context: FilterContext = { coltypeMapping, timeFormat, timeGrain };
+  return categoryDimensions(category).map(dimension =>
+    detailClause(dimension, context),
+  );
+}
+
+/**
+ * Drill by on the X axis. A known grain covers the bucket with TEMPORAL_RANGE,
+ * the same clause a time-axis chart uses. Grains without bucket bounds fall
+ * back to grained equality.
+ */
+export function getWaterfallDrillByXAxisFilter({
+  category,
+  coltypeMapping,
+  timeFormat,
+  timeGrain,
+}: {
+  category: WaterfallCategory;
+  coltypeMapping?: Record<string, number>;
+  timeFormat?: string;
+  timeGrain?: TimeGranularity;
+}): QueryObjectFilterClause | undefined {
+  if (category.isGrandTotal) {
+    return undefined;
+  }
+  const context: FilterContext = { coltypeMapping, timeFormat, timeGrain };
+  const [dimension] = categoryDimensions(category);
+  const formattedVal = formatDimensionValue(
+    dimension.col,
+    dimension.value,
+    coltypeMapping,
+    timeFormat,
+  );
+  return (
+    temporalBucketFilter(
+      dimension.col,
+      dimension.value,
+      formattedVal,
+      context,
+    ) ?? detailClause(dimension, context)
   );
 }

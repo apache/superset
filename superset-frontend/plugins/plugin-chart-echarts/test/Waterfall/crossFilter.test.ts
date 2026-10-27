@@ -17,11 +17,12 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { getTimeFormatter } from '@superset-ui/core';
+import { getTimeFormatter, TimeGranularity } from '@superset-ui/core';
 import {
   getSelectedWaterfallKeys,
   getWaterfallCrossFilterDataMask,
   getWaterfallCrossFilterKey,
+  getWaterfallDrillByXAxisFilter,
   getWaterfallDrillFilters,
   isWaterfallBarDimmed,
   WaterfallCategory,
@@ -219,6 +220,90 @@ test('an X-only selection keeps every bar of that period bright', () => {
   );
   expect(isWaterfallBarDimmed(grandTotal, selected)).toBe(true);
   expect(isWaterfallBarDimmed(grandTotal, [])).toBe(false);
+});
+
+test('a breakdown selection keeps only that bar bright', () => {
+  const selected = [JSON.stringify([2019, 'Sylvester'])];
+  const arnold: WaterfallCategory = {
+    ...breakdownBar,
+    breakdownValue: 'Arnold',
+  };
+  expect(isWaterfallBarDimmed(breakdownBar, selected)).toBe(false);
+  expect(isWaterfallBarDimmed(arnold, selected)).toBe(true);
+  expect(isWaterfallBarDimmed(periodTotal, selected)).toBe(true);
+});
+
+test('a temporal X axis with a time grain filters the whole bucket', () => {
+  const orderDate = '2021-01-01T00:00:00';
+  const range = '2021-01-01T00:00:00 : 2021-02-01T00:00:00';
+  const formattedVal = getTimeFormatter('%Y-%m-%d')(new Date(`${orderDate}Z`));
+  const category: WaterfallCategory = {
+    ...breakdownBar,
+    xColumn: 'order_date',
+    xValue: orderDate,
+  };
+  const context = {
+    category,
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+    timeFormat: '%Y-%m-%d',
+    timeGrain: TimeGranularity.MONTH,
+  };
+  const mask = getWaterfallCrossFilterDataMask({
+    ...context,
+    selectedKeys: [],
+  }).dataMask;
+  expect(mask.extraFormData).toEqual({
+    filters: [
+      {
+        col: 'order_date',
+        op: 'TEMPORAL_RANGE',
+        val: range,
+        formattedVal,
+      },
+      { col: 'name', op: 'IN', val: ['Sylvester'] },
+    ],
+    time_range: range,
+  });
+  expect(
+    getWaterfallDrillFilters(context).find(
+      filter => filter.col === 'order_date',
+    ),
+  ).toEqual({
+    col: 'order_date',
+    op: '==',
+    val: orderDate,
+    formattedVal,
+    grain: TimeGranularity.MONTH,
+  });
+  expect(getWaterfallDrillByXAxisFilter(context)).toEqual({
+    col: 'order_date',
+    op: 'TEMPORAL_RANGE',
+    val: range,
+    formattedVal,
+  });
+});
+
+test('a temporal X axis without a grain stays an exact match', () => {
+  const mask = getWaterfallCrossFilterDataMask({
+    category: { ...yearBar, xValue: '2021-01-10T00:00:00' },
+    selectedKeys: [],
+    coltypeMapping: { year: GenericDataType.Temporal },
+  }).dataMask;
+  expect(mask.extraFormData.filters).toEqual([
+    { col: 'year', op: 'IN', val: ['2021-01-10T00:00:00'] },
+  ]);
+  expect(mask.extraFormData.time_range).toBeUndefined();
+});
+
+test('a time grain does not bucket a non-temporal X axis', () => {
+  const mask = getWaterfallCrossFilterDataMask({
+    category: yearBar,
+    selectedKeys: [],
+    timeGrain: TimeGranularity.MONTH,
+  }).dataMask;
+  expect(mask.extraFormData.filters).toEqual([
+    { col: 'year', op: 'IN', val: [2019] },
+  ]);
 });
 
 test('drill filters use equality and split the breakdown from the X axis', () => {

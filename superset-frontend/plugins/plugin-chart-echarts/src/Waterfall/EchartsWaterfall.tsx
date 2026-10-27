@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { ContextMenuFilters } from '@superset-ui/core';
+import { ContextMenuFilters, TimeGranularity } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { WaterfallChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
@@ -25,6 +25,7 @@ import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import {
   getSelectedWaterfallKeys,
   getWaterfallCrossFilterDataMask,
+  getWaterfallDrillByXAxisFilter,
   getWaterfallDrillFilters,
 } from './crossFilter';
 
@@ -53,6 +54,8 @@ export default function EchartsWaterfall(
     width,
   } = props;
   const { xAxisTimeFormat } = formData;
+  const timeGrain: TimeGranularity | undefined =
+    formData.extraFormData?.time_grain_sqla ?? formData.timeGrainSqla;
 
   // The waterfall legend has a fixed set of three entries, so it never
   // paginates and has no scroll position to preserve.
@@ -86,6 +89,7 @@ export default function EchartsWaterfall(
             selectedKeys,
             coltypeMapping,
             timeFormat: xAxisTimeFormat,
+            timeGrain,
           }).dataMask,
         );
       },
@@ -108,10 +112,14 @@ export default function EchartsWaterfall(
           category,
           coltypeMapping,
           timeFormat: xAxisTimeFormat,
+          timeGrain,
         }) as NonNullable<ContextMenuFilters['drillToDetail']>;
-        const xAxisFilters = drillFilters.filter(
-          filter => filter.col === category.xColumn,
-        );
+        const xAxisFilter = getWaterfallDrillByXAxisFilter({
+          category,
+          coltypeMapping,
+          timeFormat: xAxisTimeFormat,
+          timeGrain,
+        }) as NonNullable<ContextMenuFilters['drillToDetail']>[number];
         const breakdownFilters = drillFilters.filter(
           filter => filter.col !== category.xColumn,
         );
@@ -122,11 +130,12 @@ export default function EchartsWaterfall(
             selectedKeys,
             coltypeMapping,
             timeFormat: xAxisTimeFormat,
+            timeGrain,
           }),
           drillBy: {
             filters: breakdownFilters,
             groupbyFieldName: 'groupby',
-            xAxisFilters,
+            xAxisFilters: [xAxisFilter],
           },
         });
       },
@@ -138,6 +147,7 @@ export default function EchartsWaterfall(
     filterState?.selectedValues,
     onContextMenu,
     setDataMask,
+    timeGrain,
     xAxisTimeFormat,
   ]);
 

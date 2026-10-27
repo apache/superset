@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
-import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import { ChartProps, SqlaFormData, TimeGranularity } from '@superset-ui/core';
 import { render } from '@testing-library/react';
 import EchartsWaterfall from '../../src/Waterfall/EchartsWaterfall';
 import transformProps from '../../src/Waterfall/transformProps';
@@ -147,6 +148,23 @@ test('clicking the grand total does not change the current filter', () => {
   expect(setDataMask).not.toHaveBeenCalled();
 });
 
+const breakdownCrossFilter = {
+  dataMask: {
+    extraFormData: {
+      filters: [
+        { col: 'year', op: 'IN', val: ['2019'] },
+        { col: 'name', op: 'IN', val: ['Sylvester'] },
+      ],
+    },
+    filterState: {
+      label: '2019, Sylvester',
+      value: '2019, Sylvester',
+      selectedValues: [JSON.stringify(['2019', 'Sylvester'])],
+    },
+  },
+  isCurrentValueSelected: false,
+};
+
 test('a context menu carries the drill filters for the clicked bar', () => {
   const { eventHandlers, onContextMenu } = renderChart({
     emitCrossFilters: true,
@@ -154,12 +172,20 @@ test('a context menu carries the drill filters for the clicked bar', () => {
   const event = pointerEvent(0);
   eventHandlers.contextmenu(event);
   expect(event.event.stop).toHaveBeenCalled();
-  expect(onContextMenu).toHaveBeenCalledWith(
-    12,
-    24,
-    expect.objectContaining({
-      drillToDetail: [
-        { col: 'year', op: '==', val: '2019', formattedVal: '2019' },
+  expect(onContextMenu).toHaveBeenCalledWith(12, 24, {
+    drillToDetail: [
+      { col: 'year', op: '==', val: '2019', formattedVal: '2019' },
+      {
+        col: 'name',
+        op: '==',
+        val: 'Sylvester',
+        formattedVal: 'Sylvester',
+      },
+    ],
+    crossFilter: breakdownCrossFilter,
+    drillBy: {
+      groupbyFieldName: 'groupby',
+      filters: [
         {
           col: 'name',
           op: '==',
@@ -167,20 +193,97 @@ test('a context menu carries the drill filters for the clicked bar', () => {
           formattedVal: 'Sylvester',
         },
       ],
-      drillBy: expect.objectContaining({
-        groupbyFieldName: 'groupby',
-        filters: [
-          {
-            col: 'name',
-            op: '==',
-            val: 'Sylvester',
-            formattedVal: 'Sylvester',
+      xAxisFilters: [
+        { col: 'year', op: '==', val: '2019', formattedVal: '2019' },
+      ],
+    },
+  });
+});
+
+test('a context menu can clear an already selected bar', () => {
+  const { eventHandlers, onContextMenu } = renderChart({
+    emitCrossFilters: true,
+    filterState: {
+      selectedValues: [JSON.stringify(['2019', 'Sylvester'])],
+    },
+  });
+  eventHandlers.contextmenu(pointerEvent(0));
+  expect(onContextMenu).toHaveBeenCalledWith(
+    12,
+    24,
+    expect.objectContaining({
+      crossFilter: {
+        dataMask: {
+          extraFormData: { filters: [] },
+          filterState: {
+            label: null,
+            value: null,
+            selectedValues: null,
           },
-        ],
-        xAxisFilters: [
-          { col: 'year', op: '==', val: '2019', formattedVal: '2019' },
-        ],
-      }),
+        },
+        isCurrentValueSelected: true,
+      },
     }),
   );
+});
+
+test('a monthly temporal bar cross-filters the whole month', () => {
+  const { eventHandlers, setDataMask, onContextMenu } = renderChart({
+    emitCrossFilters: true,
+    formData: {
+      ...formData,
+      groupby: undefined,
+      x_axis: 'order_date',
+      time_grain_sqla: TimeGranularity.DAY,
+      extra_form_data: { time_grain_sqla: TimeGranularity.MONTH },
+    } as unknown as SqlaFormData,
+    queriesData: [
+      {
+        data: [
+          { order_date: '2021-01-01T00:00:00', sum: 10 },
+          { order_date: '2021-02-01T00:00:00', sum: -3 },
+        ],
+        colnames: ['order_date', 'sum'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      },
+    ],
+  });
+  const range = '2021-01-01T00:00:00 : 2021-02-01T00:00:00';
+  eventHandlers.click(pointerEvent(0));
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          {
+            col: 'order_date',
+            op: 'TEMPORAL_RANGE',
+            val: range,
+            formattedVal: expect.any(String),
+          },
+        ],
+        time_range: range,
+      },
+    }),
+  );
+
+  onContextMenu.mockClear();
+  eventHandlers.contextmenu(pointerEvent(0));
+  const payload = onContextMenu.mock.calls[0][2];
+  expect(payload.drillToDetail).toEqual([
+    expect.objectContaining({
+      col: 'order_date',
+      op: '==',
+      val: '2021-01-01T00:00:00',
+      grain: TimeGranularity.MONTH,
+    }),
+  ]);
+  expect(payload.drillBy.xAxisFilters).toEqual([
+    expect.objectContaining({
+      col: 'order_date',
+      op: 'TEMPORAL_RANGE',
+      val: range,
+    }),
+  ]);
+  expect(payload.crossFilter.isCurrentValueSelected).toBe(false);
+  expect(payload.crossFilter.dataMask.extraFormData.time_range).toBe(range);
 });
