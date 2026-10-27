@@ -102,6 +102,9 @@ class SavedQueryDAO(BaseDAO[SavedQuery]):
         Validate that no other saved query of the same owner and database uses
         this label. The comparison is exact on the label as stored.
 
+        The check is best-effort: there is no database constraint behind it, so
+        truly concurrent requests can still race and create a duplicate.
+
         :param label: The (already stripped) saved query label
         :param owner_id: The id of the user owning the saved query
         :param db_id: The id of the database the saved query targets

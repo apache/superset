@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo, ChangeEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, ChangeEvent } from 'react';
 import { useSelector } from 'react-redux';
 import { Query, QueryState } from '@superset-ui/core';
 import type { DatabaseObject } from 'src/features/databases/types';
@@ -112,6 +112,11 @@ const SaveQuery = ({
   );
   const [label, setLabel] = useState<string>(defaultLabel);
   const [labelError, setLabelError] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  // Bumped whenever the name is edited or the modal is closed, so a request
+  // that settles afterwards cannot restore an error or close a modal the user
+  // has since moved on from.
+  const generation = useRef(0);
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   // Saving a dataset runs the SQL to introspect columns, so it needs a
@@ -152,21 +157,31 @@ const SaveQuery = ({
   }, [defaultLabel]);
 
   const close = () => {
+    generation.current += 1;
     setShowSave(false);
     setLabelError('');
+    setSubmitting(false);
   };
 
   // A rejected save keeps the modal open with the user's input so the name
   // can be changed and the save retried.
   const submit = async (action: SaveQueryProps['onSave']) => {
+    const submittedGeneration = generation.current;
     setLabelError('');
+    setSubmitting(true);
     try {
       await action(queryPayload(), query.id);
     } catch (error) {
-      setLabelError(error instanceof Error ? error.message : '');
+      if (generation.current === submittedGeneration) {
+        setLabelError(error instanceof Error ? error.message : '');
+      }
       return;
+    } finally {
+      setSubmitting(false);
     }
-    close();
+    if (generation.current === submittedGeneration) {
+      close();
+    }
   };
 
   const onSaveWrapper = () => {
@@ -177,6 +192,7 @@ const SaveQuery = ({
   const onUpdateWrapper = () => submit(onUpdate);
 
   const onLabelChange = (e: ChangeEvent<HTMLInputElement>) => {
+    generation.current += 1;
     setLabel(e.target.value);
     setLabelError('');
   };
@@ -193,13 +209,23 @@ const SaveQuery = ({
             label={t('Name')}
             htmlFor="save-query-name"
             validateStatus={labelError ? 'error' : undefined}
-            help={labelError || undefined}
+            help={
+              labelError ? (
+                <span id="save-query-name-error" role="alert">
+                  {labelError}
+                </span>
+              ) : undefined
+            }
           >
             <Input
               id="save-query-name"
               type="text"
               value={label}
               onChange={onLabelChange}
+              aria-invalid={labelError ? true : undefined}
+              aria-describedby={
+                labelError ? 'save-query-name-error' : undefined
+              }
             />
           </FormItem>
         </Col>
@@ -275,7 +301,7 @@ const SaveQuery = ({
             <Button
               buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
-              disabled={isLabelEmpty}
+              disabled={isLabelEmpty || submitting}
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
@@ -284,7 +310,7 @@ const SaveQuery = ({
               <Button
                 buttonStyle="primary"
                 onClick={onUpdateWrapper}
-                disabled={isLabelEmpty}
+                disabled={isLabelEmpty || submitting}
                 cta
               >
                 {t('Update')}
