@@ -259,6 +259,10 @@ Cancellation is cooperative: a run stops at its next step boundary. A run inside
 a single long model call or a single long query will not stop until that call
 returns.
 
+Checkpoint controls apply to the selected conversation. If Stop is pressed while
+the start request is pending, the client forwards cancellation as soon as the
+server returns the run identifier.
+
 ## Monitoring and tracing
 
 Superset bundles **no integration with any AI monitoring product**. Instead it
