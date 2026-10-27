@@ -26,6 +26,49 @@ from __future__ import annotations
 from typing import Any
 
 
+@pytest.mark.parametrize(
+    "context",
+    [
+        pytest.param(None, id="absent"),
+        pytest.param([], id="list"),
+        pytest.param("text", id="text"),
+        pytest.param({}, id="empty"),
+        pytest.param({"helper_directives": "text"}, id="not-a-list"),
+        pytest.param(
+            {"helper_directives": [None, 42, {}, [], "", "  "]},
+            id="invalid-entries",
+        ),
+    ],
+)
+def test_invalid_helper_directives_are_ignored(context: Any) -> None:
+    """Only nonblank string entries in the explicit helper list are instructions."""
+    from superset.ai.page_context import render_helper_directives
+
+    assert render_helper_directives(context) == ""
+
+
+def test_helper_directives_are_bounded_and_do_not_read_other_page_fields() -> None:
+    """The prompt has both a count and character ceiling, including Unicode."""
+    from superset.ai.page_context import (
+        MAX_HELPER_CHARS,
+        MAX_HELPER_DIRECTIVES,
+        render_helper_directives,
+    )
+
+    bounded = render_helper_directives({"helper_directives": ["я" * 10_000]})
+    assert len(bounded) == MAX_HELPER_CHARS
+    assert "я" in bounded
+    limited = render_helper_directives(
+        {
+            "helper_directives": ["Be terse"] * MAX_HELPER_DIRECTIVES + ["too late"],
+            "pageMarkdown": [{"content": "not an instruction"}],
+        }
+    )
+    assert limited.count("Be terse") == MAX_HELPER_DIRECTIVES
+    assert "too late" not in limited
+    assert "not an instruction" not in limited
+
+
 def test_no_context_renders_nothing() -> None:
     """An absent or useless payload appends nothing to the prompt."""
     from superset.ai.page_context import render_page_context
