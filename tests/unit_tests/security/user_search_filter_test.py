@@ -68,6 +68,13 @@ def session() -> Iterator[Session]:
                 email="backslash@example.com",
                 active=True,
             ),
+            User(
+                username="nnonesuch",
+                first_name="Nora",
+                last_name="Nonesuch",
+                email="nora@example.com",
+                active=True,
+            ),
         ]
     )
     session.commit()
@@ -142,6 +149,7 @@ def test_user_search_filter_blank_value_matches_everyone(
         "00f09b2e-f4fb-48a3-80fc-53ccd9528021",
         "back\\slash",
         "jsmith",
+        "nnonesuch",
         "pct%user",
         "svc_reporting",
     ]
@@ -150,7 +158,8 @@ def test_user_search_filter_blank_value_matches_everyone(
 def test_user_search_filter_none_matches_nobody(session: Session) -> None:
     """
     ``None`` matches no rows, mirroring SQL's ``x LIKE NULL`` and the DAO
-    LIKE operators, rather than degrading into an unfiltered listing.
+    LIKE operators, rather than degrading into an unfiltered listing or a
+    search for the text "None" (which would find Nora Nonesuch).
     """
     assert _search(session, None) == []  # type: ignore[arg-type]
 

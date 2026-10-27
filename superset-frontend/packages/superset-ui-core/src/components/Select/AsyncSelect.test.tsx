@@ -242,24 +242,26 @@ test('keeps the extra props of a selected value that is not in the options', asy
 test('keeps the extra props of an option picked from search results after the search clears', async () => {
   // Selecting stores only { label, value }. Once the search clears and the
   // base page (which lacks the pick) is restored, the option rebuilt from the
-  // selection must still carry the picked option's aria-label.
+  // selection must still carry the picked option's aria-label, and its title
+  // and filter props so a later search can still match it client-side.
   const amy = {
     value: 42,
     label: <span>Amy</span>,
-    title: 'Amy',
+    title: 'Amy Adams',
     'aria-label': 'Amy',
+    email: 'aadams@example.com',
   };
   const loadOptions = jest.fn(async (search: string) =>
-    search === ''
-      ? { data: [OPTIONS[1]], totalCount: 100 }
-      : { data: [amy], totalCount: 1 },
+    search === 'Amy'
+      ? { data: [amy], totalCount: 1 }
+      : { data: [OPTIONS[1]], totalCount: 100 },
   );
   render(
     <AsyncSelect
       {...defaultProps}
       mode="multiple"
       options={loadOptions}
-      optionFilterProps={['title']}
+      optionFilterProps={['title', 'email']}
     />,
   );
   await open();
@@ -273,6 +275,30 @@ test('keeps the extra props of an option picked from search results after the se
   );
   expect(screen.getByRole('option', { name: 'Amy' })).toBeInTheDocument();
   expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+
+  // Neither search returns Amy, so she can only match on the remembered
+  // title or email.
+  await type('Adams');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('Adams', 0, expect.any(Number)),
+  );
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: OPTIONS[1].label }),
+  ).not.toBeInTheDocument();
+
+  await type('aadams@');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('aadams@', 0, expect.any(Number)),
+  );
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: OPTIONS[1].label }),
+  ).not.toBeInTheDocument();
 });
 
 test('does not add a new option if the value is already in the options', async () => {
