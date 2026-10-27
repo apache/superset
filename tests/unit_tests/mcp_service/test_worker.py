@@ -21,7 +21,7 @@ import sqlite3
 import threading
 import time
 from collections.abc import Iterator
-from contextlib import contextmanager, ExitStack
+from contextlib import closing, contextmanager, ExitStack
 from contextvars import ContextVar
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -416,6 +416,103 @@ def test_query_cancellation_capture_resets_stale_id_on_failed_recapture() -> Non
     # No usable handle for this statement: cancellation must go unavailable,
     # not silently keep dispatching against the finished first statement.
     assert call.cancel_query is None
+
+
+@pytest.mark.parametrize("native_cancel", [False, True])
+def test_sql_server_cancellation_uses_only_the_live_cursor(native_cancel: bool) -> None:
+    """SQL Server cancellation requires a driver with a native cursor API."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.mcp_service.worker import _active_call, warehouse_cursor
+
+    call = Mock(lock=threading.RLock(), expired=threading.Event())
+    database = Mock(id=42, db_engine_spec=MssqlEngineSpec)
+    cursor = Mock(spec=["execute", "cancel"] if native_cancel else ["execute"])
+    token = _active_call.set(call)
+    try:
+        with warehouse_cursor(database, cursor, None, None):
+            if native_cancel:
+                assert call.cancel_query is not None
+                call.cancel_query()
+                cursor.cancel.assert_called_once_with()
+            else:
+                assert call.cancel_query is None
+        assert call.cancel_query is None
+        cursor.execute.assert_not_called()
+    finally:
+        _active_call.reset(token)
+
+
+def test_delayed_cursor_cancellation_after_release_is_ignored() -> None:
+    """A queued cancellation cannot touch a cursor after its owner's scope."""
+    from superset.mcp_service.worker import _active_call, warehouse_cursor
+
+    call = Mock(lock=threading.RLock(), expired=threading.Event())
+    database, cursor = Mock(id=42), Mock()
+    database.db_engine_spec.has_implicit_cancel.return_value = True
+    database.db_engine_spec.get_cancel_query_id.return_value = None
+    token = _active_call.set(call)
+    try:
+        with closing(cursor), warehouse_cursor(database, cursor, None, None):
+            callback = call.cancel_query
+            assert callback is not None
+        cursor.close.assert_called_once_with()
+        callback()
+        cursor.cancel.assert_not_called()
+    finally:
+        _active_call.reset(token)
+
+
+def test_cursor_release_waits_for_inflight_native_cancellation() -> None:
+    """Keep the original cursor alive while its native cancel is running."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from superset.mcp_service.worker import _active_call, warehouse_cursor
+
+    call = Mock(lock=threading.RLock(), expired=threading.Event())
+    database, cursor = Mock(id=42), Mock()
+    database.db_engine_spec.has_implicit_cancel.return_value = True
+    database.db_engine_spec.get_cancel_query_id.return_value = None
+    entered, leave, leaving, cancelling, finish_cancel, closed = (
+        threading.Event() for _ in range(6)
+    )
+    cursor.close.side_effect = closed.set
+
+    def cancel() -> None:
+        """Hold cancellation open until the owner tries to close its cursor."""
+        cancelling.set()
+        assert finish_cancel.wait(3)
+
+    def own_cursor() -> None:
+        """Use the same nested contexts as the SQL executor."""
+        token = _active_call.set(call)
+        try:
+            with closing(cursor), warehouse_cursor(database, cursor, None, None):
+                entered.set()
+                assert leave.wait(3)
+                leaving.set()
+        finally:
+            _active_call.reset(token)
+
+    cursor.cancel.side_effect = cancel
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        owner = pool.submit(own_cursor)
+        try:
+            assert entered.wait(2)
+            callback = call.cancel_query
+            assert callback is not None
+            cancellation = pool.submit(callback)
+            assert cancelling.wait(2)
+            leave.set()
+            assert leaving.wait(2)
+            assert not closed.wait(0.05)
+        finally:
+            leave.set()
+            finish_cancel.set()
+        cancellation.result(timeout=2)
+        owner.result(timeout=2)
+    assert closed.is_set()
+    callback()
+    cursor.cancel.assert_called_once_with()
 
 
 def test_worker_pool_cancel_releases_slot_on_unexpected_submit_error() -> None:

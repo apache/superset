@@ -123,13 +123,17 @@ celery --app=superset.tasks.celery_app:app flower
 
 ## Cancelling SQL Server queries
 
-For Microsoft SQL Server, Superset captures the connection's session ID before
-execution and sends `KILL` on a separate connection when cancellation is requested.
-The connection credentials need `ALTER ANY CONNECTION` on SQL Server, or
-`KILL DATABASE CONNECTION` on Azure SQL Database. Superset does not grant these
-permissions automatically. Cancellation terminates the target session and may
-require time for the server to roll back its work.
+MCP queries using Microsoft SQL Server with `pyodbc` can cancel their original
+live cursor when their execution owner reaches a deadline or the caller
+disconnects. Superset waits for an in-flight native cancellation before releasing
+that cursor, and ignores queued cancellations after the cursor's scope ends.
 
-This cancellation contract does not apply to Azure Synapse dedicated pools or
-SAP Sybase, which use different session protocols. Driver connection and network
-timeouts are still needed when the server cannot be reached to cancel a query.
+This uses the driver's `cursor.cancel()` API and does not require permission to
+kill other database sessions. Superset does not capture SQL Server session IDs or
+send `KILL`: those IDs can be reassigned to unrelated connections.
+
+This support does not extend to ordinary SQL Lab or chart-task cancellation from
+another process, `pymssql` (which has no public `cursor.cancel()` API), Azure
+Synapse dedicated pools, or SAP Sybase. Configure driver connection, query, and
+network timeouts as well: native cancellation is best effort and cannot guarantee
+that an unreachable or unresponsive driver stops within a fixed time.
