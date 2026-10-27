@@ -51,6 +51,7 @@ from superset.ai.schemas import (
     RunAcceptedResponseSchema,
     SuggestedPromptsPostSchema,
     ThreadDetailResponseSchema,
+    ThreadListSchema,
     ThreadPostSchema,
     ThreadPutSchema,
     ThreadResponseSchema,
@@ -250,10 +251,16 @@ class AIRestApi(BaseSupersetApi):
             name: limit
             schema:
               type: integer
+              minimum: 1
+              maximum: 100
+              default: 50
           - in: query
             name: offset
             schema:
               type: integer
+              minimum: 0
+              maximum: 2147483647
+              default: 0
           responses:
             200:
               description: Conversations
@@ -276,17 +283,23 @@ class AIRestApi(BaseSupersetApi):
         if (unavailable := self._reject_if_unconfigured()) is not None:
             return unavailable
 
-        from superset.daos.ai import AIChatThreadDAO
+        from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
 
-        limit = request.args.get("limit", type=int) or 50
-        offset = request.args.get("offset", type=int) or 0
+        try:
+            pagination = ThreadListSchema().load(request.args)
+        except ValidationError as ex:
+            return self.response_422(message=ex.messages)
         threads = AIChatThreadDAO.find_all_for_user(
-            self._user_id(), limit=limit, offset=offset
+            self._user_id(), **pagination
         )
+        counts = AIChatMessageDAO.counts_for_threads(threads)
         return self.response(
             200,
             count=len(threads),
-            result=[_thread_dict(thread) for thread in threads],
+            result=[
+                _thread_dict(thread, message_count=counts.get(thread.id, 0))
+                for thread in threads
+            ],
         )
 
     @expose("/thread/<thread_uuid>", methods=("GET",))
@@ -1016,14 +1029,16 @@ def _tail_event_bus(run_id: str) -> Generator[str, None, None]:
         bus.close(run_id)
 
 
-def _thread_dict(thread: Any) -> dict[str, Any]:
+def _thread_dict(thread: Any, *, message_count: int | None = None) -> dict[str, Any]:
     """Serialise a conversation for the API."""
     return {
         "uuid": str(thread.uuid),
         "title": thread.title,
         "status": thread.status,
         "agent_key": thread.agent_key,
-        "message_count": thread.message_count,
+        "message_count": (
+            thread.message_count if message_count is None else message_count
+        ),
         "created_on": thread.created_on.isoformat() if thread.created_on else None,
         "changed_on": thread.changed_on.isoformat() if thread.changed_on else None,
     }
