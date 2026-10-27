@@ -41,6 +41,13 @@ set -euo pipefail
 BUILD_PRESET="${1:?usage: docker-build-extra-flags.sh <build_preset> [image_tag]}"
 IMAGE_TAG="${2:-}"
 BUILD_MODE="${3:-ci}"
+# Optional platform of a single-platform master publish. Each platform gets
+# its own registry cache ref: `--cache-to mode=max` writes one cache manifest
+# per ref, so two native per-platform builds exporting to the same ref would
+# keep overwriting each other's layers. linux/amd64 keeps the unsuffixed ref
+# that pull_request validation builds, docker-compose's cache_from entries
+# and the release build all read; linux/arm64 gets a `-arm64` suffix.
+PLATFORM="${4:-}"
 DEFAULT_PY_VER="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
 # PY_VER pins a digest (tag@sha256:...); registry cache refs take the tag only
 DEFAULT_PY_TAG="${DEFAULT_PY_VER%%@*}"
@@ -74,6 +81,15 @@ case "$BUILD_PRESET" in
       CACHE_REF="${CACHE_REF}-${BUILD_PRESET}"
     fi
     EXTRA_FLAGS="--build-arg PY_VER=$DEFAULT_PY_VER${EXTRA_FLAGS:+ $EXTRA_FLAGS}"
+    ;;
+esac
+
+case "$PLATFORM" in
+  ""|linux/amd64) ;;
+  linux/arm64) CACHE_REF="${CACHE_REF}-arm64" ;;
+  *)
+    echo "Unsupported platform for the docker cache ref: $PLATFORM" >&2
+    exit 1
     ;;
 esac
 

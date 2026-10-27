@@ -167,6 +167,51 @@ jobs:
               exit 1
             fi
           }
+          docker_command_for_platform() {
+            local preset="$1" extra_flags="$2" platform="$3"
+            shift 3
+            DOCKERHUB_TOKEN= supersetbot docker \
+              --preset "$preset" \
+              --platform "$platform" \
+              "$@" \
+              --extra-flags "$extra_flags" \
+              --dry-run
+          }
+          # One master publish job per platform (docker.yml's docker-build and
+          # docker-build-arm64) asks the plan for its own platform.
+          assert_platform_build_plan() {
+            local platform="$1" expected_platform="$2"
+            eval "$(bash scripts/docker-build-plan.sh push refs/heads/master master "$platform")"
+            if [ "$PLATFORM_ARG" != "$expected_platform" ] ||
+              [ "$PUSH_OR_LOAD" != "--push" ] ||
+              [ "$PUBLISH_DOCKER_CACHE" != "true" ]; then
+              echo "::error::unexpected single-platform master plan for $platform: platform=$PLATFORM_ARG push_or_load=$PUSH_OR_LOAD publish_cache=$PUBLISH_DOCKER_CACHE"
+              exit 1
+            fi
+          }
+          # Each platform exports to its own registry cache ref; amd64 keeps
+          # the unsuffixed ref that PR builds and docker-compose read.
+          assert_platform_cache_refs() {
+            local preset="$1" platform="$2" expected="$3" flags
+            flags="$(PUBLISH_DOCKER_CACHE=true DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag ci "$platform")"
+            if ! grep -oE -- '--cache-to=[^[:space:]]+' <<<"$flags" | grep -Fxq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected" ||
+              ! grep -oE -- '--cache-from=[^[:space:]]+' <<<"$flags" | grep -Fxq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected"; then
+              echo "::error::preset '$preset' on $platform expected cache ref apache/superset-cache:$expected (flags: $flags)"
+              exit 1
+            fi
+          }
+          # The manifest merge in docker-build pairs each unsuffixed amd64 tag
+          # with the `-arm` tag supersetbot gives a linux/arm64-only build.
+          assert_platform_master_tag() {
+            local preset="$1" platform="$2" expected="$3" extra_flags command
+            load_build_plan push refs/heads/master master
+            extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag ci "$platform")"
+            command="$(docker_command_for_platform "$preset" "$extra_flags" "$platform" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if ! grep -Eq -- "-t apache/superset:${expected}([[:space:]]|$)" <<<"$command"; then
+              echo "::error::preset '$preset' on $platform expected tag apache/superset:$expected (full command: $command)"
+              exit 1
+            fi
+          }
           assert_effective_py_ver() {
             local preset="$1" expected="$2" extra_flags command actual
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
@@ -286,6 +331,8 @@ jobs:
             fi
           }
           assert_build_plan push refs/heads/master master push master --push "--platform linux/arm64 --platform linux/amd64" true
+          assert_platform_build_plan linux/amd64 "--platform linux/amd64"
+          assert_platform_build_plan linux/arm64 "--platform linux/arm64"
           assert_build_plan push refs/heads/7.0 7.0 push "" --load "--platform linux/amd64" ""
           assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" ""
           # A master push publishes only while its commit is still the branch
@@ -330,17 +377,150 @@ jobs:
           assert_cache_push_for_master lean "3.11-slim-trixie-lean"
           assert_cache_push_for_master py311 "3.11-slim-bookworm"
           assert_cache_push_for_master py312 "3.12-slim-bookworm"
+          assert_platform_cache_refs superset linux/amd64 "3.11-slim-trixie"
+          assert_platform_cache_refs superset linux/arm64 "3.11-slim-trixie-arm64"
+          assert_platform_cache_refs dev linux/arm64 "3.11-slim-trixie-dev-arm64"
+          assert_platform_cache_refs py312 linux/arm64 "3.12-slim-bookworm-arm64"
+          assert_platform_master_tag superset linux/amd64 master
+          assert_platform_master_tag superset linux/arm64 master-arm
+          assert_platform_master_tag dev linux/amd64 master-dev
+          assert_platform_master_tag dev linux/arm64 master-dev-arm
+          assert_platform_master_tag py311 linux/arm64 master-py311-arm
           assert_release_tag superset "6.1.0"
           assert_release_tag dev "6.1.0-dev"
           assert_release_tag lean "6.1.0-lean"
           assert_release_tag py311 "6.1.0-py311"
           assert_release_tag py312 "6.1.0-py312"
           assert_release_ref_swap
-          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, release tags, and the release ref swap"
+          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, per-platform plans/cache refs/tags, release tags, and the release ref swap"
+
+  # Master publishes are multi-platform. Building linux/arm64 under QEMU on
+  # an amd64 runner took most of a 30+ minute build, so each platform is now
+  # built natively in its own job: this one pushes the linux/arm64 image
+  # under supersetbot's `-arm` suffixed tags (see getDockerTags in
+  # apache-superset/supersetbot), and docker-build below, which runs after
+  # it, pushes linux/amd64 under the unsuffixed tags and then folds both
+  # into one multi-platform manifest list per tag. Pull requests and version
+  # branches only validate a linux/amd64 build, so this job is skipped there.
+  docker-build-arm64:
+    name: docker-build (arm64)
+    needs: [setup_matrix, changes, check-freshness]
+    if: >-
+      needs.check-freshness.outputs.is-current == 'true' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      needs.setup_matrix.outputs.has-secrets &&
+      (needs.changes.outputs.python == 'true' ||
+       needs.changes.outputs.frontend == 'true' ||
+       needs.changes.outputs.docker == 'true')
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
+      fail-fast: false
+    # Same per-preset publish queue as docker-build, kept separate so the two
+    # platforms of one commit build concurrently.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.build_preset }}-arm64
+      cancel-in-progress: false
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      BUILD_PLATFORM: linux/arm64
+      IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}-arm64
+
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Free up disk space
+        shell: bash
+        run: |
+          echo "Disk before cleanup:"; df -h /
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/boost || true
+          echo "Disk after cleanup:"; df -h /
+
+      - name: Setup Docker Environment
+        uses: $/.github/actions/setup-docker
+        with:
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          build: "true"
+
+      - name: Setup supersetbot
+        uses: $/.github/actions/setup-supersetbot/
+
+      # Same stale-commit check as docker-build; see the comment there.
+      - name: Guard against publishing a superseded master commit
+        id: publish_guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          TIP_SHA=""
+          for attempt in 1 2 3; do
+            if TIP_SHA="$(git ls-remote "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" refs/heads/master | cut -f1)" &&
+              [ -n "$TIP_SHA" ]; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::could not read the master tip to validate $GITHUB_SHA"
+              exit 1
+            fi
+            echo "::warning::ls-remote attempt ${attempt} failed; retrying in 10s..."
+            sleep 10
+          done
+          eval "$(bash scripts/docker-publish-guard.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$GITHUB_SHA" "$TIP_SHA")"
+          if [ "$PUBLISH" != "true" ]; then
+            echo "::notice::master advanced to ${TIP_SHA} while ${GITHUB_SHA} was queued; skipping this build"
+          fi
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker Image (linux/arm64)
+        if: steps.publish_guard.outputs.publish == 'true'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
+        run: |
+          set -euo pipefail
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
+          export PUBLISH_DOCKER_CACHE
+          # The platform argument selects the arm64 registry cache ref; see
+          # scripts/docker-build-extra-flags.sh.
+          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
+
+          for attempt in 1 2 3; do
+            if DOCKERHUB_TOKEN= supersetbot docker \
+              $PUSH_OR_LOAD \
+              --preset "$BUILD_PRESET" \
+              --context "$BUILD_CONTEXT" \
+              --context-ref "$BUILD_CONTEXT_REF" \
+              --extra-flags "$EXTRA_FLAGS" \
+              $PLATFORM_ARG; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::supersetbot docker build failed after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::Build attempt ${attempt} failed; retrying in 30s..."
+            sleep 30
+          done
 
   docker-build:
     name: docker-build
-    needs: [setup_matrix, changes, check-freshness]
+    needs: [setup_matrix, changes, check-freshness, docker-build-arm64]
     # Only master pushes publish images (see scripts/docker-build-plan.sh).
     # Without the Docker Hub credentials (e.g. on a fork or mirror) they can
     # publish nothing, so they are skipped there. Version-branch pushes and
@@ -348,10 +528,17 @@ jobs:
     # they run everywhere. check-freshness.outputs.is-current is always
     # 'true' for pull_request (it bypasses the check there — a PR build has
     # no branch tip to race against, and staleness is instead handled by
-    # this job's own cancel-in-progress: true below), so this only narrows
-    # push triggers superseded by a newer commit on the same branch.
+    # cancel-in-progress on the concurrency group), and is false for push
+    # triggers superseded by a newer commit on the same branch. On master
+    # this job also needs the native arm64 build to have pushed its `-arm`
+    # tags first (it merges them below); a skipped arm64 job is the
+    # pull_request / version-branch case, a failed one must not leave
+    # amd64-only images under the multi-platform tags.
     if: >-
+      !cancelled() &&
       needs.check-freshness.outputs.is-current == 'true' &&
+      (needs.docker-build-arm64.result == 'success' ||
+       needs.docker-build-arm64.result == 'skipped') &&
       (github.event_name != 'push' ||
        github.ref != 'refs/heads/master' ||
        needs.setup_matrix.outputs.has-secrets) &&
@@ -382,6 +569,7 @@ jobs:
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      BUILD_PLATFORM: linux/amd64
       IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
 
     steps:
@@ -465,7 +653,9 @@ jobs:
           # Release branch pushes and pull requests validate the build
           # locally. Official release images are published only by the
           # release workflow after the vote completes.
-          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}")"
+          # On master this builds linux/amd64 only; docker-build-arm64 built
+          # the other half natively and the step after this one merges them.
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
           export PUBLISH_DOCKER_CACHE
 
           # Retry to absorb transient Docker Hub registry errors (base-image
@@ -479,7 +669,7 @@ jobs:
           # always-on docker-command-check job, since this job itself
           # only runs when the change detector flags docker/python/frontend
           # changes and the PR build matrix never includes py311/py312.
-          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG")"
+          EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG" ci "$BUILD_PLATFORM")"
 
           for attempt in 1 2 3; do
             # Supersetbot adds --cache-to whenever DOCKERHUB_TOKEN is present.
@@ -502,6 +692,68 @@ jobs:
             echo "::warning::Build attempt ${attempt} failed; retrying in 30s..."
             sleep 30
           done
+
+      # supersetbot tagged the linux/amd64 push above with the unsuffixed tags
+      # (<sha>, <short sha>, master, each with the preset chunk) and the
+      # linux/arm64 push in docker-build-arm64 with the same tags plus an
+      # `-arm` suffix. Fold each pair into one manifest list under the
+      # unsuffixed tag, which is what the single multi-platform build used
+      # to publish. The run-scoped GHA-* tags stay per platform (IMAGE_TAG
+      # carries a -arm64 suffix in the arm64 job) since nothing pulls them
+      # cross-platform.
+      - name: Publish the multi-platform manifest lists
+        if: >-
+          steps.publish_guard.outputs.publish == 'true' &&
+          github.event_name == 'push' && github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
+        run: |
+          set -euo pipefail
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}" "$BUILD_PLATFORM")"
+          mapfile -t tags < <(
+            DOCKERHUB_TOKEN= supersetbot docker \
+              --preset "$BUILD_PRESET" \
+              --context "$BUILD_CONTEXT" \
+              --context-ref "$BUILD_CONTEXT_REF" \
+              --platform linux/amd64 \
+              --dry-run |
+              grep -oE -- '-t apache/superset:[^[:space:]\\]+' | cut -d' ' -f2 | sort -u
+          )
+          # Merge from the per-commit tags (the full-sha tag of this preset
+          # and its `-arm` twin) rather than from the mutable `master*` and
+          # `master*-arm` tags, so a newer commit's push landing mid-run
+          # cannot pair this commit's amd64 image with another commit's arm64.
+          sha_tag=""
+          for tag in "${tags[@]}"; do
+            case "$tag" in "apache/superset:${GITHUB_SHA}"|"apache/superset:${GITHUB_SHA}-"*) sha_tag="$tag"; break ;; esac
+          done
+          if [ -z "$sha_tag" ]; then
+            echo "::error::no per-commit tag found among: ${tags[*]}"
+            exit 1
+          fi
+          merged=0
+          for tag in "${tags[@]}"; do
+            case "$tag" in *:GHA-*) continue ;; esac
+            for attempt in 1 2 3; do
+              if docker buildx imagetools create -t "$tag" "$sha_tag" "${sha_tag}-arm"; then
+                merged=$((merged + 1))
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "::error::could not merge ${tag}-arm into $tag"
+                exit 1
+              fi
+              echo "::warning::manifest merge attempt ${attempt} for $tag failed; retrying in 15s..."
+              sleep 15
+            done
+            docker buildx imagetools inspect "$tag"
+          done
+          if [ "$merged" -eq 0 ]; then
+            echo "::error::no tags were merged; supersetbot's tag output may have changed"
+            exit 1
+          fi
 
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
