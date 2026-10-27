@@ -38,7 +38,10 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
-from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
+from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
+    validate_dashboard_layout,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -221,10 +224,11 @@ def generate_dashboard(  # noqa: C901
       Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Layout: by default, charts are arranged in an auto-generated 2-column
-      grid. When ``position_json`` is supplied, that explicit layout is used
-      instead and the auto-generated grid is skipped — use this to compose
-      custom rows, header bands, or MARKDOWN/HEADER components. Each
-      component's ``parents`` is recomputed from its ``children`` edges
+      grid. When ``position_json`` is supplied, a valid layout replaces that
+      grid for custom rows, header bands, or MARKDOWN/HEADER components.
+      Invalid explicit layouts fall back to the auto-generated grid and
+      return a warning.
+      Each component's ``parents`` is recomputed from its ``children`` edges
       before saving, so an omitted or incomplete ``parents`` array is fine.
 
     Returns:
@@ -233,7 +237,7 @@ def generate_dashboard(  # noqa: C901
     # Advisory messages (e.g. title sanitization) surfaced to the caller
     # alongside the created dashboard so they can tell when their input
     # was altered.
-    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
+    warnings = list(getattr(request, "sanitization_warnings", []) or [])
 
     try:
         # avoids ImportError before Flask app initialisation:
@@ -286,22 +290,12 @@ def generate_dashboard(  # noqa: C901
                         ),
                     )
 
-        # Create dashboard layout with chart objects.
-        # If the caller provided an explicit position_json, use its
-        # children/meta as given; otherwise auto-generate a packed-grid
-        # layout from the chart ids (which already carries correct parents).
+        # Check all supplied references before repair can detach or replace nodes.
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
-            if request.position_json:
-                # A caller-supplied layout may carry only an immediate
-                # parent (or omit `parents` altogether); rebuild the full
-                # ancestor chains so server-side filter-scope derivation
-                # sees the same tree the frontend would after hydration.
-                # See superset.dashboards.filter_scope.get_chart_ids_in_scope.
-                layout = rebuild_parent_chains(repair_position(request.position_json))
-                # Match the DAO's ID coercion and scan all nodes, including
-                # detached ones that a later dashboard save could link.
+            layout = request.position_json
+            if layout:
                 chart_id: int | None
-                layout_chart_ids: set[int] = {
+                layout_chart_ids = {
                     chart_id
                     for node in layout.values()
                     if (chart_id := _layout_chart_id(node)) is not None
@@ -312,8 +306,16 @@ def generate_dashboard(  # noqa: C901
                         dashboard_url=None,
                         error="Every layout chart must be included in chart_ids.",
                     )
+                layout = repair_position(layout)
+
+            if layout and validate_dashboard_layout(layout, found_chart_ids) is None:
+                layout = rebuild_parent_chains(layout)
             else:
                 layout = _create_dashboard_layout(chart_objects)
+                if request.position_json:
+                    warnings.append(
+                        "position_json was invalid; used an auto-generated layout."
+                    )
 
         # Resolve dashboard title: use provided title or derive from chart names
         dashboard_title = (
@@ -527,7 +529,7 @@ def generate_dashboard(  # noqa: C901
                 ),
                 dashboard_url=dashboard_url,
                 error=None,
-                warnings=sanitization_warnings
+                warnings=warnings
                 + [
                     "Dashboard created but response metadata is partial "
                     "(post-create refresh failed); some fields are omitted. "
@@ -583,7 +585,7 @@ def generate_dashboard(  # noqa: C901
             dashboard=dashboard_info,
             dashboard_url=dashboard_url,
             error=None,
-            warnings=sanitization_warnings,
+            warnings=warnings,
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
