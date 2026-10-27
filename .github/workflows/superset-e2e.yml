@@ -157,6 +157,29 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      # The instrumented production assets, keyed on the frontend sources and
+      # lockfile. `build-instrumented-assets` skips the webpack build when the
+      # manifest is already there. (The cached-dependencies helpers that used
+      # to cache these call a retired cache API and never saved anything, so
+      # every Playwright job was rebuilding.)
+      - name: Restore instrumented assets
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # webpack writes the service worker one level up from the assets
+          # directory (see the `../service-worker.js` filename rule in
+          # webpack.config.js), and the GAQ tests assert on console errors,
+          # so it has to travel with the assets.
+          path: |
+            superset/static/assets
+            superset/static/service-worker.js
+          key: >-
+            instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
+            '.github/workflows/bashlib.sh',
+            'superset-frontend/package-lock.json',
+            'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
+            'superset-frontend/packages/**', 'superset-frontend/plugins/**',
+            'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
+            'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
       - name: Install npm dependencies
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -411,6 +434,29 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      # The instrumented production assets, keyed on the frontend sources and
+      # lockfile. `build-instrumented-assets` skips the webpack build when the
+      # manifest is already there. (The cached-dependencies helpers that used
+      # to cache these call a retired cache API and never saved anything, so
+      # every Playwright job was rebuilding.)
+      - name: Restore instrumented assets
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # webpack writes the service worker one level up from the assets
+          # directory (see the `../service-worker.js` filename rule in
+          # webpack.config.js), and the GAQ tests assert on console errors,
+          # so it has to travel with the assets.
+          path: |
+            superset/static/assets
+            superset/static/service-worker.js
+          key: >-
+            instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
+            '.github/workflows/bashlib.sh',
+            'superset-frontend/package-lock.json',
+            'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
+            'superset-frontend/packages/**', 'superset-frontend/plugins/**',
+            'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
+            'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
       - name: Install npm dependencies
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
