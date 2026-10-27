@@ -3683,7 +3683,7 @@ def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool
 _TYPE_NAME_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)")
 
 
-def _holds_days_only(partition_column: TableColumn) -> bool:
+def holds_days_only(partition_column: TableColumn) -> bool:
     """
     Whether the column's values carry no time of day.
 
@@ -3754,7 +3754,7 @@ def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | N
       writes differently from this one exactly when nothing of it is lost.
       A column holding only days is exempt, because flooring to the day is
       the column's own resolution and every comparison against it reads the
-      same either way -- see `_holds_days_only` for what "only days" means.
+      same either way -- see `holds_days_only` for what "only days" means.
     """
     instant = (
         value if isinstance(value, datetime) else datetime.combine(value, time.min)
@@ -3765,8 +3765,8 @@ def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | N
     rendered = spec.convert_dttm(column_type, instant, db_extra=db_extra)
     if rendered is None:
         return None
-    holds_days_only = _holds_days_only(partition_column)
-    if not holds_days_only and rendered == spec.convert_dttm(
+    days_only = holds_days_only(partition_column)
+    if not days_only and rendered == spec.convert_dttm(
         column_type, instant - timedelta(microseconds=1), db_extra=db_extra
     ):
         return None

@@ -24,7 +24,7 @@ which is where the correctness argument lives.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -1060,9 +1060,84 @@ def test_the_probe_rounds_outward_on_a_date_column_too(app: Flask) -> None:
             )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0, 0),
+        date(2026, 1, 1),
         datetime(2026, 2, 1, 0, 0, 1),
     ]
+
+
+def test_a_midnight_bound_on_a_date_column_is_probed_as_the_day(
+    app: Flask,
+) -> None:
+    """
+    SQLite writes a midnight bound on a DATE column as the bare day, so the
+    filter compares ``event_date >= '2026-01-01'``. Probing with the midnight
+    `datetime` instead bound ``'2026-01-01 00:00:00.000000'``, and on a text
+    key ``p = CAST(event_date AS TEXT)`` mirrored by ``CAST(:value AS TEXT)``
+    that asked for ``p >= '2026-01-01 00:00:00.000000'`` -- above the key
+    ``'2026-01-01'``, so every January 1 row the filter keeps was dropped.
+
+    A bound that is not at midnight keeps its time, because SQLite's literal
+    does too.
+    """
+    table = _table(
+        transform="CAST(:value AS TEXT)",
+        partition_column="p",
+        mapped_column="event_date",
+        main_dttm_col="event_date",
+    )
+    table.columns.append(TableColumn(column_name="p", type="TEXT"))
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "CAST(:value AS TEXT)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=["2026-01-01", "2026-02-01"]) as probe:
+            sql = _query(
+                table,
+                granularity="event_date",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+        with patch(PROBE, return_value=["x", "y"]) as intraday:
+            _query(
+                table,
+                granularity="event_date",
+                from_dttm=datetime(2026, 1, 1, 10, 0),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == [date(2026, 1, 1), date(2026, 2, 1)]
+    assert "event_date >= '2026-01-01'" in sql
+    assert "p >= '2026-01-01'" in sql
+    assert intraday.call_args.args[-1] == [
+        datetime(2026, 1, 1, 10, 0),
+        date(2026, 2, 1),
+    ]
+
+
+def test_a_midnight_bound_on_a_timestamp_column_stays_an_instant(
+    app: Flask,
+) -> None:
+    """
+    Only a column that holds days is probed with the day: a TIMESTAMP column
+    compares the instant, and its transform is a function of one.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    values = probe.call_args.args[-1]
+    assert values == [datetime(2026, 1, 1), datetime(2026, 2, 1)]
+    assert all(isinstance(value, datetime) for value in values)
 
 
 def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
@@ -1096,8 +1171,8 @@ def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
                 )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0),
-        datetime(2026, 1, 3, 0, 0),
+        date(2026, 1, 1),
+        date(2026, 1, 3),
     ]
     assert "dt_epoch <= 2" in sql
 
@@ -1130,8 +1205,8 @@ def test_the_probe_widens_to_the_day_on_a_date_column_not_flagged_temporal(
                 )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0),
-        datetime(2026, 1, 3, 0, 0),
+        date(2026, 1, 1),
+        date(2026, 1, 3),
     ]
 
 
@@ -1161,8 +1236,8 @@ def test_a_day_resolution_bound_already_at_midnight_is_left_alone(
                 )
 
     assert probe.call_args.args[-1] == [
-        datetime(2026, 1, 1, 0, 0),
-        datetime(2026, 2, 1, 0, 0),
+        date(2026, 1, 1),
+        date(2026, 2, 1),
     ]
 
 
@@ -1392,7 +1467,7 @@ def test_a_string_lower_bound_rounds_outward_on_a_date_column(app: Flask) -> Non
                     ],
                 )
 
-    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 0, 0)]
+    assert probe.call_args.args[-1] == [date(2026, 1, 5)]
     assert "dt_epoch >= 1767571200" in sql
 
 
@@ -1418,7 +1493,7 @@ def test_a_string_upper_bound_rounds_outward_on_a_date_column(app: Flask) -> Non
                     ],
                 )
 
-    assert probe.call_args.args[-1] == [datetime(2026, 1, 21, 0, 0)]
+    assert probe.call_args.args[-1] == [date(2026, 1, 21)]
     assert "dt_epoch <= 1768953600" in sql
 
 
@@ -1474,7 +1549,7 @@ def test_a_datetime_lower_bound_rounds_outward_instead_of_declining(
                     ],
                 )
 
-    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 0, 0)]
+    assert probe.call_args.args[-1] == [date(2026, 1, 5)]
     assert "dt_epoch >= 1767571200" in sql
 
 

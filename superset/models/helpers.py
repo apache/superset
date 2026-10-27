@@ -28,7 +28,7 @@ import re
 import uuid
 from collections.abc import Hashable, Iterable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import (
@@ -101,6 +101,7 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    holds_days_only,
     is_unmirrorable,
     LOWER_BOUND_OPERATORS,
     mirror_operator,
@@ -4692,6 +4693,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Where the engine does answer, the `datetime` is returned unchanged and
         the widening path takes over -- which is exactly what already happens
         for every temporal column that carries no format at all.
+
+        Except at midnight on a column that holds only days, where the engine
+        compares the day itself (``'2026-01-01'`` on SQLite, ``DATE
+        '2026-01-01'`` on Trino) and the probe has to be handed the same `date`.
+        The `datetime` binds as ``'2026-01-01 00:00:00.000000'``, so on a text
+        key ``p = CAST(event_date AS TEXT)`` mirrored by
+        ``CAST(:value AS TEXT)`` the mirror asked for
+        ``p >= '2026-01-01 00:00:00.000000'``. That sorts above the key
+        ``'2026-01-01'``, and every January 1 row the filter keeps was dropped.
         """
         if col is None:
             return dttm
@@ -4701,6 +4711,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ):
             # The format is unreachable in `dttm_sql_literal` for this column,
             # so reproducing it here would describe a different bound.
+            if dttm.time() == time.min and holds_days_only(col):
+                return dttm.date()
             return dttm
 
         tf = col.python_date_format
