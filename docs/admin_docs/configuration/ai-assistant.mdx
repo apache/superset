@@ -18,12 +18,14 @@ it at a provider you control. Nothing is sent anywhere until you configure it.
 
 ## Enabling it
 
-Two things are required: the feature flag, and a provider.
+Enable the assistant and its extension-hosted UI, configure a provider, and apply
+the database migrations.
 
 ```python
 # superset_config.py
 FEATURE_FLAGS = {
     "AI_ASSISTANT": True,
+    "ENABLE_EXTENSIONS": True,
 }
 
 AI_LLM_PROVIDER_CLASS = "superset.ai.llm.anthropic.AnthropicProvider"
@@ -43,8 +45,9 @@ Install the matching extra:
 pip install "apache-superset[ai-anthropic]"   # or [ai-openai]
 ```
 
-Then run `superset init` so the assistant's permissions are created and assigned
-to roles. Without this the endpoints return `403`.
+Then run `superset db upgrade` to create the conversation tables, followed by
+`superset init` to create and assign the assistant's permissions. Without the
+permission setup the endpoints return `403`.
 
 Conversations are stored in Superset's metadata database, so no extra
 infrastructure is needed for the default configuration.
@@ -97,20 +100,32 @@ gateway needs configuration rather than a fork.
 
 ### Model tiers and selection
 
-Profiles and prompts refer to capability *tiers* (`default`, `fast`,
-`reasoning`), never to a vendor's model names. The provider maps tiers to
+Profiles normally select capability *tiers* (`default`, `fast`,
+`reasoning`). The provider maps tiers to
 concrete models via the `models` dict. A tier you do not configure is an error
 when requested, never a silent substitution — so cost and answer quality stay
 attributable to the model actually used.
 
 Users may also pin a specific model per turn. Only models present in your
 `models` mapping are accepted; anything else is rejected.
+An explicit per-turn selection takes precedence over a profile's `model` pin;
+without either pin, the profile's `model_alias` selects the tier. The same
+selection is used on every model round trip and recorded in the run's audit trail.
 
 ## Agent profiles
 
 A profile bundles the decisions that differ between a quick answer and a careful
 investigation: which tools are available, which model tier, and how many steps.
 Two ship by default — `default` and `analyst`.
+
+Each conversation remembers the profile used by its last accepted turn. Opening
+it again or switching tabs restores that profile, independently of other chats.
+Choosing a different profile applies when you send the next message; it does not
+retarget a run already in progress. For API clients, omitting `agent_key` (or
+sending null or an empty string) uses the conversation's stored profile. Send
+`"agent_key": "default"` to explicitly switch back. Profile permissions are
+checked on acceptance and again on execution. A removed or unavailable profile
+falls back to a permitted one; if none is available, no turn is accepted.
 
 **Which tools a model may invoke is a decision each deployment makes**, so
 profiles are fully configurable. `AI_AGENT_PROFILES` maps a profile key to the
@@ -427,7 +442,9 @@ latency to every turn that uses it.
 ## Retention
 
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
-Pruning is not automatic — schedule it if you want it enforced.
+The default Celery beat schedule runs `ai.prune_conversations` daily at 03:30.
+Deployments with a custom schedule must include this task to enforce retention.
+Set the retention period to zero or a negative value to disable pruning.
 
 ## Trying it locally
 
@@ -443,17 +460,22 @@ SUPERSET_AI_LLM_API_KEY=your-token
 SUPERSET_AI_MODEL_DEFAULT=your-model-name
 ```
 
-```bash
-docker compose up
-```
-
-The assistant appears once both a URL and a key are present; with neither set the
-stack behaves exactly as it did before. The model providers are optional extras,
-so add whichever one you need to `docker/requirements-local.txt`:
+Before starting the stack, add the matching provider dependency to
+`docker/requirements-local.txt`; the bootstrap installs it in each container.
+For the OpenAI-compatible provider:
 
 ```
 openai>=1.60.0,<2
 ```
+
+Then start the stack:
+
+```bash
+docker compose up
+```
+
+The assistant is enabled once both a URL and a key are present. With neither set,
+the stack starts with the assistant disabled.
 
 The local stack also logs traces to the container output and, unlike the
 production default, includes prompts and SQL in them.
