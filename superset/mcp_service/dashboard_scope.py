@@ -1015,7 +1015,20 @@ def scoped_dataset_query(
         time_range = intersect_time_ranges(constraints.time_range, time_range)
         time_column = scope_column
 
-    return [*filters, *scope_filters], time_range, time_column
+    final = [*filters, *scope_filters]
+    temporal = {f["col"] for f in final if f.get("op") == TEMPORAL_RANGE}
+    # An explicit range appends a TEMPORAL_RANGE on the query's time column.
+    # Without it, granularity can replace a different column's temporal filter
+    # and discard every dashboard predicate on that column.
+    if not time_range and temporal and time_column and time_column not in temporal:
+        if dropped := sorted(temporal & constraints.columns):
+            raise MCPDashboardScopeError(
+                f"the dashboard filter on {dropped[0]!r} would be dropped because "
+                f"the query's time range is on {time_column!r} instead.",
+                "Pass the time range on that column, or use the dashboard's charts.",
+            )
+
+    return final, time_range, time_column
 
 
 def _rewrite_query_dataset(request: Any, scope: DashboardScope) -> Any:
