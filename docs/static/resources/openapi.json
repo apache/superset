@@ -2415,8 +2415,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2456,8 +2484,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2530,8 +2586,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2608,8 +2692,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3322,8 +3434,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3363,8 +3503,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3437,8 +3605,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3515,8 +3711,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4496,8 +4720,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the dashboard.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the dashboard.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4540,8 +4792,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the dashboard.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the dashboard.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           }
@@ -4579,9 +4859,37 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the dashboard.",
+              "description": "Subject IDs or explicit principal references that can alter the dashboard.",
               "nullable": true,
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4635,9 +4943,37 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the dashboard.",
+              "description": "Subject IDs or explicit principal references that can view the dashboard.",
               "nullable": true,
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           }
@@ -6870,7 +7206,35 @@
           },
           "editors": {
             "items": {
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -6958,7 +7322,35 @@
           },
           "editors": {
             "items": {
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -9401,8 +9793,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the report.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the report.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -10209,8 +10629,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the report.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the report.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
