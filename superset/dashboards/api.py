@@ -213,6 +213,7 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils.core import (
     get_user_id,
+    is_truthy_str,
     parse_boolean_string,
     send_export_zip,
     write_zip_entry,
@@ -1826,7 +1827,7 @@ class DashboardRestApi(
             return self.response_403()
 
         # Get optional query params
-        export_data = request.args.get("export_data", "true").lower() == "true"
+        export_data = is_truthy_str(request.args.get("export_data", "true"))
         sample_rows = request.args.get("sample_rows", type=int)
 
         # Build ZIP from command output

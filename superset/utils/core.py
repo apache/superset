@@ -2245,6 +2245,41 @@ def parse_boolean_string(bool_str: str | None) -> bool:
     return bool_str.lower() in ("y", "Y", "yes", "True", "t", "true", "On", "on", "1")
 
 
+def is_truthy_str(value: str | None, default: bool = False) -> bool:
+    """
+    Case-insensitive match against the literal string "true", nothing else.
+
+    Unlike `parse_boolean_string`, this does not treat "yes"/"y"/"t"/"on"/"1"
+    as true -- it exists to de-duplicate several call sites that already had
+    this exact narrow semantics (e.g. `value.lower() == "true"`), without
+    silently widening what they accept.
+
+    >>> is_truthy_str(None)
+    False
+    >>> is_truthy_str(None, default=True)
+    True
+    >>> is_truthy_str('true')
+    True
+    >>> is_truthy_str('True')
+    True
+    >>> is_truthy_str('TRUE')
+    True
+    >>> is_truthy_str('false')
+    False
+    >>> is_truthy_str('1')
+    False
+    >>> is_truthy_str('yes')
+    False
+
+    :param value: string representation of a value assumed to be boolean
+    :param default: value to return when `value` is `None`
+    :return: strictly parsed boolean value
+    """
+    if value is None:
+        return default
+    return value.strip().lower() == "true"
+
+
 def apply_max_row_limit(
     limit: int,
     server_pagination: bool | None = None,

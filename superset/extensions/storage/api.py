@@ -49,6 +49,7 @@ from superset.extensions.storage.persistent_dao import (
 )
 from superset.extensions.storage.utils import get_extension_or_404, parse_ttl
 from superset.key_value.exceptions import KeyValueCodecEncodeException
+from superset.utils.core import is_truthy_str
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi
 
@@ -187,7 +188,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         raw = ExtensionEphemeralDAO.get_raw(extension_id, key, shared=shared)
         if raw is None:
             return self.response(200, result=None)
@@ -299,7 +300,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if error:
             return self.response_400(error)
 
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         try:
             ExtensionEphemeralDAO.set(
                 extension_id, key, value, ttl, codec=codec, shared=shared
@@ -359,7 +360,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         ExtensionEphemeralDAO.delete(extension_id, key, shared=shared)
 
         return self.response(200, message="Value deleted successfully")
@@ -460,7 +461,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         user_fk = None if shared else g.user.id
         resource_type = request.args.get("resource_type")
         resource_uuid = request.args.get("resource_uuid")
@@ -565,7 +566,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         user_fk = None if shared else g.user.id
         entry = ExtensionStorageDAO.get(extension_id, key, user_fk=user_fk)
         if entry is None:
@@ -671,7 +672,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
 
         is_binary = bool(body.get("isBinary", False))
         encrypt = bool(body.get("encrypt", False))
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         user_fk = None if shared else g.user.id
         try:
             wire_value = _wire_value_for_request(body["value"], is_binary)
@@ -750,7 +751,7 @@ class ExtensionStorageRestApi(BaseSupersetApi):
         if not extension:
             return self.response_404("Extension not found")
 
-        shared = request.args.get("shared", "false").lower() == "true"
+        shared = is_truthy_str(request.args.get("shared", "false"))
         user_fk = None if shared else g.user.id
         ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=user_fk)
 

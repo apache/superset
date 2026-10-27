@@ -43,6 +43,7 @@ from superset.utils.core import (
     get_stacktrace,
     get_user_agent,
     is_test,
+    is_truthy_str,
     markdown,
     merge_extra_filters,
     merge_extra_form_data,
@@ -208,6 +209,33 @@ def test_is_test():
 )
 def test_parse_boolean_string(test_input: Optional[str], expected: bool):
     assert parse_boolean_string(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("true", True),
+        ("True", True),
+        ("TRUE", True),
+        ("false", False),
+        ("False", False),
+        ("foo", False),
+        # Unlike `parse_boolean_string`, these must NOT be treated as true.
+        ("1", False),
+        ("yes", False),
+        ("y", False),
+        ("t", False),
+        ("on", False),
+    ],
+)
+def test_is_truthy_str(test_input: Optional[str], expected: bool):
+    assert is_truthy_str(test_input) is expected
+
+
+def test_is_truthy_str_none_uses_default():
+    assert is_truthy_str(None) is False
+    assert is_truthy_str(None, default=False) is False
+    assert is_truthy_str(None, default=True) is True
 
 
 def test_int_values():

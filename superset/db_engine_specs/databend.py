@@ -39,7 +39,7 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, is_truthy_str
 from superset.utils.hashing import hash_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -308,9 +308,7 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
         """
         if sslmode is not None:
             return sslmode.lower() in cls.encryption_sslmodes
-        if secure is not None:
-            return secure.lower() == "true"
-        return False
+        return is_truthy_str(secure)
 
     @classmethod
     def get_parameters_from_uri(
