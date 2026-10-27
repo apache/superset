@@ -72,6 +72,7 @@ jobs:
           REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
           OUTPUT_NAME: is-current
+          FAIL_OPEN: "true"
         run: .github/workflows/scripts/check-branch-freshness.sh
 
   setup_matrix:

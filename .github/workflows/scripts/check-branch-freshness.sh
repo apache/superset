@@ -44,6 +44,11 @@
 #                   deliberate, one-off action, and a pull_request build has
 #                   no branch tip to race against (PR staleness is instead
 #                   handled by that workflow's own cancel-in-progress: true)
+#   FAIL_OPEN     - if "true", a failed branch-tip lookup reports current
+#                   (a blip costs at most a redundant build). Unset, the
+#                   script fails closed and exits non-zero, which is what a
+#                   guard against overwriting newer work (the docs deploy
+#                   recheck) needs
 #   GH_TOKEN      - passed through to `gh`, needed to call the GitHub API
 
 set -euo pipefail
@@ -55,13 +60,16 @@ if [ "${EVENT_NAME:-}" = "workflow_dispatch" ] || [ "${EVENT_NAME:-}" = "pull_re
   exit 0
 fi
 
-# Fail open: if the API call fails transiently, treat the run as current so a
-# network blip costs at most a redundant build rather than failing the
-# required job and skipping the build entirely.
 if ! latest_sha="$(gh api "repos/${REPO}/commits/${branch}" --jq .sha)"; then
-  echo "::warning::Could not look up the tip of ${branch}; assuming ${BUILD_SHA} is current."
-  echo "${OUTPUT_NAME}=true" >>"$GITHUB_OUTPUT"
-  exit 0
+  if [ "${FAIL_OPEN:-}" = "true" ]; then
+    # Opt-in: a transient API failure costs at most a redundant build rather
+    # than failing the required job and skipping the build entirely.
+    echo "::warning::Could not look up the tip of ${branch}; assuming ${BUILD_SHA} is current."
+    echo "${OUTPUT_NAME}=true" >>"$GITHUB_OUTPUT"
+    exit 0
+  fi
+  echo "::error::Could not look up the tip of ${branch}."
+  exit 1
 fi
 if [ "${latest_sha}" = "${BUILD_SHA}" ]; then
   echo "${OUTPUT_NAME}=true" >>"$GITHUB_OUTPUT"

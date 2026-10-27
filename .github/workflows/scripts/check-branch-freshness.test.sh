@@ -40,6 +40,9 @@ run_case() {
   local expected_line="$5"
   local branch="${6:-}"
   local expect_branch="${7:-}"
+  local gh_fails="${8:-}"
+  local fail_open="${9:-}"
+  local expect_exit="${10:-0}"
 
   local workdir
   workdir="$(mktemp -d)"
@@ -51,6 +54,7 @@ run_case() {
   cat >"${workdir}/gh" <<EOF
 #!/bin/bash
 echo "\$@" >>"${workdir}/gh-args"
+if [ -n "${gh_fails}" ]; then exit 1; fi
 echo '${latest_sha}'
 EOF
   chmod +x "${workdir}/gh"
@@ -58,7 +62,9 @@ EOF
   local output_file="${workdir}/github_output"
   : >"${output_file}"
 
-  if PATH="${workdir}:${PATH}" \
+  local rc=0
+  PATH="${workdir}:${PATH}" \
+    FAIL_OPEN="${fail_open}" \
     GITHUB_OUTPUT="${output_file}" \
     OUTPUT_NAME="is-current" \
     REPO="apache/superset" \
@@ -66,10 +72,9 @@ EOF
     EVENT_NAME="${event_name}" \
     BRANCH="${branch}" \
     GH_TOKEN="fake-token" \
-    bash "${script_under_test}"; then
-    :
-  else
-    echo "FAIL (${case_name}): script exited non-zero"
+    bash "${script_under_test}" 2>/dev/null || rc=$?
+  if [ "${rc}" != "${expect_exit}" ]; then
+    echo "FAIL (${case_name}): expected exit ${expect_exit}, got ${rc}"
     failures=$((failures + 1))
     return
   fi
@@ -119,6 +124,14 @@ run_case "build sha matches an explicit release branch's tip" \
 run_case "build sha is stale on an explicit release branch" \
   "def456" "abc123" "push" \
   "is-current=false" "7.0" "7.0"
+
+run_case "lookup failure fails open when FAIL_OPEN=true" \
+  "unused" "abc123" "push" \
+  "is-current=true" "" "" "yes" "true" 0
+
+run_case "lookup failure fails closed by default" \
+  "unused" "abc123" "push" \
+  "" "" "" "yes" "" 1
 
 if [ "${failures}" -gt 0 ]; then
   echo "${failures} case(s) failed"
