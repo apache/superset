@@ -20122,64 +20122,8 @@ msgstr ""
 msgid "View in Recently Archived →"
 msgstr ""
 
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. Note\n"
-"                      currently time zones are not supported. If time is stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\n"
-"                      is specified we fall back to using the optional defaults on a "
-"per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
-msgid "Excel export is not configured on this server."
-msgstr ""
-
-msgid "Get the specify date for the holiday"
-msgstr ""
-
-msgid "Invalid username or password"
-msgstr ""
-
-#, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
-msgstr ""
-
-msgid "Search records"
-msgstr ""
-
-msgid "Show columns total"
-msgstr ""
-
-msgid "Show rows total"
-msgstr ""
-
 #, python-format
 msgid ""
 "This %(schedule)s executes as another user. Only admins can change its content; set "
 "the Run As field to your own account to make this change."
 msgstr ""
-
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] ""
-msgstr[1] ""
