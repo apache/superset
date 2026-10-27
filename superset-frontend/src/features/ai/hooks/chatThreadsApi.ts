@@ -170,5 +170,6 @@ export const threadToTab = (
   updatedAt: thread.changedOn
     ? new Date(thread.changedOn).getTime()
     : undefined,
+  messageCount: thread.messageCount,
   threadId: thread.uuid,
 });
