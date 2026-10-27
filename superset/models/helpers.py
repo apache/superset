@@ -4021,6 +4021,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return col
         return next((col for col in self.columns if col.verbose_name == name), None)
 
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        template_processor: BaseTemplateProcessor,
+    ) -> str | None:
+        """Query-backed adhoc columns execute their rendered SQL literally."""
+        return rendered_sql
+
     def _get_query_sql_expressions(  # noqa: C901
         self,
         query_obj: QueryObjectDict,
@@ -4054,17 +4063,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             """Resolve stored references in the namespace used by the query sink."""
             if isinstance(value, str):
                 references = metrics if metric else columns
-                # Execution quotes bare column names without rendering them.
+                # Saved columns without expressions are quoted identifiers.
+                # Unknown selection strings have a separate SQL fallback below.
                 if expression := references.get(value):
                     add_expression(expression)
             elif isinstance(value, dict):
                 if sql := value.get("sqlExpression"):
                     sql = template_processor.process_template(sql)
-                    # Adhoc columns can name a saved calculated column after
-                    # rendering. SQL metrics use their SQL literally instead.
-                    if not metric and (saved_expression := columns.get(sql.strip())):
-                        add_expression(saved_expression)
-                    else:
+                    if not metric:
+                        sql = self._get_adhoc_column_rls_expression(
+                            cast(AdhocColumn, value), sql, template_processor
+                        )
+                    if sql:
                         expressions.append(sql)
                 add(value.get("column"))
                 add(value.get("column_name"))
@@ -4104,8 +4114,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         effective_columns = query_obj.get("groupby") or [
             col for col in selected_columns if col != utils.DTTM_ALIAS
         ]
+        # ORDER BY metrics can enable grouping even without selected metrics.
+        need_groupby = bool(
+            query_obj.get("metrics") is not None
+            or query_obj.get("groupby")
+            or any(
+                utils.is_adhoc_metric(cast(Metric, value))
+                or (
+                    isinstance(value, str)
+                    and (
+                        value in metric_labels
+                        or (value in metrics and value not in adhoc_columns_by_label)
+                    )
+                )
+                for value, _ascending in query_obj.get("orderby") or []
+            )
+        )
         for value in effective_columns:
-            add(value)
+            if isinstance(value, str) and value not in columns:
+                # GROUP BY executes unknown strings as SQL. Detail selections
+                # quote them before rendering, unlike saved bare column names.
+                add_expression(
+                    value if need_groupby else self.database.quote_identifier(value)
+                )
+            else:
+                add(value)
         for metric_value in selected_metrics:
             add(metric_value, metric=True)
         for orderby_value, _ascending in query_obj.get("orderby") or []:
@@ -4149,7 +4182,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             for name in utils.get_column_names(query_obj.get("series_columns"))
         }
         has_series_groupby = bool(
-            (query_obj.get("metrics") is not None or query_obj.get("groupby"))
+            need_groupby
             and effective_columns
             and (
                 (query_obj.get("is_timeseries", True) and not series_columns)

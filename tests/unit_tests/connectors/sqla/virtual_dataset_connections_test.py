@@ -2327,3 +2327,335 @@ def test_cache_key_collects_series_metric_for_normalized_labels(
     assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
     rule.clause = "col1 = 2"
     assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
+
+
+@pytest.mark.parametrize(
+    ("static_schema_datasource", "sink"),
+    [
+        (datasource, sink)
+        for datasource in (SqlaTable, Query)
+        for sink in (
+            "columns",
+            "groupby",
+            "orderby_adhoc",
+            "orderby_saved",
+            "series",
+            "series_prequery",
+        )
+        if datasource is SqlaTable or sink != "orderby_saved"
+    ],
+    indirect=["static_schema_datasource"],
+)
+@pytest.mark.parametrize("single_render", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_raw_string_groupby_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+    single_render: bool,
+) -> None:
+    """Unknown GROUP BY strings are SQL, including grouping enabled by ORDER BY."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    expression = "(SELECT MAX(col1) FROM physical)"
+    if single_render:
+        expression = (
+            "0 /*{% raw %}{% if false %}{% endraw %}*/ + "
+            + expression
+            + " /*{% raw %}{% endif %}{% endraw %}*/"
+        )
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(*)",
+        "label": "total",
+    }
+    fields: QueryObjectDict = {"columns": [expression], "metrics": [metric]}
+    if sink == "groupby":
+        fields.update({"columns": ["col1"], "groupby": [expression], "metrics": None})
+    elif sink == "orderby_adhoc":
+        fields.update({"metrics": None, "orderby": [(metric, True)]})
+    elif sink == "orderby_saved":
+        assert isinstance(virtual, SqlaTable)
+        virtual.metrics = [SqlMetric(metric_name="total", expression="COUNT(*)")]
+        fields.update({"metrics": None, "orderby": [("total", True)]})
+    elif sink in {"series", "series_prequery"}:
+        if sink == "series_prequery":
+            mocker.patch.object(virtual.db_engine_spec, "allows_joins", False)
+        fields.update(
+            {
+                "columns": [expression, "col1"],
+                "series_columns": ["col1"],
+                "series_limit": 1,
+                "series_limit_metric": metric,
+            }
+        )
+    query = QueryObject(
+        datasource=virtual,
+        columns=fields["columns"],
+        metrics=fields["metrics"],
+        groupby=fields.get("groupby"),
+        orderby=fields.get("orderby"),
+        series_columns=fields.get("series_columns"),
+        series_limit=fields.get("series_limit") or 0,
+        series_limit_metric=fields.get("series_limit_metric"),
+        is_timeseries=False,
+    )
+    query_dict = query.to_dict()
+    if sink == "groupby":
+        # QueryObject normalizes this legacy field into columns. Pin the direct
+        # datasource entry point as well, where groupby is still accepted.
+        query_dict.update(
+            {"columns": ["col1"], "groupby": [expression], "metrics": None}
+        )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    predicates = []
+    cache_keys = []
+    rendered_sources = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        executed = virtual.query(query_dict)
+        assert executed.status == "success", executed.error_message
+        assert executed.df.iloc[:, 0].tolist() == [user_id]
+        assert f"col1 = {user_id}" in executed.query
+        render = mocker.spy(BaseTemplateProcessor, "process_template")
+        extra_keys = virtual.get_extra_cache_keys(query_dict)
+        # Collect the original SQL once, never its already-rendered output.
+        rendered_sources.append(
+            [
+                call.args[1]
+                for call in render.call_args_list
+                if "SELECT MAX(col1) FROM physical" in call.args[1]
+            ]
+        )
+        mocker.stop(render)
+        predicates.append(extra_keys)
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert cache_keys[0] != cache_keys[1], predicates
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
+    assert rendered_sources == [[expression], [expression]]
+
+
+@pytest.mark.parametrize("templated", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_raw_string_detail_selection_matches_execution(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    templated: bool,
+) -> None:
+    """Ungrouped unknown strings are quoted before their single template pass."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    expression = "(SELECT MAX(col1) FROM physical)"
+    if templated:
+        # Quoting precedes rendering: Jinja opens an SQL expression afterward.
+        expression = r"{{ '\x22' }} || (SELECT MAX(col1) FROM physical) || {{ '\x22' }}"
+    query = QueryObject(
+        datasource=virtual, columns=[expression], metrics=None, is_timeseries=False
+    )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    cache_keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        executed = virtual.get_query_result(query)
+        assert executed.status == "success", executed.error_message
+        assert executed.df.iloc[:, 0].tolist() == [
+            str(user_id) if templated else expression
+        ]
+        render = mocker.spy(BaseTemplateProcessor, "process_template")
+        parse = mocker.spy(helpers, "SQLStatement")
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        assert extra_keys == ([PHYSICAL_RLS_KEYS[user_id]] if templated else [])
+        assert [
+            call.args[1] for call in render.call_args_list if expression in call.args[1]
+        ] == [virtual.database.quote_identifier(expression)]
+        parsed_sql = (
+            'SELECT "" || (SELECT MAX(col1) FROM physical) || ""'
+            if templated
+            else f'SELECT "{expression}"'
+        )
+        parse.assert_called_once_with(parsed_sql, virtual.db_engine_spec.engine)
+        mocker.stop(render)
+        mocker.stop(parse)
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert (cache_keys[0] != cache_keys[1]) == templated
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_orderby_grouping_collects_series_metric_rls(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """ORDER BY can activate a series metric without metrics or explicit groupby."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=None,
+        orderby=[
+            ({"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "n"}, True)
+        ],
+        series_columns=["col1"],
+        series_limit=1,
+        series_limit_metric={
+            "expressionType": "SQL",
+            "sqlExpression": "MAX((SELECT MAX(col1) FROM physical))",
+            "label": "restricted",
+        },
+        is_timeseries=False,
+    )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    cache_keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        executed = virtual.get_query_result(query)
+        assert executed.status == "success", executed.error_message
+        assert f"col1 = {user_id}" in executed.query
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        assert extra_keys == [PHYSICAL_RLS_KEYS[user_id]]
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert cache_keys[0] != cache_keys[1]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["column", "groupby", "filter", "orderby", "x_axis"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_quoted_adhoc_reference_fallback_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """Missing column references render the quoted source, not its raw output."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    expression = r"{{ '\x22' }} || (SELECT MAX(col1) FROM physical) || {{ '\x22' }}"
+    adhoc: AdhocColumn = {
+        "sqlExpression": expression,
+        "label": "axis",
+        "isColumnReference": True,
+    }
+    fields: QueryObjectDict = {"columns": [adhoc], "metrics": []}
+    if sink == "groupby":
+        fields["groupby"] = [adhoc]
+    elif sink == "filter":
+        fields["columns"] = ["col1"]
+        fields["filter"] = [{"col": adhoc, "op": "!=", "val": "0"}]
+    elif sink == "orderby":
+        # Omit expressionType: this is a selected adhoc column's label,
+        # not the separate SQL-metric ORDER BY namespace.
+        fields["orderby"] = [("axis", True)]
+    elif sink == "x_axis":
+        adhoc.update({"columnType": "BASE_AXIS", "timeGrain": "P1D"})
+    query = QueryObject(
+        datasource=virtual,
+        columns=fields["columns"],
+        metrics=fields["metrics"],
+        groupby=fields.get("groupby"),
+        filters=fields.get("filter"),
+        orderby=fields.get("orderby"),
+        is_timeseries=False,
+    )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    predicates = []
+    cache_keys = []
+    rendered_sources = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        executed = virtual.get_query_result(query)
+        assert executed.status == "success", executed.error_message
+        assert f"col1 = {user_id}" in executed.query
+        assert executed.df.iloc[:, 0].tolist() == [
+            1 if sink == "filter" else str(user_id)
+        ]
+        render = mocker.spy(BaseTemplateProcessor, "process_template")
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        rendered_sources.append(
+            [
+                call.args[1]
+                for call in render.call_args_list
+                if "SELECT MAX(col1) FROM physical" in call.args[1]
+            ]
+        )
+        mocker.stop(render)
+        predicates.append(extra_keys)
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert cache_keys[0] != cache_keys[1], predicates
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
+    expected_sources = [expression, virtual.database.quote_identifier(expression)]
+    if sink == "orderby":
+        expected_sources *= 2
+    assert rendered_sources == [expected_sources, expected_sources]
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_adhoc_sql_looking_saved_name_matches_datasource_execution(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """SqlaTable quotes metadata names; Query executes adhoc SQL even on a match."""
+    virtual, rule = static_schema_datasource
+    expression = "(SELECT MAX(col1) FROM physical)"
+    virtual.sql = f'SELECT 7 AS "{expression}"'
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = [TableColumn(column_name=expression, type="INTEGER")]
+    else:
+        virtual.extra = {
+            "columns": [
+                {"column_name": expression, "type": "INTEGER", "is_dttm": False}
+            ]
+        }
+    query = QueryObject(
+        datasource=virtual,
+        columns=[{"sqlExpression": expression, "label": "axis"}],
+        metrics=[],
+        is_timeseries=False,
+    )
+    for user_id in (1, 2):
+        rule.clause = f"col1 = {user_id}"
+        executed = virtual.get_query_result(query)
+        assert executed.status == "success", executed.error_message
+        assert executed.df["axis"].tolist() == [
+            7 if isinstance(virtual, SqlaTable) else user_id
+        ]
+        assert virtual.get_extra_cache_keys(query.to_dict()) == (
+            [] if isinstance(virtual, SqlaTable) else [PHYSICAL_RLS_KEYS[user_id]]
+        )

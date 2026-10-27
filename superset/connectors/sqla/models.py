@@ -2386,6 +2386,26 @@ class SqlaTable(
                 )
             ) from ex
 
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        template_processor: BaseTemplateProcessor,
+    ) -> str | None:
+        """Match adhoc execution's metadata lookup and quoted-reference fallback."""
+        if saved_column := self.get_column(rendered_sql.strip()):
+            return (
+                template_processor.process_template(saved_column.expression)
+                if saved_column.expression
+                else None
+            )
+        if col.get("isColumnReference"):
+            # Render the quoted source, never the already-rendered lookup SQL.
+            return template_processor.process_template(
+                self.database.quote_identifier(col["sqlExpression"])
+            )
+        return rendered_sql
+
     def _shift_temporal_column_if_needed(
         self,
         sqla_column: ColumnClause,
