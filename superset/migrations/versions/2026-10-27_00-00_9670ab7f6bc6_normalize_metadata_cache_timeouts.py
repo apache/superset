@@ -25,6 +25,8 @@ Revises: d623a0cb6bb0
 Create Date: 2026-10-27 00:00:00.000000
 """
 
+from decimal import InvalidOperation
+
 # The shared JSON wrapper cannot decode decimals without losing stored precision.
 import simplejson  # noqa: TID251
 from alembic import op
@@ -51,7 +53,7 @@ def upgrade() -> None:
     ):
         try:
             extra = simplejson.loads(raw_extra, use_decimal=True)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, InvalidOperation):
             continue
         if not isinstance(extra, dict):
             continue

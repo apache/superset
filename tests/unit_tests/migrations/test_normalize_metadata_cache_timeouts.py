@@ -232,6 +232,10 @@ def test_upgrade_preserves_other_configuration(
             '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}, '
             '"other": Infinity}'
         ),
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}, '
+            '"other": 1e99999999999999999999}'
+        ),
     ],
 )
 def test_upgrade_leaves_unconverted_rows_untouched(
