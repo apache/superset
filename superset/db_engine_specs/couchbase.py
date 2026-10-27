@@ -114,6 +114,20 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 "is_recommended": True,
             },
         ],
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "setup.py on the couchbase-sqlalchemy main branch hard-pins "
+                    "sqlalchemy>=1.3.0,<2.0; pip will refuse to install it "
+                    "alongside Superset's sqlalchemy>=2.0.52,<2.1."
+                ),
+                "tracking_url": (
+                    "https://github.com/couchbase/couchbase-sqlalchemy/issues/3"
+                ),
+                "since": "2026-10-27",
+            }
+        ],
     }
 
     _time_grain_expressions = {
