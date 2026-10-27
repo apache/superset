@@ -670,6 +670,8 @@ discovered. The configured dataset schema remains the fallback for RLS lookup an
 cache keys when neither the connection parameters nor the inspector yields a schema.
 Expression RLS cache keys are collected without building the chart query or running
 series-limit prequeries; schema discovery is shared with the dataset SQL's RLS lookup.
+Expression templates are rendered once for predicate discovery, matching query execution.
+Literal template syntax produced by a template is not evaluated again.
 
 For example, if you have:
 

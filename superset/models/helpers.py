@@ -4046,7 +4046,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor: BaseTemplateProcessor,
         granularity: str | None,
     ) -> list[str]:
-        """Find SQL-bearing chart fields without building a chart or its prequeries."""
+        """Render SQL-bearing chart fields without building a chart or its prequeries.
+
+        Render each source expression once, matching execution. An adhoc column
+        that resolves to saved metadata also renders that column's expression.
+        """
         columns_by_name = {col.column_name: col for col in self.columns}
         columns = {name: col.expression for name, col in columns_by_name.items()}
         metrics = {metric.metric_name: metric.expression for metric in self.metrics}
@@ -4060,19 +4064,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         metric_labels = {utils.get_metric_name(metric) for metric in selected_metrics}
         expressions: list[str] = []
 
+        def add_expression(expression: str) -> None:
+            """Render source SQL, preserving literal Jinja in its output."""
+            expressions.append(template_processor.process_template(expression))
+
         def add(value: Any, metric: bool = False) -> None:
             """Resolve stored references in the namespace used by the query sink."""
             if isinstance(value, str):
                 references = metrics if metric else columns
-                expressions.append(references.get(value) or value)
+                add_expression(references.get(value) or value)
             elif isinstance(value, dict):
                 if sql := value.get("sqlExpression"):
                     sql = template_processor.process_template(sql)
                     # Adhoc columns can name a saved calculated column after
                     # rendering. SQL metrics use their SQL literally instead.
-                    expressions.append(
-                        sql if metric else columns.get(sql.strip()) or sql
-                    )
+                    if not metric and (saved_expression := columns.get(sql.strip())):
+                        add_expression(saved_expression)
+                    else:
+                        expressions.append(sql)
                 add(value.get("column"))
                 add(value.get("column_name"))
 
@@ -4098,7 +4107,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
                 add(granularity)
             elif (col := self._get_filter_column(value, columns_by_name)) is not None:
-                expressions.append(col.expression or value)
+                add_expression(col.expression or value)
             elif value in metrics:
                 add(value, metric=True)
             elif value in adhoc_columns_by_label:
@@ -4135,14 +4144,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ):
             add(self.main_dttm_col)
         extras = query_obj.get("extras") or {}
-        expressions.extend(
-            extras[key] for key in ("where", "having") if extras.get(key)
-        )
+        for key in ("where", "having"):
+            if extras.get(key):
+                add_expression(extras[key])
         if (
             query_obj.get("apply_fetch_values_predicate")
             and self.fetch_values_predicate
         ):
-            expressions.append(self.fetch_values_predicate)
+            add_expression(self.fetch_values_predicate)
         return expressions
 
     def _get_query_rls_cache_keys(
@@ -4189,7 +4198,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for expression in self._get_query_sql_expressions(
             query_obj, template_processor, granularity
         ):
-            expression = template_processor.process_template(expression)
             sql = f"SELECT {expression}"
             try:
                 parsed = SQLStatement(sql, self.db_engine_spec.engine)

@@ -41,6 +41,7 @@ from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.db_engine_specs.tdengine import TDengineEngineSpec
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
+from superset.jinja_context import BaseTemplateProcessor
 from superset.models import helpers
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -1503,6 +1504,212 @@ def test_groupby_alias_retains_saved_column_rls(
         is_timeseries=False,
     )
     assert "col1 = 1" in str(executed.sqla_query)
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+
+
+@pytest.mark.parametrize(
+    "static_schema_datasource,template_source",
+    [
+        (SqlaTable, "raw"),
+        (SqlaTable, "parameter"),
+        (Query, "raw"),
+        (Query, "raw_division"),
+    ],
+    indirect=["static_schema_datasource"],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_adhoc_metric_literal_template_cache_request(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    template_source: str,
+) -> None:
+    """Literal Jinja produced by one render must survive cache-key acquisition."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.template_params = '{"literal": "{{ 1 / 0 }}", "x": "not literal"}'
+    expression = (
+        "MAX('{% raw %}{{ 1 / 0 }}{% endraw %}')"
+        if template_source == "raw_division"
+        else "MAX('{% raw %}{{ x }}{% endraw %}')"
+        if template_source == "raw"
+        else "MAX('{{ literal }}')"
+    )
+    expected = "{{ x }}" if template_source == "raw" else "{{ 1 / 0 }}"
+    query = QueryObject(
+        datasource=virtual,
+        columns=[],
+        metrics=[
+            {"expressionType": "SQL", "sqlExpression": expression, "label": "total"}
+        ],
+    )
+    # Execution is valid independently of cache-key collection.
+    executed = virtual.get_query_result(query)
+    assert executed.status == "success"
+    assert executed.df["total"].tolist() == [expected]
+    render = mocker.spy(BaseTemplateProcessor, "process_template")
+    parse = mocker.spy(helpers, "SQLStatement")
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
+    assert [
+        call.args[1]
+        for call in render.call_args_list
+        if call.args[1] in {expression, f"MAX('{expected}')"}
+    ] == [expression]
+    parse.assert_called_once_with(
+        f"SELECT MAX('{expected}')", virtual.db_engine_spec.engine
+    )
+
+    cache = MagicMock(is_loaded=True, status="success", bq_memory_limited=False)
+    cache.df = executed.df
+    lookup = mocker.patch(
+        "superset.common.query_context_processor.QueryCacheManager.get",
+        return_value=cache,
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+        return_value=[],
+    )
+    processor = QueryContextProcessor(
+        MagicMock(
+            datasource=virtual,
+            force=False,
+            is_async_execution=False,
+            custom_cache_timeout=300,
+            result_type="full",
+        )
+    )
+    result = processor.get_df_payload_result(query)
+    assert result.payload["status"] == "success"
+    assert result.payload["df"]["total"].tolist() == [expected]
+    lookup.assert_called_once()
+    cache.set_query_result.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sink",
+    ["column", "groupby", "metric", "orderby", "filter", "series", "where", "having"],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_single_render_subquery_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """A second-pass Jinja conditional must not hide an executed RLS subquery."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    expression = (
+        "0 /*{% raw %}{% if false %}{% endraw %}*/"
+        " + (SELECT MAX(col1) FROM physical)"
+        " /*{% raw %}{% endif %}{% endraw %}*/"
+    )
+    column: AdhocColumn = {"sqlExpression": expression, "label": "axis"}
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": f"MAX({expression})",
+        "label": "total",
+    }
+    fields: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    if sink == "column":
+        fields["columns"] = [column]
+    elif sink == "groupby":
+        fields["groupby"] = [column]
+    elif sink == "metric":
+        fields["columns"] = []
+        fields["metrics"] = [metric]
+    elif sink == "orderby":
+        fields["orderby"] = [(metric, True)]
+    elif sink == "filter":
+        fields["filter"] = [{"col": column, "op": "==", "val": 1}]
+    elif sink == "series":
+        fields["metrics"] = [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "main"}
+        ]
+        fields["series_limit"] = 1
+        fields["series_limit_metric"] = metric
+    else:
+        fields["metrics"] = [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "main"}
+        ]
+        fields["extras"] = {sink: f"1 = {expression}"}
+    query = QueryObject(
+        datasource=virtual,
+        columns=fields["columns"],
+        groupby=fields.get("groupby"),
+        metrics=fields["metrics"],
+        filters=fields.get("filter"),
+        orderby=fields.get("orderby"),
+        extras=fields.get("extras"),
+        series_columns=["col1"],
+        series_limit=fields.get("series_limit") or 0,
+        series_limit_metric=fields.get("series_limit_metric"),
+    )
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+    predicates = []
+    cache_keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        executed = virtual.get_query_result(query)
+        assert executed.status == "success"
+        assert f"col1 = {user_id}" in executed.query
+        if sink in {"column", "groupby", "metric"}:
+            assert executed.df["total" if sink == "metric" else "axis"].tolist() == [
+                user_id
+            ]
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        predicates.append(extra_keys)
+        cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert predicates == [["(col1 = 1)"], ["(col1 = 2)"]]
+    assert cache_keys[0] != cache_keys[1]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize(
+    "sink", ["column", "metric", "adhoc_reference", "filter", "fetch"]
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_stored_expression_cache_collection_renders_once(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    sink: str,
+) -> None:
+    """Stored SQL still renders once when discovery returns fully rendered SQL."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    expression = (
+        "0 /*{% raw %}{% if false %}{% endraw %}*/"
+        " + (SELECT MAX(col1) FROM physical)"
+        " /*{% raw %}{% endif %}{% endraw %}*/"
+    )
+    virtual.columns.append(
+        TableColumn(column_name="calculated", type="INTEGER", expression=expression)
+    )
+    virtual.metrics.append(
+        SqlMetric(metric_name="total", expression=f"MAX({expression})")
+    )
+    query: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    if sink == "column":
+        query["columns"] = ["calculated"]
+    elif sink == "metric":
+        query["metrics"] = ["total"]
+    elif sink == "adhoc_reference":
+        query["columns"] = [{"sqlExpression": "{{ 'calculated' }}", "label": "axis"}]
+    elif sink == "filter":
+        query["filter"] = [{"col": "calculated", "op": "==", "val": 1}]
+    else:
+        virtual.fetch_values_predicate = f"1 = {expression}"
+        query["apply_fetch_values_predicate"] = True
     assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
     rule.clause = "col1 = 2"
     assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
