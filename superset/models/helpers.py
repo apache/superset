@@ -3685,6 +3685,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and bool(time_grain)
                 and not is_date_range_offset
                 and bool(join_keys)
+                and bool(offset_df[join_keys[0]].notna().any())
             )
             how: Literal["left", "outer"] = "outer" if use_outer_join else "left"
 

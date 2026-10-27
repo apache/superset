@@ -623,6 +623,31 @@ def test_join_offset_dfs_full_range_disabled_truncates_historical():
     assert_frame_equal(expected, result)
 
 
+@mark.parametrize("full_range", [False, True])
+def test_join_offset_dfs_empty_offset_df(full_range: bool) -> None:
+    df = DataFrame(
+        {
+            "A": [Timestamp("2021-01-08 00:00"), Timestamp("2021-01-08 01:00")],
+            "V": [1.0, 2.0],
+        }
+    )
+    offset_dfs = {"1 week ago": DataFrame({"A": [float("nan")], "B": [float("nan")]})}
+
+    expected = DataFrame(
+        {
+            "A": [Timestamp("2021-01-08 00:00"), Timestamp("2021-01-08 01:00")],
+            "V": [1.0, 2.0],
+            "B": [float("nan"), float("nan")],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.HOUR, ["A"], full_range=full_range
+    )
+
+    assert_frame_equal(expected, result)
+
+
 def test_join_offset_dfs_totals_query_no_dimensions():
     """
     Test time offset join for totals query with no dimension columns.
