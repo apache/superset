@@ -484,8 +484,9 @@ def test_a_sink_that_raises_everywhere_does_not_affect_the_run(
     runtime, events = _drive(_script_with_a_tool_call(), tools=StubTools())
 
     assert runtime.result.ok
-    assert runtime.result.answer == ANSWER
-    assert _final(events) == ANSWER
+    expected = f"Checking the shipments table.\n\n{ANSWER}"
+    assert runtime.result.answer == expected
+    assert _final(events) == expected
     assert exploding.calls > 0, "the broken sink was called"
     # The sink after the broken one still received the whole run.
     assert working.runs_started
