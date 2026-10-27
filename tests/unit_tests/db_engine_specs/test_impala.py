@@ -78,6 +78,7 @@ def test_cancel_query(requester_mock: Mock, _safe_host: Mock) -> None:  # noqa: 
 
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
+    requester_mock.assert_called_once_with(allow_unsafe_hosts=False)
     post_mock.assert_called_once_with(
         "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
