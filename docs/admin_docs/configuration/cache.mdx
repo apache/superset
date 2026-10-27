@@ -424,8 +424,10 @@ THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
   recomputed by `superset compute-thumbnails` without `--force`. The high-traffic card-list
   thumbnail endpoints and the chart on-demand screenshot endpoint are intentionally excluded and
   continue using the cache backend's retention policy. A dashboard refresh without `force=true`
-  retains the last valid image while rendering and during error backoff; a forced refresh starts
-  a new generation without a retained image.
+  retains the last valid image while rendering and during error backoff. Concurrent forced
+  requests can share an imageless refresh already in progress or its completed replacement.
+  A refresh still carrying older bytes is replaced with an imageless generation, so the
+  forced request's image URL waits for the new capture.
 - **Rollout:** roll thumbnail workers before web servers when enabling this. During a mixed deploy
   a new web server can enqueue a refresh that an older worker skips, leaving the thumbnail stale
   until the worker pool finishes rolling (it self-heals afterward).

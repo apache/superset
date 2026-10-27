@@ -2478,7 +2478,19 @@ class DashboardRestApi(
                 ),
             )
 
+        def force_needs_new_generation(cache_payload: ScreenshotCachePayload) -> bool:
+            """A forced download cannot join a generation carrying an older capture."""
+            if not force or cache_payload.is_updated():
+                return False
+            try:
+                cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return False
+            return True
+
         def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            if force_needs_new_generation(cache_payload):
+                return True
             return cache_payload.should_enqueue_task(
                 force,
                 expected_scope=cache_scope,
@@ -2545,8 +2557,9 @@ class DashboardRestApi(
                                 message=gettext("Screenshot cache is unavailable"),
                             )
                             return lock_response
-                        if cache_key != observed_cache_key or not should_enqueue(
-                            cache_payload
+                        if not force_needs_new_generation(cache_payload) and (
+                            cache_key != observed_cache_key
+                            or not should_enqueue(cache_payload)
                         ):
                             lock_response = build_response(
                                 200, cache_key, cache_payload
@@ -2636,6 +2649,16 @@ class DashboardRestApi(
                                 message=gettext("Screenshot cache is unavailable"),
                             )
                             return lock_response
+                        if force_needs_new_generation(winner_payload):
+                            if time.monotonic() >= lock_deadline:
+                                lock_response = self.response(
+                                    503,
+                                    message=gettext(
+                                        "Screenshot request is temporarily unavailable"
+                                    ),
+                                )
+                                return lock_response
+                            continue
                         lock_response = build_response(
                             200,
                             winner_cache_key,
@@ -2721,7 +2744,8 @@ class DashboardRestApi(
                             503,
                             message=gettext("Screenshot cache is unavailable"),
                         )
-                    return build_response(200, cache_key, current_payload)
+                    if not force_needs_new_generation(current_payload):
+                        return build_response(200, cache_key, current_payload)
                 if time.monotonic() >= lock_deadline:
                     logger.warning(
                         "Timed out waiting for screenshot producer: %s",

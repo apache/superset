@@ -6913,6 +6913,224 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert mock_store_cache_payload.call_count == 2
         assert mock_set_current_cache_key.call_count == 2
 
+    @parameterized.expand(
+        [("pending", StatusValues.PENDING), ("computing", StatusValues.COMPUTING)]
+    )
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_force_does_not_join_refresh_carrying_previous_image(
+        self, case: str, refresh_status: StatusValues
+    ) -> None:
+        """A forced download waits for new bytes without clearing ordinary refreshes."""
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        old_image = b"\x89PNG\r\n\x1a\nprevious capture"
+        pointer = {"key": "prior-generation"}
+
+        def publish(
+            _request_key: str,
+            cache_key: str,
+            _scope: str,
+            previous_cache_key: str | None,
+        ) -> bool:
+            """Publish only when the observed generation remains current."""
+            if pointer["key"] != previous_cache_key:
+                return False
+            pointer["key"] = cache_key
+            return True
+
+        with (
+            freeze_time("2026-10-27T12:00:00"),
+            patch(
+                "superset.utils.screenshots.DashboardScreenshot.cache",
+                new_callable=SimpleCache,
+            ) as cache,
+            patch("superset.dashboards.api.DistributedLock"),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+                side_effect=lambda *_args: pointer["key"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+                side_effect=["refresh-generation", "forced-generation"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+                side_effect=publish,
+            ),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as task,
+        ):
+            cache.set(
+                "prior-generation",
+                ScreenshotCachePayload(
+                    image=old_image,
+                    timestamp=(datetime.now() - timedelta(seconds=400)).isoformat(),
+                    scope=scope,
+                ).to_dict(),
+            )
+            refresh = self._cache_screenshot(dashboard.id)
+            assert refresh.status_code == 202
+            permalink_key = refresh.json["dashboard_url"].rstrip("/").rsplit("/", 1)[-1]
+            in_progress = ScreenshotCachePayload.from_dict(
+                cache.get("refresh-generation")
+            )
+            in_progress.status = refresh_status
+            cache.set("refresh-generation", in_progress.to_dict())
+            retained_response = self.client.get(refresh.json["image_url"])
+            assert retained_response.status_code == 200
+            assert retained_response.data == old_image
+
+            forced = self._cache_screenshot(
+                dashboard.id, payload={"permalinkKey": permalink_key}, force=True
+            )
+            forced_image = self.client.get(forced.json["image_url"])
+
+            assert forced_image.status_code == 404
+            assert forced.status_code == 202
+            assert forced.json["cache_key"] == "forced-generation"
+            assert cache.get("forced-generation")["image"] is None
+            assert self.client.get(refresh.json["image_url"]).data == old_image
+            assert task.delay.call_count == 2
+
+            joined = self._cache_screenshot(
+                dashboard.id, payload={"permalinkKey": permalink_key}, force=True
+            )
+            assert joined.status_code == 200
+            assert joined.json["cache_key"] == "forced-generation"
+            assert task.delay.call_count == 2
+
+            completed = ScreenshotCachePayload.from_dict(cache.get("forced-generation"))
+            new_image = b"\x89PNG\r\n\x1a\nreplacement capture"
+            completed.update(new_image)
+            cache.set("forced-generation", completed.to_dict())
+            assert self.client.get(forced.json["image_url"]).data == new_image
+
+    @parameterized.expand(
+        [
+            ("locked_pending", "locked", StatusValues.PENDING),
+            ("locked_error", "locked", StatusValues.ERROR),
+            ("cas_pending", "cas", StatusValues.PENDING),
+            ("cas_error", "cas", StatusValues.ERROR),
+            ("contended_pending", "contended", StatusValues.PENDING),
+            ("contended_error", "contended", StatusValues.ERROR),
+            ("cas_timeout", "cas_timeout", StatusValues.ERROR),
+            ("contended_timeout", "contended_timeout", StatusValues.PENDING),
+        ]
+    )
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_force_does_not_join_racing_generation_with_retained_image(
+        self, case: str, race: str, winner_status: StatusValues
+    ) -> None:
+        """Each producer shortcut must reject a race winner carrying an older image."""
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        old_image = b"\x89PNG\r\n\x1a\nprevious capture"
+        pointer = {"key": "prior-generation"}
+        lock_attempts = 0
+        publication_attempts = 0
+        timed_out = race.endswith("timeout")
+
+        @contextmanager
+        def acquire_lock(**_kwargs: object) -> Iterator[None]:
+            """Publish retained bytes before this producer reads under its lock."""
+            nonlocal lock_attempts
+            lock_attempts += 1
+            if lock_attempts == 1 and race in (
+                "locked",
+                "contended",
+                "contended_timeout",
+            ):
+                pointer["key"] = "racing-generation"
+                if race.startswith("contended"):
+                    raise LockAlreadyHeldException("another producer is publishing")
+            yield
+
+        def publish(
+            _request_key: str,
+            cache_key: str,
+            _scope: str,
+            previous_cache_key: str | None,
+        ) -> bool:
+            """Lose compare-and-set after another producer publishes a refresh."""
+            nonlocal publication_attempts
+            publication_attempts += 1
+            if race.startswith("cas") and (publication_attempts == 1 or timed_out):
+                pointer["key"] = "racing-generation"
+                return False
+            if pointer["key"] != previous_cache_key:
+                return False
+            pointer["key"] = cache_key
+            return True
+
+        with (
+            patch(
+                "superset.utils.screenshots.DashboardScreenshot.cache",
+                new_callable=SimpleCache,
+            ) as cache,
+            patch("superset.dashboards.api.DistributedLock", acquire_lock),
+            patch("superset.dashboards.api.time.sleep") as pause,
+            patch(
+                "superset.dashboards.api.time.monotonic",
+                side_effect=[10.0, 11.1 if timed_out else 10.1],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+                side_effect=lambda *_args: pointer["key"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+                side_effect=["reserved-generation", "forced-generation"],
+            ),
+            patch(
+                "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+                side_effect=publish,
+            ),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as task,
+        ):
+            cache.set(
+                "prior-generation",
+                ScreenshotCachePayload(image=old_image, scope=scope).to_dict(),
+            )
+            winner = ScreenshotCachePayload(status=winner_status, scope=scope)
+            winner.retain_image(old_image)
+            cache.set("racing-generation", winner.to_dict())
+
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+            retained_response = self._get_screenshot(
+                dashboard.id, "racing-generation", "png"
+            )
+            assert retained_response.status_code == 200
+            assert retained_response.data == old_image
+            if timed_out:
+                assert response.status_code == 503
+                assert "image_url" not in response.json
+                task.delay.assert_not_called()
+                assert lock_attempts == 1
+                assert publication_attempts == (1 if race == "cas_timeout" else 0)
+                pause.assert_not_called()
+            else:
+                assert response.status_code == 202
+                assert response.json["cache_key"] != "racing-generation"
+                assert response.json["task_status"] == "Pending"
+                assert self.client.get(response.json["image_url"]).status_code == 404
+                task.delay.assert_called_once()
+                assert lock_attempts == (1 if race == "locked" else 2)
+                assert publication_attempts == (2 if race == "cas" else 1)
+                assert pause.call_count == (1 if race == "contended" else 0)
+
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
