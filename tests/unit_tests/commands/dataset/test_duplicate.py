@@ -35,7 +35,7 @@ from superset.commands.dataset.exceptions import (
     TemplateParamsInvalidValidationError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlFilter, SqlMetric, TableColumn
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 
@@ -312,6 +312,7 @@ def test_duplicate_dataset_success() -> None:
     mock_base_model.always_filter_main_dttm = False
     mock_base_model.columns = []
     mock_base_model.metrics = []
+    mock_base_model.filters = []
 
     # Create a mock database without spec to allow SQLAlchemy relationship assignment
     mock_database = MagicMock()
@@ -484,6 +485,7 @@ def test_duplicate_dataset_catalog_preserved() -> None:
     mock_base_model.always_filter_main_dttm = False
     mock_base_model.columns = []
     mock_base_model.metrics = []
+    mock_base_model.filters = []
 
     # Create a mock database without spec to allow SQLAlchemy relationship assignment
     mock_database = MagicMock()
@@ -600,6 +602,14 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
     mock_metric.warning_text = "approximate"
     mock_metric.extra = None
 
+    mock_filter = Mock(spec=SqlFilter)
+    mock_filter.filter_name = "active"
+    mock_filter.verbose_name = "Active rows"
+    mock_filter.expression = "status = 'active'"
+    mock_filter.description = "Only active"
+    mock_filter.warning_text = None
+    mock_filter.extra = None
+
     mock_base_model = Mock(spec=SqlaTable)
     mock_base_model.id = 1
     mock_base_model.database_id = 1
@@ -613,6 +623,7 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
     mock_base_model.always_filter_main_dttm = False
     mock_base_model.columns = [mock_column]
     mock_base_model.metrics = [mock_metric]
+    mock_base_model.filters = [mock_filter]
 
     # Create a mock database without spec to allow SQLAlchemy relationship assignment
     mock_database = MagicMock()
@@ -663,3 +674,7 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
                         # Formatting/metadata fields must survive the clone too.
                         assert result.metrics[0].d3format == ",.2f"
                         assert result.metrics[0].warning_text == "approximate"
+
+                        assert len(result.filters) == 1
+                        assert result.filters[0].filter_name == "active"
+                        assert result.filters[0].expression == "status = 'active'"
