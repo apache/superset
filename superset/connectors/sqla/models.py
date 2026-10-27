@@ -175,6 +175,27 @@ def _is_calculated_column(column: TableColumn) -> bool:
     return column.expression != quoted_path
 
 
+def _without_shadowed_nested_fields(
+    new_columns: list[ResultSetColumnType],
+    old_columns_by_name: dict[str, TableColumn],
+) -> list[ResultSetColumnType]:
+    """Drop expanded nested fields named like an existing calculated column.
+
+    Such calculated columns (e.g. ``calendar.day`` on a BigQuery STRUCT) are
+    user-defined and must keep their expression; ``fetch_metadata`` adds them
+    back with the other calculated columns.
+    """
+    return [
+        col
+        for col in new_columns
+        if not (
+            col.get("nested_field")
+            and (old_column := old_columns_by_name.get(col["column_name"]))
+            and _is_calculated_column(old_column)
+        )
+    ]
+
+
 METRIC_FORM_DATA_PARAMS = [
     "metric",
     "metric_2",
@@ -197,6 +218,88 @@ COLUMN_FORM_DATA_PARAMS = [
     "order_by_cols",
     "series",
 ]
+
+# Display controls exclude filter and sort dependencies, which still belong in
+# the full-access dataset payload but must not contribute chart display labels.
+DISPLAY_METRIC_LIST_PARAMS = (
+    "metrics",
+    "metrics_b",
+    "percent_metrics",
+    "tooltip_metrics",
+)
+DISPLAY_METRIC_PARAMS = (
+    "metric",
+    "metric_2",
+    "secondary_metric",
+    "size",
+    "x",
+    "y",
+    "left_metric",
+    "right_metric",
+    "open",
+    "close",
+    "high",
+    "low",
+)
+DISPLAY_COLUMN_LIST_PARAMS = (
+    "all_columns",
+    "columns",
+    "groupby",
+    "groupby_b",
+    "groupbyRows",
+    "groupbyColumns",
+    "series_columns",
+    "tooltip_columns",
+)
+DISPLAY_COLUMN_PARAMS = (
+    "all_columns_x",
+    "all_columns_y",
+    "entity",
+    "series",
+    "x_axis",
+    "source",
+    "target",
+    "source_category",
+    "target_category",
+    "column",
+    "start_time",
+    "end_time",
+    "y_axis",
+    "dimension",
+)
+# These controls accept either one column or a legacy list of columns.
+DISPLAY_COLUMN_MIXED_PARAMS = ("all_columns_x", "series")
+
+DisplayReference = str | dict[str, Any]
+ChartDisplayReferences = tuple[list[DisplayReference], list[DisplayReference]]
+
+
+def _authored_display_label(reference: dict[str, Any]) -> str | None:
+    """Return an explicitly authored adhoc label without interpreting SQL."""
+    label = reference.get("label")
+    if (
+        reference.get("hasCustomLabel") is True
+        and isinstance(label, str)
+        and label.strip()
+    ):
+        return label
+    return None
+
+
+def _physical_display_column(reference: dict[str, Any]) -> str | None:
+    """Recognize only explicit, exact physical-column references."""
+    label = reference.get("label")
+    if (
+        (
+            reference.get("isColumnReference") is True
+            or reference.get("columnType") == "BASE_AXIS"
+        )
+        and isinstance(label, str)
+        and label.strip()
+        and reference.get("sqlExpression") == label
+    ):
+        return label
+    return None
 
 
 class DatasourceKind(StrEnum):
@@ -631,6 +734,131 @@ class BaseDatasource(
 
         return column_names or None
 
+    @staticmethod
+    def _query_output_references(
+        query_context: str | None,
+    ) -> ChartDisplayReferences:
+        """Collect query outputs for full-access metadata, including sort fields.
+
+        These references must not authorize chart labels: viewers can regenerate
+        the query context, and plugins add dependencies that they do not display.
+        """
+        columns: list[DisplayReference] = []
+        metrics: list[DisplayReference] = []
+        try:
+            payload = json.loads(query_context or "{}")
+        except (TypeError, ValueError):
+            return columns, metrics
+        if not isinstance(payload, dict) or not isinstance(
+            queries := payload.get("queries"), list
+        ):
+            return columns, metrics
+        for query in queries:
+            if not isinstance(query, dict):
+                continue
+            for name, target in (
+                ("columns", columns),
+                ("groupby", columns),
+                ("metrics", metrics),
+            ):
+                if isinstance(references := query.get(name), list):
+                    target.extend(
+                        item for item in references if isinstance(item, (str, dict))
+                    )
+        return columns, metrics
+
+    @staticmethod
+    def _active_display_form_data(
+        form_data: dict[str, Any], viz_type: str | None
+    ) -> dict[str, Any]:
+        """Exclude table controls retained while their query mode is hidden."""
+        if viz_type not in ("table", "ag-grid-table", "handlebars"):
+            return form_data
+        mode = form_data.get("query_mode")
+        if viz_type == "handlebars" and mode not in ("raw", "aggregate"):
+            # Handlebars' extractQueryFields retains both modes when unspecified.
+            params: tuple[str, ...] = ("all_columns", "columns", "groupby", "metrics")
+            return {name: form_data[name] for name in params if name in form_data}
+        if mode not in ("raw", "aggregate"):
+            # Match both table plugins' getQueryMode for legacy saved charts.
+            mode = "raw" if form_data.get("all_columns") else "aggregate"
+        params = (
+            ("all_columns", "columns")
+            if mode == "raw"
+            else ("groupby", "metrics", "percent_metrics")
+        )
+        return {
+            name: form_data[name]
+            for name in params
+            if name in form_data
+            and (viz_type != "handlebars" or name != "percent_metrics")
+        }
+
+    @classmethod
+    def _form_display_references(
+        cls, form_data: dict[str, Any], viz_type: str | None
+    ) -> ChartDisplayReferences:
+        """Collect recognized saved display controls without reading SQL.
+
+        List controls require lists. The single-column controls ``series`` and
+        ``all_columns_x`` also support their established legacy list shapes.
+        Control names are shared across visualizations, not validated against
+        each plugin's control panel or rendered fields.
+        """
+        columns: list[DisplayReference] = []
+        metrics: list[DisplayReference] = []
+        column_params: tuple[str, ...] = DISPLAY_COLUMN_PARAMS
+        if viz_type == "tree_chart":
+            column_params += ("id", "parent", "name")
+        for target, list_params, single_params in (
+            (columns, DISPLAY_COLUMN_LIST_PARAMS, column_params),
+            (metrics, DISPLAY_METRIC_LIST_PARAMS, DISPLAY_METRIC_PARAMS),
+        ):
+            for name in list_params:
+                if isinstance(references := form_data.get(name), list):
+                    target.extend(
+                        item for item in references if isinstance(item, (str, dict))
+                    )
+            for name in single_params:
+                if isinstance(value := form_data.get(name), (str, dict)):
+                    target.append(value)
+        for name in DISPLAY_COLUMN_MIXED_PARAMS:
+            if isinstance(references := form_data.get(name), list):
+                columns.extend(
+                    item for item in references if isinstance(item, (str, dict))
+                )
+
+        # Tooltip contents are explicit display references. Passing no currency
+        # column excludes the query-only currency-formatting dependency.
+        columns.extend(sorted(cls._extract_form_data_columns(form_data, None, False)))
+        return columns, metrics
+
+    @staticmethod
+    def _saved_display_form_data(slc: Slice) -> dict[str, Any]:
+        """Read saved display controls without model-derived form-data overrides."""
+        try:
+            form_data = json.loads(slc.params or "{}")
+        except (TypeError, ValueError):
+            return {}
+        return form_data if isinstance(form_data, dict) else {}
+
+    @classmethod
+    def _slice_display_references(cls, slc: Slice) -> ChartDisplayReferences:
+        """Collect label references from editor-controlled saved display controls.
+
+        Query context is viewer-writable and cannot expand the label allowlist.
+        Filter, sort, granularity and expression-internal dependencies are not
+        display controls, even when plugins include them in query outputs.
+        Query-mode pruning applies to table, AG Grid and Handlebars; other
+        plugins retain recognized controls even if a legacy or imported chart
+        saved fields that its visualization no longer uses.
+        """
+        form_data = cls._saved_display_form_data(slc)
+        viz_type = slc.viz_type or form_data.get("viz_type")
+        return cls._form_display_references(
+            cls._active_display_form_data(form_data, viz_type), viz_type
+        )
+
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
     ) -> dict[str, Any]:
@@ -644,6 +872,7 @@ class BaseDatasource(
         data = cast(dict[str, Any], self.data)
         metric_names = set()
         column_names = set()
+        authored_labels: dict[str, str] = {}
         for slc in slices:
             form_data = slc.form_data
             # pull out all required metrics from the form_data
@@ -687,6 +916,36 @@ class BaseDatasource(
                 ]
                 column_names.update(_columns)
 
+            # Full-access metadata retains hidden controls and query-only
+            # dependencies. Only saved display controls supply authored labels.
+            display_columns, display_metrics = self._form_display_references(
+                form_data,
+                slc.viz_type or self._saved_display_form_data(slc).get("viz_type"),
+            )
+            for references in (display_columns, display_metrics):
+                for reference in references:
+                    if isinstance(reference, dict) and (
+                        label := _authored_display_label(reference)
+                    ):
+                        authored_labels.setdefault(label, label)
+            query_columns, query_metrics = self._query_output_references(
+                slc.query_context
+            )
+            display_columns.extend(query_columns)
+            display_metrics.extend(query_metrics)
+            for references, names in (
+                (display_columns, column_names),
+                (display_metrics, metric_names),
+            ):
+                for reference in references:
+                    if isinstance(reference, str):
+                        names.add(reference)
+            for reference in display_columns:
+                if isinstance(reference, dict) and (
+                    column_name := _physical_display_column(reference)
+                ):
+                    column_names.add(column_name)
+
         filtered_metrics = [
             metric
             for metric in data["metrics"]
@@ -721,7 +980,9 @@ class BaseDatasource(
             }
         )
         verbose_map.update(all_columns)
-        data["verbose_map"] = verbose_map
+        # Dataset labels take precedence when an authored label collides with
+        # a saved field name, matching the dashboard frontend's merge order.
+        data["verbose_map"] = {**authored_labels, **verbose_map}
         data["column_names"] = set(all_columns.values()) | set(self.column_names)
 
         return data
@@ -807,7 +1068,9 @@ class BaseDatasource(
         match it. Since the fields are different for the different
         connectors, the implementation uses ``update_from_object_fields``
         which can be defined for each connector and
-        defines which fields should be synced"""
+        defines which fields should be synced. Note that this replaces rather
+        than merges: a key omitted from ``obj`` clears the field rather than
+        leaving it untouched."""
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
@@ -2393,6 +2656,7 @@ class SqlaTable(
         old_columns_by_name: dict[str, TableColumn] = {
             col.column_name: col for col in old_columns
         }
+        new_columns = _without_shadowed_nested_fields(new_columns, old_columns_by_name)
         results = MetadataResult(
             removed=[
                 col
@@ -2569,26 +2833,109 @@ class SqlaTable(
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if columns := query_obj.get("columns"):
-            calculated_columns: dict[str, Any] = {
-                c.column_name: c.expression for c in self.columns if c.expression
-            }
-            for column_ in columns:
-                if utils.is_adhoc_column(column_):
-                    templatable_statements.append(column_["sqlExpression"])
-                elif isinstance(column_, str) and column_ in calculated_columns:
-                    templatable_statements.append(calculated_columns[column_])
-        if metrics := query_obj.get("metrics"):
-            metrics_by_name: dict[str, Any] = {
-                m.metric_name: m.expression for m in self.metrics
-            }
-            for metric in metrics:
-                if utils.is_adhoc_metric(metric) and (
-                    sql := metric.get("sqlExpression")
-                ):
-                    templatable_statements.append(sql)
-                elif isinstance(metric, str) and metric in metrics_by_name:
-                    templatable_statements.append(metrics_by_name[metric])
+        calculated_columns: dict[str, Any] = {
+            c.column_name: c.expression for c in self.columns if c.expression
+        }
+        calculated_columns_by_verbose_name: dict[str, Any] = {
+            c.verbose_name: c.expression
+            for c in self.columns
+            if c.expression and c.verbose_name
+        }
+        metrics_by_name: dict[str, Any] = {
+            m.metric_name: m.expression for m in self.metrics
+        }
+
+        def column_expression(column_: Any) -> Any:
+            """The templatable expression behind an adhoc or calculated column."""
+            if utils.is_adhoc_column(column_):
+                # ``adhoc_column_to_sqla`` looks the expression up against the
+                # dataset's columns before treating it as SQL of its own, so an
+                # adhoc column that only names a calculated column renders that
+                # column's expression instead of this string. The frontend
+                # builds that shape for an ``x_axis`` column reference.
+                expression = column_["sqlExpression"] or ""
+                return calculated_columns.get(expression.strip(), expression)
+            if isinstance(column_, str):
+                return calculated_columns.get(column_)
+            return None
+
+        def metric_expression(metric: Any) -> Any:
+            """The templatable expression behind an adhoc or saved metric."""
+            if utils.is_adhoc_metric(metric):
+                if sql_expression := metric.get("sqlExpression"):
+                    return sql_expression
+                # A SIMPLE adhoc metric has no expression of its own, but
+                # ``adhoc_metric_to_sqla`` wraps its aggregate around the
+                # column's rendered expression, so a macro in a calculated
+                # column reaches the SQL through it.
+                metric_column = metric.get("column") or {}
+                column_name = metric_column.get("column_name")
+                return calculated_columns.get(column_name) if column_name else None
+            if isinstance(metric, str):
+                return metrics_by_name.get(metric)
+            return None
+
+        def filter_expression(flt: Any) -> Any:
+            """The templatable expression a filter's ``col`` resolves to."""
+            col = flt.get("col")
+            if expression := column_expression(col):
+                return expression
+            if isinstance(col, str):
+                # A filter column that is not a column name is resolved against
+                # the columns' verbose names (right-click "Drill to detail by"
+                # passes those) and then against the saved metrics, for a
+                # filter that becomes a HAVING clause.
+                return calculated_columns_by_verbose_name.get(
+                    col
+                ) or metrics_by_name.get(col)
+            return None
+
+        # ``get_sqla_query`` resolves ``groupby`` through the same column lookup
+        # as ``columns``, and prefers it when both are set, so a calculated
+        # column grouped on is rendered exactly like a selected one.
+        for column_ in [
+            *(query_obj.get("columns") or []),
+            *(query_obj.get("groupby") or []),
+        ]:
+            if expression := column_expression(column_):
+                templatable_statements.append(expression)
+        for metric in query_obj.get("metrics") or []:
+            if expression := metric_expression(metric):
+                templatable_statements.append(expression)
+        # ``get_sqla_query`` renders these through the same template processor as
+        # the columns and metrics above, so a macro in them must trigger the
+        # extraction too, otherwise two users whose rendered SQL differs share a
+        # cache key:
+        #   - an adhoc metric in ``orderby``, or an ``orderby`` entry naming a
+        #     saved metric or calculated column not selected by the query
+        #   - ``series_limit_metric`` (and its legacy ``timeseries_limit_metric``
+        #     alias), via ``_get_series_orderby``
+        #   - a filter whose ``col`` resolves to a calculated column or a saved
+        #     metric
+        #   - the temporal column named by ``granularity``
+        for order_by in query_obj.get("orderby") or []:
+            entry = order_by[0] if isinstance(order_by, (list, tuple)) else order_by
+            if expression := metric_expression(entry) or column_expression(entry):
+                templatable_statements.append(expression)
+        for limit_metric in (
+            query_obj.get("series_limit_metric"),
+            query_obj.get("timeseries_limit_metric"),
+        ):
+            if expression := metric_expression(limit_metric):
+                templatable_statements.append(expression)
+        for flt in query_obj.get("filter") or []:
+            if isinstance(flt, dict) and (expression := filter_expression(flt)):
+                templatable_statements.append(expression)
+        if granularity := query_obj.get("granularity"):
+            # The temporal column reaches the select list and the time filter
+            # through ``get_timestamp_expression``, which renders its
+            # expression. ``get_sqla_query`` falls back to ``main_dttm_col``
+            # when ``granularity`` is not one of the temporal columns, so the
+            # column whose expression is rendered is not always the named one.
+            if granularity not in self.dttm_cols:
+                granularity = self.main_dttm_col
+            if granularity and (expression := calculated_columns.get(granularity)):
+                templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)

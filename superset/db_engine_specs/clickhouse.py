@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
@@ -31,6 +32,9 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
+from superset import db
+from superset.common.db_query_status import QueryStatus
+from superset.constants import QUERY_CANCEL_KEY
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -47,8 +51,25 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
+
+
+class ClickHouseQueryStoppedBeforeDispatchError(Exception):
+    """
+    Raised internally, right before a statement would be sent to
+    ClickHouse, when ``query.status`` is already STOPPED. Any exception
+    type works for this purpose: ``execute_query()``
+    (``superset/sql_lab.py``) wraps ``execute_with_cursor`` in its own
+    generic ``except Exception`` handler that refreshes ``query`` and
+    converts whatever lands here into the standard
+    ``SqlLabQueryStoppedException`` flow if the status is STOPPED. A
+    dedicated type exists only so the intent reads clearly at the raise
+    site and in stack traces -- importing ``SqlLabQueryStoppedException``
+    itself would be circular, since ``sql_lab.py`` already imports from
+    ``superset.db_engine_specs``.
+    """
 
 
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
@@ -270,7 +291,8 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
             "ClickHouse is an open-source column-oriented database for real-time "
             "analytics using SQL (legacy clickhouse-sqlalchemy driver)."
         ),
-        "logo": "clickhouse.png",
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
@@ -420,25 +442,29 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             "analytics using SQL. It's known for extremely fast query performance "
             "on large datasets."
         ),
-        "logo": "clickhouse.png",
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["clickhouse-connect>=0.13.0"],
+        "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
             {
-                "name": "clickhouse-connect (Recommended)",
-                "pypi_package": "clickhouse-connect>=0.13.0",
+                "name": "clickhouse-connect",
+                "pypi_package": "clickhouse-connect>=1.8.0,<2.0",
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:{port}/{database}"
                 ),
                 "is_recommended": True,
+                "docs_url": "https://github.com/ClickHouse/clickhouse-connect",
                 "notes": (
-                    "Official ClickHouse Python driver with native protocol support."
+                    "Official ClickHouse Python driver using HTTP(S). Use the HTTP "
+                    "port (8123 by default), or the HTTPS port with secure=true "
+                    "(8443 for ClickHouse Cloud). Native TCP ports are not supported."
                 ),
             },
             {
@@ -456,6 +482,20 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ],
         "connection_examples": [
             {
+                "description": (
+                    "ClickHouse Cloud SQL playground (demo user, no password)"
+                ),
+                "connection_string": (
+                    "clickhousedb://demo:@sql-clickhouse.clickhouse.com:8443/uk?secure=true"
+                ),
+            },
+            {
+                "description": "ClickHouse Cloud (HTTPS)",
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+                ),
+            },
+            {
                 "description": "Altinity Cloud",
                 "connection_string": (
                     "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
@@ -463,12 +503,26 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                 ),
             },
             {
-                "description": "Local (no auth, no SSL)",
-                "connection_string": "clickhousedb://localhost/default",
+                "description": "Local (default user, no password, no TLS)",
+                "connection_string": "clickhousedb://default@localhost:8123/default",
             },
         ],
         "install_instructions": (
-            'echo "clickhouse-connect>=0.13.0" >> ./docker/requirements-local.txt'
+            "# For a Python environment\n"
+            'pip install "clickhouse-connect>=1.8.0,<2.0"\n\n'
+            "# For the repository Docker Compose setup\n"
+            'echo "clickhouse-connect>=1.8.0,<2.0" >> ./docker/requirements-local.txt\n'
+            "# Restart the containers after adding the driver."
+        ),
+        "docs_url": "https://clickhouse.com/docs/integrations/superset",
+        "notes": (
+            "The SQL playground at sql.clickhouse.com uses the database endpoint "
+            "sql-clickhouse.clickhouse.com; the example connects to its uk sample "
+            "database. "
+            "URL-encode special characters in usernames and passwords when building "
+            "a SQLAlchemy URI. Use database credentials, not your ClickHouse Cloud "
+            "console sign-in. For Docker deployments, localhost refers to the "
+            "Superset container; use a hostname reachable from that container."
         ),
         "compatible_databases": [
             {
@@ -478,24 +532,39 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "for ClickHouse. It provides automatic scaling, built-in "
                     "backups, and enterprise security features."
                 ),
-                "logo": "clickhouse.png",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
                 "homepage_url": "https://clickhouse.cloud/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
                 ),
                 "parameters": {
-                    "username": "ClickHouse Cloud username",
-                    "password": "ClickHouse Cloud password",
-                    "host": "Your ClickHouse Cloud hostname",
+                    "username": (
+                        "Database username from the service Connect dialog "
+                        "(default: default)"
+                    ),
+                    "password": (
+                        "URL-encoded database password from the service Connect dialog"
+                    ),
+                    "host": "HTTPS hostname from the service Connect dialog",
                     "database": "Database name (default)",
                 },
-                "docs_url": "https://clickhouse.com/docs/en/cloud",
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/cloud/"
+                    "getting-started/cloud-get-started"
+                ),
+                "notes": (
+                    "Open your service in the ClickHouse Cloud console and select "
+                    "Connect to find the HTTPS endpoint and database credentials. "
+                    "For public connections, allow the Superset server IP address "
+                    "in the service IP access list."
+                ),
             },
             {
                 "name": "Altinity.Cloud",
@@ -510,7 +579,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
                 ),
@@ -681,3 +750,205 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         # bare outer SELECT to satisfy it without altering or dropping any of
         # the mutator's comments.
         return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608
+
+    # ClickHouse never hands back a server-assigned identifier Superset could
+    # read and reuse later -- but its HTTP interface accepts a client-chosen
+    # `query_id`, and `KILL QUERY WHERE query_id = ...` accepts that same id
+    # from a second, independent connection. Minting it here needs no round
+    # trip: `has_query_id_before_execute` (the base default) runs this before
+    # the statement is sent, so the id is threaded into `execute_with_cursor`
+    # below in time to be passed to the driver.
+    #
+    # Only `execute_with_cursor` does that threading. The GTF chart-data path
+    # (`Database.get_df`) dispatches through the base `execute()` instead,
+    # which never forwards a `settings` kwarg, so an id minted for that path
+    # would never reach the driver -- `cancel_query`'s later `KILL QUERY
+    # WHERE query_id = ...` would have nothing real to kill, and its "nothing
+    # to confirm" fallback would then report a cancel that never happened.
+    # `superset.tasks.query_cancel._CancellationQuery` stubs `query.id` as
+    # `None` for exactly this case so engines can decline gracefully; do
+    # that here rather than minting an id this engine can't actually use.
+    @classmethod
+    def get_cancel_query_id(  # pylint: disable=unused-argument
+        cls,
+        cursor: Any,
+        query: Query,
+    ) -> str | None:
+        if query.id is None:
+            return None
+        return str(uuid.uuid4())
+
+    @classmethod
+    def execute_with_cursor(
+        cls,
+        cursor: Any,
+        sql: str,
+        query: Query,
+    ) -> None:
+        """
+        Forward the id `get_cancel_query_id` recorded into `query.extra` on
+        to `execute` as a `settings` kwarg -- the base `execute_with_cursor`/
+        `execute` pair never threads per-query kwargs through to
+        `cursor.execute()`, so cancellation needs this override to reach the
+        driver at all.
+        """
+        logger.debug("Query %d: Running query: %s", query.id, sql)
+
+        # Narrows (see the exception class's own docstring for how this is
+        # converted, and RCA.md for why this is closable for ClickHouse but
+        # not a given for every engine) the window between the per-block
+        # loop's own STOPPED check (sql_lab.py, which already ran once
+        # before this call) and actually sending the statement below.
+        # Postgres/MySQL are accidentally safe in this exact window because
+        # their cancel_query() kills the whole underlying connection, so a
+        # cursor.execute() landing after that fails outright and gets
+        # caught by execute_query()'s generic exception handler. ClickHouse
+        # KILL QUERY has no such side effect when nothing has matched yet
+        # -- the connection stays healthy and an unguarded cursor.execute()
+        # here would run the statement to completion even though Superset
+        # already told the user it stopped.
+        try:
+            # flush() first: refresh() does NOT autoflush -- without this,
+            # a pending, uncommitted attribute set just before this call
+            # (e.g. the async/Celery path's own execute_fn sets
+            # query.executed_sql = sql immediately before calling
+            # execute_with_cursor, with no commit in between) would be
+            # silently discarded and reloaded back to its previous
+            # committed value instead of surviving to this query's later
+            # commits. Same idiom and same reasoning as the existing
+            # flush()-before-refresh() pairs already in sql_lab.py.
+            db.session.flush()
+            db.session.refresh(query)
+            already_stopped = query.status == QueryStatus.STOPPED
+        except Exception:  # pylint: disable=broad-except
+            # Best-effort, same as cancel_query()'s own refresh below: if
+            # this fails for any reason, fall back to dispatching the
+            # statement rather than letting a diagnostic check become a
+            # new failure mode of query execution itself.
+            already_stopped = False
+
+        if already_stopped:
+            raise ClickHouseQueryStoppedBeforeDispatchError()
+
+        cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
+        settings = {"query_id": cancel_query_id} if cancel_query_id else None
+        cls.execute(cursor, sql, query.database, settings=settings)
+        logger.debug("Query %d: Handling cursor", query.id)
+        cls.handle_cursor(cursor, query)
+
+    @classmethod
+    def execute(  # pylint: disable=unused-argument
+        cls,
+        cursor: Any,
+        query: str,
+        database: Database,
+        **kwargs: Any,
+    ) -> None:
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+        try:
+            cursor.execute(query, settings=kwargs.get("settings"))
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    # ClickHouse's own enum for the `kill_status` column `KILL QUERY SYNC`
+    # returns per matched process (https://clickhouse.com/docs/sql-reference/
+    # statements/kill): "finished" is the only value confirming the query
+    # was actually terminated. The other four are documented failure/
+    # indeterminate states -- a real process matched, but termination wasn't
+    # confirmed -- and must not be reported as a successful cancel.
+    _KILL_STATUS_CONFIRMED = "finished"
+    _KILL_STATUS_KNOWN_NOT_CONFIRMED = frozenset(
+        {"waiting", "cant_cancel", "pending", "unknown_status"}
+    )
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        :param cancel_query_id: client-chosen `query_id` minted by
+            `get_cancel_query_id` and passed to the driver at execute time
+        :return: True if query cancelled successfully, False otherwise
+        """
+        # UUID4-shaped: defense-in-depth against SQL injection, mirroring
+        # every other engine's own id-shaped pattern for this check (e.g.
+        # Postgres/MySQL's `^\\d+$` for their integer ids).
+        if not cls.validate_cancel_query_id(
+            cancel_query_id,
+            r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+            r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        ):
+            return False
+
+        try:
+            # SYNC blocks until ClickHouse confirms the outcome. The default
+            # ASYNC mode returns immediately with kill_status="waiting" --
+            # before termination is confirmed -- which would make this
+            # method's return value meaningless.
+            cursor.execute(  # noqa: S608
+                f"KILL QUERY WHERE query_id = '{cancel_query_id}' SYNC"
+            )
+            rows = cursor.fetchall()
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        kill_status = rows[0][0] if rows and rows[0] else None
+        if kill_status == cls._KILL_STATUS_CONFIRMED:
+            return True
+        if kill_status in cls._KILL_STATUS_KNOWN_NOT_CONFIRMED:
+            # A real process matched our query_id, but ClickHouse itself
+            # couldn't confirm termination -- there's positive evidence the
+            # query may still be running, so don't report success.
+            return False
+
+        # No recognizable kill_status landed in the first column. Verified
+        # empirically against a real server, this covers two cases that
+        # can't be told apart from this response alone:
+        #   1. No process matched `query_id` at all -- most likely the query
+        #      had already finished on its own between the stop request and
+        #      this KILL QUERY reaching the server: ClickHouse returns a
+        #      genuinely empty HTTP body for a non-matching `KILL QUERY`
+        #      (0 result_rows per its own X-ClickHouse-Summary header). The
+        #      desired end state -- query not running -- already holds.
+        #   2. clickhouse-connect==1.9.0's DB-API cursor synthesizes a
+        #      1-row "stats" result from that same X-ClickHouse-Summary
+        #      header whenever the real HTTP body is empty, so `rows` is
+        #      never actually `[]` here even when nothing matched; its
+        #      first column is an int (a row count), never one of the
+        #      known kill_status strings above.
+        # Both report "nothing to confirm", not "confirmed failure" --
+        # treating this as success avoids stranding the SQL Lab UI on a
+        # query that has already finished on its own. See RCA.md for the
+        # full reasoning and empirical verification.
+        #
+        # Narrow, don't ignore, the one way "nothing to confirm" can still
+        # be wrong: the query may have finished -- with a real SUCCESS/
+        # FAILED/TIMED_OUT result already committed -- *during* the
+        # KILL QUERY SYNC round-trip above, after QueryDAO.stop_query()'s
+        # own already-complete guard ran (it only checks once, before
+        # calling into this method, and never re-checks after). Returning
+        # True here would make that caller unconditionally overwrite the
+        # just-committed status with STOPPED, destroying a legitimate
+        # result. `query` is the same session-bound ORM object
+        # `QueryDAO.stop_query()` already loaded, so re-reading it is a
+        # plain metadata-DB read, not a change to sql_lab.py/daos/query.py.
+        # This narrows the race to the (much smaller) gap between this
+        # refresh and that caller's own status assignment -- it cannot be
+        # closed from here without a lock that code doesn't have either.
+        # See RCA.md for the full reasoning.
+        try:
+            db.session.refresh(query)
+            already_terminal = query.status in (
+                QueryStatus.SUCCESS,
+                QueryStatus.FAILED,
+                QueryStatus.TIMED_OUT,
+            )
+        except Exception:  # pylint: disable=broad-except
+            # Best-effort: if the refresh itself fails for any reason,
+            # fall back to the pre-existing behavior rather than letting a
+            # diagnostic check become a new failure mode of its own.
+            already_terminal = False
+
+        if already_terminal:
+            return False
+
+        return True

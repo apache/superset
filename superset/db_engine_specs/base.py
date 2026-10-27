@@ -283,6 +283,7 @@ class CompatibleDatabase(TypedDict, total=False):
     name: str
     description: str
     logo: str
+    logo_dark: str
     homepage_url: str
     pypi_packages: list[str]
     connection_string: str
@@ -342,6 +343,7 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     # Basic information
     description: str
     logo: str  # Filename in docs/static/img/databases/ or full URL
+    logo_dark: str  # Optional dark-theme variant; falls back to logo
     homepage_url: str
     docs_url: str
     sqlalchemy_docs_url: str
@@ -1142,6 +1144,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.allows_alias_in_select
 
     @classmethod
+    def get_limit_method(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> LimitMethod:
+        """
+        Method for dynamic `limit_method`.
+
+        In Oracle the limit syntax is version-dependent, so Superset needs to inspect
+        the database configuration in order to determine it. This method allows
+        engine-specs to define dynamic values for the attribute.
+        """
+        return cls.limit_method
+
+    @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
         Returns true if the DB engine spec supports a given SQLAlchemy URL.
@@ -1900,6 +1916,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        """
+        Convert a Python boolean to the value used when building SQL filter
+        expressions for boolean columns.
+
+        Most engines accept Python booleans, but some drivers render them as
+        integer literals (0/1), which strict engines like Databricks reject
+        with a DATATYPE_MISMATCH error when the value is compared against a
+        boolean column (#36765). Override this in engine specs whose drivers
+        misrender Python booleans, returning an expression that compiles to an
+        explicit boolean literal (e.g. sqlalchemy.true()/false()).
+
+        :param value: Boolean value (True, False, or None)
+        :return: Value suitable for the engine's filter expressions
+        """
+        return value
+
+    @classmethod
     def handle_boolean_filter(
         cls, sqla_col: Any, op: str, value: bool
     ) -> BinaryExpression:
@@ -1915,6 +1949,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param value: Boolean value (True or False)
         :return: SQLAlchemy expression for the boolean filter
         """
+        value = cls.coerce_boolean_for_sql(value)
         if cls.use_equality_for_boolean_filters:
             return sqla_col == value
         else:
@@ -2763,6 +2798,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return None
 
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add one column per nested field (e.g. STRUCT members) to the columns
+        inferred from ``cursor.description`` by ``get_columns_description``, so
+        virtual datasets get the dotted columns the inspector returns for
+        physical tables. The default returns ``columns`` unchanged.
+        """
+        return columns
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2981,6 +3030,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cancelation request has been received. For those cases, the db engine spec
         can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
+
+        Only stage changes on the query; do not flush or commit here. The caller
+        persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
 

@@ -56,14 +56,19 @@ superset_core.api.models for the public API contract.
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import hashlib
 import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Any, NoReturn, TYPE_CHECKING
+from decimal import DecimalException
+from typing import Any, cast, NoReturn, TYPE_CHECKING
 
+import msgpack
+import pandas as pd
+import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
 
@@ -78,9 +83,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
+from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -402,6 +408,135 @@ def execute_sql_with_cursor(
         db.session.commit()  # pylint: disable=consider-using-transaction
 
     return results
+
+
+def _decode_async_results_payload(blob: bytes) -> dict[str, Any]:
+    """
+    Decode a results backend blob written by the async SQL execution task.
+
+    The task stores a zlib-compressed payload serialized either as MessagePack
+    or as UTF-8 JSON, depending on ``RESULTS_BACKEND_USE_MSGPACK``. The format
+    is detected from the payload itself (a JSON object starts with ``{``, which
+    is never the first byte of a MessagePack map), so results stay readable if
+    the setting differs between the writing worker and the reading process.
+
+    :param blob: Compressed payload read from the results backend
+    :returns: The deserialized payload
+    """
+    decompressed = cast(bytes, utils.zlib_decompress(blob, decode=False))
+    if decompressed.lstrip()[:1] == b"{":
+        return json.loads(decompressed)
+    return msgpack.loads(decompressed, raw=False)
+
+
+def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | None:
+    """
+    Convert one stored statement's data into a DataFrame.
+
+    SELECT results are Arrow IPC bytes (MessagePack) or Base64 strings (JSON).
+    Older JSON payloads contain records; DML statements store ``None``. A
+    SELECT returning no rows yields an empty DataFrame that keeps its columns,
+    matching the synchronous execution path.
+
+    :param stmt_data: Statement entry from the stored payload
+    :returns: DataFrame of the statement rows, or ``None`` for DML
+    """
+    data = stmt_data.get("data")
+    if data is None:
+        return None
+
+    if isinstance(data, str):
+        data = base64.b64decode(data)
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        from superset.result_set import SupersetResultSet
+
+        table = pa.ipc.open_stream(pa.BufferReader(data)).read_all()
+        df = SupersetResultSet.convert_table_to_df(table)
+        sidecars = stmt_data.get("nested_columns_msgpack")
+        for name, sidecar in (sidecars if isinstance(sidecars, dict) else {}).items():
+            try:
+                values = deserialize_nested_columns({name: sidecar})[name]
+                if name not in df.columns:
+                    raise ValueError("Nested sidecar has no Arrow column")
+                if not isinstance(values, list) or len(values) != len(df):
+                    raise ValueError("Nested sidecar does not match Arrow row count")
+                df[name] = values
+            except (
+                ValueError,
+                TypeError,
+                DecimalException,
+                msgpack.UnpackException,
+                OverflowError,
+                RecursionError,
+            ):
+                # Readers in a rolling deployment may not know newer type tags.
+                logger.warning(
+                    "Unable to decode nested SQL column %s; using Arrow strings",
+                    name,
+                    exc_info=True,
+                )
+        return df
+
+    columns = [
+        column.get("column_name", column.get("name", ""))
+        for column in stmt_data.get("columns", [])
+    ]
+    return _records_to_dataframe(data, columns)
+
+
+def _records_to_dataframe(
+    records: list[Any],
+    columns: list[Any],
+    dtypes: list[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Build a DataFrame from JSON-style records.
+
+    Values are converted through Arrow, as SELECT results are on the
+    synchronous path, so integer columns with nulls keep ``None`` instead of
+    becoming ``NaN`` floats; mixed or nested values are kept as Python
+    objects. The given columns are kept even when there are no records.
+
+    :param records: Rows as dicts keyed by column name
+    :param columns: Column names, in order; inferred from record keys if absent
+    :param dtypes: Original pandas dtypes for cached DataFrames
+    :returns: DataFrame of the records
+    """
+    if not all(isinstance(row, dict) for row in records):
+        return pd.DataFrame(records, columns=columns or None)
+
+    if not columns:
+        columns = list(dict.fromkeys(name for row in records for name in row))
+        if not columns:
+            return pd.DataFrame(records)
+
+    column_dtypes = dict(zip(columns, dtypes, strict=True)) if dtypes else {}
+
+    def to_series(name: str, values: list[Any]) -> pd.Series:
+        # DataFrame.to_dict keeps pandas' missing timestamp sentinel on cache hits.
+        values = [None if value is pd.NaT else value for value in values]
+        if name in column_dtypes:
+            try:
+                return pd.Series(values, dtype=column_dtypes[name])
+            except (TypeError, ValueError):
+                # pandas cannot parse some of its own fixed-offset dtype strings.
+                # Without a non-null value, inference cannot retain the timezone.
+                if not any(value is not None for value in values):
+                    raise
+                return pd.Series(values)
+
+        try:
+            array = pa.array(values)
+        except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+            return pd.Series(values, dtype=object)
+        if pa.types.is_nested(array.type):
+            return pd.Series(values, dtype=object)
+        return array.to_pandas(integer_object_nulls=True)
+
+    return pd.DataFrame(
+        {name: to_series(name, [row.get(name) for row in records]) for name in columns},
+        columns=columns,
+    )
 
 
 class SQLExecutor:
@@ -922,7 +1057,7 @@ class SQLExecutor:
         if script.statements:
             script.statements[-1].cap_limit_value(
                 effective_limit,
-                self.database.db_engine_spec.limit_method,
+                self.database.db_engine_spec.get_limit_method(self.database),
             )
 
     def _try_get_cached_result(
@@ -1084,25 +1219,47 @@ class SQLExecutor:
         if cache_key is None:
             return None
 
-        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
-            # Reconstruct statement results from cached data
-            statements = [
-                StatementResult(
-                    original_sql=stmt_data["original_sql"],
-                    executed_sql=stmt_data["executed_sql"],
-                    data=stmt_data["data"],
-                    row_count=stmt_data["row_count"],
-                    execution_time_ms=stmt_data["execution_time_ms"],
-                    truncated=stmt_data.get("truncated", False),
+        try:
+            cached = cache_manager.data_cache.get(cache_key)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Unable to read SQL result cache; treating as a miss", exc_info=True
+            )
+            return None
+
+        try:
+            if cached is not None:
+                # Reconstruct statement results from cached data
+                statements = [
+                    StatementResult(
+                        original_sql=stmt_data["original_sql"],
+                        executed_sql=stmt_data["executed_sql"],
+                        data=(
+                            _records_to_dataframe(
+                                stmt_data["data"],
+                                stmt_data.get("columns", []),
+                                dtypes=stmt_data.get("dtypes"),
+                            )
+                            if isinstance(stmt_data["data"], list)
+                            else stmt_data["data"]
+                        ),
+                        row_count=stmt_data["row_count"],
+                        execution_time_ms=stmt_data["execution_time_ms"],
+                        truncated=stmt_data.get("truncated", False),
+                    )
+                    for stmt_data in cached.get("statements", [])
+                ]
+                return QueryResultType(
+                    status=QueryStatus.SUCCESS,
+                    statements=statements,
+                    query_id=None,
+                    is_cached=True,
+                    total_execution_time_ms=cached.get("total_execution_time_ms", 0),
                 )
-                for stmt_data in cached.get("statements", [])
-            ]
-            return QueryResultType(
-                status=QueryStatus.SUCCESS,
-                statements=statements,
-                query_id=None,
-                is_cached=True,
-                total_execution_time_ms=cached.get("total_execution_time_ms", 0),
+        except Exception:  # pylint: disable=broad-except
+            # A stale or unreadable cache entry must not prevent query execution.
+            logger.warning(
+                "Unable to decode cached SQL result; treating as a miss", exc_info=True
             )
 
         return None
@@ -1136,8 +1293,6 @@ class SQLExecutor:
         # Convert DataFrames to list-of-dicts so the cache backend
         # does not need to pickle pandas objects (which can fail to
         # deserialize correctly with some backends or pandas versions).
-        import pandas as pd
-
         cached_data = {
             "statements": [
                 {
@@ -1147,6 +1302,16 @@ class SQLExecutor:
                         stmt.data.to_dict(orient="records")
                         if isinstance(stmt.data, pd.DataFrame)
                         else stmt.data
+                    ),
+                    "columns": (
+                        list(stmt.data.columns)
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else []
+                    ),
+                    "dtypes": (
+                        [str(dtype) for dtype in stmt.data.dtypes]
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else []
                     ),
                     "row_count": stmt.row_count,
                     "truncated": stmt.truncated,
@@ -1343,7 +1508,6 @@ class SQLExecutor:
     @staticmethod
     def _get_async_query_result(query_id: int) -> Any:
         """Get the result of an async query."""
-        import pandas as pd
         from superset_core.queries.types import (
             QueryResult as QueryResultType,
             QueryStatus as QueryStatusType,
@@ -1369,8 +1533,6 @@ class SQLExecutor:
 
         # Fetch results from results backend
         if query.results_key:
-            import msgpack
-
             from superset import results_backend_manager
 
             results_backend = results_backend_manager.results_backend
@@ -1378,25 +1540,13 @@ class SQLExecutor:
                 blob = results_backend.get(query.results_key)
                 if blob:
                     try:
-                        from superset.utils.core import zlib_decompress
-
-                        payload = msgpack.loads(zlib_decompress(blob))
+                        payload = _decode_async_results_payload(blob)
 
                         statements = [
                             StatementResult(
                                 original_sql=stmt_data.get("original_sql", ""),
                                 executed_sql=stmt_data.get("executed_sql", ""),
-                                data=(
-                                    pd.DataFrame(
-                                        stmt_data.get("data", []),
-                                        columns=[
-                                            c.get("column_name", c.get("name", ""))
-                                            for c in stmt_data.get("columns", [])
-                                        ],
-                                    )
-                                    if stmt_data.get("data")
-                                    else None
-                                ),
+                                data=_decode_async_statement_data(stmt_data),
                                 row_count=stmt_data.get("row_count", 0),
                                 truncated=stmt_data.get("truncated", False),
                                 execution_time_ms=stmt_data.get("execution_time_ms"),
@@ -1428,14 +1578,27 @@ class SQLExecutor:
 
     @staticmethod
     def _cancel_async_query(query_id: int, database: Database) -> bool:
-        """Cancel an async query."""
+        """Accept a stop with best-effort engine cancellation, or report a lost race."""
+        from superset.common.db_query_status import QueryStatus as DBQueryStatus
         from superset.models.sql_lab import Query as QueryModel
+        from superset.sql.execution.utils import finish_query_stop, set_query_stopped
+        from superset.utils.dates import now_as_float
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
-        if not query:
+        if not query or query.status in (
+            DBQueryStatus.SUCCESS,
+            DBQueryStatus.FAILED,
+            DBQueryStatus.TIMED_OUT,
+        ):
             return False
 
-        return SQLExecutor._cancel_query(database, query)
+        with db.session.no_autoflush:
+            if not set_query_stopped(query, now_as_float()):
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return False
+            return finish_query_stop(
+                query, lambda: SQLExecutor._cancel_query(database, query)
+            )
 
     @staticmethod
     def _cancel_query(database: Database, query: Any) -> bool:
@@ -1450,6 +1613,7 @@ class SQLExecutor:
         :param query: Query model instance to cancel
         :returns: True if cancelled successfully, False otherwise
         """
+        from superset.common.db_query_status import FINISHED_QUERY_STATUSES
         from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
         from superset.utils.core import QuerySource
 
@@ -1459,6 +1623,10 @@ class SQLExecutor:
 
         # Some databases may need to make preparations for query cancellation
         database.db_engine_spec.prepare_cancel_query(query)
+
+        # The query may have finished while the stop was being prepared
+        if query.status in FINISHED_QUERY_STATUSES:
+            return False
 
         # Check early cancellation flag
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):

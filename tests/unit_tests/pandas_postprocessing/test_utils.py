@@ -23,7 +23,10 @@ from superset.utils.pandas_postprocessing import (
     pivot,
     unescape_separator,
 )
-from superset.utils.pandas_postprocessing.utils import _append_columns
+from superset.utils.pandas_postprocessing.utils import (
+    _append_columns,
+    scalar_to_sequence,
+)
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
 
@@ -122,3 +125,16 @@ def test_append_columns_with_empty_mapping_returns_a_copy():
     assert post_df is not base_df
     assert post_df.columns.tolist() == ["y"]
     assert series_to_list(post_df["y"]) == [1.0, 2.0]
+
+
+def test_scalar_to_sequence() -> None:
+    """
+    None becomes an empty list.
+
+    A string is wrapped in a list.
+
+    A list is unchanged.
+    """
+    assert scalar_to_sequence(None) == []
+    assert scalar_to_sequence("a") == ["a"]
+    assert scalar_to_sequence(["a", "b"]) == ["a", "b"]

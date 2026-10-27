@@ -43,6 +43,7 @@ request-shape metrics, on the same prefix the cross-coupling test pins.
 from __future__ import annotations
 
 import contextlib
+import logging
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
@@ -71,6 +72,7 @@ from superset.versioning.api_helpers import (
 _DEFAULT_PAGE_SIZE: int = 25
 _MAX_PAGE_SIZE: int = 200
 _VALID_INCLUDE_VALUES: frozenset[str] = frozenset({"self", "related", "all"})
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 # Upper bound on the ``q`` search string. The search is a substring scan over
@@ -362,7 +364,19 @@ def get_activity(
         path_id=path_id,
     )
 
-    return records[offset : offset + bounded_size], total, truncated
+    page_records: list[dict[str, Any]] = records[offset : offset + bounded_size]
+    missing_snapshots: int = sum(
+        record.get("version_uuid") is None for record in page_records
+    )
+    if missing_snapshots:
+        logger.debug(
+            "Activity rows without version snapshots: "
+            "entity_type=%s entity_id=%s count=%d",
+            path_kind,
+            path_id,
+            missing_snapshots,
+        )
+    return page_records, total, truncated
 
 
 def activity_endpoint(

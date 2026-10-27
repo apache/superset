@@ -23,7 +23,6 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';
 import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
-import CopyPlugin from 'copy-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MinimizerPlugin from 'minimizer-webpack-plugin';
@@ -33,8 +32,9 @@ import {
   WebpackManifestPlugin,
   getCompilerHooks,
 } from 'webpack-manifest-plugin';
-import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 import Visualizer from 'webpack-visualizer-plugin2';
 import getProxyConfig from './webpack.proxy-config.js';
 
@@ -49,6 +49,8 @@ const resolveEsmModule = specifier =>
 const packageConfig = JSON.parse(
   fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
 );
+
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -78,12 +80,11 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
   const isDevMode = mode !== 'production';
   const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
-  // TypeScript checker memory limit (in MB)
-  const TYPESCRIPT_MEMORY_LIMIT = 8192;
-
   const defaultEntryFilename = isDevMode
     ? '[name].[contenthash:8].entry.js'
-    : '[name].[chunkhash].entry.js';
+    : nameChunks
+      ? '[name].[chunkhash].entry.js'
+      : '[name].[chunkhash].entry.js';
 
   const defaultChunkFilename = isDevMode
     ? '[name].[contenthash:8].chunk.js'
@@ -102,6 +103,21 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
       pathData.chunk?.name === 'service-worker'
         ? '../service-worker.js'
         : defaultChunkFilename,
+    copy: [
+      'package.json',
+      { from: 'src/assets/images', to: 'images' },
+      // maplibre-gl 6's ESM-only build loads its worker from a real URL
+      // instead of an inlined blob (see MapLibre.tsx for the matching
+      // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+      // relative ESM import of its "shared" chunk, so both files must be
+      // copied verbatim, unhashed, into the same output directory.
+      {
+        from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+      },
+      {
+        from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+      },
+    ],
   };
 
   if (!isDevMode) {
@@ -156,26 +172,6 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
       'process.env.SCARF_ANALYTICS': JSON.stringify(
         process.env.SCARF_ANALYTICS,
       ),
-    }),
-
-    new CopyPlugin({
-      patterns: [
-        'package.json',
-        { from: 'src/assets/images', to: 'images' },
-        // maplibre-gl 6's ESM-only build loads its worker from a real URL
-        // instead of an inlined blob (see MapLibre.tsx for the matching
-        // maplibregl.setWorkerUrl() call). The worker's own bundle does a
-        // relative ESM import of its "shared" chunk, so both files must be
-        // copied verbatim, unhashed, into the same output directory.
-        {
-          from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
-          to: 'maplibre-gl-worker.mjs',
-        },
-        {
-          from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
-          to: 'maplibre-gl-shared.mjs',
-        },
-      ],
     }),
 
     // static pages
@@ -250,40 +246,11 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
     );
   }
 
-  // TypeScript type checking and .d.ts generation
-  // SWC handles transpilation; this plugin handles type checking separately.
-  // build: true enables project references so .d.ts files are auto-generated
-  // across the monorepo when editing plugins/packages.
-  // mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
-  // Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
-  // Type errors are still caught by pre-commit and CI.
-  const disableTsChecker = ['true', '1'].includes(
-    (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
-  );
-  if (isDevMode && !disableTsChecker) {
-    plugins.push(
-      new ForkTsCheckerWebpackPlugin({
-        async: true,
-        typescript: {
-          build: true,
-          mode: 'write-references',
-          memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-          configOverwrite: {
-            compilerOptions: {
-              skipLibCheck: true,
-              incremental: true,
-            },
-            exclude: [
-              'src/**/*.js',
-              'src/**/*.jsx',
-              '**/*.test.*',
-              '**/*.stories.*',
-            ],
-          },
-        },
-      }),
-    );
-  }
+  // Type checking does not run inside webpack: SWC only transpiles, and the
+  // native TypeScript compiler is fast enough to run on its own. Use
+  // `npm run type` (or `npm run type -- --watch`) for type errors, and
+  // `npm run plugins:build` (or `npx tsc --build --watch`) to refresh the
+  // packages' .d.ts output while editing plugins/packages.
 
   // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
   const PREAMBLE = isDevMode
@@ -676,14 +643,14 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
   console.log(''); // pure cosmetic new line
 
   if (isDevMode) {
-    let proxyConfig = getProxyConfig(undefined, env);
+    let proxyConfig = getProxyConfig();
     // Set up a plugin to handle manifest updates
     config.plugins = config.plugins || [];
     config.plugins.push({
       apply: compiler => {
         const { afterEmit } = getCompilerHooks(compiler);
         afterEmit.tap('ManifestPlugin', manifest => {
-          proxyConfig = getProxyConfig(manifest, env);
+          proxyConfig = getProxyConfig(manifest);
         });
       },
     });
@@ -744,8 +711,8 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
   }
 
   // Speed measurement is disabled by default
-  // Pass key-value pair --measure=true to webpack-cli's `--env` flag to enable.
-  // e.g. npm run build -- --env measure=true
+  // Pass flag --measure=true to enable
+  // e.g. npm run build -- --measure=true
   const smp = new SpeedMeasurePlugin({
     disable: !measure,
   });

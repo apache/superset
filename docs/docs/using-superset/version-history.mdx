@@ -96,6 +96,33 @@ History retention is configured independently with `VERSION_HISTORY_RETENTION_DA
 in `superset_config.py` or the environment variable of the same name. Its default
 is 30 days; set it to `0` to disable pruning. The scheduled retention task preserves
 live versions and prunes eligible closed history older than the configured window.
+`VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN` defaults to `1000` whole
+transactions per scheduled run. The transaction's shadow rows and change records
+are removed together; the cap counts transactions, not physical rows. Set the
+cap to `0` or `None` in `superset_config.py` for an unlimited run. Negative,
+boolean, string, and fractional caps are invalid and stop the task without
+deleting history. A capped run reports `cap_reached`, `remaining_eligible`, and
+`remaining_count_complete`. The remainder is exact when the bounded probe
+covers the backlog; otherwise it is a lower bound from its first 1,000 aged
+transaction candidates after the live scan's stopping point. If that probe
+fails after a successful prune, the remainder is `None` without hiding the
+committed deletion totals. A backlog drains only when successful pruning exceeds
+the rate at which transactions become eligible. With the default daily schedule
+and cap, scheduled capacity is 1,000 transactions per day. At that throughput,
+an eligible inflow of 1,500 per day grows the backlog by 500 per day. Size the cap in
+`superset_config.py`, or increase the task's beat frequency, to exceed eligible
+inflow and leave capacity for catch-up. Repeated `cap_reached=True` results warrant
+checking the backlog trend and available capacity; read them alongside remainder
+completeness and task errors. Live-history exclusions can reduce actual throughput.
+If a database commit's outcome is uncertain, the task stops rather than
+retrying that window, so it cannot spend another cap allowance in the same
+run. The task reports an error because it cannot assert how many transactions
+were committed. A definitive `OperationalError`, including one rejected at
+commit with a valid connection, may retry up to three attempts.
+Monitor the
+`superset.versioning.retention.remaining_count_complete` gauge alongside the
+`remaining_eligible_at_least` gauge so a lower-bound zero is not read as an
+empty backlog.
 The released `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` key remains a deprecated
 fallback: its positive window is preserved and any nonpositive value still
 disables pruning. Migrate a legacy `-1` or other negative disable to the new
@@ -121,7 +148,11 @@ one of those transactions: closed rows can be removed when their closing
 transaction expires. Retention can therefore remove history used by previews
 and restores; version history is not a substitute for backups.
 
-There is no dry-run switch for this task. Neither `VERSION_HISTORY` nor
+Set `VERSION_HISTORY_PRUNE_DRY_RUN = True` in `superset_config.py` to scan the
+entire eligible backlog without deleting anything. The result includes
+`eligible_backlog` and `estimated_capped_runs`; a live-anchor transaction is
+excluded from both. The dry-run setting must be a boolean; an invalid value
+skips the scheduled task without deleting history. Neither `VERSION_HISTORY` nor
 `ENABLE_VERSIONING_CAPTURE` disables pruning of existing history. To preserve
 history while the feature is off, set the retention value to `0` and leave the
 task's beat schedule entry in place: removing the entry logs a missing-schedule
@@ -206,6 +237,14 @@ close and reopen it to see the new version.
 Selecting a version loads it into the page so you can see it before deciding
 anything.
 
+Some activity entries, such as adding a chart to a dashboard without changing
+the dashboard's saved properties, have no corresponding version snapshot.
+They remain visible in history, but cannot be previewed, restored, or opened
+as a new chart or dashboard. These rows show “No saved version to preview”
+and are not interactive. You can still expand their save group to read the
+changes. Preview and version actions are available only when a saved snapshot
+exists; the current version does not offer Restore because it is already live.
+
 <img
   src={useBaseUrl('/img/version-history/version-history-preview.jpg')}
   alt="Illustrative chart preview from an earlier build, with Restore, Open as new chart, and Close preview actions; only the First tracked save group is highlighted"
@@ -229,6 +268,8 @@ selections you had before you opened it.
 A dashboard preview reconstructs the layout as it was, including charts that
 have since been removed from the dashboard. A chart that has been deleted
 outright cannot be reconstructed; its slot shows a placeholder instead.
+Empty chart slots left by older dashboard copies are repaired on save,
+preserving their size. Detached slots are reattached to a reachable container.
 
 Preview is a close approximation of the version, not a pixel-faithful replay.
 The dashboard's own saved properties — title, CSS, metadata, description,
@@ -249,8 +290,15 @@ worth knowing:
   you moved away from. Returning to one of those states depends on its history
   still being available; retention and permanent deletion can remove it.
 - **A dashboard restore may be partial.** If the version referenced charts that
-  have since been deleted, the layout is restored without them and Superset
-  tells you how many were not reattached.
+  have since been permanently deleted, they are not reattached and Superset
+  tells you how many. Their layout slots come back as the version had them.
+  Archived charts are not skipped: they are linked to the dashboard as in the
+  version, so restoring one from the archive later puts it back on that
+  dashboard. An archived chart that was not in the version is unlinked, so
+  restoring it from the archive later does not put it back on this dashboard.
+  If a chart the restore is putting back or unlinking is permanently deleted
+  while the restore runs, nothing is changed and Superset asks you to try
+  again; the retry restores the version without that chart.
 
 Restoring is offered to the same users who may edit the entity, and is withheld
 from externally managed entities, whose source of truth lives outside Superset
@@ -259,8 +307,10 @@ and would overwrite the restore on the next sync.
 ## Opening a version as something new
 
 Use the **… (actions)** menu on a save-group header to open that version as
-a new chart or dashboard. Individual field-change rows preview the version;
-they do not have separate action menus.
+a new chart or dashboard. Individual field-change rows with a saved snapshot
+select that version; selecting the current version exits a historical preview.
+Rows without a saved snapshot cannot be selected. Field-change rows do not
+have separate action menus.
 
 **Open as new** creates a brand-new chart or dashboard from the selected
 version and leaves the original untouched. This is the safer option when you
@@ -273,6 +323,24 @@ timeout. A new dashboard is a copy of the *live* dashboard with the version's
 title, CSS, metadata, and layout applied over it — the copy endpoint accepts
 only those fields, so properties such as description, slug, certification, and
 theme come from the dashboard as it stands today, not from the version.
+
+When copying a dashboard **and its charts**, archived chart slots in the copy
+become placeholders saying "This archived chart was not copied." Their layout
+positions and sizes are preserved, but they do not link to the archived original.
+Restoring that original chart later therefore does not attach it to the copy.
+Live charts are still cloned. The source dashboard is unchanged, and ordinary
+dashboard saves and chart restores keep their existing reattachment behavior.
+This rule does not change copying a dashboard without copying its charts.
+
+Copying with charts refuses a layout slot that still references a live chart
+removed from the dashboard's membership. The error identifies the slot and the
+membership mismatch; no partial copy is saved. Repair the source layout before
+retrying. Malformed chart references also return a validation error (HTTP 422).
+
+Saving a dashboard removes detached duplicate chart slots before turning missing
+charts into placeholders. Numeric string or whole-number chart IDs are stored as
+integers so the saved charts remain available to native and cross-filter scopes.
+Empty slots from older copies still become placeholders with their size preserved.
 
 ## What gets recorded
 

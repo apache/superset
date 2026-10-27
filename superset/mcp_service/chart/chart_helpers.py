@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from copy import deepcopy
+from enum import Enum
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -432,6 +434,13 @@ def merge_extra_form_data_filters_into_query(
         extra_form_data,
     )
     merge_form_data_filters_into_query(query, extra_query_form_data)
+    if extra_form_data.get("time_range"):
+        from superset.charts.data.dashboard_filter_context import (
+            mark_dashboard_time_range_filters,
+        )
+
+        # Like a dashboard range, it is extra only over unbounded saved ranges.
+        mark_dashboard_time_range_filters(query.get("filters") or [])
 
 
 def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
@@ -922,8 +931,16 @@ def resolve_gantt_query_fields(  # noqa: C901
         if isinstance(value, str) and value:
             return value
         if isinstance(value, dict) and 0 < len(value) <= 20:
-            # QueryFormColumn objects use column_name for physical columns or
-            # expressionType/sqlExpression/label for adhoc columns.
+            # Saved QueryFormColumn objects need names in semantic queries;
+            # ad-hoc expressions retain their dictionary representation.
+            column_name: object = value.get("column_name")
+            if (
+                isinstance(column_name, str)
+                and column_name
+                and value.get("expressionType") in (None, "SIMPLE")
+                and not value.get("sqlExpression")
+            ):
+                return column_name
             if value.get("column_name") or (
                 value.get("expressionType") and value.get("label")
             ):
@@ -1133,6 +1150,20 @@ def build_single_query_dict(
     return qd
 
 
+def coerce_enum_values(value: Any) -> Any:
+    """Replace enum members with their values, in place for dicts and lists."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, dict):
+        for key, item in value.items():
+            value[key] = coerce_enum_values(item)
+    elif isinstance(value, list):
+        value[:] = [coerce_enum_values(item) for item in value]
+    elif isinstance(value, tuple):
+        return tuple(coerce_enum_values(item) for item in value)
+    return value
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -1148,12 +1179,19 @@ def build_query_dicts_from_form_data(
     ``superset.common.form_data_query_context``. This production entry point
     only performs server filter normalization and the legacy Deck.gl spatial
     augmentation before delegating to that shared frontend-equivalent contract.
+    Normalization uses deep copies to preserve caller-owned form data.
     """
     from superset.common.form_data_query_context import (
         build_query_objects_from_form_data,
     )
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
+    # Typed chart configs carry enums such as TimeGrain. Every MCP query is
+    # built here, so unwrap them once: template rendering rejects non-primitive
+    # context values.
+    form_data = coerce_enum_values(deepcopy(form_data))
+    if extra_form_data is not None:
+        extra_form_data = coerce_enum_values(deepcopy(extra_form_data))
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")
@@ -1197,17 +1235,11 @@ def build_query_dicts_from_form_data(
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        from superset.common.form_data_query_context import normalize_time_column
-
-        qd = build_query_objects_from_form_data(
-            form_data,
-            viz_type=viz_type,
-            row_limit=row_limit,
-            order_desc=order_desc,
-            filters_prepared=True,
-        )[0]
-        qd = _deck_query_adapter(form_data, qd, viz_type)
-        return [normalize_time_column(form_data, qd)]
+        return [
+            build_deck_gl_query_dict(
+                form_data, viz_type, row_limit=row_limit, order_desc=order_desc
+            )
+        ]
     return build_query_objects_from_form_data(
         form_data,
         viz_type=viz_type,
@@ -1216,6 +1248,33 @@ def build_query_dicts_from_form_data(
         filters_prepared=True,
         secondary_form_data=secondary_form_data,
     )
+
+
+def build_deck_gl_query_dict(
+    form_data: dict[str, Any],
+    viz_type: str,
+    *,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build the single query a Deck.gl layer issues from its spatial controls.
+
+    ``form_data`` must already be prepared for querying (filters normalized).
+    """
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+        normalize_time_column,
+    )
+
+    qd = build_query_objects_from_form_data(
+        form_data,
+        viz_type=viz_type,
+        row_limit=row_limit,
+        order_desc=order_desc,
+        filters_prepared=True,
+    )[0]
+    qd = _deck_query_adapter(form_data, qd, viz_type)
+    return normalize_time_column(form_data, qd)
 
 
 def resolve_form_data_datasource(
@@ -1408,3 +1467,66 @@ def build_applied_dashboard_filters(
         )
 
     return applied
+
+
+def _parse_orderby(values: Any) -> list[list[Any]]:
+    """Parse bounded native ``order_by_cols`` without coercing malformed input."""
+    if values is not None and not isinstance(values, list):
+        raise ValueError("order_by_cols must be a list")
+    if isinstance(values, list) and len(values) > 100:
+        raise ValueError("order_by_cols must contain at most 100 entries")
+    from superset.utils import json as utils_json
+
+    result: list[list[Any]] = []
+    for index, value in enumerate(values or []):
+        if isinstance(value, str):
+            if len(value) > 1000:
+                raise ValueError(f"order_by_cols[{index}] is too long")
+            try:
+                value = utils_json.loads(value)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(f"order_by_cols[{index}] is not valid JSON") from ex
+        if (
+            isinstance(value, (list, tuple))
+            and len(value) == 2
+            and isinstance(value[0], str)
+            and bool(value[0])
+            and isinstance(value[1], bool)
+        ):
+            result.append(list(value))
+        else:
+            raise ValueError(
+                f"order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+    return result
+
+
+def _column_label(column: Any) -> str | None:
+    """Return the frontend ``getColumnLabel`` value for a query column."""
+    if isinstance(column, str):
+        return column
+    if not isinstance(column, dict):
+        return None
+    return (
+        column.get("label") or column.get("sqlExpression") or column.get("column_name")
+    )
+
+
+def _metric_label(metric: Any) -> str | None:
+    """Return the frontend ``getMetricLabel`` value for a query metric."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if label := metric.get("label"):
+        return label
+    if metric.get("expressionType") == "SIMPLE":
+        column = metric.get("column") or {}
+        name = (
+            column.get("columnName") or column.get("column_name")
+            if isinstance(column, dict)
+            else None
+        )
+        if name and metric.get("aggregate"):
+            return f"{metric['aggregate']}({name})"
+    return metric.get("sqlExpression")

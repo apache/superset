@@ -27,7 +27,7 @@ import mcp.types as mt
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
-from fastmcp.tools.tool import Tool, ToolResult
+from fastmcp.tools import Tool, ToolResult
 from flask import g
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
@@ -59,6 +59,7 @@ from superset.mcp_service.auth import (
 from superset.mcp_service.constants import (
     CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -70,6 +71,7 @@ from superset.mcp_service.utils.response_size_utils import (
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
+    PNG_PREVIEW_TOOLS,
     RESPONSE_AWARE_SUGGESTION_TOOLS,
     string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
@@ -549,8 +551,29 @@ class LoggingMiddleware(Middleware):
     payload).
     """
 
-    #: Proxy name used by FastMCP tool-search transforms.
-    _CALL_TOOL_PROXY = "call_tool"
+    @staticmethod
+    def _call_tool_proxy_name() -> str:
+        """Return the configured name of the tool-search call proxy.
+
+        Read from the same ``MCP_TOOL_SEARCH_CONFIG["call_tool_name"]`` setting
+        the proxy is registered under, so a renamed proxy is still recognised.
+        Falls back to the packaged default when no Flask app is reachable.
+        """
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        config: Any = MCP_TOOL_SEARCH_CONFIG
+        try:
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            config = get_flask_app().config.get(
+                "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("Flask app unavailable; using default call proxy name")
+        name = config.get("call_tool_name") if isinstance(config, dict) else None
+        if isinstance(name, str) and name:
+            return name
+        return MCP_TOOL_SEARCH_CONFIG["call_tool_name"]
 
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
@@ -661,17 +684,17 @@ class LoggingMiddleware(Middleware):
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
         """Resolve the underlying tool name from call_tool proxy arguments.
 
-        When tool search is enabled, the MCP client uses the ``call_tool``
-        proxy and passes the real tool name as the ``name`` argument.  This
-        helper extracts that value so we can log which tool was actually
-        executed rather than just ``"call_tool"``.
+        When tool search is enabled, the MCP client uses the configured call
+        proxy (``call_tool`` by default) and passes the real tool name as the
+        ``name`` argument.  This helper extracts that value so we can log which
+        tool was actually executed rather than just ``"call_tool"``.
 
         Returns:
             The resolved tool name if *tool_name* is the call_tool proxy and
             ``params["name"]`` is a non-empty string, otherwise ``None``.
         """
         if (
-            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            tool_name == LoggingMiddleware._call_tool_proxy_name()
             and isinstance(params, dict)
             and isinstance(params.get("name"), str)
             and params["name"]
@@ -842,7 +865,7 @@ class LoggingMiddleware(Middleware):
             registered = None
         if registered is not None:
             return candidate
-        return "call_tool" if mcp_tool else "unknown"
+        return LoggingMiddleware._call_tool_proxy_name() if mcp_tool else "unknown"
 
     async def _emit_call_metrics(
         self,
@@ -856,6 +879,12 @@ class LoggingMiddleware(Middleware):
     ) -> None:
         """Emit the per-tool outcome counter and timing for one call.
 
+        An outcome the ``call_tool`` proxy merely forwards (``mcp_tool`` set,
+        nothing raised) was already counted and timed, with its own
+        user/system classification, when the proxied tool ran through this
+        middleware. Skip the redundant proxy emission for both successes
+        and failures, but still count exceptions raised by the proxy itself.
+
         Single emission point for the per-tool outcome counters —
         GlobalErrorHandlerMiddleware (inner) re-raises every failure as
         ToolError, so counting there as well would double-count raised
@@ -865,6 +894,8 @@ class LoggingMiddleware(Middleware):
         free-form error_type that cannot be reliably classified, so they
         count as error (the parsed error_type is in the curated payload).
         """
+        if mcp_tool is not None and raised_is_user_error is None:
+            return
         metric_tool = await self._resolve_metric_tool_name(context, tool_name, mcp_tool)
         if success:
             outcome = "success"
@@ -1516,6 +1547,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     - max_bytes: Maximum serialized response size in bytes (default: 50,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - max_list_items: Cap for list fields during dynamic truncation (default: 100)
+    - png_max_bytes: Maximum PNG preview response size (default: 1,000,000)
     - excluded_tools: Tools to skip checking
     """
 
@@ -1525,8 +1557,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
         max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+        png_max_bytes: int = DEFAULT_MAX_PNG_RESPONSE_BYTES,
     ) -> None:
         self.max_bytes = max_bytes
+        self.png_max_bytes = max(1, png_max_bytes)
         self.warn_threshold_pct = warn_threshold_pct
         self.warn_threshold = int(max_bytes * warn_threshold_pct / 100)
         if isinstance(excluded_tools, str):
@@ -1549,7 +1583,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the payload dict when extraction succeeds, or ``None`` when
         the response is not a ToolResult or cannot be parsed.
         """
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
 
         from superset.utils.json import loads as json_loads
 
@@ -1576,7 +1610,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     @staticmethod
     def _rewrap_as_tool_result(payload: dict[str, Any], original: Any) -> Any:
         """Re-serialize a truncated payload dict back into a ToolResult."""
-        from fastmcp.tools.tool import ToolResult
+        from fastmcp.tools import ToolResult
         from mcp.types import TextContent
 
         from superset.utils.json import dumps as json_dumps
@@ -2179,6 +2213,52 @@ class ResponseSizeGuardMiddleware(Middleware):
         # the oversized path below rather than slipping through unmeasured.
         actual_bytes = get_response_size_bytes(estimation_target)
 
+        # Choose the image budget from the returned payload, never request args.
+        # Other formats of this tool retain the normal text-response budget.
+        content = (
+            estimation_target.get("content")
+            if isinstance(estimation_target, dict)
+            else None
+        )
+        if (
+            tool_name in PNG_PREVIEW_TOOLS
+            and isinstance(content, dict)
+            and content.get("type") == "png"
+        ):
+            if actual_bytes > self.png_max_bytes:
+                logger.warning(
+                    "Response blocked for %s: %d bytes exceeds png_max_bytes of %d",
+                    tool_name,
+                    actual_bytes,
+                    self.png_max_bytes,
+                )
+                # Hop off the transport loop for the metadata write, as the
+                # text-path audit does: the loop must never wait on a pooled
+                # connection that a tool worker may be holding.
+                try:
+                    await run_in_metadata_thread(
+                        event_logger.log,
+                        user_id=get_user_id(),
+                        action="mcp_response_size_exceeded",
+                        dashboard_id=None,
+                        duration_ms=None,
+                        slice_id=None,
+                        referrer=None,
+                        curated_payload={
+                            "tool": tool_name,
+                            "actual_bytes": actual_bytes,
+                            "max_bytes": self.png_max_bytes,
+                        },
+                    )
+                except Exception as log_error:  # noqa: BLE001
+                    logger.warning("Failed to log size exceeded event: %s", log_error)
+                raise ToolError(
+                    f"PNG preview is {actual_bytes} bytes, exceeding the "
+                    f"{self.png_max_bytes}-byte limit. Request smaller width and "
+                    "height, or use the URL preview format."
+                )
+            return response
+
         # Log warning if approaching limit
         if actual_bytes > self.warn_threshold:
             logger.warning(
@@ -2303,6 +2383,9 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             ),
             excluded_tools=config.get("excluded_tools"),
             max_list_items=max_list_items,
+            png_max_bytes=_safe_int_config(
+                config, "png_max_bytes", DEFAULT_MAX_PNG_RESPONSE_BYTES
+            ),
         )
 
         logger.info(
