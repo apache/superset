@@ -219,6 +219,20 @@ test('a legacy index past the scheme length leaves every legacy index unresolved
   expect(screen.queryByText('#2CA02C')).not.toBeInTheDocument();
 });
 
+test('a legacy index past the scheme length beyond the rendered bounds is ignored', () => {
+  render(
+    <IntervalColorsControl
+      onChange={jest.fn()}
+      intervals="20,60"
+      legacyIntervalColorIndices="2,3,7"
+      colorScheme="testScheme"
+    />,
+  );
+
+  expect(screen.getByText('#FF7F0E')).toBeInTheDocument();
+  expect(screen.getByText('#2CA02C')).toBeInTheDocument();
+});
+
 test('a single unparseable legacy index discards every legacy index, not just its own', () => {
   // Matches `getIntervalBoundsAndColors` in Gauge/transformProps.ts exactly:
   // one bad token falls back to the positional scheme color for every
