@@ -104,7 +104,9 @@ when requested, never a silent substitution — so cost and answer quality stay
 attributable to the model actually used.
 
 Users may also pin a specific model per turn. Only models present in your
-`models` mapping are accepted; anything else is rejected.
+`models` mapping are accepted; anything else is rejected. A per-turn pin takes
+precedence over the profile's `model`; without either, the profile's `model_alias`
+selects the model. The selection reaches every model round trip and the audit trail.
 
 ## Agent profiles
 
@@ -225,6 +227,22 @@ can be queued again after an uncertain broker acknowledgement; only one delivery
 can claim it for execution. Retrying a completed turn does not regenerate its
 answer. An inline reconnect waits for the original producer's stored result
 rather than starting another inference; live deltas still belong to that producer.
+
+Each turn reads history only up to its own assistant placeholder. A later queued
+question cannot change the earlier turn's question, even if workers execute them
+out of order.
+
+After a reload, the visible conversation polls its saved pending/streaming run
+every two seconds until the metadata records completion, cancellation or failure.
+It does not submit another turn or rerun inference. Stop targets the saved run ID,
+and polling ends when switching away or unmounting the panel. This recovers the
+eventual stored answer; it does not replay live token deltas or recover a lost worker.
+
+Action `systemPrompt` values and explicit `helper_directives` are additional user
+instructions for that turn. They enter a user-role message before the question,
+and are included in the recorded context. They do not acquire system authority or
+override operator policies. The renderer accepts only nonblank strings from the
+first ten entries and caps the combined instruction section at 4,000 characters.
 
 ## Safety and limits
 
