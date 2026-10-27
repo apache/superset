@@ -44,6 +44,7 @@ from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
+    format_list,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
@@ -498,7 +499,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
-                    labels=", ".join(f'"{x}"' for x in dup_labels),
+                    labels=format_list(dup_labels),
                 )
             )
 
@@ -581,7 +582,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "The following entries in `series_columns` are missing "
                     "in `columns`: %(columns)s. ",
-                    columns=", ".join(f'"{x}"' for x in missing_series),
+                    columns=format_list([str(col) for col in missing_series]),
                 )
             )
 

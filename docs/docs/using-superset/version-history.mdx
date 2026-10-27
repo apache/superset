@@ -237,6 +237,14 @@ close and reopen it to see the new version.
 Selecting a version loads it into the page so you can see it before deciding
 anything.
 
+Some activity entries, such as adding a chart to a dashboard without changing
+the dashboard's saved properties, have no corresponding version snapshot.
+They remain visible in history, but cannot be previewed, restored, or opened
+as a new chart or dashboard. These rows show “No saved version to preview”
+and are not interactive. You can still expand their save group to read the
+changes. Preview and version actions are available only when a saved snapshot
+exists; the current version does not offer Restore because it is already live.
+
 <img
   src={useBaseUrl('/img/version-history/version-history-preview.jpg')}
   alt="Illustrative chart preview from an earlier build, with Restore, Open as new chart, and Close preview actions; only the First tracked save group is highlighted"
@@ -282,8 +290,15 @@ worth knowing:
   you moved away from. Returning to one of those states depends on its history
   still being available; retention and permanent deletion can remove it.
 - **A dashboard restore may be partial.** If the version referenced charts that
-  have since been deleted, the layout is restored without them and Superset
-  tells you how many were not reattached.
+  have since been permanently deleted, they are not reattached and Superset
+  tells you how many. Their layout slots come back as the version had them.
+  Archived charts are not skipped: they are linked to the dashboard as in the
+  version, so restoring one from the archive later puts it back on that
+  dashboard. An archived chart that was not in the version is unlinked, so
+  restoring it from the archive later does not put it back on this dashboard.
+  If a chart the restore is putting back or unlinking is permanently deleted
+  while the restore runs, nothing is changed and Superset asks you to try
+  again; the retry restores the version without that chart.
 
 Restoring is offered to the same users who may edit the entity, and is withheld
 from externally managed entities, whose source of truth lives outside Superset
@@ -292,8 +307,10 @@ and would overwrite the restore on the next sync.
 ## Opening a version as something new
 
 Use the **… (actions)** menu on a save-group header to open that version as
-a new chart or dashboard. Individual field-change rows preview the version;
-they do not have separate action menus.
+a new chart or dashboard. Individual field-change rows with a saved snapshot
+select that version; selecting the current version exits a historical preview.
+Rows without a saved snapshot cannot be selected. Field-change rows do not
+have separate action menus.
 
 **Open as new** creates a brand-new chart or dashboard from the selected
 version and leaves the original untouched. This is the safer option when you

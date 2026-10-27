@@ -15,6 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import struct
+from io import BytesIO
+from typing import Any
+from zipfile import is_zipfile, ZIP_DEFLATED, ZipFile
+
 from superset.themes.api import ThemeRestApi
 from superset.themes.schemas import ThemePostSchema, ThemePutSchema
 from superset.utils import json
@@ -166,3 +171,31 @@ class TestThemeRestApi:
         )
 
         assert json.loads(result["json_data"])["token"]["brandSpinnerUrl"] == ""
+
+
+def test_import_theme_corrupt_member(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A ZIP whose member has a corrupt deflate stream passes ``is_zipfile`` and
+    opens fine, but fails when the member is read; the endpoint must return a
+    422 instead of a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w", compression=ZIP_DEFLATED) as bundle:
+        bundle.writestr("bundle/themes/theme.yaml", "theme_name: test\n" * 20)
+    data = bytearray(buf.getvalue())
+    name_length, extra_length = struct.unpack("<HH", data[26:30])
+    # 0xFF starts a deflate block with the reserved (invalid) block type
+    data[30 + name_length + extra_length] = 0xFF
+    assert is_zipfile(BytesIO(bytes(data)))
+
+    response = client.post(
+        "/api/v1/theme/import/",
+        data={"formData": (BytesIO(bytes(data)), "corrupt.zip")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 422
+    assert response.json["errors"][0]["message"] == "Invalid or corrupted ZIP file"

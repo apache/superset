@@ -149,6 +149,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendType,
     legendSort,
     showLegend,
+    showSelectorLegend,
     yAxisTitle,
     yAxisTitleMargin,
     xAxisTitle,
@@ -419,6 +420,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -470,6 +472,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
         padding,

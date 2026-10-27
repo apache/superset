@@ -25,12 +25,20 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { Color } from '@deck.gl/core';
 import { hexToRGB } from './utils/colors';
 import { ColorBreakpointType } from './types';
 
 export const TRANSPARENT_COLOR_ARRAY = [0, 0, 0, 0] as Color;
 export const HIGHLIGHT_COLOR_ARRAY = [255, 0, 0, 255] as Color;
+// Stands in for a null dimension value so those rows still get a category, a
+// color and a legend entry. Kept distinct from NULL_DISPLAY so the key stays
+// stable across locales.
+export const NULL_CATEGORY_KEY = '<NULL>';
+
+export const formatNullCategory = (value: string) =>
+  value === NULL_CATEGORY_KEY ? Constants.NULL_DISPLAY : value;
 
 const DEFAULT_NUM_BUCKETS = 10;
 

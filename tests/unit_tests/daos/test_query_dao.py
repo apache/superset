@@ -26,7 +26,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from superset.common.db_query_status import QueryStatus
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.daos.query import QueryDAO
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -191,7 +191,10 @@ def test_engine_early_cancel_preserves_concurrently_committed_terminal_metadata(
     engine.dispose()
 
 
-@pytest.mark.parametrize("engine_name", ["trino", "impala"])
+@pytest.mark.parametrize(
+    ("engine_name", "published_handle"),
+    [("trino", False), ("impala", False), ("impala", True)],
+)
 @pytest.mark.parametrize("caller", ["dao", "async_handle"])
 def test_engine_early_cancel_commits_with_guarded_stop(
     mocker: MockerFixture,
@@ -199,6 +202,7 @@ def test_engine_early_cancel_commits_with_guarded_stop(
     tmp_path: Path,
     engine_name: str,
     caller: str,
+    published_handle: bool,
 ) -> None:
     """Both cancellation callers publish early intent together with STOPPED."""
     from superset.db_engine_specs.impala import ImpalaEngineSpec
@@ -212,6 +216,10 @@ def test_engine_early_cancel_commits_with_guarded_stop(
     Database.__table__.create(engine)
     Database.metadata.tables["ssh_tunnels"].create(engine)
     Query.__table__.create(engine)
+    initial_extra: dict[str, bool | str] = {"initial": True}
+    if published_handle:
+        initial_extra[QUERY_CANCEL_KEY] = "0123456789abcdef:fedcba9876543210"
+    http_cancel = mocker.patch.object(engine_spec, "cancel_query", return_value=True)
     with Session(engine) as stop_session:
         # Core inserts avoid unrelated permission-creation ORM event handlers.
         stop_session.execute(
@@ -225,8 +233,10 @@ def test_engine_early_cancel_commits_with_guarded_stop(
             user_id=7,
             database_id=1,
             status=QueryStatus.RUNNING,
-            extra_json='{"initial": true}',
         )
+        from superset.utils import json
+
+        query.extra_json = json.dumps(initial_extra)
         stop_session.add(query)
         stop_session.commit()
         mocker.patch("superset.daos.query.db.session", stop_session)
@@ -239,7 +249,7 @@ def test_engine_early_cancel_commits_with_guarded_stop(
                 stored = observer.get(Query, 123)
                 assert stored is not None
                 assert stored.status == QueryStatus.STOPPED
-                assert stored.extra == {"initial": True}
+                assert stored.extra == initial_extra
 
         mocker.patch.object(
             engine_spec, "prepare_cancel_query", side_effect=prepare_without_commit
@@ -253,8 +263,9 @@ def test_engine_early_cancel_commits_with_guarded_stop(
         stopped = verify_session.get(Query, 123)
         assert stopped is not None
         assert stopped.status == QueryStatus.STOPPED
-        assert stopped.extra == {"initial": True, QUERY_EARLY_CANCEL_KEY: True}
+        assert stopped.extra == {**initial_extra, QUERY_EARLY_CANCEL_KEY: True}
         assert stopped.end_time is not None
+    http_cancel.assert_not_called()
     engine.dispose()
 
 

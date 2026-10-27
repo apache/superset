@@ -172,6 +172,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Plain,
   showLegend: false,
+  showSelectorLegend: true,
   legendSort: null,
   xAxisTitle: '',
   xAxisTitleMargin: 40,

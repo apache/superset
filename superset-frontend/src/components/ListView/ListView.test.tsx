@@ -20,10 +20,10 @@ import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useHistory } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { ListView, type ListViewProps } from './ListView';
 import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
 
@@ -601,4 +601,80 @@ test('forceViewMode table shows table view', () => {
   expect(screen.queryByTestId('card')).not.toBeInTheDocument();
   // Table should be present
   expect(screen.getByRole('table')).toBeInTheDocument();
+});
+
+test('Back restores the search input and page results without a stale blur submission', async () => {
+  const fetchData = jest.fn<void, [ListViewFetchDataConfig]>();
+  function SearchHistoryList() {
+    const history = useHistory();
+    const [rows, setRows] = useState(mockedPropsSimple.data);
+    fetchData.mockImplementation(({ filters }) => {
+      const filtered = filters.some(filter => filter.value === 'saved');
+      setRows([
+        {
+          ...mockedPropsSimple.data[0],
+          name: filtered ? 'saved result' : 'unfiltered result',
+        },
+      ]);
+    });
+    return (
+      <>
+        <button type="button" onClick={() => history.goBack()}>
+          Back
+        </button>
+        <ListView
+          {...mockedPropsSimple}
+          data={rows}
+          count={20}
+          pageSize={10}
+          filters={[
+            {
+              key: 'name',
+              Header: 'Name',
+              id: 'name',
+              input: 'search',
+              operator: ListViewFilterOperator.Contains,
+            },
+          ]}
+          fetchData={fetchData}
+        />
+      </>
+    );
+  }
+  render(
+    <MemoryRouter initialEntries={['/?pageIndex=1']}>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <SearchHistoryList />
+      </QueryParamProvider>
+    </MemoryRouter>,
+  );
+  const input = screen.getByTestId('filters-search');
+  await screen.findByText('unfiltered result');
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pageIndex: 1, filters: [] }),
+    ),
+  );
+  await userEvent.type(input, 'saved{enter}');
+  await screen.findByText('saved result');
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pageIndex: 0,
+        filters: [expect.objectContaining({ value: 'saved' })],
+      }),
+    ),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+  await screen.findByText('unfiltered result');
+  await waitFor(() => expect(input).toHaveValue(''));
+  expect(fetchData).toHaveBeenLastCalledWith(
+    expect.objectContaining({ pageIndex: 1, filters: [] }),
+  );
+  fetchData.mockClear();
+  await userEvent.click(input);
+  await userEvent.tab();
+  expect(input).toHaveValue('');
+  expect(screen.getByText('unfiltered result')).toBeInTheDocument();
+  expect(fetchData).not.toHaveBeenCalled();
 });

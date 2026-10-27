@@ -37,6 +37,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import { init, type SeriesOption } from 'echarts';
 import type { GridComponentOption } from 'echarts/components';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -1466,6 +1467,36 @@ test('moves a visible horizontal Plain legend into a custom HTML legend and rest
   expect('contentHeight' in transformed).toBe(false);
 });
 
+test('hides legend selector buttons when showSelectorLegend is false', () => {
+  const plain = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(getCustomLegend(plain)?.showSelectors).toBe(false);
+
+  const scroll = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Scroll,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(
+    (scroll.echartOptions.legend as { selector?: false | unknown[] }).selector,
+  ).toBe(false);
+});
+
 test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
@@ -1653,6 +1684,10 @@ test('derives custom legend items from a single-object custom series override', 
     expect.objectContaining({
       color: '#123456',
       name: 'San Francisco',
+    }),
+    expect.objectContaining({
+      color: '#123456',
+      name: 'New York',
     }),
   ]);
 });
@@ -3240,7 +3275,7 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
 });
 describe('EchartsTimeseries tooltip truncation', () => {
   const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
-  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const color = '#1f77b4';
 
   const buildTooltip = (
     tooltipTruncation?: TooltipTruncationMode,
@@ -3279,7 +3314,7 @@ describe('EchartsTimeseries tooltip truncation', () => {
         seriesId: longSeriesName,
         seriesName: longSeriesName,
         value: [xValue, 1],
-        marker,
+        color,
       },
     ]);
   };
@@ -3311,9 +3346,11 @@ describe('EchartsTimeseries tooltip truncation', () => {
     expect(html).not.toContain(longSeriesName);
   });
 
-  test('preserves the echarts marker in every mode', () => {
+  test('keeps the series color marker in every mode', () => {
     (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
-      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+      expect(buildTooltip(mode).replace(/\s/g, '')).toContain(
+        'style="color:#1f77b4;',
+      );
     });
   });
 
@@ -4636,4 +4673,168 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
 
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
+});
+
+test('uses authorized chart display labels in timeseries legends and tooltips', () => {
+  const datasource = withChartDisplayLabels(
+    { chart_display_labels: { '12': { sum__num: 'Population' } } },
+    12,
+  );
+  const normalizedProps = new ChartProps({ datasource, theme: supersetTheme });
+  const chartProps = createTestChartProps({
+    formData: { metrics: ['sum__num'], richTooltip: true },
+    queriesData: [
+      createTestQueryData([{ sum__num: 1000, __timestamp: BASE_TIMESTAMP }], {
+        label_map: { sum__num: ['sum__num'] },
+      }),
+    ],
+    datasource: normalizedProps.datasource,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect(echartOptions.series).toEqual(
+    expect.arrayContaining([expect.objectContaining({ name: 'Population' })]),
+  );
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+  expect(
+    tooltip.formatter([
+      {
+        seriesId: 'Population',
+        seriesName: 'Population',
+        value: [BASE_TIMESTAMP, 1000],
+      },
+    ]),
+  ).toContain('Population');
+  expect(chartProps.queriesData[0].data[0]).toEqual({
+    sum__num: 1000,
+    __timestamp: BASE_TIMESTAMP,
+  });
+});
+
+test('applies user-defined minimum interval to both axes', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(86400000);
+  expect((echartOptions.yAxis as any).minInterval).toBe(1);
+});
+
+test('swaps the minimum interval of both axes for horizontal bar charts', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      xAxisMinInterval: 86400000,
+      yAxisMinInterval: 1,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.xAxis as any).minInterval).toBe(1);
+  expect((echartOptions.yAxis as any).minInterval).toBe(86400000);
+});
+
+test('ignores empty or invalid minimum interval values', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: '',
+      yAxisMinInterval: 'not a number',
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
+
+test.each([
+  ['null', null],
+  ['undefined', undefined],
+  ['zero', 0],
+  ['a negative number', -1],
+  ['a non-finite number', Number.NaN],
+])('ignores %s as a minimum interval', (_label, value) => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      xAxisMinInterval: value,
+      yAxisMinInterval: value,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  // The y-axis drops the property entirely, while the x-axis falls back to the
+  // time grain derived interval, which is 0 without a time grain.
+  expect((echartOptions.yAxis as any).minInterval).toBeUndefined();
+  expect((echartOptions.xAxis as any).minInterval).toBe(0);
+});
+
+test.each([
+  ['a numeric string', '86400000', 86400000],
+  ['a decimal value', 0.5, 0.5],
+])('accepts %s as a minimum interval', (_label, value, expected) => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      orientation: OrientationType.Vertical,
+      yAxisMinInterval: value,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  expect((echartOptions.yAxis as any).minInterval).toBe(expected);
 });

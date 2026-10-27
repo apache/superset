@@ -39,6 +39,7 @@ from superset.sql.parse import (
     extract_tables_from_statement,
     folds_unquoted_object_names,
     has_aggregate,
+    is_constant_expression,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -619,6 +620,18 @@ def test_extract_tables_show_tables_starrocks_catalog_schema() -> None:
     assert extract_tables_from_sql(
         "SHOW COLUMNS FROM tbl FROM catalog_1.schema_a", "starrocks"
     ) == {Table("tbl", "schema_a", "catalog_1")}
+
+
+@pytest.mark.parametrize("clause", ["DROP KEY k", "DROP CHECK c"])
+def test_starrocks_alter_table_drop_with_explicit_kind(clause: str) -> None:
+    """
+    sqlglot routes ``ALTER TABLE ... DROP KEY|CHECK`` through ``_parse_drop``
+    with an explicit ``kind``; the StarRocks override must accept it.
+    """
+    from superset.sql.dialects.starrocks import StarRocks
+
+    ast = sqlglot.parse_one(f"ALTER TABLE t {clause}", dialect=StarRocks)
+    assert ast.find(exp.Drop) is not None
 
 
 def test_extract_tables_show_create_table() -> None:
@@ -1335,6 +1348,101 @@ Events | take 100""",
         "kustokql",
     )
     assert query.get_settings() == {"querytrace": True}
+
+
+@pytest.mark.parametrize("engine", ["base", "sqlite", "postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "--",
+        "-- trailing comment",
+        "/* trailing comment */",
+        "/* trailing comment */ ;; -- c",
+        "/* trailing comment */ ; -- c",
+        "",
+    ],
+)
+@pytest.mark.parametrize("sql", ["SELECT 1;;", ";;SELECT 1;;;", "SELECT 2;;SELECT 1;;"])
+def test_sqlscript_trailing_comments_after_empty_statements(
+    engine: str, comment: str, sql: str
+) -> None:
+    """Ignore empty statements and preserve comments on the last real statement."""
+    script = SQLScript(f"{sql}\n{comment}", engine)
+
+    assert len(script.statements) == (2 if "SELECT 2" in sql else 1)
+    assert script.statements[-1].format(comments=False) == "SELECT\n  1"
+    # Bare "--" guards against crashes; only comments with text check preservation.
+    if "trailing comment" in comment:
+        formatted = script.statements[-1].format()
+        assert "trailing comment" in formatted
+        if "-- c" in comment:
+            assert formatted.index("trailing comment") < formatted.index("/* c */")
+        if len(script.statements) == 2:
+            assert "trailing comment" not in script.statements[0].format()
+
+
+@pytest.mark.parametrize("engine", ["base", "sqlite", "postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "sql, expected_sql, expected_comments",
+    [
+        ("SELECT * FROM a;; /* x */ ;; -- c", ["SELECT\n  *\nFROM a"], [["x", "c"]]),
+        ("SELECT 1; /* x */ ; -- c", ["SELECT\n  1"], [["x", "c"]]),
+        (";; -- only comment", [], []),
+        ("-- only", [], []),
+        (";;", [], []),
+        ("", [], []),
+        (
+            "SELECT 1;;; /* x */ ;; SELECT 2",
+            ["SELECT\n  1", "SELECT\n  2"],
+            [["x"], []],
+        ),
+        (
+            ";; /* x */ ; /* y */ ; SELECT 1 /* z */",
+            ["SELECT\n  1"],
+            [["x", "y", "z"]],
+        ),
+        (
+            "SELECT 1; /* x */ ; /* y */ ; SELECT 2; /* z */ ; -- c",
+            ["SELECT\n  1", "SELECT\n  2"],
+            [["x", "y"], ["z", "c"]],
+        ),
+    ],
+)
+def test_sqlscript_comment_only_segments(
+    engine: str,
+    sql: str,
+    expected_sql: list[str],
+    expected_comments: list[list[str]],
+) -> None:
+    """Keep real statements and preserve each comment's statement and order."""
+    statements = SQLScript(sql, engine).statements
+
+    # Some engines/drivers reject comment-only queries (e.g. PostgreSQL/psycopg2).
+    # Semicolon nodes are truthy, so split_script's truthiness check retains them.
+    assert not any(
+        isinstance(statement._parsed, exp.Semicolon) for statement in statements
+    )
+    assert [
+        statement.format(comments=False) for statement in statements
+    ] == expected_sql
+    for statement, comments in zip(statements, expected_comments, strict=True):
+        formatted = statement.format()
+        assert re.findall(r"/\*\s*(.*?)\s*\*/", formatted) == comments
+
+
+@pytest.mark.parametrize("engine", ["base", "unknown-engine"])
+def test_sqlscript_comment_only_segments_with_mysql_fallback(engine: str) -> None:
+    """Normalize comment-only segments after falling back to the MySQL parser."""
+    statements = SQLScript(
+        "SELECT * FROM `a`;; /* x */ ; SELECT 2; -- c", engine
+    ).statements
+
+    assert [statement.format(comments=False) for statement in statements] == [
+        'SELECT\n  *\nFROM "a"',
+        "SELECT\n  2",
+    ]
+    assert re.findall(r"/\*\s*(.*?)\s*\*/", statements[0].format()) == ["x"]
+    assert re.findall(r"/\*\s*(.*?)\s*\*/", statements[1].format()) == ["c"]
 
 
 def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
@@ -2289,6 +2397,21 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT nextval('public.my_seq')", True),
         # currval() only reads the session's last value, so it is not mutating.
         ("SELECT currval('public.my_seq')", False),
+        # dblink functions that open remote connections or dispatch async writes.
+        ("SELECT dblink_exec('host=h dbname=d', 'DELETE FROM t')", True),
+        ("SELECT dblink_connect('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_connect_u('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_send_query('myconn', 'DELETE FROM t')", True),
+        ("SELECT * FROM dblink('host=h dbname=d', 'SELECT 1') AS t(c int)", True),
+        # pg_* state-mutating functions callable via SELECT.
+        ("SELECT pg_cancel_backend(1234)", True),
+        ("SELECT pg_reload_conf()", True),
+        ("SELECT pg_stat_reset()", True),
+        ("SELECT pg_switch_wal()", True),
+        ("SELECT pg_logical_emit_message(true, 'channel', 'msg')", True),
+        ("SELECT pg_create_restore_point('rp1')", True),
+        ("SELECT pg_drop_replication_slot('slot1')", True),
+        ("SELECT pg_rotate_logfile()", True),
         # Read-side large-object functions are intentionally NOT classified
         # as mutating here. They are still blocked via the function denylist
         # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
@@ -2762,6 +2885,30 @@ LATERAL generate_series(1, value) AS i;
         ("SELECT * FROM t ORDER BY c LIMIT 555", "clickhouse", 555),
         ("SELECT * FROM t LIMIT 5 OFFSET 3", "clickhouse", 5),
         ("SELECT * FROM t LIMIT 3, 5", "clickhouse", 5),
+        # Oracle before 12c caps rows with a `ROWNUM` filter in the outer
+        # `WHERE`, alone or `AND`-ed with other conditions.
+        ("SELECT * FROM t WHERE ROWNUM <= 5", "oracle", 5),
+        ("SELECT * FROM t WHERE rownum < 5", "oracle", 4),
+        ("SELECT * FROM t WHERE 5 >= ROWNUM", "oracle", 5),
+        ("SELECT * FROM t WHERE 5 > ROWNUM", "oracle", 4),
+        ("SELECT * FROM t WHERE (ROWNUM <= (5))", "oracle", 5),
+        ("SELECT * FROM t WHERE x = 1 AND ROWNUM <= 5", "oracle", 5),
+        ("SELECT * FROM t WHERE ROWNUM <= 9 AND x = 1 AND ROWNUM < 4", "oracle", 3),
+        ("SELECT * FROM t WHERE ROWNUM < 0", "oracle", 0),
+        ("SELECT * FROM (SELECT * FROM t) WHERE ROWNUM <= 11", "oracle", 11),
+        # ... but not when the comparison doesn't bound the outer result.
+        ("SELECT * FROM t WHERE x = 1 OR ROWNUM <= 5", "oracle", None),
+        ("SELECT * FROM t WHERE ROWNUM >= 5", "oracle", None),
+        ("SELECT * FROM t WHERE ROWNUM <= :n", "oracle", None),
+        ("SELECT * FROM t WHERE t.rownum <= 5", "oracle", None),
+        # A quoted "rownum" is a column of that name, not the pseudocolumn.
+        ('SELECT * FROM t WHERE "rownum" <= 5', "oracle", None),
+        ('SELECT * FROM t WHERE "ROWNUM" <= 5', "oracle", None),
+        ("SELECT * FROM t WHERE x = 1", "oracle", None),
+        ("SELECT * FROM (SELECT * FROM t WHERE ROWNUM <= 5)", "oracle", None),
+        ("SELECT a FROM t WHERE ROWNUM <= 5 UNION SELECT a FROM u", "oracle", None),
+        # `ROWNUM` is only Oracle's pseudocolumn; elsewhere it is a plain column.
+        ("SELECT * FROM t WHERE rownum <= 5", "postgresql", None),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
@@ -3191,6 +3338,175 @@ def test_set_limit_value(
     statement = SQLStatement(sql, engine)
     statement.set_limit_value(limit, method)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        (
+            "SELECT 1 AS col1 FROM dual",
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    1 AS col1
+  FROM dual
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+        # The ordering stays inside, so `ROWNUM` numbers the sorted rows.
+        (
+            "SELECT n FROM t ORDER BY n DESC FETCH FIRST 5 ROWS ONLY",
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    n
+  FROM t
+  ORDER BY
+    n DESC
+  FETCH FIRST 5 ROWS ONLY
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+        (
+            "WITH c AS (SELECT n FROM t) SELECT n FROM c ORDER BY n",
+            """
+WITH c AS (
+  SELECT
+    n
+  FROM t
+)
+SELECT
+  *
+FROM (
+  SELECT
+    n
+  FROM c
+  ORDER BY
+    n
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+        (
+            "SELECT n FROM t UNION ALL SELECT n FROM u",
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    n
+  FROM t
+  UNION ALL
+  SELECT
+    n
+  FROM u
+)
+WHERE
+  ROWNUM <= 11
+            """.strip(),
+        ),
+    ],
+)
+def test_set_limit_value_oracle_rownum(sql: str, expected: str) -> None:
+    """
+    Oracle before 12c has no `FETCH FIRST`, so the cap is a `ROWNUM` filter.
+    """
+    statement = SQLStatement(sql, "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+    assert statement.format() == expected
+    assert statement.get_limit_value() == 11
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT a.n, b.n FROM a JOIN b ON a.n = b.n", ["n", "n_2"]),
+        ("SELECT a.n, b.N, n_2 FROM t", ["n", "N_3", "n_2"]),
+        ("SELECT a.n AS v, b.n AS v, c.n AS V FROM t", ["v", "v_2", "V_3"]),
+        # Quoted names are case-sensitive, unquoted ones are not.
+        ('SELECT 1 AS "x", 2 AS "x", 3 AS x FROM dual', ["x", "x_2", "x"]),
+        ("(SELECT a.n, b.n FROM a, b)", ["n", "n_2"]),
+        # A set operation takes its names from its leftmost query.
+        ("SELECT a.n, b.n FROM a, b UNION ALL SELECT 1, 1 FROM dual", ["n", "n_2"]),
+        # Legacy Oracle caps names at 30 bytes, suffix included.
+        (
+            "SELECT a.cccccccccccccccccccccccccccccc, "
+            "b.cccccccccccccccccccccccccccccc FROM a, b",
+            ["c" * 30, "c" * 28 + "_2"],
+        ),
+        # The limit is in bytes: "ç" takes two, so the stem keeps 14 of them.
+        (
+            "SELECT a.ççççççççççççççç, b.ççççççççççççççç FROM a, b",
+            ["ç" * 15, "ç" * 14 + "_2"],
+        ),
+        ("SELECT n FROM t", ["n"]),
+    ],
+)
+def test_set_limit_value_oracle_rownum_renames_duplicates(
+    sql: str, expected: list[str]
+) -> None:
+    """
+    Oracle rejects a wrapped query with repeated output names (ORA-00918).
+    """
+    statement = SQLStatement(sql, "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+
+    inner = statement._parsed.args["from_"].this.this
+    while isinstance(inner, (exp.SetOperation, exp.Subquery)):
+        inner = inner.this
+    assert [projection.alias_or_name for projection in inner.expressions] == expected
+
+
+def test_set_limit_value_oracle_rownum_keeps_unnamed_projections() -> None:
+    """
+    Star projections and unnamed expressions have no name to make unique.
+    """
+    statement = SQLStatement("SELECT a.*, b.*, 1 + 1, 1 + 1 FROM a, b", "oracle")
+    statement.set_limit_value(11, LimitMethod.WRAP_ROWNUM)
+    assert statement.format(comments=False) == (
+        "SELECT\n  *\nFROM (\n  SELECT\n    a.*,\n    b.*,\n    1 + 1,\n"
+        "    1 + 1\n  FROM a, b\n)\nWHERE\n  ROWNUM <= 11"
+    )
+
+
+def test_deduplicate_oracle_output_names_ignores_non_select() -> None:
+    """
+    Only a `SELECT` list has output names to rename.
+    """
+    from superset.sql.parse import _deduplicate_oracle_output_names
+
+    values = parse_one("VALUES (1, 1)", dialect="postgres")
+    _deduplicate_oracle_output_names(values)
+    assert values.sql() == "VALUES (1, 1)"
+
+
+@pytest.mark.parametrize(
+    "sql, limit, expected",
+    [
+        ("SELECT n FROM t", 10, 10),
+        ("SELECT n FROM t WHERE ROWNUM <= 5", 10, 5),
+        ("SELECT n FROM t WHERE ROWNUM <= 50", 10, 10),
+        ("SELECT * FROM (SELECT n FROM t) WHERE ROWNUM <= 11", 11, 11),
+    ],
+)
+def test_cap_limit_value_oracle_rownum(sql: str, limit: int, expected: int) -> None:
+    """
+    A `ROWNUM` cap keeps a smaller `ROWNUM` filter and isn't stacked on itself.
+    """
+    statement = SQLStatement(sql, "oracle")
+    statement.cap_limit_value(limit, LimitMethod.WRAP_ROWNUM)
+    assert statement.get_limit_value() == expected
+    if expected < limit or sql.startswith("SELECT * FROM ("):
+        assert statement.format() == SQLStatement(sql, "oracle").format()
 
 
 @pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
@@ -6934,6 +7250,49 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
     that grant something to aggregates and must not grant it on a guess.
     """
     assert has_aggregate(expression, fail_open=False) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,engine,expected",
+    [
+        ("'Other'", "postgresql", True),
+        ("('Other')", "postgresql", True),
+        ("42", "postgresql", True),
+        ("1.5", "postgresql", True),
+        ("NULL", "postgresql", True),
+        ("TRUE", "postgresql", True),
+        ("-1", "postgresql", True),
+        ("(-1.5)", "postgresql", True),
+        ("-1", "sqlite", True),
+        ("-region", "postgresql", False),
+        ("-(1 + 1)", "postgresql", False),
+        ("- 'a'", "postgresql", False),
+        ("-TRUE", "postgresql", False),
+        ("(FALSE)", "mysql", True),
+        ("TRUE", "sqlite", False),
+        ("(FALSE)", "sqlite", False),
+        ("'Other'", "sqlite", True),
+        ("NULL", "sqlite", True),
+        ("42", "sqlite", True),
+        ('"Other"', "mysql", True),
+        ('"Other"', "postgresql", False),
+        ("region", "postgresql", False),
+        ("CASE WHEN 1=1 THEN 'x' END", "postgresql", False),
+        ("CAST('x' AS VARCHAR)", "postgresql", False),
+        ("UPPER('x')", "postgresql", False),
+        ("'a' || region", "postgresql", False),
+        ("1 + 1", "postgresql", False),
+        ("'a', 'b'", "postgresql", False),
+        (")(", "postgresql", False),
+    ],
+)
+def test_is_constant_expression(expression: str, engine: str, expected: bool) -> None:
+    """
+    Only a bare literal or ``NULL`` (optionally parenthesized) is constant; an
+    expression that merely contains one, or can't be parsed, is not. ``TRUE`` and
+    ``FALSE`` are identifiers on SQLite, so they are not constant there.
+    """
+    assert is_constant_expression(expression, engine) is expected
 
 
 @pytest.mark.parametrize(
