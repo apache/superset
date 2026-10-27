@@ -551,7 +551,9 @@ def test_provider_reasoning_before_a_tool_call_is_not_streamed_as_answer() -> No
     )
 
 
-@pytest.mark.parametrize("cancellation", ["implicit", "explicit", "during_execute"])
+@pytest.mark.parametrize(
+    "cancellation", ["implicit", "live_cursor", "explicit", "during_execute"]
+)
 def test_deadline_cancels_an_active_query_and_skips_remaining_tools(
     cancellation: str,
     mocker: Any,
@@ -568,6 +570,7 @@ def test_deadline_cancels_an_active_query_and_skips_remaining_tools(
     cancelled = threading.Event()
     spec = SimpleNamespace(
         has_implicit_cancel=lambda: cancellation == "implicit",
+        supports_cancel_on_live_cursor=cancellation == "live_cursor",
         has_query_id_before_execute=cancellation == "explicit",
         has_query_id_during_execute=cancellation == "during_execute",
     )
@@ -622,7 +625,7 @@ def test_deadline_cancels_an_active_query_and_skips_remaining_tools(
     assert [call.id for call in tools.calls] == ["c1"]
     assert len(provider.requests) == 1
     assert cursor_scope.get() is None
-    if cancellation == "implicit":
+    if cancellation in {"implicit", "live_cursor"}:
         cursor.cancel.assert_called_once_with()
         capture.assert_not_called()
         cancel_query.assert_not_called()
@@ -653,3 +656,101 @@ def test_sql_timeout_can_shorten_but_never_extend_the_run_deadline() -> None:
                     check_query_deadline()
             check_query_deadline()
     assert timeout_scope.get() is None
+
+
+@pytest.mark.parametrize("mode", ["complete", "first_event", "after_text"])
+def test_run_deadline_stops_a_stalled_provider(mode: str, mocker: Any) -> None:
+    from superset.ai.llm.base import ProviderStreamEvent, StreamEventKind
+
+    provider = EchoProvider()
+    mocker.patch.object(provider, "supports_streaming", mode != "complete")
+    close = mocker.patch.object(provider, "aclose", new_callable=mocker.AsyncMock)
+    closed: list[str] = []
+
+    async def complete(_request: Any) -> Any:
+        try:
+            await asyncio.Event().wait()
+        finally:
+            closed.append("complete")
+
+    async def stream(_request: Any) -> Any:
+        try:
+            if mode == "after_text":
+                yield ProviderStreamEvent(StreamEventKind.TEXT, text="Partial answer")
+            await asyncio.Event().wait()
+        finally:
+            closed.append("stream")
+
+    mocker.patch.object(provider, "complete", side_effect=complete)
+    mocker.patch.object(provider, "stream", side_effect=stream)
+    runtime = MessagesApiRuntime(provider)
+    tools = StubTools()
+
+    async def collect() -> list[StreamEvent]:
+        return [
+            event
+            async for event in runtime.run(_request(tools=tools, timeout_seconds=0.02))
+        ]
+
+    async def drive() -> list[StreamEvent]:
+        return await asyncio.wait_for(collect(), timeout=0.5)
+
+    events = asyncio.run(drive())
+    assert runtime.result.timed_out
+    assert runtime.result.error is None
+    assert StreamEventType.ERROR not in _types(events)
+    assert tools.calls == []
+    assert closed == ["complete" if mode == "complete" else "stream"]
+    close.assert_awaited_once_with()
+    if mode == "after_text":
+        assert runtime.result.answer == "Partial answer"
+        assert (
+            _payloads(events, StreamEventType.FINAL)[0]["content"] == "Partial answer"
+        )
+
+
+def test_stream_deadline_survives_separate_synchronous_pulls(mocker: Any) -> None:
+    from superset.ai.llm.base import ProviderStreamEvent, StreamEventKind
+    from superset.ai.orchestrator import _drain
+
+    provider = EchoProvider()
+
+    async def stream(_request: Any) -> Any:
+        yield ProviderStreamEvent(StreamEventKind.TEXT, text="Partial answer")
+        await asyncio.sleep(0.1)
+        yield ProviderStreamEvent(StreamEventKind.TEXT, text=" too late")
+
+    mocker.patch.object(provider, "stream", side_effect=stream)
+    runtime = MessagesApiRuntime(provider)
+    list(_drain(runtime.run(_request(timeout_seconds=0.02))))
+    assert runtime.result.timed_out
+    assert runtime.result.answer == "Partial answer"
+
+
+def test_provider_timeout_is_not_relabelled_as_the_run_deadline(mocker: Any) -> None:
+    provider = EchoProvider()
+    mocker.patch.object(provider, "supports_streaming", False)
+    mocker.patch.object(provider, "complete", side_effect=TimeoutError("provider"))
+    runtime = MessagesApiRuntime(provider)
+    events = _run(runtime, _request(timeout_seconds=30))
+    assert not runtime.result.timed_out
+    assert runtime.result.error is not None
+    assert StreamEventType.ERROR in _types(events)
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+def test_run_deadline_includes_provider_retry_backoff(
+    streaming: bool, mocker: Any
+) -> None:
+    provider = EchoProvider(
+        [
+            ScriptedTurn(error=LLMTransportError("retry")),
+            ScriptedTurn(text="too late"),
+        ]
+    )
+    mocker.patch.object(provider, "supports_streaming", streaming)
+    runtime = MessagesApiRuntime(provider)
+    _run(runtime, _request(timeout_seconds=0.02))
+    assert runtime.result.timed_out
+    assert runtime.result.error is None
+    assert len(provider.requests) == 1

@@ -110,6 +110,10 @@ def warehouse_deadline(deadline: float) -> Iterator[None]:  # noqa: C901
         user_id = get_user_id()
         database_id = database.id
         spec = database.db_engine_spec
+        live_cancel = spec.has_implicit_cancel() or (
+            getattr(spec, "supports_cancel_on_live_cursor", False) is True
+            and callable(getattr(active_cursor, "cancel", None))
+        )
         cancel_id: str | None = None
         context = copy_context()
 
@@ -127,7 +131,7 @@ def warehouse_deadline(deadline: float) -> Iterator[None]:  # noqa: C901
             # Isolate metadata even when MCP has installed context-based scoping.
             token = _mcp_session_token.set(object())
             try:
-                if spec.has_implicit_cancel():
+                if live_cancel:
                     active_cursor.cancel()
                     return
                 with app.test_request_context():
@@ -140,11 +144,11 @@ def warehouse_deadline(deadline: float) -> Iterator[None]:  # noqa: C901
                 _mcp_session_token.reset(token)
 
         def refresh() -> None:
-            if not spec.has_implicit_cancel() and not spec.has_query_id_before_execute:
+            if not live_cancel and not spec.has_query_id_before_execute:
                 capture()
             check()
 
-        if not spec.has_implicit_cancel():
+        if not live_cancel:
             capture()
         timer = Timer(max(0, deadline - time.monotonic()), lambda: context.run(cancel))
         timer.daemon = True

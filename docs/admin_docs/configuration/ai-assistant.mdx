@@ -51,6 +51,12 @@ infrastructure is needed for the default configuration.
 
 ### Query deadlines
 
+The run deadline also bounds each provider completion, stream read and retry
+delay. Expiry records a timed-out run and preserves answer text already streamed;
+the runtime does not start another tool or model turn. Provider request timeouts
+remain separate from this overall budget. Custom providers must cooperate with
+async cancellation and release their resources when closed.
+
 The agent's run deadline is applied to active warehouse cursors through the
 engine's cancellation API. SQL Lab's configured timeout (or a query's explicit
 timeout) can shorten this deadline, but cannot extend the run. After expiry the

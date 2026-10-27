@@ -34,7 +34,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Mapping
 from contextvars import ContextVar
 from types import MappingProxyType
 from typing import TypeVar
@@ -221,7 +221,7 @@ async def stream_with_retries(
     policy: RetryPolicy,
     *,
     breaker: CircuitBreaker,
-) -> AsyncIterator[ProviderStreamEvent]:
+) -> AsyncGenerator[ProviderStreamEvent, None]:
     """Retry opening a stream; never replay events already received."""
 
     async def start() -> tuple[
