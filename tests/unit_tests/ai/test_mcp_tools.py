@@ -817,11 +817,11 @@ def test_foreign_sql_execution_is_denied_by_default(tool_name: str) -> None:
         "mcp__acme_tickets__create_ticket",
     ],
 )
-def test_other_foreign_tools_are_untouched(tool_name: str) -> None:
-    """Only names advertising query execution are refused."""
+def test_unlisted_foreign_tools_are_denied_regardless_of_name(tool_name: str) -> None:
+    """A server's tool name cannot establish its data-access capabilities."""
     from superset.ai.policy import ForeignToolPolicy
 
-    assert ForeignToolPolicy().check(tool_name, {}) is None
+    assert ForeignToolPolicy().check(tool_name, {}) is not None
 
 
 @pytest.mark.parametrize("tool_name", ["execute_sql", "validate_sql", "search_assets"])
@@ -851,19 +851,46 @@ def test_a_deployment_can_opt_in_to_foreign_sql(mocker: MockerFixture) -> None:
     assert ForeignToolPolicy().check("mcp__acme_catalog__execute_sql", {}) is None
 
 
-def test_the_matcher_is_configurable() -> None:
-    """
-    A deployment can narrow or widen what counts as SQL execution.
-
-    ``query`` is a broad default and some servers use it for a plain search, so
-    a deployment needs to be able to say so without forking.
-    """
+@pytest.mark.parametrize("allowed", ["fetch_rows", "mcp__acme_catalog__fetch_rows"])
+def test_foreign_tools_require_an_operator_allowlist(
+    allowed: str, mocker: MockerFixture
+) -> None:
+    """Explicit operator grants are scoped to one configured server and tool."""
     from superset.ai.policy import ForeignToolPolicy
 
-    narrowed = ForeignToolPolicy(fragments=["execute_sql"])
+    config = {
+        "url": SERVER_URL,
+        "tool_allowlist": [allowed],
+    }
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AI_AGENT_MCP_SERVERS": {
+                SERVER_NAME: config,
+            }
+        },
+    )
+    policy = ForeignToolPolicy()
+    assert policy.check("mcp__acme_catalog__fetch_rows", {"sql": "SELECT 1"}) is None
+    assert policy.check("mcp__acme_catalog__other", {}) is not None
+    assert policy.check("mcp__other__fetch_rows", {}) is not None
+    config["tool_denylist"] = ["fetch_rows"]
+    assert policy.check("mcp__acme_catalog__fetch_rows", {}) is not None
 
-    assert narrowed.check("mcp__acme_catalog__query", {}) is None
-    assert narrowed.check("mcp__acme_catalog__execute_sql", {}) is not None
+
+@pytest.mark.parametrize(
+    "arguments", [{"sql": "SELECT 1"}, {"request": {"statement": "SELECT 1"}}, {}]
+)
+def test_renaming_foreign_data_execution_does_not_bypass_policy(
+    arguments: dict[str, Any],
+) -> None:
+    """Missing or renamed SQL arguments are not evidence that a tool is safe."""
+    from superset.ai.policy import ForeignToolPolicy
+
+    assert (
+        ForeignToolPolicy().check("mcp__acme_catalog__fetch_rows", arguments)
+        is not None
+    )
 
 
 def test_the_policy_fails_closed_without_an_application_context() -> None:
@@ -892,10 +919,20 @@ def test_the_shipped_policy_chain_includes_the_foreign_guard() -> None:
     )
 
 
-def test_a_foreign_tool_passes_through_the_real_policy_chain() -> None:
+def test_a_foreign_tool_passes_through_the_real_policy_chain(
+    mocker: MockerFixture,
+) -> None:
     """The chain is built from configuration and denies as configured."""
     from superset.ai.policy import load_policy_chain
 
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AI_AGENT_MCP_SERVERS": {
+                SERVER_NAME: {"url": SERVER_URL, "tool_allowlist": ["search_tables"]},
+            }
+        },
+    )
     chain = load_policy_chain()
 
     assert chain.check("mcp__acme_catalog__execute_sql", {"sql": "SELECT 1"})

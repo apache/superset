@@ -82,6 +82,14 @@ class ToolError(Exception):
     """
 
 
+def require_read_access(resource: str) -> None:
+    """Apply the REST resource gate before checking individual data objects."""
+    from superset import security_manager
+
+    if not security_manager.can_access("can_read", resource):
+        raise ToolError(f"Reading {resource} requires can_read permission.")
+
+
 @dataclass(frozen=True)
 class ToolOutput:
     """

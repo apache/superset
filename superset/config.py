@@ -3508,9 +3508,9 @@ AI_AGENT_MAX_RESULT_BYTES = 256 * 1024
 # Requires the 'mcp' package; it is imported only once a server is configured.
 AI_AGENT_MCP_SERVERS: dict[str, Any] = {}
 
-# Refuse any external MCP tool whose name advertises SQL execution — anything
-# containing "execute_sql", "run_sql" or "query" by default. Enforced by
-# superset.ai.policy.ForeignToolPolicy.
+# Require an explicit per-server tool_allowlist for external MCP calls.
+# Names and schemas cannot prove what a remote tool executes. Enforced by
+# superset.ai.policy.ForeignToolPolicy; each allowlisted tool is an operator grant.
 #
 # On by default because Superset's read-only enforcement and its per-datasource
 # authorization can only apply to SQL Superset itself runs. A third-party server

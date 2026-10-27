@@ -139,6 +139,88 @@ def denial(message: str) -> Exception:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    "name, arguments, resource, lookup",
+    [
+        (
+            "get_chart_context",
+            {"chart_id": 1},
+            "Chart",
+            "superset.daos.chart.ChartDAO.find_by_id",
+        ),
+        (
+            "get_dashboard_context",
+            {"dashboard_id": 1},
+            "Dashboard",
+            "superset.daos.dashboard.DashboardDAO.find_by_id",
+        ),
+        (
+            "list_databases",
+            {},
+            "Database",
+            "superset.daos.database.DatabaseDAO.find_all",
+        ),
+        (
+            "get_schema",
+            {"database_id": 1},
+            "Database",
+            "superset.daos.database.DatabaseDAO.find_by_id",
+        ),
+    ],
+)
+def test_asset_readers_require_resource_permission_before_lookup(
+    name: str,
+    arguments: dict[str, Any],
+    resource: str,
+    lookup: str,
+) -> None:
+    """Object/data grants cannot bypass an explicit resource-level denial."""
+    from superset.ai.llm.base import ToolCall
+    from superset.ai.tools.base import build_registry
+
+    with (
+        patch(
+            CAN_ACCESS, side_effect=lambda _permission, target: target != resource
+        ) as permission,
+        patch(lookup) as read,
+    ):
+        result = build_registry().dispatch(
+            ToolCall(id="read", name=name, arguments=arguments)
+        )
+    assert result.is_error
+    assert "can_read" in result.content
+    permission.assert_any_call("can_read", resource)
+    read.assert_not_called()
+
+
+def test_asset_search_skips_resource_types_the_user_cannot_read() -> None:
+    """Searching several asset types must keep each REST resource gate."""
+    from superset.ai.tools.search import SearchAssetsTool
+
+    dataset, chart, dashboard = (
+        MagicMock(return_value=[]),
+        MagicMock(return_value=[]),
+        MagicMock(return_value=[]),
+    )
+    with (
+        patch(
+            CAN_ACCESS, side_effect=lambda _permission, resource: resource == "Dataset"
+        ),
+        patch.dict(
+            "superset.ai.tools.search._SEARCHERS",
+            {
+                "dataset": dataset,
+                "chart": chart,
+                "dashboard": dashboard,
+            },
+        ),
+    ):
+        SearchAssetsTool().run(query="sales")
+    dataset.assert_called_once()
+    chart.assert_not_called()
+    dashboard.assert_not_called()
+
+
 def test_registry_exports_definitions_and_dispatches() -> None:
     """A registered tool is listed and callable."""
     from superset.ai.llm.base import ToolCall, ToolDefinition

@@ -38,7 +38,7 @@ from __future__ import annotations
 import logging
 from typing import Any, ClassVar
 
-from superset.ai.tools.base import AITool, ToolError, ToolOutput
+from superset.ai.tools.base import AITool, require_read_access, ToolError, ToolOutput
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,7 @@ class ListDatabasesTool(AITool):
         from superset.ai.prompt_framing import sanitize_for_llm_context
         from superset.daos.database import DatabaseDAO
 
+        require_read_access("Database")
         # find_all applies DatabaseFilter, so this is already scoped to the
         # user's grants; expose_in_sqllab then honours the operator's decision
         # about which connections may be queried ad hoc at all.
@@ -113,6 +114,7 @@ def _database_or_refuse(database_id: Any) -> Any:
     if not isinstance(database_id, int) or isinstance(database_id, bool):
         raise ToolError("'database_id' must be an integer. Use list_databases first.")
 
+    require_read_access("Database")
     database = DatabaseDAO.find_by_id(database_id)
     if database is None or not database.expose_in_sqllab:
         raise ToolError(

@@ -21,8 +21,9 @@ These answer "what does this thing already show?", which is what a question like
 "why is this number different from the dashboard" needs. Both are reads of
 Superset's metadata; neither queries a warehouse.
 
-Two authorization gates apply to each, and both are needed:
+Three authorization gates apply to each:
 
+* the requesting role needs ``can_read`` on Chart or Dashboard;
 * the DAO's ``base_filter`` decides whether the object is visible at all, so an
   id the user may not see is reported as not found rather than forbidden; and
 * ``security_manager.raise_for_access`` re-checks the specific object, which is
@@ -39,7 +40,7 @@ from __future__ import annotations
 import logging
 from typing import Any, ClassVar
 
-from superset.ai.tools.base import AITool, ToolError, ToolOutput
+from superset.ai.tools.base import AITool, require_read_access, ToolError, ToolOutput
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,7 @@ def _load_chart(chart_id: int) -> Any:
     from superset.daos.chart import ChartDAO
     from superset.exceptions import SupersetSecurityException
 
+    require_read_access("Chart")
     chart = ChartDAO.find_by_id(chart_id)
     if chart is None:
         raise ToolError(
@@ -125,6 +127,7 @@ def _load_dashboard(dashboard_id: int) -> Any:
     from superset.daos.dashboard import DashboardDAO
     from superset.exceptions import SupersetSecurityException
 
+    require_read_access("Dashboard")
     dashboard = DashboardDAO.find_by_id(dashboard_id)
     if dashboard is None:
         raise ToolError(
