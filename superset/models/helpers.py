@@ -4026,6 +4026,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         template_processor: BaseTemplateProcessor,
         granularity: str | None,
+        removed_filters: list[str],
     ) -> list[str]:
         """Render SQL-bearing chart fields without building a chart or its prequeries.
 
@@ -4085,48 +4086,50 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         def add_filter(value: Any) -> None:
             """Filters accept verbose column names before stored metric names."""
+            # Execution renders adhoc/metric SQL before checking removal, but
+            # delays saved-column SQL until after that check.
             if not isinstance(value, str):
                 add(value)
             elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
-                add(granularity)
+                if value not in removed_filters and granularity not in removed_filters:
+                    add(granularity)
             elif (col := self._get_filter_column(value, columns_by_name)) is not None:
-                if col.expression:
+                if value not in removed_filters and col.expression:
                     add_expression(col.expression)
             elif value in metrics:
                 add(value, metric=True)
             elif value in adhoc_columns_by_label:
                 add(adhoc_columns_by_label[value])
 
-        for value in query_obj.get("groupby") or selected_columns:
+        effective_columns = query_obj.get("groupby") or [
+            col for col in selected_columns if col != utils.DTTM_ALIAS
+        ]
+        for value in effective_columns:
             add(value)
         for metric_value in selected_metrics:
             add(metric_value, metric=True)
         for orderby_value, _ascending in query_obj.get("orderby") or []:
             add_orderby(orderby_value)
-        for flt in query_obj.get("filter") or []:
-            add_filter(flt.get("col"))
-        series_limit = query_obj.get("series_limit") or (
-            query_obj.get("timeseries_limit")
-            if query_obj.get("is_timeseries", True)
-            else 0
-        )
-        add(
-            (
-                query_obj.get("series_limit_metric")
-                or query_obj.get("timeseries_limit_metric")
-            )
-            if series_limit
-            else None,
-            metric=True,
-        )
-        add(granularity)
+        # FROM templates remove filters before execution renders time/filter columns.
+        # Render with the same processor so its removal state reaches this collector.
+        if self.sql:
+            self.get_rendered_sql(template_processor)
+        if query_obj.get("is_timeseries", True) or (
+            granularity not in removed_filters
+            and utils.DTTM_ALIAS not in removed_filters
+        ):
+            add(granularity)
         if (
             granularity
             and self.always_filter_main_dttm
             and self.main_dttm_col in self.dttm_cols
             and self.main_dttm_col != granularity
+            and self.main_dttm_col not in removed_filters
         ):
             add(self.main_dttm_col)
+        for flt in query_obj.get("filter") or []:
+            if all(flt.get(key) for key in ("col", "op")):
+                add_filter(flt["col"])
         extras = query_obj.get("extras") or {}
         for key in ("where", "having"):
             if extras.get(key):
@@ -4136,6 +4139,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and self.fetch_values_predicate
         ):
             add_expression(self.fetch_values_predicate)
+        series_limit = query_obj.get("series_limit") or (
+            query_obj.get("timeseries_limit")
+            if query_obj.get("is_timeseries", True)
+            else 0
+        )
+        series_columns = {
+            self.db_engine_spec.make_label_compatible(name)
+            for name in utils.get_column_names(query_obj.get("series_columns"))
+        }
+        has_series_groupby = bool(
+            (query_obj.get("metrics") is not None or query_obj.get("groupby"))
+            and effective_columns
+            and (
+                (query_obj.get("is_timeseries", True) and not series_columns)
+                or series_columns.intersection(
+                    self.db_engine_spec.make_label_compatible(name)
+                    for name in utils.get_column_names(effective_columns)
+                )
+            )
+        )
+        if series_limit and has_series_groupby:
+            add(
+                query_obj.get("series_limit_metric")
+                or query_obj.get("timeseries_limit_metric"),
+                metric=True,
+            )
         return expressions
 
     def _get_query_rls_cache_keys(
@@ -4177,10 +4206,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             table_columns=[col.column_name for col in self.columns],
         )
         template_kwargs.update(self.template_params_dict)
+        removed_filters: list[str] = []
+        template_kwargs.update(removed_filters=removed_filters, applied_filters=[])
         template_processor = self.get_template_processor(**template_kwargs)
         predicates: set[str] = set()
         for expression in self._get_query_sql_expressions(
-            query_obj, template_processor, granularity
+            query_obj, template_processor, granularity, removed_filters
         ):
             sql = f"SELECT {expression}"
             try:

@@ -19,7 +19,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pandas as pd
 import pytest
@@ -52,6 +52,7 @@ from superset.models.sql_lab import Query
 from superset.sql.parse import SQLStatement
 from superset.superset_typing import AdhocColumn, AdhocMetric, QueryObjectDict
 from superset.utils import json
+from superset.utils.core import QueryObjectFilterClause
 from tests.unit_tests.conftest import with_feature_flags
 
 PHYSICAL_RLS_KEYS = {
@@ -1074,14 +1075,16 @@ def test_expression_cache_key_parse_failure_is_user_scoped(
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
-@pytest.mark.parametrize("sink", ["series_columns", "series_limit_metric"])
+@pytest.mark.parametrize(
+    "sink", ["series_columns", "series_limit_metric", "fetch_values_predicate"]
+)
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
 def test_expression_cache_key_ignores_unused_series_fields(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
     mocker: MockerFixture,
     sink: str,
 ) -> None:
-    """Series labels and disabled limit metrics must not render unused SQL."""
+    """Unused series fields and disabled fetch predicates must not render SQL."""
     virtual, _ = static_schema_datasource
     assert isinstance(virtual, SqlaTable)
     virtual.sql = "SELECT 1 AS col1"
@@ -1095,8 +1098,10 @@ def test_expression_cache_key_ignores_unused_series_fields(
     }
     if sink == "series_columns":
         query["series_columns"] = ["unused"]
-    else:
+    elif sink == "series_limit_metric":
         query["series_limit_metric"] = "unused"
+    else:
+        virtual.fetch_values_predicate = "{{ 1 / 0 }}"
     build = mocker.spy(virtual, "get_sqla_query")
 
     assert virtual.get_extra_cache_keys(query) == []
@@ -1921,3 +1926,404 @@ def test_comment_unwrap_preserves_numeric_precision(
     prefix = "SELECT 1 ORDER BY" if "orderby" in method else "SELECT"
     SQLStatement(f"{prefix} {processed}", "postgresql")
     assert "CAST" not in processed.upper()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_removed_primary_time_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Primary time column removed by get_time_filter(remove_filter=True)."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = (
+        "SELECT '2020-01-01' AS ds, 1 AS col1 "
+        "/*{% set _t = get_time_filter('primary', remove_filter=True) %}*/"
+    )
+    virtual.columns.extend(
+        [
+            TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+            TableColumn(
+                column_name="primary",
+                type="DATETIME",
+                is_dttm=True,
+                expression="{{ 1 / 0 }}",
+            ),
+        ]
+    )
+    virtual.main_dttm_col = "primary"
+    virtual.always_filter_main_dttm = True
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "primary",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            }
+        ]
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        granularity="ds",
+        is_timeseries=True,
+        metrics=[],
+    )
+    result = virtual.get_query_result(query)
+    assert result.status == "success"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable, Query], indirect=True)
+@pytest.mark.parametrize("filter_name", ["broken", "caption"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_removed_filter_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    filter_name: str,
+) -> None:
+    """Filter column removed by get_filters(remove_filter=True)."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = (
+        "SELECT 1 AS col1 /*{% set _f = get_filters('"
+        + filter_name
+        + "', remove_filter=True) %}*/"
+    )
+    columns = [
+        *virtual.columns,
+        TableColumn(
+            column_name="broken",
+            verbose_name="caption",
+            type="INTEGER",
+            expression="{{ 1 / 0 }}",
+        ),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": filter_name,
+                "operator": "==",
+                "comparator": 1,
+            }
+        ]
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[],
+        filters=[{"col": filter_name, "op": "==", "val": 1}],
+    )
+    result = virtual.get_query_result(query)
+    assert result.status == "success"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
+
+
+@pytest.mark.parametrize("removed_column", ["ds", "__timestamp"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_removed_time_filter_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    removed_column: str,
+) -> None:
+    """Removed time filters need neither the granularity nor its alias rendered."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = (
+        "SELECT 1 AS col1 "
+        "/*{% set _t = get_time_filter('"
+        + removed_column
+        + "', remove_filter=True) %}*/"
+    )
+    columns = [
+        *virtual.columns,
+        TableColumn(
+            column_name="ds", type="DATETIME", is_dttm=True, expression="{{ 1 / 0 }}"
+        ),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": removed_column,
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            }
+        ]
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1"],
+        metrics=[],
+        granularity="ds",
+        is_timeseries=False,
+        filters=[{"col": "__timestamp", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+    )
+    assert virtual.get_query_result(query).status == "success"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
+
+
+@pytest.mark.parametrize("sink", ["column", "timeseries"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_keeps_removed_filter_column_when_selected(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """Removing a filter must not remove selected/grouped expression RLS."""
+    virtual, rule = static_schema_datasource
+    virtual.sql = (
+        "SELECT 1 AS col1 /*{% set _t = get_time_filter('ds', remove_filter=True) %}*/"
+    )
+    columns = [
+        *virtual.columns,
+        TableColumn(
+            column_name="ds",
+            type="DATETIME",
+            is_dttm=True,
+            expression="(SELECT '2020-01-01' FROM physical LIMIT 1)",
+            database=virtual.database,
+        ),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "ds",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            }
+        ]
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    query = QueryObject(
+        datasource=virtual,
+        columns=["ds"] if sink == "column" else ["col1"],
+        metrics=[],
+        granularity="ds",
+        is_timeseries=sink == "timeseries",
+        filters=[{"col": "__timestamp", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+    )
+    assert virtual.get_query_result(query).status == "success"
+    render = mocker.spy(BaseTemplateProcessor, "process_template")
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[1]]
+    assert [call.args[1] for call in render.call_args_list].count(
+        columns[-1].expression
+    ) == 1
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[2]]
+
+
+@pytest.mark.parametrize("sink", ["adhoc", "metric", "adhoc_label"])
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_removed_filter_keeps_eager_expression_rendering(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    sink: str,
+) -> None:
+    """Execution renders adhoc/metric filters before checking removal state."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = (
+        "SELECT 1 AS col1 /*{% set _f = get_filters('broken', remove_filter=True) %}*/"
+    )
+    expression: AdhocColumn = {"sqlExpression": "{{ 1 / 0 }}", "label": "broken"}
+    columns: list[str | AdhocColumn] = ["col1"]
+    if sink == "metric":
+        virtual.metrics.append(
+            SqlMetric(metric_name="broken", expression="{{ 1 / 0 }}")
+        )
+    elif sink == "adhoc_label":
+        columns.append(expression)
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "broken",
+                "operator": "==",
+                "comparator": 1,
+            }
+        ]
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    query = QueryObject(
+        datasource=virtual,
+        columns=columns,
+        metrics=[],
+        filters=[
+            {"col": expression if sink == "adhoc" else "broken", "op": "==", "val": 1}
+        ],
+    )
+    with pytest.raises(ZeroDivisionError):
+        virtual.get_query_result(query)
+    with pytest.raises(ZeroDivisionError):
+        virtual.get_extra_cache_keys(query.to_dict())
+
+
+@pytest.mark.parametrize("missing", ["col", "op"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_incomplete_filters(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    missing: str,
+) -> None:
+    """Incomplete filters are ignored before their columns reach the renderer."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    columns = [
+        *virtual.columns,
+        TableColumn(column_name="broken", expression="{{ 1 / 0 }}"),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    flt: QueryObjectFilterClause = {"val": 1}
+    if missing != "col":
+        flt["col"] = "broken"
+    if missing != "op":
+        flt["op"] = "=="
+    query: QueryObjectDict = {"columns": ["col1"], "metrics": [], "filter": [flt]}
+    assert "col1" in str(
+        virtual.get_sqla_query(
+            columns=["col1"], metrics=[], filter=[flt], is_timeseries=False
+        ).sqla_query
+    )
+    assert virtual.get_extra_cache_keys(query) == []
+
+
+@pytest.mark.parametrize("no_groupby", [True, False])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_unused_series_limit_metric(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    no_groupby: bool,
+) -> None:
+    """An enabled series limit still needs matching grouped series to render SQL."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    query: QueryObjectDict = {
+        "columns": [] if no_groupby else ["col1"],
+        "metrics": [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "total"}
+        ],
+        "is_timeseries": False,
+        "series_limit": 1,
+        "series_columns": ["col1"] if no_groupby else ["not_selected"],
+        "series_limit_metric": {
+            "expressionType": "SQL",
+            "sqlExpression": "{{ 1 / 0 }}",
+            "label": "unused",
+        },
+    }
+    assert "col1" in str(
+        virtual.get_sqla_query(
+            columns=query["columns"],
+            metrics=query["metrics"],
+            is_timeseries=False,
+            series_limit=1,
+            series_columns=query["series_columns"],
+            series_limit_metric=query["series_limit_metric"],
+        ).sqla_query
+    )
+    assert virtual.get_extra_cache_keys(query) == []
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_selected_timestamp_pseudo_column(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Execution discards the pseudo column before resolving selected metadata."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    columns = [
+        *virtual.columns,
+        TableColumn(column_name="__timestamp", expression="{{ 1 / 0 }}"),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    query = QueryObject(
+        datasource=virtual,
+        columns=["col1", "__timestamp"],
+        metrics=[],
+        is_timeseries=False,
+    )
+    assert virtual.get_query_result(query).status == "success"
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_cache_key_collects_series_metric_for_normalized_labels(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Engine-compatible series labels still select their limit metric's RLS."""
+    virtual, rule = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    mocker.patch.object(
+        virtual.db_engine_spec,
+        "make_label_compatible",
+        side_effect=lambda name: name.replace(" ", "_"),
+    )
+    query: QueryObjectDict = {
+        "columns": [{"sqlExpression": "col1", "label": "series label"}],
+        "metrics": [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "total"}
+        ],
+        "is_timeseries": False,
+        "series_limit": 1,
+        "series_columns": ["series_label"],
+        "series_limit_metric": {
+            "expressionType": "SQL",
+            "sqlExpression": "MAX((SELECT MAX(col1) FROM physical))",
+            "label": "restricted",
+        },
+    }
+    assert "col1 = 1" in str(
+        virtual.get_sqla_query(
+            columns=query["columns"],
+            metrics=query["metrics"],
+            is_timeseries=False,
+            series_limit=1,
+            series_columns=query["series_columns"],
+            series_limit_metric=query["series_limit_metric"],
+            execute_prequeries=False,
+        ).sqla_query
+    )
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
