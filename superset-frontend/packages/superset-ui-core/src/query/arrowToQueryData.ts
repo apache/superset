@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Table, tableFromIPC, Type, util as arrowUtil } from 'apache-arrow';
+import {
+  Table,
+  tableFromIPC,
+  Type,
+  Vector,
+  util as arrowUtil,
+} from 'apache-arrow';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ChartDataResponseResult,
@@ -33,6 +39,12 @@ import {
  * ``Number()``.
  */
 const JS_MAX_INTEGER = BigInt(Number.MAX_SAFE_INTEGER);
+
+/**
+ * Arrow schema-metadata key holding a chart-data query's non-data fields as
+ * JSON. Mirrors ``superset/charts/data/api.py::ARROW_QUERY_METADATA_KEY``.
+ */
+export const ARROW_QUERY_METADATA_KEY = 'superset.query';
 
 function convertBigInt(value: bigint): DataRecordValue {
   if (value > JS_MAX_INTEGER || value < -JS_MAX_INTEGER) {
@@ -75,6 +87,43 @@ function convertNumber(value: number): DataRecordValue {
 }
 
 /**
+ * Convert a nested (List/Struct/Map) Arrow value to the plain JS array or
+ * object the JSON wire format would have produced. apache-arrow hands these
+ * back as `Vector`/row proxies rather than arrays, so code like the box plot's
+ * `datum['metric__outliers']` (a Python set, serialized as a list) would
+ * otherwise receive an object without the array methods it relies on.
+ */
+function convertNested(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === 'bigint') {
+    return convertBigInt(value);
+  }
+  if (typeof value === 'number') {
+    return convertNumber(value);
+  }
+  if (value instanceof Vector) {
+    return Array.from(value as Iterable<unknown>, convertNested);
+  }
+  if (typeof value === 'object' && !(value instanceof Date)) {
+    const json = (value as { toJSON?: () => unknown }).toJSON?.() ?? value;
+    if (json instanceof Map) {
+      return Object.fromEntries(
+        Array.from(json, ([key, item]) => [key, convertNested(item)]),
+      );
+    }
+    return Object.fromEntries(
+      Object.entries(json as Record<string, unknown>).map(([key, item]) => [
+        key,
+        convertNested(item),
+      ]),
+    );
+  }
+  return value;
+}
+
+/**
  * Convert one Arrow column value to the DataRecordValue the JSON wire format
  * would have produced for the same underlying data.
  *
@@ -102,6 +151,11 @@ function convertValue(
   }
   if (typeof value === 'number') {
     return convertNumber(value);
+  }
+  if (typeof value === 'object' && !(value instanceof Date)) {
+    // Nested values have no DataRecordValue member; consumers that read them
+    // cast the record value, exactly as they do for the JSON wire format.
+    return convertNested(value) as DataRecordValue;
   }
   // string, boolean: already the right shape.
   return value as DataRecordValue;
@@ -156,14 +210,13 @@ export function arrowTableToDataRecords(table: Table): DataRecord[] {
  * entry has, so this is a transparent substitution at the network layer and
  * every consumer downstream (transformProps, etc.) keeps working unchanged.
  *
- * KNOWN GAP: the Arrow IPC bytes carry only the DataFrame itself — none of
- * the sidecar query metadata (cache_key, is_cached, cached_dttm, the SQL
- * `query` text, `status`, `stacktrace`, `timing`, `annotation_data`,
- * `warning`, applied/rejected filters) travels over this wire format today.
- * Those fields are filled with inert defaults below rather than left
- * `undefined`, so chrome that reads them (cache badges, "View query", the
- * timing panel) degrades quietly instead of throwing. Carrying that metadata
- * over Arrow too is a follow-up, not part of this draft.
+ * The query's non-data fields (`label_map`, `annotation_data`, cache and
+ * filter metadata, the SQL `query` text, ...) travel as JSON under the
+ * `ARROW_QUERY_METADATA_KEY` schema-metadata key (see
+ * ``ChartDataRestApi._arrow_with_query_metadata``) and are merged over the
+ * result. A stream without that key (e.g. from the datasource query
+ * endpoint) gets inert defaults instead, so chrome that reads those fields
+ * degrades quietly rather than throwing.
  */
 export function arrowBufferToQueryData(
   buffer: ArrayBuffer,
@@ -174,6 +227,10 @@ export function arrowBufferToQueryData(
   const coltypes = table.schema.fields.map(field =>
     toGenericDataType(field.type.typeId),
   );
+  const rawMetadata = table.schema.metadata.get(ARROW_QUERY_METADATA_KEY);
+  const queryMetadata: Partial<ChartDataResponseResult> = rawMetadata
+    ? JSON.parse(rawMetadata)
+    : {};
 
   return {
     annotation_data: null,
@@ -181,7 +238,6 @@ export function arrowBufferToQueryData(
     cache_timeout: null,
     cached_dttm: null,
     queried_dttm: null,
-    data,
     colnames,
     coltypes,
     error: null,
@@ -193,5 +249,7 @@ export function arrowBufferToQueryData(
     status: 'success',
     from_dttm: null,
     to_dttm: null,
+    ...queryMetadata,
+    data,
   };
 }

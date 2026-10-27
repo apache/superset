@@ -134,6 +134,43 @@ test('nulls out +/-Infinity to match df_to_records, even though pyarrow does not
   expect(result.data).toEqual([{ val: null }, { val: null }, { val: 5 }]);
 });
 
+// DataFrame: name (str), SUM(num)__outliers (object column of Python sets, as
+// the boxplot post-processing operator produces), passed through
+// ``ChartDataRestApi._arrow_with_query_metadata`` with a label_map, colnames,
+// coltypes, is_cached, cache_key, query and rowcount sidecar.
+const LIST_COLUMN_WITH_QUERY_METADATA_IPC =
+  '/////5ADAAAQAAAAAAAKAA4ABgAFAAgACgAAAAABBAAQAAAAAAAKAAwAAAAEAAgACgAAALQCAAAEAAAAAgAAAPQAAAAEAAAAHP///8wAAAAEAAAAvgAAAHsibGFiZWxfbWFwIjogeyJTVU0obnVtKV9fb3V0bGllcnMiOiBbIlNVTShudW0pIl19LCAiY29sbmFtZXMiOiBbIm5hbWUiLCAiU1VNKG51bSlfX291dGxpZXJzIl0sICJjb2x0eXBlcyI6IFsxLCAwXSwgImlzX2NhY2hlZCI6IHRydWUsICJjYWNoZV9rZXkiOiAiYWJjIiwgInF1ZXJ5IjogIlNFTEVDVCAxIiwgInJvd2NvdW50IjogMn0AAA4AAABzdXBlcnNldC5xdWVyeQAACAAMAAQACAAIAAAApAEAAAQAAACXAQAAeyJpbmRleF9jb2x1bW5zIjogW10sICJjb2x1bW5faW5kZXhlcyI6IFtdLCAiY29sdW1ucyI6IFt7Im5hbWUiOiAibmFtZSIsICJmaWVsZF9uYW1lIjogIm5hbWUiLCAicGFuZGFzX3R5cGUiOiAidW5pY29kZSIsICJudW1weV90eXBlIjogIm9iamVjdCIsICJtZXRhZGF0YSI6IG51bGx9LCB7Im5hbWUiOiAiU1VNKG51bSlfX291dGxpZXJzIiwgImZpZWxkX25hbWUiOiAiU1VNKG51bSlfX291dGxpZXJzIiwgInBhbmRhc190eXBlIjogImxpc3RbZmxvYXQ2NF0iLCAibnVtcHlfdHlwZSI6ICJvYmplY3QiLCAibWV0YWRhdGEiOiBudWxsfV0sICJhdHRyaWJ1dGVzIjoge30sICJjcmVhdG9yIjogeyJsaWJyYXJ5IjogInB5YXJyb3ciLCAidmVyc2lvbiI6ICIyNS4wLjEifSwgInBhbmRhc192ZXJzaW9uIjogIjIuMy4zIn0ABgAAAHBhbmRhcwAAAgAAAIAAAAAEAAAAmP///wAAAQwUAAAAKAAAAAQAAAABAAAAIAAAABIAAABTVU0obnVtKV9fb3V0bGllcnMAAJj////Q////AAABAxAAAAAcAAAABAAAAAAAAAAEAAAAaXRlbQAABgAIAAYABgAAAAAAAgAQABQACAAGAAcADAAAABAAEAAAAAAAAQUQAAAAHAAAAAQAAAAAAAAABAAAAG5hbWUAAAAABAAEAAQAAAD/////+AAAABQAAAAAAAAADAAWAAYABQAIAAwADAAAAAADBAAYAAAAOAAAAAAAAAAAAAoAGAAMAAQACAAKAAAAjAAAABAAAAACAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAQAAAAAAAAAAcAAAAAAAAAGAAAAAAAAAAAAAAAAAAAABgAAAAAAAAADAAAAAAAAAAoAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAQAAAAAAAAAAAAAAADAAAAAgAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAHAAAAAAAAAGJveWdpcmwAAAAAAAIAAAACAAAAAAAAAAAAAAAAAPg/AAAAAAAABED/////AAAAAA==';
+
+test('converts List columns to plain arrays, as the JSON wire format does', () => {
+  const result = arrowBufferToQueryData(
+    base64ToArrayBuffer(LIST_COLUMN_WITH_QUERY_METADATA_IPC),
+  );
+
+  expect(result.data).toEqual([
+    { name: 'boy', 'SUM(num)__outliers': [1.5, 2.5] },
+    { name: 'girl', 'SUM(num)__outliers': [] },
+  ]);
+  expect(Array.isArray(result.data[0]['SUM(num)__outliers'])).toBe(true);
+});
+
+test('merges the query metadata carried in the Arrow schema over the defaults', () => {
+  const result = arrowBufferToQueryData(
+    base64ToArrayBuffer(LIST_COLUMN_WITH_QUERY_METADATA_IPC),
+  );
+
+  expect(result).toMatchObject({
+    label_map: { 'SUM(num)__outliers': ['SUM(num)'] },
+    colnames: ['name', 'SUM(num)__outliers'],
+    coltypes: [GenericDataType.String, GenericDataType.Numeric],
+    is_cached: true,
+    cache_key: 'abc',
+    query: 'SELECT 1',
+    rowcount: 2,
+    status: 'success',
+    error: null,
+  });
+});
+
 test('fills in inert defaults for sidecar metadata the Arrow transport does not carry', () => {
   const result = arrowBufferToQueryData(
     base64ToArrayBuffer(MIXED_TYPES_AND_NULLS_IPC),
