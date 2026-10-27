@@ -104,7 +104,13 @@ const TabInfo = styled.div`
   overflow: hidden;
 `;
 
-const TabName = styled.span`
+const TabName = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
   font-size: ${({ theme }) => theme.fontSize}px;
   color: ${({ theme }) => theme.colorText};
   white-space: nowrap;
@@ -254,11 +260,7 @@ export const ChatTabsMenu = ({
         <EmptyState>{t('No conversations yet')}</EmptyState>
       ) : (
         tabs.map(tab => (
-          <TabItem
-            key={tab.id}
-            isActive={tab.id === activeTabId}
-            onClick={() => onSelectTab(tab.id)}
-          >
+          <TabItem key={tab.id} isActive={tab.id === activeTabId}>
             <TabInfo>
               <Icons.MessageOutlined iconSize="s" />
               {editingTabId === tab.id ? (
@@ -279,7 +281,13 @@ export const ChatTabsMenu = ({
                   aria-label={t('Conversation name')}
                 />
               ) : (
-                <TabName>{tab.name}</TabName>
+                <TabName
+                  type="button"
+                  aria-pressed={tab.id === activeTabId}
+                  onClick={() => onSelectTab(tab.id)}
+                >
+                  {tab.name}
+                </TabName>
               )}
               {tab.updatedAt !== undefined && (
                 <TabTimestamp>{formatRelativeTime(tab.updatedAt)}</TabTimestamp>

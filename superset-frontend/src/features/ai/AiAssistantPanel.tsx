@@ -59,7 +59,12 @@ import ChatTabsMenu from './components/ChatTabsMenu';
 import { REMARK_PLUGINS, useChatMarkdown } from './components/chatMarkdown';
 import { ThoughtProcess } from './components/ThoughtProcess';
 import { useChatBot } from './hooks/useChatBot';
-import { AI_ACTION_EVENT, type AiActionEvent } from './hooks/useAIAction';
+import {
+  AI_ACTION_EVENT,
+  type AiActionEvent,
+  queueAIAction,
+  takePendingAIAction,
+} from './hooks/useAIAction';
 import type { PageContext } from './hooks/usePageContext';
 import type { ChatMessageWithMeta, CheckpointPayload } from './types';
 
@@ -637,6 +642,9 @@ const MemoizedChatMessage = memo(
     previous.message.pending === next.message.pending &&
     previous.feedback === next.feedback &&
     previous.keepThinkingOpen === next.keepThinkingOpen &&
+    previous.createMarkdownComponents === next.createMarkdownComponents &&
+    previous.onCopy === next.onCopy &&
+    previous.onFeedback === next.onFeedback &&
     previous.sqlBlockExpandState === next.sqlBlockExpandState,
 );
 MemoizedChatMessage.displayName = 'MemoizedChatMessage';
@@ -849,40 +857,51 @@ export const AiAssistantPanel = () => {
     tabId: string;
     prompt: string;
     systemPrompt?: string;
+    sent?: boolean;
   } | null>(null);
+  const [actionVersion, notifyAction] = useState(0);
 
   useEffect(() => {
     const handleAiAction = (event: Event) => {
       const { detail } = event as AiActionEvent;
-      const prompt = detail?.prompt?.trim();
-      if (!prompt) {
-        return;
+      if (detail?.prompt?.trim()) {
+        queueAIAction(detail);
       }
-      chat.open();
-      handleNewChat().then(newTabId => {
-        setPendingSend({
-          tabId: newTabId,
-          prompt,
-          systemPrompt: detail.systemPrompt?.trim() || undefined,
-        });
-      });
+      notifyAction(value => value + 1);
     };
     window.addEventListener(AI_ACTION_EVENT, handleAiAction);
     return () => {
       window.removeEventListener(AI_ACTION_EVENT, handleAiAction);
     };
-  }, [handleNewChat]);
+  }, []);
 
   useEffect(() => {
-    if (!pendingSend || activeTabId !== pendingSend.tabId) {
+    if (!threadsLoaded || pendingSend || isLoading) {
+      return;
+    }
+    const action = takePendingAIAction();
+    if (!action) {
+      return;
+    }
+    const pending = {
+      tabId: '',
+      prompt: action.prompt.trim(),
+      systemPrompt: action.systemPrompt?.trim() || undefined,
+    };
+    setPendingSend(pending);
+    handleNewChat().then(tabId => setPendingSend({ ...pending, tabId }));
+  }, [actionVersion, handleNewChat, isLoading, pendingSend, threadsLoaded]);
+
+  useEffect(() => {
+    if (!pendingSend || pendingSend.sent || activeTabId !== pendingSend.tabId) {
       return;
     }
     if (!chatTabs.some(tab => tab.id === pendingSend.tabId)) {
       return;
     }
     const { prompt, systemPrompt } = pendingSend;
-    setPendingSend(null);
-    sendMessage(prompt, systemPrompt);
+    setPendingSend({ ...pendingSend, sent: true });
+    sendMessage(prompt, systemPrompt).finally(() => setPendingSend(null));
   }, [pendingSend, activeTabId, chatTabs, sendMessage]);
 
   const onSelectTab = useCallback(
@@ -961,7 +980,13 @@ export const AiAssistantPanel = () => {
         </HeaderGroup>
       </ChatHeader>
 
-      <ChatMessages data-test="chat-messages">
+      <ChatMessages
+        data-test="chat-messages"
+        role="log"
+        aria-label={t('Conversation')}
+        aria-live="off"
+        tabIndex={0}
+      >
         {messages.length === 0 ? (
           <EmptyState>
             {threadsLoaded
@@ -1057,6 +1082,25 @@ export const AiAssistantPanel = () => {
 
         <div ref={messagesEndRef} />
       </ChatMessages>
+      <output
+        aria-label={t('Assistant updates')}
+        aria-live="polite"
+        aria-atomic="true"
+        css={css`
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        `}
+      >
+        {!isLoading && justCompletedId && (
+          <span key={justCompletedId}>
+            {t('A new assistant response is ready.')}
+          </span>
+        )}
+      </output>
 
       <ChatInput>
         <QuickPromptsRow hasContent={hasQuickPromptContent}>

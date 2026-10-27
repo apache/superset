@@ -33,7 +33,7 @@ import {
   CheckpointSection,
   getPageContextLabel,
 } from './AiAssistantPanel';
-import { AI_ACTION_EVENT } from './hooks/useAIAction';
+import { AI_ACTION_EVENT, triggerAIAction } from './hooks/useAIAction';
 import type { PageContext } from './hooks/usePageContext';
 
 const THREAD_UUID = 'thread-uuid-1';
@@ -776,47 +776,56 @@ test('the page context a turn was given is shown alongside its steps', async () 
   expect(screen.getByText(/dashboard_id: 14/)).toBeInTheDocument();
 });
 
-test('an AI action opens a new conversation and asks its question', async () => {
-  fetchMock.post('glob:*/api/v1/ai/thread/', {
-    result: {
-      uuid: THREAD_UUID,
-      title: 'New Chat',
-      status: 'active',
-      created_on: '2026-01-01T00:00:00',
-      changed_on: '2026-01-01T00:00:00',
-    },
-  });
-  streamFrames = [
-    frame('final', { role: 'assistant', content: 'the query is fine' }),
-    frame('done', { ok: true }),
-  ];
-  await renderPanel();
+test.each([false, true])(
+  'an AI action survives opening a closed panel: %s',
+  async beforeMount => {
+    fetchMock.post('glob:*/api/v1/ai/thread/', {
+      result: {
+        uuid: THREAD_UUID,
+        title: 'New Chat',
+        status: 'active',
+        created_on: '2026-01-01T00:00:00',
+        changed_on: '2026-01-01T00:00:00',
+      },
+    });
+    streamFrames = [
+      frame('final', { role: 'assistant', content: 'the query is fine' }),
+      frame('done', { ok: true }),
+    ];
+    if (beforeMount) {
+      triggerAIAction({ prompt: 'Debug this query', systemPrompt: 'Be terse' });
+    }
+    await renderPanel();
+    if (!beforeMount) {
+      act(() => {
+        window.dispatchEvent(
+          new CustomEvent(AI_ACTION_EVENT, {
+            detail: { prompt: 'Debug this query', systemPrompt: 'Be terse' },
+          }),
+        );
+      });
+    }
 
-  act(() => {
-    window.dispatchEvent(
-      new CustomEvent(AI_ACTION_EVENT, {
-        detail: { prompt: 'Debug this query', systemPrompt: 'Be terse' },
-      }),
+    // Scoped to the transcript: the conversation is also titled after the prompt.
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('chat-messages')).getByText(
+          'Debug this query',
+        ),
+      ).toBeInTheDocument(),
     );
-  });
-
-  // Scoped to the transcript: the conversation is also titled after the prompt.
-  await waitFor(() =>
-    expect(
-      within(screen.getByTestId('chat-messages')).getByText('Debug this query'),
-    ).toBeInTheDocument(),
-  );
-  await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      `glob:*/api/v1/ai/thread/${THREAD_UUID}/message`,
-    );
-    expect(calls.length).toBeGreaterThan(0);
-    const body = JSON.parse(String(calls[0].options.body));
-    // A system directive has no channel of its own in this contract, so it rides
-    // with the page context.
-    expect(body.page_context.helper_directives).toContain('Be terse');
-  });
-});
+    await waitFor(() => {
+      const calls = fetchMock.callHistory.calls(
+        `glob:*/api/v1/ai/thread/${THREAD_UUID}/message`,
+      );
+      expect(calls.length).toBeGreaterThan(0);
+      const body = JSON.parse(String(calls[0].options.body));
+      // A system directive has no channel of its own in this contract, so it rides
+      // with the page context.
+      expect(body.page_context.helper_directives).toContain('Be terse');
+    });
+  },
+);
 
 test('the page-context pill names the thing on screen', () => {
   const base: PageContext = { url: '/', pathname: '/x', pageType: 'other' };
@@ -957,6 +966,9 @@ test('the answer appears as it streams, before the run finishes', async () => {
   // Both deltas are on screen while the run is still open. These used to be
   // folded into a value nothing rendered, so the answer only appeared at the end.
   const live = await screen.findByTestId('chat-live-answer');
+  expect(
+    screen.getByRole('status', { name: 'Assistant updates' }),
+  ).toBeEmptyDOMElement();
   await waitFor(() =>
     expect(live).toHaveTextContent('Revenue rose by twelve percent.'),
   );
@@ -972,6 +984,9 @@ test('the answer appears as it streams, before the run finishes', async () => {
   await waitFor(() =>
     expect(screen.queryByTestId('chat-live-answer')).not.toBeInTheDocument(),
   );
+  expect(
+    screen.getByRole('status', { name: 'Assistant updates' }),
+  ).toHaveTextContent('A new assistant response is ready.');
 });
 
 test('an unfinished code fence is closed before the partial answer is parsed', () => {

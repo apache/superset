@@ -244,17 +244,19 @@ export function ChatChartEmbedInner({
     let active = true;
     let controller: AbortController;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let requestTimeout: ReturnType<typeof setTimeout> | undefined;
     setFetchState({ status: 'loading' });
 
     const fetchFormData = async (attempt = 0): Promise<void> => {
       controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      requestTimeout = timeout;
       const retry = () => {
         if (attempt >= MAX_RETRIES) {
           return false;
         }
         retryTimer = setTimeout(() => {
-          void fetchFormData(attempt + 1);
+          fetchFormData(attempt + 1);
         }, RETRY_DELAYS_MS[attempt]);
         return true;
       };
@@ -282,11 +284,15 @@ export function ChatChartEmbedInner({
           return;
         }
         const parsed: QueryFormData =
-          typeof formDataStr === 'string' ? JSON.parse(formDataStr) : formDataStr;
+          typeof formDataStr === 'string'
+            ? JSON.parse(formDataStr)
+            : formDataStr;
         if (!parsed.viz_type) {
           setFetchState({
             status: 'error',
-            message: t('Invalid chart configuration: missing visualization type.'),
+            message: t(
+              'Invalid chart configuration: missing visualization type.',
+            ),
           });
           return;
         }
@@ -313,10 +319,11 @@ export function ChatChartEmbedInner({
         clearTimeout(timeout);
       }
     };
-    void fetchFormData();
+    fetchFormData();
     return () => {
       active = false;
       clearTimeout(retryTimer);
+      clearTimeout(requestTimeout);
       controller?.abort();
     };
   }, [formDataKey, reload]);

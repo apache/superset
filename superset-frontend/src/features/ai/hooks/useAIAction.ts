@@ -24,11 +24,8 @@
  * assistant with a question already asked. It does that by dispatching one DOM
  * event that the panel listens for.
  *
- * A DOM event rather than a shared module or a global: the caller may be mounted
- * in a different React tree from the panel (the panel is mounted by the chat host)
- * and must not import it, or the assistant's code would be pulled into every
- * bundle that offers an action. The panel is the only listener, and if it is not
- * mounted the event is simply unheard.
+ * The event wakes a mounted panel; the queue retains actions while its host
+ * opens and loads conversations.
  */
 
 import { useCallback } from 'react';
@@ -40,21 +37,31 @@ export const AI_ACTION_EVENT = 'superset-ai-action';
 
 export type AiActionEvent = CustomEvent<AIActionPayload>;
 
+const pendingActions: AIActionPayload[] = [];
+
+/** Retain an action until the panel is ready to start its conversation. */
+export const queueAIAction = (payload: AIActionPayload): void => {
+  if (payload.prompt.trim()) {
+    pendingActions.push(payload);
+  }
+};
+
+/** A mounted panel claims each action once. */
+export const takePendingAIAction = (): AIActionPayload | undefined =>
+  pendingActions.shift();
+
 /**
  * Asks the assistant a question in a new conversation.
  *
- * Safe to call whether or not the panel is mounted: the chat host is asked to open
- * first, which mounts it, and the event is dispatched after so a panel that has
- * just mounted has its listener attached.
+ * The payload survives opening an unmounted panel; no render timing is assumed.
  */
 export const triggerAIAction = (payload: AIActionPayload): void => {
   if (!payload.prompt.trim()) {
     return;
   }
+  queueAIAction(payload);
   chat.open();
-  window.dispatchEvent(
-    new CustomEvent<AIActionPayload>(AI_ACTION_EVENT, { detail: payload }),
-  );
+  window.dispatchEvent(new Event(AI_ACTION_EVENT));
 };
 
 export interface UseAIActionResult {

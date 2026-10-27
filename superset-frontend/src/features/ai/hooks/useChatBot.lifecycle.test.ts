@@ -220,33 +220,76 @@ test.each(['continue', 'cancel'])(
   },
 );
 
-test('Stop before the start response cancels the server run once its ID arrives', async () => {
-  let finishStart: ((run: RunHandle) => void) | undefined;
-  jest.mocked(startRun).mockImplementation(
-    () =>
-      new Promise(resolve => {
-        finishStart = resolve;
-      }),
-  );
-  jest.mocked(streamRun).mockResolvedValue({ content: '', cancelled: false });
-  const { result } = renderHook(useChatBot);
+test.each(['stop', 'unmount'])(
+  '%s before the start response cancels the accepted run',
+  async action => {
+    let finishStart: ((run: RunHandle) => void) | undefined;
+    jest.mocked(startRun).mockImplementation(
+      () =>
+        new Promise(resolve => {
+          finishStart = resolve;
+        }),
+    );
+    jest.mocked(streamRun).mockResolvedValue({ content: '', cancelled: false });
+    const { result, unmount } = renderHook(useChatBot);
+    await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+    let sending: Promise<void> | undefined;
+    act(() => {
+      sending = result.current.sendMessage('question');
+    });
+    await waitFor(() => expect(startRun).toHaveBeenCalledTimes(1));
+    if (action === 'unmount') {
+      unmount();
+    } else {
+      await act(() => result.current.handleCancelRun());
+      expect(result.current.activeRunStatus).toBe('cancelling');
+      await act(() => result.current.sendMessage('overlapping question'));
+    }
+    expect(cancelChatRun).not.toHaveBeenCalled();
+    expect(startRun).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finishStart?.(handle('first'));
+      await sending;
+    });
+    expect(cancelChatRun).toHaveBeenCalledTimes(1);
+    expect(cancelChatRun).toHaveBeenCalledWith('first', 'run-first');
+    expect(streamRun).not.toHaveBeenCalled();
+    if (action === 'stop') {
+      expect(result.current.isLoading).toBe(false);
+    }
+  },
+);
+
+test('unmount releases every checkpoint and cancels each owned server run', async () => {
+  const resumed: string[] = [];
+  const signals: AbortSignal[] = [];
+  jest
+    .mocked(streamRun)
+    .mockImplementation(async ({ threadUuid, signal, onCheckpoint }) => {
+      if (signal) signals.push(signal);
+      await onCheckpoint?.({ summary: threadUuid, requiresConfirmation: true });
+      resumed.push(threadUuid);
+      return { content: '', cancelled: true };
+    });
+  const { result, unmount } = renderHook(useChatBot);
   await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
-  let sending: Promise<void> | undefined;
+  let first!: Promise<void>;
+  let second!: Promise<void>;
   act(() => {
-    sending = result.current.sendMessage('question');
+    first = result.current.sendMessage('first');
   });
-  await waitFor(() => expect(startRun).toHaveBeenCalledTimes(1));
-  await act(() => result.current.handleCancelRun());
-  expect(cancelChatRun).not.toHaveBeenCalled();
-  expect(result.current.activeRunStatus).toBe('cancelling');
-  await act(() => result.current.sendMessage('overlapping question'));
-  expect(startRun).toHaveBeenCalledTimes(1);
-  await act(async () => {
-    finishStart?.(handle('first'));
-    await sending;
+  await waitFor(() => expect(result.current.checkpoint).not.toBeNull());
+  await act(() => result.current.handleSelectTab('second'));
+  act(() => {
+    second = result.current.sendMessage('second');
   });
-  expect(cancelChatRun).toHaveBeenCalledTimes(1);
+  await waitFor(() =>
+    expect(result.current.checkpoint?.summary).toBe('second'),
+  );
+  unmount();
+  expect(signals.every(signal => signal.aborted)).toBe(true);
   expect(cancelChatRun).toHaveBeenCalledWith('first', 'run-first');
-  expect(streamRun).not.toHaveBeenCalled();
-  expect(result.current.isLoading).toBe(false);
+  expect(cancelChatRun).toHaveBeenCalledWith('second', 'run-second');
+  await Promise.all([first, second]);
+  expect(resumed.sort()).toEqual(['first', 'second']);
 });

@@ -24,6 +24,7 @@ import {
   buildExplainChartPrompt,
   buildOptimizeSqlPrompt,
   triggerAIAction,
+  takePendingAIAction,
 } from './useAIAction';
 import type { AIActionPayload } from '../types';
 
@@ -41,12 +42,13 @@ test('an action opens the assistant and then dispatches its prompt', () => {
 
   triggerAIAction({ prompt: 'Debug this query', systemPrompt: 'Be terse' });
 
-  // Opening first is what mounts the panel, so its listener exists by the time
-  // the event is dispatched.
   expect(open).toHaveBeenCalled();
-  expect(received).toEqual([
-    { prompt: 'Debug this query', systemPrompt: 'Be terse' },
-  ]);
+  expect(received).toHaveLength(1);
+  expect(takePendingAIAction()).toEqual({
+    prompt: 'Debug this query',
+    systemPrompt: 'Be terse',
+  });
+  expect(takePendingAIAction()).toBeUndefined();
   open.mockRestore();
 });
 

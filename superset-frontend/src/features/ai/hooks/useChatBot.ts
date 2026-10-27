@@ -378,12 +378,21 @@ export const useChatBot = (): UseChatBotReturn => {
   );
 
   const mountedRef = useRef(true);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
-    },
-    [],
-  );
+      Object.values(activeRunsByTabRef.current).forEach(run => {
+        run.resolveCheckpoint?.();
+        run.controller.abort();
+        if (run.runId) {
+          cancelChatRun(run.threadId, run.runId).catch(caught => {
+            logging.warn('[ai] the assistant was not told to stop', caught);
+          });
+        }
+      });
+    };
+  }, []);
 
   const activeTab = chatTabs.find(tab => tab.id === activeTabId);
   const messages = activeTab?.messages ?? EMPTY_MESSAGES;
@@ -464,7 +473,7 @@ export const useChatBot = (): UseChatBotReturn => {
   // and failing to scroll must not take the panel down.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
-  }, [messages, liveToolLog, liveThoughts]);
+  }, [messages, liveToolLog, liveThoughts, liveAnswer]);
 
   // -----------------------------------------------------------------------
   // Conversation management
