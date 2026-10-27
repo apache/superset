@@ -2884,8 +2884,18 @@ LATERAL generate_series(1, value) AS i;
         ("SELECT * FROM t WHERE ROWNUM <= 9 AND x = 1 AND ROWNUM < 4", "oracle", 3),
         ("SELECT * FROM t WHERE ROWNUM < 0", "oracle", 0),
         ("SELECT * FROM (SELECT * FROM t) WHERE ROWNUM <= 11", "oracle", 11),
+        # A nested `AND` grouped in parentheses still bounds the result, no
+        # matter which side of the chain it is on.
+        ("SELECT * FROM t WHERE x = 1 AND (y = 2 AND ROWNUM <= 5)", "oracle", 5),
+        ("SELECT * FROM t WHERE (x = 1 AND y = 2) AND ROWNUM <= 5", "oracle", 5),
+        (
+            "SELECT * FROM t WHERE (x = 1 AND ROWNUM <= 9) AND (y = 2 AND ROWNUM < 4)",
+            "oracle",
+            3,
+        ),
         # ... but not when the comparison doesn't bound the outer result.
         ("SELECT * FROM t WHERE x = 1 OR ROWNUM <= 5", "oracle", None),
+        ("SELECT * FROM t WHERE x = 1 AND (y = 2 OR ROWNUM <= 5)", "oracle", None),
         ("SELECT * FROM t WHERE ROWNUM >= 5", "oracle", None),
         ("SELECT * FROM t WHERE ROWNUM <= :n", "oracle", None),
         ("SELECT * FROM t WHERE t.rownum <= 5", "oracle", None),
@@ -3475,6 +3485,33 @@ def test_deduplicate_oracle_output_names_ignores_non_select() -> None:
     values = parse_one("VALUES (1, 1)", dialect="postgres")
     _deduplicate_oracle_output_names(values)
     assert values.sql() == "VALUES (1, 1)"
+
+
+@pytest.mark.parametrize(
+    "condition, expected",
+    [
+        ("x = 1", ["x = 1"]),
+        ("x = 1 AND y = 2", ["x = 1", "y = 2"]),
+        ("x = 1 AND y = 2 AND z = 3", ["x = 1", "y = 2", "z = 3"]),
+        # A nested `AND` grouped in parentheses is still unwrapped, on
+        # either side of the chain.
+        ("x = 1 AND (y = 2 AND z = 3)", ["x = 1", "y = 2", "z = 3"]),
+        ("(x = 1 AND y = 2) AND z = 3", ["x = 1", "y = 2", "z = 3"]),
+        ("(x = 1 AND (y = 2 AND z = 3))", ["x = 1", "y = 2", "z = 3"]),
+        # An `OR` is a leaf, not a chain to look through.
+        ("x = 1 OR y = 2", ["x = 1 OR y = 2"]),
+        ("x = 1 AND (y = 2 OR z = 3)", ["x = 1", "y = 2 OR z = 3"]),
+    ],
+)
+def test_flatten_and(condition: str, expected: list[str]) -> None:
+    """
+    `_flatten_and` returns every `AND`-ed leaf, regardless of grouping.
+    """
+    from superset.sql.parse import _flatten_and
+
+    parsed = parse_one(f"SELECT * FROM t WHERE {condition}", dialect="oracle")  # noqa: S608
+    leaves = _flatten_and(parsed.args["where"].this)
+    assert [leaf.sql() for leaf in leaves] == expected
 
 
 @pytest.mark.parametrize(

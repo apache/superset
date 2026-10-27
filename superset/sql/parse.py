@@ -1139,6 +1139,22 @@ def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
             projection.replace(exp.alias_(projection.copy(), alias))
 
 
+def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
+    """
+    Return the leaves of a chain of `AND`s, looking through parentheses.
+
+    `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
+    `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
+    comes back as a single `And` leaf rather than its own `y` and `z` leaves.
+    This recurses instead, so a condition `AND`-ed together with others stays
+    found regardless of how it is grouped.
+    """
+    condition = condition.unnest()
+    if not isinstance(condition, exp.And):
+        return [condition]
+    return _flatten_and(condition.this) + _flatten_and(condition.expression)
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -2282,10 +2298,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if where is None:
             return None
 
-        condition = where.this.unnest()
-        conditions = (
-            condition.flatten() if isinstance(condition, exp.And) else [condition]
-        )
+        conditions = _flatten_and(where.this)
         caps = []
         for predicate in conditions:
             predicate = predicate.unnest()
