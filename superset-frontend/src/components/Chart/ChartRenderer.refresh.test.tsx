@@ -341,6 +341,36 @@ test('draws each previous response with the form data it was queried with', asyn
   );
 });
 
+test('draws the previous data with the current form data when the store recorded empty request form data', async () => {
+  const first = queriesResponse(1);
+  const { rerender } = render(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={labelledFormData('dashboard')}
+      latestQueryFormData={{}}
+      queriesResponse={first}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1 label=dashboard',
+  );
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={labelledFormData('dashboard')}
+      latestQueryFormData={{}}
+      queriesResponse={first}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1 label=dashboard',
+  );
+  expect(screen.getByRole('status')).toBeInTheDocument();
+});
+
 test('pairs a response that lands while the chart is off screen with the request that produced it', async () => {
   // With deferred data, a chart off screen starts no new query, but a query
   // already in flight keeps running and its response lands against the newer
