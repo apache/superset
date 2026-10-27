@@ -7451,3 +7451,50 @@ def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None
     name, so ``tables`` cannot report them.
     """
     assert SQLStatement(sql, engine).has_dynamic_table_source() == expected
+
+
+@pytest.mark.parametrize(
+    ("sql", "orderby", "expected"),
+    [
+        ("SELECT a, b + 1", False, "a, b + 1"),
+        ("SELECT DISTINCT a, b", False, "DISTINCT a, b"),
+        ("SELECT DISTINCT ON (a) a, b", False, "DISTINCT ON (a) a, b"),
+        ("SELECT", False, ""),
+        ("/* SELECT misleading */ SELECT a, b", False, "a /* SELECT misleading */, b"),
+        ("SELECT 1 ORDER BY a DESC, b ASC", True, "a DESC, b ASC"),
+        (
+            "/* ORDER BY misleading */ SELECT 1 ORDER BY a DESC",
+            True,
+            "a DESC /* ORDER BY misleading */",
+        ),
+    ],
+)
+def test_format_select_clause(sql: str, orderby: bool, expected: str) -> None:
+    """Extract only the requested nodes without mutating the parsed statement."""
+    statement = SQLStatement(sql, "postgresql")
+    original = statement.format()
+
+    assert statement.format_select_clause(orderby=orderby) == expected
+    assert statement.format_select_clause(orderby=orderby) == expected
+    assert statement.format() == original
+
+
+@pytest.mark.parametrize(
+    ("apply_dialect", "expected"),
+    [(True, "`column`"), (False, '"column"')],
+)
+def test_format_select_clause_dialect(apply_dialect: bool, expected: str) -> None:
+    """Use dialect quoting only when requested by the caller."""
+    statement = SQLStatement("SELECT `column`", "mysql")
+
+    assert statement.format_select_clause(apply_dialect=apply_dialect) == expected
+
+
+@pytest.mark.parametrize(
+    ("sql", "orderby"),
+    [("DELETE FROM tbl", False), ("SELECT a", True)],
+)
+def test_format_select_clause_invalid(sql: str, orderby: bool) -> None:
+    """Reject statements that do not contain the requested synthetic wrapper."""
+    with pytest.raises(SupersetParseError, match="Error parsing"):
+        SQLStatement(sql, "postgresql").format_select_clause(orderby=orderby)
