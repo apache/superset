@@ -526,6 +526,30 @@ def test_df_to_escaped_csv_keeps_a_sibling_level_dtype_with_a_missing_value():
     )
 
 
+def test_df_to_escaped_csv_escapes_a_rebuilt_level_holding_a_missing_label():
+    """
+    A rebuilt level writes its missing label as an empty field.
+
+    The level carrying the formula label is the one holding the null here, so
+    the null goes through the rebuild rather than past it, which is what the
+    other missing-value cases do. ``escape_values`` hands a non-string back
+    untouched and the null stays missing; coercing the level to text before
+    escaping would write the second row as ``nan,y,2``, and every other test
+    in this file passes either way.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", "x"), (None, "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\n'=cmd(),x,1\n,y,2\n"
+    )
+
+
 def test_df_to_escaped_csv_keeps_the_dtype_of_a_level_whose_label_was_sliced_out():
     """
     A level keeps its dtype when the only label needing escaping is not exported.
