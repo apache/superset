@@ -193,4 +193,9 @@ test.each(['metric', 'calculated column'] as const)(
       ]),
     );
   },
+  // The debounce waits are real timers (fake timers cannot flush timeouts
+  // scheduled before they were installed). The remaining cost is the modal
+  // render and userEvent interactions, which can exceed Jest's default 20s
+  // budget on a loaded CI runner.
+  30000,
 );

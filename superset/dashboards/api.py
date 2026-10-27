@@ -3410,6 +3410,10 @@ class DashboardRestApi(
         ---
         post:
           summary: Create a copy of an existing dashboard
+          description: >-
+            Settings merge with the source by default. Set replace_metadata to true
+            to use json_metadata as complete settings, as for a version fork.
+            Chart-specific settings are pruned and remapped in both modes.
           parameters:
           - in: path
             schema:

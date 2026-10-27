@@ -2377,7 +2377,7 @@ class SqlaTable(
             return sql_expression
         try:
             return template_processor.process_template(sql_expression)
-        except SupersetSyntaxErrorException as ex:
+        except (TemplateError, SupersetSyntaxErrorException) as ex:
             raise QueryObjectValidationError(
                 _(
                     "Error in jinja expression in adhoc column: %(msg)s",
@@ -2892,7 +2892,13 @@ class SqlaTable(
 
         # ``get_sqla_query`` resolves ``groupby`` through the same column lookup
         # as ``columns``, and prefers it when both are set, so a calculated
-        # column grouped on is rendered exactly like a selected one.
+        # column grouped on is rendered exactly like a selected one. In
+        # practice ``QueryObject.to_dict()`` never emits a ``groupby`` key of
+        # its own (``_rename_deprecated_fields`` folds it into ``columns`` at
+        # construction time, and that is the only real caller of this
+        # method), so this is defensive: it only matters for a caller that
+        # builds a ``QueryObjectDict`` directly rather than through
+        # ``QueryObject``.
         for column_ in [
             *(query_obj.get("columns") or []),
             *(query_obj.get("groupby") or []),
@@ -2926,16 +2932,34 @@ class SqlaTable(
         for flt in query_obj.get("filter") or []:
             if isinstance(flt, dict) and (expression := filter_expression(flt)):
                 templatable_statements.append(expression)
-        if granularity := query_obj.get("granularity"):
+        if (raw_granularity := query_obj.get("granularity")) is not None:
             # The temporal column reaches the select list and the time filter
             # through ``get_timestamp_expression``, which renders its
             # expression. ``get_sqla_query`` falls back to ``main_dttm_col``
-            # when ``granularity`` is not one of the temporal columns, so the
-            # column whose expression is rendered is not always the named one.
-            if granularity not in self.dttm_cols:
-                granularity = self.main_dttm_col
-            if granularity and (expression := calculated_columns.get(granularity)):
-                templatable_statements.append(expression)
+            # whenever ``granularity`` is not one of the temporal columns,
+            # which includes an empty string, so the fallback is checked on
+            # that condition rather than on ``granularity``'s truthiness.
+            granularity = (
+                self.main_dttm_col
+                if raw_granularity not in self.dttm_cols
+                else raw_granularity
+            )
+            if granularity:
+                if expression := calculated_columns.get(granularity):
+                    templatable_statements.append(expression)
+                # When the dataset always filters on ``main_dttm_col`` and it
+                # differs from the column ``granularity`` resolved to,
+                # ``get_sqla_query`` adds a second, independent time filter on
+                # ``main_dttm_col``, rendering that column's own expression
+                # regardless of which column was actually named.
+                if (
+                    self.always_filter_main_dttm
+                    and self.main_dttm_col
+                    and self.main_dttm_col in self.dttm_cols
+                    and self.main_dttm_col != granularity
+                    and (expression := calculated_columns.get(self.main_dttm_col))
+                ):
+                    templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
