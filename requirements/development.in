@@ -70,3 +70,11 @@ jaraco.context>=6.1.0
 # eval() in cffLib parseBlendList(), allowing arbitrary code execution from a
 # crafted TTX file (fonttools/fonttools#4039, fixed in 4.62.0 by #4040).
 fonttools>=4.62.0,<5.0.0
+
+# Security: CVE-2026-75509 - joserfc claim-validation bypass via array-typed
+# iss/sub claims (pulled in transitively via fastmcp-slim)
+joserfc>=1.7.3
+
+# Security: CVE-2026-53537, CVE-2026-53538, CVE-2026-53539, CVE-2026-53540 -
+# python-multipart (pulled in transitively via fastmcp-slim and mcp)
+python-multipart>=0.0.31
