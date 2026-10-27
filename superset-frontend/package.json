@@ -286,7 +286,7 @@
     "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
-    "baseline-browser-mapping": "^2.11.27",
+    "baseline-browser-mapping": "^2.11.29",
     "cheerio": "1.2.0",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.5",
