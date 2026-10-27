@@ -793,9 +793,7 @@ export const useChatBot = (): UseChatBotReturn => {
         },
       ]);
 
-      // There is no system-message channel in this contract, so a directive from
-      // an AI action travels with the page context, which is the field the
-      // backend already turns into prompt preamble.
+      // Action directives travel with page context and enter the user prompt.
       const directive = systemPromptOverride?.trim();
       const contextPayload = buildRequestPageContext(
         includePageContext ? pageContextRef.current : undefined,
