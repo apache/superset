@@ -336,6 +336,8 @@ def _identifier(value: Any) -> str:
     """
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         return ""
+    if isinstance(value, float) and not value.is_integer():
+        return ""
     try:
         number = int(value)
     except (TypeError, ValueError):

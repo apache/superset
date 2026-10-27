@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 
 @pytest.mark.parametrize(
     "context",
@@ -403,7 +404,11 @@ def test_sql_lab_database_id_is_named_as_the_tool_argument() -> None:
     assert "Run any SQL against database_id 3" in rendered
 
 
-def test_unusable_ids_are_omitted_rather_than_echoed() -> None:
+@pytest.mark.parametrize(
+    "bad",
+    [None, 0, -1, "", "abc", True, [1], {"id": 1}, 1.5, float("inf"), float("nan")],
+)
+def test_unusable_ids_are_omitted_rather_than_echoed(bad: Any) -> None:
     """
     An id that no tool would accept is left out entirely.
 
@@ -412,16 +417,15 @@ def test_unusable_ids_are_omitted_rather_than_echoed() -> None:
     """
     from superset.ai.page_context import render_page_context
 
-    for bad in (None, 0, -1, "", "abc", True, [1], {"id": 1}):
-        rendered = render_page_context(
-            {
-                "pageType": "dashboard",
-                "dashboardContext": {"id": bad, "title": "Sales"},
-            }
-        )
-        assert "dashboard_id" not in rendered, bad
-        # The rest of the section still renders; only the id is dropped.
-        assert "Sales" in rendered, bad
+    rendered = render_page_context(
+        {
+            "pageType": "dashboard",
+            "dashboardContext": {"id": bad, "title": "Sales"},
+        }
+    )
+    assert "dashboard_id" not in rendered, bad
+    # The rest of the section still renders; only the id is dropped.
+    assert "Sales" in rendered, bad
 
 
 def test_numeric_ids_arriving_as_strings_are_accepted() -> None:
