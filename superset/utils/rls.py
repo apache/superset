@@ -48,7 +48,9 @@ def _get_cache_identity() -> str:
     """
     if guest_user := security_manager.get_current_guest_user_if_guest():
         rls_rules = guest_user.guest_token.get("rls_rules", [])
-        digest = hash_from_str(json.dumps(rls_rules, sort_keys=True))
+        digest = hash_from_str(
+            json.dumps(rls_rules, sort_keys=True), algorithm="sha256"
+        )
         return f"guest-{digest}"
     return str(get_user_id())
 
