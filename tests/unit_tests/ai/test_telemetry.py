@@ -33,8 +33,8 @@ from pytest_mock import MockerFixture
 from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
     LLMTransportError,
-    RetryPolicy,
     Message,
+    RetryPolicy,
     ToolCall,
     ToolDefinition,
     ToolResult,
@@ -381,7 +381,9 @@ def test_redaction_hides_provider_error_text(
     _configure(mocker, [sink], redact=True)
 
     provider = EchoProvider([ScriptedTurn(error=LLMTransportError(f"rejected {SQL}"))])
-    mocker.patch.object(provider, "retry_policy", return_value=RetryPolicy(max_attempts=1))
+    mocker.patch.object(
+        provider, "retry_policy", return_value=RetryPolicy(max_attempts=1)
+    )
     _drive(provider)
 
     assert sink.errors
@@ -486,8 +488,9 @@ def test_a_sink_that_raises_everywhere_does_not_affect_the_run(
     runtime, events = _drive(_script_with_a_tool_call(), tools=StubTools())
 
     assert runtime.result.ok
-    assert runtime.result.answer == ANSWER
-    assert _final(events) == ANSWER
+    expected = f"Checking the shipments table.\n\n{ANSWER}"
+    assert runtime.result.answer == expected
+    assert _final(events) == expected
     assert exploding.calls > 0, "the broken sink was called"
     # The sink after the broken one still received the whole run.
     assert working.runs_started
@@ -692,7 +695,9 @@ def test_a_failed_round_trip_is_a_span_and_an_error(
     _configure(mocker, [sink])
 
     provider = EchoProvider([ScriptedTurn(error=LLMTransportError("upstream 503"))])
-    mocker.patch.object(provider, "retry_policy", return_value=RetryPolicy(max_attempts=1))
+    mocker.patch.object(
+        provider, "retry_policy", return_value=RetryPolicy(max_attempts=1)
+    )
     _drive(provider)
 
     assert sink.model_calls[0][1].error_type == "LLMTransportError"

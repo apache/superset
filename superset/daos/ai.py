@@ -74,6 +74,8 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
         cls,
         thread_uuid: str | UUID,
         user_id: int | None,
+        *,
+        for_update: bool = False,
     ) -> AIChatThread | None:
         """
         Return the thread only when ``user_id`` owns it.
@@ -92,14 +94,13 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
         if parsed is None or user_id is None:
             return None
 
-        return (
-            db.session.query(AIChatThread)
-            .filter(
-                AIChatThread.uuid == parsed,
-                AIChatThread.created_by_fk == user_id,
-            )
-            .one_or_none()
+        query = db.session.query(AIChatThread).filter(
+            AIChatThread.uuid == parsed,
+            AIChatThread.created_by_fk == user_id,
         )
+        if for_update:
+            query = query.with_for_update()
+        return query.one_or_none()
 
     @classmethod
     def find_all_for_user(
@@ -223,8 +224,24 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
     """
 
     @classmethod
+    def has_active_run(cls, thread: AIChatThread) -> bool:
+        """Check run state without hydrating message contents."""
+        return (
+            db.session.query(AIChatMessage.id)
+            .filter(
+                AIChatMessage.thread_id == thread.id,
+                AIChatMessage.role == MessageRole.ASSISTANT.value,
+                AIChatMessage.status.in_(
+                    [MessageStatus.PENDING.value, MessageStatus.STREAMING.value]
+                ),
+            )
+            .first()
+            is not None
+        )
+
+    @classmethod
     def counts_for_threads(cls, threads: list[AIChatThread]) -> dict[int, int]:
-        """Count messages for an already ownership-filtered page without loading them."""
+        """Count messages for an owned thread page without loading messages."""
         if not threads:
             return {}
         return dict(

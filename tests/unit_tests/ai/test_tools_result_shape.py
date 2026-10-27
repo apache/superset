@@ -51,12 +51,8 @@ def test_duplicate_dataframe_labels_preserve_every_column() -> None:
     )
     columns, records = _columns_and_records(frame)
 
-    assert [c["name"] for c in columns] == [
-        "value", "value__2", "value__1", "value__3"
-    ]
-    assert records == [
-        {"value": 1, "value__2": "second", "value__1": 3, "value__3": 4}
-    ]
+    assert [c["name"] for c in columns] == ["value", "value__2", "value__1", "value__3"]
+    assert records == [{"value": 1, "value__2": "second", "value__1": 3, "value__3": 4}]
     assert columns[1]["type"] == "object"
     assert frame.columns.tolist() == ["value", "value", "value__1", "value"]
 

@@ -407,7 +407,7 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     yield done_event(ok=outcome is RunOutcome.SUCCESS)
 
 
-def _drain(source: AsyncIterator[StreamEvent]) -> Iterator[StreamEvent]:
+def _drain(source: AsyncIterator[StreamEvent]) -> Generator[StreamEvent, None, None]:
     """
     Pull an async iterator one item at a time from a synchronous caller.
 

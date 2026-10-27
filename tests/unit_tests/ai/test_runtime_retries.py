@@ -24,8 +24,13 @@ import pytest
 
 from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
-    CompletionRequest, LLMRequestError, LLMTransportError, Message,
-    ProviderStreamEvent, RetryPolicy, StreamEventKind,
+    CompletionRequest,
+    LLMRequestError,
+    LLMTransportError,
+    Message,
+    ProviderStreamEvent,
+    RetryPolicy,
+    StreamEventKind,
 )
 from superset.ai.llm.echo import EchoProvider, ScriptedTurn
 from superset.ai.runtime.base import RunRequest
@@ -39,7 +44,9 @@ class RetryingEcho(EchoProvider):
     def retry_policy(self) -> RetryPolicy:
         return RetryPolicy(max_attempts=2, base_delay_seconds=0, max_delay_seconds=0)
 
-    async def stream(self, request: CompletionRequest) -> AsyncIterator[ProviderStreamEvent]:
+    async def stream(
+        self, request: CompletionRequest
+    ) -> AsyncIterator[ProviderStreamEvent]:
         try:
             async for event in super().stream(request):
                 yield event
@@ -55,31 +62,52 @@ def drive(provider: EchoProvider) -> tuple[MessagesApiRuntime, list[StreamEvent]
     runtime = MessagesApiRuntime(provider)
 
     async def collect() -> list[StreamEvent]:
-        return [event async for event in runtime.run(RunRequest(
-            messages=[Message(role=MessageRole.USER, content="question")],
-            system_prompt="Test",
-        ))]
+        return [
+            event
+            async for event in runtime.run(
+                RunRequest(
+                    messages=[Message(role=MessageRole.USER, content="question")],
+                    system_prompt="Test",
+                )
+            )
+        ]
 
     return runtime, asyncio.run(collect())
 
 
 @pytest.mark.parametrize("provider_type", [RetryingEcho, RetryingComplete])
-def test_transient_failure_retries_before_output(provider_type: type[RetryingEcho]) -> None:
-    provider = provider_type([
-        ScriptedTurn(error=LLMTransportError("temporary")), ScriptedTurn(text="answer")
-    ])
+def test_transient_failure_retries_before_output(
+    provider_type: type[RetryingEcho],
+) -> None:
+    provider = provider_type(
+        [
+            ScriptedTurn(error=LLMTransportError("temporary")),
+            ScriptedTurn(text="answer"),
+        ]
+    )
     runtime, events = drive(provider)
     assert runtime.result.ok
     assert len(provider.requests) == 2
     if provider.supports_streaming:
         assert provider.closed == 2
-    assert "".join(e.payload["delta"] for e in events if e.type is StreamEventType.ASSISTANT_DELTA) == "answer"
+    assert (
+        "".join(
+            e.payload["delta"]
+            for e in events
+            if e.type is StreamEventType.ASSISTANT_DELTA
+        )
+        == "answer"
+    )
 
 
 @pytest.mark.parametrize("provider_type", [RetryingEcho, RetryingComplete])
-@pytest.mark.parametrize("error,attempts", [(LLMRequestError("invalid"), 1), (LLMTransportError("down"), 2)])
+@pytest.mark.parametrize(
+    "error,attempts", [(LLMRequestError("invalid"), 1), (LLMTransportError("down"), 2)]
+)
 def test_failed_calls_respect_retry_policy(
-    provider_type: type[RetryingEcho], error: Exception, attempts: int,
+    provider_type: type[RetryingEcho],
+    error: Exception,
+    attempts: int,
 ) -> None:
     provider = provider_type([ScriptedTurn(error=error) for _ in range(3)])
     runtime, events = drive(provider)
@@ -93,7 +121,9 @@ def test_partial_stream_is_not_replayed_and_is_closed() -> None:
         attempts = 0
         closed = 0
 
-        async def stream(self, request: CompletionRequest) -> AsyncIterator[ProviderStreamEvent]:
+        async def stream(
+            self, request: CompletionRequest
+        ) -> AsyncIterator[ProviderStreamEvent]:
             self.attempts += 1
             try:
                 yield ProviderStreamEvent(kind=StreamEventKind.TEXT, text="partial")
@@ -105,15 +135,21 @@ def test_partial_stream_is_not_replayed_and_is_closed() -> None:
     runtime, events = drive(provider)
     assert not runtime.result.ok
     assert provider.attempts == provider.closed == 1
-    assert [e.payload["delta"] for e in events if e.type is StreamEventType.ASSISTANT_DELTA] == ["partial"]
+    assert [
+        e.payload["delta"] for e in events if e.type is StreamEventType.ASSISTANT_DELTA
+    ] == ["partial"]
 
 
 def test_circuit_breaker_caps_attempts_within_a_run() -> None:
     class Persistent(RetryingComplete):
         def retry_policy(self) -> RetryPolicy:
-            return RetryPolicy(max_attempts=10, base_delay_seconds=0, max_delay_seconds=0)
+            return RetryPolicy(
+                max_attempts=10, base_delay_seconds=0, max_delay_seconds=0
+            )
 
-    provider = Persistent([ScriptedTurn(error=LLMTransportError("down")) for _ in range(10)])
+    provider = Persistent(
+        [ScriptedTurn(error=LLMTransportError("down")) for _ in range(10)]
+    )
     runtime, _ = drive(provider)
     assert not runtime.result.ok
     assert len(provider.requests) == 5

@@ -561,8 +561,11 @@ def test_completed_turn_keeps_streamed_reasoning_in_history(
         return_value=SimpleNamespace(),
     )
     mocker.patch(
-        "superset.daos.ai.AIChatMessageDAO.find_for_thread_before",
-        return_value=[_stored("user", "Question")],
+        "superset.daos.ai.AIChatMessageDAO.find_for_thread",
+        return_value=[
+            SimpleNamespace(uuid="u-reasoning", role="user", content="Question"),
+            SimpleNamespace(uuid="m-reasoning", role="assistant", content=""),
+        ],
     )
     mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
     finalise = mocker.patch("superset.ai.orchestrator._finalise_message")

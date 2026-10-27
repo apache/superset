@@ -289,9 +289,7 @@ class AIRestApi(BaseSupersetApi):
             pagination = ThreadListSchema().load(request.args)
         except ValidationError as ex:
             return self.response_422(message=ex.messages)
-        threads = AIChatThreadDAO.find_all_for_user(
-            self._user_id(), **pagination
-        )
+        threads = AIChatThreadDAO.find_all_for_user(self._user_id(), **pagination)
         counts = AIChatMessageDAO.counts_for_threads(threads)
         return self.response(
             200,
@@ -446,6 +444,8 @@ class AIRestApi(BaseSupersetApi):
               description: Conversation deleted
             401:
               $ref: '#/components/responses/401'
+            422:
+              description: An active run must finish before deletion
             404:
               $ref: '#/components/responses/404'
         """
@@ -458,6 +458,8 @@ class AIRestApi(BaseSupersetApi):
             DeleteAIChatThreadCommand(thread_uuid, self._user_id()).run()
         except AIChatThreadNotFoundError:
             return self.response_404()
+        except AIChatThreadInvalidError as ex:
+            return self.response_422(message=str(ex))
         return self.response(200, message="OK")
 
     @expose("/thread/<thread_uuid>/message", methods=("POST",))

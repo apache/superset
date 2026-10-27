@@ -22,6 +22,17 @@ use **New Chat** to start another conversation. If the conversation list cannot
 be loaded or its initial conversation cannot be created, the panel shows the
 error and still lets you create a new conversation.
 
+A conversation with a pending or streaming run cannot be deleted. Stop the run
+and wait for its terminal status, or let it finish, before deleting it. Closing
+or docking the panel aborts its streams, releases confirmation checkpoints and
+requests cancellation. Reopening refreshes any run that has not finished yet.
+Cancellation remains cooperative; a timed-out authoring operation may still
+complete, so check the created assets before retrying it.
+
+Chart previews use the shared chart loader, including its asynchronous query
+handling. A successful zero-row result finishes as an empty chart. Configuration
+retries and requests are cancelled when the preview is removed or changed.
+
 ## Enabling it
 
 Enable the assistant and its chat host, and configure a provider.
@@ -54,6 +65,11 @@ Run `superset db upgrade` to create the conversation tables, then `superset init
 to create and assign the assistant's permissions. Without the latter the
 endpoints return `403`.
 
+The published OpenAPI artifact describes the default deployment, where this
+feature is disabled. With `AI_ASSISTANT` and `FAB_API_SWAGGER_UI` enabled, the deployment's
+`/api/v1/_openapi` specification includes the AI routes. Generate clients from
+that specification rather than adding optional routes to the default artifact.
+
 Conversations are stored in Superset's metadata database, so no extra
 infrastructure is needed for the default configuration.
 
@@ -64,6 +80,10 @@ infrastructure is needed for the default configuration.
 profiles remain read-only; an operator who enables asset-authoring tools must
 also gate that profile, and each tool enforces the current user's normal asset
 and dataset permissions.
+
+Asset readers additionally require `can_read` on their REST resource:
+`Chart`, `Dashboard`, `Dataset` for asset searches, and `Database` for
+database/schema discovery. Object and datasource access checks still apply.
 
 **Gamma does not get it by default.** The assistant runs queries and costs
 money per question, so it is granted deliberately rather than inherited. To
@@ -462,10 +482,12 @@ A third-party server is untrusted input, and possibly untrusted intent:
 - **No Superset credential is ever forwarded.** Only the headers you configured
   for that server are sent — never the user's session cookie, CSRF token, or an
   inbound authorization header.
-- **SQL execution through a foreign server is refused by default.** Superset's
-  read-only enforcement and per-dataset authorization cannot apply to a query
-  another system runs, so allowing it would silently bypass both. Set
-  `AI_AGENT_MCP_DENY_FOREIGN_SQL = False` to accept that trade deliberately.
+- **External tools require an explicit per-server `tool_allowlist`.** Names,
+  argument schemas, and remote read-only annotations cannot establish that a
+  tool respects Superset's data permissions. Audit each listed tool and the
+  credentials its server uses; the server's denylist still takes precedence.
+  `AI_AGENT_MCP_DENY_FOREIGN_SQL = False` disables this additional guard for
+  deployments that deliberately delegate authorization to their remote servers.
 - **Results obey the same size cap** as built-in tools, and the cap is applied
   while reading, so a hostile server cannot exhaust memory before truncation.
 - **A server being down does not break the assistant.** Discovery failure means
@@ -551,7 +573,7 @@ production default, includes prompts and SQL in them.
 | `AI_SUGGESTED_PROMPTS_MAX_TOKENS` | `300` | Output token budget for suggestions. |
 | `AI_SUGGESTED_PROMPTS_PROMPT` | `None` | Replace the suggestion prompt; supports `{count}` and `{max_chars}`. |
 | `AI_AGENT_MCP_SERVERS` | `{}` | External MCP servers to attach. |
-| `AI_AGENT_MCP_DENY_FOREIGN_SQL` | `True` | Refuse SQL execution via a foreign server. |
+| `AI_AGENT_MCP_DENY_FOREIGN_SQL` | `True` | Require explicit per-server tool allowlists; remote execution cannot enforce Superset permissions. |
 | `AI_TELEMETRY` | `[]` | Telemetry sinks, as instances or dotted paths. |
 | `AI_TELEMETRY_REDACT_CONTENT` | `True` | Withhold prompts, answers, SQL and data from telemetry. |
 | `AI_TELEMETRY_MAX_CONTENT_CHARS` | `10000` | Cap per content field when redaction is off. |
