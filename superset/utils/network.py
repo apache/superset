@@ -301,12 +301,18 @@ def _resolve_addresses(
         try:
             if _RESOLVER is None:
                 _RESOLVER = ThreadPoolExecutor(_RESOLVER_LIMIT, "provider-dns")
-            lookup: Future[Any] = _RESOLVER.submit(
-                socket.getaddrinfo, host, port, socket.AF_UNSPEC, socket.SOCK_STREAM
-            )
+            resolver: ThreadPoolExecutor = _RESOLVER
         except BaseException:
             slots.release()
             raise
+    # Thread startup may yield after gevent patches a preloaded process.
+    try:
+        lookup: Future[Any] = resolver.submit(
+            socket.getaddrinfo, host, port, socket.AF_UNSPEC, socket.SOCK_STREAM
+        )
+    except BaseException:
+        slots.release()
+        raise
     # Never cancel timed-out submissions: cancellation leaves the work item queued.
     # Only worker completion returns capacity, including queued and running work.
     lookup.add_done_callback(lambda _: slots.release())

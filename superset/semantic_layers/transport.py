@@ -23,6 +23,7 @@ import heapq
 import logging
 import os
 import socket
+import threading
 import time
 from collections.abc import Callable, Mapping
 from contextvars import Token
@@ -247,6 +248,8 @@ class HostProviderTransport(ProviderTransport):
             if id(cause) in seen:
                 continue
             seen.add(id(cause))
+            if isinstance(cause, TimeoutError):
+                return ProviderRequestError(Failure.TIMEOUT)
             if isinstance(cause, NonPublicAddressError):
                 return ProviderRequestError(Failure.REFUSED)
             pending.extend(
@@ -378,11 +381,14 @@ class DeadlineScheduler:
 
 
 _SCHEDULER: DeadlineScheduler | None = None
-_SCHEDULER_LOCK: Lock = Lock()
+_SCHEDULER_LOCK: Lock | None = None
 
 
 def _scheduler() -> DeadlineScheduler:
-    global _SCHEDULER  # pylint: disable=global-statement
+    global _SCHEDULER, _SCHEDULER_LOCK  # pylint: disable=global-statement
+    # Resolve the factory after a preloaded gevent worker patches threading.
+    if _SCHEDULER_LOCK is None:
+        _SCHEDULER_LOCK = threading.Lock()
     with _SCHEDULER_LOCK:
         if _SCHEDULER is None:
             _SCHEDULER = DeadlineScheduler()
@@ -393,7 +399,7 @@ def _reset_scheduler_after_fork() -> None:
     """A child cannot reuse the parent's worker or potentially held lock."""
     global _SCHEDULER, _SCHEDULER_LOCK  # pylint: disable=global-statement
     _SCHEDULER = None
-    _SCHEDULER_LOCK = Lock()
+    _SCHEDULER_LOCK = None
 
 
 if hasattr(os, "register_at_fork"):

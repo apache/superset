@@ -417,6 +417,7 @@ def test_default_path_rejects_an_untrusted_certificate(
     key: Path
     cert, key = _certificate(untrusted, "public.example.test")
     context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert, key)
     port: int
     seen: list[str]
@@ -1151,10 +1152,19 @@ def test_error_body_is_unread(
 ) -> None:
     from unittest.mock import MagicMock
 
-    response: MagicMock = MagicMock(
-        status_code=503, url="https://fixture.test/secret", headers={}
-    )
-    response.__enter__.return_value = response
+    response: requests.Response = requests.Response()
+    response.status_code = 503
+    response.url = "https://fixture.test/secret"
+    response.raw = MagicMock(spec=HTTPResponse)
+    response.raw.read.side_effect = AssertionError("503 raw body was read")
+    response.raw.read1.side_effect = AssertionError("503 raw body was read")
+
+    def body_access(*args: Any, **kwargs: Any) -> bytes:
+        raise AssertionError("503 body accessor was used")
+
+    monkeypatch.setattr(requests.Response, "content", property(body_access))
+    monkeypatch.setattr(requests.Response, "text", property(body_access))
+    monkeypatch.setattr(response, "iter_content", body_access)
     monkeypatch.setattr(
         semantic_layer_http._DirectSession, "request", lambda *args, **kwargs: response
     )
@@ -1487,6 +1497,7 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
         for _ in range(network._RESOLVER_LIMIT):
             assert network._RESOLVER_SLOTS.acquire(blocking=False)
         network._RESOLVER_LOCK.acquire()
+        assert transport._SCHEDULER_LOCK is not None
         transport._SCHEDULER_LOCK.acquire()
         pid: int = os.fork()
         if pid == 0:
@@ -1678,21 +1689,92 @@ def test_registered_fork_hook_resets_only_child_scheduler_state(
     )
     inherited_scheduler: Mock = Mock(spec=isolated.DeadlineScheduler)
     monkeypatch.setattr(isolated, "_SCHEDULER", inherited_scheduler)
-    inherited_lock: Lock = isolated._SCHEDULER_LOCK
+    inherited_lock: Lock = Lock()
+    monkeypatch.setattr(isolated, "_SCHEDULER_LOCK", inherited_lock)
     inherited_lock.acquire()
     parent_scheduler: semantic_layer_http.DeadlineScheduler | None = (
         semantic_layer_http._SCHEDULER
     )
-    parent_lock: Lock = semantic_layer_http._SCHEDULER_LOCK
+    parent_lock: Lock | None = semantic_layer_http._SCHEDULER_LOCK
     callback: Callable[[], None] = register.call_args.kwargs["after_in_child"]
     try:
         callback()
         assert isolated._SCHEDULER is None
         assert isolated._SCHEDULER_LOCK is not inherited_lock
-        assert isolated._SCHEDULER_LOCK.acquire(blocking=False)
-        isolated._SCHEDULER_LOCK.release()
+        assert isolated._SCHEDULER_LOCK is None
         assert semantic_layer_http._SCHEDULER is parent_scheduler
         assert semantic_layer_http._SCHEDULER_LOCK is parent_lock
         assert not inherited_scheduler.mock_calls
     finally:
         inherited_lock.release()
+
+
+@pytest.mark.parametrize("component", ["resolver", "scheduler"])
+def test_preloaded_gevent_worker_does_not_hold_native_lock_during_start(
+    component: str,
+) -> None:
+    """Import before patching, then overlap first-use worker startup."""
+    pytest.importorskip("gevent")
+    script: str = textwrap.dedent("""
+        import signal
+        import sys
+        from superset.semantic_layers import transport
+        from superset.utils import network
+        from gevent import monkey
+
+        monkey.patch_all()
+        import gevent
+
+        signal.alarm(8)
+        def run() -> object:
+            if sys.argv[1] == "resolver":
+                return network.resolve_public_addresses("8.8.8.8", 443, timeout=1)
+            return transport._scheduler()
+
+        jobs: list[gevent.Greenlet] = [gevent.spawn(run) for _ in range(2)]
+        gevent.joinall(jobs, timeout=3, raise_error=True)
+        assert all(job.ready() for job in jobs), "worker startup stalled"
+        if sys.argv[1] == "resolver":
+            assert all(job.value == ["8.8.8.8"] for job in jobs)
+        else:
+            assert jobs[0].value is jobs[1].value
+        signal.alarm(0)
+        print("completed both requests", flush=True)
+    """)
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, component],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "completed both requests" in result.stdout
+
+
+def test_dns_admission_refusal_is_a_transport_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Requests wrapping must preserve the resolver capacity timeout category."""
+    from threading import BoundedSemaphore
+
+    monkeypatch.setattr(network, "_RESOLVER_SLOTS", BoundedSemaphore(0))
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with _internal_hosts(True), pytest.raises(ProviderRequestError) as raised:
+        provider_request("fixture", "GET", "http://provider.example/", timeout=2)
+    assert raised.value.failure == ProviderRequestFailure.TIMEOUT
+
+
+def test_scheduler_start_failure_does_not_publish_an_unstarted_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failed initialization must leave the singleton retryable."""
+    monkeypatch.setattr(semantic_layer_http, "_SCHEDULER", None)
+    monkeypatch.setattr(
+        semantic_layer_http.Thread,
+        "start",
+        Mock(side_effect=RuntimeError("thread startup failed")),
+    )
+    with pytest.raises(RuntimeError, match="thread startup failed"):
+        semantic_layer_http._scheduler()
+    assert semantic_layer_http._SCHEDULER is None
