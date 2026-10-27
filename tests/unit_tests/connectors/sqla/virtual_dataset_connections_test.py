@@ -1713,3 +1713,67 @@ def test_stored_expression_cache_collection_renders_once(
     assert virtual.get_extra_cache_keys(query) == ["(col1 = 1)"]
     rule.clause = "col1 = 2"
     assert virtual.get_extra_cache_keys(query) == ["(col1 = 2)"]
+
+
+@pytest.mark.parametrize("name", ["a{#b", "a{%b", "{{ 1/0 }}"])
+@pytest.mark.parametrize(
+    "sink", ["column", "groupby", "filter", "orderby", "simple_metric"]
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_bare_column_names_are_not_templates_in_cache_collection(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    name: str,
+    sink: str,
+) -> None:
+    """Cache collection must treat plain identifiers exactly as execution does."""
+    virtual, _ = static_schema_datasource
+    with virtual.database.get_sqla_engine() as engine:
+        with engine.begin() as connection:
+            connection.exec_driver_sql(
+                f'ALTER TABLE physical ADD COLUMN "{name}" INTEGER DEFAULT 1'
+            )
+    virtual.sql = "SELECT * FROM physical"
+    if isinstance(virtual, SqlaTable):
+        virtual.columns.append(TableColumn(column_name=name, type="INTEGER"))
+    else:
+        virtual.extra = {
+            "columns": [
+                {"column_name": col, "type": "INTEGER", "is_dttm": False}
+                for col in ("col1", name)
+            ]
+        }
+    fields: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    if sink == "column":
+        fields["columns"] = [name]
+    elif sink == "groupby":
+        fields["groupby"] = [name]
+    elif sink == "filter":
+        fields["filter"] = [{"col": name, "op": "==", "val": 1}]
+    elif sink == "orderby":
+        fields["orderby"] = [(name, True)]
+    else:
+        fields["columns"] = []
+        fields["metrics"] = [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "MAX",
+                "column": {"column_name": name},
+                "label": "total",
+            }
+        ]
+    query = QueryObject(
+        datasource=virtual,
+        columns=fields["columns"],
+        groupby=fields.get("groupby"),
+        metrics=fields["metrics"],
+        filters=fields.get("filter"),
+        orderby=fields.get("orderby"),
+    )
+    executed = virtual.get_query_result(query)
+    assert executed.status == "success"
+    assert executed.df.iloc[:, 0].tolist() == [1]
+
+    render = mocker.spy(BaseTemplateProcessor, "process_template")
+    assert virtual.get_extra_cache_keys(query.to_dict()) == ["(col1 = 1)"]
+    assert name not in [call.args[1] for call in render.call_args_list]

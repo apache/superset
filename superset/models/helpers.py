@@ -4072,7 +4072,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             """Resolve stored references in the namespace used by the query sink."""
             if isinstance(value, str):
                 references = metrics if metric else columns
-                add_expression(references.get(value) or value)
+                # Execution quotes bare column names without rendering them.
+                if expression := references.get(value):
+                    add_expression(expression)
             elif isinstance(value, dict):
                 if sql := value.get("sqlExpression"):
                     sql = template_processor.process_template(sql)
@@ -4107,7 +4109,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
                 add(granularity)
             elif (col := self._get_filter_column(value, columns_by_name)) is not None:
-                add_expression(col.expression or value)
+                if col.expression:
+                    add_expression(col.expression)
             elif value in metrics:
                 add(value, metric=True)
             elif value in adhoc_columns_by_label:
