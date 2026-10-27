@@ -88,6 +88,38 @@ test('shows loading spinner for client-side errors without errors array when dat
   expect(screen.queryByText(/Some client-side error/)).not.toBeInTheDocument();
 });
 
+test('renders a failed query error as the only chart container', () => {
+  const { container } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      queriesResponse={[{ message: 'Unknown identifier no_such_column' }]}
+    />,
+  );
+
+  const chartContainers = container.querySelectorAll('.chart-container');
+  expect(chartContainers).toHaveLength(1);
+  expect(chartContainers[0]).toHaveTextContent(
+    'Unknown identifier no_such_column',
+  );
+});
+
+test('keeps a single chart container while a failed chart waits for its datasource', () => {
+  const { container } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      chartAlert="Some client-side error"
+      datasource={PLACEHOLDER_DATASOURCE}
+      datasetsStatus={ResourceStatus.Loading}
+      queriesResponse={[{}]}
+    />,
+  );
+
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(container.querySelectorAll('.chart-container')).toHaveLength(1);
+});
+
 test('shows the stop message and a re-run affordance when the query was stopped', () => {
   const onQuery = jest.fn();
   render(
