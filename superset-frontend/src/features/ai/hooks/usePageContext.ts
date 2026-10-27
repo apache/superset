@@ -216,11 +216,6 @@ const isInActiveTab = (
   const tabParents = (item.parents ?? []).filter(
     parent => layout[parent]?.type === TAB_TYPE,
   );
-  // On dashboards with tabs, include only charts inside the active tab tree.
-  // If there are no tabs or no active tab selected, keep all non-tab charts.
-  if (tabParents.length === 0) {
-    return activeTabs.size === 0;
-  }
   return tabParents.every(tabId => activeTabs.has(tabId));
 };
 

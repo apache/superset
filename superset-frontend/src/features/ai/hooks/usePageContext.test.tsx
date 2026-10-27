@@ -183,6 +183,12 @@ test('a dashboard reports only the charts and markdown in the active tab', () =>
           parents: ['TAB-B'],
           meta: { chartId: 2, sliceName: 'Hidden' },
         },
+        'CHART-TOP': {
+          id: 'CHART-TOP',
+          type: 'CHART',
+          parents: [],
+          meta: { chartId: 3, sliceName: 'Always visible' },
+        },
         'MARKDOWN-1': {
           id: 'MARKDOWN-1',
           type: 'MARKDOWN',
@@ -200,6 +206,7 @@ test('a dashboard reports only the charts and markdown in the active tab', () =>
   // A chart in an unselected tab is not on screen, so it is not context.
   expect(context.dashboardContext?.charts).toEqual([
     { id: 1, title: 'Revenue' },
+    { id: 3, title: 'Always visible' },
   ]);
   expect(context.pageMarkdown).toEqual([
     { source: 'dashboard_component', content: 'Read me' },
