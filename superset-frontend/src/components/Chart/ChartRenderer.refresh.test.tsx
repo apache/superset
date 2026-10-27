@@ -371,6 +371,37 @@ test('draws the previous data with the current form data when the store recorded
   expect(screen.getByRole('status')).toBeInTheDocument();
 });
 
+test('draws a dashboard chart at rest with its current form data', async () => {
+  // In edit mode a filter change moves formData on without a query, so the
+  // response in the store still belongs to the earlier request.
+  const response = queriesResponse(1);
+  const { rerender } = render(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={labelledFormData('queried')}
+      latestQueryFormData={labelledFormData('queried')}
+      queriesResponse={response}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'label=queried',
+  );
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={labelledFormData('current')}
+      latestQueryFormData={labelledFormData('queried')}
+      queriesResponse={response}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1 label=current',
+  );
+});
+
 test('pairs a response that lands while the chart is off screen with the request that produced it', async () => {
   // With deferred data, a chart off screen starts no new query, but a query
   // already in flight keeps running and its response lands against the newer
