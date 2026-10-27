@@ -69,6 +69,16 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
       return;
     }
 
+    // `navigateWithState` updates the address bar without the router, so after
+    // an in-session save the router can hold a stale pathname (e.g. an old
+    // slug). Writing it back would undo that navigation.
+    if (
+      window.location.pathname !==
+      history.createHref({ pathname: history.location.pathname })
+    ) {
+      return;
+    }
+
     const params = new URLSearchParams(history.location.search);
     const current = params.get(URL_PARAMS.activeTabs.name);
     const next = activeTabs?.length ? [...activeTabs].sort().join(',') : null;

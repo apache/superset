@@ -235,7 +235,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
 
+  // The marker belongs to a single load, so a new `idOrSlug` (even one that
+  // resolves to the same dashboard id) starts without it.
   useEffect(() => {
+    setHydratedLoadId(undefined);
+  }, [idOrSlug]);
+
+  useEffect(() => {
+    let isCurrentLoad = true;
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
@@ -367,7 +374,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
         dispatch(clearDashboardHistory());
-        setHydratedLoadId(id);
+        if (isCurrentLoad) {
+          setHydratedLoadId(id);
+        }
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -383,6 +392,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       return null;
     }
     if (id) getDataMaskApplied();
+    return () => {
+      isCurrentLoad = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 

@@ -29,3 +29,7 @@ test('permalinkKey is reserved on both the chart and dashboard URL param lists',
   expect(RESERVED_DASHBOARD_URL_PARAMS).toContain(URL_PARAMS.permalinkKey.name);
   expect(RESERVED_CHART_URL_PARAMS).toContain(URL_PARAMS.permalinkKey.name);
 });
+
+test('active_tabs is reserved so it is not copied into dashboard permalink urlParams', () => {
+  expect(RESERVED_DASHBOARD_URL_PARAMS).toContain(URL_PARAMS.activeTabs.name);
+});

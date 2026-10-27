@@ -945,3 +945,49 @@ test.each([
     }
   },
 );
+
+test('withholds the builder until this load hydrates despite retained Redux state', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  type PermalinkValue = Awaited<ReturnType<typeof getPermalinkValue>>;
+  let resolvePermalink!: (value: PermalinkValue) => void;
+  const permalinkValue: PermalinkValue = {
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  };
+  jest.mocked(getPermalinkValue).mockReturnValueOnce(
+    new Promise<PermalinkValue>(resolve => {
+      resolvePermalink = resolve;
+    }),
+  );
+
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  try {
+    await waitFor(() => expect(getPermalinkValue).toHaveBeenCalled());
+    expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+
+    resolvePermalink(permalinkValue);
+    expect(await screen.findByTestId('dashboard-builder')).toBeInTheDocument();
+  } finally {
+    resolvePermalink(permalinkValue);
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});

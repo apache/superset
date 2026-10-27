@@ -208,3 +208,13 @@ test('drops a hash targeting a chart once its tab is deselected', () => {
   expect(window.location.search).toBe('?active_tabs=TAB-second');
   expect(window.location.hash).toBe('');
 });
+
+test('does not undo a navigation made outside the router, such as a slug change after save', () => {
+  const { update } = setup({ activeTabs: ['TAB-first'] });
+  window.history.replaceState({}, '', '/superset/dashboard/new-slug/');
+
+  update({ activeTabs: ['TAB-second'] });
+
+  expect(window.location.pathname).toBe('/superset/dashboard/new-slug/');
+  expect(window.location.search).toBe('');
+});
