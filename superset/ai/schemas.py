@@ -65,6 +65,13 @@ def _validate_page_context(context: dict[str, Any]) -> None:
         )
 
 
+class ThreadListSchema(Schema):
+    limit = fields.Integer(load_default=50, validate=validate.Range(min=1, max=100))
+    offset = fields.Integer(
+        load_default=0, validate=validate.Range(min=0, max=2**31 - 1)
+    )
+
+
 class ThreadPostSchema(Schema):
     """Create a conversation."""
 

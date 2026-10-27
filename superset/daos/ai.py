@@ -33,7 +33,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from superset.ai.types import MessageExtra, MessageRole, MessageStatus, ThreadStatus
@@ -222,6 +222,18 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
     :meth:`AIChatThreadDAO.find_by_uuid_for_user`, so the argument type carries
     the proof that ownership was established.
     """
+
+    @classmethod
+    def counts_for_threads(cls, threads: list[AIChatThread]) -> dict[int, int]:
+        """Count messages for an already ownership-filtered page without loading them."""
+        if not threads:
+            return {}
+        return dict(
+            db.session.query(AIChatMessage.thread_id, func.count(AIChatMessage.id))
+            .filter(AIChatMessage.thread_id.in_([thread.id for thread in threads]))
+            .group_by(AIChatMessage.thread_id)
+            .all()
+        )
 
     @classmethod
     def find_for_thread(cls, thread: AIChatThread) -> list[AIChatMessage]:
