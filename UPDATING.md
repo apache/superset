@@ -244,6 +244,15 @@ assists people when migrating to a new version.
   is optional; absent, unknown or non-temporal names retain the existing fallback.
   Saved chart selections are preserved.
 
+### Dashboard layout chart access
+
+Saving a dashboard layout returns HTTP 422 if it adds a chart the user cannot
+read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+`POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
+IDs and nothing is saved. Charts already on the dashboard, archived ones
+included, are not checked, nor are a copy's source charts. Remove the tile from
+the layout, or get access to the chart, and save again.
+
 ### Dashboard copy layout validation
 
 Copying a dashboard with its charts returns HTTP 422 if a layout slot references
