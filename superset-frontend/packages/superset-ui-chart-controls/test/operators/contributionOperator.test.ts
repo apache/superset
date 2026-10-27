@@ -100,6 +100,30 @@ test('should leave the sort-only metric out with time comparison values', () => 
   });
 });
 
+test('should select the derived columns for a time comparison difference', () => {
+  expect(
+    contributionOperator(
+      {
+        ...sortByFormData,
+        time_compare: ['1 year ago', '2 years ago'],
+        comparison_type: ComparisonType.Difference,
+      },
+      sortByQueryObject,
+      ['1 year ago', '2 years ago'],
+    ),
+  ).toEqual({
+    operation: 'contribution',
+    options: {
+      orientation: 'row',
+      time_shifts: ['1 year ago', '2 years ago'],
+      columns: [
+        'difference__count__count__1 year ago',
+        'difference__count__count__2 years ago',
+      ],
+    },
+  });
+});
+
 test('should not restrict columns when no metric is sort-only', () => {
   expect(
     contributionOperator(
