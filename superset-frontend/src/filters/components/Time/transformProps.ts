@@ -40,7 +40,7 @@ export default function transformProps(chartProps: ChartProps) {
     unsetFocusedFilter = noOp,
     setFilterActive = noOp,
   } = hooks;
-  const { data } = queriesData[0];
+  const [{ data }] = queriesData;
 
   return {
     data,

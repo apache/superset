@@ -300,7 +300,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       let errorText: string | undefined;
       // sip-40 error response
       if (error?.errors?.length) {
-        errorResponse = error.errors[0];
+        [errorResponse] = error.errors;
       } else if (typeof error.error === 'string') {
         // backward compatible with old error messages
         errorText = error.error;

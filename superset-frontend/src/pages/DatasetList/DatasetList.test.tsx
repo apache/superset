@@ -277,7 +277,7 @@ test('API call includes correct page size', async () => {
       API_ENDPOINTS.DATASOURCE_COMBINED,
     );
     expect(calls.length).toBeGreaterThan(0);
-    const { url } = calls[0];
+    const [{ url }] = calls;
     expect(url).toContain('page_size');
   });
 });
@@ -507,7 +507,7 @@ test('displays datasets with warning_markdown', async () => {
 });
 
 test('displays dataset with multiple editors', async () => {
-  const datasetWithEditors = mockDatasets[1];
+  const [, datasetWithEditors] = mockDatasets;
 
   mockDatasetListEndpoints({
     result: [datasetWithEditors],
@@ -528,7 +528,7 @@ test('displays dataset with multiple editors', async () => {
 });
 
 test('displays ModifiedInfo with humanized date', async () => {
-  const datasetWithModified = mockDatasets[0]; // changed_by_name: 'John Doe', changed_on: '1 day ago'
+  const [datasetWithModified] = mockDatasets; // changed_by_name: 'John Doe', changed_on: '1 day ago'
 
   mockDatasetListEndpoints({
     result: [datasetWithModified],
@@ -550,7 +550,7 @@ test('displays ModifiedInfo with humanized date', async () => {
 });
 
 test('dataset name links to Explore with correct explore_url', async () => {
-  const dataset = mockDatasets[0]; // explore_url: '/explore/?datasource=1__table'
+  const [dataset] = mockDatasets; // explore_url: '/explore/?datasource=1__table'
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -568,7 +568,7 @@ test('dataset name links to Explore with correct explore_url', async () => {
 
 test('shows RLS badge when dataset has rls_filters', async () => {
   // mockDatasets[5] is 'Restricted Sales' with one rls_filter
-  const dataset = mockDatasets[5];
+  const [, , , , , dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
   renderDatasetList(mockAdminUser);
@@ -585,7 +585,7 @@ test('shows RLS badge when dataset has rls_filters', async () => {
 
 test('does not show RLS badge when dataset has no rls_filters', async () => {
   // mockDatasets[0] has no rls_filters field
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
   renderDatasetList(mockAdminUser);

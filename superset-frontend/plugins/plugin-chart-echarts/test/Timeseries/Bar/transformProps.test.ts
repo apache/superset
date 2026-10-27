@@ -607,7 +607,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
       // Check that data points have individual itemStyle with colors
       if (dataSeries && Array.isArray(dataSeries.data)) {
-        const dataPoint = dataSeries.data[0];
+        const [dataPoint] = dataSeries.data;
         if (
           dataPoint &&
           typeof dataPoint === 'object' &&

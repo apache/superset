@@ -56,7 +56,7 @@ describe('CalendarFrame', () => {
       />,
     );
 
-    const secondOption = CALENDAR_RANGE_OPTIONS[1];
+    const [, secondOption] = CALENDAR_RANGE_OPTIONS;
     const radio = screen.getByLabelText(secondOption.label as string);
     fireEvent.click(radio);
 
@@ -83,7 +83,7 @@ describe('CalendarFrame', () => {
       />,
     );
 
-    const thirdOption = CALENDAR_RANGE_OPTIONS[2];
+    const [, , thirdOption] = CALENDAR_RANGE_OPTIONS;
     expect(thirdOption.value).toBe(PreviousCalendarQuarter);
 
     expect(

@@ -185,7 +185,7 @@ test('onGridReady wrapper calls user callback and exposes api on container', () 
   );
 
   // Retrieve the wrapped handler that was passed to AgGridReact
-  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const [lastCall] = (AgGridReact as jest.Mock).mock.calls.at(-1);
   const wrappedOnGridReady = lastCall.onGridReady as Function;
 
   const mockApi = { setGridOption: jest.fn() };
@@ -206,7 +206,7 @@ test('onFirstDataRendered wrapper calls user callback', () => {
     />,
   );
 
-  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const [lastCall] = (AgGridReact as jest.Mock).mock.calls.at(-1);
   const wrappedOnFirstDataRendered = lastCall.onFirstDataRendered as Function;
 
   wrappedOnFirstDataRendered({ firstRow: 0 });

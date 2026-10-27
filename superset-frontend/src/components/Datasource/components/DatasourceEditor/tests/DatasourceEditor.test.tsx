@@ -232,7 +232,7 @@ test('can add new columns', async () => {
 
   // newColumn (Column name) is the first textbox in the tab
   await waitFor(() => {
-    const newColumn = screen.getAllByRole('textbox')[0];
+    const [newColumn] = screen.getAllByRole('textbox');
     expect(newColumn).toHaveValue('<new column>');
   });
 });

@@ -23,8 +23,8 @@ export default function isEqualColumns(
   propsA: TableChartProps[],
   propsB: TableChartProps[],
 ) {
-  const a = propsA[0];
-  const b = propsB[0];
+  const [a] = propsA;
+  const [b] = propsB;
   return (
     a.datasource.columnFormats === b.datasource.columnFormats &&
     a.datasource.currencyFormats === b.datasource.currencyFormats &&

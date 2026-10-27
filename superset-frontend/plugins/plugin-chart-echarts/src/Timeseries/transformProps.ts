@@ -879,7 +879,7 @@ export default function transformProps(
     // Calculate min/max from data for horizontal bar charts
     if (shouldCalculateDataBounds && entry.data && Array.isArray(entry.data)) {
       (entry.data as [number, any][]).forEach((datum: [number, any]) => {
-        const value = datum[0];
+        const [value] = datum;
         if (typeof value === 'number' && !Number.isNaN(value)) {
           if (dataMax === undefined || value > dataMax) {
             dataMax = value;
@@ -1016,7 +1016,7 @@ export default function transformProps(
     });
 
     // Get x-axis values from the first series
-    const firstSeries = series[0];
+    const [firstSeries] = series;
     if (firstSeries && Array.isArray(firstSeries.data)) {
       const xAxisValues: (string | number)[] = [];
 
@@ -1312,7 +1312,7 @@ export default function transformProps(
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
       ? (() => {
-          const firstSeries = series[0];
+          const [firstSeries] = series;
           const primaryAxisIndex = isHorizontal ? 1 : 0;
           if (firstSeries && Array.isArray(firstSeries.data)) {
             const names = (firstSeries.data as any[])

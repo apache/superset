@@ -75,7 +75,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
-  const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
+  const [sortByMetric] = ensureIsArray(formData.timeseries_limit_metric);
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
   let formDataCopy = formData;
@@ -336,7 +336,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
 
       // Add secondary sort for stable ordering (matches AG Grid's stable sort behavior)
       if (sortByFromOwnState.length === 1 && isDownloadQuery && orderby) {
-        const primarySort = sortByFromOwnState[0][0];
+        const [[primarySort]] = sortByFromOwnState;
         orderby.forEach(orderItem => {
           if (orderItem[0] !== primarySort) {
             sortByFromOwnState!.push(orderItem);

@@ -39,7 +39,8 @@ export default function transformProps(chartProps: ChartProps) {
     unsetHoveredFilter = noOp,
     setFilterActive = noOp,
   } = hooks;
-  const data = queriesData[0]?.data ?? [];
+  const [queryData] = queriesData;
+  const data = queryData?.data ?? [];
 
   return {
     data,

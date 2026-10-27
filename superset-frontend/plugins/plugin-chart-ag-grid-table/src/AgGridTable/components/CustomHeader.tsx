@@ -53,7 +53,7 @@ import {
 
 const getSortIcon = (sortState: SortState[], colId: string | null) => {
   if (!sortState?.length || !colId) return null;
-  const { colId: currentCol, sort } = sortState[0];
+  const [{ colId: currentCol, sort }] = sortState;
   if (currentCol === colId) {
     return sort === 'asc' ? (
       <ArrowUpOutlined />

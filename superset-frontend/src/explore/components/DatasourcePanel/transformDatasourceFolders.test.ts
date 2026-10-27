@@ -171,7 +171,7 @@ test('handles nested folder structures', () => {
   expect(result[0].items).toHaveLength(1);
   expect(result[0].subFolders).toHaveLength(1);
 
-  const childFolder = result[0].subFolders![0];
+  const [childFolder] = result[0].subFolders!;
   expect(childFolder.id).toBe('child-folder');
   expect(childFolder.name).toBe('Child Folder');
   expect(childFolder.items).toHaveLength(1);
