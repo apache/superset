@@ -42,7 +42,7 @@ class PinotEngineSpec(BaseEngineSpec):
         ],
         "pypi_packages": ["pinotdb"],
         "version_requirements": (
-            "The Pinot extra requires pinotdb[sqlalchemy]>=9.2.1,<10.0.0."
+            "The Pinot extra requires pinotdb[sqlalchemy]>=9.2.2,<10.0.0."
             " Releases below 8.0.0 declare SQLAlchemy below 2 in their SQLAlchemy"
             " extra; releases below 9.2.1 compile TIMESTAMP columns as NUMERIC"
             " (startreedata/pinot-dbapi#224)."
