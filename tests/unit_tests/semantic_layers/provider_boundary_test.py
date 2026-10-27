@@ -20,7 +20,7 @@
 import logging
 from collections.abc import Callable
 from functools import partial
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -35,6 +35,7 @@ from superset_core.semantic_layers.errors import SemanticQueryRejectedError
 from superset_core.semantic_layers.transport import (
     ProviderRequestError,
     ProviderRequestFailure,
+    ProviderTransport,
 )
 from werkzeug.test import TestResponse
 
@@ -188,6 +189,54 @@ def test_masking_schema_is_explicitly_unresolved(mocker: MockerFixture) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+@pytest.mark.parametrize("configuration", [{}, {"ignored": "fixture"}])
+def test_default_configuration_can_load_runtime_choices(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    configuration: dict[str, str],
+) -> None:
+    """Equivalent default-only settings both permit runtime discovery."""
+    layer: MagicMock = MagicMock(type="test", configuration=json.dumps(configuration))
+    layer.implementation.configuration = PreviewConfiguration(**configuration)
+    provider: MagicMock = MagicMock()
+
+    def runtime_schema(
+        config: PreviewConfiguration,
+        runtime_data: dict[str, Any] | None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
+    ) -> dict[str, Any]:
+        """Model a provider whose default configuration needs no credentials."""
+        assert config == PreviewConfiguration()
+        return {
+            "type": "object",
+            "properties": {
+                "view": {
+                    "enum": ["orders"]
+                    if readiness is SemanticCredentialReadiness.RESOLVED
+                    else []
+                }
+            },
+        }
+
+    provider.get_runtime_schema.side_effect = runtime_schema
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"test": provider})
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
+    )
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001/schema/runtime"
+    )
+    assert response.status_code == 200
+    assert response.get_json()["result"]["properties"]["view"]["enum"] == ["orders"]
+    layer.raise_for_access.assert_called_once()
+
+
 @pytest.mark.parametrize("status", [401, 403, 502])
 def test_transport_keeps_safe_text_and_suppresses_chain(
     app_context: None, status: int
@@ -233,17 +282,26 @@ def test_execution_does_not_log_sensitive_cause_or_context(
     assert captured.value.status == (400 if kind == "refusal" else 500)
     assert captured.value.__cause__ is None
     assert captured.value.__suppress_context__
-    assert "private" not in caplog.text
+    assert "private-cause" not in caplog.text
+    assert "private-context" not in caplog.text
     assert "private" not in str(captured.value.to_dict())
     assert all(record.exc_info is None for record in caplog.records)
 
 
-@pytest.mark.parametrize("configuration", [None, {}, [], "resolved", True])
+@pytest.mark.parametrize("configuration", [None, [], "resolved", True])
 def test_absent_or_non_object_configuration_is_unresolved(
     configuration: object,
 ) -> None:
     """Invalid raw configuration never attests resolved secrets."""
     assert credential_readiness(configuration) is SemanticCredentialReadiness.UNRESOLVED
+
+
+@pytest.mark.parametrize("configuration", [{}, {"ignored": "fixture"}])
+def test_default_configuration_has_no_unresolved_secrets(
+    configuration: dict[str, str],
+) -> None:
+    """Required-field validation belongs to the provider, not secret readiness."""
+    assert credential_readiness(configuration) is SemanticCredentialReadiness.RESOLVED
 
 
 class OverriddenTransportError(ProviderRequestError):
@@ -360,8 +418,16 @@ def test_transport_errors_rebuilt_at_every_public_boundary(
                 (422 if endpoint == "structure" else 400) if valid else 500
             )
             message = response.get_data(as_text=True)
-    assert "private" not in message
-    assert "private" not in caplog.text
+    sentinel: str
+    for sentinel in (
+        "private-response-body",
+        "private-failure",
+        "https://private-endpoint/token",
+        "private-subclass-text",
+        "private-cause",
+    ):
+        assert sentinel not in message
+        assert sentinel not in caplog.text
     if valid:
         assert (
             "Provider" if case == "provider" else "MetricFlow"

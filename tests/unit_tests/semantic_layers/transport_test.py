@@ -417,6 +417,7 @@ def test_default_path_rejects_an_untrusted_certificate(
     key: Path
     cert, key = _certificate(untrusted, "public.example.test")
     context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert, key)
     port: int
     seen: list[str]

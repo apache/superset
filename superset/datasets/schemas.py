@@ -35,6 +35,7 @@ from superset import security_manager
 from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
+from superset.subjects.schemas import SubjectReferenceField
 from superset.utils import json
 from superset.utils.number_format import is_valid_d3_format
 from superset.utils.schema import DiscardIsManagedExternallyMixin
@@ -221,7 +222,7 @@ class DatasetPostSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
-    editors = fields.List(fields.Integer())
+    editors = fields.List(SubjectReferenceField())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
@@ -249,7 +250,7 @@ class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     cache_timeout = fields.Integer(allow_none=True)
     is_sqllab_view = fields.Boolean(allow_none=True)
     template_params = fields.String(allow_none=True)
-    editors = fields.List(fields.Integer())
+    editors = fields.List(SubjectReferenceField())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)

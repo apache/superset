@@ -51,6 +51,8 @@ and unrelated objects must not enable discovery. A static schema must perform no
 network activity or credential lookup and must not echo secrets in defaults/options.
 Readiness is neither complete configuration nor authenticated/authorized access.
 Providers still validate required fields and allowlisted runtime overrides.
+An empty configuration object has no unresolved secrets and is `RESOLVED`;
+providers with required fields must still reject incomplete settings themselves.
 
 The host checks submitted preview values before partial validation can discard an
 unresolved field. A preview does not fetch or restore saved secrets. Runtime

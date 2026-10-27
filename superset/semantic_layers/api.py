@@ -842,6 +842,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         # get the static schema.
         parsed_config = None
         readiness: SemanticCredentialReadiness = SemanticCredentialReadiness.UNRESOLVED
+        config: Any
         if (
             isinstance(config := body.get("configuration"), dict)
             and config

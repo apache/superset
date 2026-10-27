@@ -399,11 +399,7 @@ def credential_readiness(configuration: Any) -> SemanticCredentialReadiness:
     This does not resolve saved secrets or check required provider fields. Only
     the host interprets its sentinel; client assertions never set this signal.
     """
-    if (
-        not isinstance(configuration, dict)
-        or not configuration
-        or _contains_mask(configuration)
-    ):
+    if not isinstance(configuration, dict) or _contains_mask(configuration):
         return SemanticCredentialReadiness.UNRESOLVED
     return SemanticCredentialReadiness.RESOLVED
 
