@@ -129,6 +129,10 @@ run_case "lookup failure fails open when FAIL_OPEN=true" \
   "unused" "abc123" "push" \
   "is-current=true" "" "" "yes" "true" 0
 
+run_case "FAIL_OPEN=true still reports a stale tip when the lookup succeeds" \
+  "def456" "abc123" "push" \
+  "is-current=false" "7.0" "7.0" "" "true" 0
+
 run_case "lookup failure fails closed by default" \
   "unused" "abc123" "push" \
   "" "" "" "yes" "" 1
