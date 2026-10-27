@@ -53,7 +53,7 @@ class ExtensionsView(BaseSupersetView):
         return super().render_app_template()
 
 
-def _render_shell() -> FlaskResponse:
+def _render_shell() -> str:
     """The application shell, identical to the one ``/welcome/`` serves."""
     return render_template("superset/spa.html", **get_spa_template_context())
 
@@ -103,8 +103,15 @@ def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskRespons
         A signed-in user without the permission gets 403 rather than FAB's
         ``has_access`` redirect to the login page. They are already signed in;
         sending them to log in again says nothing true and leaves them
-        somewhere they cannot act on. 403 goes through Superset's own
-        ``HTTPException`` handler like any other refusal.
+        somewhere they cannot act on.
+
+        The refusal renders the shell with a 403 status rather than aborting.
+        ``show_http_exception`` only serves an HTML page for 404 and 500, so
+        ``abort(403)`` answered a browser with a JSON error body carrying the
+        generic "unexpected error" issue code -- for a refusal that is neither
+        unexpected nor a backend fault. Rendering the shell gives a cold load
+        or a bookmark the same "not authorized" screen the client already
+        shows when the user arrives in-app, and keeps the status honest.
         """
         # Imported here rather than at module scope: the flag is read per
         # request, so turning extensions off takes effect without waiting for
@@ -124,7 +131,7 @@ def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskRespons
                 extension_id,
                 page.permission,
             )
-            abort(403)
+            return _render_shell(), 403
         return _render_shell()
 
     return view
@@ -487,11 +494,12 @@ def _grant_to_admin(permission: str, extension_id: str, pvm: object) -> None:
         # role already holds every permission, reads nothing further.
         return
 
+    view_menu = _view_menu(extension_id)
     role_name = current_app.config.get("AUTH_ROLE_ADMIN", "Admin")
     role = security_manager.find_role(role_name)
     if role is None:
         logger.warning(
-            "No '%s' role to grant '%s' on '%s' to", role_name, permission, extension_id
+            "No '%s' role to grant '%s' on '%s' to", role_name, permission, view_menu
         )
         return
 
@@ -501,7 +509,7 @@ def _grant_to_admin(permission: str, extension_id: str, pvm: object) -> None:
     logger.info(
         "Granted '%s' on '%s' to the '%s' role",
         permission,
-        extension_id,
+        view_menu,
         role_name,
     )
 
@@ -515,9 +523,10 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
 
     The permission is attached to a view menu named after the extension, so
     the Roles screen groups an extension's permissions together and reads as
-    "can_review on preset.asset-approval". Pages of the same extension may
-    share a permission or declare different ones; this registers whatever set
-    they name, and gives the Admin role each one it creates.
+    "can_review on extension:preset.asset-approval". Pages of the same
+    extension may share a permission or declare different ones; this
+    registers whatever set they name, and gives the Admin role each one it
+    creates.
 
     Failures are logged and swallowed. Every worker runs this at boot, so two
     starting together can race between the lookup and the insert; the loser
@@ -543,9 +552,9 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
         for page in manifest.contributions.pages
         if page.permission is not None and page.path in registered
     }
+    view_menu = _view_menu(manifest.id)
     for permission in sorted(required):
         try:
-            view_menu = _view_menu(manifest.id)
             if not security_manager.find_permission_view_menu(permission, view_menu):
                 security_manager.add_permission_view_menu(permission, view_menu)
                 logger.info(
@@ -570,7 +579,7 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
                 "Could not create permission '%s' on '%s'; an administrator "
                 "may need to run `superset init` before it can be granted",
                 permission,
-                manifest.id,
+                view_menu,
                 exc_info=True,
             )
             # Rolled back here rather than through `@transaction`, which

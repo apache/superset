@@ -40,9 +40,12 @@ from superset_core.extensions.constants import (
 class PageNav(BaseModel):
     """Placement of a page in the navigation."""
 
-    label: str = Field(
-        ...,
-        description="Text of the navigation entry",
+    label: str | None = Field(
+        default=None,
+        description=(
+            "Text of the navigation entry. Defaults to the page's name, "
+            "which is what the host falls back to when this is absent."
+        ),
         min_length=1,
     )
     category: str | None = Field(

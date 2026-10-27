@@ -2414,8 +2414,16 @@ BLUEPRINTS: list[Blueprint] = []
 #
 # Turn it off where the metadata database must not be written during start --
 # a read-only replica, or a deployment that provisions roles and permissions
-# out of band. Pages still load and are still enforced; the permissions have
-# to exist already, which `superset init` will create.
+# out of band. Pages still load and are still enforced, but nothing creates
+# the permissions they declare: `superset init` syncs the permissions of
+# FAB-registered views, and these pages are plain Flask rules, so it does not
+# reach them. A declared permission that does not exist is held by no role,
+# so the page answers 403 to everyone, administrators included.
+#
+# Provisioning them out of band means creating, for each page that declares
+# one, the permission under a view menu named `extension:<publisher>.<name>`
+# -- `can_review` on `extension:preset.asset-approval` -- and granting it to
+# the roles that should open the page.
 EXTENSIONS_SYNC_PAGE_PERMISSIONS = True
 
 # Provide a callable that receives a tracking_url and returns another

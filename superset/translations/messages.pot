@@ -18300,4 +18300,3 @@ msgstr ""
 
 msgid "The view configuration must be a JSON object."
 msgstr ""
-

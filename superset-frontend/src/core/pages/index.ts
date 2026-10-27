@@ -139,14 +139,19 @@ export const registerPageFor = (
   }
 
   if (declaration.registered === false) {
-    // The path was taken by Superset, an operator's blueprint, or another
-    // extension. The author cannot see that from here, so the message says
-    // where to look rather than implying they got it wrong.
+    // Two causes, and from here they look the same: the path is held by
+    // Superset, an operator's blueprint or another extension, or the page was
+    // added to the manifest after this server started, since rules are
+    // registered at boot while the extensions API re-reads the manifest every
+    // request. Naming only the conflict sent an author who had just added a
+    // page looking for one that does not exist, so the message names both and
+    // says where the answer is.
     logging.error(
-      `Extension "${extensionId}" declares a page at "${page.path}", which ` +
-        `this deployment already serves, so no route was registered for it. ` +
-        `The page was ignored; the server log names what holds the path. ` +
-        `Choose a different path in the manifest.`,
+      `Extension "${extensionId}" declares a page at "${page.path}", but the ` +
+        `server registered no route for it, so the page was ignored. Either ` +
+        `the path is already served -- the server log names what holds it, ` +
+        `and the manifest needs a different path -- or the page was added ` +
+        `after the server started, in which case restart it.`,
     );
     return INERT;
   }

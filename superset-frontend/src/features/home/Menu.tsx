@@ -292,8 +292,9 @@ export function withExtensionSettings(
         ...(group.childs ?? []),
         ...mine.map(page => ({
           label: page.nav?.label ?? page.name,
-          // The React key, as for the navbar entries: the label is the
-          // author's to choose and could collide with a host item.
+          // The React key `RightMenu` uses for a settings child, as for the
+          // navbar entries: the label is the author's to choose and could
+          // collide with a host item.
           name: `extension:${page.path}`,
           url: page.path,
         })),
