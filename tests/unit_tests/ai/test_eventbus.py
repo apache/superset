@@ -514,7 +514,7 @@ def test_redis_bus_close_expires_rather_than_deletes() -> None:
     bus.publish("run-1", done_event(True))
     bus.close("run-1")
 
-    assert cache.expirations == [("prefix-run-1", 42)]
+    assert cache.expirations == [("prefix-run-1", 42)] * 2
     assert len(cache.streams["prefix-run-1"]) == 1
 
 
@@ -599,7 +599,7 @@ def test_get_event_bus_returns_a_redis_bus_configured_from_config(
     bus.close("run-1")
 
     assert list(cache.streams) == ["test-ai-events-run-1"]
-    assert cache.expirations == [("test-ai-events-run-1", 30)]
+    assert cache.expirations == [("test-ai-events-run-1", 30)] * 2
 
 
 def test_worker_execution_refuses_the_memory_bus(mocker: MockerFixture) -> None:
@@ -628,3 +628,18 @@ def test_worker_execution_refuses_the_memory_bus(mocker: MockerFixture) -> None:
     # operator reading it is looking at a config file, not at this code.
     assert "AI_ASSISTANT_EXECUTION_MODE='worker'" in message
     assert "AI_ASSISTANT_EVENT_BUS='redis'" in message
+
+
+@pytest.mark.parametrize("terminal", [False, True])
+def test_redis_bus_publish_expires_without_a_reader(terminal: bool) -> None:
+    """Even an unread stream whose producer crashes has bounded retention."""
+    from superset.ai.eventbus import RedisStreamEventBus
+    from superset.ai.events import assistant_delta_event, done_event
+
+    cache = FakeStreamCache()
+    bus = RedisStreamEventBus(cache=cache, prefix="prefix-", ttl_seconds=42)
+
+    event = done_event(True) if terminal else assistant_delta_event("partial")
+    bus.publish("run-1", event)
+
+    assert cache.expirations == [("prefix-run-1", 42)]

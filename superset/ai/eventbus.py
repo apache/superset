@@ -47,10 +47,6 @@ logger = logging.getLogger(__name__)
 #: interval, so a caller can emit a keep-alive rather than block indefinitely.
 IDLE = None
 
-#: ``done`` is always the last frame; errors and cancellation may still be
-#: followed by an authoritative answer replacement.
-_TERMINAL = frozenset({StreamEventType.DONE})
-
 
 class BaseEventBus(ABC):
     """A per-run channel of events."""
@@ -132,7 +128,7 @@ class MemoryEventBus(BaseEventBus):
                 yield IDLE
                 continue
             yield event
-            if event.type in _TERMINAL:
+            if event.type is StreamEventType.DONE:
                 return
 
     def close(self, run_id: str) -> None:
@@ -171,6 +167,8 @@ class RedisStreamEventBus(BaseEventBus):
             self._cache.xadd(self._stream(run_id), payload, "*", 10_000)
         except Exception:  # pylint: disable=broad-except
             logger.warning("Could not publish AI event for run %s", run_id)
+            return
+        self.close(run_id)
 
     def consume(
         self,
@@ -205,7 +203,7 @@ class RedisStreamEventBus(BaseEventBus):
                 if event is None:
                     continue
                 yield event
-                if event.type in _TERMINAL:
+                if event.type is StreamEventType.DONE:
                     return
 
     def close(self, run_id: str) -> None:
