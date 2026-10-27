@@ -543,11 +543,15 @@ export async function getChartDataRequest({
   // (feature flag + deployment default + optional per-dashboard override). Only
   // callers that handle a 202 task response set enableAsyncMode; the server treats
   // an absent async_mode as synchronous, so this is additive.
+  // An opted-in Arrow render is a full chart-data render too, so it follows
+  // the same policy; the async 202 -> poll -> re-request flow only speaks
+  // JSON, so async execution takes precedence and the request stays JSON.
   const asyncMode =
     enableAsyncMode &&
-    resultFormat === 'json' &&
+    (resultFormat === 'json' || resultFormat === 'arrow') &&
     resultType === 'full' &&
     resolveAsyncMode(asyncModeOverride);
+  const effectiveResultFormat = asyncMode ? 'json' : resultFormat;
 
   let querySettings: RequestParams = { ...postParams };
 
@@ -561,7 +565,7 @@ export async function getChartDataRequest({
   const [parseMethod] = getQuerySettings(formData);
   return v1ChartDataRequest(
     formData,
-    resultFormat,
+    effectiveResultFormat,
     resultType,
     force,
     querySettings,
@@ -787,6 +791,10 @@ export async function requestChartDataResolved(
   ): Promise<QueryData[]> => {
     const { response, json } = await getChartDataRequest({
       ...params,
+      // Only an async (JSON) submission is answered with a 202, so the
+      // read-back that completes it stays JSON too, even for an Arrow render.
+      resultFormat:
+        params.resultFormat === 'arrow' ? 'json' : params.resultFormat,
       queryForceNonces: params.force ? queryForceNonces : undefined,
       enableAsyncMode: false,
     });
