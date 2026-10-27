@@ -129,7 +129,10 @@ def _ask(rendered_context: str) -> list[str]:
     try:
         response = loop.run_until_complete(provider.complete(request))
     finally:
-        loop.close()
+        try:
+            loop.run_until_complete(provider.aclose())
+        finally:
+            loop.close()
 
     return _parse(response.text, count)
 
