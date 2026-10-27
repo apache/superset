@@ -6232,6 +6232,10 @@ msgid "Error in jinja expression in adhoc column: %(msg)s"
 msgstr ""
 
 #, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
+
+#, python-format
 msgid "Error in jinja expression in column expression: %(msg)s"
 msgstr ""
 
