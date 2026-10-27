@@ -87,40 +87,24 @@ function convertNumber(value: number): DataRecordValue {
 }
 
 /**
- * Convert a nested (List/Struct/Map) Arrow value to the plain JS array or
- * object the JSON wire format would have produced. apache-arrow hands these
- * back as `Vector`/row proxies rather than arrays, so code like the box plot's
- * `datum['metric__outliers']` (a Python set, serialized as a list) would
- * otherwise receive an object without the array methods it relies on.
+ * Convert a nested (List/Struct) Arrow value to the plain JS array or object
+ * the JSON wire format would have produced. apache-arrow hands these back as
+ * a `Vector` or a struct row proxy rather than an array or object, so code
+ * like the box plot's `datum['metric__outliers']` (a Python set, serialized
+ * as a list) would otherwise receive an object without the array methods it
+ * relies on. Their members go through the same scalar conversion as columns.
  */
-function convertNested(value: unknown): unknown {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  if (typeof value === 'bigint') {
-    return convertBigInt(value);
-  }
-  if (typeof value === 'number') {
-    return convertNumber(value);
-  }
+function convertNested(
+  value: object,
+  convertMember: (member: unknown) => unknown,
+): unknown {
   if (value instanceof Vector) {
-    return Array.from(value as Iterable<unknown>, convertNested);
+    return Array.from(value as Iterable<unknown>, convertMember);
   }
-  if (typeof value === 'object' && !(value instanceof Date)) {
-    const json = (value as { toJSON?: () => unknown }).toJSON?.() ?? value;
-    if (json instanceof Map) {
-      return Object.fromEntries(
-        Array.from(json, ([key, item]) => [key, convertNested(item)]),
-      );
-    }
-    return Object.fromEntries(
-      Object.entries(json as Record<string, unknown>).map(([key, item]) => [
-        key,
-        convertNested(item),
-      ]),
-    );
-  }
-  return value;
+  const record = (value as { toJSON: () => Record<string, unknown> }).toJSON();
+  return Object.fromEntries(
+    Object.entries(record).map(([key, member]) => [key, convertMember(member)]),
+  );
 }
 
 /**
@@ -152,10 +136,12 @@ function convertValue(
   if (typeof value === 'number') {
     return convertNumber(value);
   }
-  if (typeof value === 'object' && !(value instanceof Date)) {
+  if (typeof value === 'object') {
     // Nested values have no DataRecordValue member; consumers that read them
     // cast the record value, exactly as they do for the JSON wire format.
-    return convertNested(value) as DataRecordValue;
+    return convertNested(value, member =>
+      convertValue(member, false, 0),
+    ) as DataRecordValue;
   }
   // string, boolean: already the right shape.
   return value as DataRecordValue;
