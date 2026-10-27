@@ -981,10 +981,10 @@ test('withholds the builder until this load hydrates despite retained Redux stat
 
   try {
     await waitFor(() => expect(getPermalinkValue).toHaveBeenCalled());
-    expect(screen.queryByTestId('dashboard-builder')).not.toBeInTheDocument();
+    expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
 
     resolvePermalink(permalinkValue);
-    expect(await screen.findByTestId('dashboard-builder')).toBeInTheDocument();
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
   } finally {
     resolvePermalink(permalinkValue);
     unmount();
