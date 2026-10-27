@@ -226,6 +226,10 @@ def test_parse_boolean_string(test_input: Optional[str], expected: bool):
         ("y", False),
         ("t", False),
         ("on", False),
+        # Padded values must not match: no whitespace stripping.
+        (" true ", False),
+        ("true ", False),
+        ("\ttrue\n", False),
     ],
 )
 def test_is_truthy_str(test_input: Optional[str], expected: bool):

@@ -2277,7 +2277,7 @@ def is_truthy_str(value: str | None, default: bool = False) -> bool:
     """
     if value is None:
         return default
-    return value.strip().lower() == "true"
+    return value.lower() == "true"
 
 
 def apply_max_row_limit(
