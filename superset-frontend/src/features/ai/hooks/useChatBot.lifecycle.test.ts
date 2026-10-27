@@ -28,6 +28,7 @@ import {
 import { getThread, listThreads, updateThread } from './chatThreadsApi';
 import { useChatBot } from './useChatBot';
 import { usePageContext } from './usePageContext';
+import { isDefined, parseMessage } from '../types';
 
 jest.mock('./chatRequest', () => ({
   ...jest.requireActual('./chatRequest'),
@@ -77,6 +78,99 @@ beforeEach(() => {
   jest
     .mocked(startRun)
     .mockImplementation(async ({ threadUuid }) => handle(threadUuid));
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+const savedReply = (status: string, content = '') => ({
+  thread: { uuid: 'first' },
+  messages: [
+    parseMessage({
+      uuid: 'saved-reply',
+      role: 'assistant',
+      content,
+      status,
+      extra: { run_id: 'accepted-run' },
+    }),
+  ].filter(isDefined),
+});
+
+test.each(['complete', 'error', 'cancelled'])(
+  'a restored run refreshes until %s without starting another run',
+  async status => {
+    jest.useFakeTimers();
+    jest
+      .mocked(getThread)
+      .mockResolvedValueOnce(savedReply('streaming'))
+      .mockResolvedValue(savedReply(status, 'saved result'));
+    const { result } = renderHook(useChatBot);
+    await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+    expect(result.current.isLoading).toBe(true);
+    await act(async () => {
+      await result.current.sendMessage('do not overlap the restored run');
+      jest.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() =>
+      expect(result.current.messages[0].content).toBe('saved result'),
+    );
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.messages[0]).toMatchObject({
+      status,
+      runId: 'accepted-run',
+    });
+    act(() => jest.advanceTimersByTime(10_000));
+    expect(getThread).toHaveBeenCalledTimes(2);
+    expect(startRun).not.toHaveBeenCalled();
+    expect(streamRun).not.toHaveBeenCalled();
+  },
+);
+
+test('unmounting stops polling a restored run', async () => {
+  jest.useFakeTimers();
+  jest.mocked(getThread).mockResolvedValue(savedReply('pending'));
+  const { result, unmount } = renderHook(useChatBot);
+  await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+  expect(result.current.isLoading).toBe(true);
+
+  unmount();
+  act(() => jest.advanceTimersByTime(10_000));
+  expect(getThread).toHaveBeenCalledTimes(1);
+});
+
+test('Stop targets the saved run after reloading a conversation', async () => {
+  jest.mocked(getThread).mockResolvedValue(savedReply('streaming'));
+  const { result } = renderHook(useChatBot);
+  await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+
+  await act(async () => result.current.handleCancelRun());
+  expect(cancelChatRun).toHaveBeenCalledWith('first', 'accepted-run');
+  expect(startRun).not.toHaveBeenCalled();
+});
+
+test('an in-flight refresh cannot restart polling after unmount', async () => {
+  jest.useFakeTimers();
+  let finish: ((value: ReturnType<typeof savedReply>) => void) | undefined;
+  jest
+    .mocked(getThread)
+    .mockResolvedValueOnce(savedReply('streaming'))
+    .mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finish = resolve;
+        }),
+    );
+  const { result, unmount } = renderHook(useChatBot);
+  await waitFor(() => expect(result.current.threadsLoaded).toBe(true));
+  act(() => jest.advanceTimersByTime(2000));
+  expect(getThread).toHaveBeenCalledTimes(2);
+
+  unmount();
+  await act(async () => finish?.(savedReply('streaming')));
+  act(() => jest.advanceTimersByTime(10_000));
+  expect(getThread).toHaveBeenCalledTimes(2);
 });
 
 test.each(['continue', 'cancel'])(
