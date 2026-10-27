@@ -109,21 +109,19 @@ jobs:
       - name: Fetch base ref and create comparison worktree
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         env:
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # The checkout above does not persist credentials, and an anonymous
           # fetch only works against a public repository. Authenticate this
           # one fetch so the comparison also works in private forks/mirrors.
           AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-          # For PRs use the base branch; for direct pushes compare against the previous commit.
-          BASE_REF="$PR_BASE_REF"
-          if [ -n "$BASE_REF" ]; then
-            git -c "http.extraheader=$AUTH_HEADER" fetch --depth=1 origin "$BASE_REF"
-          else
-            git -c "http.extraheader=$AUTH_HEADER" fetch --depth=2 origin "$GITHUB_REF"
-          fi
-          git worktree add /tmp/base-worktree FETCH_HEAD
+          # Compare against the first parent of the checked-out commit: the
+          # base commit the PR merge ref was built on, or the previous commit
+          # for a direct push. Fetching the branch tip instead picks up
+          # anything merged while this job was queued, so the PR gets blamed
+          # for the difference.
+          git -c "http.extraheader=$AUTH_HEADER" fetch --depth=2 origin "$GITHUB_SHA"
+          git worktree add /tmp/base-worktree "$GITHUB_SHA^1"
 
       # Run babel_update against BASE source + BASE translations. Any drift
       # already present on the base branch (source strings that have changed
