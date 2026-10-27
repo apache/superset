@@ -85,9 +85,16 @@ class CanvasDraft:
     # Incremented on every accepted write to the draft.
     revision: int
     definition: dict[str, Any]
-    # The operations applied so far that change the canvas; commit replays
-    # them.
-    ops: list[dict[str, Any]] = field(default_factory=list)
+    # The operations applied so far that change the canvas, grouped by the
+    # request that carried them; commit replays each group as its own batch.
+    #
+    # The grouping is not bookkeeping: a request's operations are applied
+    # together and layout is resolved once for the batch, so an operation in
+    # the same request does not see where an earlier one in it pushed the
+    # widgets, while one in a later request does. Replaying a flattened log
+    # resolves at the wrong boundaries and lays the canvas out differently
+    # from the plan that was approved.
+    ops: list[list[dict[str, Any]]] = field(default_factory=list)
     # Widgets created or changed so far, by UUID; commit saves them.
     widgets: dict[str, StoredWidget] = field(default_factory=dict)
 
@@ -102,6 +109,9 @@ class CanvasDraft:
             "revision": self.revision,
             "definition": self.definition,
             "ops": self.ops,
+            # Marks the grouped shape, so a draft written before grouping
+            # existed is still readable.
+            "opsGrouped": True,
             "widgets": pending_to_value(self.widgets),
         }
 
@@ -153,9 +163,24 @@ def load_draft(token: str) -> CanvasDraft:
         base_revision=value["baseRevision"],
         revision=value["revision"],
         definition=value["definition"],
-        ops=value["ops"],
+        ops=_op_groups(value),
         widgets=pending_from_value(value.get("widgets") or {}),
     )
+
+
+def _op_groups(value: dict[str, Any]) -> list[list[dict[str, Any]]]:
+    """
+    The stored operation log as request groups.
+
+    A draft written before the log was grouped holds a flat list. It is read
+    as a single group, which is how such a draft was replayed when it was
+    written; drafts are short-lived cache entries, so this only has to cover
+    the ones open across a deploy.
+    """
+    ops = value["ops"]
+    if value.get("opsGrouped"):
+        return ops
+    return [ops] if ops else []
 
 
 def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
@@ -219,7 +244,9 @@ class ApplyCanvasDraftOperationsCommand:
         definition, applied = apply_or_raise(draft.definition, self._ops, draft.widgets)
         logged = [operation.op for operation in applied]
         draft.definition = definition
-        draft.ops = [*draft.ops, *(a.op for a in applied if a.replay)]
+        # One group per request, so the replay resolves where this did.
+        if replay := [a.op for a in applied if a.replay]:
+            draft.ops = [*draft.ops, replay]
         draft.revision += 1
         _save(draft)
         return draft, logged
@@ -242,16 +269,19 @@ class CommitCanvasDraftCommand:
             raise DraftConflictError(draft.revision)
         result = None
         if draft.ops or draft.widgets:
+            batches = [OPERATIONS.validate_python(group) for group in draft.ops]
             result = ApplyCanvasOperationsCommand(
                 draft.canvas_id,
                 draft.base_revision,
-                OPERATIONS.validate_python(draft.ops),
+                [op for batch in batches for op in batch],
                 strict=True,
                 widgets=draft.widgets,
-                # Each operation was resolved on its own as the user made it,
-                # so the replay has to resolve them the same way or the
-                # published canvas differs from the plan that was approved.
-                stepwise=True,
+                # Replayed a request at a time, resolving layout once per
+                # request as the draft did. Replaying the whole log as one
+                # batch, or an operation at a time, resolves at boundaries the
+                # draft never used and lays the canvas out differently from
+                # the plan that was approved.
+                batches=batches,
             ).run()
         DeleteCanvasDraftCommand(self._token).run()
         return result

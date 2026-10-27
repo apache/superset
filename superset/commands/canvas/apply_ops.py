@@ -140,29 +140,32 @@ def apply_or_raise(
         ) from ex
 
 
-def apply_stepwise(
+def apply_batches(
     definition: dict[str, Any],
-    ops: list[Operation],
+    batches: list[list[Operation]],
     pending: dict[str, StoredWidget] | None = None,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
-    Apply ``ops`` one at a time, resolving layout after each.
+    Apply each batch in turn, resolving layout once per batch.
 
-    For replaying a draft. A draft applies each operation as the user makes
-    it and resolves layout then, so a later operation sees where the one
-    before it pushed the widgets. Replaying them as a single batch resolves
-    collisions only once and can reach a different layout -- drag a widget
-    over another and back, and the one that was pushed aside stays pushed in
-    the draft but returns on publish. The canvas would then not match the plan
-    that was approved.
+    For replaying a draft, whose batches are the requests that built it. Where
+    layout is resolved decides the result: operations in one batch are applied
+    before anything is resolved, so none of them sees where another pushed the
+    widgets, while a later batch sees all of it. Resolving at any other
+    boundary lays the canvas out differently from the plan that was approved --
+    once for the whole log, and a widget dragged over another and back stops
+    pushing it aside; once per operation, and a widget moved by a later
+    operation in the same request pushes a third one it never touched.
 
-    One resolve per operation rather than one for the batch, which is why this
-    is kept to the commit path.
+    One resolve per batch rather than one for the log, which is why this is
+    kept to the commit path.
     """
     applied: list[AppliedOperation] = []
-    for index, op in enumerate(ops):
-        definition, step = apply_or_raise(definition, [op], pending, index)
+    first_index = 0
+    for batch in batches:
+        definition, step = apply_or_raise(definition, batch, pending, first_index)
         applied.extend(step)
+        first_index += len(batch)
     return definition, applied
 
 
@@ -180,7 +183,7 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         ops: list[Operation],
         strict: bool = False,
         widgets: dict[str, StoredWidget] | None = None,
-        stepwise: bool = False,
+        batches: list[list[Operation]] | None = None,
     ) -> None:
         self._canvas_ref = str(canvas_id_or_uuid)
         self._canvas_id = 0
@@ -190,8 +193,10 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self._strict = strict
         # Widgets a draft created or changed, saved with the canvas.
         self._widgets = dict(widgets or {})
-        # Replaying a draft, whose operations were each resolved on their own.
-        self._stepwise = stepwise
+        # Replaying a draft: ``ops`` grouped into the requests that built it,
+        # so layout is resolved where the draft resolved it. ``ops`` stays the
+        # flat list, which is what conflict detection reads.
+        self._batches = batches
 
     def run(self) -> ApplyResult:
         canvas = CanvasDAO.find_by_id_or_uuid(self._canvas_ref)
@@ -213,8 +218,11 @@ class ApplyCanvasOperationsCommand(BaseCommand):
             self._check_overlap(current, named_touches(self._ops))
 
         pending = dict(self._widgets)
-        apply = apply_stepwise if self._stepwise else apply_or_raise
-        definition, applied = apply(CanvasDAO.load(canvas), self._ops, pending)
+        definition, applied = (
+            apply_batches(CanvasDAO.load(canvas), self._batches, pending)
+            if self._batches is not None
+            else apply_or_raise(CanvasDAO.load(canvas), self._ops, pending)
+        )
 
         if self._base_revision != current:
             self._check_overlap(current, applied_touches(applied))

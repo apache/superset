@@ -192,12 +192,12 @@ def test_commit_replays_the_ops_strictly_and_deletes_the_draft(
     canvas_id, base_revision, replayed = command.call_args.args
     assert (canvas_id, base_revision) == (7, 3)
     assert [op.id for op in replayed] == ["chart"]
-    assert command.call_args.kwargs == {
-        "strict": True,
-        "widgets": {},
-        # Each operation resolved on its own, as the draft resolved it.
-        "stepwise": True,
-    }
+    assert command.call_args.kwargs["strict"] is True
+    assert command.call_args.kwargs["widgets"] == {}
+    # Grouped by the request that carried them, so the replay resolves layout
+    # where the draft resolved it.
+    batches = command.call_args.kwargs["batches"]
+    assert [[op.id for op in batch] for batch in batches] == [["chart"]]
     assert result is not None
     assert result.revision == 4
     assert store.entries == {}
@@ -300,7 +300,8 @@ def test_a_draft_holds_the_widgets_it_creates_and_commits_them(
     assert reloaded.widgets == {
         widget_id: StoredWidget("chart", 1, "Sales", {"metric": "avg"})
     }
-    assert [op["op"] for op in reloaded.ops] == ["add"]
+    # One group, holding the one replayable operation of that request.
+    assert [[op["op"] for op in group] for group in reloaded.ops] == [["add"]]
 
     CommitCanvasDraftCommand(draft.token, 2).run()
 
@@ -328,3 +329,89 @@ def test_a_draft_that_only_changes_widgets_still_commits(
 
     assert command.call_args.args[2] == []
     assert set(command.call_args.kwargs["widgets"]) == {"chart-1"}
+
+
+def test_publishing_a_multi_op_request_lays_out_as_the_draft_showed(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    End to end through the commands: what the commit sends has to reproduce
+    the layout the draft showed.
+
+    The UI batches gestures into one request while a save is in flight, so a
+    request carrying several moves is the ordinary case rather than an edge
+    one. ``ApplyCanvasOperationsCommand`` needs a database, so it is replaced
+    here and the batches it was handed are replayed against the same starting
+    definition instead.
+    """
+    from superset.canvas.definition.render import render_context
+    from superset.commands.canvas import draft as drafts
+    from superset.commands.canvas.apply_ops import apply_batches
+
+    def base() -> dict[str, Any]:
+        definition = empty_definition()
+        definition["root"]["children"] = ["a", "b", "c"]
+        for index, node_id in enumerate(("a", "b", "c")):
+            definition["nodes"][node_id] = {
+                "widgetType": "markdown",
+                "schemaVersion": 1,
+                "props": {},
+                "layout": {
+                    "col": 1,
+                    "row": index + 1,
+                    "colSpan": 24,
+                    "rowSpan": 1,
+                },
+            }
+        return definition
+
+    def rows(definition: dict[str, Any]) -> dict[str, int]:
+        placements = render_context(definition)["placements"]
+        return {node: rect["row"] for node, rect in sorted(placements.items())}
+
+    def place(node_id: str, row: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": node_id,
+            "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 1},
+        }
+
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = base()
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    command.return_value.run.return_value = MagicMock(revision=4)
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    # One request, two moves: 'a' down onto 'b' and 'b' up into its place.
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops(place("a", 2), place("b", 1))
+    ).run()
+
+    # What the draft shows: the two swapped, and 'c' left alone.
+    assert rows(draft.definition) == {"a": 2, "b": 1, "c": 3}
+
+    drafts.CommitCanvasDraftCommand(draft.token, 1).run()
+
+    batches = command.call_args.kwargs["batches"]
+    # One request in, one batch out.
+    assert len(batches) == 1
+    published, _ = apply_batches(base(), batches)
+
+    assert rows(published) == rows(draft.definition)
+
+
+def test_a_draft_written_before_grouping_is_still_readable(store: Store) -> None:
+    """
+    Drafts are cache entries, so some are open across a deploy. One written as
+    a flat log reads as a single group, which is how it would have been
+    replayed when it was written.
+    """
+    from superset.commands.canvas.draft import _op_groups
+
+    flat = [{"op": "place", "id": "a"}, {"op": "place", "id": "b"}]
+    assert _op_groups({"ops": flat}) == [flat]
+    assert _op_groups({"ops": []}) == []
+
+    grouped = [[{"op": "place", "id": "a"}], [{"op": "place", "id": "b"}]]
+    assert _op_groups({"ops": grouped, "opsGrouped": True}) == grouped
+    assert _op_groups({"ops": [], "opsGrouped": True}) == []
