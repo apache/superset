@@ -380,6 +380,7 @@ describe('chart actions', () => {
       fakeMetadata = { viz_type: 'my_viz', supportsArrowFormat: true };
       buildV1ChartDataPayloadStub.mockResolvedValue({
         some_param: 'fake query!',
+        queries: [{}],
         result_type: 'full',
         result_format: 'arrow',
       } as unknown as Awaited<
@@ -418,6 +419,7 @@ describe('chart actions', () => {
         };
         expect(JSON.parse(requestConfig.body)).toEqual({
           some_param: 'fake query!',
+          queries: [{}],
           result_type: 'full',
           result_format: 'arrow',
         });
@@ -433,6 +435,54 @@ describe('chart actions', () => {
           { region: 'APAC', sales: 20 },
         ]);
         expect(queriesResponse.colnames).toEqual(['region', 'sales']);
+      } finally {
+        updateDataMaskSpy.mockRestore();
+        postSpy.mockRestore();
+      }
+    });
+
+    test('falls back to JSON for an opted-in viz type whose query context has several queries', async () => {
+      const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        response: { status: 200 },
+        json: { result: [{ data: [] }, { data: [] }] },
+      } as unknown as Response);
+
+      fakeMetadata = { viz_type: 'my_multi_viz', supportsArrowFormat: true };
+      buildV1ChartDataPayloadStub.mockResolvedValue({
+        queries: [{}, {}],
+        result_type: 'full',
+        result_format: 'arrow',
+      } as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >);
+
+      const dispatchMock = jest.fn();
+      const updateDataMaskSpy = jest
+        .spyOn(dataMaskActions, 'updateDataMask')
+        .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+          typeof dataMaskActions.updateDataMask
+        >);
+
+      try {
+        const thunkAction = actions.exploreJSON(
+          { viz_type: 'my_multi_viz' } as QueryFormData,
+          false,
+          undefined,
+          'arrow_multi_query_test',
+        );
+        await thunkAction(
+          dispatchMock as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        expect(postSpy).toHaveBeenCalledTimes(1);
+        const requestConfig = postSpy.mock.calls[0][0] as unknown as {
+          body: string;
+          parseMethod?: string;
+        };
+        expect(JSON.parse(requestConfig.body).result_format).toBe('json');
+        expect(requestConfig.parseMethod).not.toBe('raw');
       } finally {
         updateDataMaskSpy.mockRestore();
         postSpy.mockRestore();

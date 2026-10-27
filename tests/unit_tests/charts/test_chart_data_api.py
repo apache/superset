@@ -21,10 +21,12 @@ from copy import deepcopy
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
+import pyarrow as pa
 import pytest
 from flask import Flask, g, Response
 
-from superset.charts.data.api import ChartDataRestApi
+from superset.charts.data.api import ARROW_QUERY_METADATA_KEY, ChartDataRestApi
 from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
 )
@@ -41,6 +43,7 @@ from superset.common.chart_data_timing import (
     QueryTiming,
 )
 from superset.common.query_context_factory import QueryContextFactory
+from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.jinja_context import ExtraCache
@@ -1058,27 +1061,76 @@ def test_send_chart_response_does_not_project_timing_for_csv(
     assert "timing" not in query_payload
 
 
-def test_send_chart_response_arrow_returns_single_query_bytes() -> None:
-    """Mirrors the datasource query endpoint's Arrow branch
-    (DatasourceRestApi._run): a single-query Arrow result is returned as the
-    raw Arrow IPC bytes with the Arrow stream mimetype, not wrapped in JSON.
-    """
+def _arrow_result(query_payload: dict[str, Any]) -> dict[str, Any]:
     query_context = MagicMock()
     query_context.result_type = ChartDataResultType.FULL
     query_context.result_format = ChartDataResultFormat.ARROW
+    return {"query_context": query_context, "queries": [query_payload]}
 
-    arrow_bytes = b"\x00\x01\x02arrow-ipc-payload"
-    result = {
-        "query_context": query_context,
-        "queries": [{"data": arrow_bytes}],
+
+def _arrow_query_metadata(response: Response) -> dict[str, Any]:
+    schema = pa.ipc.open_stream(response.get_data()).schema
+    return json.loads(schema.metadata[ARROW_QUERY_METADATA_KEY])
+
+
+def test_send_chart_response_arrow_embeds_query_metadata(app: SupersetApp) -> None:
+    """A single-query Arrow result is returned as an Arrow IPC stream whose
+    rows match the DataFrame and whose schema metadata carries the fields a
+    JSON response has next to ``data`` (``label_map`` drives drill-by)."""
+    df = pd.DataFrame({"ds": ["2020-01-01"], "SUM(num), boy": [1.5]})
+    query_payload = {
+        "data": QueryContextProcessor._to_arrow_ipc(df),
+        "label_map": {"SUM(num), boy": ["SUM(num)", "boy"]},
+        "colnames": ["ds", "SUM(num), boy"],
+        "is_cached": True,
+        "query": "SELECT 1",
     }
 
     api = ChartDataRestApi()
-    response = api._send_chart_response(result)
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        response = api._send_chart_response(_arrow_result(query_payload))
 
     assert response.status_code == 200
     assert response.mimetype == "application/vnd.apache.arrow.stream"
-    assert response.get_data() == arrow_bytes
+    table = pa.ipc.open_stream(response.get_data()).read_all()
+    assert table.to_pylist() == [{"ds": "2020-01-01", "SUM(num), boy": 1.5}]
+    assert _arrow_query_metadata(response) == {
+        "label_map": {"SUM(num), boy": ["SUM(num)", "boy"]},
+        "colnames": ["ds", "SUM(num), boy"],
+        "is_cached": True,
+        "query": "SELECT 1",
+    }
+
+
+def test_send_chart_response_arrow_redacts_guest_query(app: SupersetApp) -> None:
+    """The Arrow sidecar metadata gets the same guest redaction as JSON."""
+    query_payload = {
+        "data": QueryContextProcessor._to_arrow_ipc(pd.DataFrame({"a": [1]})),
+        "query": "SELECT secret FROM t",
+    }
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=True,
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
+        ),
+    ):
+        response = api._send_chart_response(_arrow_result(query_payload))
+
+    assert response.status_code == 200
+    assert "query" not in _arrow_query_metadata(response)
 
 
 def test_send_chart_response_arrow_rejects_multiple_queries() -> None:
