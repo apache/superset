@@ -286,11 +286,16 @@ def render_with(
     user_id: int | None = 1,
     permission: str | None = None,
     granted: bool = False,
+    recorded: bool = True,
 ) -> object:
     """Run one page view's guards without rendering a real template.
 
     The guards are the whole of the view; what it renders on success is
     ``spa.html`` unchanged, which the host's own screens already cover.
+
+    ``recorded`` stands in for what registration does: the requirement is
+    written to the app when the rule is added, and the view reads it on the
+    way in. Pass ``False`` to exercise a rule whose page nothing registered.
     """
     import superset
 
@@ -305,8 +310,9 @@ def render_with(
     monkeypatch.setattr(view, "_render_shell", lambda: "SHELL")
     monkeypatch.setattr(view, "redirect_to_login", lambda: "LOGIN")
 
-    page = Page(path="/approvals", name="Approvals", permission=permission)
-    page_view = view._make_page_view("acme.tools", page)
+    if recorded:
+        view._requirements(app)[("acme.tools", "/approvals")] = permission
+    page_view = view._make_page_view("acme.tools", "/approvals")
 
     with app.test_request_context("/approvals"):
         g.user = object() if user_id else None
@@ -540,6 +546,61 @@ def test_a_refused_page_is_never_reported_as_permitted(
         permitted_page_paths(app, manifest("/welcome", permission="can_review"))
         == set()
     )
+
+
+def test_a_rule_with_no_recorded_requirement_is_refused(
+    monkeypatch: pytest.MonkeyPatch, app: Flask
+) -> None:
+    """A live route whose page nothing registered does not serve.
+
+    The requirement is what says a page exists and what it needs, so a rule
+    with no entry against it has no page behind it. Refusing is the only safe
+    reading: the alternative is that an unrecorded page requires nothing,
+    which would make the pages nobody registered the most open ones there
+    are. The permission is granted here, so the refusal can only come from
+    the missing record.
+    """
+    with pytest.raises(NotFound):
+        render_with(
+            monkeypatch, app, permission="can_review", granted=True, recorded=False
+        )
+
+
+def test_the_api_reports_the_requirement_the_route_enforces(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """An edited manifest cannot move what is advertised away from what is
+    enforced.
+
+    `get_extensions` re-reads the bundle on every request, so the manifest
+    reaching here is not necessarily the one the rule was registered with.
+    The route enforces `can_review`; this manifest has since dropped it.
+    Reading the requirement from the table rather than from the manifest
+    beside it keeps the two answers the same -- the page stays hidden until
+    the permission the route actually checks is granted.
+    """
+    register_extension_pages(app, manifest("/a", permission="can_review"))
+
+    assert permitted_page_paths(app, manifest("/a")) == set()
+
+    security.granted.add(("can_review", VIEW_MENU))
+    assert permitted_page_paths(app, manifest("/a")) == {"/a"}
+
+
+def test_a_manifest_claiming_more_than_the_route_enforces_does_not_hide_it(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """The other direction of the same drift.
+
+    The route was registered open and admits any signed-in user; the manifest
+    has since grown a permission it does not enforce. Believing the manifest
+    would hide the entry from a navigation bar while the page itself stayed
+    reachable, which is the worse way round to be wrong about it.
+    """
+    register_extension_pages(app, manifest("/a"))
+
+    assert permitted_page_paths(app, manifest("/a", permission="can_review")) == {"/a"}
+    assert security.asked == []
 
 
 @pytest.mark.parametrize("permission", ["Can_Review", "can review", "can-review", ""])

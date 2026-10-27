@@ -21,7 +21,7 @@ from typing import Callable
 from flask import abort, current_app, Flask, g, render_template
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, permission_name
-from superset_core.extensions.types import Manifest, Page
+from superset_core.extensions.types import Manifest
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import PathConverter, RequestRedirect, Rule
 
@@ -39,6 +39,44 @@ logger = logging.getLogger(__name__)
 #: Prefix for the Flask endpoints these rules register under, so a page is
 #: identifiable in the URL map and cannot collide with a view's endpoint name.
 _ENDPOINT_PREFIX = "extension_page"
+
+#: Key the page requirement table lives under on the Flask app. On the app
+#: rather than this module so two apps in one process -- the test suite builds
+#: several -- cannot read each other's pages.
+_REQUIREMENTS = "superset_extension_page_requirements"
+
+
+def _requirements(app: Flask) -> dict[tuple[str, str], str | None]:
+    """What each registered page requires, keyed by extension and path.
+
+    Written when a page's rule is registered and read on the way in to it, so
+    that what is enforced and what the API advertises come from one place.
+    They used to come from two: the view closed over the permission its
+    manifest declared at boot, while the API re-read the manifest per request
+    -- and `get_extensions` really does re-read the bundle every time. An
+    edited manifest therefore moved what was advertised while the rule went on
+    enforcing what it was built with. The drift fails open on the side that
+    matters: a page that gains a permission without a restart is hidden from
+    the navigation while its route still admits anyone.
+    """
+    return app.extensions.setdefault(_REQUIREMENTS, {})
+
+
+def _page_requirement(
+    app: Flask, extension_id: str, path: str
+) -> tuple[bool, str | None]:
+    """Whether this page is registered, and what it requires if so.
+
+    Two answers rather than one, because `None` is a real requirement -- a
+    page may declare no permission and be open to any signed-in user -- and
+    must not be what an unregistered page reads as. Collapsing them would
+    make a page nobody registered the most permissive kind there is.
+    """
+    requirements = _requirements(app)
+    key = (extension_id, path)
+    if key not in requirements:
+        return False, None
+    return True, requirements[key]
 
 
 class ExtensionsView(BaseSupersetView):
@@ -83,12 +121,14 @@ def may_open(extension_id: str, permission: str | None) -> bool:
     return security_manager.can_access(permission, _view_menu(extension_id))
 
 
-def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskResponse]:
-    """Build the view for one page, closing over what that page requires.
+def _make_page_view(extension_id: str, path: str) -> Callable[..., FlaskResponse]:
+    """Build the view for one page, closing over which page it is.
 
-    A view per page rather than one shared view read from the request: the
-    permission a page requires is part of the route, not something to re-derive
-    from the URL on the way in.
+    Which page is part of the route; what that page requires is looked up as
+    the request comes in, from the table written when the rule was
+    registered. Closing over the requirement instead would freeze it at boot
+    while the API went on re-reading the manifest, which is the drift
+    `_requirements` describes.
     """
 
     def view(**_kwargs: str) -> FlaskResponse:
@@ -122,14 +162,22 @@ def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskRespons
             abort(404)
         if not g.user or not get_user_id():
             return redirect_to_login()
-        if not may_open(extension_id, page.permission):
+
+        registered, permission = _page_requirement(current_app, extension_id, path)
+        if not registered:
+            # No requirement recorded means no page: a rule exists for a path
+            # nothing registered. Refused rather than served, because the
+            # alternative reads as "requires nothing", which is the one answer
+            # that must never be reached by default.
+            abort(404)
+        if not may_open(extension_id, permission):
             logger.warning(
                 "User %s was refused the page '%s' of extension '%s', which "
                 "requires '%s'",
                 get_user_id(),
-                page.path,
+                path,
                 extension_id,
-                page.permission,
+                permission,
             )
             return _render_shell(), 403
         return _render_shell()
@@ -387,6 +435,13 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
     A refused page is skipped, not fatal: one extension claiming a taken path
     should not stop the server from starting.
     """
+    # Recorded, never cleared. A Flask rule cannot be unregistered, so a page
+    # that was registered keeps being served for the life of the process, and
+    # its requirement has to last exactly as long: dropping it would leave a
+    # live route with nothing recorded against it, which the view refuses. A
+    # page re-registered with a different permission overwrites its own entry,
+    # so the last registration wins, as it does for the rule.
+    requirements = _requirements(app)
     for page in manifest.contributions.pages:
         if problem := _permission_problem(page.permission):
             logger.error(
@@ -411,7 +466,8 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
             continue
 
         endpoint = f"{_ENDPOINT_PREFIX}.{manifest.id}{page.path}"
-        view = _make_page_view(manifest.id, page)
+        requirements[(manifest.id, page.path)] = page.permission
+        view = _make_page_view(manifest.id, page.path)
         app.add_url_rule(
             page.path,
             endpoint=endpoint,
@@ -595,9 +651,15 @@ def permitted_page_paths(app: Flask, manifest: Manifest) -> set[str]:
     unpermitted page on its own, so this is not the enforcement -- it is what
     keeps a navigation entry from advertising a page that would answer 403.
     """
-    registered = set(registered_page_paths(app, manifest.id))
-    return {
-        page.path
-        for page in manifest.contributions.pages
-        if page.path in registered and may_open(manifest.id, page.permission)
-    }
+    has_rule = set(registered_page_paths(app, manifest.id))
+    permitted = set()
+    for page in manifest.contributions.pages:
+        if page.path not in has_rule:
+            continue
+        # The requirement comes from the table the rule was registered with,
+        # not from `page.permission` beside it: this manifest was read on this
+        # request and may say something the live route does not enforce.
+        recorded, permission = _page_requirement(app, manifest.id, page.path)
+        if recorded and may_open(manifest.id, permission):
+            permitted.add(page.path)
+    return permitted
