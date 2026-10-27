@@ -251,7 +251,7 @@ def test_worker_cancellation_uses_the_event_bus_redis(
     run_id = "run-worker-cancel"
     orchestrator.request_cancel(run_id)
 
-    backend.set.assert_called_once_with("ai-cancel-run-worker-cancel", True, ex=900)
+    backend.set.assert_called_once_with("ai-cancel-run-worker-cancel", b"1", ex=900)
     assert run_id not in orchestrator._CANCELLED_LOCALLY
 
     backend.get.return_value = b"1"

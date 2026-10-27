@@ -166,7 +166,7 @@ def request_cancel(run_id: str) -> None:
     try:
         store = _cancel_store(worker_mode)
         if worker_mode:
-            store.set(f"{_CANCEL_PREFIX}{run_id}", True, ex=_CANCEL_TTL_SECONDS)
+            store.set(f"{_CANCEL_PREFIX}{run_id}", b"1", ex=_CANCEL_TTL_SECONDS)
         else:
             store.set(f"{_CANCEL_PREFIX}{run_id}", True, timeout=_CANCEL_TTL_SECONDS)
     except Exception:  # pylint: disable=broad-except
