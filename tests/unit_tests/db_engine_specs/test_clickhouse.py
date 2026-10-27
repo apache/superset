@@ -228,6 +228,13 @@ def test_connect_convert_dttm(
             GenericDataType.NUMERIC,
             False,
         ),
+        (
+            "SimpleAggregateFunction(sum, UInt64)",
+            Integer,
+            None,
+            GenericDataType.NUMERIC,
+            False,
+        ),
         ("Float32", Float, None, GenericDataType.NUMERIC, False),
         ("Float64", Float, None, GenericDataType.NUMERIC, False),
         ("Decimal(1, 2)", DECIMAL, None, GenericDataType.NUMERIC, False),
@@ -1107,3 +1114,106 @@ def test_legacy_clickhouse_engine_spec_has_no_cancel_support() -> None:
     cursor_mock = Mock()
     assert spec.get_cancel_query_id(cursor_mock, Query()) is None
     assert spec.cancel_query(cursor_mock, Query(), "123") is False
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "AggregateFunction(quantileTiming, UInt16)",
+        "AggregateFunction(uniqHLL12, String)",
+        "AGGREGATEFUNCTION",
+    ],
+)
+def test_aggregate_function_column_spec(native_type: str) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        AggregateFunctionState,
+        ClickHouseConnectEngineSpec as spec,
+    )
+
+    assert_column_spec(
+        spec,
+        native_type,
+        AggregateFunctionState,
+        None,
+        GenericDataType.NUMERIC,
+        False,
+    )
+
+
+def test_select_star_finalizes_aggregate_function_columns() -> None:
+    from clickhouse_connect.cc_sqlalchemy.datatypes.base import sqla_type_from_name
+    from clickhouse_connect.cc_sqlalchemy.dialect import ClickHouseDialect
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.sql.parse import Table
+    from superset.superset_typing import ResultSetColumnType
+
+    dialect = ClickHouseDialect()
+    database = Mock()
+    database.compile_sqla_query = lambda query, catalog, schema: str(
+        query.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+    cols: list[ResultSetColumnType] = [
+        {
+            "name": name,
+            "column_name": name,
+            "type": sqla_type_from_name(native_type),
+            "is_dttm": False,
+        }
+        for name, native_type in [
+            ("rows", "SimpleAggregateFunction(sum, UInt64)"),
+            ("rtt", "AggregateFunction(quantileTiming, UInt16)"),
+        ]
+    ]
+
+    sql = spec.select_star(
+        database=database,
+        table=Table("t"),
+        dialect=dialect,
+        limit=10,
+        show_cols=True,
+        indent=False,
+        latest_partition=False,
+        cols=cols,
+    )
+
+    assert sql == (
+        "SELECT `rows`, finalizeAggregation(`rtt`) AS `rtt` \nFROM `t`\n LIMIT 10"
+    )
+
+
+def test_dataset_query_finalizes_aggregate_function_columns(
+    app_context: None,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    table = SqlaTable(
+        database=Database(
+            database_name="ch", sqlalchemy_uri="clickhousedb://localhost/default"
+        ),
+        schema="default",
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ts", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="rtt", type="AGGREGATEFUNCTION"),
+        ],
+    )
+
+    sqlaq = table.get_sqla_query(
+        columns=["ts", "rtt"],
+        metrics=None,
+        is_timeseries=False,
+        orderby=[("ts", True)],
+        row_limit=10,
+        filter=[],
+        extras={},
+    )
+
+    assert sqlaq.labels_expected == ["ts", "rtt"]
+    assert table.database.compile_sqla_query(sqlaq.sqla_query) == (
+        "SELECT `ts` AS `ts`, finalizeAggregation(`rtt`) AS `rtt` \n"
+        "FROM `default`.`t` ORDER BY `ts` ASC\n LIMIT 10"
+    )
