@@ -129,7 +129,7 @@ def as_caller() -> Iterator[Callable[[frozenset[tuple[str, str]]], None]]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("strategy", ["bm25", "regex"])
-@pytest.mark.parametrize("query", [None, "", "bar chart", "no such capability zzz"])
+@pytest.mark.parametrize("query", [None, "", "bar chart", "zzzxqvnosuchcapability"])
 @pytest.mark.parametrize(
     "granted", [DASHBOARDS_ONLY_PERMISSIONS, NO_PERMISSIONS], ids=["dashboards", "none"]
 )
@@ -157,6 +157,8 @@ async def test_search_tools_returns_schema_valid_structured_content(
     jsonschema.validate(result.structured_content, output_schema)
     returned = result.structured_content["result"]
     assert isinstance(returned, list)
+    if query == "zzzxqvnosuchcapability":
+        assert returned == []
 
     offered = {entry["name"] for entry in returned}
     assert not offered & WRITE_AND_SQL_TOOLS
