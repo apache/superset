@@ -133,8 +133,15 @@ def provider_request_message(error: ProviderRequestError) -> str:
     )
 
 
-def log_provider_failure(message: str, error: Exception) -> None:
+def log_provider_failure(
+    message: str,
+    error: Exception,
+    *,
+    view_id: int | None = None,
+    layer_uuid: UUID | None = None,
+) -> None:
     """Keep typed failures quiet; retain unknown diagnostics in server DEBUG logs."""
+    message = f"{message} view_id={view_id} layer_uuid={layer_uuid}"
     if isinstance(
         error, (ProviderRequestError, SemanticBackendError, SemanticQueryRejectedError)
     ):

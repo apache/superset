@@ -22,6 +22,7 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any, cast
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 from flask.testing import FlaskClient
@@ -56,6 +57,103 @@ class PreviewConfiguration(BaseModel):
 
     account: str | None = None
     password: str | None = None
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+@pytest.mark.parametrize("endpoint", ["structure", "preview", "runtime"])
+@pytest.mark.parametrize(
+    "failure", ["transport", "backend", "unknown", "unknown_debug"]
+)
+def test_provider_failure_logs_identify_target_without_credentials(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    endpoint: str,
+    failure: str,
+) -> None:
+    """Use persisted identifiers, never submitted configuration or provider text."""
+    layer_uuid: UUID = UUID("ed218dc4-8522-4e1c-a72e-d5b3693e9425")
+    sentinel: str = "password=private-credential-sentinel"
+    error: Exception = (
+        ProviderRequestError(ProviderRequestFailure.TIMEOUT)
+        if failure == "transport"
+        else SemanticBackendError()
+        if failure == "backend"
+        else ConnectionError(sentinel)
+    )
+    error.__cause__ = ValueError(
+        "https://private-provider.example/?token=private-token"
+    )
+    provider: MagicMock = MagicMock()
+    provider.configuration_class = PreviewConfiguration
+    layer: MagicMock = MagicMock(
+        uuid=layer_uuid, type="test", configuration=json.dumps({"password": sentinel})
+    )
+    view: MagicMock = MagicMock(id=17, semantic_layer_uuid=layer_uuid)
+    view.implementation.get_dimensions.side_effect = error
+    provider.get_runtime_schema.side_effect = error
+    provider.get_configuration_schema.side_effect = [error, {"type": "object"}]
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"test": provider})
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
+    )
+    session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = view
+    response: TestResponse
+    # Unknown exceptions deliberately retain diagnostics at DEBUG, not ERROR.
+    with caplog.at_level(
+        logging.ERROR if failure == "unknown" else logging.DEBUG,
+        logger="superset.semantic_layers.exceptions",
+    ):
+        if endpoint == "structure":
+            response = client.get("/api/v1/semantic_view/17/structure")
+        elif endpoint == "runtime":
+            response = client.post(
+                f"/api/v1/semantic_layer/{layer_uuid}/schema/runtime"
+            )
+        else:
+            response = client.post(
+                "/api/v1/semantic_layer/schema/configuration",
+                json={
+                    "type": "test",
+                    "configuration": {"password": sentinel},
+                    "view_id": sentinel,
+                    "layer_uuid": sentinel,
+                },
+            )
+    assert (
+        response.status_code
+        == {"structure": 422, "runtime": 400, "preview": 200}[endpoint]
+    )
+    records: list[logging.LogRecord] = [
+        record
+        for record in caplog.records
+        if record.name == "superset.semantic_layers.exceptions"
+    ]
+    assert len(records) == (2 if failure == "unknown_debug" else 1)
+    record: logging.LogRecord
+    for record in records:
+        assert f"view_id={17 if endpoint == 'structure' else None}" in record.message
+        assert (
+            f"layer_uuid={layer_uuid if endpoint != 'preview' else None}"
+            in record.message
+        )
+        assert sentinel not in record.message
+        assert "private-provider" not in record.message
+        assert "private-token" not in record.message
+    assert records[0].exc_info is None
+    if failure == "unknown_debug":
+        assert records[1].levelno == logging.DEBUG
+        assert records[1].exc_info is not None
+        assert records[1].exc_info[1] is error
+    else:
+        assert sentinel not in caplog.text
+        assert "private-provider" not in caplog.text
+        assert "private-token" not in caplog.text
+    assert sentinel not in response.get_data(as_text=True)
 
 
 @pytest.mark.parametrize(

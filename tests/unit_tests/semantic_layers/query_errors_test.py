@@ -778,7 +778,8 @@ def test_provider_execution_error_http(
         ]
         assert len(records) == 1
         assert records[0].getMessage() == (
-            "Semantic provider query execution failed (builtins.ValueError)"
+            "Semantic provider query execution failed "
+            "view_id=None layer_uuid=None (builtins.ValueError)"
         )
         assert records[0].exc_info is None
         assert "private-provider" not in caplog.text

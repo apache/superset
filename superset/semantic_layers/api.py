@@ -346,7 +346,12 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
-            log_provider_failure("Error fetching semantic view structure", ex)
+            log_provider_failure(
+                "Error fetching semantic view structure",
+                ex,
+                view_id=pk,
+                layer_uuid=view.semantic_layer_uuid,
+            )
             return self.response_422(
                 message=provider_request_message(ex)
                 if isinstance(ex, ProviderRequestError)
@@ -865,7 +870,11 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                 )
             )
             log_provider_failure(
-                "Error enriching semantic layer configuration schema", ex
+                "Error enriching semantic layer configuration schema",
+                ex,
+                # Preview has no persisted view or layer; never use submitted IDs.
+                view_id=None,
+                layer_uuid=None,
             )
             # Connection or query failures during schema enrichment should not
             # prevent the form from rendering — return the base schema instead.
@@ -943,7 +952,11 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
-            log_provider_failure("Error fetching semantic layer runtime schema", ex)
+            log_provider_failure(
+                "Error fetching semantic layer runtime schema",
+                ex,
+                layer_uuid=layer.uuid,
+            )
             return self.response_400(
                 message=provider_request_message(ex)
                 if isinstance(ex, ProviderRequestError)
