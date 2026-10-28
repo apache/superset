@@ -50,6 +50,7 @@ import {
   handleFilterOptionHelper,
   hasOption,
   isLabeledValue,
+  isNewOption,
   isObject,
   makeQuoteAwareTokenizer,
   mapOptions,

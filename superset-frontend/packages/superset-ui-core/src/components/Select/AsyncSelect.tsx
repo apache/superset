@@ -52,6 +52,7 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
+  isNewOption,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   sortComparatorForNoSearchHelper,

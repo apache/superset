@@ -36,6 +36,12 @@ export function isLabeledValue(value: unknown): value is AntdLabeledValue {
   return isObject(value) && 'value' in value && 'label' in value;
 }
 
+export function isNewOption(
+  option: unknown,
+): option is { isNewOption: boolean } {
+  return isObject(option) && Boolean((option as { isNewOption?: boolean }).isNewOption);
+}
+
 export function getValue(
   option: string | number | AntdLabeledValue | null | undefined,
 ) {

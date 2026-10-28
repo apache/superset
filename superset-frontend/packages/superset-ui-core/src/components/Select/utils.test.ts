@@ -22,6 +22,7 @@ import {
   stripSurroundingQuotes,
   makeQuoteAwareTokenizer,
   propertyComparator,
+  isNewOption,
 } from './utils';
 
 test('stripSurroundingQuotes removes matching surrounding double quotes', () => {
