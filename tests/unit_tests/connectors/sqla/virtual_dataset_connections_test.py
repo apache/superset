@@ -3944,3 +3944,78 @@ def test_stub_attribute_type_name_cache_keys_are_viewer_scoped(
         keys.append(query.cache_key(extra_cache_keys=extra_keys))
     assert rows == [[1], [2]]
     assert keys[0] != keys[1]
+
+
+# Each renders the name of a saved column whose expression is a subquery.
+SAVED_NAME_TEMPLATES = {
+    "mul": "{{ 1 * 2 }}",
+    "sub": "{{ 3 - 1 }}",
+    "div": "{{ (4 / 2) | int }}",
+    "floordiv": "{{ 5 // 2 }}",
+    "mod": "{{ 8 % 3 }}",
+    "pow": "{{ 2 ** 1 }}",
+    "neg": "{{ -(-2) }}",
+    "condexpr": "{{ 2 if 1 > 0 else 0 }}",
+    "compare": "{{ (1 < 2) | int + 1 }}",
+    "if_block": "{% if 1 %}2{% endif %}",
+    "for_block": "{% for i in range(2, 3) %}{{ i }}{% endfor %}",
+    "set_block": "{% set n = 1 + 1 %}{{ n }}",
+    "macro": "{% macro m() %}{{ 2 }}{% endmacro %}{{ m() }}",
+    "list_index": "{{ [0, 2][1] }}",
+    "dict_attribute": "{{ {'n': 2}.n }}",
+    "string_method": "{{ ' 2 '.strip() }}",
+}
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("sink", ["column", "filter"])
+@pytest.mark.parametrize("template", SAVED_NAME_TEMPLATES)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_rendered_saved_column_name_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    template: str,
+    sink: str,
+) -> None:
+    """An adhoc template rendering a saved column's name keys on that column."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.columns.append(
+        TableColumn(
+            column_name="2",
+            type="INTEGER",
+            expression="(SELECT MAX(col1) FROM physical)",
+        )
+    )
+    adhoc: AdhocColumn = cast(
+        AdhocColumn,
+        {
+            "sqlExpression": SAVED_NAME_TEMPLATES[template],
+            "label": "axis",
+            "expressionType": "SQL",
+        },
+    )
+    query = QueryObject(
+        datasource=virtual,
+        columns=[adhoc] if sink == "column" else ["col1"],
+        filters=[{"col": adhoc, "op": "==", "val": 1}] if sink == "filter" else [],
+        metrics=[],
+        is_timeseries=False,
+    )
+    rows = []
+    keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        rule.clause = f"col1 = {user_id}"
+        result = virtual.get_query_result(query)
+        assert result.status == "success", result.error_message
+        assert f"col1 = {user_id}" in result.query
+        rows.append(result.df.iloc[:, 0].tolist())
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        assert extra_keys == [PHYSICAL_RLS_KEYS[user_id]]
+        keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert rows[0] != rows[1]
+    assert keys[0] != keys[1]
