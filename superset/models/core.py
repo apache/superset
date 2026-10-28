@@ -1207,13 +1207,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         """
         script = SQLScript(sql, self.db_engine_spec.engine)
         statement = script.statements[-1]
+        limit_method = self.db_engine_spec.get_limit_method(self)
         if force or (
             self.db_engine_spec.engine == "mssql"
             and statement.get_limit_value() is None
         ):
-            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.set_limit_value(limit, limit_method)
         else:
-            statement.cap_limit_value(limit, self.db_engine_spec.limit_method)
+            statement.cap_limit_value(limit, limit_method)
 
         return script.format()
 
