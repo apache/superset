@@ -20,7 +20,13 @@ under the License.
 # Hướng dẫn setup môi trường phát triển (Windows)
 
 Hướng dẫn này dành cho việc chạy Apache Superset ở chế độ phát triển trên
-Windows (PowerShell), dựa trên cấu trúc repo hiện có.
+Windows, dựa trên cấu trúc repo hiện có.
+
+> **Chạy mọi lệnh trong WSL2 shell.** Superset không hỗ trợ native Windows.
+> Các lệnh viết ở dưới dùng cú pháp PowerShell cho các đoạn cần `New-Item`,
+> `Test-NetConnection`... nhưng repo phải nằm trong filesystem Linux và lệnh
+> `docker compose` nên chạy từ WSL2 shell để tránh bị chậm do filesystem bridge.
+> Xem mục 1.1.
 
 - Backend: Flask / Python (thư mục `superset/`)
 - Frontend: React / TypeScript (thư mục `superset-frontend/`)
@@ -33,11 +39,19 @@ Windows (PowerShell), dựa trên cấu trúc repo hiện có.
 
 | Công cụ | Phiên bản | Ghi chú |
 |---|---|---|
+| WSL2 | bản mới nhất | Bắt buộc — xem mục 1.1 |
 | Docker Desktop | >= 24 | Bắt buộc cho cách cài đặt được khuyên dùng |
-| Docker Compose | v2.x | `docker compose version` |
+| Docker Compose plugin | **>= 2.24.0** | Bắt buộc — xem ghi chú bên dưới |
 | Python | 3.11 hoặc 3.12 | Chỉ cần cho hướng dẫn local (mục 4) |
 | Node.js / npm | Theo `superset-frontend/package.json` | Chỉ cần cho hướng dẫn local (mục 4) |
 | Git | bất kỳ | Bắt buộc |
+
+> **Vì sao cần Compose >= 2.24.0:** `docker-compose.yml` khai báo `env_file` theo
+> dạng dài (`- path: ..., required: true|false`) cho mọi service. Cú pháp `required`
+> chỉ được hỗ trợ từ Compose 2.24.0. Docker Desktop cũ sẽ báo lỗi kiểu
+> `env_file must be a mapping` hoặc `additional properties are not allowed`
+> (`required`), dễ bị hiểu nhầm là sai cấu hình. Nếu lỗi này xuất hiện, nâng
+> Docker Desktop lại thay vì sửa YAML.
 
 Kiểm tra nhanh:
 
@@ -45,6 +59,36 @@ Kiểm tra nhanh:
 docker --version
 docker compose version
 ```
+
+Cả hai lệnh phải chạy được (exit 0) trước khi đi tiếp.
+
+### 1.1. WSL2 và vị trí thư mục repo
+
+Bắt buộc dùng **WSL2** với Docker Desktop ở chế độ WSL integration. Superset
+không hỗ trợ native Windows, và stack dev này bind-mount nặng:
+
+```yaml
+- ./superset-frontend:/app/superset-frontend
+```
+
+Khi repo nằm trên ổ `C:\`, Docker Desktop phải đọc file qua filesystem bridge
+(9P/gRPC-FS). Ở đó `npm ci` và webpack watch sẽ **rất chậm** và thường hỏng
+file watch (`ENOSPC: System limit for number of file watchers` hoặc webpack không
+rebuild khi sửa file).
+
+**Luôn đặt repo trong filesystem Linux của WSL2:**
+
+```powershell
+# mở WSL2 shell
+wsl
+cd ~
+git clone https://github.com/nguyenad1905/superset.git
+cd superset
+```
+
+Sau đó mọi lệnh `docker compose` trong tài liệu này chạy từ WSL2 shell (hoặc từ
+PowerShell đã mount đúng đường dẫn). Lưu ý: nếu chạy lệnh từ cả PowerShell và
+WSL cùng lúc, chúng là hai project riêng — chỉ chạy ở một nơi.
 
 ---
 
@@ -91,6 +135,20 @@ REDIS_PORT=6379
 
 ### 2.3. Khởi động stack
 
+Kiểm tra cấu hình Compose trước khi build — bước này bắt lỗi cú pháp/env nhanh
+hơn nhiều so với đợi build xong mới lỗi:
+
+```powershell
+docker compose config -q
+docker compose config --services
+```
+
+Lệnh đầu phải exit 0 không in gì ra. Lệnh sau phải liệt kê 9 service:
+`nginx`, `redis`, `db`, `superset`, `superset-websocket`, `superset-init`,
+`superset-node`, `superset-worker`, `superset-worker-beat`.
+
+Sau đó khởi động:
+
 ```powershell
 docker compose up -d
 ```
@@ -98,13 +156,36 @@ docker compose up -d
 Lần chạy đầu tiên cần build image, có thể mất khoảng 10–30 phút. Các lần sau
 tái sử dụng cache.
 
-Theo dõi tiến trình:
+### 2.4. Chờ cho tới khi thật sự sẵn sàng
+
+**Container `Up` KHÔNG có nghĩa là app đã dùng được.** Chuỗi khởi động có thứ tự
+và các bước sau đều chậm:
+
+1. `superset-init` chạy `db upgrade` → tạo admin → `superset init` → `load-examples`.
+   Bước `load-examples` là bước **chậm nhất**, nhiều phút. Script có kiểm tra
+   dữ liệu mẫu đã tồn tại chưa nên các lần sau sẽ bỏ qua.
+2. `superset` chỉ khởi động **sau khi** `superset-init` exit 0
+   (`depends_on: service_completed_successfully`).
+3. `superset-node` chạy `npm ci` rồi webpack compile, có thể mất nhiều phút.
+4. `nginx` chờ tối đa **~10 phút** cho webpack phục vụ `manifest.json` trước khi
+   khởi động.
+
+Theo dõi toàn bộ quá trình:
 
 ```powershell
 docker compose logs -f superset-init
 ```
 
-### 2.4. Kiểm tra
+Chờ init kết thúc (exit code 0 — hiện `Exited (0)` là bình thường):
+
+```powershell
+docker compose ps -a superset-init --format "table {{.Service}}\t{{.Status}}"
+```
+
+Chỉ khi `superset-init` đã `Exited (0)` mới chuyển sang bước kiểm tra. Nếu init
+fail, xem mục 7.1.
+
+### 2.5. Kiểm tra
 
 ```powershell
 docker compose ps -a --format "table {{.Service}}\t{{.Status}}\t{{.Ports}}"
@@ -112,6 +193,18 @@ Invoke-WebRequest -Uri "http://localhost:8088/health" -UseBasicParsing
 ```
 
 Kết quả mong đợi: HTTP `200` với nội dung `OK`.
+
+Kiểm tra thêm frontend đã compile xong chưa (nếu build xong mà vẫn trả lỗi thì
+webpack chưa sẵn sàng — xem mục 7.6):
+
+```powershell
+curl.exe -s -o NUL -w "%{http_code}" http://localhost:9000/static/assets/manifest.json
+```
+
+Kết quả mong đợi: `200`.
+
+> Nếu bước này fail ngay sau `up -d`, đọc lại mục 2.4 — thường là đang kiểm tra
+> quá sớm, không phải cấu hình sai.
 
 ---
 
@@ -252,20 +345,33 @@ docker compose ps                          # trạng thái các container
 docker compose logs -f superset            # log backend
 docker compose logs -f superset-node       # log webpack dev server
 docker compose logs -f superset-init       # log quá trình init DB / load examples
-docker compose restart superset            # restart backend sau khi sửa code Python
-docker compose restart superset-node       # restart webpack dev server
+docker compose up -d                      # khởi động lại (giữ volume)
 docker compose down                        # dừng, giữ nguyên volume
-docker compose down -v                     # dừng và xóa volume (reset toàn bộ)
 docker compose build superset              # build lại image
 ```
 
+> ### ⚠️ `docker compose down -v` — XÓA DỮ LIỆU
+>
+> **Không dùng trong quy trình thường ngày.** Cờ `-v` xóa các named volume:
+> `db_home` (Postgres — toàn bộ user, database connection, dataset, chart,
+> dashboard), `superset_home` (metadata) và `redis`.
+>
+> Sau khi chạy, phải `docker compose up -d` và init lại từ đầu. Chỉ dùng khi
+> cần reset sạch một môi trường hỏng **và** đã chấp nhận mất toàn bộ dữ liệu
+> dev. Backup volume `db_home` trước nếu còn dữ liệu cần giữ.
+
 ### 6.1. Vòng đời phát triển
 
-- **Backend (Python):** code được bind-mount từ host. Sau khi sửa, chạy
-  `docker compose restart superset`.
+- **Backend (Python):** code được bind-mount từ host và container chạy
+  `flask run --reload`. Sửa file Python sẽ **tự reload**, **không cần** restart.
+  Khởi động lại container thậm chí còn chậm hơn: `docker-bootstrap.sh` chạy
+  `uv pip install -e .` mỗi lần start nên mất vài phút (xem 7.3).
 - **Frontend (TypeScript):** webpack dev server có hot-reload, thay đổi được
-  phản ánh ngay tại http://localhost:9000.
-- **Migration:** nếu thay đổi model cần chạy `docker compose exec superset superset db upgrade`.
+  phản ánh ngay tại http://localhost:9000. Không cần restart.
+- **Migration:** nếu thay đổi model cần chạy
+  `docker compose exec superset superset db upgrade`.
+- **Đổi config trong `docker/.env` hoặc `docker/.env-local`:** `restart` không
+  nạp lại env — phải `docker compose up -d` để recreate container.
 
 ---
 
@@ -306,12 +412,53 @@ Xóa cache và build lại:
 docker compose build --no-cache superset
 ```
 
-### 7.5. Reset toàn bộ môi trường
+### 7.5. `env_file must be a mapping` hoặc lỗi Compose không hiểu `required`
+
+`docker-compose.yml` dùng `env_file` dạng dài có `required`. Cần Compose plugin
+**>= 2.24.0**. Nâng Docker Desktop lên bản mới nhất rồi chạy lại:
+
+```powershell
+docker compose version
+docker compose config -q
+```
+
+Không sửa YAML để "né" lỗi.
+
+### 7.6. Frontend trắng trang, 404 asset, hoặc webpack chưa sẵn sàng
+
+Xem log của `superset-node` — `npm ci` và webpack compile mất nhiều phút:
+
+```powershell
+docker compose logs -f superset-node
+```
+
+Kiểm tra manifest:
+
+```powershell
+curl.exe -s -o NUL -w "%{http_code}" http://localhost:9000/static/assets/manifest.json
+```
+
+Trong lúc chờ, truy cập thẳng webpack dev server ở http://localhost:9000 thay
+vì qua nginx (`http://localhost:80`) — nginx chỉ khởi động **sau khi** manifest
+sẵn sàng (tối đa ~10 phút).
+
+Nếu webpack không tự rebuild khi sửa file, thường do repo đang nằm trên ổ
+`C:\` (xem mục 1.1) hoặc hết file watcher:
+
+```powershell
+wsl -e bash -c "sysctl fs.inotify.max_user_watches"
+```
+
+### 7.7. Reset toàn bộ môi trường
+
+> ⚠️ **Mất toàn bộ dữ liệu dev.** Xem cảnh báo ở mục 6 trước khi chạy.
 
 ```powershell
 docker compose down -v
 docker compose up -d
 ```
+
+Sau khi `down -v`, `superset-init` chạy lại từ đầu và nạp examples trở lại.
 
 ---
 
@@ -324,3 +471,24 @@ docker compose up -d
 | `docker/.env-local.example` | Mẫu override cho container | Có |
 | `docker/pythonpath_dev/superset_config.py` | Config Superset dùng trong container | Có |
 | `.flaskenv` | `FLASK_APP`, `FLASK_DEBUG` cho Flask CLI | Có |
+
+> ### ⚠️ Về `SUPERSET_SECRET_KEY`
+>
+> `docker/.env` trong repo để sẵn `SUPERSET_SECRET_KEY=TEST_NON_DEV_SECRET` — một
+> giá trị cố định và công khai. **Chỉ dùng cho local dev**, không sao chép nguyên
+> cấu hình này lên host dùng chung hoặc môi trường có dữ liệu thật.
+>
+> Nếu cần đổi, tạo `docker/.env-local` (đã gitignore) và sinh khóa riêng:
+>
+> ```powershell
+> # chỉ chạy khi file chưa có key; không chạy lại trên volume đang dùng
+> New-Item -ItemType File -Force -Path docker/.env-local | Out-Null
+> "SUPERSET_SECRET_KEY=" + (openssl rand -hex 42) | Add-Content docker/.env-local
+> ```
+
+### 8.1. Ghi chú về `docker/.env-local`
+
+Nếu tạo file này, chỉ đặt biến **an toàn trong container** (ví dụ
+`SUPERSET_LOG_LEVEL`, `SUPERSET_SECRET_KEY`). Không đặt `NODE_PORT`,
+`SUPERSET_PORT`, `DATABASE_PORT`, `REDIS_PORT` vào đây — các biến này phải đặt
+ở `.env` thư mục gốc (xem mục 3).
