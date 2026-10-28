@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable
 from functools import partial
 from typing import Any, TYPE_CHECKING
@@ -28,6 +27,7 @@ from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
 from superset.utils import json
 from superset.utils.core import get_user_id, remove_duplicates
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -48,9 +48,9 @@ def _get_cache_identity() -> str:
     """
     if guest_user := security_manager.get_current_guest_user_if_guest():
         rls_rules = guest_user.guest_token.get("rls_rules", [])
-        digest = hashlib.sha256(
-            json.dumps(rls_rules, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        digest = hash_from_str(
+            json.dumps(rls_rules, sort_keys=True), algorithm="sha256"
+        )
         return f"guest-{digest}"
     return str(get_user_id())
 
