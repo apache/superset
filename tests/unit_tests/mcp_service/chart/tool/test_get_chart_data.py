@@ -731,6 +731,9 @@ class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    async def warning(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -5595,6 +5598,368 @@ class TestSavedDataFallbackSortDirection:
             await client.call_tool("get_chart_data", {"request": {"identifier": "11"}})
 
         assert captured["order_desc"] is False
+
+
+class TestQueryContextAccuracyWarning:
+    """When get_chart_data falls back to building a query from form_data, the
+    structured response must say so. ``ctx.warning`` alone is an MCP log
+    notification, not part of the tool result, so an LLM client has no way to
+    know the returned numbers skip the frontend's buildQuery logic (time
+    grain, trend line, period comparison) (#45237).
+    """
+
+    @pytest.mark.asyncio
+    async def test_missing_query_context_fallback_is_visible_in_response(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=201,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=None,
+            params=json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": {"label": "SUM(revenue)"},
+                    "time_grain_sqla": "P3M",
+                    "compare_lag": 1,
+                    "show_trend_line": True,
+                }
+            ),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        class _Factory:
+            def create(self, **_kwargs: Any) -> object:
+                return object()
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.common.query_context_factory.QueryContextFactory", _Factory
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 201}}
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_format", ["csv", "excel"])
+    async def test_missing_query_context_fallback_is_visible_in_export_formats(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        response_format: str,
+    ) -> None:
+        """_export_data_as_csv and the Excel builders build their own
+        ``insights`` list, so the missing-query_context caveat must be
+        threaded into those too, not only the default JSON response."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=203,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=None,
+            params=json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": {"label": "SUM(revenue)"},
+                    "time_grain_sqla": "P3M",
+                    "compare_lag": 1,
+                    "show_trend_line": True,
+                }
+            ),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        class _Factory:
+            def create(self, **_kwargs: Any) -> object:
+                return object()
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.common.query_context_factory.QueryContextFactory", _Factory
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 203, "format": response_format}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
+
+    @pytest.mark.asyncio
+    async def test_cached_form_data_override_is_flagged_in_response(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A form_data_key override on a saved chart bypasses the chart's
+        query_context the same way an unsaved chart does — it goes through
+        build_query_context_from_form_data, which calls the same
+        build_query_dicts_from_form_data fallback used when a chart has no
+        saved query_context at all — so it must carry the same caveat."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        cached_form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+        chart = SimpleNamespace(
+            id=206,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {"datasource": {"id": 1, "type": "table"}, "queries": []}
+            ),
+            params=json.dumps(cached_form_data),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(cached_form_data)
+        )
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 206, "form_data_key": "edited-growth"}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any("form_data" in insight.lower() for insight in data["insights"]), (
+            data["insights"]
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_format", ["json", "csv", "excel"])
+    async def test_form_data_key_without_identifier_is_flagged_in_response(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        response_format: str,
+    ) -> None:
+        """An unsaved chart queried by form_data_key alone goes through the same
+        buildQuery-skipping fallback, so every response format carries the
+        caveat."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        cached_form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(cached_form_data)
+        )
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        "form_data_key": "unsaved-growth",
+                        "format": response_format,
+                    }
+                },
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any("form_data" in insight.lower() for insight in data["insights"]), (
+            data["insights"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_explore_saved_query_context_is_not_flagged(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A chart saved from Explore must produce no accuracy warning.
+
+        Explore persists ``params`` and ``query_context`` together, but the
+        query_context's embedded form_data is never identical to params: the
+        request-time keys below are added on the way in, and several viz
+        plugins rewrite form_data before building the context. Comparing the
+        two is therefore not a staleness signal.
+        """
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+        chart = SimpleNamespace(
+            id=202,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "form_data": {
+                        **form_data,
+                        "force": False,
+                        "result_format": "json",
+                        "result_type": "full",
+                    },
+                    "queries": [{"metrics": [{"label": "SUM(revenue)"}]}],
+                }
+            ),
+            params=json.dumps(form_data),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            lambda self, payload: SimpleNamespace(
+                queries=payload.get("queries", []), form_data=payload.get("form_data")
+            ),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 202}}
+            )
+
+        data = json.loads(response.content[0].text)
+        assert not any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
 
 
 @pytest.mark.asyncio

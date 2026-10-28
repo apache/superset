@@ -64,7 +64,15 @@ def _authorize_datasource(
     """
     if slc:
         security_manager.raise_for_access(chart=slc)
-    elif isinstance(datasource, Query):
+        # Chart access covers only the chart's own datasource. The request's
+        # form_data can name a different one, which then needs its own check.
+        if (slc.datasource_id, slc.datasource_type) == (
+            datasource.id,
+            datasource.type,
+        ):
+            return
+
+    if isinstance(datasource, Query):
         # A "query" datasource_type resolves to the actual SQL Lab
         # Query row, not a registered dataset -- its .perm is a
         # synthetic string no role is ever granted, so the generic
@@ -83,10 +91,14 @@ def _authorize_datasource(
         # the query at all. The author bypass returns before the generic
         # ``datasource`` perm check at the tail of ``raise_for_access``,
         # so this does not weaken anything for anyone else.
+        #
+        # Editorship stays off for everyone else: a dataset named after a
+        # table the query reads is a decoy any dataset creator can make.
         security_manager.raise_for_access(
             query=datasource,
             datasource=datasource,
             allow_query_authorship_bypass=True,
+            allow_editorship=False,
         )
     else:
         security_manager.raise_for_access(datasource=datasource)
