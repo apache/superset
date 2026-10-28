@@ -1728,6 +1728,7 @@ def test_connections_list(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "PostgreSQL"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1773,6 +1774,10 @@ def test_connections_list(
     response = client.get("/api/v1/semantic_layer/connections/")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     assert response.json["count"] == 2
     result = response.json["result"]
     assert len(result) == 2
@@ -1938,6 +1943,7 @@ def test_connections_sort_by_name(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "Zebra DB"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -1984,6 +1990,10 @@ def test_connections_sort_by_name(
     response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     result = response.json["result"]
     assert result[0]["database_name"] == "Alpha Layer"
     assert result[1]["database_name"] == "Zebra DB"
@@ -2003,6 +2013,7 @@ def test_connections_source_type_filter(
     mock_db.uuid = uuid_lib.uuid4()
     mock_db.database_name = "PostgreSQL"
     mock_db.backend = "postgresql"
+    mock_db.engine_information = {"oauth2_enabled": False}
     mock_db.allow_run_async = False
     mock_db.allow_dml = False
     mock_db.allow_file_upload = False
@@ -2030,6 +2041,10 @@ def test_connections_source_type_filter(
     response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
 
     assert response.status_code == 200
+    database_rows = [
+        row for row in response.json["result"] if row["source_type"] == "database"
+    ]
+    assert database_rows[0]["engine_information"] == {"oauth2_enabled": False}
     assert response.json["count"] == 1
     # Only one query call (for Database), not two
     mock_db_session.query.assert_called_once()
