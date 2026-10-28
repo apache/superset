@@ -48,6 +48,7 @@ from asset_approval.gate import (
     UPSERT_EMBEDDED_COMMAND,
 )
 from asset_approval.changes import EXEMPT_FIELDS
+from superset.utils.core import override_user
 from asset_approval.models import ChangeRequest
 from asset_approval.types import AssetType, Operation
 
@@ -314,13 +315,21 @@ def build_restore_version_command(
 
 
 def apply_change(change_request: ChangeRequest) -> Model:
-    """Run the author's original command, with the gate suspended.
+    """Run the author's original command, as the author, gate suspended.
 
     Suspension is essential: without it the replay would itself be captured
     as a new change request and the approval would never land. The
     suspension is scoped to this call and restored even if the command
     raises, so a failed approval cannot leave the gate off.
+
+    So is the identity. The command reads the current user to stamp
+    `changed_by` and to write the version-history entry, and the request
+    running it belongs to the approver -- so every approved save was
+    credited to whoever pressed Approve, and the author's name was nowhere
+    in the history of their own edit (QA-16). The approval is recorded on
+    the change request, which is where the approver belongs; the save is
+    the author's work and is attributed to them.
     """
     command = build_command(change_request)
-    with replaying():
+    with replaying(), override_user(change_request.author):
         return command.run()
