@@ -425,6 +425,13 @@ def _coerce_temporal_join_series(
     return converted.map(as_wall_clock)
 
 
+def _to_naive_utc(dttm: datetime | None) -> datetime | None:
+    """Normalize explicit offsets to naive UTC while preserving naive bounds."""
+    if dttm is not None and dttm.utcoffset() is not None:
+        return dttm.astimezone(timezone.utc).replace(tzinfo=None)
+    return dttm
+
+
 def _has_multiple_utc_offsets(series: pd.Series) -> bool:
     """Return whether every value is timezone-aware and offsets differ."""
     utc_offsets: set[timedelta | None] = set()
@@ -4622,10 +4629,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # instants. Strip tzinfo only after conversion so text-based timestamp
         # comparisons do not depend on an engine's handling of offset suffixes.
         if not dataset_timezone:
-            if start_dttm is not None and start_dttm.utcoffset() is not None:
-                start_dttm = start_dttm.astimezone(timezone.utc).replace(tzinfo=None)
-            if end_dttm is not None and end_dttm.utcoffset() is not None:
-                end_dttm = end_dttm.astimezone(timezone.utc).replace(tzinfo=None)
+            start_dttm = _to_naive_utc(start_dttm)
+            end_dttm = _to_naive_utc(end_dttm)
 
         if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
             offset_hours = get_effective_hours_offset(
