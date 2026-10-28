@@ -271,10 +271,24 @@ def test_databricks_native_adjust_engine_params() -> None:
 
 
 def test_databricks_connector_dialect_registration() -> None:
-    """Test that databricks.connector dialect is registered in SQLAlchemy registry."""
+    """Test that databricks.connector dialect is registered and resolves to DatabricksDialect."""
+    import sys
+    from unittest import mock
     from sqlalchemy.dialects import registry
 
     assert "databricks.connector" in registry.impls
+
+    # Verify that registry.load accurately resolves to the DatabricksDialect class
+    # even when the optional databricks-sqlalchemy extra is not installed in the test environment
+    mock_dialect_cls = type("DatabricksDialect", (), {})
+    mock_pkg = mock.MagicMock()
+    mock_mod = mock.MagicMock(DatabricksDialect=mock_dialect_cls)
+    mock_pkg.sqlalchemy = mock_mod
+    with mock.patch.dict(
+        sys.modules,
+        {"databricks": mock_pkg, "databricks.sqlalchemy": mock_mod},
+    ):
+        assert registry.load("databricks.connector") is mock_dialect_cls
 
 
 def test_get_parameters_from_uri() -> None:

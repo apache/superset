@@ -1228,7 +1228,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
                     "support is planned for the legacy driver. Use the Databricks "
                     "Python Connector (databricks-sql-connector) instead."
                 ),
-                "tracking_url": "https://github.com/databricks/databricks-dbapi",
+                "tracking_url": "https://github.com/crflynn/databricks-dbapi",
             }
         ],
     }
@@ -1283,7 +1283,7 @@ class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
                     "support is planned for the legacy driver. Use the Databricks "
                     "Python Connector (databricks-sql-connector) instead."
                 ),
-                "tracking_url": "https://github.com/databricks/databricks-dbapi",
+                "tracking_url": "https://github.com/crflynn/databricks-dbapi",
             }
         ],
     }
