@@ -23,6 +23,7 @@ from uuid import UUID
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as _
 from superset_core.tasks.types import TaskOptions, TaskScope
 
 from superset.common.db_query_status import QueryStatus
@@ -32,7 +33,12 @@ from superset.common.query_serialization import (
     SerializedQuery,
 )
 from superset.constants import CacheRegion
-from superset.exceptions import SemanticResultCompletenessError, SupersetException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    QueryObjectValidationMessage,
+    SemanticResultCompletenessError,
+    SupersetException,
+)
 from superset.extensions import (
     security_manager,
 )
@@ -283,8 +289,8 @@ def execute_chart_query(
     the existing per-query execution/caching path so a re-request reads the same
     DATA-cache entry. The query runs under ``_capture_query_cancellation`` so an
     abort/timeout can cancel it on engines that support query cancellation.
-    Failed totals prerequisites must fail before advertising a cache key; ordinary
-    tasks retain synchronous readback for structured errors.
+    Typed validation failures and failed totals prerequisites fail before advertising
+    a cache key; ordinary SQL engine errors retain structured-error readback.
     """
     from superset.charts.data.form_data import set_query_context_form_data
 
@@ -332,6 +338,13 @@ def execute_chart_query(
                 payload={"semantic_result_error": error.reason}, immediate=True
             )
             raise
+        validation_error: object = result.payload.get("error")
+        if result.payload.get("status") == QueryStatus.FAILED and isinstance(
+            validation_error, QueryObjectValidationMessage
+        ):
+            raise QueryObjectValidationError(
+                _("Error: %(error)s", error=validation_error)
+            ) from validation_error.cause
         if (
             is_totals_prerequisite
             and result.payload.get("status") == QueryStatus.FAILED

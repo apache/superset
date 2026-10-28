@@ -211,8 +211,6 @@ from redis import Redis
 
 SESSION_TYPE = "redis"
 SESSION_REDIS = Redis(host="redis", port=6379, db=0)
-# sign the session cookie sid
-SESSION_USE_SIGNER = True
 ```
 
 ### Content Security Policy (CSP)

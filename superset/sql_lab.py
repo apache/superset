@@ -317,7 +317,7 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
         parsed_statement.set_limit_value(
             # fetch an extra row to inform user if there are more rows
             query.limit + 1,
-            query.database.db_engine_spec.limit_method,
+            query.database.db_engine_spec.get_limit_method(query.database),
         )
 
 
