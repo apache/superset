@@ -509,3 +509,53 @@ test('logs error and rejects when initializeExtensions fails', async () => {
 
   errorSpy.mockRestore();
 });
+
+test('marks ready when initializeExtensions resolves', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [] },
+  } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  const listener = jest.fn();
+  loader.onReady(listener);
+
+  expect(loader.isReady()).toBe(false);
+  await loader.initializeExtensions();
+  await Promise.resolve();
+
+  expect(loader.isReady()).toBe(true);
+  expect(listener).toHaveBeenCalledTimes(1);
+});
+
+test('marks ready when initializeExtensions rejects', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  jest.spyOn(logging, 'error').mockImplementation();
+  jest.spyOn(SupersetClient, 'get').mockRejectedValue(new Error('boom'));
+  const listener = jest.fn();
+  loader.onReady(listener);
+
+  await expect(loader.initializeExtensions()).rejects.toThrow('boom');
+  await Promise.resolve();
+
+  expect(loader.isReady()).toBe(true);
+  expect(listener).toHaveBeenCalledTimes(1);
+});
+
+test('marks ready after the timeout when an extension never settles', async () => {
+  jest.useFakeTimers();
+  try {
+    const loader = ExtensionsLoader.getInstance();
+    jest.spyOn(SupersetClient, 'get').mockReturnValue(new Promise(() => {}));
+    const listener = jest.fn();
+    loader.onReady(listener);
+
+    loader.initializeExtensions();
+    expect(loader.isReady()).toBe(false);
+
+    jest.advanceTimersByTime(5000);
+
+    expect(loader.isReady()).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+  } finally {
+    jest.useRealTimers();
+  }
+});

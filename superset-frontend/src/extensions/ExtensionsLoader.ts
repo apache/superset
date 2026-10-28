@@ -75,6 +75,12 @@ class ExtensionsLoader {
   // still counts as settled: there's no more loading happening either way.
   private ready = false;
 
+  // Upper bound on how long readiness waits for slow remote entries, so one
+  // slow bundle can't leave UI that gates on readiness (the sqllab.newTab
+  // control) stuck on a spinner. Extensions that settle later still register
+  // their contributions as they load; only the "still loading" state ends.
+  private static readonly READY_TIMEOUT_MS = 5000;
+
   private readyListeners = new Set<() => void>();
 
   // eslint-disable-next-line no-useless-constructor
@@ -136,17 +142,23 @@ class ExtensionsLoader {
     // Attached separately (not reassigning this.initializationPromise) so
     // ready-tracking is purely a side effect and every caller still sees the
     // original promise's own resolve/reject value.
-    this.initializationPromise.then(
+    const readyTimer = setTimeout(
       () => this.markReady(),
-      () => this.markReady(),
+      ExtensionsLoader.READY_TIMEOUT_MS,
     );
+    const settle = () => {
+      clearTimeout(readyTimer);
+      this.markReady();
+    };
+    this.initializationPromise.then(settle, settle);
     return this.initializationPromise;
   }
 
   /**
    * Whether the first initializeExtensions() call has settled — either
-   * because it succeeded, or because loading the list itself failed. False
-   * before the first call, and while a call is in flight.
+   * because it succeeded, or because loading the list itself failed — or the
+   * readiness timeout elapsed. False before the first call, and while a call
+   * is in flight within the timeout.
    */
   public isReady(): boolean {
     return this.ready;
