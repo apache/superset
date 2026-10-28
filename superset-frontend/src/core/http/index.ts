@@ -85,5 +85,7 @@ export const http = {
   get: request('get'),
   post: request('post'),
   put: request('put'),
-  delete: request('delete'),
+  // `del`, not `delete`: the published declaration cannot use the reserved
+  // word, so the namespace is named for what authors can actually write.
+  del: request('delete'),
 } as unknown as typeof httpApi;
