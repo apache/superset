@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.2.1, <8",
+    "cachetools>=7.2.3, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
@@ -74,7 +74,7 @@ dependencies = [
     "holidays>=0.106, <1",
     "humanize",
     "isodate",
-    "jsonpath-ng>=1.8.0, <2",
+    "jsonpath-ng>=1.11.0, <2",
     "Mako>=1.4.3",
     "markdown>=3.11",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
@@ -109,13 +109,13 @@ dependencies = [
     "sshtunnel>=0.5.1, <0.6",
     "simplejson>=4.2.0",
     "slack_sdk>=3.45.0, <4",
-    "sqlalchemy>=2.0.52, <2.1",
-    "sqlalchemy-continuum>=1.8.0, <2.0.0",
+    "sqlalchemy>=2.0.55, <2.1",
+    "sqlalchemy-continuum>=2.0.0, <3.0.0",
     "sqlalchemy-utils>=0.43.0, <0.44", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
     # that can be cleaned up when bumping
-    "sqlglot>=30.19.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
+    "sqlglot>=30.23.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -142,7 +142,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.3",
     "google-cloud-bigquery>=3.46.2",
 ]
-clickhouse = ["clickhouse-connect>=1.10.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.11.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
@@ -175,7 +175,7 @@ dremio = ["sqlalchemy-dremio>=3.0.5, <4"]
 # 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
 drill = ["sqlalchemy-drill>=1.1.10, <3"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.5,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.6,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
 # Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
@@ -212,6 +212,12 @@ fastmcp = [
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
     "tiktoken>=0.14.0,<1.0",
+    # Security: CVE-2026-75509 - joserfc claim-validation bypass via
+    # array-typed iss/sub claims (pulled in transitively via fastmcp-slim).
+    "joserfc>=1.7.3",
+    # Security: CVE-2026-53537, CVE-2026-53538, CVE-2026-53539, CVE-2026-53540
+    # - python-multipart (pulled in transitively via fastmcp-slim and mcp).
+    "python-multipart>=0.0.31",
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
@@ -263,7 +269,14 @@ playwright = ["playwright>=1.64.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.340.0"]
-prophet = ["prophet>=1.5.0, <2"]
+prophet = [
+    "prophet>=1.5.0, <2",
+    # Security: fonttools (pulled in transitively via matplotlib) < 4.62.0
+    # evaluates TTX XML values with eval() in cffLib parseBlendList(),
+    # allowing arbitrary code execution from a crafted TTX file
+    # (fonttools/fonttools#4039, fixed in 4.62.0 by #4040).
+    "fonttools>=4.62.0,<5.0.0",
+]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
@@ -276,7 +289,7 @@ risingwave = ["sqlalchemy-risingwave>=2.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.1, <2"]
-sqlite = ["syntaqlite>=0.12.1,<0.13.0"]
+sqlite = ["syntaqlite>=0.13.0,<0.14.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
@@ -346,7 +359,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.12.1,<0.13.0",
+    "syntaqlite>=0.13.0,<0.14.0",
 ]
 
 [project.urls]
