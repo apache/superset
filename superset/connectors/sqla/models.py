@@ -24,6 +24,7 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import cache
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -2568,6 +2569,20 @@ class SqlaTable(
                 )
             ) from ex
 
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        render: Callable[[str], str | None],
+    ) -> str | None:
+        """Match adhoc execution's metadata lookup and quoted-reference fallback."""
+        if saved_column := self.get_column(rendered_sql.strip()):
+            return render(saved_column.expression) if saved_column.expression else None
+        if col.get("isColumnReference"):
+            # Render the quoted source, never the already-rendered lookup SQL.
+            return render(self.database.quote_identifier(col["sqlExpression"]))
+        return rendered_sql
+
     def _shift_temporal_column_if_needed(
         self,
         sqla_column: ColumnClause,
@@ -3180,8 +3195,6 @@ class SqlaTable(
         :param query_obj: query object to analyze
         :return: The extra cache keys
         """
-        from superset.utils.rls import collect_rls_predicates_for_sql
-
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
             # Filter out keys that aren't parameters to get_sqla_query
@@ -3200,22 +3213,24 @@ class SqlaTable(
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,
+                execute_prequeries=False,
             )
             extra_cache_keys += sqla_query.extra_cache_keys
 
-        # For virtual datasets, include RLS predicates in the cache key
-        if self.is_virtual and self.sql:
-            default_schema = self.database.get_default_schema(self.catalog)
-            rls_predicates = collect_rls_predicates_for_sql(
-                self.sql,
-                self.database,
-                self.catalog,
-                self.schema or default_schema or "",
-                exclude_dataset_id=self.id,
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        extra_cache_keys.extend(
+            self.get_inner_rls_cache_key(
+                resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
             )
-            # Add each predicate as a separate cache key component
-            extra_cache_keys.extend(rls_predicates)
-
+        )
+        extra_cache_keys.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
         # An active partition filter mapping changes the SQL a cached result came
         # from, so it has to participate in the key or a mapping fix leaves stale
         # pruned results behind. Only appended when the mapping is actually
@@ -3238,6 +3253,48 @@ class SqlaTable(
             )
 
         return list(set(extra_cache_keys))
+
+    def get_rendered_rls_cache_key(self) -> list[str]:
+        """Fingerprint own RLS when templates can depend on viewer context.
+
+        Scan only own RLS with the chart cache's macro detection, including
+        guest-token clauses. Scanning the entire datasource would also load
+        unrelated SQL, columns and metrics before every cache lookup.
+        Compile the filters rather than collecting macro cache keys so even a
+        macro opting out of extra keys cannot hide a different RLS predicate.
+        Static RLS is already represented by ``get_rls_cache_key``.
+        """
+        if not any(
+            ExtraCache.regex.search(clause)
+            for clause in security_manager.get_rls_cache_key(self)
+        ):
+            return []
+        return sorted(
+            str(clause.compile(compile_kwargs={"literal_binds": True}))
+            for clause in self.get_sqla_row_level_filters()
+        )
+
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Key caches on table-bound inner RLS, with viewer isolation on failure."""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not (self.is_virtual and self.sql):
+            return []
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema,
+            exclude_dataset_id=self.id,
+            include_global_guest_rls=False,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
+        )
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:

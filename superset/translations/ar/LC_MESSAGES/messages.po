@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -442,6 +442,10 @@ msgstr "%s مفتاح نفق SSH الخاص"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s كلمة مرور المفتاح الخاص لنفق SSH"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -5684,6 +5688,9 @@ msgstr "لم يتم تمكين مقاييس SQL المخصصة المخصصة ل
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "لا يمكن تحليل حقول SQL المخصصة كعبارة SQL واحدة."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "لا يمكن أن تحتوي حقول SQL المخصصة على استعلامات فرعية."
@@ -6553,6 +6560,20 @@ msgid "Delete %s"
 msgstr "تم الحذف %s"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "حذف%s؟"
 
@@ -6565,6 +6586,13 @@ msgstr "حذف"
 
 msgid "Delete Layer?"
 msgstr "حذف الطبقة؟"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "حذف الاستعلام؟"
@@ -6595,8 +6623,27 @@ msgstr "هل تريد حذف القالب؟"
 msgid "Delete User?"
 msgstr "حذف الاستعلام؟"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
 msgid "Delete all Really?"
 msgstr "حذف الكل حقًا?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "حذف التعليق التوضيحي"
@@ -6636,6 +6683,9 @@ msgstr ""
 #, fuzzy
 msgid "Delete role"
 msgstr "حذف"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "حذف القالب"
@@ -6820,6 +6870,12 @@ msgid ""
 msgstr ""
 "سيؤدي حذف علامة تبويب إلى إزالة كل المحتوى داخلها. لا يزال بإمكانك عكس "
 "هذا الإجراء باستخدام"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -8316,6 +8372,9 @@ msgstr "تجريبي"
 msgid "Expired"
 msgstr "اكتشف"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -8582,6 +8641,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -8604,6 +8666,9 @@ msgstr "فشل إنشاء عنوان URL لتحرير المخطط"
 
 #, python-format
 msgid "Failed to generate download: %s"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -11039,6 +11104,13 @@ msgstr "طلب غير صحيح. من المتوقع استخدام وسيطات 
 msgid "Manage"
 msgstr "قم بإدارة"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # th, tr, uk]
@@ -12466,6 +12538,14 @@ msgstr "نطاق عددي"
 msgid "OAuth2 client information"
 msgstr "المعلومات الأساسية"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "أكتوبر"
 
@@ -12522,6 +12602,9 @@ msgstr "عنصر تحكم واحد أو عدة عناصر للمحور كأعم�
 
 msgid "One or many metrics to display"
 msgstr "مقياس واحد أو عدة مقاييس لعرضها"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 #, fuzzy
 msgid "One or more annotation layers failed loading."
@@ -15081,6 +15164,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "مقاييس البحث والأعمدة"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -15103,6 +15189,9 @@ msgstr "مربع البحث"
 
 msgid "Search by query text"
 msgstr "البحث عن طريق نص الاستعلام"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 #, fuzzy
 msgid "Search calculated columns by name"
@@ -18715,15 +18804,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "الوحدة الزمنية المستخدمة لتجميع الكتل"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -18736,6 +18816,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -20175,6 +20264,9 @@ msgstr "خطأ المهلة"
 
 msgid "Timestamp format"
 msgstr "صيغة الطابع الزمني"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "المنطقة الزمنية"
