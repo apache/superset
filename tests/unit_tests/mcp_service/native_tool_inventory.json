@@ -23,11 +23,11 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 252,
-      "description_chars": 2235,
+      "compact_description_chars": 284,
+      "description_chars": 2782,
       "entry_bytes": {
-        "structured": 8222,
-        "text_only": 5546
+        "structured": 8779,
+        "text_only": 6103
       },
       "input_schema_bytes": 2951,
       "output_schema_bytes": 2660
@@ -42,11 +42,11 @@
       "compact_description_chars": 256,
       "description_chars": 1145,
       "entry_bytes": {
-        "structured": 8192,
+        "structured": 8529,
         "text_only": 2602
       },
       "input_schema_bytes": 1114,
-      "output_schema_bytes": 5574
+      "output_schema_bytes": 5911
     },
     "create_dataset_metric": {
       "annotations": {
@@ -314,11 +314,11 @@
       "compact_description_chars": 111,
       "description_chars": 1247,
       "entry_bytes": {
-        "structured": 11427,
+        "structured": 11518,
         "text_only": 3601
       },
       "input_schema_bytes": 2101,
-      "output_schema_bytes": 7810
+      "output_schema_bytes": 7901
     },
     "get_chart_info": {
       "annotations": {
@@ -506,11 +506,11 @@
       "compact_description_chars": 175,
       "description_chars": 1567,
       "entry_bytes": {
-        "structured": 9034,
+        "structured": 9371,
         "text_only": 3444
       },
       "input_schema_bytes": 1575,
-      "output_schema_bytes": 5574
+      "output_schema_bytes": 5911
     },
     "get_instance_info": {
       "annotations": {
@@ -663,11 +663,11 @@
         "openWorldHint": false,
         "readOnlyHint": true
       },
-      "compact_description_chars": 278,
-      "description_chars": 375,
+      "compact_description_chars": 91,
+      "description_chars": 492,
       "entry_bytes": {
-        "structured": 2246,
-        "text_only": 914
+        "structured": 2365,
+        "text_only": 1033
       },
       "input_schema_bytes": 296,
       "output_schema_bytes": 1316
@@ -810,11 +810,11 @@
       "compact_description_chars": 230,
       "description_chars": 2331,
       "entry_bytes": {
-        "structured": 14755,
+        "structured": 15092,
         "text_only": 6798
       },
       "input_schema_bytes": 4146,
-      "output_schema_bytes": 7941
+      "output_schema_bytes": 8278
     },
     "list_layer_annotations": {
       "annotations": {
@@ -935,11 +935,11 @@
         "openWorldHint": false,
         "readOnlyHint": true
       },
-      "compact_description_chars": 235,
-      "description_chars": 325,
+      "compact_description_chars": 97,
+      "description_chars": 442,
       "entry_bytes": {
-        "structured": 6495,
-        "text_only": 2708
+        "structured": 6614,
+        "text_only": 2827
       },
       "input_schema_bytes": 2163,
       "output_schema_bytes": 3771
@@ -1267,12 +1267,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 525907,
-      "text_only": 214881
+      "structured": 527804,
+      "text_only": 215676
     },
     "compact_catalog_bytes": {
-      "structured": 472951,
-      "text_only": 161925
+      "structured": 473753,
+      "text_only": 161625
     },
     "largest_entry": {
       "structured": {
