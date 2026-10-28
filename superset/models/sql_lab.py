@@ -409,8 +409,8 @@ class Query(
 
     def get_inner_rls_cache_key(self) -> list[str]:
         """
-        The RLS predicates execution injects into the tables this query reads,
-        as cache key components. See ``SqlaTable.get_inner_rls_cache_key``.
+        The table-bound RLS predicates execution injects into the tables this
+        query reads, as cache key components. See ``SqlaTable.get_inner_rls_cache_key``.
         """
         if not self.sql:
             return []
@@ -424,6 +424,7 @@ class Query(
             self.database,
             self.catalog,
             self.schema or default_schema or "",
+            include_table_identity=True,
         )
 
     def get_time_grains(self) -> list[TimeGrainDict]:

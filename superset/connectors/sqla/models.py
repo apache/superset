@@ -3229,8 +3229,8 @@ class SqlaTable(
 
     def get_inner_rls_cache_key(self) -> list[str]:
         """
-        The RLS predicates execution injects into the tables read by this
-        dataset's SQL, as cache key components.
+        The table-bound RLS predicates execution injects into the tables read
+        by this dataset's SQL, as cache key components.
 
         ``security_manager.get_rls_cache_key`` covers only the dataset's own
         rules, so a cache of a virtual dataset's results must also key on these,
@@ -3251,6 +3251,7 @@ class SqlaTable(
             self.catalog,
             self.schema or default_schema or "",
             exclude_dataset_id=self.id,
+            include_table_identity=True,
         )
 
     @property

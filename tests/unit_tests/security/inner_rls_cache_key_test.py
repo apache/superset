@@ -121,6 +121,13 @@ def virtual_dataset(mocker: MockerFixture, session: Session) -> Iterator[SqlaTab
     session.rollback()
 
 
+def _inner_key(predicate: str) -> str:
+    """Expected component binding an RLS predicate to the physical table."""
+    from superset.utils import json
+
+    return "rls-table:" + json.dumps([None, "main", "t", predicate])
+
+
 def _key(datasource: Any) -> str:
     from superset.datasource.api import _column_values_cache_key
 
@@ -253,11 +260,11 @@ def test_chart_cache_key_carries_the_same_inner_rls(
     )
     for datasource in (virtual_dataset, query):
         viewer.name = "alice"
-        assert "(tenant = 1)" in datasource.get_extra_cache_keys({})
-        assert datasource.get_inner_rls_cache_key() == ["(tenant = 1)"]
+        assert _inner_key("(tenant = 1)") in datasource.get_extra_cache_keys({})
+        assert datasource.get_inner_rls_cache_key() == [_inner_key("(tenant = 1)")]
         viewer.name = "bob"
-        assert "(tenant = 2)" in datasource.get_extra_cache_keys({})
-        assert datasource.get_inner_rls_cache_key() == ["(tenant = 2)"]
+        assert _inner_key("(tenant = 2)") in datasource.get_extra_cache_keys({})
+        assert datasource.get_inner_rls_cache_key() == [_inner_key("(tenant = 2)")]
 
 
 @pytest.fixture
@@ -344,8 +351,12 @@ def test_annotation_context_partitions_guests_by_inner_table_rls(
     # inner-table rules can keep their annotation data apart.
     assert first["source_rls"] == second["source_rls"]
     assert first != second
-    assert first["source_inner_rls"] == {str(source_chart.id): ["(tenant = 1)"]}
-    assert second["source_inner_rls"] == {str(source_chart.id): ["(tenant = 2)"]}
+    assert first["source_inner_rls"] == {
+        str(source_chart.id): [_inner_key("(tenant = 1)")]
+    }
+    assert second["source_inner_rls"] == {
+        str(source_chart.id): [_inner_key("(tenant = 2)")]
+    }
 
 
 def test_annotation_context_shares_entry_for_equal_inner_table_rls(
@@ -391,3 +402,153 @@ def test_annotation_context_shape_unchanged_without_inner_rls(
         "semantic_filter_protocol",
         "source_versions",
     }
+
+
+@pytest.fixture(params=[False, True], ids=["user", "guest"])
+def swapped_inner_rules(
+    request: pytest.FixtureRequest,
+    mocker: MockerFixture,
+    virtual_dataset: SqlaTable,
+    session: Session,
+) -> SimpleNamespace:
+    """Two scopes swap the same predicates between two different inner tables."""
+    from superset import security_manager
+    from superset.connectors.sqla import models
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with virtual_dataset.database.get_sqla_engine() as engine:
+        connection = engine.raw_connection()
+        connection.execute("CREATE TABLE u (tenant INTEGER)")
+        connection.execute("INSERT INTO u VALUES (1), (2)")
+        connection.commit()
+    other = SqlaTable(
+        database=virtual_dataset.database,
+        schema="main",
+        table_name="u",
+        columns=[TableColumn(column_name="tenant")],
+    )
+    session.add(other)
+    virtual_dataset.sql = "SELECT t.tenant, t.name FROM t CROSS JOIN u"
+    session.flush()
+    physical = session.query(SqlaTable).filter_by(table_name="t").one()
+    current = SimpleNamespace(swapped=False)
+
+    def clause(table_name: str) -> str:
+        """Return the rule attached to a table under the active scope."""
+        tenant = 1 if (table_name == "t") != current.swapped else 2
+        return f"tenant = {tenant}"
+
+    if request.param:
+
+        def guest_user() -> SimpleNamespace:
+            """Build a guest token with dataset-scoped rules."""
+            rules = [
+                {"dataset": table.id, "clause": clause(table.table_name)}
+                for table in (physical, other)
+            ]
+            return SimpleNamespace(rls=rules, guest_token={"rls_rules": rules})
+
+        mocker.patch.object(
+            security_manager, "get_current_guest_user_if_guest", new=guest_user
+        )
+        mocker.patch.object(security_manager, "get_rls_filters", return_value=[])
+        is_feature_enabled = models.is_feature_enabled
+        mocker.patch.object(
+            models,
+            "is_feature_enabled",
+            new=lambda flag: flag == "EMBEDDED_SUPERSET" or is_feature_enabled(flag),
+        )
+    else:
+
+        def filters(table: Any) -> list[SimpleNamespace]:
+            """Return the registered rule for each inner table."""
+            if table.table_name not in {"t", "u"}:
+                return []
+            return [
+                SimpleNamespace(id=1, clause=clause(table.table_name), group_key=None)
+            ]
+
+        mocker.patch.object(security_manager, "get_rls_filters", new=filters)
+    mocker.patch(
+        "superset.common.query_context_processor.get_user_id", return_value=None
+    )
+    return current
+
+
+def test_swapped_table_rules_do_not_share_cached_column_values(
+    virtual_dataset: SqlaTable,
+    swapped_inner_rules: SimpleNamespace,
+    data_cache: SimpleCache,
+) -> None:
+    """Equal predicate sets are not equal scopes when their tables differ."""
+    from superset.datasource.api import get_cached_column_values
+
+    def values(force: bool = False) -> tuple[list[Any], bool]:
+        """Fetch the distinct names under the active scope."""
+        return get_cached_column_values(
+            virtual_dataset,
+            column_name="name",
+            limit=100,
+            denormalize_column=False,
+            force=force,
+        )
+
+    first_key = _key(virtual_dataset)
+    first_chart_keys = virtual_dataset.get_extra_cache_keys({})
+    assert values() == (["alpha"], False)
+    swapped_inner_rules.swapped = True
+    # Confirm execution returns different rows before testing the cache hit.
+    assert values(force=True) == (["beta"], False)
+    assert first_key != _key(virtual_dataset)
+    assert first_chart_keys != virtual_dataset.get_extra_cache_keys({})
+    swapped_inner_rules.swapped = False
+    assert values() == (["alpha"], True)
+
+
+def test_swapped_table_rules_do_not_share_annotation_context(
+    source_chart: Slice, swapped_inner_rules: SimpleNamespace
+) -> None:
+    """An annotation fingerprint binds each predicate to its inner table."""
+    first = _annotation_context(source_chart)
+    swapped_inner_rules.swapped = True
+    second = _annotation_context(source_chart)
+    assert first["source_rls"] == second["source_rls"]
+    assert first != second
+
+
+def test_swapped_table_rules_do_not_share_query_keys(
+    virtual_dataset: SqlaTable, swapped_inner_rules: SimpleNamespace
+) -> None:
+    """SQL Lab query fingerprints also preserve the predicate/table binding."""
+    from superset.models.sql_lab import Query
+
+    query = Query(
+        database=virtual_dataset.database,
+        schema="main",
+        sql=virtual_dataset.sql,
+        client_id="client",
+    )
+    first = _key(query)
+    first_chart_keys = query.get_extra_cache_keys({})
+    swapped_inner_rules.swapped = True
+    assert first != _key(query)
+    assert first_chart_keys != query.get_extra_cache_keys({})
+
+
+@pytest.mark.parametrize("failure", ["parse", "resolve"])
+def test_guest_column_values_fail_closed(
+    guest: SimpleNamespace,
+    virtual_dataset: SqlaTable,
+    mocker: MockerFixture,
+    failure: str,
+) -> None:
+    """Both parse and table-resolution failures isolate embedded guest scopes."""
+    target = (
+        "superset.sql.parse.SQLScript"
+        if failure == "parse"
+        else "superset.utils.rls.find_datasets"
+    )
+    mocker.patch(target, side_effect=ValueError("cannot resolve inner tables"))
+    first = _key(virtual_dataset)
+    guest.clause = "tenant = 2"
+    assert first != _key(virtual_dataset)

@@ -289,6 +289,8 @@ def collect_rls_predicates_for_sql(
     catalog: str | None,
     schema: str,
     exclude_dataset_id: int | None = None,
+    *,
+    include_table_identity: bool = False,
 ) -> list[str]:
     """
     Collect all RLS predicates that would be applied to tables in the given SQL.
@@ -303,7 +305,9 @@ def collect_rls_predicates_for_sql(
     :param exclude_dataset_id: Mirror of the same parameter on apply_rls — pass
         the virtual dataset's id so its self-match is excluded from the cache key
         (kept consistent with what's actually applied at query time).
-    :return: List of RLS predicate strings that would be applied
+    :param include_table_identity: Bind predicates to their qualified table for
+        cache keys, so swapping rules between tables cannot produce a collision.
+    :return: List of RLS predicate strings (or table-bound cache components)
     """
     from superset.sql.parse import SQLScript
 
@@ -317,7 +321,12 @@ def collect_rls_predicates_for_sql(
         default_catalog = database.get_default_catalog()
         return sorted(
             {
-                predicate
+                (
+                    "rls-table:"
+                    + json.dumps([table.catalog, table.schema, table.table, predicate])
+                    if include_table_identity
+                    else predicate
+                )
                 for table in tables
                 for predicate in get_predicates_for_table(
                     table,
