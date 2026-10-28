@@ -4128,15 +4128,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             default_schema = self.database.get_default_schema(self.catalog)
             try:
                 rls_applied = False
-                # Only a dataset applies its own RLS on the outer WHERE, so only
-                # a dataset's own id is excluded here. Other subclasses (e.g. a
-                # SQL Lab Query) have an ``id`` that is not a dataset id, and
-                # excluding it would drop the RLS of whichever dataset shares
-                # that number. Imported locally to avoid a circular import with
-                # the connectors package.
+                # Only a dataset applies its own RLS and the global guest rules
+                # on the outer WHERE, so only a dataset leaves them out of its
+                # inner SQL. Other subclasses (e.g. a SQL Lab Query) apply no
+                # RLS outside, and their ``id`` is not a dataset id: excluding
+                # it would drop the RLS of whichever dataset shares that number.
+                # Imported locally to avoid a circular import with the
+                # connectors package.
                 from superset.connectors.sqla.models import SqlaTable
 
-                self_id = self.id if isinstance(self, SqlaTable) else None
+                dataset = self if isinstance(self, SqlaTable) else None
+                is_dataset = dataset is not None
+                self_id = dataset.id if dataset is not None else None
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
@@ -4144,7 +4147,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         self.schema or default_schema or "",
                         statement,
                         exclude_dataset_id=self_id,
-                        include_global_guest_rls=False,
+                        include_global_guest_rls=not is_dataset,
                     ):
                         rls_applied = True
 
@@ -4178,7 +4181,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             exclude_dataset_id=(
                                 None if statement.has_subquery() else self_id
                             ),
-                            include_global_guest_rls=statement.has_subquery(),
+                            include_global_guest_rls=(
+                                not is_dataset or statement.has_subquery()
+                            ),
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables

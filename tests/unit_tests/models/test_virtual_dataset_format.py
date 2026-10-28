@@ -57,6 +57,7 @@ def virtual_datasource() -> MagicMock:
     # Spec'd as a dataset: get_from_clause only skips the RLS of the datasource
     # itself when it is one.
     datasource = MagicMock(spec=SqlaTable)
+    datasource.id = 1
 
     # Wire up real methods from ExploreMixin
     datasource.get_from_clause = ExploreMixin.get_from_clause.__get__(datasource)
