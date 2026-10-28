@@ -266,15 +266,38 @@ export const useNavigate: typeof pagesApi.useNavigate = () => {
       if (!root) {
         return;
       }
-      // Relative by contract: a page states where it is going within itself,
-      // and so cannot navigate out of its own namespace by accident.
+      // Relative by contract: a page states where it is going within itself.
       const suffix = subPath.startsWith('/') ? subPath : `/${subPath}`;
       // No `ensureAppRoot` here. Superset's router is mounted as
       // `<BrowserRouter basename={applicationRoot()}>`, so it adds the app
       // root on push and strips it from `location.pathname`. Adding it here
       // too produced `/root/root/page` under a subdirectory deployment --
       // invisible wherever the app root is empty, which is most deployments.
-      history.push(`${root}${suffix === '/' ? '' : suffix}`);
+      const target = `${root}${suffix === '/' ? '' : suffix}`;
+      // `history.push` keeps `..` verbatim, while the browser's URL parser
+      // resolves it out of the address bar on `pushState`. An unnormalised
+      // target therefore leaves the router and the URL disagreeing, and
+      // enough `..` climbs past the router's basename as well. Parsing with
+      // the same algorithm the browser applies keeps the check from drifting
+      // from what the address bar will do, and covers `%2E%2E` with it.
+      // The base is a constant so the parse is deterministic in tests, as in
+      // `src/utils/navigationUtils.ts`.
+      const resolved = new URL(target, 'http://pages.invalid');
+      if (
+        resolved.pathname !== root &&
+        !resolved.pathname.startsWith(`${root}/`)
+      ) {
+        logging.error(
+          `A page at "${root}" tried to navigate to "${subPath}", which ` +
+            `resolves outside the page. Sub-paths are relative to the page ` +
+            `root; the navigation was ignored.`,
+        );
+        return;
+      }
+      // `search` and `hash` are re-appended: `history.push` parses them off a
+      // whole path string, so pushing `pathname` alone would quietly drop the
+      // query and fragment from `navigate('/42?tab=x#y')`.
+      history.push(`${resolved.pathname}${resolved.search}${resolved.hash}`);
     },
     [history, root],
   );
@@ -299,11 +322,18 @@ export const resolvePage = (id: string): React.ReactElement => {
   );
 };
 
-export const onDidRegisterPage = (listener: (e: ResolvedPage) => void) =>
-  registerEmitter.subscribe(listener);
+// `thisArgs` is part of `Event<T>`, and `subscribe` binds it. Dropping it here
+// would leave `pages.onDidRegisterPage(controller.addPage, controller)` --
+// which the type invites -- calling `addPage` unbound.
+export const onDidRegisterPage = (
+  listener: (e: ResolvedPage) => void,
+  thisArgs?: unknown,
+) => registerEmitter.subscribe(listener, thisArgs);
 
-export const onDidUnregisterPage = (listener: (e: ResolvedPage) => void) =>
-  unregisterEmitter.subscribe(listener);
+export const onDidUnregisterPage = (
+  listener: (e: ResolvedPage) => void,
+  thisArgs?: unknown,
+) => unregisterEmitter.subscribe(listener, thisArgs);
 
 /**
  * The namespace handed to extension code, with `registerPage` unbound.

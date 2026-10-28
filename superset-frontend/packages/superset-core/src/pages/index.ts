@@ -95,8 +95,9 @@ export interface Page {
    *
    * Declared in the manifest; the host creates it against the extension when
    * the extension loads, so an administrator can grant it in the Roles
-   * screen as, for example, `can_review on acme.tools`. The server refuses
-   * the page with 403 to anyone without it.
+   * screen as, for example, `can_review on extension:acme.tools` -- the
+   * host names the view menu after the extension, with that prefix. The
+   * server refuses the page with 403 to anyone without it.
    *
    * Omit to require only that the user is signed in, which is how every page
    * behaves without this field.
@@ -178,11 +179,12 @@ export declare function useSubPath(): string;
 /**
  * Returns a function that navigates within this page.
  *
- * The argument is relative to the page's own root, so a page never writes
- * its own URL and cannot navigate out of its namespace by accident. It is a
- * client-side transition through the host's router, so the back button, the
- * host's scroll restoration and its navigation logging all behave as they do
- * on a host screen.
+ * The argument is relative to the page's own root, so a page never writes its
+ * own URL. A target that resolves outside the page -- through `..` segments,
+ * say -- is logged and ignored rather than followed. It is a client-side
+ * transition through the host's router, so the back button, the host's scroll
+ * restoration and its navigation logging all behave as they do on a host
+ * screen.
  *
  * @example
  * ```typescript

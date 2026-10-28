@@ -23,6 +23,8 @@ import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import {
   findPageByPath,
   getPages,
+  onDidRegisterPage,
+  onDidUnregisterPage,
   registerPageFor,
   resolvePage,
   type DeclaredPage,
@@ -376,4 +378,32 @@ test('the declaration cannot smuggle in a different path or permission flag', ()
   expect(page.path).toBe('/review-queue');
   expect(page.permitted).toBe(false);
   expect(page).not.toHaveProperty('registered');
+});
+
+describe.each([
+  ['onDidRegisterPage', onDidRegisterPage],
+  ['onDidUnregisterPage', onDidUnregisterPage],
+])('%s', (_name, subscribe) => {
+  test('calls the listener with the thisArgs it was given', () => {
+    // `Event<T>` takes `(listener, thisArgs?)`, so an extension may pass a
+    // method and its owner. A wrapper that forwards only the listener leaves
+    // the method unbound, and it throws on its first `this`.
+    class Controller {
+      seen: string[] = [];
+
+      addPage(page: { path: string }) {
+        this.seen.push(page.path);
+      }
+    }
+    const controller = new Controller();
+    disposables.push(subscribe(controller.addPage, controller));
+
+    const disposable = register('acme.tools', {
+      path: '/review-queue',
+      name: 'Queue',
+    });
+    disposable.dispose();
+
+    expect(controller.seen).toEqual(['/review-queue']);
+  });
 });

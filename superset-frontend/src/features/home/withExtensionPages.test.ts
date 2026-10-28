@@ -44,6 +44,42 @@ test('the page name is used when nav carries no label', () => {
   expect(result[1]).toMatchObject({ label: 'Review queue' });
 });
 
+test('contributed entries are ordered by path, not by arrival', () => {
+  // Remote entries are injected in parallel and register as they finish, so
+  // the registry's order is a network race. The bar has to read the same way
+  // on every reload.
+  const arrived = [
+    page({ name: 'Lineage', path: '/data-lineage', nav: { label: 'Lineage' } }),
+    page({ name: 'Queue', path: '/approvals', nav: { label: 'Approvals' } }),
+    page({ name: 'Audit', path: '/review-log', nav: { label: 'Audit' } }),
+  ];
+
+  const order = (pages: ReturnType<typeof page>[]) =>
+    withExtensionPages(menu as never, pages)
+      .slice(menu.length)
+      .map(item => item.url);
+
+  expect(order(arrived)).toEqual(['/approvals', '/data-lineage', '/review-log']);
+  expect(order([...arrived].reverse())).toEqual(order(arrived));
+});
+
+test('host entries keep their order and come first', () => {
+  const hostMenu = [
+    { label: 'Dashboards', name: 'Dashboards', url: '/dashboard/list/' },
+    { label: 'Charts', name: 'Charts', url: '/chart/list/' },
+  ];
+
+  const result = withExtensionPages(hostMenu as never, [
+    page({ path: '/approvals', nav: { label: 'Approvals' } }),
+  ]);
+
+  expect(result.map(item => item.name)).toEqual([
+    'Dashboards',
+    'Charts',
+    'extension:/approvals',
+  ]);
+});
+
 test('a page that did not opt in is left out', () => {
   // Reachable by URL, but nothing advertises it -- for a page an extension
   // links to from one of its own screens.

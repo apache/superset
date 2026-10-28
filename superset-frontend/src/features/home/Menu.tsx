@@ -233,9 +233,16 @@ export function withExtensionPages(
   // the server answers 403 for it, so an entry here would only advertise a
   // dead end. The page stays registered, so a direct link still explains
   // itself rather than rendering nothing.
-  const contributed = pages.filter(
-    page => page.nav && !page.nav.category && page.permitted !== false,
-  );
+  // Sorted by path, because the registry's own order is the order the
+  // extensions' remote entries finished loading -- a race between parallel
+  // `<script>` injections, so the bar can come out in a different order on
+  // the next reload. Path rather than label: the server refuses a second
+  // page claiming a path, so it is unique across extensions and needs no
+  // tiebreak, and it is not translated, so the order does not move with the
+  // reader's locale.
+  const contributed = pages
+    .filter(page => page.nav && !page.nav.category && page.permitted !== false)
+    .sort((a, b) => a.path.localeCompare(b.path));
   if (!contributed.length) {
     return menu;
   }
