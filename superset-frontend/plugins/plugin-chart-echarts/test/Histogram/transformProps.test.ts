@@ -37,6 +37,7 @@ const formData: HistogramFormData = {
   normalize: false,
   sliceId: 1,
   showLegend: true,
+  showSelectorLegend: true,
   showValue: false,
   xAxisFormat: '',
   xAxisTitle: '',
@@ -203,4 +204,15 @@ test('renders an empty chart when the query returns no rows', () => {
 
   expect(xAxis.data).toEqual([]);
   expect(series).toEqual([]);
+});
+
+test('tooltip rows start with a marker in the series color', () => {
+  const { tooltip } = transformProps(
+    createChartProps([{ '0 - 5': 3, '5 - 10': 7 }]) as HistogramChartProps,
+  ).echartOptions as { tooltip: { formatter: (params: unknown) => string } };
+  const html = tooltip.formatter([
+    { name: '0 - 5', seriesName: 'price', value: 3, color: '#1f77b4' },
+  ]);
+  expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
+  expect(html).toContain('price');
 });

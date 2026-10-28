@@ -29,7 +29,8 @@ import {
   selectOption,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { MemoryRouter } from 'react-router-dom';
+import { rememberArchivedType } from 'src/utils/softDeleteCopy';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import ArchivedList from 'src/pages/ArchivedList';
@@ -191,17 +192,23 @@ const mockRoutes = (
   fetchMock.post(datasetPurgeEndpoint, purgeResponse);
 };
 
-const renderArchivedList = (withStore = store) =>
+const LocationProbe = () => (
+  <output data-test="archive-location">{useLocation().search}</output>
+);
+
+const renderArchivedList = (withStore = store, entry = '/archived/') =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <ArchivedList />
+        <LocationProbe />
       </QueryParamProvider>
     </MemoryRouter>,
     { useRedux: true, store: withStore },
   );
 
 beforeEach(() => {
+  localStorage.clear();
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockAddDangerToast.mockClear();
@@ -220,6 +227,7 @@ test('renders archived rows with Name and Type columns', async () => {
   renderArchivedList();
 
   expect(await screen.findByTestId('archived-list-view')).toBeInTheDocument();
+  expect(screen.getByText('Recently Archived')).toBeInTheDocument();
   expect(await screen.findByText('Deleted Chart One')).toBeInTheDocument();
   expect(screen.getByText('Deleted Chart Two')).toBeInTheDocument();
   // Name + Type column headers render.
@@ -986,4 +994,70 @@ test('a 409 replaces impact and re-arms DELETE confirmation', async () => {
   expect(screen.getByText('1 Chart')).toBeInTheDocument();
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+});
+
+test.each([
+  ['dashboard', 'Deleted Dashboard One'],
+  ['dataset', 'deleted_table_one'],
+  ['chart', 'Deleted Chart One'],
+  ['unknown', 'Deleted Chart One'],
+])(
+  'archive deep link type %s selects the permitted collection',
+  async (type, name) => {
+    mockRoutes();
+    renderArchivedList(store, `/archived/?type=${type}`);
+    expect(await screen.findByText(name)).toBeInTheDocument();
+  },
+);
+
+test('archive deep link cannot select a type the user cannot read', async () => {
+  mockRoutes();
+  renderArchivedList(storeWithReadAccess('Dashboard'), '/archived/?type=chart');
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(listEndpoint)).toHaveLength(0);
+});
+
+test.each([
+  ['dashboard', 'Deleted Dashboard One'],
+  ['dataset', 'deleted_table_one'],
+] as const)(
+  'menu navigation remembers a successful %s archive',
+  async (type, name) => {
+    mockRoutes();
+    (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+    rememberArchivedType(type);
+    renderArchivedList();
+    expect(await screen.findByText(name)).toBeInTheDocument();
+  },
+);
+
+test.each(['foo', 'DASHBOARD'])(
+  'normalizes invalid type %s to the default',
+  async value => {
+    mockRoutes();
+    renderArchivedList(store, `/archived/?type=${value}`);
+    expect(await screen.findByText('Deleted Chart One')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('archive-location')).toHaveTextContent(
+        'type=chart',
+      ),
+    );
+  },
+);
+
+test('a remembered archive type cannot bypass collection permissions', async () => {
+  mockRoutes();
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  rememberArchivedType('dataset');
+  renderArchivedList(storeWithReadAccess('Dashboard'));
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(datasetListEndpoint)).toHaveLength(0);
+});
+
+test('explicit archive links override the remembered collection', async () => {
+  mockRoutes();
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  rememberArchivedType('dataset');
+  renderArchivedList(store, '/archived/?type=dashboard');
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
 });

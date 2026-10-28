@@ -32,6 +32,7 @@ export type HistogramFormData = QueryFormData & {
   normalize: boolean;
   sliceId: number;
   showLegend: boolean;
+  showSelectorLegend: boolean;
   showValue: boolean;
   xAxisFormat: string;
   xAxisTitle: string;
