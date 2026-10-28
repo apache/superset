@@ -89,6 +89,7 @@ github:
           - test-postgres-presto
           - test-sqlite
           - unit-tests-required
+          - frontend-tests-required
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

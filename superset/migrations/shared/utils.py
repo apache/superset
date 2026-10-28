@@ -54,6 +54,11 @@ logger = logging.getLogger("alembic.env")
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
 
+def is_mysql() -> bool:
+    """Return whether the migration connection uses MySQL or MariaDB."""
+    return isinstance(op.get_bind().dialect, MySQLDialect)
+
+
 def get_table_column(
     table_name: str,
     column_name: str,

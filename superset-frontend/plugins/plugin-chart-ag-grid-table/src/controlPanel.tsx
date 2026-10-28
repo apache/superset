@@ -46,6 +46,7 @@ import {
   ColorSchemeEnum,
   getHeaderGroupsControlProps,
   getTimeComparisonColumnKeys,
+  getKnownColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -779,6 +780,10 @@ const config: ControlPanelConfig = {
                     coltypes,
                     childColumnMap,
                     timeComparisonColumnMap,
+                    knownKeys: getKnownColumnConfigKeys(
+                      _colnames || [],
+                      explore.datasource,
+                    ),
                   },
                 };
               },
