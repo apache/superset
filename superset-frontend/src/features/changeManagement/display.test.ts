@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { assetUrl, changeCount, datasetChangeCount } from './display';
+import type { ChangeRequest, DatasetDetail } from './types';
+
 const mockApplicationRoot = jest.fn<string, []>(() => '');
 
 // `assetUrl` reads the app root through `ensureAppRoot`, which resolves it
-// per call, so mocking the reader is enough.
+// per call, so mocking the reader is enough. `jest.mock` is hoisted above
+// the imports, so it still applies despite sitting below them.
 jest.mock('src/utils/getBootstrapData', () => {
   const actual = jest.requireActual<
     typeof import('src/utils/getBootstrapData')
@@ -30,9 +34,6 @@ jest.mock('src/utils/getBootstrapData', () => {
     applicationRoot: () => mockApplicationRoot(),
   };
 });
-
-import { assetUrl, changeCount, datasetChangeCount } from './display';
-import type { ChangeRequest, DatasetDetail } from './types';
 
 const request = (over: Partial<ChangeRequest> = {}): ChangeRequest =>
   ({

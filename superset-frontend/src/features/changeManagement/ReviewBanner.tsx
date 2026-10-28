@@ -189,6 +189,30 @@ export default function ReviewBanner({
 
     // Draft.
     if (isAuthor) {
+      // What is actually on screen, not what exists. The author sees the
+      // live asset until they turn Show changes on, and saying "Viewing
+      // your changes" before then told them the opposite of the truth
+      // (QA-19). The switch is in this same banner, so the message can
+      // point at it rather than leave them hunting.
+      // `showChanges` is absent entirely for an asset kind with no in-place
+      // preview, where "viewing your changes" is the truth already.
+      if (showChanges && !showChanges.showing) {
+        return {
+          type: 'info',
+          message: t(
+            'Your changes are saved %s · you and viewers are both seeing the live version · turn on Show changes to see yours',
+            ago(changeRequest.changed_on),
+          ),
+          actions: [
+            whatChanged,
+            {
+              key: 'request-review',
+              label: t('Request review'),
+              onClick: onRequestReview,
+            },
+          ],
+        };
+      }
       return {
         type: 'info',
         message: t(
@@ -227,6 +251,7 @@ export default function ReviewBanner({
     };
   }, [
     changeRequest,
+    showChanges,
     onApprove,
     onDiscard,
     onRequestChanges,
