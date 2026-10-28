@@ -112,6 +112,39 @@ test('useNavigate pushes one app root, not two', () => {
  * security boundary: extension code runs in the host realm and can reach
  * `window.history` directly.
  */
+describe('a page whose own first segment is the app root', () => {
+  // The case every other test here misses: with the app at `/analytics` and
+  // a page at `/analytics/review-queue`, the real URL is
+  // `/analytics/analytics/review-queue`. `useLocation` has already had one
+  // `/analytics` removed by the router, so a second strip anywhere in this
+  // module would eat the page's own first segment instead.
+  //
+  // The server refuses such a path at registration, so it should not arise
+  // in a running deployment -- but that guard is the server's, and these
+  // two hooks have to be correct on their own.
+  test('useSubPath reads the sub-path, not the page root', () => {
+    renderAt('/analytics/review-queue/42', '/analytics/review-queue');
+
+    expect(screen.getByTestId('sub-path')).toHaveTextContent('/42');
+  });
+
+  test('useSubPath reports / at that page root', () => {
+    renderAt('/analytics/review-queue', '/analytics/review-queue');
+
+    expect(screen.getByTestId('sub-path')).toHaveTextContent('/');
+  });
+
+  test('useNavigate pushes below the page, not above it', () => {
+    renderAt('/analytics/review-queue', '/analytics/review-queue');
+
+    screen.getByRole('button', { name: 'go' }).click();
+
+    expect(window.location.pathname).toBe(
+      `${APP_ROOT}/analytics/review-queue/42`,
+    );
+  });
+});
+
 describe('a sub-path that resolves outside the page', () => {
   test.each([
     ['a parent segment', '/../welcome'],
