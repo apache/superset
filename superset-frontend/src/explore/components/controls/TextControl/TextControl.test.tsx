@@ -161,3 +161,21 @@ test('should report a repeated identical edit after an external reset', async ()
   await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
   expect(onChange).toHaveBeenLastCalledWith('', []);
 });
+
+test('should coalesce a burst of keystrokes into one onChange with the settled value', async () => {
+  const onChange = jest.fn();
+  render(<TextControl {...mockedProps} value="" onChange={onChange} />);
+  await userEvent.type(screen.getByRole('textbox'), '120');
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('120', []);
+});
+
+test('should flush a pending onChange on blur', async () => {
+  const onChange = jest.fn();
+  render(<TextControl {...mockedProps} value="" onChange={onChange} />);
+  const input = screen.getByRole('textbox');
+  await userEvent.type(input, 'abc');
+  fireEvent.blur(input);
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith('abc', []));
+});

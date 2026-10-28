@@ -26,7 +26,8 @@ import {
 } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Input } from '@superset-ui/core/components';
+import { debounce } from 'lodash-es';
+import { Constants, Input } from '@superset-ui/core/components';
 
 type InputValueType = string | number;
 
@@ -112,14 +113,37 @@ function TextControl<T extends InputValueType = InputValueType>({
   const handleChangeRef = useRef(handleChange);
   handleChangeRef.current = handleChange;
 
+  // Outbound onChange keeps a trailing coalescing window so consumers
+  // (renderTrigger re-renders, filtered collection tables) only see the
+  // settled value rather than every intermediate keystroke the deferred value
+  // happens to commit.
+  const debouncedEmitRef = useRef(
+    debounce((inputValue: string) => {
+      handleChangeRef.current(inputValue);
+    }, Constants.FAST_DEBOUNCE),
+  );
+
   // Fires once the deferred value catches up with the latest keystroke.
-  // Low-priority and interrupted by each new keystroke, unlike a fixed-delay
-  // debounce, so the input never lags behind a burst of typing.
+  // The deferred value keeps the input responsive during a burst of typing;
+  // the debounce then coalesces what reaches `onChange`.
   useEffect(() => {
     if (deferredPendingValue !== null) {
-      handleChangeRef.current(deferredPendingValue);
+      debouncedEmitRef.current(deferredPendingValue);
+    } else {
+      debouncedEmitRef.current.cancel();
     }
   }, [deferredPendingValue]);
+
+  useEffect(
+    () => () => {
+      debouncedEmitRef.current.cancel();
+    },
+    [],
+  );
+
+  const onBlurFlush = useCallback(() => {
+    debouncedEmitRef.current.flush();
+  }, []);
 
   const onChangeWrapper = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -160,6 +184,7 @@ function TextControl<T extends InputValueType = InputValueType>({
         placeholder={placeholder}
         onChange={onChangeWrapper}
         onFocus={onFocus}
+        onBlur={onBlurFlush}
         value={displayValue}
         disabled={disabled}
         aria-label={ariaLabel ?? label}
