@@ -775,7 +775,8 @@ test('A pending clear prevents edits and a closed editor ignores its late respon
 
 test('a successful edit after Cancel refreshes the parent without stale modal UI', async () => {
   mockJsonFormsChangeTriggered = true;
-  const onUpdated = jest.fn();
+  const refreshFilterA = jest.fn();
+  const refreshFilterB = jest.fn();
   let finishUpdate!: (value: { json: object }) => void;
   const mockedPut = SupersetClient.put as jest.Mock;
   mockedPut.mockReset().mockReturnValueOnce(
@@ -784,7 +785,7 @@ test('a successful edit after Cancel refreshes the parent without stale modal UI
     }),
   );
   const { rerender } = render(
-    <SemanticLayerModal {...props} onUpdated={onUpdated} />,
+    <SemanticLayerModal {...props} onUpdated={refreshFilterA} />,
   );
   const save = await screen.findByRole('button', { name: 'Save' });
   await waitFor(() => expect(save).toBeEnabled());
@@ -794,12 +795,61 @@ test('a successful edit after Cancel refreshes the parent without stale modal UI
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(props.onHide).toHaveBeenCalledTimes(1);
   rerender(
-    <SemanticLayerModal {...props} onUpdated={onUpdated} show={false} />,
+    <SemanticLayerModal {...props} onUpdated={refreshFilterB} show={false} />,
   );
   await act(async () => finishUpdate({ json: {} }));
 
-  expect(onUpdated).toHaveBeenCalledTimes(1);
+  expect(refreshFilterB).toHaveBeenCalledTimes(1);
+  expect(refreshFilterA).not.toHaveBeenCalled();
   expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('a successful create after Cancel refreshes with the latest list filter', async () => {
+  const refreshFilterA = jest.fn();
+  const refreshFilterB = jest.fn();
+  let finishCreate!: (value: { json: object }) => void;
+  mockedPost
+    .mockReset()
+    .mockResolvedValueOnce({
+      json: { result: { type: 'object', properties: {} } },
+    })
+    .mockReturnValueOnce(
+      new Promise(resolve => {
+        finishCreate = resolve;
+      }),
+    );
+  const { rerender } = render(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      onCreated={refreshFilterA}
+    />,
+  );
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Semantic layer type',
+  });
+  fireEvent.mouseDown(typePicker);
+  fireEvent.click(await screen.findByText('Example'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const create = await screen.findByRole('button', { name: 'Create' });
+  await waitFor(() => expect(create).toBeEnabled());
+  fireEvent.click(create);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(2));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      onCreated={refreshFilterB}
+      show={false}
+    />,
+  );
+  await act(async () => finishCreate({ json: {} }));
+
+  expect(refreshFilterB).toHaveBeenCalledTimes(1);
+  expect(refreshFilterA).not.toHaveBeenCalled();
   expect(props.addSuccessToast).not.toHaveBeenCalled();
 });
 

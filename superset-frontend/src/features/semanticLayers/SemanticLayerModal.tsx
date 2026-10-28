@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import isEqual from 'lodash/isEqual';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
@@ -119,6 +125,12 @@ export default function SemanticLayerModal({
   );
   const typeRequestRef = useRef(0);
   const saveRequestRef = useRef(0);
+  const onCreatedRef = useRef(onCreated);
+  const onUpdatedRef = useRef(onUpdated);
+  useLayoutEffect(() => {
+    onCreatedRef.current = onCreated;
+    onUpdatedRef.current = onUpdated;
+  }, [onCreated, onUpdated]);
   const [loading, setLoading] = useState(false);
   const [configSchema, setConfigSchema] = useState<JsonSchema | null>(null);
   const [uiSchema, setUiSchema] = useState<UISchemaElement | undefined>(
@@ -384,7 +396,7 @@ export default function SemanticLayerModal({
         });
         if (request !== saveRequestRef.current) {
           // Cancel refreshed the parent before the update committed.
-          onUpdated?.();
+          onUpdatedRef.current?.();
           return;
         }
         addSuccessToast(t('Semantic layer updated'));
@@ -395,7 +407,7 @@ export default function SemanticLayerModal({
         });
         // The server created the layer even if this dialog was closed. Only
         // the parent may refresh the picker; stale dialog UI remains ignored.
-        onCreated?.();
+        onCreatedRef.current?.();
         if (request !== saveRequestRef.current) return;
         addSuccessToast(t('Semantic layer created'));
       }
