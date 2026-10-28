@@ -216,6 +216,12 @@
         "description": "Enable query cost estimation. Supported in Presto, Postgres, and BigQuery. Requires `cost_estimate_enabled: true` in database `extra` attribute."
       },
       {
+        "name": "EXPORT_FORMATTED_NUMBERS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Apply the chart's configured number formats to chart-data CSV/XLSX exports instead of serializing raw values."
+      },
+      {
         "name": "GLOBAL_ASYNC_QUERIES",
         "default": false,
         "lifecycle": "testing",

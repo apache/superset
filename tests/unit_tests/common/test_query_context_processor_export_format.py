@@ -173,14 +173,10 @@ def test_json_result_unchanged_by_formatting_stage(app_context: None) -> None:
 
 # @AC-FR001-02
 @with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
-def test_csv_export_de_locale_formats_consistently(
-    app_context: None, mocker
-) -> None:
+def test_csv_export_de_locale_formats_consistently(app_context: None, mocker) -> None:
     # A ``de`` request locale drives the currency symbol position; the d3 number
     # grammar itself is locale-independent, matching the frontend d3-format.
-    mocker.patch(
-        "superset.utils.number_format.get_locale", return_value="de_DE"
-    )
+    mocker.patch("superset.utils.number_format.get_locale", return_value="de_DE")
     processor = _make_processor(
         ChartDataResultFormat.CSV,
         {
@@ -212,9 +208,7 @@ def test_xlsx_export_de_locale_value_not_date_coerced(
 ) -> None:
     # A localized currency value stays a string through the XLSX text path;
     # ``apply_column_types`` cannot re-coerce it to a number (or a date).
-    mocker.patch(
-        "superset.utils.number_format.get_locale", return_value="de_DE"
-    )
+    mocker.patch("superset.utils.number_format.get_locale", return_value="de_DE")
     processor = _make_processor(
         ChartDataResultFormat.XLSX,
         {
@@ -313,9 +307,7 @@ def test_csv_export_null_nan_inf_pass_through(app_context: None) -> None:
         }
     )
 
-    result = processor.get_data(
-        df, [GenericDataType.STRING, GenericDataType.NUMERIC]
-    )
+    result = processor.get_data(df, [GenericDataType.STRING, GenericDataType.NUMERIC])
 
     text = result.decode("utf-8-sig")
     # The finite cell is formatted; the frame still has three data rows.

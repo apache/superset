@@ -32,18 +32,14 @@ def test_applies_configured_d3_format_to_numeric_column() -> None:
     df = pd.DataFrame({"amount": [19.7999992]})
     form_data = {"column_config": {"amount": {"d3NumberFormat": ",.1f"}}}
 
-    result = apply_export_number_formats(
-        df, [GenericDataType.NUMERIC], form_data, None
-    )
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], form_data, None)
 
     assert result["amount"].tolist() == ["19.8"]
 
 
 # @AC-FR001-02
 def test_configured_format_respects_de_locale(mocker) -> None:
-    mocker.patch(
-        "superset.utils.number_format.get_locale", return_value="de_DE"
-    )
+    mocker.patch("superset.utils.number_format.get_locale", return_value="de_DE")
     df = pd.DataFrame({"amount": [1234.5]})
     form_data = {
         "column_config": {
@@ -54,9 +50,7 @@ def test_configured_format_respects_de_locale(mocker) -> None:
         }
     }
 
-    result = apply_export_number_formats(
-        df, [GenericDataType.NUMERIC], form_data, None
-    )
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], form_data, None)
 
     value = result["amount"].tolist()[0]
     # Locale-aware currency text, not a raw float and not a coerced date.
@@ -137,9 +131,7 @@ def test_edge_values_do_not_raise() -> None:
 def test_configured_format_output_is_plain_text_not_date(mocker) -> None:
     # A localized currency value is emitted as plain display text; nothing in
     # the helper turns a formatted number into a datetime/date object.
-    mocker.patch(
-        "superset.utils.number_format.get_locale", return_value="de_DE"
-    )
+    mocker.patch("superset.utils.number_format.get_locale", return_value="de_DE")
     df = pd.DataFrame({"amount": [3.5]})
     form_data = {
         "column_config": {
@@ -150,9 +142,7 @@ def test_configured_format_output_is_plain_text_not_date(mocker) -> None:
         }
     }
 
-    result = apply_export_number_formats(
-        df, [GenericDataType.NUMERIC], form_data, None
-    )
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], form_data, None)
 
     value = result["amount"].tolist()[0]
     import datetime
@@ -201,8 +191,6 @@ def test_verbose_map_renamed_column_gets_configured_format() -> None:
         "verbose_map": {"amount": "Total Amount"},
     }
 
-    result = apply_export_number_formats(
-        df, [GenericDataType.NUMERIC], {}, datasource
-    )
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], {}, datasource)
 
     assert result["Total Amount"].tolist() == ["1,234.50"]
