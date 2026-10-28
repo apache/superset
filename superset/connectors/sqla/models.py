@@ -3244,14 +3244,11 @@ class SqlaTable(
 
         if not (self.is_virtual and self.sql):
             return []
-        # The default schema is looked up only when the dataset has none: the
-        # lookup connects to the database, which serving a cached entry must
-        # not depend on.
         return collect_rls_predicates_for_sql(
             self.sql,
             self.database,
             self.catalog,
-            self.schema or self.database.get_default_schema(self.catalog) or "",
+            self.schema,
             exclude_dataset_id=self.id,
             include_table_identity=True,
         )

@@ -287,7 +287,7 @@ def collect_rls_predicates_for_sql(
     sql: str,
     database: Database,
     catalog: str | None,
-    schema: str,
+    schema: str | None,
     exclude_dataset_id: int | None = None,
     *,
     include_table_identity: bool = False,
@@ -301,7 +301,7 @@ def collect_rls_predicates_for_sql(
     :param sql: The SQL query to analyze
     :param database: The database the query runs against
     :param catalog: The default catalog for the query
-    :param schema: The default schema for the query
+    :param schema: The query schema; if absent, resolve the database default
     :param exclude_dataset_id: Mirror of the same parameter on apply_rls — pass
         the virtual dataset's id so its self-match is excluded from the cache key
         (kept consistent with what's actually applied at query time).
@@ -312,6 +312,10 @@ def collect_rls_predicates_for_sql(
     from superset.sql.parse import SQLScript
 
     try:
+        # Resolving the default schema can connect to the database. Keep it
+        # inside the guard so an outage uses the same viewer-scoped fallback
+        # as failures during parsing or table resolution.
+        schema = schema or database.get_default_schema(catalog) or ""
         parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
         tables = {
             table.qualify(catalog=catalog, schema=schema)

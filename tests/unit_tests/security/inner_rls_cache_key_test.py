@@ -594,3 +594,114 @@ def test_guest_column_values_fail_closed(
     first = _key(virtual_dataset)
     guest.clause = "tenant = 2"
     assert first != _key(virtual_dataset)
+
+
+@pytest.mark.parametrize("datasource_type", ["virtual", "query"])
+def test_schema_lookup_outage_serves_viewer_scoped_column_values(
+    virtual_dataset: SqlaTable,
+    viewer: SimpleNamespace,
+    data_cache: SimpleCache,
+    mocker: MockerFixture,
+    datasource_type: str,
+) -> None:
+    """Schema resolution failures allow scoped cache hits, never cross-viewer hits."""
+    from superset.datasource.api import get_cached_column_values
+    from superset.models.sql_lab import Query
+
+    virtual_dataset.schema = None
+    datasource = (
+        virtual_dataset
+        if datasource_type == "virtual"
+        else Query(
+            database=virtual_dataset.database,
+            sql=virtual_dataset.sql,
+            client_id="client",
+        )
+    )
+    mocker.patch.object(
+        datasource.database,
+        "get_default_schema",
+        side_effect=ConnectionError("database unreachable"),
+    )
+    mocker.patch("superset.utils.rls.get_user_id", side_effect=lambda: viewer.name)
+    fetch = mocker.patch.object(datasource, "values_for_column", return_value=["alpha"])
+
+    def values() -> tuple[list[Any], bool]:
+        """Read through the column-values cache under the active viewer."""
+        return get_cached_column_values(
+            datasource, column_name="name", limit=100, denormalize_column=False
+        )
+
+    # A fallback entry can be populated when schema introspection fails but
+    # execution succeeds; a healthy predicate-keyed entry is not reused blindly.
+    assert values() == (["alpha"], False)
+    fetch.side_effect = ConnectionError("database unreachable")
+    assert values() == (["alpha"], True)
+    fetch.assert_called_once()
+    alice_key = _key(datasource)
+    alice_chart_keys = datasource.get_extra_cache_keys({})
+    viewer.name = "bob"
+    assert datasource.get_extra_cache_keys({}) != alice_chart_keys
+    assert _key(datasource) != alice_key
+    with pytest.raises(ConnectionError):
+        values()
+
+
+def test_schema_lookup_outage_builds_guest_annotation_context(
+    virtual_dataset: SqlaTable,
+    guest: SimpleNamespace,
+    source_chart: Slice,
+    mocker: MockerFixture,
+) -> None:
+    """Annotation and chart keys survive schema outages without sharing guest scopes."""
+    virtual_dataset.schema = None
+    mocker.patch.object(
+        virtual_dataset.database,
+        "get_default_schema",
+        side_effect=ConnectionError("database unreachable"),
+    )
+    first = _annotation_context(source_chart)
+    first_chart_keys = virtual_dataset.get_extra_cache_keys({})
+    assert first["source_inner_rls"][str(source_chart.id)]
+    assert first == _annotation_context(source_chart)
+    guest.clause = "tenant = 2"
+    assert first != _annotation_context(source_chart)
+    assert first_chart_keys != virtual_dataset.get_extra_cache_keys({})
+
+
+@pytest.mark.parametrize("datasource_type", ["virtual", "query"])
+@pytest.mark.parametrize("default_schema", ["main", None])
+def test_schema_less_keys_preserve_resolved_table_rls(
+    virtual_dataset: SqlaTable,
+    viewer: SimpleNamespace,
+    mocker: MockerFixture,
+    datasource_type: str,
+    default_schema: str | None,
+) -> None:
+    """Lazy schema resolution retains table identity and effective RLS on success."""
+    from superset.models.sql_lab import Query
+
+    virtual_dataset.schema = None
+    virtual_dataset.sql = (
+        "SELECT tenant, name FROM t"
+        if default_schema
+        else "SELECT tenant, name FROM main.t"
+    )
+    datasource = (
+        virtual_dataset
+        if datasource_type == "virtual"
+        else Query(
+            database=virtual_dataset.database,
+            sql=virtual_dataset.sql,
+            client_id="client",
+        )
+    )
+    resolve = mocker.patch.object(
+        datasource.database, "get_default_schema", return_value=default_schema
+    )
+    assert datasource.get_inner_rls_cache_key() == [_inner_key("(tenant = 1)")]
+    resolve.assert_called_once_with(datasource.catalog)
+    first = _key(datasource)
+    viewer.name = "bob"
+    assert datasource.get_inner_rls_cache_key() == [_inner_key("(tenant = 2)")]
+    assert _key(datasource) != first

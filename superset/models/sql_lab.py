@@ -418,12 +418,11 @@ class Query(
             collect_rls_predicates_for_sql,
         )
 
-        # Only looked up without a schema: the lookup connects to the database.
         return collect_rls_predicates_for_sql(
             self.sql,
             self.database,
             self.catalog,
-            self.schema or self.database.get_default_schema(self.catalog) or "",
+            self.schema,
             include_table_identity=True,
         )
 
