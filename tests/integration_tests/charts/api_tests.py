@@ -1368,8 +1368,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         must be served straight from cache (200), not rescheduled. This guards
         against accidentally propagating ``check_updated_staleness`` to this
         high-traffic card path (the way the on-demand ``cache_screenshot``
-        endpoint opts in): adding it here would enqueue stale thumbnails and
-        return 202 while preserving no cached image, failing this test.
+        endpoint passes it): adding it here would enqueue stale thumbnails and
+        return 202 instead of the cached image, failing this test.
 
         ``ChartScreenshot.supports_updated_staleness`` is forced True here so the
         test actually proves the kwarg is absent: were the card path to copy

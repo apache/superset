@@ -433,10 +433,10 @@ class TestShouldTriggerTask:
         self, mock_app: MagicMock
     ) -> None:
         """The same stale UPDATED entry with a matching scope must NOT
-        re-trigger when the caller does not opt into updated-staleness (the
-        chart on-demand endpoint, whose pre-wipe+UPDATED-only serving would
-        otherwise surface a transient 404), proving the new clause is gated on
-        ``check_updated_staleness`` rather than firing for every scoped
+        re-trigger when the caller does not opt into updated-staleness (e.g. the
+        chart on-demand endpoint, left out by scope; see
+        ``BaseScreenshot.supports_updated_staleness``), proving the new clause is
+        gated on ``check_updated_staleness`` rather than firing for every scoped
         caller."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
@@ -1303,9 +1303,11 @@ class TestIntegrationCacheBugFix:
         """
         Regression test for the finding: a ChartScreenshot
         (supports_updated_staleness=False) must NOT recompute a stale-but-valid
-        UPDATED entry on a force-less request. The chart on-demand path pre-wipes
-        the cache to PENDING and serves only UPDATED, so a stale-driven recompute
-        could turn a healthy thumbnail into a transient 404. The worker guard must
+        UPDATED entry on a force-less request. Charts are left out by scope, not
+        by a read-path limit: the chart endpoint lacks the dashboard producer lock
+        and generation pointer, and the worker reads the flag per class, so opting
+        in would also re-render stale charts from compute-thumbnails (see
+        ``BaseScreenshot.supports_updated_staleness``). The worker guard must
         skip the render and leave the cached image/timestamp untouched.
         """
         mock_app.config = {
@@ -1351,9 +1353,10 @@ class TestIntegrationCacheBugFix:
         assert cached_value["image"] == seeded["image"]
 
     def test_supports_updated_staleness_flags(self) -> None:
-        """The per-type opt-in is False for charts (their serving path would
-        surface a transient 404 on a stale-driven recompute) and True for
-        dashboards (which serve on image-present and degrade gracefully)."""
+        """The per-type opt-in is False for charts (left out by scope; see
+        ``BaseScreenshot.supports_updated_staleness``) and True for dashboards
+        (whose on-demand endpoint carries the last-good image into a new
+        generation while the refresh renders)."""
         assert ChartScreenshot.supports_updated_staleness is False
         assert DashboardScreenshot.supports_updated_staleness is True
 

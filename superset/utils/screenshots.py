@@ -414,11 +414,17 @@ class BaseScreenshot:
     # Whether a stale-but-valid UPDATED cache entry should be recomputed on a
     # force-less on-demand request (see should_trigger_task's
     # ``check_updated_staleness``). Off by default; only DashboardScreenshot
-    # enables it, keeping this fix scoped to the reported dashboard endpoint
-    # (ChartScreenshot leaves it False). Only the on-demand screenshot endpoints
-    # thread this through -- the high-traffic card-list thumbnail endpoints
-    # deliberately call should_trigger_task() with no args so they never opt
-    # into updated-staleness recompute.
+    # enables it, keeping this fix scoped to the reported dashboard endpoint.
+    # ChartScreenshot is left out by scope, not by a read-path limit: the chart
+    # endpoint has no producer lock or generation pointer to coalesce a refresh,
+    # so it would rewrite the entry behind its image_url in place (at default
+    # sizes, the same entry the card-list thumbnail serves), and
+    # compute_and_cache reads this flag for every unpinned task, so opting in
+    # would also make compute-thumbnails without --force re-render stale charts.
+    # Of the endpoints, only the on-demand screenshot ones thread this through
+    # -- the high-traffic card-list thumbnail endpoints deliberately call
+    # should_trigger_task() with no args so they never opt into
+    # updated-staleness recompute.
     supports_updated_staleness: bool = False
 
     def __init__(
