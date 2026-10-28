@@ -1871,3 +1871,21 @@ def test_keep_alive_redirect_releases_abandoned_connection() -> None:
         server.shutdown()
         server.server_close()
         worker.join(2)
+
+
+def test_releasing_sockets_without_a_scheduler_is_a_noop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cleanup before a connection must not initialize deadline infrastructure."""
+    monkeypatch.setattr(semantic_layer_http, "_SCHEDULER", None)
+    start: Mock = Mock(side_effect=AssertionError("Cleanup started a scheduler"))
+    monkeypatch.setattr(semantic_layer_http, "_scheduler", start)
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 1
+    )
+    bound.release_sockets()
+    start.assert_not_called()
+    assert semantic_layer_http._SCHEDULER is None
+    assert not bound.sockets
+    assert not bound.closed
+    assert not bound.expired
