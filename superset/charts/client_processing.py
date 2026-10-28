@@ -43,6 +43,7 @@ from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
+    GenericDataType,
     get_column_names,
     get_metric_name,
     get_metric_names,
@@ -1220,6 +1221,87 @@ def merge_currency_formats(
         }
     )
     return currency_formats
+
+
+def apply_export_number_formats(
+    df: pd.DataFrame,
+    coltypes: list[GenericDataType],
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+) -> pd.DataFrame:
+    """Format numeric columns as display text for a chart-data export.
+
+    Each numeric column (by ``coltypes``, aligned with ``df.columns``) is
+    resolved to its configured d3 format, currency and small-number format the
+    same way the live Table plugin does -- ``column_config`` overrides first,
+    then the datasource's saved per-metric formats -- and handed to
+    ``format_column``. A numeric column with nothing configured takes the
+    fixed-point fallback so its cells are never serialized as raw floats.
+    Non-numeric columns, nulls, NaN and infinity are left to the existing
+    helpers and pass through unchanged. The passed frame is mutated in place and
+    returned; the helper runs no query and performs no I/O.
+    """
+    saved_formats, verbose_map = get_datasource_column_formats(datasource)
+    saved_currency_formats, _ = get_datasource_currency_formats(datasource)
+    column_config = form_data.get("column_config") or {}
+
+    def label_of(name: str) -> str:
+        """Return the column label as it appears in ``df`` (verbose-renamed)."""
+        return name if name in df.columns else verbose_map.get(name, name)
+
+    # Index the per-column overrides by the label present in ``df`` so the
+    # lookups line up with the (possibly verbose-renamed) frame columns.
+    number_format_by_label = {
+        label_of(name): fmt for name, fmt in saved_formats.items()
+    }
+    currency_by_label = {
+        label_of(name): currency for name, currency in saved_currency_formats.items()
+    }
+    config_by_label = {label_of(name): config for name, config in column_config.items()}
+
+    numeric_columns = {
+        column
+        for column, coltype in zip(df.columns, coltypes, strict=True)
+        if coltype == GenericDataType.NUMERIC
+    }
+
+    for column in df.columns:
+        if column not in numeric_columns:
+            continue
+
+        config = config_by_label.get(column) or {}
+        configured_currency = config.get("currencyFormat") or {}
+        # The small-number formatter is built from this object whether or not a
+        # symbol survived in it, so an absent one has to stay distinguishable
+        # from a cleared one.
+        small_currency = config.get("currencyFormat")
+        number_format = config.get("d3NumberFormat") or number_format_by_label.get(
+            column
+        )
+        currency = (
+            configured_currency
+            if configured_currency.get("symbol")
+            else currency_by_label.get(column) or {}
+        )
+        # A cleared Select leaves a blank string behind, which the browser
+        # treats as unset.
+        small_number_format = (config.get("d3SmallNumberFormat") or "").strip() or None
+
+        if number_format or currency.get("symbol") or small_number_format:
+            format_column(
+                df,
+                column,
+                number_format,
+                currency,
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
+        else:
+            # Nothing configured: keep exact fixed-point text rather than a raw
+            # float. Non-finite and non-decimal cells pass through untouched.
+            df[column] = df[column].map(csv.format_decimal)
+
+    return df
 
 
 def effective_show_values_as(form_data: dict[str, Any]) -> Optional[str]:

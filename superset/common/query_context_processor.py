@@ -29,6 +29,8 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
+from superset import is_feature_enabled
+from superset.charts.client_processing import apply_export_number_formats
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
@@ -643,6 +645,14 @@ class QueryContextProcessor:
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
+
+            if is_feature_enabled("EXPORT_FORMATTED_NUMBERS"):
+                apply_export_number_formats(
+                    df,
+                    coltypes,
+                    self._query_context.form_data or {},
+                    self._qc_datasource,
+                )
 
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:

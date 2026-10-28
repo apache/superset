@@ -832,6 +832,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Warning: Could cause server memory/compute issues with large datasets.
     # @lifecycle: testing
     "ALLOW_FULL_CSV_EXPORT": False,
+    # Apply the chart's configured number formats to chart-data CSV/XLSX exports
+    # instead of serializing raw values.
+    # @lifecycle: testing
+    "EXPORT_FORMATTED_NUMBERS": False,
     # Enable caching per impersonation key in datasources with user impersonation
     # @lifecycle: testing
     "CACHE_IMPERSONATION": False,
