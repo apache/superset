@@ -95,8 +95,18 @@ test('calls onChange when radio button is clicked', () => {
   const secondOption = screen.getByText('Option 2');
   fireEvent.click(secondOption);
 
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalled();
+});
+
+test('does not call onChange when clicking an already selected option', () => {
+  const onChange = jest.fn();
+  setup({ value: 'option1', onChange });
+
+  const firstOption = screen.getByText('Option 1');
+  fireEvent.click(firstOption);
+
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('handles multiple clicks correctly', () => {
@@ -107,10 +117,10 @@ test('handles multiple clicks correctly', () => {
   fireEvent.click(screen.getByText('Option 3'));
   fireEvent.click(screen.getByText('Option 1'));
 
-  expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalledWith('option3');
-  expect(onChange).toHaveBeenCalledWith('option1');
-  expect(onChange.mock.calls.length).toBeGreaterThanOrEqual(3);
+  expect(onChange).toHaveBeenCalledTimes(3);
+  expect(onChange).toHaveBeenNthCalledWith(1, 'option2');
+  expect(onChange).toHaveBeenNthCalledWith(2, 'option3');
+  expect(onChange).toHaveBeenNthCalledWith(3, 'option1');
 });
 
 test('disables specific options when disabled flag is set', () => {
