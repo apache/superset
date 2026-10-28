@@ -55,44 +55,49 @@ test('PermissionsField renders loading state', () => {
   expect(screen.getByTestId('permissions-select')).toBeInTheDocument();
 });
 
-test('PermissionsField shows a permission matched by its raw name even though the label uses spaces (regression for #42041)', async () => {
-  // fetchPermissionOptions matches the raw, underscore-containing name
-  // server-side; the returned label has already gone through
-  // formatPermissionLabel (underscores replaced with spaces for display).
-  // PermissionsField's normalizing filterOption must match the raw search
-  // term against that space-formatted label, or the option the server
-  // legitimately returned gets hidden by client-side re-filtering.
-  jest
-    .mocked(fetchPermissionOptions)
-    .mockImplementation(async (filterValue: string) =>
-      filterValue === 'stg_silver'
-        ? { data: [{ value: 1, label: 'stg silver' }], totalCount: 1 }
-        : // totalCount must exceed the empty initial page here, otherwise
-          // AsyncSelect marks allValuesLoaded and short-circuits every
-          // later fetch, including the search request this test depends on.
-          { data: [], totalCount: 1 },
+test.each([
+  ['stg_silver', 'stg silver'],
+  ['demo%2Emetrics', 'demo.metrics'],
+])(
+  'PermissionsField displays %s when its label is %s',
+  async (search, label) => {
+    // fetchPermissionOptions matches the raw name on the server; the returned
+    // label has already gone through formatPermissionLabel for display.
+    // PermissionsField's normalizing filterOption must match the raw search
+    // term against that formatted label, or the option the server
+    // legitimately returned gets hidden by client-side re-filtering.
+    jest
+      .mocked(fetchPermissionOptions)
+      .mockImplementation(async (filterValue: string) =>
+        filterValue === search
+          ? { data: [{ value: 1, label }], totalCount: 1 }
+          : // totalCount must exceed the empty initial page here, otherwise
+            // AsyncSelect marks allValuesLoaded and short-circuits every
+            // later fetch, including the search request this test depends on.
+            { data: [], totalCount: 1 },
+      );
+
+    render(<PermissionsField addDangerToast={addDangerToast} />);
+    const combobox = screen.getByRole('combobox');
+    await waitFor(() => userEvent.click(combobox));
+    await userEvent.clear(combobox);
+    await userEvent.type(combobox, search, { delay: 10 });
+
+    await waitFor(() =>
+      expect(fetchPermissionOptions).toHaveBeenCalledWith(
+        search,
+        expect.anything(),
+        expect.anything(),
+        addDangerToast,
+      ),
     );
-
-  render(<PermissionsField addDangerToast={addDangerToast} />);
-  const combobox = screen.getByRole('combobox');
-  await waitFor(() => userEvent.click(combobox));
-  await userEvent.clear(combobox);
-  await userEvent.type(combobox, 'stg_silver', { delay: 10 });
-
-  await waitFor(() =>
-    expect(fetchPermissionOptions).toHaveBeenCalledWith(
-      'stg_silver',
-      expect.anything(),
-      expect.anything(),
-      addDangerToast,
-    ),
-  );
-  expect(
-    await within(
-      document.querySelector('.ant-select-dropdown-list')!,
-    ).findByText('stg silver'),
-  ).toBeInTheDocument();
-});
+    expect(
+      await within(
+        document.querySelector('.ant-select-dropdown-list')!,
+      ).findByText(label),
+    ).toBeInTheDocument();
+  },
+);
 
 test('UsersField renders label and select', () => {
   render(<UsersField addDangerToast={addDangerToast} loading={false} />);

@@ -60,8 +60,8 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
-        // formatPermissionLabel renders the raw permission/view_menu name with
-        // underscores replaced by spaces, so AsyncSelect's default client-side
+        // formatPermissionLabel renders underscores as spaces and encoded dots
+        // as periods, so AsyncSelect's default client-side
         // re-filter never matches a raw-name search term (e.g. "stg_silver")
         // against the displayed label ("stg silver") and hides the
         // server-matched option. Normalize both sides so client-side narrowing
@@ -70,7 +70,9 @@ export const PermissionsField = ({
           String(option?.label ?? '')
             .toLowerCase()
             .replace(/_/g, ' ')
-            .includes(input.toLowerCase().replace(/_/g, ' '))
+            .includes(
+              input.toLowerCase().replace(/_/g, ' ').replace(/%2e/g, '.'),
+            )
         }
         // Permission labels are long ("all datasource access on all_datasource_access",
         // "can write on DashboardFilterStateRestApi"), and the dropdown otherwise
