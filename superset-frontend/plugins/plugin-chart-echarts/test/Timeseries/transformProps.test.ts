@@ -1502,7 +1502,12 @@ test('hides legend selector buttons when showSelectorLegend is false', () => {
   ).toBe(false);
 });
 
-test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+test.each([
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
     const transformed = transformProps(
@@ -1544,29 +1549,7 @@ test.each([[LegendType.Scroll, LegendOrientation.Top]] as const)(
   },
 );
 
-test.each([LegendOrientation.Left, LegendOrientation.Right])(
-  'uses the custom HTML legend for a %s-oriented Plain legend',
-  legendOrientation => {
-    const transformed = transformProps(
-      createTestChartProps({
-        width: 800,
-        formData: {
-          ...formData,
-          legendOrientation,
-          legendType: LegendType.Plain,
-          showLegend: true,
-        },
-      }),
-    );
-
-    expect(getCustomLegend(transformed)?.orientation).toBe(legendOrientation);
-    expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
-      false,
-    );
-  },
-);
-
-test('renders Right-oriented custom legend in column layout with truncation enabled', () => {
+test('builds interactive items for a Right-oriented custom legend', () => {
   const transformed = transformProps(
     createTestChartProps({
       width: 800,
@@ -1580,15 +1563,25 @@ test('renders Right-oriented custom legend in column layout with truncation enab
     }),
   );
 
-  const customLegend = getCustomLegend(transformed);
-
-  expect(customLegend).toBeDefined();
-  expect(customLegend?.orientation).toBe(LegendOrientation.Right);
-  // Items should carry names that can be truncated in the vertical column
-  expect(customLegend?.items.length).toBeGreaterThan(0);
-  expect(customLegend?.items.every(item => typeof item.name === 'string')).toBe(
-    true,
-  );
+  expect(getCustomLegend(transformed)).toEqual({
+    grid: expect.any(Object),
+    items: [
+      {
+        color: expect.any(String),
+        interactive: true,
+        name: 'San Francisco',
+        selected: true,
+      },
+      {
+        color: expect.any(String),
+        interactive: true,
+        name: 'New York',
+        selected: true,
+      },
+    ],
+    orientation: LegendOrientation.Right,
+    showSelectors: true,
+  });
 });
 
 test.each([

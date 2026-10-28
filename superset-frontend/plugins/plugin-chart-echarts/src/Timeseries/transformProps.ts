@@ -175,7 +175,7 @@ function buildTimeseriesCustomLegend({
   interactive: boolean;
   legendNames: string[];
   legendState?: LegendState;
-  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  orientation: LegendOrientation;
   series: SeriesOption[];
   showSelectors: boolean;
 }): TimeseriesCustomLegend {

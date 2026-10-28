@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from "../../../../spec/helpers/testing-library";
-import TimeseriesLegend from "../../src/Timeseries/TimeseriesLegend";
+import { render, screen } from '../../../../spec/helpers/testing-library';
+import TimeseriesLegend from '../../src/Timeseries/TimeseriesLegend';
+import { LegendOrientation } from '../../src/types';
 
 const baseItems = [
-  { color: "#ff0000", interactive: true, name: "Alpha", selected: true },
-  { color: "#00ff00", interactive: true, name: "Beta", selected: false },
+  { color: '#ff0000', interactive: true, name: 'Alpha', selected: true },
+  { color: '#00ff00', interactive: true, name: 'Beta', selected: false },
 ];
 
 const baseProps = {
+  grid: { bottom: 20, top: 20 },
   items: baseItems,
   maxHeight: 200,
   onAll: jest.fn(),
@@ -34,50 +36,112 @@ const baseProps = {
   showSelectors: false,
 };
 
-test("renders items for a top-oriented legend", () => {
-  render(<TimeseriesLegend {...baseProps} orientation="top" />);
-  expect(screen.getByTestId("timeseries-custom-legend")).toBeInTheDocument();
-  expect(screen.getByText("Alpha")).toBeInTheDocument();
-  expect(screen.getByText("Beta")).toBeInTheDocument();
-});
-
-test("renders items for a left-oriented vertical legend", () => {
-  render(<TimeseriesLegend {...baseProps} orientation="left" maxWidth={200} />);
-  expect(screen.getByTestId("timeseries-custom-legend")).toBeInTheDocument();
-  expect(screen.getByText("Alpha")).toBeInTheDocument();
-});
-
-test("renders items for a right-oriented vertical legend", () => {
+test('renders items for a top-oriented legend', () => {
   render(
-    <TimeseriesLegend {...baseProps} orientation="right" maxWidth={200} />,
+    <TimeseriesLegend {...baseProps} orientation={LegendOrientation.Top} />,
   );
-  expect(screen.getByTestId("timeseries-custom-legend")).toBeInTheDocument();
-  expect(screen.getByText("Alpha")).toBeInTheDocument();
+
+  expect(screen.getByTestId('timeseries-custom-legend')).toHaveStyle({
+    maxHeight: '200px',
+  });
+  expect(screen.getByText('Alpha')).toBeInTheDocument();
+  expect(screen.getByText('Beta')).toBeInTheDocument();
 });
 
-test("returns null when maxWidth is 0 for a vertical legend (noSpace guard)", () => {
+test.each([LegendOrientation.Left, LegendOrientation.Right])(
+  'stacks and truncates items for a %s-oriented legend',
+  orientation => {
+    render(
+      <TimeseriesLegend
+        {...baseProps}
+        maxWidth={120}
+        orientation={orientation}
+      />,
+    );
+
+    const legend = screen.getByTestId('timeseries-custom-legend');
+    expect(legend).toHaveStyle({ maxWidth: '120px', width: 'auto' });
+    expect(legend.querySelector('ul')).toHaveStyle({
+      flexDirection: 'column',
+      flexWrap: 'nowrap',
+    });
+    expect(screen.getByText('Alpha')).toHaveStyle({
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    });
+  },
+);
+
+test('omits row-break sentinels from a vertical legend', () => {
+  render(
+    <TimeseriesLegend
+      {...baseProps}
+      items={[
+        ...baseItems,
+        { color: '', interactive: false, name: '', selected: true },
+      ]}
+      maxWidth={120}
+      orientation={LegendOrientation.Left}
+    />,
+  );
+
+  expect(screen.getAllByRole('listitem')).toHaveLength(2);
+});
+
+test('keeps row-break sentinels in a horizontal legend', () => {
+  render(
+    <TimeseriesLegend
+      {...baseProps}
+      items={[
+        ...baseItems,
+        { color: '', interactive: false, name: '', selected: true },
+      ]}
+      orientation={LegendOrientation.Top}
+    />,
+  );
+
+  expect(screen.getAllByRole('listitem')).toHaveLength(3);
+});
+
+test('renders nothing when a vertical legend has no width to fill', () => {
   const { container } = render(
-    <TimeseriesLegend {...baseProps} orientation="left" maxWidth={0} />,
+    <TimeseriesLegend
+      {...baseProps}
+      maxWidth={0}
+      orientation={LegendOrientation.Left}
+    />,
   );
-  expect(container.firstChild).toBeNull();
+
+  expect(container).toBeEmptyDOMElement();
 });
 
-test("returns null when items list is empty", () => {
+test('renders nothing when the item list is empty', () => {
   const { container } = render(
-    <TimeseriesLegend {...baseProps} items={[]} orientation="top" />,
+    <TimeseriesLegend
+      {...baseProps}
+      items={[]}
+      orientation={LegendOrientation.Top}
+    />,
   );
-  expect(container.firstChild).toBeNull();
+
+  expect(container).toBeEmptyDOMElement();
 });
 
-test("adds title attribute on labels for vertical (left) orientation", () => {
-  render(<TimeseriesLegend {...baseProps} orientation="left" maxWidth={200} />);
-  // Labels in vertical mode should have a title for hover readability
-  const alphaLabel = screen.getByText("Alpha");
-  expect(alphaLabel).toHaveAttribute("title", "Alpha");
-});
+test('titles truncated vertical labels and leaves wrapping labels untitled', () => {
+  const { unmount } = render(
+    <TimeseriesLegend
+      {...baseProps}
+      maxWidth={120}
+      orientation={LegendOrientation.Left}
+    />,
+  );
 
-test("omits title attribute on labels for horizontal (top) orientation", () => {
-  render(<TimeseriesLegend {...baseProps} orientation="top" />);
-  const alphaLabel = screen.getByText("Alpha");
-  expect(alphaLabel).not.toHaveAttribute("title");
+  expect(screen.getByText('Alpha')).toHaveAttribute('title', 'Alpha');
+  unmount();
+
+  render(
+    <TimeseriesLegend {...baseProps} orientation={LegendOrientation.Top} />,
+  );
+
+  expect(screen.getByText('Alpha')).not.toHaveAttribute('title');
 });

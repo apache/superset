@@ -1576,45 +1576,53 @@ const makeVerticalLegend = (
     showSelectors: true,
   }) as never;
 
-test('renders the custom legend for a Left-oriented legend and uses chartBodyHeight as maxHeight', async () => {
+test.each([LegendOrientation.Left, LegendOrientation.Right])(
+  'bounds a %s custom legend by chart width and the full chart body height',
+  async orientation => {
+    mockOffsetHeight = 0;
+    const { queryByTestId } = render(
+      <EchartsTimeseries
+        {...defaultProps}
+        height={400}
+        width={800}
+        customLegend={makeVerticalLegend(orientation)}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(queryByTestId('timeseries-custom-legend')).toHaveStyle({
+        maxHeight: '400px',
+        maxWidth: '320px',
+      });
+    });
+  },
+);
+
+test('keeps a vertical custom legend on a chart too short for a horizontal one', async () => {
   mockOffsetHeight = 0;
   const { queryByTestId } = render(
     <EchartsTimeseries
       {...defaultProps}
-      height={400}
+      height={80}
       width={800}
       customLegend={makeVerticalLegend(LegendOrientation.Left)}
     />,
   );
 
   await waitFor(() => {
-    expect(queryByTestId('timeseries-custom-legend')).toBeInTheDocument();
+    expect(queryByTestId('timeseries-custom-legend')).toHaveStyle({
+      maxHeight: '80px',
+    });
   });
 });
 
-test('renders the custom legend for a Right-oriented legend', async () => {
+test('hides a vertical custom legend when the width cap rounds down to zero', async () => {
   mockOffsetHeight = 0;
   const { queryByTestId } = render(
     <EchartsTimeseries
       {...defaultProps}
       height={400}
-      width={800}
-      customLegend={makeVerticalLegend(LegendOrientation.Right)}
-    />,
-  );
-
-  await waitFor(() => {
-    expect(queryByTestId('timeseries-custom-legend')).toBeInTheDocument();
-  });
-});
-
-test('hides the vertical custom legend when chart width is 0 (maxWidth guard)', async () => {
-  mockOffsetHeight = 0;
-  const { queryByTestId } = render(
-    <EchartsTimeseries
-      {...defaultProps}
-      height={400}
-      width={0}
+      width={2}
       customLegend={makeVerticalLegend(LegendOrientation.Right)}
     />,
   );

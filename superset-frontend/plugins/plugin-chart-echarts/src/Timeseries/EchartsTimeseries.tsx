@@ -89,13 +89,9 @@ export const getTimeseriesLegendMaxHeight = (
     ),
   );
 
-/**
- * Computes the maximum pixel width for a Left/Right HTML legend column,
- * capped at MAX_CUSTOM_LEGEND_WIDTH_RATIO of the chart width so the plot
- * always retains at least 60% of the horizontal space.
- */
 export const getTimeseriesLegendMaxWidth = (chartWidth: number) =>
   Math.floor(Math.max(chartWidth, 0) * MAX_CUSTOM_LEGEND_WIDTH_RATIO);
+
 const getTimestampFromTimeAxisValue = (value: string | number) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : undefined;
@@ -853,15 +849,16 @@ export default function EchartsTimeseries({
       ? chartBodyHeight
       : getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
     : 0;
-  const customLegendMaxWidth = customLegend && isVerticalLegend
-    ? getTimeseriesLegendMaxWidth(width)
-    : undefined;
+  const customLegendMaxWidth =
+    customLegend && isVerticalLegend
+      ? getTimeseriesLegendMaxWidth(width)
+      : undefined;
   const shouldRenderCustomLegend =
     customLegend !== undefined &&
-    chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
     (isVerticalLegend
       ? customLegendMaxWidth !== undefined && customLegendMaxWidth > 0
-      : customLegendMaxHeight > 0);
+      : chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
+        customLegendMaxHeight > 0);
   const chartEchartOptions = useMemo(
     () =>
       getViableTimeseriesEchartOptions(
