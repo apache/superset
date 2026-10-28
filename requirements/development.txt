@@ -104,7 +104,7 @@ bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-brotli==1.2.0
+brotli==1.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-compress
@@ -1105,7 +1105,7 @@ sqlalchemy-utils==0.43.0
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.21.0
+sqlglot==30.24.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
