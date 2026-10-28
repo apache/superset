@@ -650,13 +650,25 @@ def _execute_task_body(  # noqa: C901
                 set_ended_at=True,
             ).run()
 
-            logger.error(
-                "Task %s (uuid=%s) failed with error: %s",
-                task_type,
-                task_uuid,
-                str(ex),
-                exc_info=True,
-            )
+            # Client-class errors (e.g. QueryObjectValidationError, status 400) are
+            # user-fixable and already surfaced to the user via the task's error
+            # properties; they are not server faults, so avoid ERROR + traceback.
+            status = getattr(ex, "status", None)
+            if isinstance(status, int) and 400 <= status < 500:
+                logger.warning(
+                    "Task %s (uuid=%s) failed with client error: %s",
+                    task_type,
+                    task_uuid,
+                    str(ex),
+                )
+            else:
+                logger.error(
+                    "Task %s (uuid=%s) failed with error: %s",
+                    task_type,
+                    task_uuid,
+                    str(ex),
+                    exc_info=True,
+                )
 
             stats_logger = current_app.config["STATS_LOGGER"]
             stats_logger.incr("gtf.task.failure")

@@ -16,12 +16,19 @@
 # under the License.
 """Unit tests for the GTF executor body (scheduler._execute_task_body)."""
 
+import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from superset_core.tasks.types import TaskStatus
 
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SemanticResultCompletenessError,
+    SupersetException,
+)
 from superset.tasks.heartbeat import SELF_FENCE_ERROR_MESSAGE
 
 
@@ -30,6 +37,7 @@ def _run_body_with_raising_executor(
     timeout_triggered: bool = False,
     abort_detected: bool = False,
     fence_triggered: bool = False,
+    exception: Exception | None = None,
 ):
     """Drive _execute_task_body where the task body raises mid-abort/timeout/fence.
 
@@ -55,6 +63,7 @@ def _run_body_with_raising_executor(
     ctx._abort_detected = abort_detected
     ctx.timeout_triggered = timeout_triggered
     ctx.fence_triggered = fence_triggered
+    ctx.aborting_in_flight = abort_detected or timeout_triggered or fence_triggered
     ctx.abort_handlers_completed = True
     # Echo the error detail back as a real dict (the real error_properties merges
     # the executor cache with the error message / exception detail).
@@ -68,7 +77,7 @@ def _run_body_with_raising_executor(
     def _raise(*_args, **_kwargs):
         # Simulates the abort handler cancelling the warehouse query, which makes
         # the blocked get_df raise inside the task body.
-        raise RuntimeError("query cancelled")
+        raise exception or RuntimeError("query cancelled")
 
     stats_logger = MagicMock()
     app = MagicMock()
@@ -183,3 +192,54 @@ def test_persist_celery_task_id_is_noop_without_an_id() -> None:
 
     task.update_framework_private.assert_not_called()
     db.session.commit.assert_not_called()
+
+
+class _ServerSupersetException(SupersetException):
+    status = 500
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        QueryObjectValidationError("Empty query?"),
+        SemanticResultCompletenessError("incomplete"),
+    ],
+)
+def test_client_class_failure_logs_warning_not_error(
+    exception: Exception, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Client-class failures still end FAILURE but log at WARNING, not ERROR."""
+    with caplog.at_level(logging.WARNING, logger="superset.tasks.scheduler"):
+        _result, transition, _tm, stats_logger = _run_body_with_raising_executor(
+            exception=exception
+        )
+
+    failure = _find_call(transition, TaskStatus.FAILURE)
+    assert failure is not None
+    assert failure.kwargs["properties"]["error_message"] == str(exception)
+    assert ("gtf.task.failure",) in [c.args for c in stats_logger.incr.call_args_list]
+
+    records = [r for r in caplog.records if "failed with" in r.getMessage()]
+    assert [r.levelno for r in records] == [logging.WARNING]
+    assert records[0].exc_info is None
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [RuntimeError("boom"), _ServerSupersetException("server fault")],
+)
+def test_server_class_failure_still_logs_error(
+    exception: Exception, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Non-client failures keep ERROR severity with a traceback."""
+    with caplog.at_level(logging.WARNING, logger="superset.tasks.scheduler"):
+        _result, transition, _tm, stats_logger = _run_body_with_raising_executor(
+            exception=exception
+        )
+
+    assert _find_call(transition, TaskStatus.FAILURE) is not None
+    assert ("gtf.task.failure",) in [c.args for c in stats_logger.incr.call_args_list]
+
+    records = [r for r in caplog.records if "failed with" in r.getMessage()]
+    assert [r.levelno for r in records] == [logging.ERROR]
+    assert records[0].exc_info is not None
