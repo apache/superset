@@ -43,6 +43,24 @@ import {
 } from 'src/pages/DashboardList/DashboardList.testHelpers';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 import { DASHBOARD_WORKSPACE_LIST_COLUMNS } from './constants';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+
+jest.mock('re-resizable', () => ({
+  Resizable: ({ children }: { children: React.ReactNode }) => (
+    <div data-test="mock-resizable">{children}</div>
+  ),
+}));
+
+jest.mock('./sidebarPrefs', () => {
+  const actual = jest.requireActual('./sidebarPrefs');
+  return {
+    ...actual,
+    loadSidebarPrefs: jest.fn(() =>
+      Promise.resolve({ source: 'server', prefs: actual.defaultSidebarPrefs() }),
+    ),
+    saveSidebarPrefs: jest.fn(() => Promise.resolve(true)),
+  };
+});
 
 const mockUseIsMobileHook = useIsMobile as jest.MockedFunction<
   typeof useIsMobile
@@ -136,6 +154,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   mockUseIsMobileHook.mockReturnValue(false);
+  setItem(LocalStorageKeys.DashboardWorkspaceSidebarPrefs, {});
   mockUseDashboard.mockImplementation((idOrSlug: string | number) => ({
     result: {
       id: Number(idOrSlug) || 1,
@@ -258,4 +277,27 @@ test('shows access error in pane without crashing when dashboard GET returns 403
     ).toBeInTheDocument();
   });
   expect(screen.getByTestId('dashboard-workspace')).toBeInTheDocument();
+});
+
+test('desktop sidebar exposes reorder handles and layout controls', async () => {
+  renderWorkspace();
+  await screen.findByText('Sales Dashboard');
+  expect(
+    screen.getAllByTestId('dashboard-workspace-drag-handle').length,
+  ).toBeGreaterThan(0);
+  expect(
+    screen.getByTestId('dashboard-workspace-sidebar-collapse'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-workspace-sidebar-reset-width'),
+  ).toBeInTheDocument();
+});
+
+test('mobile sidebar hides drag handles', async () => {
+  mockUseIsMobileHook.mockReturnValue(true);
+  renderWorkspace();
+  await screen.findByText('Sales Dashboard');
+  expect(
+    screen.queryByTestId('dashboard-workspace-drag-handle'),
+  ).not.toBeInTheDocument();
 });

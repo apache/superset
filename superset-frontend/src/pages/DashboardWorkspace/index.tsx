@@ -21,15 +21,15 @@ import { styled } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StringParam, useQueryParam } from 'use-query-params';
 import { debounce } from 'lodash-es';
-import { Input, Loading } from '@superset-ui/core/components';
+import { Loading } from '@superset-ui/core/components';
 import { ListViewFilterOperator } from 'src/components';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import DashboardCard from 'src/features/dashboards/DashboardCard';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SubMenu from 'src/features/home/SubMenu';
 import { DashboardWorkspacePane } from './DashboardWorkspacePane';
+import DashboardWorkspaceSidebar from './DashboardWorkspaceSidebar';
 import {
   DASHBOARD_WORKSPACE_LIST_COLUMNS,
   DASHBOARD_WORKSPACE_PAGE_SIZE,
@@ -40,31 +40,13 @@ import {
   dashboardMatchesIdOrSlug,
   type WorkspaceDashboard,
 } from './utils';
+import { useDashboardWorkspaceSidebarPrefs } from './useDashboardWorkspaceSidebarPrefs';
 
 const Shell = styled.div`
   display: flex;
   flex: 1;
   min-height: 0;
   min-width: 0;
-`;
-
-const Sidebar = styled.aside<{ $mobile?: boolean }>`
-  width: ${({ $mobile }) => ($mobile ? '100%' : '360px')};
-  max-width: ${({ $mobile }) => ($mobile ? '100%' : '40%')};
-  flex-shrink: 0;
-  border-right: ${({ theme, $mobile }) =>
-    $mobile ? 'none' : `1px solid ${theme.colorBorderSecondary}`};
-  overflow-y: auto;
-  padding: ${({ theme }) => theme.sizeUnit * 3}px;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
-const CardGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const Preview = styled.main`
@@ -131,6 +113,16 @@ function DashboardWorkspace({ addDangerToast, user }: DashboardWorkspaceProps) {
     undefined,
     DASHBOARD_WORKSPACE_LIST_COLUMNS,
   );
+
+  const {
+    sortedDashboards,
+    sidebarWidth,
+    sidebarCollapsed,
+    setOrderFromDashboards,
+    setWidth,
+    setCollapsed,
+    resetWidth,
+  } = useDashboardWorkspaceSidebarPrefs(user, dashboards, !isMobile);
 
   const fetchDashboards = useCallback(
     (search: string, field: SearchField) => {
@@ -202,8 +194,8 @@ function DashboardWorkspace({ addDangerToast, user }: DashboardWorkspaceProps) {
   );
 
   const activeIdOrSlug = useMemo(
-    () => (isMobile ? undefined : resolvePaneId(dashboards, queryId)),
-    [dashboards, queryId, isMobile],
+    () => (isMobile ? undefined : resolvePaneId(sortedDashboards, queryId)),
+    [sortedDashboards, queryId, isMobile],
   );
 
   useEffect(() => {
@@ -213,11 +205,11 @@ function DashboardWorkspace({ addDangerToast, user }: DashboardWorkspaceProps) {
     if (queryId?.trim()) {
       return;
     }
-    const defaultId = resolvePaneId(dashboards, undefined);
+    const defaultId = resolvePaneId(sortedDashboards, undefined);
     if (defaultId) {
       setQueryId(defaultId, 'replaceIn');
     }
-  }, [isMobile, loading, dashboards, queryId, setQueryId]);
+  }, [isMobile, loading, sortedDashboards, queryId, setQueryId]);
 
   const onSelectDashboard = useCallback(
     (dashboard: WorkspaceDashboard) => {
@@ -235,53 +227,27 @@ function DashboardWorkspace({ addDangerToast, user }: DashboardWorkspaceProps) {
     <>
       <SubMenu name={t('Dashboards')} />
       <Shell data-test="dashboard-workspace">
-        <Sidebar
-          data-test="dashboard-workspace-sidebar"
-          $mobile={isMobile}
-        >
-          <Input
-            allowClear
-            placeholder={t('Search by title or slug')}
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            data-test="dashboard-workspace-search"
-          />
-          {listTruncated && (
-            <div data-test="dashboard-workspace-truncation-hint">
-              {t(
-                'Showing the first %(count)s dashboards. Search by title or slug to find others.',
-                { count: dashboards.length },
-              )}
-            </div>
-          )}
-          {loading ? (
-            <Loading />
-          ) : dashboards.length === 0 ? (
-            <div>{t('No dashboards found')}</div>
-          ) : (
-            <CardGrid>
-              {dashboards.map(dashboard => {
-                const idOrSlug = dashboardIdOrSlug(dashboard);
-                return (
-                  <DashboardCard
-                    key={dashboard.id}
-                    dashboard={dashboard}
-                    hasPerm={hasPerm}
-                    bulkSelectEnabled={false}
-                    loading={false}
-                    saveFavoriteStatus={saveFavoriteStatus}
-                    favoriteStatus={favoriteStatus[dashboard.id]}
-                    user={user}
-                    showThumbnails
-                    onSelect={isMobile ? undefined : onSelectDashboard}
-                    isActive={!isMobile && activeIdOrSlug === idOrSlug}
-                    workspaceMode
-                  />
-                );
-              })}
-            </CardGrid>
-          )}
-        </Sidebar>
+        <DashboardWorkspaceSidebar
+          mobile={isMobile}
+          loading={loading}
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          listTruncated={listTruncated}
+          truncatedCount={dashboards.length}
+          dashboards={sortedDashboards}
+          sidebarWidth={sidebarWidth}
+          sidebarCollapsed={sidebarCollapsed}
+          onWidthChange={setWidth}
+          onCollapsedChange={setCollapsed}
+          onResetWidth={resetWidth}
+          onReorder={setOrderFromDashboards}
+          hasPerm={hasPerm}
+          saveFavoriteStatus={saveFavoriteStatus}
+          favoriteStatus={favoriteStatus}
+          user={user}
+          activeIdOrSlug={activeIdOrSlug}
+          onSelectDashboard={onSelectDashboard}
+        />
         {!isMobile && (
           <Preview data-test="dashboard-workspace-preview">
             {activeIdOrSlug ? (
