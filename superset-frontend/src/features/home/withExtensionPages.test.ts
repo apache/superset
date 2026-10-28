@@ -269,3 +269,88 @@ describe('under a subdirectory deployment', () => {
     expect(entry.url).toBe('/review-queue');
   });
 });
+
+describe('when more pages are contributed than the bar can hold', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      page({
+        name: `Page ${i}`,
+        path: `/page-${i}`,
+        nav: { label: `Page ${i}` },
+      }),
+    );
+
+  const names = (pages: ReturnType<typeof page>[]) =>
+    withExtensionPages(menu as never, pages)
+      .slice(menu.length)
+      .map(item => item.name);
+
+  test('three or fewer stay on the bar', () => {
+    expect(names(many(3))).toEqual([
+      'extension:/page-0',
+      'extension:/page-1',
+      'extension:/page-2',
+    ]);
+  });
+
+  test('a fourth folds the tail into one dropdown', () => {
+    // The dropdown costs a slot of its own, so two entries stay inline.
+    expect(names(many(4))).toEqual([
+      'extension:/page-0',
+      'extension:/page-1',
+      'extension:more',
+    ]);
+  });
+
+  test('the bar never grows past the cap, however many are installed', () => {
+    expect(names(many(30))).toHaveLength(3);
+  });
+
+  test('every page is still reachable, none dropped', () => {
+    const [, , more] = withExtensionPages(menu as never, many(10)).slice(
+      menu.length,
+    );
+
+    // Two stay inline, so the other eight are in the dropdown: ten in, ten
+    // out, nothing silently dropped.
+    expect(more.childs).toHaveLength(8);
+    expect(more.childs?.map(c => (c as { name: string }).name)).toEqual(
+      Array.from({ length: 8 }, (_, i) => `extension:/page-${i + 2}`),
+    );
+  });
+
+  test('the dropdown carries no url, which is what makes it a dropdown', () => {
+    const [, , more] = withExtensionPages(menu as never, many(5)).slice(
+      menu.length,
+    );
+
+    expect(more.url).toBeUndefined();
+    expect(more.label).toBe('More');
+  });
+
+  test('a folded entry keeps the key the active-tab lookup uses', () => {
+    // `buildMenuItem` keys a child by `name`, and the highlighting effect
+    // sets `extension:<path>` -- so a page inside the dropdown still
+    // highlights when it is open.
+    const [, , more] = withExtensionPages(menu as never, many(5)).slice(
+      menu.length,
+    );
+
+    expect(more.childs?.[0]).toMatchObject({
+      name: 'extension:/page-2',
+      url: '/page-2',
+    });
+  });
+
+  test('a page the user may not open is not folded in either', () => {
+    const pages = [...many(4), page({ path: '/secret', permitted: false })];
+
+    const [, , more] = withExtensionPages(menu as never, pages).slice(
+      menu.length,
+    );
+
+    expect(
+      more.childs?.some(c => (c as { url: string }).url === '/secret'),
+    ).toBe(false);
+  });
+});
