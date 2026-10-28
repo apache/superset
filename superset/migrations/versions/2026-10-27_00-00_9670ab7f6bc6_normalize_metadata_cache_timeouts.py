@@ -21,7 +21,7 @@ recognized non-negative integer strings, preserving malformed configurations
 and unrelated fields instead of guessing at their intended values.
 
 Revision ID: 9670ab7f6bc6
-Revises: 3740c7bcb2c6
+Revises: f72b6e9c104a
 Create Date: 2026-10-27 00:00:00.000000
 """
 
@@ -35,7 +35,7 @@ from sqlalchemy import column, Integer, select, table, Text
 from superset.utils import json
 
 revision = "9670ab7f6bc6"
-down_revision = "3740c7bcb2c6"
+down_revision = "f72b6e9c104a"
 
 _DATABASES = table("dbs", column("id", Integer), column("extra", Text))
 _TIMEOUT_KEYS = (
