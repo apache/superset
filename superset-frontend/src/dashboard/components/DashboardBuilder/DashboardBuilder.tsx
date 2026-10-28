@@ -1060,17 +1060,19 @@ const DashboardBuilder = () => {
       </StyledContent>
       {/* Guests have no version history to show; keep its viewport-sized host
           out of embedded documents so it cannot affect iframe sizing. */}
-      {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
-        <VersionHistoryColumn
-          data-test="dashboard-version-history-column"
-          topOffset={barTopOffset}
-          bottomOffset={barBottomOffset}
-        >
-          <Suspense fallback={null}>
-            <DashboardVersionHistory />
-          </Suspense>
-        </VersionHistoryColumn>
-      )}
+      {isFeatureEnabled(FeatureFlag.VersionHistory) &&
+        !isEmbedded() &&
+        !editMode && (
+          <VersionHistoryColumn
+            data-test="dashboard-version-history-column"
+            topOffset={barTopOffset}
+            bottomOffset={barBottomOffset}
+          >
+            <Suspense fallback={null}>
+              <DashboardVersionHistory />
+            </Suspense>
+          </VersionHistoryColumn>
+        )}
       {dashboardIsSaving && (
         <Loading
           css={css`

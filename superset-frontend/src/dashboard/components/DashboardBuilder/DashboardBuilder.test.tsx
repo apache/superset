@@ -22,6 +22,7 @@
 import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
   fireEvent,
   render,
   within,
@@ -39,6 +40,7 @@ import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSide
 import {
   fetchFaveStar,
   setActiveTab,
+  setEditMode,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import {
@@ -57,6 +59,8 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import DashboardVersionHistory from 'src/features/versionHistory/DashboardVersionHistory';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -141,7 +145,7 @@ jest.mock('src/features/versionHistory/DashboardVersionHistory', () => ({
   __esModule: true,
   // Renders a marker inside the column so placement can be asserted; the
   // real component's restore modal portals out, which is irrelevant here.
-  default: () => <aside data-test="mock-dashboard-version-history" />,
+  default: jest.fn(() => <aside data-test="mock-dashboard-version-history" />),
 }));
 
 jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
@@ -1395,3 +1399,93 @@ test('dims the horizontal filter bar during a preview without making the gate se
     restore();
   }
 });
+
+test('entering edit mode closes history and allows reopening after editing', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  jest
+    .mocked(DashboardVersionHistory)
+    .mockImplementation(
+      jest.requireActual('src/features/versionHistory/DashboardVersionHistory')
+        .default,
+    );
+  jest.mocked(useStoredSidebarWidth).mockReturnValue([100, jest.fn()]);
+  jest.mocked(fetchFaveStar).mockReturnValue(async () => {});
+  jest.mocked(setActiveTab).mockReturnValue(() => ({
+    type: 'SET_ACTIVE_TAB',
+    prevTabId: undefined,
+    activeTabs: [],
+    inactiveTabs: [],
+  }));
+  const store = storeWithState({
+    ...mockState,
+    dashboardLayout: undoableDashboardLayout,
+  });
+  store.dispatch(openVersionHistoryPanel('dashboard'));
+  const { unmount } = render(<DashboardBuilder />, {
+    store,
+    useRedux: true,
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  try {
+    expect(await screen.findByTestId('real-history-panel')).toBeInTheDocument();
+    act(() => {
+      store.dispatch(setEditMode(true));
+    });
+    expect(
+      screen.getByTestId('mock-builder-component-pane'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('real-history-panel')).not.toBeInTheDocument();
+    expect(store.getState().versionHistory.isPanelOpen).toBe(false);
+    act(() => {
+      store.dispatch(setEditMode(false));
+    });
+    expect(screen.queryByTestId('real-history-panel')).not.toBeInTheDocument();
+    act(() => {
+      store.dispatch(openVersionHistoryPanel('dashboard'));
+    });
+    expect(await screen.findByTestId('real-history-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('mock-builder-component-pane'),
+    ).not.toBeInTheDocument();
+  } finally {
+    unmount();
+    window.featureFlags = {};
+    jest
+      .mocked(DashboardVersionHistory)
+      .mockImplementation(() => (
+        <aside data-test="mock-dashboard-version-history" />
+      ));
+  }
+});
+
+jest.mock('src/features/versionHistory/VersionHistoryPanel', () => ({
+  __esModule: true,
+  default: () => <aside data-test="real-history-panel" />,
+}));
+jest.mock('src/features/versionHistory/useDashboardVersionPreview', () => ({
+  useDashboardVersionPreview: jest.fn(),
+}));
+jest.mock('src/features/versionHistory/useVersionActions', () => ({
+  useVersionActions: () => ({
+    requestRestore: jest.fn(),
+    openAsNew: jest.fn(),
+    restoreModal: null,
+  }),
+}));
+jest.mock('src/features/versionHistory/useVersionActivity', () => ({
+  useVersionActivity: () => ({
+    records: [],
+    timeline: [],
+    newestGroup: null,
+    currentVersionStatus: 'empty',
+    count: 0,
+    isLoading: false,
+    error: null,
+    hasMore: false,
+    truncated: false,
+    loadMore: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}));
