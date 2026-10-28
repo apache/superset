@@ -2721,10 +2721,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if database is not None
             else cls.max_column_name_length
         )
-        if (
-            max_column_name_length
-            and len(label_mutated) > max_column_name_length
-        ):
+        if max_column_name_length and len(label_mutated) > max_column_name_length:
             label_mutated = cls._truncate_label(label, max_column_name_length)
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
