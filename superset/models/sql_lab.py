@@ -22,6 +22,7 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
+from functools import cache
 from typing import Any, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
@@ -411,15 +412,21 @@ class Query(
             collect_rls_predicates_for_sql,
         )
 
-        default_schema = self.database.get_default_schema(self.catalog)
-        return list(
-            collect_rls_predicates_for_sql(
-                self.sql,
-                self.database,
-                self.catalog,
-                self.schema or default_schema or "",
-            )
+        resolve_catalog = cache(self.database.get_default_catalog)
+        default_schema = self._get_rls_schema()
+        predicates = collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            default_schema,
+            # As ``get_from_clause`` applies them to the inner SQL.
+            include_global_guest_rls=False,
+            resolve_catalog=resolve_catalog,
         )
+        predicates.extend(
+            self._get_query_rls_cache_keys(query_obj, default_schema, resolve_catalog)
+        )
+        return list(dict.fromkeys(predicates))
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """
