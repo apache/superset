@@ -458,20 +458,6 @@ test('handleDeprecatedControls does not resolve interval_color_indices by defaul
   expect(formData.interval_color_indices).toBe('2,3');
 });
 
-test('handleDeprecatedControls migrates interval_color_indices into interval_colors when opted in', () => {
-  const formData: any = {
-    viz_type: VizType.Gauge,
-    intervals: '20,40,60',
-    interval_color_indices: '2,3',
-    color_scheme: 'testScheme',
-  };
-  handleDeprecatedControls(formData, { resolveLegacyGaugeColors: true });
-
-  // The uncovered third bound keeps its positional scheme color, matching
-  // what the Gauge renderer drew before the migration.
-  expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#2ca02c']);
-});
-
 test('applyDefaultFormData keeps legacy interval_color_indices unresolved for dashboards', () => {
   // The dashboard's color_scheme override is applied after hydration, so the
   // legacy palette-relative indices must not be frozen into literal colors.
@@ -518,28 +504,3 @@ test('applyDefaultFormData keeps legacy interval_color_indices unresolved for da
   }
 });
 
-test('handleDeprecatedControls does not override an already-populated interval_colors', () => {
-  const formData: any = {
-    viz_type: VizType.Gauge,
-    intervals: '20,40,60',
-    interval_color_indices: '2,3',
-    interval_colors: ['#000000'],
-    color_scheme: 'testScheme',
-  };
-  handleDeprecatedControls(formData, { resolveLegacyGaugeColors: true });
-
-  expect(formData.interval_colors).toEqual(['#000000']);
-});
-
-test('handleDeprecatedControls falls back to the default scheme when the saved scheme is unregistered', () => {
-  const formData: any = {
-    viz_type: VizType.Gauge,
-    intervals: '20,40,60',
-    interval_color_indices: '2,3',
-    color_scheme: 'not-a-real-scheme',
-  };
-  handleDeprecatedControls(formData, { resolveLegacyGaugeColors: true });
-
-  // Mirrors the Gauge renderer, which resolves against the default scheme.
-  expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#2ca02c']);
-});

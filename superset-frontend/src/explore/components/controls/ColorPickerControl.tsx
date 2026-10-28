@@ -248,7 +248,11 @@ export default function ColorPickerControl({
       ? Object.keys(SPECIAL_COLORS)
           .filter(key => offeredSpecialKeys.has(key))
           .map(key => [key, toDisplayHex(key, themeColors, true)] as const)
-          .find(([, displayHex]) => displayHex === hex)
+          .find(
+            ([, displayHex]) =>
+              displayHex !== undefined &&
+              normalizeColorToHex(displayHex) === hex,
+          )
       : undefined;
 
     if (specialEntry) {

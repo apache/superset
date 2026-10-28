@@ -131,6 +131,43 @@ test('calls onChange with string key "Green" when resolveThemeTokens is true', a
   expect(onChange).toHaveBeenCalledWith('Green');
 });
 
+test('stores "Green" when the theme colorSuccess is a non-hex string', async () => {
+  const onChange = jest.fn();
+
+  jest
+    .spyOn(require('@apache-superset/core/theme'), 'useTheme')
+    .mockReturnValue({
+      colors: {
+        colorSuccess: 'rgb(82, 196, 26)',
+      },
+    });
+
+  render(
+    <ColorPickerControl
+      {...defaultProps}
+      onChange={onChange}
+      resolveThemeTokens
+      presets={[{ label: 'Special Colors', colors: ['Green', 'Red'] }]}
+    />,
+  );
+
+  await userEvent.click(
+    document.querySelector('.ant-color-picker-trigger') as HTMLElement,
+  );
+
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    document.querySelectorAll('.ant-color-picker-presets-color')[0],
+  );
+
+  expect(onChange).toHaveBeenCalledWith('Green');
+});
+
 test('stores the theme token, not "Green", when Green is not among the presets', async () => {
   const onChange = jest.fn();
 
