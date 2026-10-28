@@ -1013,6 +1013,9 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid "A saved query with this name already exists"
+msgstr ""
+
 msgid "A semantic query filter is invalid. Check its operator and values, then try again."
 msgstr ""
 
