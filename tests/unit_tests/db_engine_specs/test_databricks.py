@@ -269,7 +269,8 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert adjusted_args_fallback["catalog"] == "connect_arg_cat"
     assert adjusted_args_fallback["schema"] == "default"
 
-    # Test preserving connect_args schema over URI query schema when no override is given
+    # Test preserving connect_args schema over URI query schema when no override
+    # is given
     legacy_url = (
         "databricks+connector://token:abc@my_hostname:1234/legacy?schema=url_schema"
     )
