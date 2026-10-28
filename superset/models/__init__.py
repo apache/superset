@@ -20,4 +20,5 @@ from . import (  # noqa: F401
     purge_audit_log,
     sql_lab,
     user_attributes,
+    user_ui_prefs,
 )
