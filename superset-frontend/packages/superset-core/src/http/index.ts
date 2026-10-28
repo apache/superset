@@ -95,11 +95,19 @@ export declare function put<T = unknown>(
   request: HttpRequest,
 ): Promise<HttpResponse<T>>;
 
-/** Deletes through Superset's API. The CSRF token is attached by the host. */
-declare function del<T = unknown>(
+/**
+ * Deletes through Superset's API. The CSRF token is attached by the host.
+ *
+ * Named `del` because `delete` is a reserved word: this module is type-only,
+ * every declaration in it erases, and the aliasing form that would export the
+ * reserved name -- `export { del as delete }` -- leaves a runtime export with
+ * nothing behind it, which the bundler rejects.
+ *
+ * @example
+ * ```typescript
+ * await http.del({ endpoint: '/api/v1/chart/42' });
+ * ```
+ */
+export declare function del<T = unknown>(
   request: HttpRequest,
 ): Promise<HttpResponse<T>>;
-
-// `delete` is a reserved word, so the declaration is named and then exported
-// under the name callers actually use: `http.delete(...)`.
-export { del as delete };

@@ -244,11 +244,12 @@ await http.post({
 });
 ```
 
-`get`, `post`, `put` and `delete` all take an `endpoint` -- a path under this
+`get`, `post`, `put` and `del` all take an `endpoint` -- a path under this
 Superset, beginning with `/`, to which the host applies the application root
 -- and return the parsed `json`, the `status` and the response `headers`. An
 absolute or protocol-relative URL is refused: the call carries your session,
-so reaching another origin is `fetch`'s job, not this namespace's.
+so reaching another origin is `fetch`'s job, not this namespace's. The
+delete verb is `del`, because `delete` is a reserved word.
 
 `@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
 part of the extension API. An extension that imports it bundles its own copy,

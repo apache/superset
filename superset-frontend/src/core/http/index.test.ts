@@ -47,16 +47,20 @@ beforeEach(() => {
   );
 });
 
-test.each(['get', 'post', 'put', 'delete'] as const)(
-  '%s reaches the client of the same name',
-  async verb => {
-    await http[verb]({ endpoint: '/api/v1/chart/' });
+// `del` is the one name that differs from the client's: `delete` is a
+// reserved word, so the published declaration cannot use it.
+test.each([
+  ['get', 'get'],
+  ['post', 'post'],
+  ['put', 'put'],
+  ['del', 'delete'],
+] as const)("%s reaches the client's %s", async (verb, clientMethod) => {
+  await http[verb]({ endpoint: '/api/v1/chart/' });
 
-    expect(mocked[verb]).toHaveBeenCalledWith(
-      expect.objectContaining({ endpoint: '/api/v1/chart/' }),
-    );
-  },
-);
+  expect(mocked[clientMethod]).toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/chart/' }),
+  );
+});
 
 test('the parsed body, status and headers come back', async () => {
   mocked.get.mockResolvedValue(answer({ result: [1, 2] }, 207));
