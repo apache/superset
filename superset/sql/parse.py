@@ -845,6 +845,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        :return: one entry per select expression, ``None`` where unaliased
+        """
+        raise NotImplementedError()
+
     def parse_predicate(self, predicate: str) -> InternalRepresentation:
         """
         Parse a predicate string into an AST.
@@ -1348,6 +1356,245 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             Dialects.TSQL,
         }
     )
+
+    def count_select_expressions(self) -> int:
+        """
+        How many expressions this statement's ``SELECT`` list holds.
+
+        A caller that wraps a user-supplied fragment in ``SELECT <fragment>``
+        parses successfully whether the fragment is one expression or a
+        comma-separated list, and the two are not interchangeable: the second
+        returns more columns than the caller asked for. Returns 0 for anything
+        that is not a ``SELECT``.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return 0
+        return len(self._parsed.expressions)
+
+    def is_bare_select_expression(self) -> bool:
+        """
+        Whether this is ``SELECT <one expression>`` and nothing else.
+
+        `count_select_expressions` counts only the projection, so
+        ``SELECT secret FROM vault`` holds one expression and satisfies it. A
+        caller that splices a user-supplied fragment into a larger statement as
+        *text* needs the stronger claim: no FROM, no WHERE, no GROUP BY, no
+        clause of any kind -- otherwise whatever the caller appends after the
+        fragment lands inside the fragment's own syntax instead of its own.
+
+        Stated as "no populated argument other than the projection" rather than
+        as a denylist of clause names, so a sqlglot release or a dialect that
+        introduces a clause this does not know about fails closed.
+
+        This says nothing about sub-queries, which live *inside* the projection:
+        callers that care need `has_subquery` as well.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return False
+        if len(self._parsed.expressions) != 1:
+            return False
+        return not self.get_clause_names()
+
+    def get_clause_names(self) -> set[str]:
+        """
+        Which clauses other than the projection this ``SELECT`` populates.
+
+        `is_bare_select_expression` answers "none of them", which is too strong
+        for a caller that assembles a statement with a FROM clause of its own
+        and needs to know that nothing *else* came along with it.
+
+        Reported as the set that is present rather than as a denylist of clause
+        names, for the same reason: a sqlglot release or a dialect introducing a
+        clause this does not know about shows up in the answer instead of being
+        silently permitted.
+
+        Returns an empty set for anything that is not a ``SELECT``, which such a
+        caller has to reject on other grounds anyway.
+
+        Trailing underscores are stripped, because sqlglot appends one to the
+        names that collide with a Python keyword -- its FROM clause is
+        ``from_``. Callers should not have to know that, nor track it across
+        sqlglot releases.
+
+        :return: clause names, e.g. ``{"from", "where"}``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return set()
+        return {
+            key.rstrip("_")
+            for key, value in self._parsed.args.items()
+            if value and key != "expressions"
+        }
+
+    def get_from_clause_sql(self) -> str | None:
+        """
+        This statement's ``FROM`` clause, rendered back to SQL.
+
+        For comparing an assembled statement's FROM against the one its builder
+        intended. Both sides are rendered rather than compared as raw text, so
+        the comparison does not depend on the whitespace the builder happened to
+        use. Identifier case is preserved, as it has to be for an engine that
+        treats it as significant.
+
+        :return: the rendered clause, or ``None`` where there is no FROM
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        # ``from_`` is sqlglot's own name for it, the trailing underscore being
+        # how it avoids the Python keyword; both are read so that the lookup
+        # does not depend on which one a given release uses.
+        from_clause = self._parsed.args.get("from_") or self._parsed.args.get("from")
+        return from_clause.sql(dialect=self._dialect) if from_clause else None
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        ``None`` where an expression carries no alias. A caller that builds a
+        projection per input and reads the results back positionally needs the
+        aliases it asked for to have survived -- a comment inside a spliced
+        fragment swallows the rest of its line, alias included, and the query
+        still returns the right number of columns.
+
+        Returns an empty list for anything that is not a ``SELECT``.
+
+        :return: one entry per select expression, in order
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return []
+        return [
+            expression.alias if isinstance(expression, exp.Alias) else None
+            for expression in self._parsed.expressions
+        ]
+
+    def get_select_literal_value(self) -> str | None:
+        """
+        The string this statement's single projection denotes, if it is one.
+
+        For a caller that rendered a value into SQL text and needs to know that
+        the engine reads it back as the same value. Whether the renderer's
+        escaping is the escaping the engine honours is a per-engine, and
+        sometimes per-session, property; parsing the rendered text in the
+        engine's own dialect answers it rather than assuming it.
+
+        ``None`` where the projection is anything but exactly one string
+        literal -- a value that broke out of its quotes parses as a
+        concatenation, a function call or a syntax error, and none of those is
+        the value the caller rendered.
+
+        An alias is not part of what the projection denotes, so one is read
+        through: ``SELECT 'a' AS v0`` answers ``a``.
+
+        :return: the string the projection denotes, or ``None``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        expressions = self._parsed.expressions
+        if len(expressions) != 1:
+            return None
+        expression = expressions[0].unalias()
+        if not isinstance(expression, exp.Literal) or not expression.is_string:
+            return None
+        return str(expression.this)
+
+    def has_comment(self) -> bool:
+        """
+        Whether this statement carries a SQL comment anywhere in it.
+
+        Read off the parse rather than from the text, which is what makes it
+        both dialect-aware and literal-aware for free: sqlglot attaches a
+        comment to the node it follows only where its lexer for that dialect
+        saw a comment, so a value of ``a--b`` inside a string literal is data
+        and answers ``False``.
+
+        For a caller that assembles a statement and reads its results back
+        positionally: a comment swallows the rest of its line, and text the
+        caller appended after a spliced fragment can end up inside it.
+
+        :return: whether any node carries a comment
+        """
+        return any(node.comments for node in self._parsed.walk())
+
+    def count_bare_column_references(self, name: str) -> int:
+        """
+        How many times ``name`` appears as a column reference in this statement.
+
+        A caller that stands a placeholder in for a value -- replacing it in the
+        *text* before parsing -- cannot otherwise tell whether the placeholder
+        landed somewhere the engine will evaluate. Substituting an identifier
+        and counting the column references it produced answers that: a
+        substitution that fell inside a string literal or a comment yields no
+        column reference at all, because neither holds parseable nodes.
+
+        Compared case-insensitively, since a dialect may normalize the case of
+        an unquoted identifier.
+
+        :param name: the identifier to count references to
+        :return: the number of column references to ``name``
+        """
+        target = name.lower()
+        return sum(
+            1
+            for column in self._parsed.find_all(exp.Column)
+            if column.name.lower() == target
+        )
+
+    def get_column_names(self) -> set[str]:
+        """
+        The unqualified names of every column reference in this statement.
+
+        Qualified or not: ``orders_seq.NEXTVAL`` answers ``{"nextval"}``, which
+        is what a caller asking about a pseudo-column needs, since the
+        qualifier is the sequence's own name.
+
+        Lowercased, since a dialect may normalize the case of an unquoted
+        identifier.
+
+        :return: the column names referenced, lowercased
+        """
+        return {
+            column.name.lower()
+            for column in self._parsed.find_all(exp.Column)
+            if column.name
+        }
+
+    def get_niladic_functions(self) -> set[str]:
+        """
+        Names of functions called with no arguments.
+
+        Some functions mean something entirely different with an empty argument
+        list: on Hive and Impala ``unix_timestamp()`` is the current time while
+        ``unix_timestamp(x)`` is a pure conversion. Callers that care about
+        determinism have to tell those apart by arity, so a name-based check
+        like ``check_functions_present`` is not enough.
+        """
+        niladic: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            name = function.name.upper() if sql_name == "ANONYMOUS" else sql_name
+            if not self._function_args(function):
+                niladic.add(name.upper())
+        return niladic
+
+    @staticmethod
+    def _function_args(function: exp.Func) -> list[Any]:
+        """
+        The arguments a function node was called with.
+
+        `exp.Anonymous` keeps the function *name* in `this` and the arguments in
+        `expressions`, while a named node like `exp.Lower` keeps its single
+        argument in `this` -- so the two shapes have to be read differently or
+        every anonymous call looks like it takes one argument.
+        """
+        if isinstance(function, exp.Anonymous):
+            return list(function.expressions or [])
+
+        args: list[Any] = []
+        for value in function.args.values():
+            if value is None:
+                continue
+            args.extend(value if isinstance(value, list) else [value])
+        return args
 
     def __init__(
         self,
@@ -1887,6 +2134,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             pretty=True,
             comments=comments,
         ).generate(self._parsed, copy=True)
+
+    def format_select_clause(
+        self, *, orderby: bool = False, apply_dialect: bool = True
+    ) -> str:
+        """Unwrap a synthetic SELECT using its parsed projection or ORDER BY nodes.
+
+        Extract clauses structurally so keywords inside comments are never wrappers.
+        Disable dialect rewrites when unwrapping sanitize_clause's neutral output.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            raise SupersetParseError("Expected a SELECT statement")
+        select = self._parsed
+        clause = select.args.get("order") if orderby else select
+        if clause is None:
+            raise SupersetParseError("Expected an ORDER BY clause")
+        expressions = [expression.copy() for expression in clause.expressions]
+        if expressions:
+            expressions[0].add_comments(select.comments)
+        generator = _normalized_generator(
+            self._dialect if apply_dialect else None, pretty=False, comments=True
+        )
+        result = ", ".join(generator.generate(expression) for expression in expressions)
+        if not orderby and (distinct := select.args.get("distinct")):
+            result = f"{generator.generate(distinct.copy())} {result}"
+        return result
 
     def get_settings(self) -> dict[str, str | bool]:
         """
