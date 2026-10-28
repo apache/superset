@@ -275,6 +275,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.themes import ThemeModelView
         from superset.views.user_info import UserInfoView
         from superset.views.user_registrations import UserRegistrationsView
+        from superset.user_ui_prefs.api import UserUiPrefsRestApi
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
 
@@ -300,6 +301,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ThemeRestApi)
         appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(UserRestApi)
+        appbuilder.add_api(UserUiPrefsRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
