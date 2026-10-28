@@ -41,7 +41,7 @@ from threading import get_ident, Lock, Thread
 from types import ModuleType
 from typing import Any, cast, TypeAlias
 from unittest.mock import Mock, patch
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 import requests
@@ -61,7 +61,7 @@ from superset_core.semantic_layers.transport import (
 from urllib3.response import HTTPResponse
 
 from superset.semantic_layers import transport as semantic_layer_http
-from superset.utils import network
+from superset.utils import json, network
 
 # All tests run in their own pytest process; unrelated background traffic is
 # explicitly exercised by the reference cases below.
@@ -1889,3 +1889,45 @@ def test_releasing_sockets_without_a_scheduler_is_a_noop(
     assert not bound.sockets
     assert not bound.closed
     assert not bound.expired
+
+
+def test_post_transmits_query_params_and_json_body() -> None:
+    """Verify provider payloads at the server, beyond request-call mocks."""
+    received: list[tuple[str, bytes]] = []
+
+    class CapturePostHandler(_Handler):
+        """Capture wire bytes before returning the ordinary loopback response."""
+
+        seen: list[str] = []
+
+        def do_POST(self) -> None:  # noqa: N802
+            """Retain the request target and body for independent assertions."""
+            body: bytes = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            received.append((self.path, body))
+            self._respond()
+
+    server: HTTPServer
+    with HTTPServer(("127.0.0.1", 0), CapturePostHandler) as server:
+        thread: Thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with _internal_hosts(True):
+                response: ProviderResponse = provider_request(
+                    "Cube",
+                    "POST",
+                    f"http://127.0.0.1:{server.server_port}/graphql",
+                    params={"page": "2"},
+                    json={"query": "{ ok }"},
+                    timeout=2,
+                )
+            assert response.status == 200
+            assert len(received) == 1
+            path: str
+            body: bytes
+            path, body = received[0]
+            assert urlsplit(path).path == "/graphql"
+            assert parse_qs(urlsplit(path).query) == {"page": ["2"]}
+            assert json.loads(body) == {"query": "{ ok }"}
+        finally:
+            server.shutdown()
+            thread.join(timeout=2)
