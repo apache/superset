@@ -46,9 +46,17 @@ def _update_canvas_impl(
     try:
         updated = UpdateCanvasCommand(canvas.id, CanvasPutSchema().load(changes)).run()
     except ValidationError as ex:
-        return {"error": "Invalid canvas", "errors": ex.messages}
+        return {
+            "error": "Invalid canvas",
+            "error_type": "ValidationError",
+            "errors": ex.messages,
+        }
     except CanvasInvalidError as ex:
-        return {"error": "Invalid canvas", "errors": ex.normalized_messages()}
+        return {
+            "error": "Invalid canvas",
+            "error_type": "ValidationError",
+            "errors": ex.normalized_messages(),
+        }
     except CanvasNotFoundError:
         return {"error": f"Canvas {canvas_id} not found, or no access to it"}
     except CanvasForbiddenError:

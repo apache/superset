@@ -28,7 +28,7 @@ from superset.canvas.schemas import CanvasPostSchema
 from superset.commands.canvas.create import CreateCanvasCommand
 from superset.commands.canvas.delete import DeleteCanvasCommand
 from superset.commands.canvas.exceptions import CanvasInvalidError
-from superset.mcp_service.canvas.schemas import CanvasWriteResponse
+from superset.mcp_service.canvas.schemas import CanvasWriteResponse, InitialOpsInput
 from superset.mcp_service.canvas.tool.canvas_ops_common import _apply_canvas_ops_impl
 
 
@@ -50,9 +50,17 @@ def _create_canvas_impl(
     try:
         canvas = CreateCanvasCommand(CanvasPostSchema().load(data)).run()
     except ValidationError as ex:
-        return {"error": "Invalid canvas", "errors": ex.messages}
+        return {
+            "error": "Invalid canvas",
+            "error_type": "ValidationError",
+            "errors": ex.messages,
+        }
     except CanvasInvalidError as ex:
-        return {"error": "Invalid canvas", "errors": ex.normalized_messages()}
+        return {
+            "error": "Invalid canvas",
+            "error_type": "ValidationError",
+            "errors": ex.normalized_messages(),
+        }
     result: dict[str, Any] = {
         "id": canvas.id,
         "url": canvas.url,
@@ -84,13 +92,13 @@ def create_canvas(
     title: str,
     slug: str | None = None,
     description: str | None = None,
-    ops: list[dict[str, Any]] | None = None,
+    ops: InitialOpsInput | None = None,
 ) -> CanvasWriteResponse:
     """Create a canvas, with you as its editor, and return its id, URL and
     revision.
 
     ``slug`` is the readable URL (``/canvas/<slug>/``); without one the URL
-    uses the id. ``ops`` optionally builds the canvas in the same call, with
+    uses the id. ``ops`` optionally builds published content in the same call, with
     the operations ``apply_canvas_draft_ops`` takes (grid layouts are 1-based; omit
     ``col``/``row`` to auto-place): if any fails, nothing is created and the
     error names the operation at fault.

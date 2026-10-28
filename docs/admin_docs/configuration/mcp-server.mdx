@@ -426,6 +426,88 @@ writes to the existing chart commands and does not bypass that prerequisite or
 chart edit permissions. Link generation alone does not establish that a chart
 was saved or that a provider query executed successfully.
 
+## Canvas authoring and recovery
+
+Canvas tools require the `CANVAS` feature flag and the caller's Canvas permissions.
+`create_canvas` with omitted, `null`, or empty `ops` creates an empty canvas.
+Supplying initial operations intentionally publishes their content in that call;
+if an initial operation fails, the new canvas and widgets are not retained.
+To stage changes privately, create a canvas, call `create_canvas_draft`, and use
+the returned token and draft revision with `apply_canvas_draft_ops`. Only an
+explicit `commit_canvas_draft` publishes those draft changes.
+
+The native tool input schemas and `search_tools` results configured with
+`MCP_TOOL_SEARCH_CONFIG["include_schemas"] = True` expose the canonical operation
+grammar: `add`, `move`, `remove`, `set_props`, `place`, `set_scope`, and
+`set_settings`, selected by the required `op` field. Arguments remain flat
+(`token`, `revision`, `ops` for draft operations),
+and operation fields use camelCase. Draft operation batches must be nonempty.
+Native compact descriptions retain the input schema. Search results with
+`include_schemas=False` deliberately omit schemas; flat Canvas tools have no
+separate `request` instructions channel. Retrieve the full schema before
+authoring operations, rather than relying on a truncated description.
+
+An `add` operation supplies exactly one of `widgetId` (an existing widget) or
+`widgetType` (a new widget). New-widget fields such as `props` and `name` cannot
+be combined with `widgetId`. Use `get_widget_control_schema` for the selected
+widget type's props. Omitting `move.layout` preserves the existing placement
+layout when its parent is unchanged; moving to another parent allows reflow.
+`set_scope.scope` and `set_settings.value` are required fields that accept `null`
+to reset the specified override. Explicit resets survive a draft commit.
+
+Chart, table, and filter placements reference a `widgetId`. Their effective
+content is in the response's `widgets` map, including staged draft content.
+`set_props` replaces the entire props object. For a follow-up dimension edit,
+read `get_canvas_draft`, copy the effective props, update `dataBinding.dimensions`,
+and submit the complete replacement to preserve unrelated props. A new widget removed from all placements
+before commit is not published; any surviving placement keeps that widget.
+
+Canvas error results add an optional `error_type` while retaining `error`,
+validation `errors` with paths, and `operation` when an operation index is known.
+Top-level MCP argument/transport errors, permission denials, missing canvases, and
+unsupported definition versions retain their existing responses.
+
+| `error_type` | Meaning | Recovery |
+| --- | --- | --- |
+| `ValidationError` | Invalid canvas metadata, operations, or resulting definition. | Correct the reported fields; a rejected batch leaves the draft unchanged. |
+| `DraftUnavailable` | The token is malformed, unknown, expired, committed, discarded, or owned by another caller. These cases are intentionally indistinguishable. | Obtain an authorized fresh draft if needed; do not infer a reason or replay automatically. |
+| `DraftRevisionConflict` | The submitted draft revision differs from the loaded draft. | Reload the draft and base subsequent changes on its current revision. |
+| `CanvasRevisionConflict` | The published canvas changed before a mutating commit or conflicted with initial operations. | Start a fresh draft after a rejected mutating commit. |
+| `WidgetRevisionConflict` | A shared widget changed even though the canvas did not. `changed_widgets` identifies the conflicts and `canvas_changed` is `false`. | Start a fresh draft; the rejected commit publishes none of its changes. |
+
+Revision fields identify the state actually observed by the command:
+
+| Field | Meaning |
+| --- | --- |
+| `base_revision` | Published canvas revision from which the draft was forked. |
+| `draft_revision` | Current loaded draft revision, when available. Use a successful draft response's `revision` for its next write. |
+| `current_canvas_revision` | Published canvas revision observed at a canvas/widget conflict check, when available; never a widget revision. |
+| `canvas_revision` | Published revision returned by a successful commit, including an empty draft close. |
+| `revision` | Compatibility field: the draft revision for draft responses/revision conflicts, or the observed canvas revision for canvas/widget conflicts and direct canvas writes. Prefer the explicit fields when interpreting conflicts. |
+
+Unavailable revisions are omitted. Validation does not load a token merely to
+enrich an error, and `DraftUnavailable` reveals no revisions. A stale draft
+revision is checked before publishing or closing. For a mutating commit, a
+canvas conflict takes precedence over any widget conflicts; missing widget IDs
+must not be inferred from that response. An empty draft closes successfully
+without writing or incrementing the canvas, even if the published canvas changed
+since the fork, and reports the published revision observed by the command.
+A draft whose changes cancel out, for example adding a new widget and then
+removing it, is not empty: committing it publishes a new canvas revision, as
+publishing the same operations without a draft would, and returns
+`CanvasRevisionConflict` if the canvas changed since the fork.
+
+For ranked results, specify both ordering and a limit in `dataBinding`, for
+example `"orderBy": [{"field": "total_amount", "descending": true}], "rowLimit": 5`.
+Use a saved metric name or the equivalent ad hoc metric label as the sort field.
+Ascending order selects the smallest aggregates. A limit alone does not imply
+ordering. The canvas page and `preview_widget` execute the binding through the
+same chart-data pipeline, including dataset access checks. Preview rows, columns,
+and permitted query text are evidence of the query that ran; they do not establish
+that the binding answers a natural-language request. Query text requires
+`can_view_query` on `Dashboard`. Visual rendering is optional and separate from
+query execution.
+
 ## Quick Start
 
 Get the MCP server running locally and connect an AI client in three steps.

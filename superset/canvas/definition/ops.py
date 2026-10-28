@@ -248,7 +248,6 @@ class _Applier:
             removed = self.subtree(op.id)
             for node_id in removed:
                 del self.nodes[node_id]
-            self._forget_unplaced()
             touched = [Touch(node_id, FieldGroup.TREE) for node_id in removed]
             return AppliedOperation(
                 logged,
@@ -262,6 +261,7 @@ class _Applier:
             self.node(op.id)
             overrides = self.scopes(op.kind)
             if op.scope is None:
+                logged["scope"] = None
                 overrides.pop(op.id, None)
             else:
                 overrides[op.id] = op.scope.model_dump(
@@ -271,6 +271,7 @@ class _Applier:
         if isinstance(op, SetSettingsOp):
             settings = self.canvas.setdefault("settings", {})
             if op.value is None:
+                logged["value"] = None
                 settings.pop(op.key, None)
             else:
                 settings[op.key] = op.value
@@ -429,7 +430,7 @@ class _Applier:
             raise ValueError(f"{node_id!r} holds a widget that no longer exists")
         return widget_id, stored
 
-    def _forget_unplaced(self) -> None:
+    def forget_unplaced(self) -> None:
         """Drop widgets created here that no placement holds any more."""
         placed = {node.get("widgetId") for node in self.nodes.values()}
         for widget_id in [
@@ -497,6 +498,7 @@ def apply_operations(
     resolver: WidgetResolver | None = None,
     new_id: Callable[[str, Container[str]], str] = new_placement_id,
     pending: dict[str, StoredWidget] | None = None,
+    keep_unplaced: bool = False,
     new_widget_id: Callable[[], str] = lambda: str(uuid4()),
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
@@ -509,6 +511,8 @@ def apply_operations(
     Widgets the operations create or change are kept in ``pending``, keyed by
     UUID, which is updated only if every operation applies; the caller saves
     them with the canvas. ``pending`` may already hold a draft's widgets.
+    ``keep_unplaced`` retains new widgets needed to replay a draft's history;
+    otherwise new widgets without a final placement are dropped before saving.
     """
     widget_types = get_widget_types() if widget_types is None else widget_types
     resolver = resolver or get_widget_resolver()
@@ -535,6 +539,8 @@ def apply_operations(
     except DefinitionValidationError as ex:
         ex.operation = _culprit(ex, applied)
         raise
+    if not keep_unplaced:
+        applier.forget_unplaced()
     pending.clear()
     pending.update(applier.pending)
     return definition, applied

@@ -30,7 +30,7 @@ from superset.commands.canvas.draft import (
     ApplyCanvasDraftOperationsCommand,
     load_draft,
 )
-from superset.mcp_service.canvas.schemas import CanvasDraftResponse
+from superset.mcp_service.canvas.schemas import CanvasDraftResponse, DraftOpsInput
 from superset.mcp_service.canvas.tool.canvas_draft_common import describe, error_result
 
 
@@ -44,6 +44,7 @@ def _apply_canvas_draft_ops_impl(
     except ValidationError as ex:
         return {
             "error": "Invalid operations",
+            "error_type": "ValidationError",
             "errors": [
                 {"path": request_pointer(error["loc"]), "message": error["msg"]}
                 for error in ex.errors()
@@ -93,13 +94,15 @@ def _apply_canvas_draft_ops_impl(
     ),
 )
 def apply_canvas_draft_ops(
-    token: str, revision: int, ops: list[dict[str, Any]]
+    token: str, revision: int, ops: DraftOpsInput
 ) -> CanvasDraftResponse:
-    """Apply operations to a canvas draft, in order and atomically: on any
-    error nothing changes and the error names the operation and the path at
-    fault. Only the draft changes; ``commit_canvas_draft`` publishes it.
-    ``revision`` is the draft revision you last saw; the response carries
-    the next one.
+    """Apply operations to a canvas draft, in order and atomically. Only the
+    draft changes; ``commit_canvas_draft`` publishes it. Send the last
+    ``draft_revision`` as ``revision``; the response carries the next one. On
+    ``DraftRevisionConflict``, reload the draft before writing again.
+
+    On any error nothing changes, and the error names the operation and the
+    path at fault. ``ValidationError`` leaves the draft unchanged.
 
     Operations (placement ids are readable slugs; ``parent`` defaults to
     ``"root"``):
@@ -111,7 +114,9 @@ def apply_canvas_draft_ops(
       created when the draft is published. Use ``"widgetId": "<uuid>"``
       instead of ``widgetType``/``props`` to place an existing one.
     - ``{"op": "set_props", "id": "<id>", "props": {...}}`` replaces the
-      props of a placement's widget, on every canvas that places it.
+      props of a placement's widget, on every canvas that places it after
+      commit. Read its effective props from ``get_canvas_draft``'s ``widgets``
+      map and send the complete replacement to preserve unrelated fields.
     - ``{"op": "place", "id": "<id>", "layout": {"col", "row", "colSpan",
       "rowSpan"}}`` moves or resizes within the parent's grid.
 
@@ -123,7 +128,7 @@ def apply_canvas_draft_ops(
       "custom", "targets": [...], "exclude": [...]}}``; ``scope: null``
       restores auto (the filter's nearest scoping container).
     - ``{"op": "set_settings", "key": "refresh" | "colors" | "display" |
-      "crossFilters", "value": {...}}``.
+      "crossFilters", "value": {...}}``; required ``value: null`` resets it.
 
     Grid layouts are 1-based: ``col`` runs from 1 to the grid's columns (24
     on the root; ``grid_columns`` has each container's) and ``row`` starts

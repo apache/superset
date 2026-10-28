@@ -15,20 +15,51 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Response models for the canvas MCP tools."""
+"""Input and response models for the canvas MCP tools."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     model_serializer,
     SerializationInfo,
     SerializerFunctionWrapHandler,
 )
+
+from superset.canvas.definition.schemas import DraftOperationsRequest, Operation
+
+
+def _keep_raw_ops(value: Any) -> Any:
+    """Keep operation validation and its error response inside Canvas helpers."""
+    return value
+
+
+DraftOpsInput = Annotated[
+    list[dict[str, Any]],
+    BeforeValidator(
+        _keep_raw_ops,
+        json_schema_input_type=DraftOperationsRequest.model_fields[
+            "ops"
+        ].rebuild_annotation(),
+    ),
+]
+InitialOpsInput = Annotated[
+    list[dict[str, Any]],
+    BeforeValidator(_keep_raw_ops, json_schema_input_type=list[Operation]),
+]
+
+CanvasErrorType = Literal[
+    "ValidationError",
+    "DraftUnavailable",
+    "DraftRevisionConflict",
+    "CanvasRevisionConflict",
+    "WidgetRevisionConflict",
+]
 
 
 class _Compact(BaseModel):
@@ -94,6 +125,11 @@ class CanvasWriteResponse(_Compact):
         default=None, description="The initial operations applied, with their ids."
     )
     error: str | None = None
+    error_type: CanvasErrorType | None = None
+    current_canvas_revision: int | None = Field(
+        default=None,
+        description="The published canvas revision observed at a conflict.",
+    )
     errors: Any | None = None
     operation: int | None = Field(
         default=None, description="Index of the initial operation that failed."
@@ -156,7 +192,20 @@ class CanvasDraftResponse(_Compact):
         default=None, description="The canvas revision the draft started from."
     )
     revision: int | None = Field(
-        default=None, description="The draft's revision; send it with the next write."
+        default=None,
+        description="Legacy revision: the draft revision on draft responses and "
+        "draft conflicts, but the published canvas revision on canvas/widget "
+        "conflicts. Prefer draft_revision and current_canvas_revision.",
+    )
+    draft_revision: int | None = Field(
+        default=None,
+        description="The draft revision observed by the command; send it with "
+        "the next draft write. Omitted when the command did not load a draft.",
+    )
+    current_canvas_revision: int | None = Field(
+        default=None,
+        description="The published canvas revision observed at a conflict check; "
+        "not a widget revision or a later read of the canvas.",
     )
     definition: dict[str, Any] | None = None
     ops: list[dict[str, Any]] | None = Field(
@@ -179,13 +228,16 @@ class CanvasDraftResponse(_Compact):
         description="Commit was rejected because these widgets changed meanwhile.",
     )
     canvas_revision: int | None = Field(
-        default=None, description="The canvas revision after a commit."
+        default=None,
+        description="The published revision returned by a successful commit "
+        "command, including an empty draft close without a published write.",
     )
     canvas_changed: bool | None = Field(
         default=None,
         description="Commit was rejected because the canvas changed meanwhile.",
     )
     error: str | None = None
+    error_type: CanvasErrorType | None = None
     errors: list[dict[str, Any]] | None = None
     operation: int | None = Field(
         default=None, description="Index of the operation that failed."
