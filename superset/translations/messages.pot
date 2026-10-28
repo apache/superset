@@ -6033,10 +6033,6 @@ msgstr ""
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr ""
 
-#, python-format
-msgid "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect."
-msgstr ""
-
 msgid "Either the username or the password is wrong."
 msgstr ""
 
@@ -9464,6 +9460,9 @@ msgid "Name your database"
 msgstr ""
 
 msgid "Name your folder and to edit it later, click on the folder name"
+msgstr ""
+
+msgid "Named instances can't be entered as the host. Enter only the host and the port the instance listens on, or connect with a SQLAlchemy URI instead."
 msgstr ""
 
 msgid "Native filter column is required"
@@ -15284,6 +15283,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com). For a named instance (host\\INSTANCE), enter only the host here and the port the instance listens on below, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
@@ -18091,6 +18093,9 @@ msgid "e.g. ********"
 msgstr ""
 
 msgid "e.g. 127.0.0.1"
+msgstr ""
+
+msgid "e.g. 1433"
 msgstr ""
 
 msgid "e.g. 5432"

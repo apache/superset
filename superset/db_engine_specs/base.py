@@ -428,6 +428,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     disable_ssh_tunneling = False
 
+    # SQLAlchemy URI query parameters that only tune a connection (timeouts,
+    # character set, ...) and can neither change where it connects nor who it
+    # authenticates as. Editing only these keeps the stored password reusable,
+    # so a connection can be edited without re-entering it. Anything not listed
+    # is treated as able to redirect the connection.
+    connection_tuning_query_params: frozenset[str] = frozenset()
+
     _date_trunc_functions: dict[str, str] = {}
     _time_grain_expressions: dict[str | None, str] = {}
 
