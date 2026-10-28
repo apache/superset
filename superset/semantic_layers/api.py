@@ -843,11 +843,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         parsed_config = None
         readiness: SemanticCredentialReadiness = SemanticCredentialReadiness.UNRESOLVED
         config: Any
-        if (
-            isinstance(config := body.get("configuration"), dict)
-            and config
-            and security_manager.can_access("can_write", "SemanticLayer")
-        ):
+        if isinstance(
+            config := body.get("configuration"), dict
+        ) and security_manager.can_access("can_write", "SemanticLayer"):
             readiness = credential_readiness(config)
             parsed_config = _parse_partial_config(cls, config)
             if parsed_config is None:

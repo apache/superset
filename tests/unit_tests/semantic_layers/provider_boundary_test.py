@@ -110,6 +110,61 @@ def test_preview_readiness_uses_raw_input_not_client_assertion(
 @pytest.mark.parametrize(
     "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
 )
+@pytest.mark.parametrize("writer", [False, True])
+@pytest.mark.parametrize("configuration", [{}, {"ignored": "fixture"}, None, [], False])
+def test_preview_defaults_preserve_readiness_and_write_permission(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    writer: bool,
+    configuration: object,
+) -> None:
+    """Only writers with an explicit object may discover default-only choices."""
+    provider: MagicMock = MagicMock()
+    provider.configuration_class = PreviewConfiguration
+
+    def configuration_schema(
+        config: PreviewConfiguration | None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
+    ) -> dict[str, Any]:
+        """Expose choices only when the host supplies resolved parsed settings."""
+        if readiness is SemanticCredentialReadiness.RESOLVED:
+            assert config == PreviewConfiguration()
+            return {"enum": ["orders"]}
+        assert config is None
+        return {"enum": []}
+
+    provider.get_configuration_schema.side_effect = configuration_schema
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"test": provider})
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        side_effect=lambda permission, view: permission != "can_write" or writer,
+    )
+    lookup: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid"
+    )
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "test", "configuration": configuration},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["result"]["enum"] == (
+        ["orders"] if writer and isinstance(configuration, dict) else []
+    )
+    provider.get_configuration_schema.assert_called_once()
+    assert provider.get_configuration_schema.call_args.kwargs["readiness"] is (
+        SemanticCredentialReadiness.RESOLVED
+        if writer and isinstance(configuration, dict)
+        else SemanticCredentialReadiness.UNRESOLVED
+    )
+    lookup.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
 def test_configuration_fallback_is_explicitly_unresolved(
     client: FlaskClient,
     full_api_access: None,
