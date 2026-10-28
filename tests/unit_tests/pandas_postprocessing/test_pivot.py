@@ -41,6 +41,36 @@ def test_pivot_without_columns():
     assert df["idx_nulls"].sum() == 1050
 
 
+@pytest.mark.parametrize("drop_missing_columns", [False, True])
+@pytest.mark.parametrize("columns", [["category"], ["category", "country"]])
+def test_pivot_combine_preserves_column_pairs(drop_missing_columns, columns):
+    frame = DataFrame(
+        {
+            "row": ["first", "second"],
+            "category": ["A", "B"],
+            "country": ["US", "EU"],
+            "metric1": [1.0, np.nan],
+            "metric2": [np.nan, 2.0],
+            "empty": [np.nan, np.nan],
+        }
+    )
+    options = {
+        "index": ["row"],
+        "columns": columns,
+        "aggregates": {
+            metric: {"operator": "mean"} for metric in ["metric1", "metric2", "empty"]
+        },
+        "drop_missing_columns": drop_missing_columns,
+    }
+    expected = pivot(df=frame.copy(), **options)
+    expected.columns = expected.columns.reorder_levels([*range(1, len(columns) + 1), 0])
+    actual = pivot(df=frame.copy(), combine_value_with_metric=True, **options)
+
+    pd.testing.assert_frame_equal(
+        actual.sort_index(axis=1), expected.sort_index(axis=1)
+    )
+
+
 def test_pivot_with_single_column():
     """
     Make sure pivot with single column returns correct DataFrame
