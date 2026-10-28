@@ -5307,6 +5307,9 @@ msgstr ""
 "Les champs SQL personnalisés ne peuvent pas être traités en tant que "
 "seule instruction SQL"
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Les champs SQL personnalisés ne peuvent pas définir d'opérations."
 

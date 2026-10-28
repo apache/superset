@@ -5264,6 +5264,9 @@ msgstr "Нетипові показники вимкнено для цього �
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Поля з користувацьким SQL неможливо розібрати як один SQL-вираз."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Нетипові поля запиту не можуть містити підзапити."

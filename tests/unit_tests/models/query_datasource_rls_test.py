@@ -44,6 +44,7 @@ from superset.security.guest_token import (
     GuestTokenRlsRule,
     GuestUser,
 )
+from superset.utils import json
 
 PREDICATE = "tenant_id = 1"
 
@@ -300,4 +301,4 @@ def test_query_datasource_cache_key_has_rls_of_dataset_sharing_its_id(
     ):
         cache_keys = query.get_extra_cache_keys({})
 
-    assert PREDICATE in cache_keys
+    assert cache_keys == [json.dumps(["rls", None, "main", "t", PREDICATE])]

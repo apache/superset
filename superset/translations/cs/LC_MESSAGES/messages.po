@@ -5312,6 +5312,9 @@ msgstr "Vlastní SQL ad-hoc metriky nejsou pro tuto sadu dat povoleny"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Vlastní SQL pole nelze analyzovat jako jediný příkaz SQL."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Vlastní pole SQL nemohou obsahovat poddotazy."
