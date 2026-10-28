@@ -345,3 +345,47 @@ def test_temporal_range_filter_with_actual_dates_produces_time_filter(
         f"Expected no '1 = 1' for TEMPORAL_RANGE with actual dates, "
         f"got: {generated_sql}"
     )
+
+
+def test_drill_detail_keeps_equality_filter_on_granularity_column(
+    mocker: MockerFixture,
+    app: Flask,
+) -> None:
+    """A drill filter on the granularity column survives the time-filter swap.
+
+    A chart saved with ``granularity_sqla`` and a ``TEMPORAL_RANGE`` adhoc filter
+    on the same column sends both to the samples endpoint when drilling to
+    detail on a segment of that column. Only the ``TEMPORAL_RANGE`` filter is
+    replaced by the granularity time filter; the drill equality filter must
+    still restrict the rows.
+    """
+    dataset = _make_dataset(mocker)
+    query_object = QueryObject(
+        granularity="time_start",
+        is_timeseries=False,
+        columns=[],
+        metrics=[{"expressionType": "SQL", "sqlExpression": "COUNT(*)"}],
+        time_range="No filter",
+        filters=[
+            {"col": "time_start", "op": "TEMPORAL_RANGE", "val": "No filter"},
+            {"col": "time_start", "op": "==", "val": 1064966400000},
+            {"col": "value", "op": "==", "val": 42},
+        ],
+    )
+
+    with app.test_request_context():
+        QueryContextFactory()._apply_granularity(
+            query_object,
+            {"dashboardId": 1},
+            dataset,
+        )
+        generated_sql = dataset.get_query_str_extended(
+            query_object.to_dict(), mutate=False
+        ).sql.lower()
+
+    assert query_object.filter == [
+        {"col": "time_start", "op": "==", "val": 1064966400000},
+        {"col": "value", "op": "==", "val": 42},
+    ]
+    assert "time_start = '2003-10-01" in generated_sql
+    assert "value = 42" in generated_sql

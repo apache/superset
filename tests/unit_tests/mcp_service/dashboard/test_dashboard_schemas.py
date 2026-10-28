@@ -733,6 +733,19 @@ class TestGenerateDashboardRequestTitleSanitization:
         assert "injected" not in req.sanitization_warnings[0]
 
 
+@pytest.mark.parametrize("title_field", ["dashboard_title", "title", "name"])
+@pytest.mark.parametrize("blank_title", ["", " ", "\t\n", None])
+def test_generate_dashboard_blank_title_uses_auto_title(
+    title_field: str, blank_title: str | None
+) -> None:
+    """All blank title aliases request an auto-generated title without warnings."""
+    req = GenerateDashboardRequest.model_validate(
+        {"chart_ids": [1], title_field: blank_title}
+    )
+    assert req.dashboard_title is None
+    assert req.sanitization_warnings == []
+
+
 class TestGenerateDashboardRequestLayoutTheme:
     """generate_dashboard accepts optional position_json, theme overrides, CSS."""
 

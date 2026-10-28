@@ -1083,7 +1083,8 @@ class GenerateDashboardRequest(BaseModel):
     dashboard_title: str | None = Field(
         None,
         description=(
-            "Dashboard title; if omitted, generated descriptively from chart names."
+            "Dashboard title; if omitted, empty, or whitespace-only, generated "
+            "descriptively from chart names."
         ),
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
@@ -1176,7 +1177,7 @@ class GenerateDashboardRequest(BaseModel):
             if not isinstance(raw, str):
                 return data
             if not raw.strip():
-                data[key] = "" if raw == "" else None
+                data[key] = None
                 return data
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Dashboard title", max_length=500, allow_empty=True
@@ -1202,16 +1203,8 @@ class GenerateDashboardRequest(BaseModel):
     @field_validator("dashboard_title")
     @classmethod
     def normalize_blank_dashboard_title(cls, v: str | None) -> str | None:
-        """Normalize blank titles; nonblank titles are sanitized above.
-
-        Preserves an explicit empty string (caller-provided ``""``) rather
-        than collapsing it to ``None``, since the tool treats ``None`` as
-        "auto-generate a title from charts" but an explicit empty string
-        as an intentional blank title.
-        """
-        if v is None or v == "":
-            return v
-        return v if v.strip() else None
+        """Use the auto-title fallback for blanks; sanitize nonblank titles above."""
+        return v if v and v.strip() else None
 
 
 class UpdateDashboardRequest(OmittedMeansUnchanged):

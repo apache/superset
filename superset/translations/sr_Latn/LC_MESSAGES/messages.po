@@ -6279,6 +6279,9 @@ msgstr "Prilagođene ad-hoc SQL metrike nisu omogućene za ovaj skup podataka"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Prilagođena SQL polja se ne mogu protumačiti kao jedna SQL izjava."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Prilagođena SQL polja ne mogu sadržati operacije nad skupovima."
 

@@ -5117,10 +5117,10 @@ def test_resolve_denylist_schema_memoizes_across_expressions(
 def test_resolve_denylist_schema_explicit_schema_skips_probe(
     mocker: MockerFixture, database: Database
 ) -> None:
-    """An explicit datasource schema is returned directly, with no probe Query
-    and no inspector round-trip."""
+    """A dynamic datasource schema needs no probe Query or inspector round-trip."""
     from superset.connectors.sqla.models import SqlaTable
 
+    mocker.patch.object(database.db_engine_spec, "supports_dynamic_schema", True)
     query_aware = mocker.patch.object(database, "get_default_schema_for_query")
     table = SqlaTable(database=database, schema="analytics", table_name="t")
 
