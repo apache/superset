@@ -2156,6 +2156,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "can_manage_oauth2_tokens",
         "update_roles_users",
         "list_roles",
         "can_update_role",
