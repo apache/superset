@@ -31,6 +31,14 @@ assists people when migrating to a new version.
   moves to that DB: avoid running old and new versions side by side, and drain
   in-flight tasks before upgrading.
 
+- [45186](https://github.com/apache/superset/pull/45186): Sets pyarrow>=23.0.1
+  in superset-core (without an upper ceiling) and explicitly bounds
+  msgpack>=1.2.3,<1.3.0 in requirements/base.in. The relaxed floor in core
+  resolves CVE-2026-25087 while preserving compatibility for downstream
+  extensions, whereas container images and application builds continue to
+  enforce the narrower window via requirements/base.in and
+  requirements/base.txt.
+
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
   `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
@@ -51,7 +59,6 @@ assists people when migrating to a new version.
   would bypass the connected-peer validation. Deployments that must reach webhooks
   through a proxy or custom CA bundle should set the matching allow-internal flag,
   which restores the plain `requests` behavior (and skips peer validation).
-
 - MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
   values with "Text must not be empty"; omit the field to keep the stored title.
   MCP chart names and theme names are capped at 250 characters, matching their
@@ -177,7 +184,6 @@ assists people when migrating to a new version.
   time-axis bounds; time-series offsets and separate inner-bound queries replace
   ranges on their selected axis. Retained predicates can narrow results where
   earlier releases discarded them.
-
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
