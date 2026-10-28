@@ -27,6 +27,7 @@ import * as hooks from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { setSystemDefaultTheme } from 'src/features/themes/api';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
 import ThemesList from './index';
 
 jest.mock('src/dashboard/util/permissionUtils', () => ({
@@ -1054,4 +1055,25 @@ test('a slow live re-apply does not block the confirm modal, list refresh, or to
   });
 
   resolveRefresh();
+});
+
+test('theme names truncate with an ellipsis beside their tags', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  // Light/Dark carry the default and system tags, Custom has none.
+  for (const name of ['Light Theme', 'Dark Theme', 'Custom Theme']) {
+    expectTruncatingTitle(await screen.findByText(name));
+  }
 });

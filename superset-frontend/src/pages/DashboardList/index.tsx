@@ -62,6 +62,7 @@ import {
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
+  ListViewTitleCell,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
@@ -136,24 +137,6 @@ export interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
-`;
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -419,7 +402,9 @@ function DashboardList(props: DashboardListProps) {
             },
           },
         }: any) => (
-          <FlexRowContainer>
+          <ListViewTitleCell
+            trailing={description && <InfoTooltip tooltip={description} />}
+          >
             <Link to={url} title={dashboardTitle}>
               {certifiedBy && (
                 <>
@@ -431,8 +416,7 @@ function DashboardList(props: DashboardListProps) {
               )}
               {dashboardTitle}
             </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
+          </ListViewTitleCell>
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',

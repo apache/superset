@@ -25,6 +25,7 @@ import {
   expectColumnWidthsWithinLayouts,
   mockListViewContainerWidth,
 } from 'spec/helpers/listViewColumnWidths';
+import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
 
 const CONTAINER_WIDTH = 1440;
 
@@ -103,4 +104,14 @@ test('every visible column resolves to a width within its layout', async () => {
     },
     CONTAINER_WIDTH,
   );
+});
+
+test('chart names truncate with an ellipsis beside their badges', async () => {
+  renderChartList(mockUser);
+
+  for (const name of ['Test Chart 0', 'Test Chart 1', 'Test Chart 2']) {
+    const link = await screen.findByTestId(`${name}-list-chart-title`);
+    expect(link).toHaveAttribute('title', name);
+    expectTruncatingTitle(link);
+  }
 });

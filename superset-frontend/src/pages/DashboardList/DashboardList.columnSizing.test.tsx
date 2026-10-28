@@ -28,6 +28,7 @@ import {
   expectColumnWidthsWithinLayouts,
   mockListViewContainerWidth,
 } from 'spec/helpers/listViewColumnWidths';
+import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
 
 const CONTAINER_WIDTH = 1440;
 
@@ -86,4 +87,14 @@ test('every visible column resolves to a width within its layout', async () => {
     },
     CONTAINER_WIDTH,
   );
+});
+
+test('dashboard titles truncate with an ellipsis beside their badges', async () => {
+  renderDashboardList(mockAdminUser);
+
+  for (const title of ['Sales Dashboard', 'Analytics Dashboard']) {
+    const link = await screen.findByTitle(title);
+    expect(link.tagName).toBe('A');
+    expectTruncatingTitle(link);
+  }
 });

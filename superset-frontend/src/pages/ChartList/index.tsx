@@ -79,6 +79,7 @@ import {
   type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
+  ListViewTitleCell,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { Link, useHistory } from 'react-router-dom';
@@ -99,24 +100,6 @@ import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const PAGE_SIZE = 25;
 // How many blocking alerts/reports the archive modal previews before the
@@ -535,7 +518,9 @@ function ChartList(props: ChartListProps) {
             },
           },
         }: any) => (
-          <FlexRowContainer>
+          <ListViewTitleCell
+            trailing={description && <InfoTooltip tooltip={description} />}
+          >
             <Link
               to={url}
               title={sliceName}
@@ -551,8 +536,7 @@ function ChartList(props: ChartListProps) {
               )}
               {sliceName}
             </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
+          </ListViewTitleCell>
         ),
         Header: t('Name'),
         accessor: 'slice_name',

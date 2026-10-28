@@ -50,6 +50,7 @@ import {
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
+  ListViewTitleCell,
 } from 'src/components';
 
 import ThemeModal from 'src/features/themes/ThemeModal';
@@ -72,16 +73,6 @@ import {
 } from 'src/features/themes/api';
 
 const PAGE_SIZE = 25;
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  .ant-tag {
-    margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-  }
-`;
 
 const IconTag = styled(Tag)`
   display: inline-flex;
@@ -454,35 +445,40 @@ function ThemesList({
             original.id === appliedThemeId;
 
           return (
-            <FlexRowContainer>
+            <ListViewTitleCell
+              trailing={
+                <>
+                  {isCurrentTheme && (
+                    <Tooltip
+                      title={t('This theme is set locally for your session')}
+                    >
+                      <Tag color="success">{t('Local')}</Tag>
+                    </Tooltip>
+                  )}
+                  {original.is_system && (
+                    <Tooltip title={t('Defined through system configuration.')}>
+                      <Tag color="processing">{t('System')}</Tag>
+                    </Tooltip>
+                  )}
+                  {original.is_system_default && (
+                    <Tooltip title={t('This is the default light theme')}>
+                      <IconTag color="warning" icon={<Icons.SunOutlined />}>
+                        {t('Default')}
+                      </IconTag>
+                    </Tooltip>
+                  )}
+                  {original.is_system_dark && (
+                    <Tooltip title={t('This is the default dark theme')}>
+                      <IconTag color="default" icon={<Icons.MoonOutlined />}>
+                        {t('Dark')}
+                      </IconTag>
+                    </Tooltip>
+                  )}
+                </>
+              }
+            >
               {original.theme_name}
-              {isCurrentTheme && (
-                <Tooltip
-                  title={t('This theme is set locally for your session')}
-                >
-                  <Tag color="success">{t('Local')}</Tag>
-                </Tooltip>
-              )}
-              {original.is_system && (
-                <Tooltip title={t('Defined through system configuration.')}>
-                  <Tag color="processing">{t('System')}</Tag>
-                </Tooltip>
-              )}
-              {original.is_system_default && (
-                <Tooltip title={t('This is the default light theme')}>
-                  <IconTag color="warning" icon={<Icons.SunOutlined />}>
-                    {t('Default')}
-                  </IconTag>
-                </Tooltip>
-              )}
-              {original.is_system_dark && (
-                <Tooltip title={t('This is the default dark theme')}>
-                  <IconTag color="default" icon={<Icons.MoonOutlined />}>
-                    {t('Dark')}
-                  </IconTag>
-                </Tooltip>
-              )}
-            </FlexRowContainer>
+            </ListViewTitleCell>
           );
         },
         Header: t('Name'),

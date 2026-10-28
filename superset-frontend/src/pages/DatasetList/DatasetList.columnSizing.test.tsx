@@ -27,6 +27,7 @@ import {
   expectColumnWidthsWithinLayouts,
   mockListViewContainerWidth,
 } from 'spec/helpers/listViewColumnWidths';
+import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
 
 const CONTAINER_WIDTH = 1440;
 
@@ -72,4 +73,20 @@ test('every visible column resolves to a width within its layout', async () => {
     },
     CONTAINER_WIDTH,
   );
+});
+
+test('dataset names truncate with an ellipsis beside their badges', async () => {
+  renderDatasetList(mockAdminUser);
+
+  // Plain, certified, warning and RLS-badged rows all share the Name cell.
+  for (const name of [
+    'public.sales_data',
+    'Analytics Query',
+    'Customer Metrics',
+    'Restricted Sales',
+  ]) {
+    const link = await screen.findByTitle(name);
+    expect(link.tagName).toBe('A');
+    expectTruncatingTitle(link);
+  }
 });

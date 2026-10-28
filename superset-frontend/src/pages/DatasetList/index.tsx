@@ -73,6 +73,7 @@ import {
   type ListViewColumn,
   type ListViewFilters,
   type ListViewFetchDataConfig,
+  ListViewTitleCell,
 } from 'src/components';
 import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
@@ -141,16 +142,6 @@ const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
   'dataset.delete.related',
 );
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
-`;
 
 const Actions = styled.div`
   ${({ theme }) => css`
@@ -919,26 +910,31 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 ? JSON.parse(extra)
                 : (extra as DatasetExtra | null);
             return (
-              <FlexRowContainer>
-                {parsedExtra?.certification && (
-                  <CertifiedBadge
-                    certifiedBy={parsedExtra.certification.certified_by}
-                    details={parsedExtra.certification.details}
-                    size="l"
-                  />
-                )}
-                {parsedExtra?.warning_markdown && (
-                  <WarningIconWithTooltip
-                    warningMarkdown={parsedExtra.warning_markdown}
-                    size="l"
-                  />
-                )}
-                {rlsFilters && rlsFilters.length > 0 && (
-                  <RlsBadge rlsFilters={rlsFilters} size="l" />
-                )}
+              <ListViewTitleCell
+                leading={
+                  <>
+                    {parsedExtra?.certification && (
+                      <CertifiedBadge
+                        certifiedBy={parsedExtra.certification.certified_by}
+                        details={parsedExtra.certification.details}
+                        size="l"
+                      />
+                    )}
+                    {parsedExtra?.warning_markdown && (
+                      <WarningIconWithTooltip
+                        warningMarkdown={parsedExtra.warning_markdown}
+                        size="l"
+                      />
+                    )}
+                    {rlsFilters && rlsFilters.length > 0 && (
+                      <RlsBadge rlsFilters={rlsFilters} size="l" />
+                    )}
+                  </>
+                }
+                trailing={description && <InfoTooltip tooltip={description} />}
+              >
                 {titleLink}
-                {description && <InfoTooltip tooltip={description} />}
-              </FlexRowContainer>
+              </ListViewTitleCell>
             );
           } catch {
             return titleLink;
