@@ -4126,20 +4126,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # For each table referenced in the virtual dataset, apply its RLS filters
         if parsed_script.statements:
             default_schema = self.database.get_default_schema(self.catalog)
+            # Only a dataset applies its own RLS and the global guest rules on
+            # the outer WHERE, so only a dataset leaves them out of its inner
+            # SQL. Other subclasses (e.g. a SQL Lab Query) apply no RLS outside,
+            # and their ``id`` is not a dataset id: excluding it would drop the
+            # RLS of whichever dataset shares that number. Imported locally to
+            # avoid a circular import with the connectors package.
+            from superset.connectors.sqla.models import SqlaTable
+
+            dataset = self if isinstance(self, SqlaTable) else None
+            is_dataset = dataset is not None
+            self_id = dataset.id if dataset is not None else None
             try:
                 rls_applied = False
-                # Only a dataset applies its own RLS and the global guest rules
-                # on the outer WHERE, so only a dataset leaves them out of its
-                # inner SQL. Other subclasses (e.g. a SQL Lab Query) apply no
-                # RLS outside, and their ``id`` is not a dataset id: excluding
-                # it would drop the RLS of whichever dataset shares that number.
-                # Imported locally to avoid a circular import with the
-                # connectors package.
-                from superset.connectors.sqla.models import SqlaTable
-
-                dataset = self if isinstance(self, SqlaTable) else None
-                is_dataset = dataset is not None
-                self_id = dataset.id if dataset is not None else None
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
@@ -4175,9 +4174,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ),
                             self.database,
                             self.database.get_default_catalog(),
-                            # at least as strict as apply_rls(), which injects
-                            # this dataset's own RLS and the global guest rules
-                            # into the inner SQL's sub-queries
+                            # at least as strict as apply_rls(): a dataset's
+                            # inner SQL gets its own RLS and the global guest
+                            # rules in sub-queries only; any other SQL gets
+                            # every rule everywhere
                             exclude_dataset_id=(
                                 None if statement.has_subquery() else self_id
                             ),

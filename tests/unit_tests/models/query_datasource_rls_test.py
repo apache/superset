@@ -26,6 +26,7 @@ dataset happens to share that number.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import patch
 
@@ -33,10 +34,16 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.orm.session import Session
 
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.security.guest_token import (
+    GuestTokenResourceType,
+    GuestTokenRlsRule,
+    GuestUser,
+)
 
 PREDICATE = "tenant_id = 1"
 
@@ -45,11 +52,35 @@ def _row_level_filters(self: Any, include_global_guest_rls: bool = True) -> list
     return [text(PREDICATE)] if self.table_name == "t" else []
 
 
-def _global_guest_filters(
-    self: Any, include_global_guest_rls: bool = True
-) -> list[Any]:
-    """A global guest rule: it applies only when global guest RLS is included."""
-    return [text(PREDICATE)] if include_global_guest_rls else []
+@pytest.fixture
+def global_guest_rule() -> Iterator[None]:
+    """
+    Run as a guest whose token carries a global (not dataset-scoped) RLS rule,
+    through the real ``SqlaTable.get_sqla_row_level_filters``.
+    """
+    guest = GuestUser(
+        token={
+            "user": {},
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "dashboard-uuid"}
+            ],
+            "rls_rules": [GuestTokenRlsRule(dataset=None, clause=PREDICATE)],
+            "iat": 10,
+            "exp": 20,
+        },
+        roles=[],
+    )
+    with (
+        patch(
+            "superset.connectors.sqla.models.is_feature_enabled",
+            return_value=True,
+        ),
+        patch.object(security_manager, "get_rls_filters", return_value=[]),
+        patch.object(
+            security_manager, "get_current_guest_user_if_guest", return_value=guest
+        ),
+    ):
+        yield
 
 
 @pytest.fixture
@@ -169,6 +200,7 @@ def test_virtual_dataset_inner_sql_skips_its_own_rls(
 def test_query_datasource_inner_sql_gets_global_guest_rls(
     database: Database,
     session: Session,
+    global_guest_rule: None,
 ) -> None:
     """
     A ``Query`` applies no RLS outside its SQL, so the global guest rules are
@@ -184,13 +216,7 @@ def test_query_datasource_inner_sql_gets_global_guest_rls(
     session.add(query)
     session.flush()
 
-    with patch.object(
-        SqlaTable,
-        "get_sqla_row_level_filters",
-        autospec=True,
-        side_effect=_global_guest_filters,
-    ):
-        from_clause, _ = query.get_from_clause()
+    from_clause, _ = query.get_from_clause()
 
     assert PREDICATE in str(from_clause)
 
@@ -198,6 +224,7 @@ def test_query_datasource_inner_sql_gets_global_guest_rls(
 def test_query_datasource_fail_closed_counts_global_guest_rls(
     database: Database,
     session: Session,
+    global_guest_rule: None,
 ) -> None:
     """
     When RLS injection fails, the fail-closed check counts the global guest
@@ -214,12 +241,6 @@ def test_query_datasource_fail_closed_counts_global_guest_rls(
     session.flush()
 
     with (
-        patch.object(
-            SqlaTable,
-            "get_sqla_row_level_filters",
-            autospec=True,
-            side_effect=_global_guest_filters,
-        ),
         patch(
             "superset.models.helpers.apply_rls",
             side_effect=ValueError("cannot inject"),
@@ -233,6 +254,7 @@ def test_query_datasource_fail_closed_counts_global_guest_rls(
 def test_virtual_dataset_inner_sql_skips_global_guest_rls(
     database: Database,
     session: Session,
+    global_guest_rule: None,
 ) -> None:
     """
     A virtual dataset still leaves the global guest rules out of its inner SQL,
@@ -247,13 +269,7 @@ def test_virtual_dataset_inner_sql_skips_global_guest_rls(
     session.add(dataset)
     session.flush()
 
-    with patch.object(
-        SqlaTable,
-        "get_sqla_row_level_filters",
-        autospec=True,
-        side_effect=_global_guest_filters,
-    ):
-        from_clause, _ = dataset.get_from_clause()
+    from_clause, _ = dataset.get_from_clause()
 
     assert PREDICATE not in str(from_clause)
 
