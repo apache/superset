@@ -728,8 +728,12 @@ validated.
 Templates that read the raw `filter` context variable also make search and exact
 probes unsupported, because those predicates differ from native selections.
 These probes are rejected before query execution. Listings, empty searches, and
-parent proposals remain supported; proposals use the native `IN` shape and still
-follow the filter-macro restriction above.
+parent proposals remain supported. A dropdown never renders its own selection, so
+a proposal for a parent whose templates read `filter` is checked against that
+parent's listed options rather than through an `IN` predicate on its column;
+values beyond the native filter row limit are not validated. Other proposals use
+the native `IN` shape. All proposals still follow the filter-macro restriction
+above.
 
 For a simultaneous parent/child change, first establish the parent's exact choice,
 then supply `proposed_filter_values: [{"filter_id": "parent-id", "values": ["EMEA"]}]`

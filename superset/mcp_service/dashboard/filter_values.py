@@ -835,7 +835,7 @@ def _native_query(  # noqa: C901
         and _templates_observe_context(conf, target.dataset, {"filter"})
     ):
         # Raw filter access bypasses macro bookkeeping and exposes probes that
-        # differ from native selections. Proposals retain the native IN shape.
+        # differ from native selections. _run lists the domain for proposals.
         raise _DiscoveryUnavailableError(
             "unsupported_search" if item.search else "unsupported_target"
         )
@@ -1057,7 +1057,14 @@ def _run(  # noqa: C901
     """Validate access, then schedule at most one bounded dataset query attempt."""
     _check_budget(context)
     target = _select_target(conf, context)
-    command, limit = _native_query(context, conf, target, item, proposal)
+    # A dropdown never renders its own selection. Templates reading the raw
+    # filter list would render a proposal's IN predicate, so they check it
+    # against the listed options instead.
+    listed = proposal is not None and _templates_observe_context(
+        conf, target.dataset, {"filter"}
+    )
+    probe = None if listed else proposal
+    command, limit = _native_query(context, conf, target, item, probe)
     probes = proposal.values if proposal is not None else [item.exact_value]
     if any(not _safe_number(value) for value in probes):
         raise _DiscoveryUnavailableError("invalid_scalar")
@@ -1094,14 +1101,15 @@ def _run(  # noqa: C901
     if not isinstance(rows, list):
         raise _DiscoveryUnavailableError("query_failed")
     values: list[FilterValueScalar] = []
-    strict_probe = proposal is not None or "exact_value" in item.model_fields_set
+    strict_probe = probe is not None or "exact_value" in item.model_fields_set
     # Search without a sort metric skips ORDER BY, as the dashboard dropdown
     # does; the dropdown sorts its returned page client-side, so sort here too.
     unordered = not command.query_context.queries[0].orderby
     skipped = False
     # Rows past the limit are only evidence of a longer domain, never returned
-    # options, unless every fetched row must be sorted before choosing the page.
-    selected_rows = rows if strict_probe or unordered else rows[: item.limit]
+    # options, unless every fetched row must be sorted before choosing the page
+    # or is a listed option checked for membership.
+    selected_rows = rows if strict_probe or unordered or listed else rows[: item.limit]
     for row in selected_rows:
         if not isinstance(row, dict) or target.column.column_name not in row:
             raise _DiscoveryUnavailableError("query_failed")
@@ -1130,6 +1138,10 @@ def _run(  # noqa: C901
             skipped = True
             continue
         values.append(value)
+    if listed:
+        # Each returned row is a dropdown option, however long the domain is;
+        # values past the native row limit are not offered and stay unproven.
+        return values, False, None
     if unordered:
         controls = conf.get("controlValues") or {}
         values = _sorted_options(values, bool(controls.get("sortAscending", True)))

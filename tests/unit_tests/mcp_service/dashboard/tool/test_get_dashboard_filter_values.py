@@ -2705,6 +2705,130 @@ def test_raw_filter_templates_allow_empty_search_and_parent_proposals(
     assert snapshot == original
 
 
+_RAW_FILTER_GHOST_SQL = (
+    "select '{{ 'France' if filter else 'Germany' }}' as country, "
+    "'{{ 'ghost' if filter else 'real' }}' as region"
+)
+_RAW_FILTER_LENGTH_SQL = "select * from sales where {{ filter | length }} >= 0"
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("proposed", "validated", "status", "reason", "values"),
+    [
+        ("France", False, "unavailable", "proposal_invalid", []),
+        ("Germany", True, "complete", None, []),
+    ],
+)
+def test_raw_filter_proposal_is_validated_against_the_listed_domain(
+    sqlite_native_execution: dict[str, Any],
+    proposed: str,
+    validated: bool,
+    status: str,
+    reason: str | None,
+    values: list[str],
+) -> None:
+    """A proposal's own predicate never renders the domain it is checked against."""
+    sqlite_native_execution["dataset"].sql = _RAW_FILTER_GHOST_SQL
+    dashboard = _dashboard(
+        _filter("country"), _filter("region", cascadeParentIds=["country"])
+    )
+    summaries, _ = choices.discover_filter_values(
+        dashboard, _request(filter_value_requests=[{"filter_id": "country"}])
+    )
+    assert _available(summaries[0]).values == ["Germany"]
+
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "country", "values": [proposed]}],
+    )
+    summaries, metadata = choices.discover_filter_values(dashboard, request)
+    assert metadata.validated_proposed_filter_values == (
+        request.proposed_filter_values if validated else []
+    )
+    available = _available(summaries[0])
+    assert (available.status, available.reason, available.values) == (
+        status,
+        reason,
+        values,
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("sql", "raw_filter"),
+    [
+        (None, False),
+        (
+            "select * from sales where 1 = 1 {% if filter_values('region') %}"
+            "and region in {{ filter_values('region')|where_in }}{% endif %}",
+            False,
+        ),
+        (
+            "select * from sales where 1 = 1 "
+            "{% for f in get_filters('region') %}and region = '{{ f.val }}'"
+            "{% endfor %}",
+            False,
+        ),
+        (_RAW_FILTER_LENGTH_SQL, True),
+    ],
+)
+@pytest.mark.parametrize(("proposed", "past_row_cap"), [("Z23", False), ("Z24", True)])
+def test_only_raw_filter_proposals_are_bounded_by_the_listed_domain(
+    sqlite_native_execution: dict[str, Any],
+    mocker: MockerFixture,
+    sql: str | None,
+    raw_filter: bool,
+    proposed: str,
+    past_row_cap: bool,
+) -> None:
+    """Other proposals keep IN membership, so options past the row cap still pass."""
+    with sqlite_native_execution["engine"].begin() as connection:
+        connection.execute(
+            text("insert into sales (region, country) values ('APAC', :country)"),
+            [{"country": f"Z{index:02}"} for index in range(25)],
+        )
+    # The 28-row dropdown ends at Z23, past the 20 options a proposal returns.
+    mocker.patch.dict(current_app.config, {"NATIVE_FILTER_DEFAULT_ROW_LIMIT": 28})
+    sqlite_native_execution["dataset"].sql = sql
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "country", "values": [proposed]}],
+    )
+    summaries, metadata = choices.discover_filter_values(
+        _dashboard(_filter("country"), _filter("region", cascadeParentIds=["country"])),
+        request,
+    )
+    validated = not (raw_filter and past_row_cap)
+    assert metadata.validated_proposed_filter_values == (
+        request.proposed_filter_values if validated else []
+    )
+    assert _available(summaries[0]).values == (["APAC"] if validated else [])
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_listed_proposal_ignores_unrelated_unrepresentable_options(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """An option omitted elsewhere in the listed domain cannot reject a proposal."""
+    with sqlite_native_execution["engine"].begin() as connection:
+        connection.execute(
+            text("insert into sales (region, amount) values ('APAC', :amount)"),
+            {"amount": 2**53 + 1},
+        )
+    sqlite_native_execution["dataset"].sql = _RAW_FILTER_LENGTH_SQL
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "amount", "values": [2]}],
+    )
+    summaries, metadata = choices.discover_filter_values(
+        _dashboard(_filter("amount"), _filter("region", cascadeParentIds=["amount"])),
+        request,
+    )
+    assert metadata.validated_proposed_filter_values == request.proposed_filter_values
+    assert _available(summaries[0]).values == ["EMEA"]
+
+
 _SWALLOWED_COUNTRY_SQL = (
     "select * from sales where 1 = 1 "
     "{% for f in get_filters('country', remove_filter=True) %}{% endfor %}"
