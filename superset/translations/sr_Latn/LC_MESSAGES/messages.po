@@ -17313,7 +17313,540 @@ msgstr ""
 " podacima."
 
 # uk]
-msgid "Selec                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 lv, mi, ru, sk, uk]
+msgid "Select layers to hide"
+msgstr "Izaberite slojeve za sakrivanje"
+
+msgid "Select object name"
+msgstr "Izaberite naziv objekta"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Select one or many metrics to display, that will be displayed in the "
+"percentages of total. Percentage metrics will be calculated only from "
+"data within the row limit. You can use an aggregation function on a "
+"column or write custom SQL to create a percentage metric."
+msgstr ""
+"Izaberite jednu ili više metrika za prikaz, koje će biti prikazane u "
+"procentima od ukupnog. Procentualne metrike će biti izračunate samo na "
+"osnovu podataka u okviru ograničenja redova. Možete koristiti agregatnu "
+"funkciju na koloni ili napisati prilagođeni SQL da biste kreirali "
+"procentualnu metriku."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Select one or many metrics to display. You can use an aggregation "
+"function on a column or write custom SQL to create a metric."
+msgstr ""
+"Izaberite jednu ili više metrika za prikaz. Možete koristiti agregatnu "
+"funkciju na koloni ili napisati prilagođeni SQL da biste kreirali "
+"metriku."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Select operator"
+msgstr "Izaberite operator"
+
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
+# es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
+msgid "Select or type a custom value..."
+msgstr "Izaberite ili unesite prilagođenu vrednost..."
+
+msgid "Select or type a label"
+msgstr ""
+
+# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
+msgid "Select or type currency symbol"
+msgstr "Izaberite ili unesite simbol valute"
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
+msgid "Select or type dataset name"
+msgstr "Izaberite ili unesite naziv skupa podataka"
+
+msgid "Select or type email recipients"
+msgstr ""
+
+# ja, lv, mi, ru, sk, uk]
+msgid "Select page size"
+msgstr "Izaberite veličinu stranice"
+
+msgid "Select permissions"
+msgstr "Izaberite dozvole"
+
+# ja, lv, mi, ru, sk, uk]
+msgid "Select roles"
+msgstr "Izaberite uloge"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Select saved metrics"
+msgstr "Izaberite sačuvane metrike"
+
+# fa, ja, lv, mi, nl, ru, sl, uk]
+msgid "Select saved queries"
+msgstr "Izaberite sačuvane upite"
+
+msgid "Select schema"
+msgstr "Izaberite šemu"
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+msgid "Select scheme"
+msgstr "Izaberite šemu"
+
+msgid "Select semantic views"
+msgstr "Izaberite semantičke poglede"
+
+# fr, ja, lv, mi, ru, sk, uk]
+msgid ""
+"Select shape for computing values. \"FIXED\" sets all zoom levels to the "
+"same size. \"LINEAR\" increases sizes linearly based on specified slope. "
+"\"EXP\" increases sizes exponentially based on specified exponent"
+msgstr ""
+"Izaberite oblik za računanje vrednosti. „FIXED“ postavlja istu veličinu "
+"za sve nivoe zumiranja. „LINEAR“ povećava veličine linearno na osnovu "
+"zadate nagibne vrednosti. „EXP“ povećava veličine eksponencijalno na "
+"osnovu zadatog eksponenta"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Select subject"
+msgstr "Izaberite predmet"
+
+# ja, lv, mi, ru, sk, sl, uk]
+msgid "Select tab"
+msgstr "Izaberite karticu"
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
+msgid "Select table or type to search tables"
+msgstr "Izaberite tabelu ili unesite tekst za pretragu tabela"
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+msgid "Select the Annotation Layer you would like to use."
+msgstr "Izaberite sloj za napomene koji želite da koristite."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Select the charts to which you want to apply cross-filters in this "
+"dashboard. Deselecting a chart will exclude it from being filtered when "
+"applying cross-filters from any chart on the dashboard. You can select "
+"\"All charts\" to apply cross-filters to all charts that use the same "
+"dataset or contain the same column name in the dashboard."
+msgstr ""
+"Izaberite grafike na koje želite da primeniti ukrštene filtere na ovoj "
+"kontrolnoj tabli. Uklanjanjem izbora grafika, isti će biti izuzet iz "
+"filtriranja prilikom primene ukrštenih filtera sa bilo kog grafika na "
+"kontrolnoj tabli. Možete izabrati „Svi grafici” da biste primenili "
+"ukrštene filtere na sve grafike koji koriste isti skup podataka ili "
+"sadrže isto ime kolone na kontrolnoj tabli."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Select the charts to which you want to apply cross-filters when "
+"interacting with this chart. You can select \"All charts\" to apply "
+"filters to all charts that use the same dataset or contain the same "
+"column name in the dashboard."
+msgstr ""
+"Izaberite grafike na koje želite da primeniti ukrštene filtere prilikom "
+"interakcije sa ovim grafikom. Možete izabrati „Svi grafici” da biste "
+"primenili filtere na sve grafike koji koriste isti skup podataka ili "
+"sadrže isto ime kolone na kontrolnoj tabli."
+
+# sk, uk]
+msgid "Select the color used for values that indicate an increase in the chart"
+msgstr ""
+"Izaberite boju koja se koristi za vrednosti koje pokazuju uvećanje na "
+"grafiku"
+
+# sk, uk]
+msgid "Select the color used for values that represent total bars in the chart"
+msgstr ""
+"Izaberite boju koja se koristi za vrednosti koje predstavljaju ukupne "
+"stubove na grafiku"
+
+# sk, uk]
+msgid "Select the color used for values ​​that indicate a decrease in the chart."
+msgstr ""
+"Izaberite boju koja se koristi za vrednosti koje pokazuju smanjenje na "
+"grafiku."
+
+# sk, uk]
+msgid ""
+"Select the column containing currency codes such as USD, EUR, GBP, etc. "
+"Used when building charts when 'Auto-detect' currency formatting is "
+"enabled. If this column is not set or if a chart metric contains multiple"
+" currencies, charts will fall back to neutral numeric formatting."
+msgstr ""
+"Izaberite kolonu koja sadrži kodove valuta kao što su USD, EUR, GBP itd. "
+"Koristi se prilikom kreiranja grafika kada je omogućeno „Automatsko "
+"otkrivanje” formata valute. Ako ova kolona nije podešena ili ako metrika "
+"grafika sadrži više valuta, grafici će se vratiti na neutralni numerički "
+"format."
+
+# uk]
+msgid "Select the fixed color"
+msgstr "Izaberite fiksnu boju"
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+msgid "Select the geojson column"
+msgstr "Izaberite geojson kolonu"
+
+msgid ""
+"Select the map tile provider. MapLibre is open-source and requires no API"
+" key. Mapbox requires MAPBOX_API_KEY to be configured in Superset."
+msgstr ""
+"Izaberite dobavljača mapa (tajlova). MapLibre je otvorenog koda i ne "
+"zahteva API ključ. Mapbox zahteva da MAPBOX_API_KEY bude konfigurisan u "
+"Superset-u."
+
+msgid ""
+"Select the metric used to determine which color breakpoint range each "
+"path falls into."
+msgstr ""
+"Izaberite metriku koja se koristi za određivanje u koji opseg preloma "
+"boje spada svaka putanja."
+
+# uk]
+msgid "Select the type of color scheme to use."
+msgstr "Izaberite tip šeme boja koju želite da koristite."
+
+msgid "Select user"
+msgstr ""
+
+# uk]
+msgid "Select users"
+msgstr "Izaberite korisnike"
+
+# uk]
+msgid "Select values"
+msgstr "Izaberite vrednosti"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
+#, python-format
+msgid ""
+"Select values in highlighted field(s) in the control panel. Then run the "
+"query by clicking on the %s button."
+msgstr ""
+"Izaberite vrednosti u istaknutim poljima na kontrolnoj tabli. Zatim "
+"pokrenite upit klikom na dugme %s."
+
+msgid ""
+"Select which time grains are available in the filter control. This is a "
+"UI allow list only and does not add extra conditions to the underlying "
+"queries."
+msgstr ""
+"Izaberite koji vremenski intervali su dostupni u kontroli filtera. Ovo je"
+" samo lista dozvoljenih opcija za korisničko okruženje i ne dodaje "
+"dodatne uslove osnovnim upitima."
+
+msgid "Selected"
+msgstr "Izabrano"
+
+# es, fa, ja, lv, mi, ru, sk, sl, uk]
+msgid "Selecting a database is required"
+msgstr "Izbor baze podataka je obavezan"
+
+# uk]
+msgid "Selection method"
+msgstr "Metod izbora"
+
+msgid "Semantic"
+msgstr "Semantički"
+
+msgid "Semantic Layer"
+msgstr "Semantički sloj"
+
+msgid "Semantic View"
+msgstr "Semantički pogled"
+
+msgid "Semantic Views"
+msgstr "Semantički pogledi"
+
+msgid "Semantic cache"
+msgstr ""
+
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
+msgid "Semantic layer"
+msgstr "Semantički sloj"
+
+msgid "Semantic layer could not be created."
+msgstr "Semantički sloj nije mogao biti kreiran."
+
+msgid "Semantic layer could not be deleted."
+msgstr "Semantički sloj nije mogao biti obrisan."
+
+msgid "Semantic layer could not be updated."
+msgstr "Semantički sloj nije mogao biti ažuriran."
+
+msgid "Semantic layer created"
+msgstr "Semantički sloj kreiran"
+
+msgid "Semantic layer does not exist"
+msgstr "Semantički sloj ne postoji"
+
+msgid "Semantic layer parameters are invalid."
+msgstr "Parametri semantičkog sloja su nevažeći."
+
+msgid "Semantic layer type"
+msgstr "Tip semantičkog sloja"
+
+msgid "Semantic layer updated"
+msgstr "Semantički sloj ažuriran"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Semantic view could not be created."
+msgstr "Semantički pogled nije mogao biti kreiran."
+
+msgid "Semantic view could not be deleted."
+msgstr "Semantički pogled nije mogao biti obrisan."
+
+msgid "Semantic view could not be updated."
+msgstr "Semantički pregled nije moguće ažurirati."
+
+msgid "Semantic view does not exist"
+msgstr "Semantički pregled ne postoji"
+
+msgid "Semantic view parameters are invalid."
+msgstr "Parametri semantičkog pregleda su nevažeći."
+
+msgid "Semantic view updated"
+msgstr "Semantički pregled je ažuriran"
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
+msgid "Semantic views"
+msgstr "Semantički pregledi"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
+msgid "Send Failed Reports"
+msgstr ""
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Send as CSV"
+msgstr "Pošalji kao CSV"
+
+msgid "Send as Excel"
+msgstr ""
+
+# es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
+msgid "Send as PDF"
+msgstr "Pošalji kao PDF"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Send as PNG"
+msgstr "Pošalji kao PNG"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Send as text"
+msgstr "Pošalji kao tekst"
+
+msgid "Send reset link"
+msgstr ""
+
+msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
+msgstr ""
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+msgid "September"
+msgstr "Septembar"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Sequential"
+msgstr "Sekvencijalno"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Series"
+msgstr "Serije"
+
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Series Height"
+msgstr "Visina serije"
+
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+msgid "Series Order"
+msgstr "Redosled serija"
+
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Series Style"
+msgstr "Stil serije"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Series chart type (line, bar etc)"
+msgstr "Tip grafikona serije (linija, traka itd)"
+
+msgid "Series colors"
+msgstr "Boje serija"
+
+# ru, sk, uk]
+msgid "Series decrease setting"
+msgstr "Podešavanje smanjenja serije"
+
+# ru, sk, uk]
+msgid "Series increase setting"
+msgstr "Podešavanje povećanja serije"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Series limit"
+msgstr "Ograničenje serija"
+
+msgid "Series name"
+msgstr "Naziv serije"
+
+# uk]
+msgid "Series settings"
+msgstr "Podešavanja serija"
+
+msgid "Series style"
+msgstr "Stil serije"
+
+# uk]
+msgid "Series total setting"
+msgstr "Podešavanje ukupnog iznosa serije"
+
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Series type"
+msgstr "Tip serije"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Server Page Length"
+msgstr "Dužina stranice servera"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Server pagination"
+msgstr "Paginacija servera"
+
+# lv, ru, sk, uk]
+#, python-format
+msgid "Server pagination needs to be enabled for values over %s"
+msgstr "Paginacija servera mora biti omogućena za vrednosti veće od %s"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Service Account"
+msgstr "Servisni nalog"
+
+# ja, lv, mi, ru, sk, uk]
+msgid "Service version"
+msgstr "Verzija servisa"
+
+#, python-format
+msgid "Set '%s'"
+msgstr ""
+
+# lv, ru, sk, uk]
+msgid "Set System Dark Theme"
+msgstr "Postavi sistemsku tamnu temu"
+
+# lv, ru, sk, uk]
+msgid "Set System Default Theme"
+msgstr "Postavi sistemsku podrazumevanu temu"
+
+# ru, uk]
+msgid "Set as default dark theme"
+msgstr "Postavi kao podrazumevanu tamnu temu"
+
+# ru, uk]
+msgid "Set as default light theme"
+msgstr "Postavi kao podrazumevanu svetlu temu"
+
+# sk, uk]
+msgid "Set auto-refresh"
+msgstr "Podesi automatsko ažuriranje"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Set filter mapping"
+msgstr "Podesi mapiranje filtera"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
+
+# ru, sk, uk]
+msgid "Set local theme for testing"
+msgstr "Podesi lokalnu temu za testiranje"
+
+# lv, pt_BR, ru, sk, uk]
+msgid "Set local theme for testing (preview only)"
+msgstr "Podesi lokalnu temu za testiranje (samo pregled)"
+
+# lv, pt_BR, ru, sk, uk]
+msgid "Set refresh frequency for current session only."
+msgstr "Podesi učestalost ažuriranja samo za trenutnu sesiju."
+
+# lv, pt_BR, ru, sk, uk]
+msgid "Set the automatic refresh frequency for this dashboard."
+msgstr "Podesite učestalost automatskog ažuriranja za ovu kontrolnu tablu."
+
+# lv, pt_BR, ru, sk, uk]
+msgid ""
+"Set the automatic refresh frequency for this dashboard. The dashboard "
+"will reload its data at the specified interval."
+msgstr ""
+"Podesite učestalost automatskog ažuriranja za ovu kontrolnu tablu. "
+"Kontrolna tabla će ponovo učitati svoje podatke u navedenom intervalu."
+
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+msgid "Set up an email report"
+msgstr "Podesi imejl izveštaj"
+
+# es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
+msgid "Set up basic details, such as name and description."
+msgstr "Podesi osnovne detalje, kao što su naziv i opis."
+
+# pt_BR, ru, sk, uk]
+msgid ""
+"Sets the default temporal column for this dataset. Automatically selected"
+" as the time column when building charts that require a time dimension "
+"and used in dashboard level time filters."
+msgstr ""
+"Podešava podrazumevanu vremensku kolonu za ovaj skup podataka. Automatski"
+" se bira kao vremenska kolona prilikom kreiranja grafikona koji zahtevaju"
+" vremensku dimenziju i koristi se u filterima vremena na nivou kontrolne "
+"table."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+msgid ""
+"Sets the hierarchy levels of the chart. Each level is\n"
+"        represented by one ring with the innermost circle as the top of "
+"the hierarchy."
+msgstr ""
+"Podešava nivoe hijerarhije grafikona. Svaki nivo je\n"
+"        predstavljen jednim prstenom, pri čemu je najunutrašniji krug vrh"
+" hijerarhije."
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+msgid "Settings"
+msgstr "Podešavanja"
+
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Settings for time series"
+msgstr "Podešavanja za vremenske serije"
+
+# ja, lv, mi, ru, sk, uk]
 msgid "Shape"
 msgstr "Oblik"
 
