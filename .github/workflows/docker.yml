@@ -748,7 +748,10 @@ jobs:
               echo "::warning::manifest merge attempt ${attempt} for $tag failed; retrying in 15s..."
               sleep 15
             done
-            docker buildx imagetools inspect "$tag"
+            # Informational only: the merge above already succeeded, so a
+            # transient registry error here must not fail the step and leave
+            # later tags (master* sorts last) unmerged.
+            docker buildx imagetools inspect "$tag" || echo "::warning::could not inspect merged tag $tag"
           done
           if [ "$merged" -eq 0 ]; then
             echo "::error::no tags were merged; supersetbot's tag output may have changed"
