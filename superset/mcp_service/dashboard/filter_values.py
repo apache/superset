@@ -1101,7 +1101,7 @@ def _run(  # noqa: C901
     values: list[FilterValueScalar] = []
     strict_probe = probe is not None or "exact_value" in item.model_fields_set
     # Search without a sort metric skips ORDER BY, as the dashboard dropdown
-    # does; the dropdown sorts its returned page client-side, so sort here too.
+    # does. The dropdown re-sorts its page by locale; sort by code point here.
     unordered = not command.query_context.queries[0].orderby
     skipped = False
     # Rows past the limit are only evidence of a longer domain, never returned

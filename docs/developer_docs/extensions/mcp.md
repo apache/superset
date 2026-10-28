@@ -644,10 +644,11 @@ Options follow the filter's sort metric if it has one, otherwise their values in
 the `sortAscending` direction. Listings sort in the database. Searches without a
 sort metric skip that `ORDER BY`, as the dashboard dropdown does, and sort the
 fetched matches before applying `limit`, comparing strings by code point rather
-than database collation. Their page is therefore the leading matches unless the
-search reaches the native filter row limit (`NATIVE_FILTER_DEFAULT_ROW_LIMIT`);
-that `truncated/row_limit` page is sorted but drawn from whichever matches the
-database returned.
+than database collation or the dropdown's display order. Once a search reaches
+the native filter row limit (`NATIVE_FILTER_DEFAULT_ROW_LIMIT`, also capped by the
+server row limit), its page is sorted but drawn from whichever matches the
+database returned. Both that page and an ordinary truncated search report
+`truncated/row_limit`, so only a `complete` search shows the order of every match.
 
 `complete` establishes completeness only for the specified mode, predicate, and
 authorized effective parent selections. `truncated` never establishes absence.
@@ -732,8 +733,9 @@ parent proposals remain supported. A dropdown never renders its own selection, s
 a proposal for a parent whose templates read `filter` is checked against that
 parent's listed options rather than through an `IN` predicate on its column;
 values beyond the native filter row limit are not validated. Other proposals use
-the native `IN` shape. All proposals still follow the filter-macro restriction
-above.
+the native `IN` shape and still follow the filter-macro restriction above; a
+listed proposal sends no predicate on its own column, so filter macros never
+receive it.
 
 For a simultaneous parent/child change, first establish the parent's exact choice,
 then supply `proposed_filter_values: [{"filter_id": "parent-id", "values": ["EMEA"]}]`
