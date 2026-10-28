@@ -1051,3 +1051,41 @@ def test_a_duplicate_declaration_cannot_relax_the_permission(
     security.granted.add(("can_review", VIEW_MENU))
     with app.app_context():
         assert permitted_page_paths(app, manifest) == {"/review-queue"}
+
+
+def test_a_page_shadowing_the_application_root_is_refused(
+    app: Flask, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Its real URL would be '/analytics/analytics/review'.
+
+    The client cannot build that link: a path already starting with the root
+    segment is indistinguishable from one that has been rooted already, so
+    `ensureAppRoot` leaves it alone and the menu entry points somewhere that
+    does not exist. Refused here, where the ambiguity is visible, rather than
+    served as a page nothing can link to.
+    """
+    app.config["APPLICATION_ROOT"] = "/analytics"
+
+    with caplog.at_level(logging.ERROR):
+        register_extension_pages(app, manifest("/analytics/review"))
+
+    assert registered_page_paths(app, "acme.tools") == []
+    assert "application root" in caplog.text
+
+
+def test_the_root_segment_is_matched_whole(app: Flask) -> None:
+    """`/analytics-archive` only looks like it starts with `/analytics`."""
+    app.config["APPLICATION_ROOT"] = "/analytics"
+
+    register_extension_pages(app, manifest("/analytics-archive"))
+
+    assert registered_page_paths(app, "acme.tools") == ["/analytics-archive"]
+
+
+def test_the_default_root_refuses_nothing(app: Flask) -> None:
+    """Most deployments serve from the domain root, where there is no clash."""
+    app.config["APPLICATION_ROOT"] = "/"
+
+    register_extension_pages(app, manifest("/review"))
+
+    assert registered_page_paths(app, "acme.tools") == ["/review"]

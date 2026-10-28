@@ -19,6 +19,23 @@
 
 import { withExtensionPages, withExtensionSettings } from './Menu';
 
+const mockApplicationRoot = jest.fn<string, []>(() => '');
+
+// The app root is read through `ensureAppRoot`, which resolves it per call,
+// so mocking the reader is enough -- no module reset, and no second React.
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual<
+    typeof import('src/utils/getBootstrapData')
+  >('src/utils/getBootstrapData');
+  return {
+    __esModule: true,
+    ...actual,
+    applicationRoot: () => mockApplicationRoot(),
+  };
+});
+
+afterEach(() => mockApplicationRoot.mockReturnValue(''));
+
 const menu = [
   { label: 'Dashboards', name: 'Dashboards', url: '/dashboard/list/' },
 ];
@@ -200,5 +217,55 @@ describe('withExtensionSettings', () => {
     ]);
 
     expect(navPages).toHaveLength(0);
+  });
+});
+
+describe('under a subdirectory deployment', () => {
+  // Every other `url` in this menu is already rooted -- the backend emits host
+  // entries through `url_for` -- and `buildMenuItem` strips the root again
+  // before handing the path to `NavLink`. A contributed entry has to follow
+  // the same convention or it survives that round trip only by accident.
+  test('a contributed entry carries the application root', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    const [entry] = withExtensionPages(
+      [] as never,
+      [page({ path: '/review-queue', nav: { label: 'Queue' } })],
+    );
+
+    expect(entry.url).toBe('/analytics/review-queue');
+  });
+
+  test('a Settings child carries it too', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    const result = withExtensionSettings(
+      [{ name: 'Manage', label: 'Manage', childs: [] }] as never,
+      [page({ path: '/approvals', nav: { label: 'Approvals', category: 'Manage' } })],
+    );
+
+    expect(result.find(g => g.name === 'Manage')?.childs?.[0]).toMatchObject({
+      url: '/analytics/approvals',
+    });
+  });
+
+  test('the root is applied exactly once, never twice', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    const [entry] = withExtensionPages(
+      [] as never,
+      [page({ path: '/review-queue', nav: { label: 'Queue' } })],
+    );
+
+    expect(entry.url).not.toBe('/analytics/analytics/review-queue');
+  });
+
+  test('nothing is prefixed when the app serves from the domain root', () => {
+    const [entry] = withExtensionPages(
+      [] as never,
+      [page({ path: '/review-queue', nav: { label: 'Queue' } })],
+    );
+
+    expect(entry.url).toBe('/review-queue');
   });
 });
