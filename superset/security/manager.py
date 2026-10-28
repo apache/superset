@@ -5172,7 +5172,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Charts cannot use SQL Lab queries as datasources, so a query is never
         # reachable through an embedded dashboard. Guests also cannot execute SQL.
-        if query and self.is_guest_user():
+        # A query can also arrive as a ``datasource`` (e.g. the legacy
+        # datasource views) or as a query context's datasource; refuse those
+        # too, before the generic schema and ``datasource_access`` checks.
+        if self.is_guest_user() and (
+            query
+            or getattr(datasource, "type", None) == DatasourceType.QUERY
+            or (
+                query_context is not None
+                and getattr(query_context.datasource, "type", None)
+                == DatasourceType.QUERY
+            )
+        ):
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,

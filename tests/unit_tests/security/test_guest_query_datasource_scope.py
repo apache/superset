@@ -106,7 +106,6 @@ def _bound_query_context(
     sm: SupersetSecurityManager,
     query: MagicMock,
     *,
-    slice_datasource_type: str = DatasourceType.TABLE,
     modified: bool = False,
     guest_has_dashboard: bool = True,
     stored_chart: bool = True,
@@ -115,7 +114,7 @@ def _bound_query_context(
     slc = MagicMock()
     slc.id = SLICE_ID
     slc.datasource_id = QUERY_ID
-    slc.datasource_type = slice_datasource_type
+    slc.datasource_type = DatasourceType.TABLE
     dashboard = MagicMock()
     dashboard.id = DASHBOARD_ID
     dashboard.slices = [slc]
@@ -235,11 +234,6 @@ def test_guest_bound_query_refused_without_table_access(
         pytest.param({"modified": True}, None, id="modified-payload"),
         pytest.param({"guest_has_dashboard": False}, None, id="dashboard-not-granted"),
         pytest.param({"stored_chart": False}, None, id="no-stored-chart"),
-        pytest.param(
-            {"slice_datasource_type": DatasourceType.TABLE},
-            None,
-            id="chart-on-other-datasource",
-        ),
     ],
 )
 def test_guest_bound_query_refused_outside_token_scope(
@@ -394,3 +388,91 @@ def test_chart_data_api_scopes_guest_query_datasource(
     )
     assert response.json == {"message": "Forbidden"}
     get_data.assert_not_called()
+
+
+@pytest.mark.parametrize("via", ["datasource", "query_context"])
+def test_guest_cannot_read_query_passed_as_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+    via: str,
+) -> None:
+    """A query handed over as a ``datasource`` (or as a query context's
+    datasource) is refused like one passed as ``query``, before the generic
+    schema and ``datasource_access`` checks can authorize it."""
+    sm = _security_manager(mocker, _guest_user())
+    mocker.patch.object(sm, "can_access_schema", return_value=True)
+    query = _query(99)
+    if via == "datasource":
+        kwargs: dict[str, Any] = {"datasource": query}
+    else:
+        query_context = MagicMock()
+        query_context.datasource = query
+        query_context.form_data = {}
+        mocker.patch(
+            "superset.security.manager.query_context_modified", return_value=False
+        )
+        kwargs = {"query_context": query_context}
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(**kwargs)
+    assert excinfo.value.error.error_type == GUEST_DENIED
+
+
+def test_non_guest_query_passed_as_datasource_unchanged(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """Positive control: a regular user with schema access keeps reading a
+    query handed over as a ``datasource``."""
+    sm = _security_manager(mocker, None)
+    mocker.patch.object(sm, "can_access_schema", return_value=True)
+    sm.raise_for_access(datasource=_query(99))
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"EMBEDDED_SUPERSET": True}}], indirect=True
+)
+@pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param(f"/datasource/get/query/{QUERY_ID}/", id="get"),
+        pytest.param(
+            f"/datasource/external_metadata/query/{QUERY_ID}/", id="external-metadata"
+        ),
+    ],
+)
+def test_legacy_datasource_views_refuse_guest_query(
+    mocker: MockerFixture,
+    app: "SupersetApp",
+    path: str,
+) -> None:
+    """The legacy datasource views resolve ``query`` datasources and check them
+    as a ``datasource``; a guest with schema access must still get a 403 and
+    never the stored SQL."""
+    from superset import security_manager
+
+    mocker.patch.object(
+        security_manager, "get_guest_user_from_request", return_value=_guest_user()
+    )
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_schema", return_value=True)
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    query = _query(99)
+    query.data = {"id": QUERY_ID, "type": "query", "sql": query.sql}
+    query.external_metadata.return_value = [{"name": "sales", "type": "INT"}]
+    get_datasource = mocker.patch(
+        "superset.views.datasource.views.DatasourceDAO.get_datasource",
+        return_value=query,
+    )
+
+    with app.test_client() as client:
+        response = client.get(
+            path, headers={app.config["GUEST_TOKEN_HEADER_NAME"]: "test-guest-token"}
+        )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 403, body
+    assert "SELECT" not in body
+    get_datasource.assert_called_once_with(DatasourceType.QUERY, str(QUERY_ID))
+    query.external_metadata.assert_not_called()
