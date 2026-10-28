@@ -403,6 +403,7 @@ def test_transport_errors_map_to_existing_notification_exceptions(
         notifications._send_to_teams(
             configured, configured.destinations[0], SERVICE_URL, {}
         )
+    assert type(exc.value) is exception
     assert exc.value.__cause__ is None
 
 
