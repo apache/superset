@@ -1406,3 +1406,27 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
     jest.restoreAllMocks();
   }
 });
+
+test('document.title falls back to the app name on unmount, not the title present at mount', async () => {
+  // A direct page load of an explore URL arrives with the chart name already
+  // in <title>, so restoring the title seen at mount leaves the stale name in
+  // the tab after navigating away.
+  const titleBeforeTest = document.title;
+  document.title = 'Test Chart';
+  try {
+    const { unmount } = renderWithRouter({
+      initialState: {
+        ...reduxState,
+        explore: { ...reduxState.explore, sliceName: 'Test Chart' },
+      },
+    });
+
+    await waitFor(() => expect(document.title).toBe('Test Chart'));
+
+    unmount();
+
+    expect(document.title).toBe('Superset');
+  } finally {
+    document.title = titleBeforeTest;
+  }
+});
