@@ -36,6 +36,7 @@ import {
   mockExportOnlyUser,
   mockDatasets,
   mockDatasetListEndpoints,
+  API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
 jest.mock('@superset-ui/core', () => ({
@@ -559,14 +560,28 @@ describe('semantic layer setup transition', () => {
         expect(fetchMock.callHistory.calls('create-layer')).toHaveLength(1),
       );
       if (succeeds) {
-        expect(
-          await screen.findByRole('combobox', { name: 'Semantic layer' }),
-        ).toHaveValue('');
         await waitFor(() =>
           expect(fetchMock.callHistory.calls('refreshed-layers')).toHaveLength(
             1,
           ),
         );
+        const layerPicker = await screen.findByRole('combobox', {
+          name: 'Semantic layer',
+        });
+        const layerSelect = layerPicker.closest('.ant-select');
+        expect(layerSelect).toHaveTextContent('Select a semantic layer');
+        expect(
+          layerSelect?.querySelector('.ant-select-selection-item'),
+        ).toBeNull();
+        expect(
+          fetchMock.callHistory
+            .calls()
+            .filter(call =>
+              /\/api\/v1\/semantic_layer\/[^/]+\/(schema\/runtime|views)/.test(
+                String(call.url),
+              ),
+            ),
+        ).toHaveLength(0);
         expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
       } else {
         await waitFor(() => expect(create).toBeEnabled());
@@ -724,9 +739,26 @@ describe('semantic layer setup transition', () => {
   test('flag off keeps the setup entry unavailable', async () => {
     const user = configure(true);
     jest.mocked(isFeatureEnabled).mockReturnValue(false);
+    fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS_INFO] });
+    let respondPermissions!: (value: { permissions: string[] }) => void;
+    fetchMock.get(
+      API_ENDPOINTS.DATASETS_INFO,
+      () =>
+        new Promise(resolve => {
+          respondPermissions = resolve;
+        }),
+      { name: API_ENDPOINTS.DATASETS_INFO },
+    );
     renderDatasetList(user);
     expect(await screen.findByText('Datasets')).toBeInTheDocument();
+    await act(async () =>
+      respondPermissions({ permissions: ['can_read', 'can_write'] }),
+    );
+    expect(await screen.findByTestId('import-button')).toBeInTheDocument();
     expect(screen.queryByTestId('btn-create-new')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
+    ).toBeInTheDocument();
     expect(fetchMock.callHistory.calls('setup-layers')).toHaveLength(0);
   });
 });
