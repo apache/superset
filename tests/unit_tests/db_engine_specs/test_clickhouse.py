@@ -1185,10 +1185,49 @@ def test_select_star_finalizes_aggregate_function_columns() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "query, expected_sql",
+    [
+        (
+            {
+                "columns": ["ts", "rtt"],
+                "metrics": None,
+                "orderby": [("rtt", False)],
+                "filter": [{"col": "rtt", "op": ">", "val": 500}],
+            },
+            "SELECT `ts` AS `ts`, finalizeAggregation(`rtt`) AS `rtt` \n"
+            "FROM `default`.`t` \nWHERE `rtt` > 500 ORDER BY `rtt` DESC\n LIMIT 10",
+        ),
+        (
+            {
+                "columns": ["k"],
+                "metrics": ["p50"],
+                "orderby": [("p50", False)],
+                "filter": [{"col": "k", "op": "IN", "val": [1, 2]}],
+            },
+            "SELECT `k` AS `k`, quantileTimingMerge(0.5)(rtt) AS `p50` \n"
+            "FROM `default`.`t` \nWHERE `k` IN (1, 2) GROUP BY `k` "
+            "ORDER BY `p50` DESC\n LIMIT 10",
+        ),
+        (
+            {
+                "columns": ["k", "rtt_p50"],
+                "metrics": None,
+                "orderby": [("k", True)],
+                "filter": [],
+            },
+            "SELECT `k` AS `k`, (finalizeAggregation(rtt)) AS `rtt_p50__` \n"
+            "FROM `default`.`t` ORDER BY `k` ASC\n LIMIT 10",
+        ),
+    ],
+    ids=["raw_filter_orderby", "merge_metric", "calculated_column"],
+)
 def test_dataset_query_finalizes_aggregate_function_columns(
     app_context: None,
+    query: dict[str, Any],
+    expected_sql: str,
 ) -> None:
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.models.core import Database
 
     table = SqlaTable(
@@ -1199,22 +1238,20 @@ def test_dataset_query_finalizes_aggregate_function_columns(
         table_name="t",
         columns=[
             TableColumn(column_name="ts", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="k", type="UINT8"),
             TableColumn(column_name="rtt", type="AGGREGATEFUNCTION"),
+            TableColumn(
+                column_name="rtt_p50",
+                type="AGGREGATEFUNCTION",
+                expression="finalizeAggregation(rtt)",
+            ),
+        ],
+        metrics=[
+            SqlMetric(metric_name="p50", expression="quantileTimingMerge(0.5)(rtt)")
         ],
     )
 
-    sqlaq = table.get_sqla_query(
-        columns=["ts", "rtt"],
-        metrics=None,
-        is_timeseries=False,
-        orderby=[("ts", True)],
-        row_limit=10,
-        filter=[],
-        extras={},
-    )
+    sqlaq = table.get_sqla_query(**query, is_timeseries=False, row_limit=10, extras={})
 
-    assert sqlaq.labels_expected == ["ts", "rtt"]
-    assert table.database.compile_sqla_query(sqlaq.sqla_query) == (
-        "SELECT `ts` AS `ts`, finalizeAggregation(`rtt`) AS `rtt` \n"
-        "FROM `default`.`t` ORDER BY `ts` ASC\n LIMIT 10"
-    )
+    assert sqlaq.labels_expected == query["columns"] + (query["metrics"] or [])
+    assert table.database.compile_sqla_query(sqlaq.sqla_query) == expected_sql

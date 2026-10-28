@@ -29,7 +29,7 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, func, types
 from sqlalchemy.engine.url import URL
-from sqlalchemy.sql.expression import ColumnElement
+from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Label
 from urllib3.exceptions import NewConnectionError
 
 from superset import db
@@ -79,8 +79,14 @@ class AggregateFunctionState(types.UserDefinedType):
     def get_col_spec(self, **kw: Any) -> str:
         return "AggregateFunction"
 
+    def coerce_compared_value(self, op: Any, value: Any) -> types.TypeEngine[Any]:
+        return types.NullType().coerce_compared_value(op, value)
+
     def column_expression(self, colexpr: ColumnElement) -> ColumnElement:
-        return func.finalizeAggregation(colexpr)
+        element = colexpr.element if isinstance(colexpr, Label) else colexpr
+        if isinstance(element, ColumnClause) and not element.is_literal:
+            return func.finalizeAggregation(colexpr)
+        return colexpr
 
 
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
