@@ -579,6 +579,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Type'),
         accessor: 'viz_type',
+        size: 'xxl',
         id: 'viz_type',
       },
       {
@@ -643,6 +644,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        size: 'xl',
         id: 'tags',
       },
       {
@@ -668,6 +670,7 @@ function ChartList(props: ChartListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              size: 'xl',
               id: 'viewers',
             },
           ]

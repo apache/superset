@@ -478,6 +478,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        size: 'xl',
         id: 'tags',
       },
       {
@@ -489,6 +490,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
+        size: 'xl',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -502,6 +504,7 @@ function DashboardList(props: DashboardListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              size: 'xl',
               id: 'viewers',
             },
           ]
@@ -517,6 +520,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
+        size: 'xl',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -620,6 +624,7 @@ function DashboardList(props: DashboardListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        size: 'lg',
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },

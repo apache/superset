@@ -20,6 +20,7 @@ import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
+import { mapColumns } from './utils';
 
 let defaultProps: any;
 
@@ -420,4 +421,22 @@ test('should render a static Cell node alongside an ordinary accessor value', ()
   // ...while a sibling column without a `Cell` still renders its ordinary
   // accessor value, confirming the static branch doesn't swallow it.
   expect(screen.getByText('Line 01 - Col 01')).toBeVisible();
+});
+
+test('should map a column size token to an explicit column width', () => {
+  const sizedColumns = [
+    { id: 'small', Header: 'Small', accessor: 'small', size: 'sm' },
+    { id: 'large', Header: 'Large', accessor: 'large', size: 'xxxl' },
+    { id: 'unsized', Header: 'Unsized', accessor: 'unsized' },
+  ];
+
+  const mapped = mapColumns(sizedColumns, []);
+
+  expect(mapped.map(({ key, width }) => ({ key, width }))).toEqual([
+    { key: 'small', width: 50 },
+    { key: 'large', width: 360 },
+    // Without a size the column gets no width, so it absorbs spare table
+    // width. List views size every visible column to avoid that.
+    { key: 'unsized', width: undefined },
+  ]);
 });

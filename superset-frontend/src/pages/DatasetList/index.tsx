@@ -1156,6 +1156,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Actions'),
         id: 'actions',
+        size: 'lg',
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },
