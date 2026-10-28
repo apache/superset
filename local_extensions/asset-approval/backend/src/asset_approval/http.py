@@ -45,6 +45,10 @@ SAVED_MESSAGE = "Changes saved. Viewers still see the live version."
 UPDATED_MESSAGE = "Changes updated in your existing draft."
 BULK_MESSAGE = "%s changes waiting for review."
 DELETE_MESSAGE = "Delete submitted for review. Nothing has been removed."
+DELETE_REPLACED_MESSAGE = (
+    "Delete submitted for review. Nothing has been removed, and it replaced "
+    "the edit you had waiting."
+)
 BULK_DELETE_MESSAGE = "%s deletes waiting for review. Nothing has been removed."
 
 
@@ -57,8 +61,11 @@ def captured_response(api: Any, ex: ChangeRequestCreated) -> Response:
         message = (BULK_DELETE_MESSAGE if deleting else BULK_MESSAGE) % ex.count
     elif deleting:
         # Never "Changes saved" for a delete: the asset is untouched and
-        # saying it was saved describes the wrong act entirely.
-        message = DELETE_MESSAGE
+        # saying it was saved describes the wrong act entirely. And where
+        # the delete took the place of an edit, say so -- the dialogs warn
+        # first, but a caller that never saw one otherwise loses the edit
+        # with nothing in the answer to show for it (QA-03).
+        message = DELETE_REPLACED_MESSAGE if ex.replaced_edit else DELETE_MESSAGE
     elif ex.updated_existing:
         message = UPDATED_MESSAGE
     else:

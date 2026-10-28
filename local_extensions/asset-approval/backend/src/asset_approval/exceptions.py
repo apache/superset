@@ -53,6 +53,7 @@ class ChangeRequestCreated(ChangeManagementException):
         change_request_ids: list[int] | None = None,
         operation: str = "update",
         updated_existing: bool = False,
+        replaced_edit: bool = False,
     ):
         self.change_request_id = change_request_id
         self.asset_type = asset_type
@@ -69,6 +70,12 @@ class ChangeRequestCreated(ChangeManagementException):
         #: but nothing ever told the response which case it was -- so a
         #: second save read exactly like the first (QA-11).
         self.updated_existing = updated_existing
+        #: Whether a delete took the place of an edit the author already had
+        #: waiting. The dialogs warn before this happens, but a caller that
+        #: never saw a dialog -- the REST API, a script -- was told only
+        #: that the delete was captured, and the edit disappeared without
+        #: anything saying so (QA-03).
+        self.replaced_edit = replaced_edit
         super().__init__(
             f"Changes to {count} {asset_type}(s) were submitted for review."
             if count > 1

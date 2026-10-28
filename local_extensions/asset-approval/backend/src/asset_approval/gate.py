@@ -479,6 +479,7 @@ def gate_delete(asset_type: AssetType, asset_ids: list[int]) -> None:
 
     held_by_asset = {c.asset_id: c for c in held}
     created: list[int] = []
+    replaced_edit = False
     for asset_id in asset_ids:
         existing = held_by_asset.get(asset_id)
         if existing is not None:
@@ -486,6 +487,7 @@ def gate_delete(asset_type: AssetType, asset_ids: list[int]) -> None:
             # update to the same one: the edit's note described a rename
             # that is no longer on the table (129078).
             replacing_an_edit = Operation(existing.operation) is not Operation.DELETE
+            replaced_edit = replaced_edit or replacing_an_edit
             created.append(
                 _update_own_request(
                     existing.id,
@@ -510,6 +512,7 @@ def gate_delete(asset_type: AssetType, asset_ids: list[int]) -> None:
         count=len(created),
         change_request_ids=created,
         operation=Operation.DELETE.value,
+        replaced_edit=replaced_edit,
     )
 
 
