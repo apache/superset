@@ -332,6 +332,75 @@ def test_upgrade_refuses_stale_configuration(
         assert connection.execute(select(dbs.c.extra)).scalar_one() == edited
 
 
+def test_conflict_rolls_back_preceding_updates(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """A conflict after one real update rolls back both rows to their original text."""
+    originals = {
+        1: '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}',
+        2: ' { "metadata_cache_timeout": {"schema_cache_timeout": "0"} } ',
+    }
+    with engine.begin() as connection:
+        connection.execute(
+            dbs.insert(),
+            [
+                {"id": database_id, "extra": extra}
+                for database_id, extra in originals.items()
+            ],
+        )
+    updates_started = 0
+    first_update_seen = False
+    injected = False
+
+    def edit_before_second_update(
+        conn: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Observe the earlier update, then change the remaining row before its CAS."""
+        nonlocal updates_started, first_update_seen, injected
+        if injected or not statement.lstrip().upper().startswith("UPDATE"):
+            return
+        updates_started += 1
+        if updates_started != 2:
+            return
+        rows = dict(conn.execute(select(dbs.c.id, dbs.c.extra)).all())
+        converted = [
+            database_id
+            for database_id, extra in rows.items()
+            if type(json.loads(extra)["metadata_cache_timeout"]["schema_cache_timeout"])
+            is int
+        ]
+        assert len(converted) == 1
+        first_id = converted[0]
+        assert rows[first_id] != originals[first_id]
+        first_update_seen = True
+        target_id = next(
+            database_id for database_id in originals if database_id != first_id
+        )
+        assert rows[target_id] == originals[target_id]
+        injected = True
+        conn.execute(
+            dbs.update().where(dbs.c.id == target_id).values(extra='{"edited": true}')
+        )
+
+    event.listen(engine, "before_cursor_execute", edit_before_second_update)
+    with pytest.raises(RuntimeError, match="configuration changed"):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert updates_started == 2
+    assert first_update_seen
+    assert injected
+    with engine.connect() as connection:
+        assert (
+            dict(connection.execute(select(dbs.c.id, dbs.c.extra)).all()) == originals
+        )
+
+
 def test_downgrade_keeps_integer_timeouts(
     engine: Engine, mocker: MockerFixture
 ) -> None:
