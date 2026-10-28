@@ -19,6 +19,12 @@
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
+/** Default expanded sidebar width (px). */
+export const DASHBOARD_WORKSPACE_SIDEBAR_DEFAULT_WIDTH = 360;
+export const DASHBOARD_WORKSPACE_SIDEBAR_MIN_WIDTH = 240;
+export const DASHBOARD_WORKSPACE_SIDEBAR_MAX_WIDTH = 560;
+export const DASHBOARD_WORKSPACE_SIDEBAR_COLLAPSED_WIDTH = 48;
+
 export const DASHBOARD_WORKSPACE_PAGE_SIZE = 100;
 
 export const DASHBOARD_WORKSPACE_LIST_COLUMNS = [
