@@ -34,7 +34,7 @@ assists people when migrating to a new version.
   parity between exports and the browser.
 
 - **Extensions reach Superset's API through a new `http` namespace on
-  `@apache-superset/core`.** `http.get` / `post` / `put` / `delete` take an
+  `@apache-superset/core`.** `http.get` / `post` / `put` / `del` take an
   `endpoint` -- a path under this Superset, to which the host applies the
   application root -- and return the parsed `json`, the `status` and the
   response `headers`. The host supplies the session and attaches a CSRF token

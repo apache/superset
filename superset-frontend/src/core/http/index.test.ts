@@ -42,19 +42,25 @@ const answer = (json: unknown = { result: [] }, status = 200) => ({
 });
 
 beforeEach(() => {
-  Object.values(mocked).forEach(fn => fn.mockReset().mockResolvedValue(answer()));
+  Object.values(mocked).forEach(fn =>
+    fn.mockReset().mockResolvedValue(answer()),
+  );
 });
 
-test.each(['get', 'post', 'put', 'delete'] as const)(
-  '%s reaches the client of the same name',
-  async verb => {
-    await http[verb]({ endpoint: '/api/v1/chart/' });
+// `del` is the one name that differs from the client's: `delete` is a
+// reserved word, so the published declaration cannot use it.
+test.each([
+  ['get', 'get'],
+  ['post', 'post'],
+  ['put', 'put'],
+  ['del', 'delete'],
+] as const)("%s reaches the client's %s", async (verb, clientMethod) => {
+  await http[verb]({ endpoint: '/api/v1/chart/' });
 
-    expect(mocked[verb]).toHaveBeenCalledWith(
-      expect.objectContaining({ endpoint: '/api/v1/chart/' }),
-    );
-  },
-);
+  expect(mocked[clientMethod]).toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/chart/' }),
+  );
+});
 
 test('the parsed body, status and headers come back', async () => {
   mocked.get.mockResolvedValue(answer({ result: [1, 2] }, 207));
@@ -82,7 +88,10 @@ test('an absent payload is not forwarded as undefined', async () => {
 });
 
 test('plain search params become a URLSearchParams', async () => {
-  await http.get({ endpoint: '/api/v1/chart/', searchParams: { q: 1, all: true } });
+  await http.get({
+    endpoint: '/api/v1/chart/',
+    searchParams: { q: 1, all: true },
+  });
 
   const { searchParams } = mocked.get.mock.calls[0][0];
   expect(searchParams).toBeInstanceOf(URLSearchParams);

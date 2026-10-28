@@ -96,7 +96,7 @@ export const http = {
   get: jest.fn(emptyResponse) as unknown as HttpMethod,
   post: jest.fn(emptyResponse) as unknown as HttpMethod,
   put: jest.fn(emptyResponse) as unknown as HttpMethod,
-  delete: jest.fn(emptyResponse) as unknown as HttpMethod,
+  del: jest.fn(emptyResponse) as unknown as HttpMethod,
 };
 
 // The host's `t` interpolates; the real signature takes substitutions.
