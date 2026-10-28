@@ -3230,6 +3230,8 @@ class SqlaTable(
                 self.catalog,
                 default_schema,
                 exclude_dataset_id=self.id,
+                # As ``get_from_clause`` applies them to the inner SQL.
+                include_global_guest_rls=False,
                 resolve_catalog=resolve_catalog,
             )
             # Keep each predicate associated with its qualified table, including

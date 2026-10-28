@@ -419,6 +419,8 @@ class Query(
             self.database,
             self.catalog,
             default_schema,
+            # As ``get_from_clause`` applies them to the inner SQL.
+            include_global_guest_rls=False,
             resolve_catalog=resolve_catalog,
         )
         predicates.extend(

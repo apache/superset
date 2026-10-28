@@ -4442,13 +4442,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if default_schema is None:
                 default_schema = self._get_rls_schema()
             # A query root lets scope traversal find tables in scalar expressions
-            # and select-list fragments such as DISTINCT (SELECT ...).
+            # and select-list fragments such as DISTINCT (SELECT ...). Execution
+            # applies every rule, global guest rules included, to these tables.
             predicates.update(
                 collect_rls_predicates_for_sql(
                     sql,
                     self.database,
                     self.catalog,
                     default_schema,
+                    include_global_guest_rls=True,
                     resolve_catalog=resolve_catalog,
                 )
             )

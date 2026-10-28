@@ -109,26 +109,69 @@ def apply_rls(
     # safer, but not supported in all databases.
     method = database.db_engine_spec.get_rls_method()
 
-    # collect all RLS predicates for all tables in the query
-    default_catalog = database.get_default_catalog()
+    predicates, subquery_predicates = get_rls_predicates(
+        database,
+        catalog,
+        schema,
+        parsed_statement,
+        database.get_default_catalog(),
+        exclude_dataset_id=exclude_dataset_id,
+        include_global_guest_rls=include_global_guest_rls,
+    )
+
+    def parse(rules: dict[Table, list[str]]) -> dict[Table, list[Any]]:
+        return {
+            table: [
+                parsed_statement.parse_predicate(predicate)
+                for predicate in table_predicates
+                if predicate
+            ]
+            for table, table_predicates in rules.items()
+        }
+
+    return parsed_statement.apply_rls(
+        catalog,
+        schema,
+        parse(predicates),
+        method,
+        None if subquery_predicates is None else parse(subquery_predicates),
+    )
+
+
+def get_rls_predicates(
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    parsed_statement: BaseSQLStatement[Any],
+    default_catalog: str | None,
+    exclude_dataset_id: int | None = None,
+    include_global_guest_rls: bool = True,
+) -> tuple[dict[Table, list[str]], dict[Table, list[str]] | None]:
+    """
+    The RLS predicates ``apply_rls`` injects into a statement, per qualified table.
+
+    Shared by ``apply_rls`` and the cache-key collector so a cached result is keyed
+    on exactly the rules its execution applied.
+
+    :returns: The rules for the statement's table reads, and the rules for reads
+        inside an uncorrelated sub-query when those differ (``None`` otherwise,
+        meaning sub-query reads get the first set). See ``apply_rls`` for the
+        parameters.
+    """
 
     def collect_predicates(
         include_global: bool, exclude_id: int | None
-    ) -> dict[Table, list[Any]]:
-        predicates: dict[Table, list[Any]] = {}
+    ) -> dict[Table, list[str]]:
+        predicates: dict[Table, list[str]] = {}
         for table in parsed_statement.tables:
             table = table.qualify(catalog=catalog, schema=schema)
-            predicates[table] = [
-                parsed_statement.parse_predicate(predicate)
-                for predicate in get_predicates_for_table(
-                    table,
-                    database,
-                    default_catalog,
-                    exclude_dataset_id=exclude_id,
-                    include_global_guest_rls=include_global,
-                )
-                if predicate
-            ]
+            predicates[table] = get_predicates_for_table(
+                table,
+                database,
+                default_catalog,
+                exclude_dataset_id=exclude_id,
+                include_global_guest_rls=include_global,
+            )
         return predicates
 
     predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)
@@ -147,10 +190,7 @@ def apply_rls(
     subquery_predicates = (
         collect_predicates(True, None) if needs_subquery_predicates else None
     )
-
-    return parsed_statement.apply_rls(
-        catalog, schema, predicates, method, subquery_predicates
-    )
+    return predicates, subquery_predicates
 
 
 def _dataset_has_rls(dataset_id: int) -> bool:
@@ -313,6 +353,7 @@ def collect_rls_predicates_for_sql(
     schema: str,
     exclude_dataset_id: int | None = None,
     *,
+    include_global_guest_rls: bool = True,
     resolve_catalog: Callable[[], str | None] | None = None,
 ) -> list[str]:
     """
@@ -330,6 +371,10 @@ def collect_rls_predicates_for_sql(
     :param exclude_dataset_id: Mirror of the same parameter on apply_rls — pass
         the virtual dataset's id so its self-match is excluded from the cache key
         (kept consistent with what's actually applied at query time).
+    :param include_global_guest_rls: Mirror of the same parameter on apply_rls,
+        so the key carries the global guest rules wherever execution injects
+        them. Rules injected only into tables read inside a sub-query are tagged
+        separately, since execution leaves the same table's other reads unfiltered.
     :param resolve_catalog: Optional memoized resolver shared by cache-key collectors,
         including engines that require a connection to discover the default catalog.
     :return: Table-tagged RLS predicate strings that would be applied
@@ -338,25 +383,28 @@ def collect_rls_predicates_for_sql(
 
     try:
         parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
-        tables = {
-            table.qualify(catalog=catalog, schema=schema)
-            for statement in parsed_script.statements
-            for table in statement.tables
-        }
         default_catalog = (resolve_catalog or database.get_default_catalog)()
-        return sorted(
-            {
-                json.dumps(["rls", table.catalog, table.schema, table.table, predicate])
-                for table in tables
-                for predicate in get_predicates_for_table(
-                    table,
-                    database,
-                    default_catalog,
-                    exclude_dataset_id=exclude_dataset_id,
-                    include_global_guest_rls=False,
+        keys: set[str] = set()
+        for statement in parsed_script.statements:
+            predicates, subquery_predicates = get_rls_predicates(
+                database,
+                catalog,
+                schema,
+                statement,
+                default_catalog,
+                exclude_dataset_id=exclude_dataset_id,
+                include_global_guest_rls=include_global_guest_rls,
+            )
+            for tag, rules in (
+                ("rls", predicates),
+                ("rls-subquery", subquery_predicates or {}),
+            ):
+                keys.update(
+                    json.dumps([tag, table.catalog, table.schema, table.table, rule])
+                    for table, table_rules in rules.items()
+                    for rule in table_rules
                 )
-            }
-        )
+        return sorted(keys)
     except Exception:
         # The block above is not only SQL parsing: `get_predicates_for_table`
         # queries `db.session` and `get_default_catalog()` builds an engine, so

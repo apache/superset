@@ -4019,3 +4019,126 @@ def test_rendered_saved_column_name_cache_keys_are_user_scoped(
         keys.append(query.cache_key(extra_cache_keys=extra_keys))
     assert rows[0] != rows[1]
     assert keys[0] != keys[1]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable, Query], indirect=True)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_to_datetime_clock_read_is_viewer_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """A ``to_datetime`` result reads the clock, which can differ between the
+    cache key render and execution, so the key must not trust its branch."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, rule = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    clock = {"year": 2000}
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz: Any = None) -> datetime:  # type: ignore[override]
+            return datetime(clock["year"], 1, 1)
+
+    mocker.patch(
+        "superset.jinja_context.to_datetime",
+        lambda value, format="%Y-%m-%d %H:%M:%S": Clock.strptime(value, format),
+    )
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {
+                "sqlExpression": "{% if ('2020-01-01 00:00:00'|to_datetime)"
+                ".now().year == 2000 %}0{% else %}"
+                "(SELECT MAX(col1) FROM physical){% endif %}",
+                "label": "axis",
+            }
+        ],
+        metrics=[],
+        is_timeseries=False,
+    )
+    rows = []
+    keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        rule.clause = f"col1 = {user_id}"
+        # The key is computed at one instant and the query runs at another.
+        clock["year"] = 2000
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        assert extra_keys == [f"rls-predicate-parse-failed-for-user-{user_id}"]
+        keys.append(query.cache_key(extra_cache_keys=extra_keys))
+        clock["year"] = 2001
+        result = virtual.get_query_result(query)
+        assert result.status == "success", result.error_message
+        rows.append(result.df["axis"].tolist())
+    assert rows == [[1], [2]]
+    assert keys[0] != keys[1]
+
+
+GUEST_RLS_SUBQUERY_CASES: dict[str, tuple[str, AdhocColumn | str]] = {
+    # An adhoc expression's sub-query gets every guest rule at execution.
+    "adhoc_expression": (
+        "SELECT 1 AS col1",
+        {"sqlExpression": "(SELECT MAX(col1) FROM physical)", "label": "col1"},
+    ),
+    # A sub-query in the dataset SQL gets the global guest rules the outer
+    # query applies only to the rows the dataset SQL returns.
+    "dataset_sql": ("SELECT (SELECT MAX(col1) FROM physical) AS col1", "col1"),
+}
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable, Query], indirect=True)
+@pytest.mark.parametrize("case", GUEST_RLS_SUBQUERY_CASES)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, EMBEDDED_SUPERSET=True)
+def test_global_guest_rls_on_subquery_tables_is_keyed(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    case: str,
+) -> None:
+    """Guests whose identical rule is global or scoped to the chart's dataset
+    get the same outer key, yet only the global rule filters a sub-query table,
+    so the key must carry that table's global guest rules."""
+    from superset import security_manager
+
+    virtual, _ = static_schema_datasource
+    virtual.sql, column = GUEST_RLS_SUBQUERY_CASES[case]
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        return_value=[],
+    )
+    guest = {"rules": [{"clause": "col1 = 1"}]}
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        side_effect=lambda dataset: [
+            rule
+            for rule in guest["rules"]
+            if not rule.get("dataset") or str(rule["dataset"]) == str(dataset.id)
+        ],
+    )
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        side_effect=lambda: MagicMock(guest_token={"rls_rules": guest["rules"]}),
+    )
+    query = QueryObject(
+        datasource=virtual, columns=[column], metrics=[], is_timeseries=False
+    )
+    rows = []
+    keys = []
+    for rules in (
+        [{"clause": "col1 = 1"}],
+        [{"clause": "col1 = 1", "dataset": virtual.id}],
+    ):
+        guest["rules"] = rules
+        result = virtual.get_query_result(query)
+        assert result.status == "success", result.error_message
+        rows.append(result.df["col1"].tolist())
+        keys.append(
+            (
+                security_manager.get_rls_cache_key(virtual),
+                virtual.get_extra_cache_keys(query.to_dict()),
+            )
+        )
+    assert rows[0] != rows[1]
+    assert keys[0][0] == keys[1][0]
+    assert keys[0] != keys[1], keys

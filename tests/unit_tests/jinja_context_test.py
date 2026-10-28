@@ -3768,11 +3768,33 @@ def test_render_for_discovery_matches_execution_for_data() -> None:
         "|{{ q|join(',') }}|{{ s|first }}|{% set x = namespace(v=1) %}{{ x.v }}"
         "|{% for i in range(2) %}{{ i }}{% endfor %}|{{ q is sequence }}"
         "|{{ ['a']|map('upper')|join }}"
-        "|{{ q|where_in }}|{{ '2020-01-01 00:00:00'|to_datetime }}|{{ missing }}"
+        "|{{ q|where_in }}|{{ ''|to_datetime }}|{{ missing }}"
     )
     rendered = processor.render_for_discovery(template)
     assert rendered == processor.process_template(template)
     assert rendered.startswith("(FROM t) + LENGTH('[1]')|")
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        # The clock could differ between discovery and execution renders.
+        "{% if ('2020-01-01 00:00:00'|to_datetime).now().second % 2 %}1"
+        "{% else %}(SELECT MAX(col1) FROM physical){% endif %}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).today() }}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).utcnow() }}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).date().today() }}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).min.now() }}",
+        "{{ '2020-01-01 00:00:00'|to_datetime }}",
+        "{% if '2020-01-01 00:00:00'|to_datetime %}x{% endif %}",
+    ],
+)
+def test_render_for_discovery_stubs_to_datetime_results(template: str) -> None:
+    """A ``to_datetime`` result exposes clock methods, so discovery stubs it."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = JinjaTemplateProcessor(database=database)
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery(template)
 
 
 def test_render_for_discovery_runs_request_filter_readers(

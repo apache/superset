@@ -1062,6 +1062,22 @@ def _is_plain_data(value: Any) -> bool:
     return False
 
 
+def _plain_result(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Stub a custom filter's result unless it is plain data.
+
+    A result such as ``to_datetime``'s ``datetime`` has methods that read the
+    clock (``now``, ``today``), so a template could branch on them differently
+    in discovery and execution.
+    """
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        result = func(*args, **kwargs)
+        return result if _is_plain_data(result) else _OpaqueValue()
+
+    return wrapper
+
+
 def _discovery_value(value: Any) -> Any:
     """Keep plain data and request-only filter readers; stub everything else.
 
@@ -1261,9 +1277,11 @@ class BaseTemplateProcessor:
         partition macros, ``dataset``, ``metric`` or the ``current_user_*``
         functions, and non-deterministic built-ins (``random``, ``lipsum``)
         are stubbed: using one raises ``OpaqueTemplateError`` rather than
-        running it. Output is therefore either execution's exact SQL or an
-        error, never a guess. Unknown filters, tests, extensions and processors
-        that override ``process_template`` are opaque for the same reason.
+        running it. So is a custom filter's result that is not plain data, such
+        as ``to_datetime``'s, whose methods read the clock. Output is therefore
+        either execution's exact SQL or an error, never a guess. Unknown
+        filters, tests, extensions and processors that override
+        ``process_template`` are opaque for the same reason.
         """
         if type(self).process_template is not BaseTemplateProcessor.process_template:
             raise OpaqueTemplateError()
@@ -1279,7 +1297,8 @@ class BaseTemplateProcessor:
         env.filters = {
             name: _reject_opaque_arguments(value)
             if _DISCOVERY_FILTERS.get(name) is value
-            or (name == "where_in" and isinstance(value, WhereInMacro))
+            else _reject_opaque_arguments(_plain_result(value))
+            if (name == "where_in" and isinstance(value, WhereInMacro))
             or (name == "to_datetime" and value is to_datetime)
             else _raise_opaque
             for name, value in self.env.filters.items()
