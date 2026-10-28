@@ -3854,6 +3854,10 @@ def merge_bullet_form_data(
     for values_key, labels_key in dependent_controls.items():
         if values_key in new_form_data and labels_key not in new_form_data:
             new_form_data[labels_key] = ""
+    # Per-band colors are applied by position, so replacing the thresholds
+    # without colors must not re-apply the old colors to the new bands.
+    if "ranges" in new_form_data and "range_colors" not in new_form_data:
+        new_form_data["range_colors"] = []
 
     preserve_orderby = (
         "orderby" not in new_form_data and "orderby" in existing_form_data
