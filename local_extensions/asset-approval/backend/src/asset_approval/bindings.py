@@ -23,6 +23,8 @@ from asset_approval.gate import (
     combine_key_values,
     gate_delete,
     gate_write,
+    has_ever_been_published,
+    mark_published,
     refuse_import_overwrite,
     refuse_unreviewable_write,
     RESTORE_COMMAND,
@@ -332,9 +334,16 @@ def _gate_dashboard_update(command: Any) -> None:
     protect, and gating every save would mean building a dashboard one
     approval at a time.
 
-    So: changes to an unpublished dashboard apply directly, and the
-    transition that first exposes it to viewers is captured like any other
-    governed write.
+    So: changes to a dashboard that has never been published apply
+    directly, and the transition that first exposes it to viewers is
+    captured like any other governed write.
+
+    "Never published", not "not published right now". The Draft flag is one
+    an editor can clear themselves, so reading it live let them unpublish,
+    edit under the exemption, and publish again -- and the approver saw only
+    the flag moving, with the content behind it never shown (QA-18). The
+    flag says where the dashboard is; the mark says where it has been, and
+    only the second one answers "can a viewer have seen this".
     """
     model = command._model
     payload = _payload(command)
@@ -345,8 +354,16 @@ def _gate_dashboard_update(command: Any) -> None:
     published_now = bool(getattr(model, "published", False))
     publishing = payload.get("published") is True and not published_now
 
+    if published_now:
+        # Seen published, so the exemption can never apply again. Recorded
+        # on the way past rather than only when review publishes it, so a
+        # dashboard already published when the extension was installed is
+        # picked up by its first write -- including an unpublish.
+        mark_published(AssetType.DASHBOARD, model.id)
+
     if not published_now and not publishing:
-        return
+        if not has_ever_been_published(AssetType.DASHBOARD, model.id):
+            return
 
     gate_write(AssetType.DASHBOARD, model.id, payload)
 

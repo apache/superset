@@ -30,11 +30,57 @@ EXTENSION_ID = "preset.asset-approval"
 
 
 def _create_schema() -> None:
+    from sqlalchemy import inspect
+
     from superset import db
 
-    from asset_approval.models import ChangeRequest
+    from asset_approval.models import ChangeRequest, PublishedAsset
 
     ChangeRequest.__table__.create(bind=db.engine, checkfirst=True)
+
+    # `published_assets` answers "has a viewer ever been able to see this",
+    # which the Draft flag cannot (see PublishedAsset). On the boot that
+    # creates it there is a history to recover: every dashboard published
+    # right now has, by definition, been published, and recording that here
+    # keeps the exemption from re-opening for all of them at once.
+    first_time = not inspect(db.engine).has_table(PublishedAsset.__tablename__)
+    PublishedAsset.__table__.create(bind=db.engine, checkfirst=True)
+    if first_time:
+        _backfill_published_dashboards()
+
+
+def _backfill_published_dashboards() -> None:
+    """Record every dashboard that is published at the moment of install.
+
+    Without this, the first boot after upgrading would treat every existing
+    published dashboard as never-published the moment someone unpublished
+    it, which is the hole this table exists to close.
+
+    Only dashboards published *now* can be recovered. One that was
+    published and then unpublished before this ran leaves no trace to read,
+    and stays exempt until it is published again.
+    """
+    from datetime import datetime, timezone
+
+    from superset import db
+    from superset.models.dashboard import Dashboard
+
+    from asset_approval.models import PublishedAsset
+    from asset_approval.types import AssetType
+
+    now = datetime.now(timezone.utc)
+    published = db.session.query(Dashboard.id).filter(Dashboard.published.is_(True))
+    marks = [
+        PublishedAsset(
+            asset_type=AssetType.DASHBOARD.value, asset_id=row.id, first_seen_at=now
+        )
+        for row in published
+    ]
+    if not marks:
+        return
+    db.session.add_all(marks)
+    db.session.commit()
+    logger.info("Recorded %d dashboards as already published", len(marks))
 
 
 def install_http() -> None:

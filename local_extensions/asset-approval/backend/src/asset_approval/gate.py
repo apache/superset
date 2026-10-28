@@ -47,7 +47,7 @@ from asset_approval.exceptions import (
     UnreviewableWriteRefusedError,
 )
 from asset_approval.changes import baseline_of, is_empty_change
-from asset_approval.models import ChangeRequest
+from asset_approval.models import ChangeRequest, PublishedAsset
 from asset_approval.types import (
     AssetType,
     ChangeStatus,
@@ -141,6 +141,52 @@ def find_open_request(asset_type: AssetType, asset_id: int) -> ChangeRequest | N
         )
         .one_or_none()
     )
+
+
+def has_ever_been_published(asset_type: AssetType, asset_id: int) -> bool:
+    """Whether this instance has ever seen the asset published."""
+    return (
+        db.session.query(PublishedAsset.id)
+        .filter(
+            PublishedAsset.asset_type == asset_type.value,
+            PublishedAsset.asset_id == asset_id,
+        )
+        .first()
+        is not None
+    )
+
+
+def mark_published(asset_type: AssetType, asset_id: int) -> None:
+    """Record that the asset is published, once and for good.
+
+    Called wherever a write is seen against a published asset, which covers
+    the asset being published through review, an asset already published
+    when the extension was installed, and the unpublish itself -- an asset
+    cannot be unpublished without having been published.
+
+    Written in its own nested transaction so a concurrent writer racing to
+    the same row cannot fail the caller's write: two workers both deciding
+    to mark is the expected case, and the unique constraint is what makes
+    the second one a no-op rather than a duplicate.
+    """
+    if has_ever_been_published(asset_type, asset_id):
+        return
+    try:
+        with db.session.begin_nested():
+            db.session.add(
+                PublishedAsset(
+                    asset_type=asset_type.value,
+                    asset_id=asset_id,
+                    first_seen_at=datetime.now(timezone.utc),
+                )
+            )
+    except IntegrityError:
+        # Another worker got there first, which is the outcome either way.
+        logger.debug(
+            "Publish mark for %s %s already written by another worker",
+            asset_type.value,
+            asset_id,
+        )
 
 
 def gate_write(

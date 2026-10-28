@@ -44,6 +44,36 @@ from superset.models.helpers import AuditMixinNullable
 from superset.utils import json
 
 
+class PublishedAsset(Model):
+    """Every asset this instance has ever seen published.
+
+    SOW 5.1 exempts a dashboard from review while it is still a draft,
+    because no viewer can reach it yet. Deciding that from the live Draft
+    flag asks the wrong question: an editor can clear the flag, edit freely
+    while it is clear, and set it again, and the approver sees only the flag
+    moving while the content rides in behind it (QA-18).
+
+    What the exemption actually means is *never published*, which the asset
+    cannot answer about itself -- `published` is where it is now, not where
+    it has been. So the fact is recorded the first time the asset is seen
+    published, and never removed: unpublishing is a change of visibility,
+    not of history.
+    """
+
+    __tablename__ = "published_assets"
+    __table_args__ = (
+        UniqueConstraint("asset_type", "asset_id", name="uq_published_asset"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    asset_type = Column(String(32), nullable=False)
+    asset_id = Column(Integer, nullable=False)
+    #: When this instance first saw it published, which is not necessarily
+    #: when it was first published -- an asset published before the
+    #: extension was installed is recorded the first time it is written to.
+    first_seen_at = Column(DateTime, nullable=False)
+
+
 class ChangeRequest(AuditMixinNullable, Model):
     """One author's pending change to one governed asset.
 
