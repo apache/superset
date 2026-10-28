@@ -130,8 +130,8 @@ export default function transformProps(
       key => datum[getColumnLabel(key)] as DataRecordValue,
     ),
   }));
-  // Edges are derived from the current result. A stored key from older edges
-  // matches no bar, and dimming every bar would hide that the selection is stale.
+  // Bin edges come from the current result. A key from older edges matches
+  // no bar, so dimming every bar would hide that the selection is stale.
   const hasMatchingSelection =
     selectedKeys.length > 0 &&
     rows.some(({ groupbyValues }) =>
@@ -145,7 +145,8 @@ export default function transformProps(
       groupby.length > 0 ? groupbyValues.join(', ') : getColumnLabel(column);
     const seriesData = bins.map((bin, index) => {
       const filterKey = getHistogramCrossFilterKey(bin, groupbyValues);
-      const isDimmed = hasMatchingSelection && !selectedKeys.includes(filterKey);
+      const isDimmed =
+        hasMatchingSelection && !selectedKeys.includes(filterKey);
       const value = datum[binKeys[index]] as number;
       return isDimmed
         ? { value, itemStyle: { opacity: OpacityEnum.SemiTransparent } }
