@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -410,6 +410,10 @@ msgstr "%s SSH TUNEĻA PRIVĀTĀ ATSLĒGA"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SSH TUNEĻA PRIVĀTĀS ATSLĒGAS PAROLE"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -6048,6 +6052,17 @@ msgid "Delete %s"
 msgstr "Dzēsts %s"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "Dzēst %s?"
 
@@ -6059,6 +6074,13 @@ msgstr "Dzēst grupu?"
 
 msgid "Delete Layer?"
 msgstr "Dzēst slāni?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "Dzēst vaicājumu?"
@@ -6086,8 +6108,24 @@ msgstr "Dzēst motīvu?"
 msgid "Delete User?"
 msgstr "Dzēst lietotāju?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 msgid "Delete all Really?"
 msgstr "Tiešām dzēst visu?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "Dzēst anotāciju"
@@ -6124,6 +6162,9 @@ msgstr ""
 
 msgid "Delete role"
 msgstr "Dzēst lomu"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "Dzēst veidni"
@@ -6269,6 +6310,12 @@ msgid ""
 msgstr ""
 "Cilnes dzēšana noņems visu tās saturu un deaktivizēs visus saistītos "
 "brīdinājumus vai atskaites. Jūs joprojām varat atcelt šo darbību ar"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -7603,6 +7650,9 @@ msgstr "Eksperimentāls"
 msgid "Expired"
 msgstr "Pārlūkot"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -7848,6 +7898,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -7870,6 +7923,9 @@ msgstr "Neizdevās ģenerēt diagrammas rediģēšanas URL"
 
 #, python-format
 msgid "Failed to generate download: %s"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -10103,6 +10159,13 @@ msgstr ""
 msgid "Manage"
 msgstr "Pārvaldīt"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "Pārvaldīt informācijas paneļa redaktorus un piekļuves atļaujas"
 
@@ -11428,6 +11491,14 @@ msgstr "Skaitliskais diapazons"
 msgid "OAuth2 client information"
 msgstr "OAuth2 klienta informācija"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "OKT"
 
@@ -11483,6 +11554,9 @@ msgstr "Viens vai vairāki vadīklas šķērsgriezuma kolonnām"
 
 msgid "One or many metrics to display"
 msgstr "Viena vai vairākas attēlojamās metrikas"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 msgid "One or more annotation layers failed loading."
 msgstr "Viena vai vairākas anotācijas slāņi neielādējās."
@@ -13889,6 +13963,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "Meklēt metriku un kolonnas"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -13910,6 +13987,9 @@ msgstr "Meklēšanas lauks"
 
 msgid "Search by query text"
 msgstr "Meklēt pēc vaicājuma teksta"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 #, fuzzy
 msgid "Search calculated columns by name"
@@ -17261,15 +17341,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Laika vienība, kas izmantota bloku grupēšanai"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -17282,6 +17353,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -18616,6 +18696,9 @@ msgstr "Noilguma kļūda"
 
 msgid "Timestamp format"
 msgstr "Laika zīmoga formāts"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Laika josla"

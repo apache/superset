@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -398,6 +398,10 @@ msgstr "%s SSH TUNNEL தனிப்பட்ட விசை (PRIVATE KEY)"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SSH TUNNEL தனிப்பட்ட விசை கடவுச்சொல்"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -5992,6 +5996,16 @@ msgid "Delete %s"
 msgstr "%s ஐ நீக்கவா?"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "%s ஐ நீக்கவா?"
 
@@ -6003,6 +6017,13 @@ msgstr "குழுவை நீக்கவா?"
 
 msgid "Delete Layer?"
 msgstr "அடுக்கை நீக்கவா?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "வினவலை நீக்கவா?"
@@ -6030,8 +6051,23 @@ msgstr "தீமை நீக்கவா?"
 msgid "Delete User?"
 msgstr "பயனரை நீக்கவா?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Delete all Really?"
 msgstr "நிச்சயமாக அனைத்தையும் நீக்க வேண்டுமா?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "சிறுகுறிப்பை நீக்கு"
@@ -6069,6 +6105,9 @@ msgstr "வினவலை நீக்கவா?"
 
 msgid "Delete role"
 msgstr "பதவியை நீக்கு"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "டெம்ப்ளேட்டை நீக்கு"
@@ -6205,6 +6244,12 @@ msgstr ""
 "ஒரு தாவலை (tab) நீக்கினால் அதிலுள்ள அனைத்து உள்ளடக்கங்களும் அகற்றப்படும் "
 "மற்றும் அதனுடன் தொடர்புடைய எச்சரிக்கைகள் அல்லது அறிக்கைகள் முடக்கப்படும்."
 " நீங்கள் இன்னும் இந்தச் செயலை மாற்றியமைக்க (reverse) முடியும்."
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -7530,6 +7575,9 @@ msgstr "சோதனைநிலை (Experimental)"
 msgid "Expired"
 msgstr ""
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -7775,6 +7823,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -7800,6 +7851,9 @@ msgstr "சார்ட் திருத்த URL ஐ உருவாக்�
 
 #, python-format
 msgid "Failed to generate download: %s"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -10000,6 +10054,13 @@ msgstr "தவறான கோரிக்கை."
 msgid "Manage"
 msgstr "நிர்வகி"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 #, fuzzy
 msgid "Manage dashboard editors and access permissions"
 msgstr "டேஷ்போர்டு உரிமையாளர்கள் மற்றும் அணுகல் அனுமதிகளை நிர்வகிக்கவும்"
@@ -11266,6 +11327,14 @@ msgstr "எண் வரம்பு"
 msgid "OAuth2 client information"
 msgstr "OAuth2 கிளையன்ட் தகவல்"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "அக்"
 
@@ -11317,6 +11386,9 @@ msgstr "நெடுவரிசைகளாக மாற்ற வேண்ட�
 
 msgid "One or many metrics to display"
 msgstr "காட்டப்பட வேண்டிய ஒன்று அல்லது பல அளவீடுகள்"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 msgid "One or more annotation layers failed loading."
 msgstr "ஒன்று அல்லது அதற்கு மேற்பட்ட குறிப்பு அடுக்குகள் ஏற்றப்பட முடியவில்லை."
@@ -13637,6 +13709,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "அளவீடுகள் & நெடுவரிசைகளைத் தேடு"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -13658,6 +13733,9 @@ msgstr "தேடல் பெட்டி"
 
 msgid "Search by query text"
 msgstr "வினவல் உரை மூலம் தேடு"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 #, fuzzy
 msgid "Search calculated columns by name"
@@ -16808,15 +16886,6 @@ msgstr "ஒவ்வொரு பிளாக்கிற்குமான (Blo
 msgid "The time unit used for the grouping of blocks"
 msgstr "பிளாக்குகளைக் குழுவாக்கப் பயன்படுத்தப்படும் நேர அலகு"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -16829,6 +16898,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -18116,6 +18194,9 @@ msgstr "காலாவதி பிழை"
 
 msgid "Timestamp format"
 msgstr "நேர முத்திரை வடிவம்"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "நேர மண்டலம்"
