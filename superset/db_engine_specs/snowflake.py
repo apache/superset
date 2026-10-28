@@ -680,7 +680,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             logger.error(ex, exc_info=True)
             raise
         auth_method = encrypted_extra.get("auth_method", None)
-        auth_params = encrypted_extra.get("auth_params", {})
+        auth_params = encrypted_extra.get("auth_params") or {}
         if not auth_method:
             return
         connect_args = params.setdefault("connect_args", {})
