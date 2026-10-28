@@ -29,6 +29,7 @@ import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import RoleListEditModal from './RoleListEditModal';
 import {
+  formatPermissionLabel,
   updateRoleName,
   updateRoleGroups,
   updateRolePermissions,
@@ -194,6 +195,47 @@ describe('RoleListEditModal', () => {
 
       expect(mockProps.onSave).toHaveBeenCalled();
     });
+  });
+
+  test('shows decoded dots for an assigned permission and submits its ID', async () => {
+    jest
+      .mocked(formatPermissionLabel)
+      .mockImplementation(jest.requireActual('./utils').formatPermissionLabel);
+    (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
+      if (endpoint === '/api/v1/security/roles/1/permissions/') {
+        return Promise.resolve({
+          json: {
+            result: [
+              {
+                id: 42,
+                permission_name: 'catalog_access',
+                view_menu_name: '[database].[demo%2Emetrics]',
+              },
+            ],
+          },
+        });
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
+    render(
+      <RoleListEditModal
+        {...mockProps}
+        role={{ ...mockRole, permission_ids: [42], group_ids: [] }}
+      />,
+    );
+
+    expect(
+      await screen.findByText('catalog access [database].[demo.metrics]'),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('role-name-input'), {
+      target: { value: 'Updated Role' },
+    });
+    fireEvent.click(screen.getByTestId('form-modal-save-button'));
+
+    await waitFor(() =>
+      expect(mockUpdateRolePermissions).toHaveBeenCalledWith(1, [42]),
+    );
   });
 
   test('switches tabs correctly', () => {
