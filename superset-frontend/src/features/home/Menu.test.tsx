@@ -1359,3 +1359,66 @@ describe('active tab highlighting for a contributed page', () => {
     );
   });
 });
+
+describe('the More dropdown for contributed pages', () => {
+  const registered: Array<{ dispose: () => void }> = [];
+
+  const contribute = (path: string, label: string) => {
+    registered.push(
+      registerPageFor(
+        'acme.tools',
+        [{ path }],
+        { path, name: label, nav: { label } },
+        (() => null) as never,
+      ),
+    );
+  };
+
+  const renderMenu = () => {
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+  };
+
+  afterEach(() => {
+    registered.forEach(r => r.dispose());
+    registered.length = 0;
+    window.history.pushState({}, '', '/');
+  });
+
+  test('a fourth contributed page puts the tail behind one entry', async () => {
+    ['/alpha', '/beta', '/gamma', '/delta'].forEach(path =>
+      contribute(path, path.slice(1)),
+    );
+    renderMenu();
+
+    // Two stay on the bar; the rest are behind "More", which antd renders as
+    // a submenu because the entry carries children and no url.
+    await screen.findByText('alpha');
+    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.getByText('More')).toBeInTheDocument();
+    expect(screen.queryByText('gamma')).not.toBeInTheDocument();
+  });
+
+  test('the host entries are untouched by the fold', async () => {
+    ['/alpha', '/beta', '/gamma', '/delta'].forEach(path =>
+      contribute(path, path.slice(1)),
+    );
+    renderMenu();
+
+    await screen.findByText('More');
+    expect(screen.getByText('Dashboards')).toBeInTheDocument();
+  });
+
+  test('three contributed pages need no dropdown', async () => {
+    ['/alpha', '/beta', '/gamma'].forEach(path => contribute(path, path.slice(1)));
+    renderMenu();
+
+    await screen.findByText('gamma');
+    expect(screen.queryByText('More')).not.toBeInTheDocument();
+  });
+});
