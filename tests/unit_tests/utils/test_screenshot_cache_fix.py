@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
 from superset.exceptions import LockAlreadyHeldException
@@ -683,13 +684,13 @@ class TestIsComputingStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_computing_within_tolerance_future_is_not_stale(
+    def test_computing_near_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A future timestamp within tolerance (small negative age, e.g. a
-        worker whose clock is slightly ahead of the web host) is treated as
-        FRESH -- the negative age reads as not stale -- so the web tier and
-        worker converge instead of looping. No warning is logged."""
+        """A future timestamp (small negative age, e.g. a worker whose clock is
+        slightly ahead of the web host) is treated as FRESH -- the negative age
+        reads as not stale -- so the web tier and worker converge instead of
+        looping. No warning is logged."""
         mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
 
         future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
@@ -702,7 +703,7 @@ class TestIsComputingStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_computing_beyond_tolerance_future_is_not_stale(
+    def test_computing_far_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
         """Timezone skew does not bypass the computation lease on every read."""
@@ -798,13 +799,13 @@ class TestIsErrorCacheTtlExpired:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_error_within_tolerance_future_is_not_expired(
+    def test_error_near_future_is_not_expired(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A future timestamp within tolerance (small negative age, e.g. a
-        worker whose clock is slightly ahead of the web host) is treated as
-        FRESH -- the negative age reads as not expired -- so the web tier and
-        worker converge instead of looping. No warning is logged."""
+        """A future timestamp (small negative age, e.g. a worker whose clock is
+        slightly ahead of the web host) is treated as FRESH -- the negative age
+        reads as not expired -- so the web tier and worker converge instead of
+        looping. No warning is logged."""
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
 
         future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
@@ -817,7 +818,7 @@ class TestIsErrorCacheTtlExpired:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_error_beyond_tolerance_future_is_not_expired(
+    def test_error_far_future_is_not_expired(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
         """Timezone skew does not bypass error backoff on every thumbnail read."""
@@ -960,13 +961,13 @@ class TestIsUpdatedStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_within_tolerance_future_is_not_stale(
+    def test_near_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """A future timestamp within tolerance (small negative age, e.g. a
-        worker whose clock is slightly ahead of the web host) is treated as
-        FRESH -- the negative age reads as not stale -- so the web tier and
-        worker converge instead of looping. No warning is logged."""
+        """A future timestamp (small negative age, e.g. a worker whose clock is
+        slightly ahead of the web host) is treated as FRESH -- the negative age
+        reads as not stale -- so the web tier and worker converge instead of
+        looping. No warning is logged."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
         future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
@@ -979,25 +980,70 @@ class TestIsUpdatedStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_beyond_tolerance_future_is_stale(
+    def test_far_future_is_not_stale(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """UPDATED freshness heals timestamps beyond the future-skew tolerance."""
+        """Convergence regression: a worker whose clock (or TZ) runs an hour
+        ahead of the web host writes UPDATED timestamps an hour in the future,
+        a skew larger than the TTL. Treating that as stale made every force-less
+        dashboard request rotate a new generation (202) whose re-render wrote
+        another future timestamp, so polling never converged. Like the ERROR
+        backoff and COMPUTING lease, the UPDATED check reads any negative age as
+        fresh, so the opt-in triggers do not fire either."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
 
-        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
+        future_timestamp = (datetime.now() + timedelta(hours=1)).isoformat()
         payload = ScreenshotCachePayload(
-            image=FAKE_PNG_BYTES, timestamp=future_timestamp
+            image=FAKE_PNG_BYTES,
+            timestamp=future_timestamp,
+            scope="dashboard:1",
         )
 
-        assert payload.is_updated_stale() is True
-        mock_logger.warning.assert_called_once()
+        assert payload.is_updated_stale() is False
+        assert (
+            payload.should_trigger_task(
+                expected_scope="dashboard:1", check_updated_staleness=True
+            )
+            is False
+        )
+        assert (
+            payload.should_enqueue_task(
+                expected_scope="dashboard:1", check_updated_staleness=True
+            )
+            is False
+        )
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.utils.screenshots.app")
+    def test_far_future_expires_after_ttl_plus_skew(self, mock_app: MagicMock) -> None:
+        """A future UPDATED timestamp is not served forever: it goes stale once
+        its web-clock age passes the TTL, i.e. once its real age passes the TTL
+        plus the worker's clock skew."""
+        mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 300}
+        ttl = timedelta(seconds=300)
+        skew = timedelta(hours=1)
+        # Web-clock instant of the render; the worker stamps it `skew` ahead.
+        rendered_at = datetime(2026, 1, 1, 12, 0, 0)
+        payload = ScreenshotCachePayload(
+            image=FAKE_PNG_BYTES, timestamp=(rendered_at + skew).isoformat()
+        )
+
+        with freeze_time(rendered_at):
+            assert payload.is_updated_stale() is False
+        # Past the TTL in real time, still within it on the web clock.
+        with freeze_time(rendered_at + ttl + timedelta(seconds=1)):
+            assert payload.is_updated_stale() is False
+        # Strict '>': a web-clock age exactly at the TTL is still fresh.
+        with freeze_time(rendered_at + skew + ttl):
+            assert payload.is_updated_stale() is False
+        with freeze_time(rendered_at + skew + ttl + timedelta(seconds=1)):
+            assert payload.is_updated_stale() is True
 
     @patch("superset.utils.screenshots.app")
     def test_worker_ahead_timestamp_does_not_loop(self, mock_app: MagicMock) -> None:
         """Convergence regression: an UPDATED entry whose timestamp is ~120s in
-        the future (the rendering worker's clock is ahead of the web host, within
-        tolerance) must NOT be treated as stale. If it were, the web tier would
+        the future (the rendering worker's clock is ahead of the web host) must
+        NOT be treated as stale. If it were, the web tier would
         keep re-enqueuing at 202 while the worker saw its own fresh timestamp and
         skipped -- an endless loop. Treating the small negative age as fresh lets
         the web serve 200 and the two tiers converge."""
@@ -1012,30 +1058,27 @@ class TestIsUpdatedStale:
 
     @patch("superset.utils.screenshots.logger")
     @patch("superset.utils.screenshots.app")
-    def test_disabled_with_future_timestamp(
+    def test_disabled_with_unusable_timestamp(
         self, mock_app: MagicMock, mock_logger: MagicMock
     ) -> None:
-        """The disabled-feature guard wins: with the TTL unset/0, a future
+        """The disabled-feature guard wins: with the TTL unset/0, an unusable
         timestamp must NOT be stale because the guard short-circuits before
         _age_seconds is ever consulted (so no warning is logged either)."""
         mock_app.config = {"THUMBNAIL_UPDATED_CACHE_TTL": 0}
 
-        future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
-        payload = ScreenshotCachePayload(
-            image=FAKE_PNG_BYTES, timestamp=future_timestamp
-        )
+        payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES, timestamp="not-a-date")
 
         assert payload.is_updated_stale() is False
         mock_logger.warning.assert_not_called()
 
     @patch("superset.utils.screenshots.logger")
-    def test_age_seconds_within_tolerance_future_returns_negative(
+    def test_age_seconds_near_future_returns_negative(
         self, mock_logger: MagicMock
     ) -> None:
         """_age_seconds returns the raw negative age for a future timestamp
-        within tolerance (residual clock skew) rather than None, so every
-        caller's ``age is None or age >/>= TTL`` reads it as fresh and the web
-        tier and worker converge. No warning is logged."""
+        (residual clock skew) rather than None, so every caller's
+        ``age is None or age >/>= TTL`` reads it as fresh and the web tier and
+        worker converge. No warning is logged."""
         future_timestamp = (datetime.now() + timedelta(seconds=120)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=future_timestamp
@@ -1047,10 +1090,12 @@ class TestIsUpdatedStale:
         mock_logger.warning.assert_not_called()
 
     @patch("superset.utils.screenshots.logger")
-    def test_age_seconds_beyond_tolerance_future_returns_negative(
+    def test_age_seconds_far_future_returns_negative(
         self, mock_logger: MagicMock
     ) -> None:
-        """Only UPDATED freshness applies the bound to a usable negative age."""
+        """A large skew (e.g. a timezone gap) also keeps the raw negative age
+        rather than None, so it is read as fresh, not as an unusable timestamp
+        that self-heals on every request."""
         future_timestamp = (datetime.now() + timedelta(seconds=600)).isoformat()
         payload = ScreenshotCachePayload(
             image=FAKE_PNG_BYTES, timestamp=future_timestamp

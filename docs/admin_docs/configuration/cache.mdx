@@ -428,6 +428,11 @@ THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
   requests can share an imageless refresh already in progress or its completed replacement.
   A refresh still carrying older bytes is replaced with an imageless generation, so the
   forced request's image URL waits for the new capture.
+- **Clock skew:** cache timestamps are naive local times written by the host that rendered the
+  image, so run web servers and thumbnail workers with the same `TZ` and keep this TTL above any
+  clock offset between them. A worker clock running ahead of the web servers only postpones the
+  refresh by that offset; one running behind by more than the TTL makes every fresh capture look
+  expired, so each request triggers another render.
 - **Rollout:** roll thumbnail workers before web servers when enabling this. During a mixed deploy
   a new web server can enqueue a refresh that an older worker skips, leaving the thumbnail stale
   until the worker pool finishes rolling (it self-heals afterward).

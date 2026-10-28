@@ -7983,6 +7983,61 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         return_value="cache-key",
     )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_worker_clock_ahead_serves_updated(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """A worker whose naive clock runs an hour ahead of the web host (e.g. a
+        different TZ) stamps a just-rendered UPDATED generation an hour in the
+        future. A force-less request must serve it (200) rather than treat the
+        future timestamp as stale: otherwise every request rotates a generation
+        (202) whose re-render writes another future timestamp, so a client
+        polling for ``Updated`` never converges and each poll costs a render."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry stamped by a worker 1h ahead,
+        # a skew larger than the 300s TTL.
+        worker_ahead_timestamp = (datetime.now() + timedelta(hours=1)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"\x89PNG\r\n\x1a\nfake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=worker_ahead_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 200
+        assert cache_resp.json["cache_key"] == "cache-key"
+        assert cache_resp.json["task_status"] == "Updated"
+        mock_cache_task.delay.assert_not_called()
+        mock_set_current_cache_key.assert_not_called()
+        mock_store_cache_payload.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_cache_dashboard_screenshot_stale_refresh_retains_last_good_image(
         self,
         mock_get_from_cache_key,

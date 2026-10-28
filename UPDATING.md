@@ -1378,9 +1378,10 @@ theme editor picker.
   `--force`; chart screenshots and card-list thumbnail endpoints are excluded.
   Set the TTL to `0` or `None` to disable this freshness check and rely on the cache
   backend's retention policy. Only backends without TTL eviction, such as S3, can
-  then serve a cached image indefinitely. Roll thumbnail workers before web
-  servers: older workers can skip refreshes requested by newer web servers until
-  the worker rollout finishes.
+  then serve a cached image indefinitely. Timestamps are naive local time, so run
+  web servers and workers with the same `TZ` and keep the TTL above any clock offset
+  between them. Roll thumbnail workers before web servers: older workers can skip
+  refreshes requested by newer web servers until the worker rollout finishes.
 
 ### Native Value filter "Select all" always targets the whole column
 

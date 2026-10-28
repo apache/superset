@@ -116,14 +116,6 @@ def validate_screenshot_image(image: bytes | None) -> str | None:
     return None
 
 
-# Clock skew between the worker writing a timestamp and the web host reading it
-# can make a just-written entry look slightly in the future (a small negative
-# age); tolerate that so the two tiers CONVERGE instead of the web re-enqueuing
-# forever. UPDATED freshness checks heal timestamps beyond this bound without
-# changing the negative-age behavior of error backoff and computation leases.
-_FUTURE_TIMESTAMP_TOLERANCE_SECONDS = 300
-
-
 class ScreenshotCachePayload:
     def __init__(
         self,
@@ -238,9 +230,11 @@ class ScreenshotCachePayload:
         during a rolling deploy never hit a naive-minus-aware ``TypeError``.
 
         Corrupt or offset-aware timestamps return None so callers can recover.
-        Negative ages are preserved: clock/timezone skew must not expire error
-        backoff or computation leases on every request. Only the opt-in UPDATED
-        freshness check applies a bound to future timestamps.
+        Negative ages are preserved and read as fresh by every caller: a worker
+        whose clock (or timezone) runs ahead of the web host writes timestamps
+        that look in the future, and treating those as expired would make the
+        web tier re-enqueue every request instead of converging. Such an entry
+        expires once its web-clock age passes the TTL, i.e. after TTL + skew.
         """
         try:
             age = (
@@ -282,9 +276,11 @@ class ScreenshotCachePayload:
     def is_updated_stale(self) -> bool:
         """Return whether an UPDATED entry needs refreshing when freshness is enabled.
 
-        An unset/zero TTL disables the check. Unusable timestamps and future
-        timestamps beyond the skew tolerance are stale; bounded negative ages
-        remain fresh so web and worker clocks can converge.
+        An unset/zero TTL disables the check. Unusable timestamps are stale so
+        the entry self-heals. Future timestamps (negative ages) are fresh, like
+        the ERROR backoff and COMPUTING lease checks, so a worker clock running
+        ahead of the web host cannot turn every just-rendered image into a
+        refresh; the entry expires once real age exceeds TTL plus the skew.
         """
         # `.get` (not `[]` like the sibling ERROR/COMPUTING helpers) on purpose:
         # a deployment whose config predates this key should silently disable the
@@ -297,16 +293,6 @@ class ScreenshotCachePayload:
         # is_error_cache_ttl_expired -- not the '>=' of is_computing_stale. An
         # unusable timestamp (age is None) is treated as stale so it self-heals.
         age_seconds = self._age_seconds()
-        if (
-            age_seconds is not None
-            and age_seconds < -_FUTURE_TIMESTAMP_TOLERANCE_SECONDS
-        ):
-            logger.warning(
-                "Screenshot cache timestamp %r is implausibly in the future; "
-                "treating UPDATED entry as stale",
-                self.get_timestamp(),
-            )
-            return True
         return age_seconds is None or age_seconds > updated_ttl
 
     def is_in_progress(self) -> bool:
