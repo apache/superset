@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import math
 from contextlib import nullcontext
 from datetime import datetime
 from typing import Any
@@ -153,3 +154,18 @@ def test_json_codec_rejects_bytes():
     """Raw bytes must raise rather than be silently stringified."""
     with pytest.raises(KeyValueCodecEncodeException):
         JsonKeyValueCodec().encode(b"hello")
+
+
+def test_json_codec_rejects_nested_bytes():
+    """Bytes nested inside containers must raise rather than be altered."""
+    with pytest.raises(KeyValueCodecEncodeException):
+        JsonKeyValueCodec().encode({"payload": b"hello"})
+    with pytest.raises(KeyValueCodecEncodeException):
+        JsonKeyValueCodec().encode({"payload": [b"hello"]})
+
+
+def test_json_codec_decodes_legacy_non_finite_floats():
+    """Entries written by stdlib json with NaN/Infinity must stay readable."""
+    decoded = JsonKeyValueCodec().decode(b'{"score": NaN, "limit": Infinity}')
+    assert math.isnan(decoded["score"])
+    assert decoded["limit"] == float("inf")
