@@ -370,6 +370,36 @@ def _first_claimant(app: Flask, path: str) -> str | None:
     return None
 
 
+def _shadows_app_root(app: Flask, path: str) -> str | None:
+    """Why this path is ambiguous under the deployment's root, or None.
+
+    A page path is router-relative: the server mounts the rule below the
+    application root, and the client's router re-adds the root on navigation.
+    Both ends therefore apply the root exactly once -- except to a path whose
+    own first segment *is* the root, where "already rooted" and "starts with
+    the root segment" become indistinguishable.
+
+    `ensureAppRoot` resolves that ambiguity the only way it can, by leaving
+    such a path alone, so the menu entry points at the path without the root
+    while the rule really serves it below the root. The entry then misses the
+    page registry, degrades from an SPA link to a plain one, and answers 404.
+
+    The frontend cannot tell the two apart, so the path is refused here
+    instead. Deployment-dependent, like the route check below it: a manifest
+    that is fine at the domain root is refused under a subdirectory, which is
+    the same trade `register_extension_pages` already makes.
+    """
+    root = (app.config.get("APPLICATION_ROOT") or "/").rstrip("/")
+    if not root:
+        return None
+    if path == root or path.startswith(f"{root}/"):
+        return (
+            f"its first segment is the application root '{root}', which makes "
+            f"the page's real URL '{root}{path}'"
+        )
+    return None
+
+
 def _permission_problem(permission: str | None) -> str | None:
     """Why this permission cannot be used for a page, or None.
 
@@ -448,6 +478,17 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
                 "Extension '%s' declares a page at '%s' requiring a "
                 "permission that cannot be used: %s. The page has not been "
                 "registered and will not load.",
+                manifest.id,
+                page.path,
+                problem,
+            )
+            continue
+
+        if problem := _shadows_app_root(app, page.path):
+            logger.error(
+                "Extension '%s' declares a page at '%s' that cannot be "
+                "addressed: %s. The page has not been registered and will "
+                "not load. Give it a different path in its manifest.",
                 manifest.id,
                 page.path,
                 problem,

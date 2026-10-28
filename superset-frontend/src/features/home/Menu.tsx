@@ -258,7 +258,15 @@ export function withExtensionPages(
           // collide with the host's own entry. The path cannot collide,
           // because the server refused any page that shared one.
           name: `extension:${page.path}`,
-          url: page.path,
+          // Rooted, because every other `url` in this menu is: the backend
+          // emits host entries through `url_for`, and `buildMenuItem` strips
+          // the root again before handing the path to `NavLink`. A bare
+          // manifest path survives that round trip only because
+          // `stripAppRoot` leaves an unrooted path alone -- until a page's
+          // first segment happens to equal the app root, where the strip
+          // eats it, the registry lookup misses and the entry degrades to a
+          // plain link to a URL that does not exist.
+          url: ensureAppRoot(page.path),
         }) as unknown as MenuObjectProps,
     ),
   ];
@@ -303,7 +311,8 @@ export function withExtensionSettings(
           // navbar entries: the label is the author's to choose and could
           // collide with a host item.
           name: `extension:${page.path}`,
-          url: page.path,
+          // Rooted for the same reason as the navbar entries above.
+          url: ensureAppRoot(page.path),
         })),
       ],
     };
