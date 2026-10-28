@@ -101,9 +101,16 @@ def test_get_embedded_dashboard_bootstrap_includes_allowed_domains(
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):  # noqa: F811
+@pytest.mark.parametrize(
+    "allowed_domain", ["test.example.com", "https://test.example.com"]
+)
+def test_get_embedded_dashboard_referrer_not_allowed(
+    client: FlaskClient[Any],  # noqa: F811
+    allowed_domain: str,
+) -> None:
+    """Reject absent referrers whenever allowed domains restrict embedding."""
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
-    embedded = EmbeddedDashboardDAO.upsert(dash, ["test.example.com"])
+    embedded = EmbeddedDashboardDAO.upsert(dash, [allowed_domain])
     db.session.flush()
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)

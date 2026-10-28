@@ -1243,6 +1243,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # always parse into their own structured node instead.
             "ADD",
             "DELETE",
+            "ADD SQLBLACKLIST",
+            "DELETE SQLBLACKLIST",
+            "ADD BACKEND BLACKLIST",
+            "DELETE BACKEND BLACKLIST",
             # DDL head-tokens that sqlglot falls back to exp.Command for
             # whenever the body uses syntax it does not model
             # (CREATE EXTENSION/FUNCTION...LANGUAGE C/PUBLICATION/etc.,

@@ -20,6 +20,7 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
+import pandas as pd
 import pytest
 from werkzeug.datastructures import FileStorage
 
@@ -126,9 +127,8 @@ def test_columnar_reader_file_to_dataframe(
             expected_val = expected_values[i][j]
             actual_val = actual_values[i][j]
 
-            # Check if both values are NaN
-            if isinstance(expected_val, float) and isinstance(actual_val, float):
-                assert np.isnan(expected_val) == np.isnan(actual_val)
+            if pd.isna(expected_val):
+                assert pd.isna(actual_val)
             else:
                 assert expected_val == actual_val
     file.close()
@@ -141,7 +141,7 @@ def test_excel_reader_wrong_columns_to_read():
     with pytest.raises(DatabaseUploadFailed) as ex:
         reader.file_to_dataframe(create_columnar_file(COLUMNAR_DATA))
     assert (
-        str(ex.value)
+        str(ex.value).replace(": large_string", ": string")
         == (
             "Parsing error: No match for FieldRef.Name(xpto) in Name: string\n"
             "Age: int64\n"

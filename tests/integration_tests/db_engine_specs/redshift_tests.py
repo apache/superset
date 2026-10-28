@@ -210,7 +210,7 @@ psql: error: could not connect to server: Operation timed out
 
         test_array = np.array(data, dtype=numpy_dtype)
 
-        df = pd.DataFrame(test_array, columns=column_names)
+        df = pd.DataFrame(test_array, columns=column_names, dtype=object)
         df.to_sql = mock.MagicMock()
 
         with app.app_context():

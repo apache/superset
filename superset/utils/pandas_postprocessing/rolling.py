@@ -65,7 +65,11 @@ def rolling(  # pylint: disable=too-many-arguments
     :return: DataFrame with the rolling columns
     :raises InvalidPostProcessingError: If the request in incorrect
     """
-    rolling_type_options = rolling_type_options or {}
+    option_names = {"quantile": "q"} if rolling_type == "quantile" else {}
+    rolling_type_options = {
+        option_names.get(name, name): value
+        for name, value in (rolling_type_options or {}).items()
+    }
     df_rolling = df.loc[:, columns.keys()]
 
     kwargs: dict[str, Union[str, int]] = {}

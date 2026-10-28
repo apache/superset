@@ -3616,6 +3616,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "postgresql",
                     "name": "PostgreSQL",
                     "parameters": {
+                        "additionalProperties": False,
                         "properties": {
                             "database": {
                                 "description": "Database name",
@@ -3685,6 +3686,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "bigquery",
                     "name": "Google BigQuery",
                     "parameters": {
+                        "additionalProperties": False,
                         "properties": {
                             "credentials_info": {
                                 "description": (
@@ -3693,7 +3695,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },
-                            "query": {"type": "object"},
+                            "query": {"type": "object", "additionalProperties": {}},
                         },
                         "type": "object",
                     },
@@ -3720,6 +3722,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "redshift",
                     "name": "Amazon Redshift",
                     "parameters": {
+                        "additionalProperties": False,
                         "properties": {
                             "database": {
                                 "description": "Database name",
@@ -3785,8 +3788,9 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "gsheets",
                     "name": "Google Sheets",
                     "parameters": {
+                        "additionalProperties": False,
                         "properties": {
-                            "catalog": {"type": "object"},
+                            "catalog": {"type": "object", "additionalProperties": {}},
                             "oauth2_client_info": {
                                 "default": {
                                     "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
@@ -3837,6 +3841,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "mysql",
                     "name": "MySQL",
                     "parameters": {
+                        "additionalProperties": False,
                         "properties": {
                             "database": {
                                 "description": "Database name",

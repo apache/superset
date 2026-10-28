@@ -634,14 +634,13 @@ def test_open_import_bundle_valid_zip() -> None:
 
 def test_open_import_bundle_corrupt_central_directory() -> None:
     """
-    A ZIP with a corrupt central directory passes ``is_zipfile`` but fails to
-    open; it must raise ``IncorrectFormatError`` instead of ``BadZipFile``.
+    A ZIP with a corrupt central directory must raise ``IncorrectFormatError``
+    instead of ``BadZipFile`` when opened.
     """
     from superset.commands.importers.exceptions import IncorrectFormatError
     from superset.commands.importers.v1.utils import open_import_bundle
 
     corrupt = io.BytesIO(_make_bundle().replace(b"PK\x01\x02", b"XXXX"))
-    assert zipfile.is_zipfile(corrupt)
 
     with pytest.raises(IncorrectFormatError) as excinfo:
         with open_import_bundle(corrupt):

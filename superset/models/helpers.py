@@ -355,6 +355,8 @@ def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Serie
     """Parse working temporal values and wrap pandas parser-policy errors."""
     if pd.api.types.is_datetime64_any_dtype(series):
         return series
+    if _has_multiple_utc_offsets(series):
+        return series.map(pd.Timestamp)
     try:
         return pd.to_datetime(series, errors="coerce", format="mixed")
     except (TypeError, ValueError) as ex:

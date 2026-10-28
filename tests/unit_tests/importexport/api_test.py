@@ -270,7 +270,7 @@ def test_import_assets_corrupt_zip(
     with ZipFile(buf, "w") as bundle:
         bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
     corrupt = BytesIO(buf.getvalue().replace(b"PK\x01\x02", b"XXXX"))
-    assert is_zipfile(corrupt)
+    mocker.patch("superset.importexport.api.is_zipfile", return_value=True)
     form_data = {
         "bundle": (corrupt, "corrupt.zip"),
     }

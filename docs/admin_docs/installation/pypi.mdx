@@ -15,6 +15,143 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 This page describes how to install Superset using the `apache_superset` package [published on PyPI](https://pypi.org/project/apache_superset/).
 
+## Python Compatibility
+
+The minimum Python version is 3.11. The Python version classifiers in
+[pyproject.toml](https://github.com/apache/superset/blob/master/pyproject.toml)
+list the officially supported versions; the open-ended `requires-python` lower
+bound does not certify every newer interpreter.
+
+The source checkout includes experimental Python 3.15 compatibility. Its package
+requirements select NumPy `>=2.5.4,<2.6` and pandas `>=3.1.0,<3.2` on Python 3.15
+and newer. Python 3.11 through 3.14 retain NumPy `>=1.23.5,<2.5` and pandas
+`>=2.3.3,<2.4`; the minimum Python version has not changed. These source changes
+do not imply that an already published PyPI release supports Python 3.15.
+
+The focused
+[compatibility workflow](https://github.com/apache/superset/blob/master/.github/workflows/python-metadata-compatibility.yml)
+tests Python 3.11 through 3.15. It installs the application without dependency
+overrides, checks dependency consistency, migrates a fresh SQLite metadata
+database, checks `/health`, and runs engine metadata, pandas post-processing
+(including Prophet), result-set, and core SDK tests. The same 278 tests and fresh
+SQLite migrations passed locally on Windows for all five interpreter versions,
+including CPython 3.15.0 final.
+
+A local Podman container running Debian 13 with CPython 3.15.2 also passed
+336 focused tests, including the additional DataFrame serialization tests.
+Installation without dependency overrides, dependency consistency, a fresh
+SQLite migration to head, and the application health check succeeded. The
+extended-precision `longdouble` regression passes on Linux.
+
+The same isolated Linux environment also migrated a PostgreSQL 17 metadata
+database to head and initialized the application and test users. Selected Redis 7
+cache and synchronous/asynchronous query tests passed with a real Celery prefork
+worker. All 35 tests in the selected CSRF/login, SQL Lab execution, cache-manager,
+chart-cache, and Celery groups passed, including CTAS and CVAS operations. The
+test database requires the configured `sqllab_test_db` schema. The CSRF tests
+explicitly distinguish public endpoint access from access requiring login, and
+the SQL Lab tests use synchronous mocks for the results backend.
+
+A complete local run of `tests/common` and `tests/unit_tests` on CPython 3.15.2
+finished with 32,821 passed, 57 skipped, 5 expected failures, and no unexpected
+failures. Translation tests require complete frontend sources with LF line
+endings and a Git checkout; cron description expectations use `en_US.UTF-8`.
+This final run includes the raw-cursor join truncation fix. All 22 dialect tests
+also passed on both Python 3.11 and 3.15, covering SQLAlchemy, direct iteration,
+and all three fetch methods.
+The earlier follow-up regression group also passed 1,683 tests on Python 3.11,
+and the nine selected CSRF/login and SQL Lab tests passed on that version.
+
+The production frontend build succeeded with Node 24.16.0 and webpack 5.112.0
+(four warnings). Chromium acceptance passed all 24 selected Playwright tests
+without retries: login success and rejection, chart management and ZIP export,
+dashboard management and import/export, three chart types rendered from real
+queries (including an ECharts canvas-pixel assertion), and SQL Lab query,
+tab, saved-query, dataset, and Explore workflows. The browser server used
+Gunicorn, PostgreSQL 17, Redis 7, `TESTING=False`, and enabled CSRF protection.
+The browser dataset used 1,200 locally generated `birth_names` rows; chart
+management tests additionally used the bundled Slack dataset metadata, without
+claiming Slack data-query coverage.
+
+Broader integration testing also covers the schema-free database SELECT route
+without introducing a new permission, validates generated and published OpenAPI
+path parameters, and rejects a missing embedded-dashboard referrer when an
+allowed-origin list is configured. The referrer regression and the surrounding
+database API/schema tests passed on Python 3.11 as well (41 selected tests).
+The legacy Flask-Testing live server uses an explicit local `fork` context on
+platforms that support it; this does not change application or Celery process
+defaults. Thumbnail image generation remains outside this acceptance scope.
+
+A complete local run of `tests/integration_tests` on CPython 3.15.2 finished
+with 3,131 passed, 178 skipped, and no failures in 673 seconds. It used a fresh
+PostgreSQL 17 metadata database, Redis 7, and a real Celery prefork worker with
+a Redis SQL Lab results backend. Skipped tests remain unvalidated; a passing
+collection does not establish support for every optional database or feature.
+
+Earlier runs on the 8 GB Podman VM were invalidated by kernel-confirmed
+out-of-memory worker termination. The successful final unit run used 16 GB;
+browser and full unit acceptance ran separately. The local Hyper-V storage
+also showed intermittent I/O errors, so this host is not a production reference.
+
+Integration reruns require a fresh, migrated test metadata database: interrupted
+or focused runs can leave fixtures that invalidate exact object-count assertions.
+Keep browser acceptance in a separate database and Redis namespace. A real SQL
+Lab worker also needs `RESULTS_BACKEND`, in addition to the Celery broker and
+result-backend settings; verify these in both the test and worker processes.
+
+All applicable pre-commit hooks passed for the changed files in Linux, including
+MyPy, Ruff, formatting, YAML, and the advisory workflow audit. Pylint passed when
+run explicitly against the changed application modules with `--jobs=1`; its
+parallel serialization path uses a code-object attribute removed in Python 3.15.
+
+For Python 3.15 testing, install from the source checkout's package metadata,
+rather than applying the generated Python 3.11 requirement pins:
+
+```bash
+python -m pip install -e ./superset-core -e .
+```
+
+Run this command from the repository root in an isolated Python 3.15 environment.
+Some dependencies require source builds, so a working C/C++ toolchain may be
+needed. Windows validation used the x64 Visual Studio 2022 Build Tools. The
+generated requirement files remain tied to the existing Python 3.11 deployment
+baseline and are not Python 3.15 lock files.
+
+When building the repository's `lean` or `superset` Docker target with a Python
+3.15 base image, the application dependency stage installs both local packages
+from their metadata instead of applying the Python 3.11 pins. Older interpreters
+retain the requirements-based installation. This does not change the default
+image's Python version or establish Python 3.15 support for every Docker target;
+the development target still uses its generated development requirements.
+
+Container acceptance must include the complete image build, dependency consistency,
+fresh metadata migration, authentication, and the workloads needed by the deployment.
+A dependency-only image build is not a substitute for that acceptance. The image's
+`/health` endpoint is a liveness check, not proof that PostgreSQL, Redis, or queued
+work is available; verify those workflows separately in readiness monitoring.
+
+For deployment-specific shutdown validation, send SIGTERM to the Gunicorn master
+and allow more than its configured graceful timeout before escalating. Validate
+worker exits as well as the master's exit code. Reference tests on Python 3.11
+and 3.15 exposed a Gunicorn gthread keepalive-drain issue requiring deadline
+escalation after requests. A separately validated alternative is
+`SERVER_WORKER_CLASS=sync` with `SERVER_THREADS_AMOUNT=1`; setting only the worker
+class while retaining multiple threads can select gthread again. Synchronous
+workers have different concurrency characteristics, so capacity must be measured
+for that configuration.
+
+This validation is not a full production certification. The remote Linux CI
+jobs, skipped integration cases, the full database-driver matrix,
+live report delivery and screenshot workflows, and browser workflows
+beyond the selected 24 acceptance cases still require validation. Production
+acceptance must also cover the target deployment's authentication, secrets,
+network/TLS configuration, workload, backup/restore, and availability requirements.
+An additional Windows
+DataFrame test assumes extended `longdouble` precision unavailable on that
+platform; Windows also exposes existing Unix-signal type-checking limitations.
+Use an officially supported Python version for production deployments until
+these broader compatibility checks have been completed.
+
 ## OS Dependencies
 
 Superset stores database connection information in its metadata database. For that purpose, we use

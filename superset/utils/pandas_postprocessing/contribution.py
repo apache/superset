@@ -117,7 +117,9 @@ def contribution(
     # Filled out of place: the selection is a slice of `contribution_df`, and
     # an in-place fill on a slice warns under pandas 2 and is dropped outright
     # under copy-on-write.
-    numeric_df = _select_arithmetic_columns(contribution_df).fillna(0)
+    numeric_df = (
+        _select_arithmetic_columns(contribution_df).fillna(0).infer_objects(copy=False)
+    )
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()

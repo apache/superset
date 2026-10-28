@@ -240,10 +240,19 @@ def resample(  # pylint: disable=too-many-arguments
     _validate_projected_rows(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
+        string_columns = [
+            column
+            for column in df.columns
+            if isinstance(df[column].dtype, pd.StringDtype)
+        ]
+        if len(string_columns):
+            df = df.astype(dict.fromkeys(string_columns, object))
         _df = df.resample(rule).asfreq(fill_value=fill_value)
         _df = _df.fillna(fill_value)
     elif method == "linear":
-        _df = df.resample(rule).interpolate()
+        _df = df.resample(rule).asfreq()
+        numeric_columns = _df.select_dtypes(include="number").columns
+        _df[numeric_columns] = _df[numeric_columns].interpolate()
     else:
         _df = getattr(df.resample(rule), method)()
         if method in ("ffill", "bfill"):
