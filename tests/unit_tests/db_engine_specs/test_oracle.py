@@ -320,7 +320,7 @@ def test_get_limit_method_detected_version(
     database.get_sqla_engine.assert_called_once_with()
 
 
-def test_get_limit_method_unknown_version(server_versions: Any) -> None:
+def test_get_limit_method_unknown_version(app: Any, server_versions: Any) -> None:
     """
     If the version can't be read, keep `FETCH FIRST` and try again next time.
     """
@@ -328,12 +328,54 @@ def test_get_limit_method_unknown_version(server_versions: Any) -> None:
 
     unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
     assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
-    assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
+    with app.app_context():
+        assert OracleEngineSpec.get_limit_method(unreachable) == LimitMethod.FORCE_LIMIT
     assert unreachable.get_sqla_engine.call_count == 2
 
     unreported = mock_oracle_database(server_version_info=None)
     assert OracleEngineSpec.get_limit_method(unreported) == LimitMethod.FORCE_LIMIT
     assert server_versions == {}
+
+
+def test_failed_version_lookup_is_tried_once_per_context(
+    app: Any, server_versions: Any
+) -> None:
+    """
+    Every label of a chart query asks for the version, so a failed lookup is
+    not repeated within the same request or task, only in the next one.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    for i in range(20):
+        OracleEngineSpec.make_label_compatible(f"column_{i}", unreachable)
+    assert unreachable.get_sqla_engine.call_count == 1
+
+    unreported = mock_oracle_database(server_version_info=None)
+    unreported.id = 2
+    for i in range(20):
+        OracleEngineSpec.make_label_compatible(f"column_{i}", unreported)
+    assert unreported.get_sqla_engine.call_count == 1
+
+    with app.app_context():
+        OracleEngineSpec.make_label_compatible("column", unreachable)
+    assert unreachable.get_sqla_engine.call_count == 2
+
+
+def test_failed_version_lookup_without_app_context(server_versions: Any) -> None:
+    """
+    Outside an application context there is nowhere to remember the failure,
+    so each lookup tries again.
+    """
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    unreachable = mock_oracle_database(error=Exception("ORA-12541: no listener"))
+    with mock.patch(
+        "superset.db_engine_specs.oracle.has_app_context", return_value=False
+    ):
+        OracleEngineSpec.make_label_compatible("a", unreachable)
+        OracleEngineSpec.make_label_compatible("b", unreachable)
+    assert unreachable.get_sqla_engine.call_count == 2
 
 
 def test_get_limit_method_reuses_connected_engine(server_versions: Any) -> None:

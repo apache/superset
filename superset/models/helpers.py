@@ -7611,12 +7611,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                     # Apply Others grouping using the refactored method
                     def _create_join_condition(col_name: str, expr: Any) -> Any:
-                        # Get the corresponding column from the subquery
-                        subq_col_name = db_engine_spec.make_label_compatible(
-                            col_name + "__", self.database
-                        )
-                        # Reference the column from the already-created aliased subquery
-                        subq_col = subq_alias.c[subq_col_name]
+                        # The subquery keys its columns by the expected label, which
+                        # differs from the SQL alias when the engine shortened it
+                        subq_col = subq_alias.c[col_name + "__"]
                         return subq_col.is_not(None)
 
                     select_exprs, groupby_all_columns = (
