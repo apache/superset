@@ -169,6 +169,48 @@ def test_inner_table_rls_viewers_only_see_their_own_cached_values(
     assert values() == (["beta"], True)
 
 
+def test_cached_column_values_are_served_without_reaching_the_database(
+    virtual_dataset: SqlaTable,
+    viewer: SimpleNamespace,
+    data_cache: SimpleCache,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Building the key of a dataset with a schema does not connect to its
+    database, so a cache hit still serves values when the database is down.
+    """
+    from superset.datasource.api import get_cached_column_values
+    from superset.models.sql_lab import Query
+
+    def values() -> tuple[list[Any], bool]:
+        return get_cached_column_values(
+            virtual_dataset,
+            column_name="name",
+            limit=100,
+            denormalize_column=False,
+        )
+
+    viewer.name = "alice"
+    assert values() == (["alpha"], False)
+
+    # Looking up the default schema opens a connection to the database.
+    unreachable = mocker.patch.object(
+        virtual_dataset.database,
+        "get_default_schema",
+        side_effect=ConnectionError("database unreachable"),
+    )
+    assert values() == (["alpha"], True)
+
+    query: Query = Query(
+        database=virtual_dataset.database,
+        schema="main",
+        sql="SELECT tenant, name FROM t",
+        client_id="client",
+    )
+    assert query.get_inner_rls_cache_key() == [_inner_key("(tenant = 1)")]
+    unreachable.assert_not_called()
+
+
 def test_same_inner_table_rls_shares_column_values_cache_key(
     virtual_dataset: SqlaTable, viewer: SimpleNamespace
 ) -> None:
