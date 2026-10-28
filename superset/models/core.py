@@ -498,9 +498,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     def engine_information(self) -> dict[str, Any]:
         try:
             engine_information = self.db_engine_spec.get_public_information()
+        except Exception:  # pylint: disable=broad-except
+            return {}
+        try:
             engine_information["oauth2_enabled"] = self.is_oauth2_enabled()
         except Exception:  # pylint: disable=broad-except
-            engine_information = {}
+            engine_information["oauth2_enabled"] = False
         return engine_information
 
     @classmethod

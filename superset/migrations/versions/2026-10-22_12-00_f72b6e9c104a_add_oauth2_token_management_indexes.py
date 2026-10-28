@@ -18,7 +18,7 @@
 """Add a database lookup index for OAuth2 token management.
 
 Revision ID: f72b6e9c104a
-Revises: d623a0cb6bb0
+Revises: 3740c7bcb2c6
 """
 
 from alembic import op
@@ -26,7 +26,7 @@ from alembic import op
 from superset.migrations.shared.utils import create_index, drop_index, is_mysql
 
 revision: str = "f72b6e9c104a"
-down_revision: str = "d623a0cb6bb0"
+down_revision: str = "3740c7bcb2c6"
 
 TABLE_NAME = "database_user_oauth2_tokens"
 INDEX_NAME = "idx_oauth2_tokens_database_id"

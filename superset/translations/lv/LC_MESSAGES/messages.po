@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -17341,15 +17341,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Laika vienība, kas izmantota bloku grupēšanai"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -17362,6 +17353,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
