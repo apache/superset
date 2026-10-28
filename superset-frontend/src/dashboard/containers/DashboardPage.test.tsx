@@ -163,6 +163,7 @@ const MockCrudThemeProvider = CrudThemeProvider as unknown as jest.Mock;
 
 afterEach(() => {
   jest.restoreAllMocks();
+  localStorage.clear();
 });
 
 beforeEach(() => {
@@ -780,4 +781,629 @@ test('clears undo history after hydrating the dashboard', async () => {
   const clearOrder = (clearDashboardHistory as jest.Mock).mock
     .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
+});
+
+// ---------------------------------------------------------------------------
+// localStorage filter persistence
+// ---------------------------------------------------------------------------
+
+test('restores native filter state from localStorage when no URL key is present', async () => {
+  // Versioned format: { dataMask, filterDefinitions }. The current code rejects
+  // unversioned entries (ID-only check) since the key has not shipped yet.
+  const savedVersioned = {
+    dataMask: {
+      'NATIVE_FILTER-abc123': {
+        filterState: { value: ['California'] },
+        extraFormData: {
+          filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+        },
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-abc123': {
+        targets: [{ column: { name: 'state' } }],
+        type: 'filter_select',
+      },
+    },
+  };
+  // Authenticated user — key format: dashboard__native_filters__{userId}__{dashboardId}
+  localStorage.setItem(
+    'dashboard__native_filters__42__1',
+    JSON.stringify(savedVersioned),
+  );
+
+  // Include the filter ID (with matching targets/type) so versioned validation passes.
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-abc123',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 42 },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-abc123': expect.objectContaining({
+          filterState: { value: ['California'] },
+        }),
+      }),
+    }),
+  );
+});
+
+test('skips localStorage restore for guest/embedded users (userId is undefined)', async () => {
+  const FILTER_ID = 'NATIVE_FILTER-guest';
+  const filterConfig = {
+    id: FILTER_ID,
+    name: 'Team',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 1, column: { name: 'col' } }],
+    defaultDataMask: {},
+  };
+
+  // Give the dashboard a matching native filter definition so that it would be restored if not a guest
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [filterConfig],
+      },
+      json_metadata: JSON.stringify({
+        native_filter_configuration: [filterConfig],
+      }),
+    },
+    error: null,
+  });
+
+  const nativeFilters = {
+    filters: {
+      [FILTER_ID]: filterConfig,
+    },
+  };
+
+  const savedVersioned = {
+    dataMask: {
+      [FILTER_ID]: {
+        id: FILTER_ID,
+        filterState: { value: ['SomeValue'] },
+        extraFormData: {},
+      },
+    },
+    filterDefinitions: {
+      [FILTER_ID]: {
+        id: FILTER_ID,
+        targets: filterConfig.targets,
+        type: filterConfig.filterType,
+        defaultDataMask: filterConfig.defaultDataMask,
+      },
+    },
+  };
+
+  // Write under the guest (dashboard-only) key
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify(savedVersioned),
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: {
+          id: 1,
+          metadata: { native_filter_configuration: [filterConfig] },
+        },
+        dashboardState: { sliceIds: [] },
+        nativeFilters,
+        dataMask: {},
+        user: { userId: undefined },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // dataMask should be empty — guest users skip localStorage restoration
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+
+  window.localStorage.clear();
+});
+
+test('scopes localStorage key to userId when user is authenticated', async () => {
+  const savedVersioned = {
+    dataMask: {
+      'NATIVE_FILTER-xyz': {
+        filterState: { value: ['2024'] },
+        extraFormData: {},
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-xyz': {
+        targets: [{ column: { name: 'year' } }],
+        type: 'filter_select',
+      },
+    },
+  };
+  // key is scoped to userId=7 and dashboardId=1
+  localStorage.setItem(
+    'dashboard__native_filters__7__1',
+    JSON.stringify(savedVersioned),
+  );
+
+  // Include the filter ID in native_filter_configuration so versioned validation passes.
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-xyz',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'year' } }],
+          },
+        ],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 7 },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-xyz': expect.objectContaining({
+          filterState: { value: ['2024'] },
+        }),
+      }),
+    }),
+  );
+});
+
+test('does not restore localStorage filters when a nativeFiltersKey is in the URL', async () => {
+  // Put something in localStorage that should be ignored because the URL key takes priority
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify({ 'NATIVE_FILTER-abc': { filterState: { value: ['X'] } } }),
+  );
+
+  const { getFilterValue } = jest.requireMock(
+    'src/dashboard/components/nativeFilters/FilterBar/keyValue',
+  );
+  (getFilterValue as jest.Mock).mockResolvedValueOnce({
+    'NATIVE_FILTER-abc': { filterState: { value: ['FromURL'] } },
+  });
+
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters_key') return 'some-key';
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: undefined },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // hydrateDashboard should use the URL-resolved value, not localStorage
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-abc': expect.objectContaining({
+          filterState: { value: ['FromURL'] },
+        }),
+      }),
+    }),
+  );
+});
+
+test('ignores corrupted localStorage data (array) and uses empty dataMask', async () => {
+  // An array is not a valid dataMask shape and must be rejected
+  localStorage.setItem(
+    'dashboard__native_filters__42__1',
+    JSON.stringify([1, 2, 3]),
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 42 },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // dataMask should be empty — the corrupted array value must not be used
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+});
+
+test('restores versioned localStorage filters and drops them if targets change', async () => {
+  const savedVersionedData = {
+    dataMask: {
+      'NATIVE_FILTER-versioned': {
+        filterState: { value: ['California'] },
+        extraFormData: {
+          filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+        },
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-versioned': {
+        targets: [{ column: { name: 'state' } }],
+        type: 'filter_select',
+      },
+    },
+  };
+
+  // Use an authenticated user key — restoration skips unauthenticated users.
+  localStorage.setItem(
+    'dashboard__native_filters__5__1',
+    JSON.stringify(savedVersionedData),
+  );
+
+  // 1. Simulate the dashboard where the target matches
+  mockUseDashboard.mockReturnValueOnce({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-versioned',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+  });
+
+  const { render } = jest.requireActual('spec/helpers/testing-library');
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 5 },
+      },
+    },
+  );
+
+  // hydrateDashboard should be called with the restored value since target matches
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-versioned': expect.anything(),
+      }),
+    }),
+  );
+
+  unmount();
+  (hydrateDashboard as jest.Mock).mockClear();
+
+  // 2. Simulate the dashboard where the target has changed
+  mockUseDashboard.mockReturnValueOnce({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-versioned',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'country' } }],
+          },
+        ],
+      },
+    },
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 5 },
+      },
+    },
+  );
+
+  // hydrateDashboard should NOT have the dropped filter since target mismatch
+  expect(hydrateDashboard).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-versioned': expect.anything(),
+      }),
+    }),
+  );
+});
+
+test('skips localStorage restore when ?f= Rison link is present in URL', async () => {
+  const savedVersioned = {
+    dataMask: {
+      'NATIVE_FILTER-xyz': {
+        filterState: { value: ['California'] },
+        extraFormData: {},
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-xyz': {
+        targets: [{ column: { name: 'state' } }],
+        type: 'filter_select',
+      },
+    },
+  };
+  localStorage.setItem(
+    'dashboard__native_filters__42__1',
+    JSON.stringify(savedVersioned),
+  );
+
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-xyz',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+    error: null,
+  });
+
+  // Mock getRisonFilterParam to simulate ?f= presence
+  jest
+    .spyOn(require('src/dashboard/util/risonFilters'), 'getRisonFilterParam')
+    .mockReturnValue('{}');
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 42 },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // Verify hydrateDashboard was called without the localStorage filter values
+  // (because ?f= suppresses the fallback)
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+
+  require('src/dashboard/util/risonFilters').getRisonFilterParam.mockRestore();
+});
+
+test('skips localStorage save when historical version preview is active', async () => {
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-xyz',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: {
+          filters: {
+            'NATIVE_FILTER-xyz': {
+              id: 'NATIVE_FILTER-xyz',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'state' } }],
+            },
+          },
+        },
+        dataMask: {
+          'NATIVE_FILTER-xyz': {
+            filterState: { value: ['New Value'] },
+            extraFormData: {},
+          },
+        },
+        user: { userId: 42 },
+        versionHistory: {
+          entityType: 'dashboard',
+          preview: { data: 'snapshot' },
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // Simulate hydration and effect run
+  // Expect no save to localStorage because isVersionPreviewActive is true
+  expect(localStorage.getItem('dashboard__native_filters__42__1')).toBeNull();
+});
+
+test('saves to localStorage when historical version preview is inactive', async () => {
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-xyz',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: {
+          filters: {
+            'NATIVE_FILTER-xyz': {
+              id: 'NATIVE_FILTER-xyz',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'state' } }],
+            },
+          },
+        },
+        dataMask: {
+          'NATIVE_FILTER-xyz': {
+            filterState: { value: ['New Value'] },
+            extraFormData: {},
+          },
+        },
+        user: { userId: 42 },
+        versionHistory: {
+          entityType: 'dashboard',
+          preview: null,
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // Verify it actually saves when preview is false
+  expect(
+    localStorage.getItem('dashboard__native_filters__42__1'),
+  ).not.toBeNull();
 });
