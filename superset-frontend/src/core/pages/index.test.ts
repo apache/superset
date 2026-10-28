@@ -22,7 +22,10 @@ import { logging } from '@apache-superset/core/utils';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import {
   findPageByPath,
+  getCurrentPage,
   getPages,
+  notifyPathnameChanged,
+  onDidChangeCurrentPage,
   onDidRegisterPage,
   onDidUnregisterPage,
   registerPageFor,
@@ -458,4 +461,92 @@ test('a listener that throws does not stop its peers, or the registration', () =
   expect(seen).toEqual(['/review-queue']);
   expect(getPages()).toHaveLength(1);
   expect(error).toHaveBeenCalled();
+});
+
+describe('the current contributed page', () => {
+  // `navigation.getPage()` reports the surface, where every contributed page
+  // is `'extension'`. These cover the finer question it cannot answer.
+  afterEach(() => notifyPathnameChanged('/'));
+
+  test('is undefined on a host screen', () => {
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    notifyPathnameChanged('/welcome');
+
+    expect(getCurrentPage()).toBeUndefined();
+  });
+
+  test('is the page whose path the user is on', () => {
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    notifyPathnameChanged('/review-queue');
+
+    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+  });
+
+  test('a sub-path still counts as that page', () => {
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    notifyPathnameChanged('/review-queue/42/edit');
+
+    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+  });
+
+  test('moving between two contributed pages fires, where the surface does not', () => {
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue-archive', name: 'A' }),
+    );
+    notifyPathnameChanged('/review-queue');
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    notifyPathnameChanged('/review-queue-archive');
+
+    expect(seen).toEqual(['/review-queue-archive']);
+  });
+
+  test('leaving for a host screen fires with undefined', () => {
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    notifyPathnameChanged('/review-queue');
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    notifyPathnameChanged('/welcome');
+
+    expect(seen).toEqual([undefined]);
+  });
+
+  test('a sub-path move within one page fires nothing', () => {
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    notifyPathnameChanged('/review-queue');
+
+    const seen: unknown[] = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page)));
+    notifyPathnameChanged('/review-queue/42');
+
+    expect(seen).toEqual([]);
+  });
+
+  test('a page registering for the URL already open becomes current', () => {
+    // The normal case, not the exception: the bundle lands after the route.
+    notifyPathnameChanged('/review-queue');
+    expect(getCurrentPage()).toBeUndefined();
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+
+    expect(seen).toEqual(['/review-queue']);
+    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+  });
+
+  test('disposing the page the user is on clears it', () => {
+    const disposable = register('acme.tools', { path: '/review-queue', name: 'Q' });
+    notifyPathnameChanged('/review-queue');
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposable.dispose();
+
+    expect(seen).toEqual([undefined]);
+    expect(getCurrentPage()).toBeUndefined();
+  });
 });

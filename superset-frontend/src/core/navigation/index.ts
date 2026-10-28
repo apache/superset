@@ -32,6 +32,7 @@ import { RoutePaths } from '../../views/routePaths';
 import { Disposable } from '../models';
 import {
   findPageByPath,
+  notifyPathnameChanged,
   onDidRegisterPage,
   onDidUnregisterPage,
 } from '../pages';
@@ -105,6 +106,11 @@ onDidUnregisterPage(rederive);
 /** Updates the current page from a pathname. No-op when the page is unchanged. */
 export const notifyLocationChanged = (pathname: string): void => {
   lastPathname = pathname;
+  // The registry tracks which contributed page is open, which is a finer
+  // question than the surface this module reports: two contributed pages are
+  // both `'extension'` here, so moving between them changes nothing below
+  // but is exactly the move `pages.onDidChangeCurrentPage` exists to report.
+  notifyPathnameChanged(pathname);
   rederive();
 };
 
