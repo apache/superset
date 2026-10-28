@@ -37,8 +37,10 @@ from superset.connectors.sqla.models import (
     validate_stored_expression,
 )
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
+from superset.db_engine_specs.duckdb import DuckDBEngineSpec
 from superset.db_engine_specs.tdengine import TDengineEngineSpec
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.jinja_context import BaseTemplateProcessor, PrestoTemplateProcessor
@@ -1280,17 +1282,21 @@ def test_cache_hit_series_limit_does_not_execute_prequery(
         {"apply_fetch_values_predicate": True},
     ],
 )
+@pytest.mark.parametrize(
+    "subquery", ["(SELECT MAX(col1) FROM physical)", "(FROM physical)"]
+)
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
 def test_expression_cache_key_sibling_fields(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
     mocker: MockerFixture,
     fields: QueryObjectDict,
+    subquery: str,
 ) -> None:
     """Every expression entry point contributes RLS without a full query build."""
     virtual, rule = static_schema_datasource
     assert isinstance(virtual, SqlaTable)
     virtual.sql = "SELECT 1 AS col1"
-    virtual.template_params = '{"subquery": "(SELECT MAX(col1) FROM physical)"}'
+    virtual.template_params = json.dumps({"subquery": subquery})
     virtual.columns.append(
         TableColumn(
             column_name="calculated",
@@ -1305,7 +1311,7 @@ def test_expression_cache_key_sibling_fields(
             expression="MAX({{ subquery }})",
         )
     )
-    virtual.fetch_values_predicate = "1 = (SELECT MAX(col1) FROM physical)"
+    virtual.fetch_values_predicate = f"1 = {subquery}"
     build = mocker.spy(virtual, "get_sqla_query")
     query: QueryObjectDict = {
         "columns": ["col1"],
@@ -1650,9 +1656,18 @@ def test_duplicate_verbose_filter_cache_keys_are_user_scoped(
 
 
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable, Query], indirect=True)
+@pytest.mark.parametrize(
+    "unused_expression",
+    [
+        "{{ 1 / 0 }}",
+        "(SELECT MAX(col1) FROM physical) + {{ 1 / 0 }}",
+        "(FROM physical) + {{ 1 / 0 }}",
+    ],
+)
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
 def test_cache_key_uses_only_executed_time_column(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    unused_expression: str,
 ) -> None:
     """A valid SQL Lab time column and an unused broken primary column are safe."""
     virtual, _ = static_schema_datasource
@@ -1665,7 +1680,7 @@ def test_cache_key_uses_only_executed_time_column(
                     column_name="unused",
                     type="DATETIME",
                     is_dttm=True,
-                    expression="{{ 1 / 0 }}",
+                    expression=unused_expression,
                 ),
             ]
         )
@@ -3152,3 +3167,274 @@ def test_removed_time_filter_series_limit_cache_matches_execution(
         else [[], []]
     )
     assert render_counts == [int(uses_inner_time_filter)] * 2
+
+
+FROM_FIRST_SUBQUERIES = [
+    "(FROM physical)",
+    "(from physical)",
+    "( /* table subquery */ FROM physical)",
+    "(FROM /* table */ physical)",
+    "(\n FROM\tphysical\n)",
+    "(FROM physical -- table\n)",
+    "((FROM physical))",
+]
+
+
+def set_viewer_rls(mocker: MockerFixture) -> None:
+    """Assign independent physical-table rules to two chart viewers."""
+    from flask import g
+
+    rules = {
+        user_id: MagicMock(clause=f"col1 = {user_id}", group_key=None)
+        for user_id in (1, 2)
+    }
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        side_effect=lambda dataset: [rules[g.user.id]] if dataset.id == 1 else [],
+    )
+
+
+@pytest.mark.parametrize("expression", FROM_FIRST_SUBQUERIES)
+@pytest.mark.parametrize("sink", ["column", "metric", "where", "having"])
+@pytest.mark.parametrize("templated", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_from_first_subquery_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    expression: str,
+    sink: str,
+    templated: bool,
+) -> None:
+    """Every SELECT-less subquery protected at execution needs an RLS cache key."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    set_viewer_rls(mocker)
+    if templated:
+        expression = "{{ " + json.dumps(expression) + " }}"
+    fields: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    if sink == "column":
+        fields["columns"] = [{"sqlExpression": expression, "label": "axis"}]
+    elif sink == "metric":
+        fields["columns"] = []
+        fields["metrics"] = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": f"MAX({expression})",
+                "label": "axis",
+            }
+        ]
+    elif sink == "where":
+        fields["extras"] = {"where": f"col1 IN {expression}"}
+    else:
+        fields["metrics"] = [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "axis"}
+        ]
+        fields["extras"] = {"having": f"MAX(col1) IN {expression}"}
+    query = QueryObject(
+        datasource=virtual,
+        is_timeseries=False,
+        columns=fields["columns"],
+        metrics=fields["metrics"],
+        extras=fields.get("extras"),
+    )
+    keys = []
+    predicates = []
+    results = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        result = virtual.get_query_result(query)
+        assert result.status == "success", result.error_message
+        assert f"col1 = {user_id}" in result.query
+        results.append(result.df.to_dict("list"))
+        extra = virtual.get_extra_cache_keys(query.to_dict())
+        predicates.append(extra)
+        keys.append(query.cache_key(extra_cache_keys=extra))
+    assert results[0] != results[1]
+    assert keys[0] != keys[1]
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("expression", FROM_FIRST_SUBQUERIES)
+@pytest.mark.parametrize(
+    "sink", ["reference", "spaced_reference", "column", "filter", "time", "metric"]
+)
+@pytest.mark.parametrize("templated", [False, True])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_from_first_saved_expression_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    expression: str,
+    sink: str,
+    templated: bool,
+) -> None:
+    """Saved-column resolution and its sibling sinks retain SELECT-less RLS."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    set_viewer_rls(mocker)
+    if templated:
+        virtual.template_params = json.dumps({"subquery": expression})
+        expression = "{{ subquery }}"
+    virtual.columns.append(
+        TableColumn(
+            column_name="calc",
+            type="INTEGER",
+            is_dttm=sink == "time",
+            expression=expression,
+        )
+    )
+    virtual.metrics.append(
+        SqlMetric(metric_name="total", expression=f"MAX({expression})")
+    )
+    fields: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    if sink in {"reference", "spaced_reference"}:
+        fields["columns"] = [
+            cast(
+                AdhocColumn,
+                {
+                    "sqlExpression": " calc " if sink == "spaced_reference" else "calc",
+                    "expressionType": "SQL",
+                    "label": "axis",
+                },
+            )
+        ]
+    elif sink == "column":
+        fields["columns"] = ["calc"]
+    elif sink == "filter":
+        fields["filter"] = [{"col": "calc", "op": "==", "val": 1}]
+    elif sink == "time":
+        fields["granularity"] = "calc"
+    else:
+        fields["columns"] = []
+        fields["metrics"] = ["total"]
+    query = QueryObject(
+        datasource=virtual,
+        is_timeseries=sink == "time",
+        filters=fields.get("filter"),
+        columns=fields["columns"],
+        metrics=fields["metrics"],
+        granularity=fields.get("granularity"),
+    )
+    keys = []
+    predicates = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        sql = str(
+            virtual.get_sqla_query(
+                is_timeseries=sink == "time",
+                columns=fields["columns"],
+                metrics=fields["metrics"],
+                filter=fields.get("filter"),
+                granularity=fields.get("granularity"),
+            ).sqla_query.compile()
+        )
+        assert f"col1 = {user_id}" in sql
+        extra = virtual.get_extra_cache_keys(query.to_dict())
+        predicates.append(extra)
+        keys.append(query.cache_key(extra_cache_keys=extra))
+    assert keys[0] != keys[1]
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
+
+
+@pytest.mark.parametrize(
+    "spec,expression",
+    [
+        (DuckDBEngineSpec, "(FROM physical)"),
+        (DuckDBEngineSpec, "1 IN (FROM physical)"),
+        (BigQueryEngineSpec, "(FROM physical |> AGGREGATE MAX(col1))"),
+        (DuckDBEngineSpec, "(SELECT MAX(col1) FROM physical)"),
+    ],
+)
+@pytest.mark.parametrize("sink", ["column", "metric", "where", "having"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_from_first_dialect_subquery_cache_keys_are_user_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    spec: type[BaseEngineSpec],
+    expression: str,
+    sink: str,
+) -> None:
+    """Match execution's parser for FROM-first dialects and boolean fragments."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.schema = "main"
+    mocker.patch.object(
+        Database, "db_engine_spec", new_callable=PropertyMock, return_value=spec
+    )
+    mocker.patch.object(virtual.database, "get_default_catalog", return_value=None)
+    set_viewer_rls(mocker)
+    fields: QueryObjectDict = {"columns": ["col1"], "metrics": []}
+    if sink == "column":
+        fields["columns"] = [{"sqlExpression": expression, "label": "axis"}]
+    elif sink == "metric":
+        fields["metrics"] = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": f"MAX({expression})",
+                "label": "axis",
+            }
+        ]
+    else:
+        fields["extras"] = {sink: f"1 = {expression}"}
+    query = QueryObject(
+        datasource=virtual,
+        columns=fields["columns"],
+        metrics=fields["metrics"],
+        extras=fields.get("extras"),
+    )
+    keys = []
+    predicates = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        executed = helpers.validate_adhoc_subquery(
+            expression, virtual.database, None, "main", spec.engine
+        )
+        assert f"col1 = {user_id}" in executed
+        extra = virtual.get_extra_cache_keys(query.to_dict())
+        predicates.append(extra)
+        keys.append(query.cache_key(extra_cache_keys=extra))
+    assert keys[0] != keys[1]
+    assert predicates == [[PHYSICAL_RLS_KEYS[1]], [PHYSICAL_RLS_KEYS[2]]]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [Query], indirect=True)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_query_column_metadata_does_not_expand_saved_expressions(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """SQL Lab result metadata has no saved expressions to inject or collect."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, Query)
+    virtual.sql = "SELECT 1 AS calc"
+    virtual.extra = {
+        "columns": [
+            {
+                "column_name": "calc",
+                "type": "INTEGER",
+                "is_dttm": False,
+                "expression": "(FROM physical)",
+            }
+        ]
+    }
+    query = QueryObject(
+        datasource=virtual,
+        columns=[{"sqlExpression": "calc", "label": "axis"}],
+        metrics=[],
+        is_timeseries=False,
+    )
+    assert virtual.columns[0].expression is None
+    result = virtual.get_query_result(query)
+    assert result.status == "success"
+    assert result.df["axis"].tolist() == [1]
+    assert "physical" not in result.query
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []

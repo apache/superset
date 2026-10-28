@@ -4214,8 +4214,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             source = re.sub(
                 r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", "NULL", source, flags=re.DOTALL
             )
-            if not re.search(r"\bSELECT\b", source, re.IGNORECASE):
-                continue
+            # Use the execution parser, not a keyword gate: table subqueries
+            # can start with FROM, including in otherwise SELECT-less SQL.
             try:
                 script = SQLScript(f"SELECT {source}", self.db_engine_spec.engine)
             except SupersetParseError:
