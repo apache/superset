@@ -18,6 +18,7 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock, PropertyMock
 
 import pandas as pd
@@ -38,6 +39,7 @@ from superset.connectors.sqla.models import (
     validate_stored_expression,
 )
 from superset.daos.dataset import DatasetDAO
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -543,6 +545,83 @@ def test_normalize_prequery_result_type_custom_sql() -> None:
         sqla_table._normalize_prequery_result_type(row, dimension, columns_by_name)
         == "Car"
     )
+
+
+def _fetch_metadata_table(mocker: MockerFixture, **kwargs: Any) -> SqlaTable:
+    """A table whose source reports one temporal column and one partition key."""
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+    # A real engine spec, so `is_temporal` resolves the declared type instead
+    # of comparing a mock against `GenericDataType.TEMPORAL`.
+    database.db_engine_spec = BaseEngineSpec
+
+    table = SqlaTable(table_name="web_events", database=database, **kwargs)
+    mocker.patch.object(
+        table,
+        "external_metadata",
+        return_value=[
+            {"column_name": "event_time", "type": "TIMESTAMP"},
+            {"column_name": "dt_epoch", "type": "TIMESTAMP"},
+        ],
+    )
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+    return table
+
+
+def test_fetch_metadata_does_not_default_onto_the_partition_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A POST can set `partition_column` before any column exists, so create
+    validates the mapping with no `main_dttm_col` to resolve against. If
+    `fetch_metadata` then picks that same column as the default datetime
+    column, the mapping resolves onto itself -- and nobody asked for it.
+
+    The partition column is also a poor default on its own merits: an epoch
+    integer or a lowercased key that no analyst filters on.
+    """
+    table = _fetch_metadata_table(mocker)
+    table.partition_column = "event_time"
+
+    table.fetch_metadata()
+
+    assert table.main_dttm_col == "dt_epoch"
+
+
+def test_fetch_metadata_leaves_no_default_when_only_the_partition_column_is_temporal(
+    mocker: MockerFixture,
+) -> None:
+    """
+    No default datetime column is the right answer here, not a self-mapping.
+    """
+    table = _fetch_metadata_table(mocker)
+    table.partition_column = "event_time"
+    mocker.patch.object(
+        table,
+        "external_metadata",
+        return_value=[
+            {"column_name": "event_time", "type": "TIMESTAMP"},
+            {"column_name": "country", "type": "VARCHAR"},
+        ],
+    )
+
+    table.fetch_metadata()
+
+    assert table.main_dttm_col is None
+
+
+def test_fetch_metadata_still_defaults_without_a_partition_column(
+    mocker: MockerFixture,
+) -> None:
+    """The entire installed base: unchanged."""
+    table = _fetch_metadata_table(mocker)
+
+    table.fetch_metadata()
+
+    assert table.main_dttm_col == "event_time"
 
 
 def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
@@ -2623,6 +2702,34 @@ def test_get_fetch_values_predicate_wraps_undefined_error(
 
     with pytest.raises(QueryObjectValidationError):
         sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
+
+
+def test_adhoc_column_to_sqla_wraps_undefined_error_in_metadata_lookup(
+    mocker: MockerFixture,
+) -> None:
+    """A template that raises a raw ``UndefinedError`` (an undefined name that is
+    not shaped like a function call, e.g. ``{{ foo.bar }}``) while rendering an
+    adhoc column for the metadata lookup must surface as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    template_processor = JinjaTemplateProcessor(database=database, table=sqla_table)
+
+    with pytest.raises(QueryObjectValidationError, match="Error in jinja expression"):
+        sqla_table.adhoc_column_to_sqla(
+            {
+                "label": "my_col",
+                "sqlExpression": "{{ foo.bar }}",
+            },
+            template_processor=template_processor,
+        )
 
 
 def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
