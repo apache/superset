@@ -92,6 +92,18 @@ const unregisterEmitter = createEventEmitter<ResolvedPage>();
 // `useSyncExternalStore` requires a referentially stable snapshot between
 // notifications, so the array is rebuilt only when the registry changes.
 let snapshot: readonly ResolvedPage[] = Object.freeze([]);
+/** The page registered for a path, or undefined when nothing claims it. */
+export const findPageByPath = (path: string): ResolvedPage | undefined =>
+  // Longest match, not the first registered. `/reports` and
+  // `/reports/archive` can both claim `/reports/archive`, and taking the
+  // first leaves the deeper page unreachable whenever it happens to be
+  // registered second -- which is load order, not anything an author
+  // controls. The server resolves the same way, because Werkzeug prefers the
+  // rule with more static segments.
+  snapshot
+    .filter(page => path === page.path || path.startsWith(`${page.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+
 // Which contributed page the user is on, or undefined on a host screen.
 //
 // Separate from `navigation.getPage()`, which names the *surface*: every
@@ -245,18 +257,6 @@ export const getPages = (): readonly ResolvedPage[] => snapshot;
 
 export const usePages = (): readonly ResolvedPage[] =>
   useSyncExternalStore(subscribe, getPages, getPages);
-
-/** The page registered for a path, or undefined when nothing claims it. */
-export const findPageByPath = (path: string): ResolvedPage | undefined =>
-  // Longest match, not the first registered. `/reports` and
-  // `/reports/archive` can both claim `/reports/archive`, and taking the
-  // first leaves the deeper page unreachable whenever it happens to be
-  // registered second -- which is load order, not anything an author
-  // controls. The server resolves the same way, because Werkzeug prefers the
-  // rule with more static segments.
-  snapshot
-    .filter(page => path === page.path || path.startsWith(`${page.path}/`))
-    .sort((a, b) => b.path.length - a.path.length)[0];
 
 /**
  * The root path of the page currently rendering.

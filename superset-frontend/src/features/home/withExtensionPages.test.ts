@@ -76,7 +76,11 @@ test('contributed entries are ordered by path, not by arrival', () => {
       .slice(menu.length)
       .map(item => item.url);
 
-  expect(order(arrived)).toEqual(['/approvals', '/data-lineage', '/review-log']);
+  expect(order(arrived)).toEqual([
+    '/approvals',
+    '/data-lineage',
+    '/review-log',
+  ]);
   expect(order([...arrived].reverse())).toEqual(order(arrived));
 });
 
@@ -228,10 +232,9 @@ describe('under a subdirectory deployment', () => {
   test('a contributed entry carries the application root', () => {
     mockApplicationRoot.mockReturnValue('/analytics');
 
-    const [entry] = withExtensionPages(
-      [] as never,
-      [page({ path: '/review-queue', nav: { label: 'Queue' } })],
-    );
+    const [entry] = withExtensionPages([] as never, [
+      page({ path: '/review-queue', nav: { label: 'Queue' } }),
+    ]);
 
     expect(entry.url).toBe('/analytics/review-queue');
   });
@@ -241,7 +244,12 @@ describe('under a subdirectory deployment', () => {
 
     const result = withExtensionSettings(
       [{ name: 'Manage', label: 'Manage', childs: [] }] as never,
-      [page({ path: '/approvals', nav: { label: 'Approvals', category: 'Manage' } })],
+      [
+        page({
+          path: '/approvals',
+          nav: { label: 'Approvals', category: 'Manage' },
+        }),
+      ],
     );
 
     expect(result.find(g => g.name === 'Manage')?.childs?.[0]).toMatchObject({
@@ -252,19 +260,17 @@ describe('under a subdirectory deployment', () => {
   test('the root is applied exactly once, never twice', () => {
     mockApplicationRoot.mockReturnValue('/analytics');
 
-    const [entry] = withExtensionPages(
-      [] as never,
-      [page({ path: '/review-queue', nav: { label: 'Queue' } })],
-    );
+    const [entry] = withExtensionPages([] as never, [
+      page({ path: '/review-queue', nav: { label: 'Queue' } }),
+    ]);
 
     expect(entry.url).not.toBe('/analytics/analytics/review-queue');
   });
 
   test('nothing is prefixed when the app serves from the domain root', () => {
-    const [entry] = withExtensionPages(
-      [] as never,
-      [page({ path: '/review-queue', nav: { label: 'Queue' } })],
-    );
+    const [entry] = withExtensionPages([] as never, [
+      page({ path: '/review-queue', nav: { label: 'Queue' } }),
+    ]);
 
     expect(entry.url).toBe('/review-queue');
   });

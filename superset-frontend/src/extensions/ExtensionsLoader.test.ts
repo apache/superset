@@ -525,7 +525,11 @@ test("an extension's registerPage is bound to its own id and declarations", asyn
 
   const appendChildSpy = mockRemoteEntryLoad();
   mockWebpackSharing({
-    '0.1.0': { get: () => Promise.resolve(() => ({})), loaded: true, eager: true },
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
   });
 
   const queue = createMockExtension({
@@ -543,7 +547,10 @@ test("an extension's registerPage is bound to its own id and declarations", asyn
   (window as any).airbnb_lineage = makeContainer();
 
   await Promise.all([
-    loader.initializeExtension({ ...queue, moduleFederationName: 'airbnb_queue' }),
+    loader.initializeExtension({
+      ...queue,
+      moduleFederationName: 'airbnb_queue',
+    }),
     loader.initializeExtension({
       ...lineage,
       moduleFederationName: 'airbnb_lineage',

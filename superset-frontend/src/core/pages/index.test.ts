@@ -469,28 +469,36 @@ describe('the current contributed page', () => {
   afterEach(() => notifyPathnameChanged('/'));
 
   test('is undefined on a host screen', () => {
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
     notifyPathnameChanged('/welcome');
 
     expect(getCurrentPage()).toBeUndefined();
   });
 
   test('is the page whose path the user is on', () => {
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
     notifyPathnameChanged('/review-queue');
 
     expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
   });
 
   test('a sub-path still counts as that page', () => {
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
     notifyPathnameChanged('/review-queue/42/edit');
 
     expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
   });
 
   test('moving between two contributed pages fires, where the surface does not', () => {
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
     disposables.push(
       register('acme.tools', { path: '/review-queue-archive', name: 'A' }),
     );
@@ -504,7 +512,9 @@ describe('the current contributed page', () => {
   });
 
   test('leaving for a host screen fires with undefined', () => {
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
     notifyPathnameChanged('/review-queue');
 
     const seen: Array<string | undefined> = [];
@@ -515,7 +525,9 @@ describe('the current contributed page', () => {
   });
 
   test('a sub-path move within one page fires nothing', () => {
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
     notifyPathnameChanged('/review-queue');
 
     const seen: unknown[] = [];
@@ -532,14 +544,19 @@ describe('the current contributed page', () => {
 
     const seen: Array<string | undefined> = [];
     disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
-    disposables.push(register('acme.tools', { path: '/review-queue', name: 'Q' }));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
 
     expect(seen).toEqual(['/review-queue']);
     expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
   });
 
   test('disposing the page the user is on clears it', () => {
-    const disposable = register('acme.tools', { path: '/review-queue', name: 'Q' });
+    const disposable = register('acme.tools', {
+      path: '/review-queue',
+      name: 'Q',
+    });
     notifyPathnameChanged('/review-queue');
 
     const seen: Array<string | undefined> = [];
