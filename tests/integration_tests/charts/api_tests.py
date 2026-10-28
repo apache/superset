@@ -1561,6 +1561,58 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         ), "endpoint left the cache in a state that makes the worker skip render"
 
     @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.cache_chart_thumbnail")
+    @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
+    def test_cache_screenshot_does_not_recompute_stale_updated(
+        self, cache: SimpleCache, cache_task: mock.MagicMock
+    ) -> None:
+        """Charts do not opt into updated-staleness recompute, so a force-less
+        ``cache_screenshot`` for a valid, correctly-scoped UPDATED entry older
+        than THUMBNAIL_UPDATED_CACHE_TTL is served from cache (200) and leaves
+        the entry untouched. Opting in on this endpoint would return 202 and
+        enqueue a task whose worker, which does not opt in either, skips the
+        render."""
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").one()
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            screenshot = ChartScreenshot("http://example.com", chart.digest)
+        scope = f"chart:{chart.id}"
+        window_size = (800, 600)
+        cache_key = screenshot.get_cache_key(window_size, window_size)
+        image = b"\x89PNG\r\n\x1a\nstale capture"
+        # 400s old against the 300s TTL. Naive, like the cache's own
+        # `datetime.now()` timestamps.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        cache.set(
+            cache_key,
+            ScreenshotCachePayload(
+                image=image, scope=scope, timestamp=stale_timestamp
+            ).to_dict(),
+        )
+        seeded = cache.get(cache_key)
+        # The entry is stale for a caller that opts in, so the 200 below comes
+        # from the chart opt-out rather than from a fresh entry.
+        assert ScreenshotCachePayload.from_dict(seeded).should_trigger_task(
+            expected_scope=scope, check_updated_staleness=True
+        )
+        query = rison.dumps({"window_size": list(window_size)})
+
+        response = self.client.get(
+            f"api/v1/chart/{chart.id}/cache_screenshot/?q={query}"
+        )
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == cache_key
+        assert response.json["task_status"] == "Updated"
+        assert response.json["task_updated_at"] == stale_timestamp
+        cache_task.delay.assert_not_called()
+        cached = ScreenshotCachePayload.from_dict(cache.get(cache_key))
+        assert cached.get_image().read() == image
+        assert cached.to_dict() == seeded
+
+    @with_feature_flags(THUMBNAILS=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @patch("superset.charts.api.cache_chart_thumbnail")
     @patch("superset.utils.screenshots.ChartScreenshot.cache", new_callable=SimpleCache)
