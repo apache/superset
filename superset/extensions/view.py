@@ -472,6 +472,22 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
     # page re-registered with a different permission overwrites its own entry,
     # so the last registration wins, as it does for the rule.
     requirements = _requirements(app)
+    if manifest.contributions.pages and manifest.frontend is None:
+        # A page is half a contribution: the manifest declares the path and
+        # the bundle supplies the component. Without a frontend there is no
+        # remote entry, so nothing can ever register one, and registering the
+        # rules anyway would advertise pages in the nav that answer the shell
+        # and then resolve to nothing. Refused as a set, because the cause is
+        # the manifest rather than any one path.
+        logger.error(
+            "Extension '%s' declares %d page(s) but has no frontend, so no "
+            "component can be registered for them. None has been registered. "
+            "Remove the pages, or build the extension with a frontend.",
+            manifest.id,
+            len(manifest.contributions.pages),
+        )
+        return
+
     for page in manifest.contributions.pages:
         if problem := _permission_problem(page.permission):
             logger.error(

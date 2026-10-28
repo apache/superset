@@ -29,7 +29,12 @@ from types import SimpleNamespace
 import pytest
 from flask import Flask, g
 from pydantic import ValidationError
-from superset_core.extensions.types import Contributions, Manifest, Page
+from superset_core.extensions.types import (
+    Contributions,
+    Manifest,
+    ManifestFrontend,
+    Page,
+)
 from werkzeug.exceptions import NotFound
 
 from superset.constants import EXTENSION_VIEW_MENU_PREFIX
@@ -56,6 +61,13 @@ def manifest(
         publisher=publisher,
         name=name,
         displayName="Tools",
+        # A page needs a bundle to supply its component, so a manifest that
+        # contributes one always has a frontend. Fixtures say so too, or they
+        # would be testing a shape the loader never produces.
+        frontend=ManifestFrontend(
+            remoteEntry="remoteEntry.js",
+            moduleFederationName=f"{publisher}_{name.replace('-', '_')}",
+        ),
         contributions=Contributions(
             pages=[Page(path=path, name=path, permission=permission) for path in paths]
         ),
@@ -1020,6 +1032,9 @@ def duplicate_manifest() -> Manifest:
         publisher="acme",
         name="tools",
         displayName="Tools",
+        frontend=ManifestFrontend(
+            remoteEntry="remoteEntry.js", moduleFederationName="acme_tools"
+        ),
         contributions=Contributions(
             pages=[
                 Page(path="/review-queue", name="Queue", permission="can_review"),
@@ -1089,3 +1104,17 @@ def test_the_default_root_refuses_nothing(app: Flask) -> None:
     register_extension_pages(app, manifest("/review"))
 
     assert registered_page_paths(app, "acme.tools") == ["/review"]
+
+
+def test_pages_from_a_manifest_with_no_frontend_are_refused(
+    app: Flask, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Nothing could ever register a component for them."""
+    backend_only = manifest("/review")
+    backend_only.frontend = None
+
+    with caplog.at_level(logging.ERROR):
+        register_extension_pages(app, backend_only)
+
+    assert registered_page_paths(app, "acme.tools") == []
+    assert "no frontend" in caplog.text
