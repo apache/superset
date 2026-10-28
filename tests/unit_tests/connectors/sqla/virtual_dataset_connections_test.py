@@ -616,6 +616,324 @@ def test_cache_key_does_not_render_unneeded_partition_macro(
     partition_query.assert_called_once()
 
 
+@pytest.mark.parametrize("partition_discovery_fails", [False, True])
+@pytest.mark.parametrize(
+    "sink",
+    [
+        "calculated_filter",
+        "calculated_time",
+        "literal_filter",
+        "literal_time",
+        "tableless_filter",
+        "tableless_time",
+        "calculated_time_alias",
+        "primary_time",
+        "where",
+        "having",
+        "calculated_column",
+        "saved_metric",
+        "adhoc_sql",
+        "fetch_values_predicate",
+        "adhoc_column_reference",
+        "sql_named_column_reference",
+        "orderby",
+        "series_metric",
+        "groupby",
+        "adhoc_metric",
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_skips_partition_templates_without_subqueries(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    partition_discovery_fails: bool,
+    sink: str,
+) -> None:
+    """No non-subquery chart field may trigger warehouse partition discovery."""
+    virtual, _ = static_schema_datasource
+    macro = "{{ presto.latest_sub_partition('physical', ds='2020-01-01') }}"
+    virtual.sql = "SELECT col1 FROM physical"
+    expression = f"col1 + {macro}"
+    # For these two paths it is FROM, rather than the chart expression,
+    # that used to be rendered solely to populate filter-removal state.
+    if sink in {
+        "calculated_filter",
+        "calculated_time",
+        "literal_filter",
+        "literal_time",
+        "tableless_filter",
+        "tableless_time",
+        "calculated_time_alias",
+        "primary_time",
+    }:
+        virtual.sql += f" WHERE col1 = {macro}"
+        expression = "UPPER(col1)"
+        if sink in {"literal_filter", "literal_time"}:
+            expression = "UPPER('SELECT')"
+        elif sink in {"tableless_filter", "tableless_time"}:
+            expression = "(SELECT 1)"
+    mocker.patch(
+        "superset.jinja_context.get_template_processors",
+        return_value={"sqlite": PrestoTemplateProcessor},
+    )
+    partition_query = mocker.patch.object(
+        virtual.database.db_engine_spec,
+        "latest_sub_partition",
+        create=True,
+        return_value="1",
+        side_effect=RuntimeError("Partition discovery failed")
+        if partition_discovery_fails
+        else None,
+    )
+    columns = [
+        *virtual.columns,
+        TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+        TableColumn(
+            column_name="calculated",
+            type="DATETIME",
+            is_dttm=True,
+            expression=expression,
+        ),
+        TableColumn(
+            column_name="(SELECT MAX(col1) FROM physical)",
+            type="INTEGER",
+            expression=expression,
+        ),
+    ]
+    metrics = [SqlMetric(metric_name="total", expression=f"MAX({expression})")]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+        virtual.metrics = metrics
+        virtual.main_dttm_col = "calculated"
+        virtual.always_filter_main_dttm = sink == "primary_time"
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+        mocker.patch.object(
+            Query, "metrics", new_callable=PropertyMock, return_value=metrics
+        )
+        mocker.patch.object(
+            Query, "main_dttm_col", new_callable=PropertyMock, return_value="calculated"
+        )
+        mocker.patch.object(
+            Query,
+            "always_filter_main_dttm",
+            new_callable=PropertyMock,
+            return_value=sink == "primary_time",
+        )
+    query: QueryObjectDict = {
+        "columns": ["col1"],
+        "metrics": [],
+        "is_timeseries": False,
+    }
+    virtual.fetch_values_predicate = f"1 = {macro}"
+    fields: dict[str, QueryObjectDict] = {
+        "calculated_filter": {
+            "filter": [{"col": "calculated", "op": "==", "val": 1}],
+        },
+        "calculated_time": {"granularity": "calculated"},
+        "literal_filter": {"filter": [{"col": "calculated", "op": "==", "val": 1}]},
+        "literal_time": {"granularity": "calculated"},
+        "tableless_filter": {"filter": [{"col": "calculated", "op": "==", "val": 1}]},
+        "tableless_time": {"granularity": "calculated"},
+        "calculated_time_alias": {
+            "granularity": "calculated",
+            "is_timeseries": True,
+            "filter": [
+                {"col": "__timestamp", "op": "TEMPORAL_RANGE", "val": "No filter"}
+            ],
+        },
+        "primary_time": {"granularity": "ds", "is_timeseries": True},
+        "where": {"extras": {"where": f"1 = {macro}"}},
+        "having": {"extras": {"having": f"1 = {macro}"}},
+        "calculated_column": {"columns": ["calculated"]},
+        "saved_metric": {"metrics": ["total"]},
+        "adhoc_sql": {"columns": [{"sqlExpression": expression, "label": "axis"}]},
+        "fetch_values_predicate": {"apply_fetch_values_predicate": True},
+        "adhoc_column_reference": {
+            "columns": [{"sqlExpression": "calculated", "label": "axis"}],
+        },
+        "sql_named_column_reference": {
+            "columns": [
+                {"sqlExpression": "(SELECT MAX(col1) FROM physical)", "label": "axis"},
+            ],
+        },
+        "orderby": {"orderby": [("total", True)]},
+        "series_metric": {
+            "series_limit": 1,
+            "series_columns": ["col1"],
+            "series_limit_metric": "total",
+        },
+        "groupby": {"groupby": ["calculated"]},
+        "adhoc_metric": {
+            "metrics": [
+                {"expressionType": "SQL", "sqlExpression": expression, "label": "total"}
+            ],
+        },
+    }
+    query.update(fields[sink])
+    render = mocker.spy(virtual, "get_rendered_sql")
+    process = mocker.spy(BaseTemplateProcessor, "process_template")
+
+    keys = virtual.get_extra_cache_keys(query)
+    assert PHYSICAL_RLS_KEYS[1] in keys
+    render.assert_not_called()
+    assert not any(macro in call.args[1] for call in process.call_args_list)
+    assert expression not in [call.args[1] for call in process.call_args_list]
+    assert "calculated" not in [call.args[1] for call in process.call_args_list]
+    partition_query.assert_not_called()
+
+    # Prove the live macro is callable; skipping is specific to cache keys.
+    if partition_discovery_fails:
+        with pytest.raises(RuntimeError, match="Partition discovery failed"):
+            virtual.get_template_processor().process_template(macro)
+    else:
+        assert virtual.get_template_processor().process_template(macro) == "1"
+    partition_query.assert_called_once()
+
+
+@pytest.mark.parametrize("source", ["macro", "string_operation"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_opaque_expression_cache_key_is_viewer_scoped_without_rendering(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    source: str,
+) -> None:
+    """An opaque macro can emit SQL; avoid rendering it without sharing its scope."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, rule = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    macro = MagicMock(return_value="(SELECT MAX(col1) FROM physical)")
+
+    def opaque_sql() -> str:
+        """Return an SQL fragment through a live, sandbox-callable macro."""
+        return cast(str, macro())
+
+    mocker.patch(
+        "superset.jinja_context.context_addons", return_value={"opaque_sql": opaque_sql}
+    )
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {
+                "sqlExpression": "{{ opaque_sql() }}"
+                if source == "macro"
+                else "{{ '(' ~ ('SEL' * 1) ~ 'ECT MAX(col1) FROM physical)' }}",
+                "label": "axis",
+            }
+        ],
+        metrics=[],
+    )
+    keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        rule.clause = f"col1 = {user_id}"
+        macro.reset_mock()
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        assert extra_keys == [f"rls-predicate-parse-failed-for-user-{user_id}"]
+        macro.assert_not_called()
+        keys.append(query.cache_key(extra_cache_keys=extra_keys))
+        result = virtual.get_query_result(query)
+        assert result.status == "success"
+        assert result.df["axis"].tolist() == [user_id]
+        if source == "macro":
+            macro.assert_called()
+    assert keys[0] != keys[1]
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@pytest.mark.parametrize("source", ["nested_parameter", "literal_numeric"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_nested_template_parameter_subquery_cache_keys(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    source: str,
+) -> None:
+    """A subquery in a nested literal parameter must retain its table's RLS key."""
+    virtual, rule = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    params = {"params": {"query": "(SELECT MAX(col1) FROM physical)"}}
+    virtual.template_params = json.dumps(params)
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {
+                "sqlExpression": "{{ params.query }}"
+                if source == "nested_parameter"
+                else "{{ '(SEL' ~ 'ECT MAX(col' ~ (0 + 1) ~ ') FROM physical)' }}",
+                "label": "axis",
+            }
+        ],
+        metrics=[],
+    )
+    for user_id in (1, 2):
+        rule.clause = f"col1 = {user_id}"
+        assert virtual.get_extra_cache_keys(query.to_dict()) == [
+            PHYSICAL_RLS_KEYS[user_id]
+        ]
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_inspection_does_not_execute_jinja_filters(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Constant folding must not run a configured Jinja filter during inspection."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    processor = virtual.get_template_processor()
+    probe = MagicMock(side_effect=RuntimeError("Partition discovery failed"))
+    processor.env.filters["partition_probe"] = probe
+    mocker.patch.object(virtual, "get_template_processor", return_value=processor)
+    query = QueryObject(
+        datasource=virtual,
+        columns=[{"sqlExpression": "{{ '1' | partition_probe }}", "label": "axis"}],
+        metrics=[],
+    )
+    assert virtual.get_extra_cache_keys(query.to_dict())
+    probe.assert_not_called()
+
+
+@pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_unused_template_parameter_subquery_does_not_trigger_macro(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Unused SQL in the same parameter object must not justify a live render."""
+    virtual, _ = static_schema_datasource
+    assert isinstance(virtual, SqlaTable)
+    virtual.sql = "SELECT 1 AS col1"
+    virtual.template_params = json.dumps(
+        {"params": {"query": "(SELECT MAX(col1) FROM physical)", "value": "1"}}
+    )
+    probe = MagicMock(side_effect=RuntimeError("Partition discovery failed"))
+
+    def partition_probe() -> str:
+        """Represent a warehouse-querying macro that must not execute."""
+        return cast(str, probe())
+
+    mocker.patch(
+        "superset.jinja_context.context_addons",
+        return_value={"partition_probe": partition_probe},
+    )
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {
+                "sqlExpression": "{{ params.value }} + {{ partition_probe() }}",
+                "label": "axis",
+            }
+        ],
+        metrics=[],
+    )
+    assert virtual.get_extra_cache_keys(query.to_dict())
+    probe.assert_not_called()
+
+
 def test_virtual_dataset_rls_uses_connection_schema(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
 ) -> None:
@@ -1637,10 +1955,8 @@ def test_adhoc_metric_literal_template_cache_request(
         call.args[1]
         for call in render.call_args_list
         if call.args[1] in {expression, f"MAX('{expected}')"}
-    ] == [expression]
-    parse.assert_called_once_with(
-        f"SELECT MAX('{expected}')", virtual.db_engine_spec.engine
-    )
+    ] == []
+    parse.assert_not_called()
 
     cache = MagicMock(is_loaded=True, status="success", bq_memory_limited=False)
     cache.df = executed.df
@@ -2212,7 +2528,7 @@ def test_cache_key_keeps_removed_filter_column_when_selected(
 @pytest.mark.parametrize("sink", ["adhoc", "metric", "adhoc_label"])
 @pytest.mark.parametrize("static_schema_datasource", [SqlaTable], indirect=True)
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
-def test_removed_filter_keeps_eager_expression_rendering(
+def test_removed_filter_only_renders_non_subquery_during_execution(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
     mocker: MockerFixture,
     sink: str,
@@ -2253,8 +2569,7 @@ def test_removed_filter_keeps_eager_expression_rendering(
     )
     with pytest.raises(ZeroDivisionError):
         virtual.get_query_result(query)
-    with pytest.raises(ZeroDivisionError):
-        virtual.get_extra_cache_keys(query.to_dict())
+    assert virtual.get_extra_cache_keys(query.to_dict()) == []
 
 
 @pytest.mark.parametrize("missing", ["col", "op"])
@@ -2556,13 +2871,16 @@ def test_raw_string_detail_selection_matches_execution(
         assert extra_keys == ([PHYSICAL_RLS_KEYS[user_id]] if templated else [])
         assert [
             call.args[1] for call in render.call_args_list if expression in call.args[1]
-        ] == [virtual.database.quote_identifier(expression)]
+        ] == ([virtual.database.quote_identifier(expression)] if templated else [])
         parsed_sql = (
             'SELECT "" || (SELECT MAX(col1) FROM physical) || ""'
             if templated
             else f'SELECT "{expression}"'
         )
-        parse.assert_called_once_with(parsed_sql, virtual.db_engine_spec.engine)
+        if templated:
+            parse.assert_called_once_with(parsed_sql, virtual.db_engine_spec.engine)
+        else:
+            parse.assert_not_called()
         mocker.stop(render)
         mocker.stop(parse)
         cache_keys.append(query.cache_key(extra_cache_keys=extra_keys))

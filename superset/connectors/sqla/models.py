@@ -2580,6 +2580,9 @@ class SqlaTable(
             return (
                 template_processor.process_template(saved_column.expression)
                 if saved_column.expression
+                and self._may_have_rls_subquery(
+                    saved_column.expression, template_processor
+                )
                 else None
             )
         if col.get("isColumnReference"):
