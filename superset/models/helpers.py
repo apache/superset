@@ -2486,7 +2486,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if not isinstance(col, Label) or not isinstance(col.name, str):
                     continue
                 name = col.name
-                expression = expression_text(col.element)
+                selected = col.type.column_expression(col.element)
+                expression = expression_text(
+                    col.element if selected is None else selected
+                )
                 if expression is None or expression.strip().strip(quotes) == name:
                     continue
                 unquoted = re.sub(f"[{quotes}]", "", expression)

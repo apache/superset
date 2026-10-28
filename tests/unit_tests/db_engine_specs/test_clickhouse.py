@@ -1195,28 +1195,30 @@ def test_select_star_finalizes_aggregate_function_columns() -> None:
                 "orderby": [("rtt", False)],
                 "filter": [{"col": "rtt", "op": ">", "val": 500}],
             },
-            "SELECT `ts` AS `ts`, finalizeAggregation(`rtt`) AS `rtt` \n"
+            "SELECT `ts` AS `ts`, finalizeAggregation(`rtt`) AS `rtt__` \n"
             "FROM `default`.`t` \nWHERE `rtt` > 500 ORDER BY `rtt` DESC\n LIMIT 10",
         ),
         (
             {
-                "columns": ["k"],
+                "columns": ["rtt"],
                 "metrics": ["p50"],
                 "orderby": [("p50", False)],
                 "filter": [{"col": "k", "op": "IN", "val": [1, 2]}],
             },
-            "SELECT `k` AS `k`, quantileTimingMerge(0.5)(rtt) AS `p50` \n"
-            "FROM `default`.`t` \nWHERE `k` IN (1, 2) GROUP BY `k` "
+            "SELECT finalizeAggregation(`rtt`) AS `rtt__`, "
+            "quantileTimingMerge(0.5)(rtt) AS `p50` \n"
+            "FROM `default`.`t` \nWHERE `k` IN (1, 2) GROUP BY `rtt` "
             "ORDER BY `p50` DESC\n LIMIT 10",
         ),
         (
             {
-                "columns": ["k", "rtt_p50"],
+                "columns": ["k", "rtt", "rtt_p50"],
                 "metrics": None,
                 "orderby": [("k", True)],
                 "filter": [],
             },
-            "SELECT `k` AS `k`, (finalizeAggregation(rtt)) AS `rtt_p50__` \n"
+            "SELECT `k` AS `k`, finalizeAggregation(`rtt`) AS `rtt__`, "
+            "(finalizeAggregation(rtt)) AS `rtt_p50__` \n"
             "FROM `default`.`t` ORDER BY `k` ASC\n LIMIT 10",
         ),
     ],
