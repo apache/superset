@@ -19,7 +19,7 @@
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { CardStyles, isNavigationHandledByLink } from 'src/views/CRUD/utils';
 import {
   FaveStar,
@@ -65,8 +65,13 @@ interface DashboardCardProps {
   favoriteStatus: boolean;
   user?: UserWithPermissionsAndRoles;
   showThumbnails?: boolean;
-  handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
-  onDelete: (dashboard: Dashboard) => void;
+  handleBulkDashboardExport?: (dashboardsToExport: Dashboard[]) => void;
+  onDelete?: (dashboard: Dashboard) => void;
+  /** When set, card click selects in-place instead of navigating to dashboard.url */
+  onSelect?: (dashboard: Dashboard) => void;
+  isActive?: boolean;
+  /** Workspace mode: hide export/delete kebab actions (no handlers wired). */
+  workspaceMode?: boolean;
 }
 
 function DashboardCard({
@@ -80,9 +85,13 @@ function DashboardCard({
   showThumbnails,
   handleBulkDashboardExport,
   onDelete,
+  onSelect,
+  isActive,
+  workspaceMode,
 }: DashboardCardProps) {
   const userId = user?.userId;
   const isMobile = useIsMobile();
+  const theme = useTheme();
 
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -134,7 +143,7 @@ function DashboardCard({
     });
   }
 
-  if (canExport) {
+  if (canExport && !workspaceMode && handleBulkDashboardExport) {
     menuItems.push({
       key: 'export',
       label: (
@@ -150,7 +159,7 @@ function DashboardCard({
     });
   }
 
-  if (canDelete) {
+  if (canDelete && !workspaceMode && onDelete) {
     menuItems.push({
       key: 'delete',
       label: (
@@ -186,11 +195,25 @@ function DashboardCard({
     });
   }
 
+  const inWorkspaceSelectMode = Boolean(onSelect);
+
   return (
     <CardStyles
+      css={
+        isActive
+          ? css`
+              outline: 2px solid ${theme.colorPrimary};
+              outline-offset: 2px;
+            `
+          : undefined
+      }
       onClick={event => {
         if (!bulkSelectEnabled && !isNavigationHandledByLink(event)) {
-          history.push(dashboard.url);
+          if (onSelect) {
+            onSelect(dashboard);
+          } else {
+            history.push(dashboard.url);
+          }
         }
       }}
     >
@@ -205,7 +228,9 @@ function DashboardCard({
             <></>
           ) : null
         }
-        url={bulkSelectEnabled ? undefined : dashboard.url}
+        url={
+          bulkSelectEnabled || inWorkspaceSelectMode ? undefined : dashboard.url
+        }
         linkComponent={Link}
         imgURL={thumbnailUrl}
         imgFallbackURL={assetUrl(

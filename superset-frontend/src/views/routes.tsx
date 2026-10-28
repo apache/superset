@@ -71,9 +71,11 @@ const ThemeList = lazyWithRetry(
   () => import(/* webpackChunkName: "ThemeList" */ 'src/pages/ThemeList'),
 );
 
-const DashboardList = lazyWithRetry(
+const DashboardListRoute = lazyWithRetry(
   () =>
-    import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
+    import(
+      /* webpackChunkName: "DashboardListRoute" */ 'src/pages/DashboardWorkspace/DashboardListRoute'
+    ),
 );
 
 const Dashboard = lazyWithRetry(
@@ -244,7 +246,7 @@ export const routes: Routes = [
   { path: RoutePaths.FILE_HANDLER, Component: FileHandler },
   {
     path: RoutePaths.DASHBOARD_LIST,
-    Component: DashboardList,
+    Component: DashboardListRoute,
     mobileSupported: true,
   },
   { path: RoutePaths.DASHBOARD, Component: Dashboard, mobileSupported: true },

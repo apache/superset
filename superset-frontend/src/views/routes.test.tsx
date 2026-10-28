@@ -49,6 +49,7 @@ test('routes used to mount the Superset.* SPA pages no longer carry a /superset 
   // subdirectory deployment.
   const paths = routes.map(r => r.path);
   expect(paths).toContain('/welcome/');
+  expect(paths).toContain('/dashboard/list/');
   expect(paths).toContain('/dashboard/:idOrSlug/');
   expect(paths).not.toContain('/superset/welcome/');
   expect(paths).not.toContain('/superset/dashboard/:idOrSlug/');
