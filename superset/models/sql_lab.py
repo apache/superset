@@ -405,6 +405,13 @@ class Query(
         the tables the query references would collide on the same cache
         entry, regardless of their own access.
         """
+        return list(self.get_inner_rls_cache_key())
+
+    def get_inner_rls_cache_key(self) -> list[str]:
+        """
+        The RLS predicates execution injects into the tables this query reads,
+        as cache key components. See ``SqlaTable.get_inner_rls_cache_key``.
+        """
         if not self.sql:
             return []
         from superset.utils.rls import (  # pylint: disable=import-outside-toplevel
@@ -412,13 +419,11 @@ class Query(
         )
 
         default_schema = self.database.get_default_schema(self.catalog)
-        return list(
-            collect_rls_predicates_for_sql(
-                self.sql,
-                self.database,
-                self.catalog,
-                self.schema or default_schema or "",
-            )
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema or default_schema or "",
         )
 
     def get_time_grains(self) -> list[TimeGrainDict]:

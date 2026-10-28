@@ -3180,8 +3180,6 @@ class SqlaTable(
         :param query_obj: query object to analyze
         :return: The extra cache keys
         """
-        from superset.utils.rls import collect_rls_predicates_for_sql
-
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):
             # Filter out keys that aren't parameters to get_sqla_query
@@ -3204,17 +3202,7 @@ class SqlaTable(
             extra_cache_keys += sqla_query.extra_cache_keys
 
         # For virtual datasets, include RLS predicates in the cache key
-        if self.is_virtual and self.sql:
-            default_schema = self.database.get_default_schema(self.catalog)
-            rls_predicates = collect_rls_predicates_for_sql(
-                self.sql,
-                self.database,
-                self.catalog,
-                self.schema or default_schema or "",
-                exclude_dataset_id=self.id,
-            )
-            # Add each predicate as a separate cache key component
-            extra_cache_keys.extend(rls_predicates)
+        extra_cache_keys.extend(self.get_inner_rls_cache_key())
 
         # An active partition filter mapping changes the SQL a cached result came
         # from, so it has to participate in the key or a mapping fix leaves stale
@@ -3238,6 +3226,32 @@ class SqlaTable(
             )
 
         return list(set(extra_cache_keys))
+
+    def get_inner_rls_cache_key(self) -> list[str]:
+        """
+        The RLS predicates execution injects into the tables read by this
+        dataset's SQL, as cache key components.
+
+        ``security_manager.get_rls_cache_key`` covers only the dataset's own
+        rules, so a cache of a virtual dataset's results must also key on these,
+        or viewers whose RLS differs only on an inner table share entries. Empty
+        for a physical dataset. If the predicates cannot be collected, a
+        viewer-scoped marker is returned instead.
+
+        :return: The RLS predicates, one cache key component each
+        """
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not (self.is_virtual and self.sql):
+            return []
+        default_schema = self.database.get_default_schema(self.catalog)
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema or default_schema or "",
+            exclude_dataset_id=self.id,
+        )
 
     @property
     def quote_identifier(self) -> Callable[[str], str]:
