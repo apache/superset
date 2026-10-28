@@ -1165,6 +1165,49 @@ def coerce_enum_values(value: Any) -> Any:
     return value
 
 
+def _query_semantic_selection_version(
+    form_data: dict[str, Any], extra_form_data: dict[str, Any] | None
+) -> str | None:
+    """Mirror Explore's version transport without certifying external selections."""
+    version: object = form_data.get("semantic_selection_version")
+    if not isinstance(version, str):
+        return None
+    unverified: str = "unverified-external-selections"
+    sources: list[Any] = list(form_data.get("semantic_selection_sources") or [])
+    extra: dict[str, Any]
+    for extra in (form_data.get("extra_form_data") or {}, extra_form_data or {}):
+        if extra.get("semantic_selection_sources"):
+            sources.extend(extra["semantic_selection_sources"])
+        elif any(
+            extra.get(key)
+            for key in (
+                "filters",
+                "adhoc_filters",
+                "interactive_drilldown",
+                "interactive_groupby",
+                "interactive_highlight",
+                "granularity_sqla",
+                "granularity",
+                "time_column",
+                "custom_form_data",
+            )
+        ):
+            return unverified
+    if any(
+        not isinstance(source, dict)
+        or source.get("datasource") != form_data.get("datasource")
+        or source.get("version") != version
+        for source in sources
+    ):
+        return unverified
+    if any(
+        filter_.get("col") not in {"__time_range", "__time_grain", "__time_compare"}
+        for filter_ in form_data.get("extra_filters") or []
+    ):
+        return unverified
+    return version
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -1193,6 +1236,11 @@ def build_query_dicts_from_form_data(
     form_data = coerce_enum_values(deepcopy(form_data))
     if extra_form_data is not None:
         extra_form_data = coerce_enum_values(deepcopy(extra_form_data))
+    selection_version: str | None = (
+        _query_semantic_selection_version(form_data, extra_form_data)
+        if datasource_type == "semantic_view"
+        else None
+    )
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")
@@ -1222,33 +1270,39 @@ def build_query_dicts_from_form_data(
 
     # Plugins see (and may validate) the complete reconstructed state, including
     # legacy clauses and request-level extra_form_data merged above.
+    queries: list[dict[str, Any]] | None = None
     if plugin is not None:
-        plugin_queries = plugin.build_query_dicts(
+        queries = plugin.build_query_dicts(
             form_data,
             viz_type=viz_type,
             engine=engine,
             row_limit=row_limit,
             order_desc=order_desc,
         )
-        if plugin_queries is not None:
-            return plugin_queries
 
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
-    if viz_type.startswith("deck_"):
-        return [
+    if queries is None and viz_type.startswith("deck_"):
+        queries = [
             build_deck_gl_query_dict(
                 form_data, viz_type, row_limit=row_limit, order_desc=order_desc
             )
         ]
-    return build_query_objects_from_form_data(
-        form_data,
-        viz_type=viz_type,
-        row_limit=row_limit,
-        order_desc=order_desc,
-        filters_prepared=True,
-        secondary_form_data=secondary_form_data,
-    )
+    if queries is None:
+        queries = build_query_objects_from_form_data(
+            form_data,
+            viz_type=viz_type,
+            row_limit=row_limit,
+            order_desc=order_desc,
+            filters_prepared=True,
+            secondary_form_data=secondary_form_data,
+        )
+    if selection_version is not None:
+        for query in queries:
+            query.setdefault("extras", {})["semantic_selection_version"] = (
+                selection_version
+            )
+    return queries
 
 
 def build_deck_gl_query_dict(
