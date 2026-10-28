@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -28,6 +29,7 @@ from superset.canvas.definition.schemas import DraftOperationsRequest, empty_def
 from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
     CanvasForbiddenError,
+    CanvasNotFoundError,
     DefinitionInvalidError,
     DraftConflictError,
 )
@@ -116,6 +118,9 @@ def test_a_write_must_be_based_on_the_draft_revision(store: Store) -> None:
     with pytest.raises(DraftConflictError) as excinfo:
         ApplyCanvasDraftOperationsCommand(draft.token, 0, ops(ADD)).run()
     assert excinfo.value.to_payload()["revision"] == 1
+    assert excinfo.value.to_payload()["draftRevision"] == 1
+    assert excinfo.value.to_payload()["error_type"] == "DraftRevisionConflict"
+    assert "currentCanvasRevision" not in excinfo.value.to_payload()
 
 
 def test_draft_writes_are_validated_like_canvas_writes(store: Store) -> None:
@@ -171,6 +176,40 @@ def test_losing_editorship_closes_the_draft(store: Store) -> None:
 
     with pytest.raises(CanvasForbiddenError):
         drafts.load_draft(draft.token)
+    assert store.entries
+
+
+def test_a_missing_canvas_keeps_its_existing_not_found_error(store: Store) -> None:
+    """An owned token is not reclassified when its canvas disappears."""
+    from superset.commands.canvas import draft as drafts
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    dao: Any = drafts.CanvasDAO
+    dao.find_by_id_or_uuid.return_value = None
+
+    with pytest.raises(CanvasNotFoundError):
+        drafts.load_draft(draft.token)
+    assert store.entries
+
+
+@pytest.mark.parametrize("action", ["get", "apply", "commit"])
+def test_discarded_drafts_cannot_be_read_changed_or_committed(
+    store: Store, action: str
+) -> None:
+    """A discarded token never reconstructs private or published state."""
+    from superset.commands.canvas import draft as drafts
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    drafts.DeleteCanvasDraftCommand(draft.token).run()
+    calls: dict[str, Callable[[], object]] = {
+        "get": lambda: drafts.load_draft(draft.token),
+        "apply": drafts.ApplyCanvasDraftOperationsCommand(draft.token, 0, ops(ADD)).run,
+        "commit": drafts.CommitCanvasDraftCommand(draft.token, 0).run,
+    }
+
+    with pytest.raises(CanvasDraftNotFoundError):
+        calls[action]()
+    assert store.entries == {}
 
 
 def test_commit_replays_the_ops_strictly_and_deletes_the_draft(
@@ -221,8 +260,34 @@ def test_committing_an_empty_draft_changes_nothing(
     command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
     draft = CreateCanvasDraftCommand(7).run()
 
-    assert CommitCanvasDraftCommand(draft.token, 0).run() is None
+    assert CommitCanvasDraftCommand(draft.token, 0).run().revision == 3
     command.assert_not_called()
+    assert store.entries == {}
+
+
+def test_mutating_commit_keeps_its_revision_after_a_later_published_change(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """A response describes this commit, not a later published write."""
+    from superset.commands.canvas import draft as drafts
+    from superset.commands.canvas.apply_ops import ApplyResult
+
+    dao: Any = drafts.CanvasDAO
+
+    def publish_then_advance() -> ApplyResult:
+        """Return this commit after another writer advances the canvas."""
+        dao.find_by_id_or_uuid.return_value.revision = 5
+        return ApplyResult(4, [], {}, {})
+
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    command.return_value.run.side_effect = publish_then_advance
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    drafts.ApplyCanvasDraftOperationsCommand(draft.token, 0, ops(ADD)).run()
+
+    result = drafts.CommitCanvasDraftCommand(draft.token, 1).run()
+
+    assert result.revision == 4
+    assert store.entries == {}
 
 
 def test_drafts_are_stored_as_json_strings(store: Store) -> None:

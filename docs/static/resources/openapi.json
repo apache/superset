@@ -17299,7 +17299,7 @@
     },
     "/api/v1/canvas/draft/commit": {
       "post": {
-        "description": "Replays the draft's operations on the canvas and deletes the draft. Rejected with 409 if the canvas changed since the draft started.",
+        "description": "Replays the draft's operations on the canvas and deletes the draft. Rejected with 409 for a stale draft revision, or if the canvas or a widget the draft changed was saved since the draft started. An empty draft closes without a write and returns the published revision observed by the command.",
         "responses": {
           "200": {
             "description": "The canvas revision after the commit"
@@ -17308,7 +17308,7 @@
             "$ref": "#/components/responses/404"
           },
           "409": {
-            "description": "The draft or the canvas changed"
+            "description": "The draft, canvas, or a changed widget conflicts"
           },
           "422": {
             "description": "An operation no longer applies"

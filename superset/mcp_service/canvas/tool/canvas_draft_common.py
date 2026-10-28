@@ -29,6 +29,7 @@ from superset.commands.canvas.exceptions import (
     DraftConflictError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.mcp_service.canvas.tool.canvas_ops_common import payload_result
 
 NOT_FOUND = "Draft not found: it expired, was committed or discarded, or isn't yours"
 
@@ -46,6 +47,7 @@ def describe(draft: CanvasDraft, include_definition: bool) -> dict[str, Any]:
         "canvas_id": payload["canvasId"],
         "base_revision": payload["baseRevision"],
         "revision": payload["revision"],
+        "draft_revision": payload["revision"],
         "url": draft_url(draft),
     }
     if include_definition:
@@ -57,20 +59,11 @@ def describe(draft: CanvasDraft, include_definition: bool) -> dict[str, Any]:
 def error_result(ex: Exception) -> dict[str, Any] | None:
     """The tool result for a draft command error, or None to re-raise."""
     if isinstance(ex, CanvasDraftNotFoundError):
-        return {"error": NOT_FOUND}
+        return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
     if isinstance(ex, CanvasNotFoundError):
         return {"error": "Canvas not found, or no access to it"}
     if isinstance(ex, CanvasForbiddenError):
         return {"error": "Only the canvas' editors can draft changes to it"}
-    if isinstance(ex, DraftConflictError):
-        payload = ex.to_payload()
-        return {
-            "error": payload["message"],
-            "revision": payload["revision"],
-            "canvas_changed": payload["canvasChanged"],
-            "changed_widgets": payload.get("widgets"),
-        }
-    if isinstance(ex, DefinitionInvalidError):
-        payload = ex.to_payload()
-        return {"error": payload.pop("message"), **payload}
+    if isinstance(ex, (DraftConflictError, DefinitionInvalidError)):
+        return payload_result(ex)
     return None

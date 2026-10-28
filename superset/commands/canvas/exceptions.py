@@ -61,9 +61,11 @@ class DefinitionConflictError(CommandException):
     """The write is based on a revision that later changes overlap."""
 
     status = 409
+    recovery_type = "CanvasRevisionConflict"
 
     def __init__(self, revision: int, conflicts: list[str], stale: bool) -> None:
         self.revision = revision
+        self.current_canvas_revision = revision
         self.conflicts = conflicts
         self.stale = stale
         message = (
@@ -74,15 +76,22 @@ class DefinitionConflictError(CommandException):
         super().__init__(message)
 
     def to_payload(self) -> dict[str, Any]:
+        """The REST error body. Like the Canvas definition and draft responses
+        (``canvasId``, ``baseRevision``), its keys are camelCase, except
+        ``error_type``, named as in ``SupersetError.to_dict``."""
         return {
             "message": str(self.message),
             "revision": self.revision,
             "conflicts": self.conflicts,
             "stale": self.stale,
+            "error_type": self.recovery_type,
+            "currentCanvasRevision": self.current_canvas_revision,
         }
 
 
 class CanvasDraftNotFoundError(ObjectNotFoundError):
+    recovery_type = "DraftUnavailable"
+
     def __init__(self) -> None:
         super().__init__("Canvas draft")
 
@@ -110,30 +119,45 @@ class DraftConflictError(CommandException):
         revision: int,
         canvas_changed: bool = False,
         widgets: list[str] | None = None,
+        *,
+        draft_revision: int | None = None,
+        current_canvas_revision: int | None = None,
     ) -> None:
         self.revision = revision
         self.canvas_changed = canvas_changed
         self.widgets = widgets or []
+        self.draft_revision = draft_revision
+        self.current_canvas_revision = current_canvas_revision
         if canvas_changed:
+            self.recovery_type = "CanvasRevisionConflict"
             message = _(
                 "The canvas changed since this draft started; start a new draft."
             )
         elif self.widgets:
+            self.recovery_type = "WidgetRevisionConflict"
             message = _(
                 "Widgets this draft changes were changed since; start a new draft."
             )
         else:
+            self.recovery_type = "DraftRevisionConflict"
             message = _("The draft changed since your revision; reload it.")
         super().__init__(message)
 
     def to_payload(self) -> dict[str, Any]:
+        """The REST error body: camelCase keys except ``error_type``, as for
+        ``DefinitionConflictError``. Revisions not observed are left out."""
         payload: dict[str, Any] = {
             "message": str(self.message),
             "revision": self.revision,
             "canvasChanged": self.canvas_changed,
+            "error_type": self.recovery_type,
         }
         if self.widgets:
             payload["widgets"] = self.widgets
+        if self.draft_revision is not None:
+            payload["draftRevision"] = self.draft_revision
+        if self.current_canvas_revision is not None:
+            payload["currentCanvasRevision"] = self.current_canvas_revision
         return payload
 
 
@@ -141,6 +165,7 @@ class DefinitionInvalidError(CommandException):
     """An operation could not apply, or its result is not a valid definition."""
 
     status = 422
+    recovery_type = "ValidationError"
 
     def __init__(
         self,
@@ -155,6 +180,7 @@ class DefinitionInvalidError(CommandException):
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "message": str(self.message),
+            "error_type": self.recovery_type,
             "errors": [
                 {"path": issue.path, "message": issue.message} for issue in self.issues
             ],

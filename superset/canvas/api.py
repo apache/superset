@@ -113,10 +113,11 @@ def _handle_canvas_errors(
             return f(self, *args, **kwargs)
         except (
             CanvasNotFoundError,
-            CanvasDraftNotFoundError,
             CanvasPlacementNotFoundError,
         ):
             return self.response_404()
+        except CanvasDraftNotFoundError as ex:
+            return self.response(404, message="Not found", error_type=ex.recovery_type)
         except CanvasForbiddenError:
             return self.response_403()
         except CanvasInvalidError as ex:
@@ -848,14 +849,17 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           summary: Commit a canvas draft
           description: >-
             Replays the draft's operations on the canvas and deletes the draft.
-            Rejected with 409 if the canvas changed since the draft started.
+            Rejected with 409 for a stale draft revision, or if the canvas or
+            a widget the draft changed was saved since the draft started.
+            An empty draft closes without a write and returns the published
+            revision observed by the command.
           responses:
             200:
               description: The canvas revision after the commit
             404:
               $ref: '#/components/responses/404'
             409:
-              description: The draft or the canvas changed
+              description: The draft, canvas, or a changed widget conflicts
             422:
               description: An operation no longer applies
         """
@@ -869,7 +873,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             200,
             result={
                 "canvasId": draft.canvas_id,
-                "revision": result.revision if result else draft.base_revision,
+                "revision": result.revision,
             },
         )
 
