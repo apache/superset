@@ -287,6 +287,8 @@ def test_monkeypatch_is_a_noop_without_the_driver_installed(
     from superset.db_engine_specs.oceanbase import monkeypatch_dialect
 
     monkeypatch_dialect()  # should not raise
+
+
 def test_oceanbase_properties() -> None:
     from superset.db_engine_specs.mysql import MySQLEngineSpec
     from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
