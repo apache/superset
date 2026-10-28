@@ -3541,6 +3541,8 @@ def test_flatten_and_deep_chain_does_not_recurse() -> None:
         ("SELECT n FROM t", 10, 10),
         ("SELECT n FROM t WHERE ROWNUM <= 5", 10, 5),
         ("SELECT n FROM t WHERE ROWNUM <= 50", 10, 10),
+        ("SELECT n FROM t WHERE x = 1 AND (y = 2 AND ROWNUM <= 5)", 10, 5),
+        ("SELECT n FROM t WHERE (ROWNUM <= 5 AND y = 2) AND x = 1", 10, 5),
         ("SELECT * FROM (SELECT n FROM t) WHERE ROWNUM <= 11", 11, 11),
     ],
 )
