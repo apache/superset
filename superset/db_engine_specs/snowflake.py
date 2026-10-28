@@ -689,11 +689,16 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             key = None
             if privatekey_body:
                 key = privatekey_body.encode()
-            else:
+            elif auth_params.get("privatekey_path"):
                 with open(auth_params["privatekey_path"], "rb") as key_temp:
                     key = key_temp.read()
+            else:
+                raise ValueError(
+                    "Either 'privatekey_body' or 'privatekey_path' must be provided "
+                    "when using 'keypair' authentication"
+                )
             privatekey_pass = auth_params.get("privatekey_pass", None)
-            password = privatekey_pass.encode() if privatekey_pass is not None else None
+            password = privatekey_pass.encode() if privatekey_pass else None
             p_key = serialization.load_pem_private_key(
                 key,
                 password=password,
