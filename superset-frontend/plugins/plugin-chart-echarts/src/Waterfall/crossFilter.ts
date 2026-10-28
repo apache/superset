@@ -344,44 +344,10 @@ export function getWaterfallDrillFilters({
     return [];
   }
   const context: FilterContext = { coltypeMapping, timeFormat, timeGrain };
+  // Drill by uses this same X clause. A TEMPORAL_RANGE in that modal is
+  // rewritten to the chart's saved time range, so grained equality is what
+  // keeps the clicked bucket.
   return categoryDimensions(category).map(dimension =>
     detailClause(dimension, context),
-  );
-}
-
-/**
- * Drill by on the X axis. A known grain covers the bucket with TEMPORAL_RANGE,
- * the same clause a time-axis chart uses. Grains without bucket bounds fall
- * back to grained equality.
- */
-export function getWaterfallDrillByXAxisFilter({
-  category,
-  coltypeMapping,
-  timeFormat,
-  timeGrain,
-}: {
-  category: WaterfallCategory;
-  coltypeMapping?: Record<string, number>;
-  timeFormat?: string;
-  timeGrain?: TimeGranularity;
-}): QueryObjectFilterClause | undefined {
-  if (category.isGrandTotal) {
-    return undefined;
-  }
-  const context: FilterContext = { coltypeMapping, timeFormat, timeGrain };
-  const [dimension] = categoryDimensions(category);
-  const formattedVal = formatDimensionValue(
-    dimension.col,
-    dimension.value,
-    coltypeMapping,
-    timeFormat,
-  );
-  return (
-    temporalBucketFilter(
-      dimension.col,
-      dimension.value,
-      formattedVal,
-      context,
-    ) ?? detailClause(dimension, context)
   );
 }

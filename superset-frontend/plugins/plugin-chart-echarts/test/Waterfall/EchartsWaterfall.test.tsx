@@ -280,8 +280,9 @@ test('a monthly temporal bar cross-filters the whole month', () => {
   expect(payload.drillBy.xAxisFilters).toEqual([
     expect.objectContaining({
       col: 'order_date',
-      op: 'TEMPORAL_RANGE',
-      val: range,
+      op: '==',
+      val: '2021-01-01T00:00:00',
+      grain: TimeGranularity.MONTH,
     }),
   ]);
   expect(payload.crossFilter.isCurrentValueSelected).toBe(false);

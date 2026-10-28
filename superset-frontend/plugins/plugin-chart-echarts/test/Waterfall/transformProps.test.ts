@@ -269,3 +269,18 @@ test('dims bars outside the selected period and uses a pointer cursor', () => {
   }>;
   expect(total[2]?.itemStyle?.opacity).toBe(OpacityEnum.SemiTransparent);
 });
+
+test('uses the default cursor when cross-filtering is off', () => {
+  const transformedProps = transformProps(
+    new ChartProps({
+      formData: formData as unknown as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [{ data }],
+      emitCrossFilters: false,
+      theme: supersetTheme,
+    }) as unknown as EchartsWaterfallChartProps,
+  );
+  const series = transformedProps.echartOptions.series as BarSeriesOption[];
+  expect(series[0]?.cursor).toBe('default');
+});

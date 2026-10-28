@@ -25,7 +25,6 @@ import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import {
   getSelectedWaterfallKeys,
   getWaterfallCrossFilterDataMask,
-  getWaterfallDrillByXAxisFilter,
   getWaterfallDrillFilters,
 } from './crossFilter';
 
@@ -114,12 +113,9 @@ export default function EchartsWaterfall(
           timeFormat: xAxisTimeFormat,
           timeGrain,
         }) as NonNullable<ContextMenuFilters['drillToDetail']>;
-        const xAxisFilter = getWaterfallDrillByXAxisFilter({
-          category,
-          coltypeMapping,
-          timeFormat: xAxisTimeFormat,
-          timeGrain,
-        }) as NonNullable<ContextMenuFilters['drillToDetail']>[number];
+        const xAxisFilters = drillFilters.filter(
+          filter => filter.col === category.xColumn,
+        );
         const breakdownFilters = drillFilters.filter(
           filter => filter.col !== category.xColumn,
         );
@@ -135,7 +131,7 @@ export default function EchartsWaterfall(
           drillBy: {
             filters: breakdownFilters,
             groupbyFieldName: 'groupby',
-            xAxisFilters: [xAxisFilter],
+            xAxisFilters,
           },
         });
       },

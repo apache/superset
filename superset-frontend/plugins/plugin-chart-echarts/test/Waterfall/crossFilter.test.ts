@@ -22,7 +22,6 @@ import {
   getSelectedWaterfallKeys,
   getWaterfallCrossFilterDataMask,
   getWaterfallCrossFilterKey,
-  getWaterfallDrillByXAxisFilter,
   getWaterfallDrillFilters,
   isWaterfallBarDimmed,
   WaterfallCategory,
@@ -274,12 +273,6 @@ test('a temporal X axis with a time grain filters the whole bucket', () => {
     val: orderDate,
     formattedVal,
     grain: TimeGranularity.MONTH,
-  });
-  expect(getWaterfallDrillByXAxisFilter(context)).toEqual({
-    col: 'order_date',
-    op: 'TEMPORAL_RANGE',
-    val: range,
-    formattedVal,
   });
 });
 
