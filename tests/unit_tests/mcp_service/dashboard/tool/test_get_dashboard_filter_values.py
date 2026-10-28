@@ -25,7 +25,7 @@ from unittest.mock import Mock
 import pytest
 from flask import current_app, g
 from pytest_mock import MockerFixture
-from sqlalchemy import column, create_engine, select, String, text
+from sqlalchemy import column, create_engine, String, text
 from sqlalchemy.dialects import mysql, postgresql, sqlite
 from sqlalchemy.exc import CompileError, UnsupportedCompilationError
 
@@ -42,7 +42,6 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.helpers import build_like_predicate
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -262,37 +261,72 @@ def test_search_filters_domain_before_limit_with_literal_wildcards(
     assert context.queries[0].row_limit == 1000
 
 
-@pytest.mark.parametrize(
-    "dialect", [sqlite.dialect(), postgresql.dialect(), mysql.dialect()]
-)
-def test_literal_search_compiles_with_engine_escaping(dialect: Any) -> None:
-    """Supported SQLAlchemy dialects keep wildcard/escape characters literal."""
-    expression = build_like_predicate(column("region", String), "100%_O'Brien/\\")
-    compiled = str(
-        expression.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+@pytest.mark.parametrize("engine", ["sqlite", "postgresql", "mysql"])
+def test_literal_search_compiles_with_engine_escaping(
+    native_query: dict[str, Any], mocker: MockerFixture, engine: str
+) -> None:
+    """Discovery's literal ILIKE compiles to an escaped LIKE for each engine."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    spec, dialect = {
+        "sqlite": (SqliteEngineSpec, sqlite.dialect()),
+        "postgresql": (PostgresEngineSpec, postgresql.dialect()),
+        "mysql": (MySQLEngineSpec, mysql.dialect()),
+    }[engine]
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=spec)
+    choices.discover_filter_values(
+        _dashboard(),
+        _request(
+            filter_value_requests=[{"filter_id": "region", "search": "100%_O'Brien/\\"}]
+        ),
     )
-    assert "ESCAPE '/'" in compiled
-    assert "/_o''brien//" in compiled
+    query = native_query["contexts"][0].queries[0]
+    result = native_query["dataset"].get_sqla_query(
+        columns=query.columns,
+        metrics=query.metrics,
+        extras=query.extras,
+        filter=query.filter,
+        granularity=query.granularity,
+        is_timeseries=False,
+        row_limit=query.row_limit,
+        orderby=query.orderby,
+    )
+    compiled = result.sqla_query.compile(dialect=dialect)
+    assert "WHERE lower(region) LIKE lower(" in str(compiled)
+    assert "ESCAPE '/'" in str(compiled)
+    # '%', '_' and the '/' escape character are escaped; the trailing backslash
+    # stays data instead of escaping the closing wildcard.
+    assert "%100/%/_O'Brien//\\%" in compiled.params.values()
 
 
-def test_literal_search_executes_exact_substring_on_sqlite() -> None:
-    """A wildcard-bearing request matches only the literal substring."""
-    engine = create_engine("sqlite://")
-    with engine.connect() as connection:
-        connection.execute(text("create table sales (region text)"))
+def test_literal_search_executes_exact_substring_on_sqlite(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """Discovery's executed search matches only the literal wildcard-bearing text."""
+    literal = "10%_O'Brien/\\"
+    with sqlite_native_execution["engine"].begin() as connection:
         connection.execute(
-            text("insert into sales values (:value)"),
-            [{"value": v} for v in ["10%_O'Brien/\\", "10xx_O'Brien/\\", "other"]],
+            text("insert into sales (region) values (:region)"),
+            [
+                {"region": region}
+                for region in [
+                    literal,
+                    "10xx_O'Brien/\\",  # '%' read as a wildcard
+                    "10%xO'Brien/\\",  # '_' read as a wildcard
+                    "10%_O'Brien\\",  # '/' read as the escape character
+                    "10%_O'Brien/%",  # trailing '\' escaping the closing '%'
+                ]
+            ],
         )
-        expression = build_like_predicate(column("region", String), "10%_O'Brien/\\")
-        values = (
-            connection.execute(
-                select(column("region")).select_from(text("sales")).where(expression)
-            )
-            .scalars()
-            .all()
-        )
-    assert values == ["10%_O'Brien/\\"]
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(),
+        _request(filter_value_requests=[{"filter_id": "region", "search": literal}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == [literal]
+    assert sqlite_native_execution["database_reads"].call_count == 1
 
 
 def test_search_numeric_is_unsupported_without_query(
