@@ -63,6 +63,7 @@ from superset.constants import (
     NO_TIME_RANGE,
 )
 from superset.utils import json
+from superset.utils.date_parser import get_comparable_bounds
 
 if TYPE_CHECKING:
     import inspect
@@ -773,23 +774,29 @@ def intersect_time_ranges(scope_range: str, model_range: str | None) -> str:
 
     since = _latest(scope_since, model_since)
     until = _earliest(scope_until, model_until)
-    if since is not None and until is not None and since >= until:
-        raise MCPDashboardScopeError(
-            f"the requested time_range {model_range!r} does not overlap the "
-            f"dashboard time range {scope_range!r}.",
-            _ASK_USER,
-        )
+    if since is not None and until is not None:
+        since_comparison, until_comparison = get_comparable_bounds(since, until)
+        if since_comparison >= until_comparison:
+            raise MCPDashboardScopeError(
+                f"the requested time_range {model_range!r} does not overlap the "
+                f"dashboard time range {scope_range!r}.",
+                _ASK_USER,
+            )
     return f"{_iso(since)} : {_iso(until)}"
 
 
 def _latest(first: datetime | None, second: datetime | None) -> datetime | None:
-    candidates = [value for value in (first, second) if value is not None]
-    return max(candidates) if candidates else None
+    if first is None or second is None:
+        return first or second
+    first_comparison, second_comparison = get_comparable_bounds(first, second)
+    return first if first_comparison >= second_comparison else second
 
 
 def _earliest(first: datetime | None, second: datetime | None) -> datetime | None:
-    candidates = [value for value in (first, second) if value is not None]
-    return min(candidates) if candidates else None
+    if first is None or second is None:
+        return first or second
+    first_comparison, second_comparison = get_comparable_bounds(first, second)
+    return first if first_comparison <= second_comparison else second
 
 
 def _iso(value: datetime | None) -> str:

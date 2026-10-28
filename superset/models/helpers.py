@@ -163,6 +163,7 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import (
+    get_comparable_bounds,
     get_past_or_future,
     is_constant_human_timedelta,
     is_parseable_human_timedelta,
@@ -3282,12 +3283,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # the range against itself, and a 36-hour range would shift by a
             # single day and overlap it. Whole-day ranges resolve to the same
             # instant either way.
-            duration = outer_to_dttm - outer_from_dttm
+            from_comparison, to_comparison = get_comparable_bounds(
+                outer_from_dttm, outer_to_dttm
+            )
+            duration = to_comparison - from_comparison
             return f"{int(duration.total_seconds())} seconds ago"
         if self.is_valid_date(offset):
             # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
-            return f"{(outer_from_dttm - offset_date).days} days ago"
+            from_comparison, date_comparison = get_comparable_bounds(
+                outer_from_dttm, offset_date
+            )
+            return f"{(from_comparison - date_comparison).days} days ago"
         return ""
 
     def _get_temporal_column_for_filter(  # noqa: C901
@@ -4610,6 +4617,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dataset_timezone,
                 )
                 dataset_timezone = None
+
+        # Without a dataset timezone, explicit offsets still identify UTC
+        # instants. Strip tzinfo only after conversion so text-based timestamp
+        # comparisons do not depend on an engine's handling of offset suffixes.
+        if not dataset_timezone:
+            if start_dttm is not None and start_dttm.utcoffset() is not None:
+                start_dttm = start_dttm.astimezone(timezone.utc).replace(tzinfo=None)
+            if end_dttm is not None and end_dttm.utcoffset() is not None:
+                end_dttm = end_dttm.astimezone(timezone.utc).replace(tzinfo=None)
 
         if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
             offset_hours = get_effective_hours_offset(

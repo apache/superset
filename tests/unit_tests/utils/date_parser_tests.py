@@ -540,7 +540,10 @@ def test_get_since_until_inherited_comparison_with_mixed_quarter_bounds() -> Non
             "DATETRUNC(DATETIME('2024-05-31T12:00:00+08:00'), QUARTER) : now",
             instant_time_comparison_range="r",
         )
-    assert result == (datetime(2024, 1, 31), datetime(2024, 4, 1, 12))
+    assert result == (
+        datetime(2024, 1, 31, tzinfo=timezone(timedelta(hours=8))),
+        datetime(2024, 4, 1, 12),
+    )
 
 
 def test_get_since_until_compares_aware_quarter_bounds_as_instants() -> None:

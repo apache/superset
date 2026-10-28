@@ -494,7 +494,7 @@ def is_no_time_range(time_range: str | None) -> bool:
     return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
 
 
-def _get_comparable_bounds(
+def get_comparable_bounds(
     since: datetime, until: datetime
 ) -> tuple[datetime, datetime]:
     """Use legacy wall-clock ordering for mixed bounds without mutating them."""
@@ -750,27 +750,23 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 time_unit = "WEEK"
             elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
                 if _since and _until:
-                    since_comparison, until_comparison = _get_comparable_bounds(
+                    since_comparison, until_comparison = get_comparable_bounds(
                         _since, _until
                     )
                     delta_in_days = (until_comparison - since_comparison).days
                 time_unit = "DAY"
 
             if time_unit:
-                strtfime_since = (
-                    _since.strftime("%Y-%m-%dT%H:%M:%S") if _since else relative_start
-                )
-                strtfime_until = (
-                    _until.strftime("%Y-%m-%dT%H:%M:%S") if _until else relative_end
-                )
+                iso_since = _since.isoformat() if _since else relative_start
+                iso_until = _until.isoformat() if _until else relative_end
 
                 since_and_until = [
                     (
-                        f"DATEADD(DATETIME('{strtfime_since}'), "
+                        f"DATEADD(DATETIME('{iso_since}'), "
                         f"-{delta_in_days or 1}, {time_unit})"
                     ),
                     (
-                        f"DATEADD(DATETIME('{strtfime_until}'), "
+                        f"DATEADD(DATETIME('{iso_until}'), "
                         f"-{delta_in_days or 1}, {time_unit})"
                     ),
                 ]
@@ -778,7 +774,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 _since, _until = map(datetime_eval, since_and_until)
 
     if _since and _until:
-        since_comparison, until_comparison = _get_comparable_bounds(_since, _until)
+        since_comparison, until_comparison = get_comparable_bounds(_since, _until)
         if since_comparison > until_comparison:
             raise ValueError(_("From date cannot be larger than to date"))
 
