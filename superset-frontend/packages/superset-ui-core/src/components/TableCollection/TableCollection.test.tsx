@@ -20,7 +20,7 @@ import { render, screen, fireEvent } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
-import { mapColumns } from './utils';
+import { mapColumns, type ListViewColumn } from './utils';
 
 let defaultProps: any;
 
@@ -435,8 +435,92 @@ test('should map a column size token to an explicit column width', () => {
   expect(mapped.map(({ key, width }) => ({ key, width }))).toEqual([
     { key: 'small', width: 50 },
     { key: 'large', width: 360 },
-    // Without a size the column gets no width, so it absorbs spare table
-    // width. List views size every visible column to avoid that.
+    // Unmanaged tables leave unsized columns to the browser's auto layout.
     { key: 'unsized', width: undefined },
   ]);
+});
+
+const layoutColumns: ListViewColumn[] = [
+  { id: 'favorite', Header: 'Fav', accessor: 'favorite', layout: 'icon' },
+  { id: 'name', Header: 'Name', accessor: 'name', layout: 'title' },
+  { id: 'database', Header: 'Database', accessor: 'database' },
+  { id: 'legacy', Header: 'Legacy', accessor: 'legacy', size: 'lg' },
+  { id: 'secret', Header: 'Secret', accessor: 'secret', hidden: true },
+  { id: 'actions', Header: 'Actions' },
+];
+
+function renderLayoutTable(
+  containerWidth: number,
+  props: Record<string, unknown> = {},
+) {
+  jest
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    .mockReturnValue({ width: containerWidth } as DOMRect);
+  const data = [{ favorite: 'x', name: 'n', database: 'd', legacy: 'l' }];
+  const { result } = renderHook(() =>
+    // @ts-expect-error -- raw column configs, as ListView passes them
+    useTable({ columns: layoutColumns, data }),
+  );
+  const utils = render(
+    <TableCollection
+      {...defaultProps}
+      columns={layoutColumns}
+      headerGroups={result.current.headerGroups}
+      rows={result.current.rows}
+      prepareRow={result.current.prepareRow}
+      {...props}
+    />,
+  );
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  const widths = Array.from(table.querySelectorAll('colgroup col')).map(
+    col => (col as HTMLElement).style.width,
+  );
+  return { ...utils, table, widths };
+}
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+test('managed column widths size every visible column to fill the container', () => {
+  const { table, widths } = renderLayoutTable(1000, {
+    managedColumnWidths: true,
+  });
+
+  expect(table.style.tableLayout).toBe('fixed');
+  // Hidden columns are excluded; every visible column gets a px width.
+  expect(widths).toHaveLength(5);
+  widths.forEach(width => expect(width).toMatch(/^\d+px$/));
+  const px = widths.map(width => parseInt(width, 10));
+  expect(px.reduce((a, b) => a + b, 0)).toBe(1000);
+  // icon, legacy `size` and inferred actions columns stay fixed.
+  expect([px[0], px[3], px[4]]).toEqual([48, 100, 120]);
+  // The title flexes but never beyond its max while the text column can grow.
+  expect(px[1]).toBeLessThanOrEqual(480);
+  expect(px[1]).toBeGreaterThan(px[2]);
+});
+
+test('managed column widths fall back to minimums and scroll when narrow', () => {
+  const { widths } = renderLayoutTable(300, { managedColumnWidths: true });
+  expect(widths).toEqual(['48px', '240px', '140px', '100px', '120px']);
+});
+
+test('managed column widths include the row selection column', () => {
+  const { widths } = renderLayoutTable(1200, {
+    managedColumnWidths: true,
+    bulkSelectEnabled: true,
+    selectedFlatRows: [],
+  });
+  expect(widths).toHaveLength(6);
+  const px = widths.map(width => parseInt(width, 10));
+  expect(px[0]).toBe(48);
+  expect(px.reduce((a, b) => a + b, 0)).toBe(1200);
+});
+
+test('unmanaged tables keep the auto layout', () => {
+  const { table, widths } = renderLayoutTable(1000);
+  expect(table.style.tableLayout).not.toBe('fixed');
+  // Only the legacy `size` column carries a width (rc-table omits trailing
+  // width-less <col>s).
+  expect(widths.filter(Boolean)).toEqual(['100px']);
 });

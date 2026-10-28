@@ -30,6 +30,7 @@ import {
 } from '@superset-ui/core/components';
 import {
   ListView,
+  type ListViewColumn,
   ListViewProps,
   ListViewFilterOperator,
   ListViewFilters,
@@ -184,13 +185,13 @@ function UsersList({ user }: UsersListProps) {
   };
 
   const initialSort = [{ id: 'username', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<UserObject>[]>(
     () => [
       {
         accessor: 'first_name',
         id: 'first_name',
         Header: t('First name'),
-        size: 'lg',
+        layout: 'text',
         Cell: ({
           row: {
             original: { first_name },
@@ -201,7 +202,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'last_name',
         id: 'last_name',
         Header: t('Last name'),
-        size: 'lg',
+        layout: 'text',
         Cell: ({
           row: {
             original: { last_name },
@@ -212,7 +213,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'username',
         id: 'username',
         Header: t('Username'),
-        size: 'xxl',
+        layout: 'title',
         Cell: ({
           row: {
             original: { username },
@@ -223,7 +224,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'email',
         id: 'email',
         Header: t('Email'),
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { email },
@@ -234,7 +235,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'active',
         id: 'active',
         Header: t('Is active?'),
-        size: 'sm',
+        layout: 'status',
         Cell: ({
           row: {
             original: { active },
@@ -245,7 +246,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'roles',
         id: 'roles',
         Header: t('Roles'),
-        size: 'lg',
+        layout: 'tags',
         Cell: ({
           row: {
             original: { roles },
@@ -265,7 +266,7 @@ function UsersList({ user }: UsersListProps) {
         accessor: 'groups',
         Header: t('Groups'),
         id: 'groups',
-        size: 'lg',
+        layout: 'tags',
         Cell: ({
           row: {
             original: { groups },
@@ -287,6 +288,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'login_count',
         Header: t('Login count'),
         hidden: true,
+        layout: 'count',
         Cell: ({ row: { original } }: any) => original.login_count ?? 0,
       },
       {
@@ -294,6 +296,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'fail_login_count',
         Header: t('Fail login count'),
         hidden: true,
+        layout: 'count',
         Cell: ({ row: { original } }: any) => original.fail_login_count ?? 0,
       },
       {
@@ -301,6 +304,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'created_on',
         Header: t('Created on'),
         hidden: true,
+        layout: 'date',
         Cell: ({
           row: {
             original: { created_on },
@@ -312,6 +316,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'changed_on',
         Header: t('Changed on'),
         hidden: true,
+        layout: 'date',
         Cell: ({
           row: {
             original: { changed_on },
@@ -323,6 +328,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'last_login',
         Header: t('Last login'),
         hidden: true,
+        layout: 'date',
         Cell: ({
           row: {
             original: { last_login },
@@ -361,7 +367,7 @@ function UsersList({ user }: UsersListProps) {
         id: 'actions',
         disableSortBy: true,
         hidden: !isAdmin,
-        size: 'xl',
+        layout: 'actions',
       },
     ],
     [isAdmin],

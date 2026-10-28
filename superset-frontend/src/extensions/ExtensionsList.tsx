@@ -23,7 +23,7 @@ import { Loading } from '@superset-ui/core/components';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
-import { ListView } from 'src/components';
+import { ListView, type ListViewColumn } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
@@ -86,12 +86,12 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     );
   }, []);
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Extension>[]>(
     () => [
       {
         Header: t('Name'),
         accessor: 'name',
-        size: 'lg',
+        layout: 'title',
         id: 'name',
         Cell: ({
           row: {

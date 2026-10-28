@@ -70,6 +70,7 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
+  type ListViewColumn,
   type ListViewFilters,
   type ListViewFetchDataConfig,
 } from 'src/components';
@@ -863,7 +864,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     }
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dataset>[]>(
     () => [
       {
         accessor: 'id',
@@ -945,7 +946,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: 'xxxl',
+        layout: 'title',
         id: 'table_name',
       },
       {
@@ -962,7 +963,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'status',
         id: 'kind',
       },
       {
@@ -973,7 +974,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => database?.database_name || '-',
         Header: databaseLabel(),
         accessor: 'database.database_name',
-        size: 'xl',
+        layout: 'text',
         id: 'database.database_name',
       },
       {
@@ -984,7 +985,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
-        size: 'lg',
+        layout: 'text',
         id: 'schema',
       },
       {
@@ -1002,7 +1003,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'lg',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -1017,7 +1018,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -1156,7 +1157,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Actions'),
         id: 'actions',
-        size: 'lg',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
       },

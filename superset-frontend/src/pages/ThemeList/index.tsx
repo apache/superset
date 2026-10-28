@@ -43,6 +43,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
   ImportModal as ImportModelsModal,
@@ -443,7 +444,7 @@ function ThemesList({
   ]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<ThemeObject>[]>(
     () => [
       {
         Cell: ({ row: { original } }: any) => {
@@ -487,6 +488,7 @@ function ThemesList({
         Header: t('Name'),
         accessor: 'theme_name',
         id: 'theme_name',
+        layout: 'title',
       },
       {
         Cell: ({
@@ -499,7 +501,7 @@ function ThemesList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         disableSortBy: true,
         id: 'changed_on_delta_humanized',
       },
@@ -513,6 +515,7 @@ function ThemesList({
         accessor: 'editors',
         disableSortBy: true,
         id: 'editors',
+        layout: 'people',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -634,7 +637,7 @@ function ThemesList({
         id: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete && !canApply && !canExport,
-        size: 'xl',
+        layout: 'actionsWide',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

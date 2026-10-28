@@ -26,6 +26,7 @@ import {
   ListViewFilters,
   ListViewFilterOperator,
   ListView,
+  type ListViewColumn,
 } from 'src/components';
 import { DeleteModal } from '@superset-ui/core/components';
 import { ActionProps, ActionsBar } from 'src/components/ListView/ActionsBar';
@@ -83,36 +84,41 @@ export default function UserRegistrations() {
 
   const initialSort = [{ id: 'registration_date', desc: true }];
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<UserRegistration>[]>(
     () => [
       {
         accessor: 'username',
         id: 'username',
         Header: t('Username'),
+        layout: 'title',
         Cell: ({ row: { original } }: any) => original.username,
       },
       {
         accessor: 'first_name',
         id: 'first_name',
         Header: t('First name'),
+        layout: 'text',
         Cell: ({ row: { original } }: any) => original.first_name,
       },
       {
         accessor: 'last_name',
         id: 'last_name',
         Header: t('Last name'),
+        layout: 'text',
         Cell: ({ row: { original } }: any) => original.last_name,
       },
       {
         accessor: 'email',
         id: 'email',
         Header: t('Email'),
+        layout: 'text',
         Cell: ({ row: { original } }: any) => original.email,
       },
       {
         accessor: 'registration_date',
         id: 'registration_date',
         Header: t('Registration date'),
+        layout: 'date',
         Cell: ({ row: { original } }: any) => original.registration_date,
       },
       {
@@ -134,7 +140,7 @@ export default function UserRegistrations() {
         },
         hidden: false,
         disableSortBy: true,
-        size: 'xl',
+        layout: 'actions',
       },
     ],
     [],

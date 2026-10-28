@@ -454,11 +454,13 @@ function ArchivedListBody({
         accessor: config.nameField,
         Header: t('Name'),
         id: config.nameField,
+        layout: 'title',
       },
       {
         Cell: () => TYPE_LABELS[type](),
         Header: t('Type'),
         id: 'type',
+        layout: 'status',
         disableSortBy: true,
       },
       {
@@ -473,6 +475,7 @@ function ArchivedListBody({
           String(original.deleted_at_delta_humanized ?? ''),
         Header: t('Archived'),
         id: 'deleted_at',
+        layout: 'date',
       },
       {
         // Archiving user, from changed_by. Non-sortable — there is no backend
@@ -488,6 +491,7 @@ function ArchivedListBody({
         },
         Header: t('Archived by'),
         id: 'archived_by',
+        layout: 'text',
         disableSortBy: true,
       },
       {
@@ -505,7 +509,7 @@ function ArchivedListBody({
         id: 'actions',
         hidden: !canWrite,
         disableSortBy: true,
-        size: 'sm',
+        layout: 'actions',
       },
     ],
     [

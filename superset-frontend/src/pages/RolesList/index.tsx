@@ -29,6 +29,7 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
 import {
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewProps,
@@ -145,13 +146,13 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   };
 
   const initialSort = [{ id: 'name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<RoleObject>[]>(
     () => [
       {
         accessor: 'name',
         id: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         Cell: ({
           row: {
             original: { name },
@@ -162,6 +163,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         accessor: 'user_ids',
         id: 'user_ids',
         Header: t('Users'),
+        layout: 'tags',
         hidden: true,
         Cell: ({ row: { original } }: any) => original.user_ids.join(', '),
       },
@@ -169,6 +171,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         accessor: 'group_ids',
         id: 'group_ids',
         Header: t('Groups'),
+        layout: 'tags',
         hidden: true,
         Cell: ({ row: { original } }: any) => original.group_ids.join(', '),
       },
@@ -176,6 +179,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         accessor: 'permission_ids',
         id: 'permission_ids',
         Header: t('Permissions'),
+        layout: 'tags',
         hidden: true,
         Cell: ({ row: { original } }: any) =>
           original.permission_ids.join(', '),
@@ -226,7 +230,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         id: 'actions',
         disableSortBy: true,
         hidden: !isAdmin,
-        size: 'xl',
+        layout: 'actions',
       },
     ],
     [isAdmin],

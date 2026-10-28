@@ -34,6 +34,7 @@ import { Popover, Label, Tooltip } from '@superset-ui/core/components';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import {
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
@@ -147,7 +148,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
   };
 
   const initialSort = [{ id: QueryObjectColumns.StartTime, desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn[]>(
     () => [
       {
         Cell: ({
@@ -221,14 +222,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
         },
         accessor: QueryObjectColumns.Status,
-        size: 'xs',
+        layout: 'icon',
         disableSortBy: true,
         id: QueryObjectColumns.Status,
       },
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        size: 'lg',
+        layout: 'date',
         Cell: ({
           row: {
             original: { start_time },
@@ -251,7 +252,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        size: 'lg',
+        layout: 'count',
         Cell: ({
           row: {
             original: { status, start_time, start_running_time, end_time },
@@ -277,13 +278,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
-        size: 'xl',
+        layout: 'text',
         id: QueryObjectColumns.TabName,
       },
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        size: 'lg',
+        layout: 'text',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -294,7 +295,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        size: 'lg',
+        layout: 'text',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -332,14 +333,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        size: 'lg',
+        layout: 'tags',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },
       {
         accessor: QueryObjectColumns.UserFirstName,
         Header: t('User'),
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { user },
@@ -355,7 +356,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
-        size: 'sm',
+        layout: 'count',
         id: QueryObjectColumns.Rows,
       },
       {
@@ -390,14 +391,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </StyledCodeSyntaxHighlighter>
           </button>
         ),
-        size: 'xxl',
+        layout: 'longtext',
         id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'actions',
         Cell: ({
           row: {
             original: { id },

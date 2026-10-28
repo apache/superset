@@ -36,6 +36,7 @@ import {
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
@@ -311,7 +312,7 @@ function AlertList({
     [alerts, setResourceCollection, updateResource],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AlertObject>[]>(
     () => [
       {
         Cell: ({
@@ -325,7 +326,7 @@ function AlertList({
           />
         ),
         accessor: 'last_state',
-        size: 'xs',
+        layout: 'icon',
         disableSortBy: true,
         id: 'last_state',
       },
@@ -343,19 +344,19 @@ function AlertList({
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
-        size: 'lg',
+        layout: 'date',
         id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
         Header: t('Schedule'),
         accessor: 'crontab_humanized',
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { crontab_humanized = '', timezone },
@@ -382,7 +383,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'lg',
+        layout: 'statusWide',
         id: 'recipients',
       },
       {
@@ -394,7 +395,7 @@ function AlertList({
         Header: t('Editors'),
         id: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
       },
       {
         Cell: ({
@@ -407,7 +408,7 @@ function AlertList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -430,7 +431,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'sm',
+        layout: 'status',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -492,7 +493,7 @@ function AlertList({
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'lg',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

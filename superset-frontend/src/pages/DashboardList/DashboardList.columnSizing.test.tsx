@@ -24,6 +24,12 @@ import {
   setupMocks,
   renderDashboardList,
 } from './DashboardList.testHelpers';
+import {
+  expectColumnWidthsWithinLayouts,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
+
+const CONTAINER_WIDTH = 1440;
 
 jest.setTimeout(30000);
 
@@ -49,9 +55,11 @@ beforeEach(() => {
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   mockIsFeatureEnabled.mockReset();
+  jest.restoreAllMocks();
 });
 
-test('every visible column renders with an explicit width', async () => {
+test('every visible column resolves to a width within its layout', async () => {
+  mockListViewContainerWidth(CONTAINER_WIDTH);
   renderDashboardList(mockAdminUser);
 
   const table = await screen.findByTestId('listview-table');
@@ -61,29 +69,21 @@ test('every visible column renders with an explicit width', async () => {
     ).toBeGreaterThan(0),
   );
 
-  const headers = Array.from(table.querySelectorAll('thead th')).map(th =>
-    th.textContent?.trim(),
+  // Every column is sized from its layout preset, so no column absorbs the
+  // spare width (squashing Name or inflating Actions) and the table fills
+  // the container exactly.
+  expectColumnWidthsWithinLayouts(
+    table,
+    {
+      '': 'icon',
+      Name: 'title',
+      Status: 'status',
+      Tags: 'tags',
+      Editors: 'people',
+      Viewers: 'people',
+      'Last modified': 'date',
+      Actions: 'actions',
+    },
+    CONTAINER_WIDTH,
   );
-  expect(headers).toEqual(
-    expect.arrayContaining([
-      'Name',
-      'Status',
-      'Tags',
-      'Editors',
-      'Viewers',
-      'Last modified',
-      'Actions',
-    ]),
-  );
-
-  const cols = Array.from(table.querySelectorAll('colgroup col'));
-  expect(cols).toHaveLength(headers.length);
-  cols.forEach((col, index) => {
-    // An unsized column absorbs all spare table width, squashing the
-    // sized ones (e.g. Name) and inflating the Actions column.
-    expect({
-      column: headers[index],
-      width: (col as HTMLElement).style.width,
-    }).toEqual({ column: headers[index], width: expect.stringMatching(/px$/) });
-  });
 });

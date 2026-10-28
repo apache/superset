@@ -26,7 +26,7 @@ import {
 import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Label, Tooltip } from '@superset-ui/core/components';
-import { ListView } from 'src/components';
+import { ListView, type ListViewColumn } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
@@ -91,7 +91,7 @@ function ExecutionLog({
   }, [alertId]);
 
   const initialSort = [{ id: 'start_dttm', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<LogObject>[]>(
     () => [
       {
         Cell: ({
@@ -103,7 +103,7 @@ function ExecutionLog({
         ),
         accessor: 'state',
         Header: t('State'),
-        size: 'xs',
+        layout: 'status',
         disableSortBy: true,
         id: 'state',
       },
@@ -115,7 +115,7 @@ function ExecutionLog({
         }: any) => (executionId ? executionId.slice(0, 6) : 'none'),
         accessor: 'uuid',
         Header: t('Execution ID'),
-        size: 'xs',
+        layout: 'text',
         disableSortBy: true,
         id: 'uuid',
       },
@@ -129,6 +129,7 @@ function ExecutionLog({
         accessor: 'scheduled_dttm',
         Header: t('Scheduled at (UTC)'),
         id: 'scheduled_dttm',
+        layout: 'date',
       },
       {
         Cell: ({
@@ -141,6 +142,7 @@ function ExecutionLog({
         Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
         id: 'start_dttm',
+        layout: 'date',
       },
       {
         Cell: ({
@@ -160,11 +162,13 @@ function ExecutionLog({
         Header: t('Duration'),
         disableSortBy: true,
         id: 'duration',
+        layout: 'count',
       },
       {
         accessor: 'value',
         Header: t('Value'),
         id: 'value',
+        layout: 'count',
       },
       {
         accessor: 'error_message',
@@ -179,6 +183,7 @@ function ExecutionLog({
           </Tooltip>
         ),
         id: 'error_message',
+        layout: 'longtext',
       },
     ],
     [isReportEnabled],

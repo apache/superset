@@ -72,6 +72,7 @@ import {
   TagsList,
   TagType,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
@@ -501,7 +502,7 @@ function ChartList(props: ChartListProps) {
     [addDangerToast],
   );
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Chart>[]>(
     () => [
       {
         Cell: ({
@@ -519,7 +520,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'icon',
         hidden: !userId,
       },
       {
@@ -555,7 +556,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        size: 'xxxl',
+        layout: 'title',
         id: 'slice_name',
       },
       {
@@ -579,7 +580,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Type'),
         accessor: 'viz_type',
-        size: 'xxl',
+        layout: 'text',
         id: 'viz_type',
       },
       {
@@ -608,7 +609,7 @@ function ChartList(props: ChartListProps) {
         Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'text',
         id: 'datasource_id',
       },
       {
@@ -620,7 +621,7 @@ function ChartList(props: ChartListProps) {
         Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'tags',
         id: 'dashboards',
       },
       {
@@ -644,7 +645,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
-        size: 'xl',
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -656,7 +657,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -670,7 +671,7 @@ function ChartList(props: ChartListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
-              size: 'xl',
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -686,7 +687,7 @@ function ChartList(props: ChartListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -759,7 +760,7 @@ function ChartList(props: ChartListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
-        size: 'lg',
+        layout: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
       },

@@ -22,7 +22,11 @@ import { t } from '@apache-superset/core/translation';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
-import { ListView, ListViewProps } from 'src/components/ListView';
+import {
+  ListView,
+  ListViewProps,
+  type ListViewColumn,
+} from 'src/components/ListView';
 import { type ListViewFilters, ListViewFilterOperator } from 'src/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -164,13 +168,13 @@ function GroupsList({ user }: GroupsListProps) {
   };
 
   const initialSort = [{ id: 'name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<GroupObject>[]>(
     () => [
       {
         accessor: 'name',
         id: 'name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         Cell: ({
           row: {
             original: { name },
@@ -181,6 +185,7 @@ function GroupsList({ user }: GroupsListProps) {
         accessor: 'label',
         id: 'label',
         Header: t('Label'),
+        layout: 'text',
         Cell: ({
           row: {
             original: { label },
@@ -191,6 +196,7 @@ function GroupsList({ user }: GroupsListProps) {
         accessor: 'description',
         id: 'description',
         Header: t('Description'),
+        layout: 'longtext',
         Cell: ({
           row: {
             original: { description },
@@ -202,6 +208,7 @@ function GroupsList({ user }: GroupsListProps) {
         accessor: 'roles',
         id: 'roles',
         Header: t('Roles'),
+        layout: 'tags',
         Cell: ({
           row: {
             original: { roles },
@@ -221,6 +228,7 @@ function GroupsList({ user }: GroupsListProps) {
         accessor: 'users',
         id: 'users',
         Header: t('Users'),
+        layout: 'tags',
         Cell: ({
           row: {
             original: { users },
@@ -263,7 +271,7 @@ function GroupsList({ user }: GroupsListProps) {
         id: 'actions',
         disableSortBy: true,
         hidden: !isAdmin,
-        size: 'xl',
+        layout: 'actions',
       },
     ],
     [isAdmin],

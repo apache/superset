@@ -48,6 +48,7 @@ import {
   ModifiedInfo,
   TagsList,
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
@@ -340,12 +341,12 @@ function SavedQueryList({
   };
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<SavedQueryObject>[]>(
     () => [
       {
         accessor: 'label',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         Cell: ({
           row: {
             original: { id, label },
@@ -356,13 +357,13 @@ function SavedQueryList({
       {
         accessor: 'description',
         Header: t('Description'),
-        size: 'xl',
+        layout: 'longtext',
         id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        size: 'lg',
+        layout: 'text',
         id: 'database.database_name',
       },
       {
@@ -374,7 +375,7 @@ function SavedQueryList({
       {
         accessor: 'schema',
         Header: t('Schema'),
-        size: 'lg',
+        layout: 'text',
         id: 'schema',
       },
       {
@@ -412,7 +413,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        size: 'lg',
+        layout: 'tags',
         disableSortBy: true,
         id: 'sql_tables',
       },
@@ -434,6 +435,7 @@ function SavedQueryList({
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
         id: 'tags',
+        layout: 'tags',
       },
       {
         Cell: ({
@@ -448,14 +450,14 @@ function SavedQueryList({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on_delta_humanized',
       },
       {
         accessor: 'created_by.first_name',
         Header: t('Created by'),
         disableSortBy: true,
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { created_by: createdBy },
@@ -522,6 +524,7 @@ function SavedQueryList({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actionsWide',
         disableSortBy: true,
       },
       {

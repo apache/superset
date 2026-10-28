@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
+import {
+  HTMLAttributes,
+  memo,
+  useMemo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   HeaderGroup,
   Row,
@@ -32,9 +40,21 @@ import {
   SorterResult,
 } from 'antd/es/table/interface';
 import type { TableProps } from 'antd/es/table';
-import { mapColumns, mapRows, type ListViewColumn } from './utils';
+import { getColumnId, mapColumns, mapRows, type ListViewColumn } from './utils';
+import {
+  UTILITY_COLUMN_WIDTH,
+  getColumnLayout,
+  getColumnSpec,
+  resolveColumnWidths,
+} from './columnWidths';
 
 export type { ListViewColumn };
+export type { ColumnLayout, ColumnLayoutPreset } from './columnWidths';
+export {
+  COLUMN_LAYOUT_PRESETS,
+  getColumnSpec,
+  resolveColumnWidths,
+} from './columnWidths';
 
 export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
@@ -64,6 +84,35 @@ export interface TableCollectionProps<T extends object> {
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
   expandable?: Record<string, unknown>;
+  /**
+   * Resolve every visible column's width from its `layout` against the
+   * measured container width, with a fixed table layout. Off by default so
+   * generic tables keep the browser's auto layout.
+   */
+  managedColumnWidths?: boolean;
+}
+
+/**
+ * Tracks the width of `ref`'s element. Measured before paint so managed
+ * widths don't flash; 0 when the width can't be measured (e.g. in jsdom).
+ */
+function useContainerWidth(
+  ref: { current: HTMLElement | null },
+  enabled: boolean,
+) {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element) return undefined;
+    const measure = () =>
+      setWidth(Math.floor(element.getBoundingClientRect().width));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, enabled]);
+  return width;
 }
 
 const StyledTable = styled(Table)<{
@@ -184,10 +233,49 @@ function TableCollection<T extends object>({
   isPaginationSticky = false,
   showRowCount = true,
   expandable,
+  managedColumnWidths = false,
 }: TableCollectionProps<T>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidth = useContainerWidth(containerRef, managedColumnWidths);
+
+  const columnLayout = useMemo(() => {
+    if (!managedColumnWidths) return undefined;
+    const visibleColumns = columns.filter(column => !column.hidden);
+    const utilityColumns = (bulkSelectEnabled ? 1 : 0) + (expandable ? 1 : 0);
+    const specs = [
+      ...Array(utilityColumns).fill(
+        getColumnSpec({ fixed: UTILITY_COLUMN_WIDTH }),
+      ),
+      ...visibleColumns.map(column => getColumnSpec(getColumnLayout(column))),
+    ];
+    const { widths, totalWidth } = resolveColumnWidths(specs, containerWidth);
+    const columnWidths = widths.slice(utilityColumns);
+    return {
+      totalWidth,
+      widths: Object.fromEntries(
+        visibleColumns.map((column, index) => [
+          getColumnId(column),
+          columnWidths[index],
+        ]),
+      ),
+    };
+  }, [
+    managedColumnWidths,
+    columns,
+    bulkSelectEnabled,
+    expandable,
+    containerWidth,
+  ]);
+
   const mappedColumns = useMemo(
-    () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
-    [columns, headerGroups, columnsForWrapText],
+    () =>
+      mapColumns<T>(
+        columns,
+        headerGroups,
+        columnsForWrapText,
+        columnLayout?.widths,
+      ),
+    [columns, headerGroups, columnsForWrapText, columnLayout],
   );
 
   const mappedRows = useMemo(
@@ -213,6 +301,7 @@ function TableCollection<T extends object>({
     // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
+      ...(managedColumnWidths && { columnWidth: UTILITY_COLUMN_WIDTH }),
       onSelect: (record, selected) => {
         toggleRowSelected?.(record.rowId, selected);
       },
@@ -228,7 +317,16 @@ function TableCollection<T extends object>({
     selectedRowKeys,
     toggleRowSelected,
     toggleAllRowsSelected,
+    managedColumnWidths,
   ]);
+
+  const tableExpandable = useMemo(
+    () =>
+      expandable && managedColumnWidths
+        ? { columnWidth: UTILITY_COLUMN_WIDTH, ...expandable }
+        : expandable,
+    [expandable, managedColumnWidths],
+  );
 
   const handlePaginationChange = useCallback(
     (page: number, size: number) => {
@@ -338,7 +436,7 @@ function TableCollection<T extends object>({
     [],
   );
 
-  return (
+  const table = (
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
@@ -350,8 +448,8 @@ function TableCollection<T extends object>({
       size={size}
       data-test="listview-table"
       pagination={paginationConfig}
-      scroll={{ x: 'max-content' }}
-      tableLayout="auto"
+      scroll={{ x: columnLayout ? columnLayout.totalWidth : 'max-content' }}
+      tableLayout={columnLayout ? 'fixed' : 'auto'}
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}
@@ -361,11 +459,14 @@ function TableCollection<T extends object>({
       rowClassName={
         getRowClassName as unknown as TableProps<object>['rowClassName']
       }
-      expandable={expandable}
+      expandable={tableExpandable}
       components={tableComponents}
       onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
+
+  if (!managedColumnWidths) return table;
+  return <div ref={containerRef}>{table}</div>;
 }
 
 // React.memo erases the wrapped component's generic type parameter; cast

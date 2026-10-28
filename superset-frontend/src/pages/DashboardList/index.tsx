@@ -57,6 +57,7 @@ import {
   ModifiedInfo,
   ImportModal as ImportModelsModal,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilter,
@@ -385,7 +386,7 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dashboard>[]>(
     () => [
       {
         Cell: ({
@@ -403,7 +404,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'icon',
         hidden: !user?.userId,
       },
       {
@@ -435,7 +436,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
-        size: 'xxxl',
+        layout: 'title',
         id: 'dashboard_title',
       },
       {
@@ -448,7 +449,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'sm',
+        layout: 'status',
         id: 'published',
         className: 'no-ellipsis',
       },
@@ -478,7 +479,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
-        size: 'xl',
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -490,7 +491,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
-        size: 'xl',
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -504,7 +505,7 @@ function DashboardList(props: DashboardListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
-              size: 'xl',
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -520,7 +521,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -624,7 +625,7 @@ function DashboardList(props: DashboardListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
-        size: 'lg',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },

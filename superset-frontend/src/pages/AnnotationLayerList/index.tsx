@@ -32,6 +32,7 @@ import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewActionsBar,
   type ListViewActionProps,
@@ -130,7 +131,7 @@ function AnnotationLayersList({
   }
 
   const initialSort = [{ id: 'name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AnnotationLayerObject>[]>(
     () => [
       {
         accessor: 'name',
@@ -161,13 +162,13 @@ function AnnotationLayersList({
             </Typography.Link>
           );
         },
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
-        size: 'xl',
+        layout: 'longtext',
         id: 'descr',
       },
       {
@@ -181,7 +182,7 @@ function AnnotationLayersList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on',
       },
       {
@@ -218,7 +219,7 @@ function AnnotationLayersList({
         id: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
-        size: 'xl',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

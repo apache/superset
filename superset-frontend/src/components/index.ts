@@ -26,6 +26,7 @@ export {
   DashboardCrossLinks,
   ListViewFilterOperator,
   type ListViewProps,
+  type ListViewColumn,
   type ListViewActionProps,
   type ListViewFilters,
   type ListViewFilter,

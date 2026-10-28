@@ -37,6 +37,7 @@ import {
 import {
   CreatedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
 } from 'src/components';
@@ -272,7 +273,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     setForceCancel(false);
   }, []);
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Task>[]>(
     () => [
       {
         Cell: ({
@@ -307,7 +308,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         },
         accessor: 'task_name',
         Header: t('Task'),
-        size: 'xl',
+        layout: 'title',
         id: 'task_name',
       },
       {
@@ -328,13 +329,13 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         ),
         accessor: 'status',
         Header: t('Status'),
-        size: 'xs',
+        layout: 'status',
         id: 'status',
       },
       {
         accessor: 'task_type',
         Header: t('Type'),
-        size: 'md',
+        layout: 'text',
         id: 'task_type',
       },
       {
@@ -361,7 +362,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         },
         accessor: 'scope',
         Header: t('Scope'),
-        size: 'sm',
+        layout: 'status',
         id: 'scope',
       },
       {
@@ -398,7 +399,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         },
         accessor: 'subscriber_count',
         Header: t('Subscribers'),
-        size: 'md',
+        layout: 'people',
         id: 'subscribers',
         disableSortBy: true,
       },
@@ -415,7 +416,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         ),
         Header: t('Created'),
         accessor: 'created_on',
-        size: 'xl',
+        layout: 'date',
         id: 'created_on',
       },
       {
@@ -442,7 +443,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         ),
         accessor: 'duration_seconds',
         Header: t('Duration'),
-        size: 'sm',
+        layout: 'count',
         id: 'duration_seconds',
         disableSortBy: true,
       },
@@ -567,7 +568,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         },
         accessor: 'payload',
         Header: t('Details'),
-        size: 'sm',
+        layout: 'status',
         id: 'payload',
         disableSortBy: true,
       },
@@ -651,7 +652,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
-        size: 'sm',
+        layout: 'actions',
         disableSortBy: true,
       },
     ],

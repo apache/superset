@@ -33,6 +33,7 @@ import {
 import {
   Tag as AntdTag,
   ListView,
+  type ListViewColumn,
   ModifiedInfo,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilter,
@@ -142,7 +143,7 @@ function TagList(props: TagListProps) {
     buttonText: t('Create a new Tag'),
   };
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Tag>[]>(
     () => [
       {
         Cell: ({
@@ -160,7 +161,7 @@ function TagList(props: TagListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        layout: 'icon',
         hidden: !userId,
       },
       {
@@ -175,7 +176,7 @@ function TagList(props: TagListProps) {
         ),
         Header: t('Name'),
         accessor: 'name',
-        size: 'xxl',
+        layout: 'title',
         id: 'name',
       },
       {
@@ -189,7 +190,7 @@ function TagList(props: TagListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'date',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -240,6 +241,7 @@ function TagList(props: TagListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canDelete,
         disableSortBy: true,
       },
