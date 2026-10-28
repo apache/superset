@@ -98,6 +98,11 @@ class MssqlEngineSpec(BaseEngineSpec):
     supports_multivalues_insert = True
     supports_cancel_on_live_cursor = True
 
+    # T-SQL's IS keyword only supports NULL checks (IS [NOT] NULL); there is
+    # no generic IS <literal> predicate, so a boolean filter compiled with
+    # SQLAlchemy's default IS true/false emits invalid syntax (IS 1 / IS 0).
+    use_equality_for_boolean_filters = True
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATEADD(SECOND, \
