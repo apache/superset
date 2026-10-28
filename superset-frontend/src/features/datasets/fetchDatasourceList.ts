@@ -111,3 +111,25 @@ export const fetchDatasourceList = (
     count: response.json.count ?? 0,
   }));
 };
+
+/**
+ * Fetches a single dataset by its ID, or `undefined` when none matches.
+ *
+ * Dataset names are only unique per database, catalog and schema, so callers
+ * that know the ID (for example right after creating a dataset) must resolve
+ * it by ID rather than by name.
+ */
+export const fetchDatasetById = (
+  id: number | string,
+  { get = SupersetClient.get }: { get?: typeof SupersetClient.get } = {},
+): Promise<Dataset | undefined> => {
+  const query = rison.encode({
+    columns: DATASET_LIST_COLUMNS,
+    filters: [{ col: 'id', opr: 'eq', value: Number(id) }],
+    page: 0,
+    page_size: 1,
+  });
+  return get({ endpoint: `/api/v1/dataset/?q=${query}` }).then(
+    (response: JsonResponse) => (response.json.result as Dataset[])[0],
+  );
+};

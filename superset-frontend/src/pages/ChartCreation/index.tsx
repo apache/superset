@@ -43,7 +43,10 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
-import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
+import {
+  fetchDatasetById,
+  fetchDatasourceList,
+} from 'src/features/datasets/fetchDatasourceList';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   datasetLabel,
@@ -240,10 +243,10 @@ export const ChartCreation = ({
     [user.roles],
   );
 
-  const hasDatasetParam = useMemo(
-    () => new URLSearchParams(window.location.search).has('dataset'),
-    [],
-  );
+  const hasDatasetParam = useMemo(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.has('dataset_id') || searchParams.has('dataset');
+  }, []);
 
   const [datasource, setDatasource] = useState<
     SelectedDatasource | undefined
@@ -303,24 +306,31 @@ export const ChartCreation = ({
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search).get('dataset');
-    if (params) {
-      // The URL names a dataset that was just saved, so resolve it against
-      // datasets only: a semantic view with the same name must not win.
-      fetchDatasourceList(params, 0, 1, {
-        exactMatch: true,
-        datasetsOnly: true,
-      })
-        .then(({ result }) => {
-          const [dataset] = result;
-          setDatasource(dataset && toDatasourceOption(dataset));
-          setLoading(false);
-        })
-        .catch(() => {
-          setLoading(false);
-        });
-      addSuccessToast(t('The dataset has been saved'));
+    const searchParams = new URLSearchParams(window.location.search);
+    const datasetId = searchParams.get('dataset_id');
+    const datasetName = searchParams.get('dataset');
+    if (!datasetId && !datasetName) {
+      return;
     }
+    // The URL identifies a dataset that was just saved, so resolve it against
+    // datasets only: a semantic view with the same name must not win. An ID is
+    // unambiguous, whereas a name can match datasets in other schemas,
+    // catalogs or databases, so the ID takes precedence.
+    const lookup = datasetId
+      ? fetchDatasetById(datasetId)
+      : fetchDatasourceList(datasetName as string, 0, 1, {
+          exactMatch: true,
+          datasetsOnly: true,
+        }).then(({ result }) => result[0]);
+    lookup
+      .then(dataset => {
+        setDatasource(dataset && toDatasourceOption(dataset));
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+    addSuccessToast(t('The dataset has been saved'));
   }, [toDatasourceOption, addSuccessToast]);
 
   const isButtonDisabled = isBtnDisabled();

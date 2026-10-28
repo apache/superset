@@ -790,3 +790,90 @@ test('uses the exact dataset endpoint for URL preload with semantic layers enabl
 
   locationSpy.mockRestore();
 });
+
+const sameNameDatasets = [
+  {
+    id: 7,
+    table_name: 'foo',
+    datasource_type: 'table',
+    database: { database_name: 'old_db' },
+    schema: 'schema_a',
+  },
+  {
+    id: 42,
+    table_name: 'foo',
+    datasource_type: 'table',
+    database: { database_name: 'new_db' },
+    schema: 'schema_b',
+  },
+];
+
+// A lookup by name is ambiguous and resolves to the first match (id 7); a
+// lookup by id resolves to exactly the requested dataset.
+const mockSameNameDatasets = () => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, ({ url }) => {
+    const decoded = decodeURIComponent(url);
+    const idMatch = decoded.match(/col:id,opr:eq,value:(\d+)/);
+    const result = idMatch
+      ? sameNameDatasets.filter(d => d.id === Number(idMatch[1]))
+      : sameNameDatasets;
+    return { body: { result, count: result.length }, status: 200 };
+  });
+};
+
+// Opens the chart with the preselected dataset and returns the explore URL.
+const openChartWithPreselectedDataset = async () => {
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
+  await waitFor(() => expect(mockHistoryPush).toHaveBeenCalled());
+  return mockHistoryPush.mock.calls[0][0] as string;
+};
+
+test('pre-selects the dataset identified by dataset_id over a same-named dataset', async () => {
+  mockSameNameDatasets();
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset=foo&dataset_id=42',
+  } as Location);
+
+  await renderComponent();
+
+  expect(await openChartWithPreselectedDataset()).toContain(
+    'datasource=42__table',
+  );
+
+  locationSpy.mockRestore();
+});
+
+test('pre-selects the dataset from dataset_id alone', async () => {
+  mockSameNameDatasets();
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset_id=42',
+  } as Location);
+
+  await renderComponent();
+
+  expect(await openChartWithPreselectedDataset()).toContain(
+    'datasource=42__table',
+  );
+
+  locationSpy.mockRestore();
+});
+
+test('leaves the selection empty when dataset_id matches no dataset', async () => {
+  mockSameNameDatasets();
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dataset_id=999',
+  } as Location);
+
+  await renderComponent();
+
+  await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
+  await userEvent.dblClick(await screen.findByText('Table'));
+  expect(mockHistoryPush).not.toHaveBeenCalled();
+
+  locationSpy.mockRestore();
+});

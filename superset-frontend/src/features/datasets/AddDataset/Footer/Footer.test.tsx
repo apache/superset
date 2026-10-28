@@ -128,7 +128,7 @@ describe('Footer', () => {
   });
 
   test('navigates to chart creation when main button is clicked', async () => {
-    mockCreateResource.mockResolvedValue(123); // Mock successful dataset creation
+    mockCreateResource.mockResolvedValue(42); // Mock successful dataset creation
 
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
@@ -145,8 +145,10 @@ describe('Footer', () => {
         schema: 'public',
         table_name: 'real_info',
       });
-      expect(mockHistoryPush).toHaveBeenCalledWith(
-        '/chart/add/?dataset=real_info',
+      // Redirect by ID: the table name can match datasets elsewhere.
+      expect(mockHistoryPush).toHaveBeenCalledWith('/chart/add/?dataset_id=42');
+      expect(mockHistoryPush).not.toHaveBeenCalledWith(
+        expect.stringContaining('real_info'),
       );
     });
   });

@@ -108,7 +108,7 @@ function Footer({
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
           if (createChart) {
-            history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
+            history.push(`/chart/add/?dataset_id=${response}`);
           } else {
             history.push('/tablemodelview/list/');
           }
