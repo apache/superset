@@ -43,7 +43,11 @@ if TYPE_CHECKING:
 
 # Per-viewer RLS rules on the physical table ``t``; neither viewer has a rule on
 # the virtual dataset that reads it.
-INNER_RLS: dict[str, str] = {"alice": "tenant = 1", "bob": "tenant = 2"}
+INNER_RLS: dict[str, str] = {
+    "alice": "tenant = 1",
+    "bob": "tenant = 2",
+    "carol": "tenant = 1",
+}
 
 
 @pytest.fixture
@@ -157,31 +161,41 @@ def test_inner_table_rls_viewers_only_see_their_own_cached_values(
 def test_same_inner_table_rls_shares_column_values_cache_key(
     virtual_dataset: SqlaTable, viewer: SimpleNamespace
 ) -> None:
-    """Viewers with identical effective RLS keep sharing one entry."""
+    """Different viewers with identical effective RLS keep sharing one entry."""
     viewer.name = "alice"
-    first = _key(virtual_dataset)
-    second = _key(virtual_dataset)
+    alice_key = _key(virtual_dataset)
+    viewer.name = "carol"
+    carol_key = _key(virtual_dataset)
 
-    assert first == second
+    assert alice_key == carol_key
 
 
 def test_physical_dataset_key_has_no_inner_rls_component(
     virtual_dataset: SqlaTable, viewer: SimpleNamespace
 ) -> None:
-    """A physical dataset's key is unchanged: its own RLS already covers it."""
-    from superset import db, security_manager
+    """A physical dataset's key bytes are unchanged: its own RLS covers it."""
+    import hashlib
+
+    from superset import db
     from superset.connectors.sqla.models import SqlaTable
+    from superset.utils import json
 
     physical = db.session.query(SqlaTable).filter_by(table_name="t").one()
 
-    viewer.name = "alice"
-    alice_key = _key(physical)
-    viewer.name = "bob"
-    bob_key = _key(physical)
+    def legacy_key(rls: list[str]) -> str:
+        material = {
+            "col": "name",
+            "uid": physical.uid,
+            "rls": rls,
+            "changed_on": str(physical.changed_on or ""),
+        }
+        digest = hashlib.sha256(json.dumps(material, sort_keys=True).encode())
+        return "col_values:" + digest.hexdigest()
 
-    # Kept apart by the outer RLS fingerprint alone.
-    assert alice_key != bob_key
-    assert security_manager.get_rls_cache_key(physical) == ["tenant = 2-"]
+    viewer.name = "alice"
+    assert _key(physical) == legacy_key(["tenant = 1-"])
+    viewer.name = "bob"
+    assert _key(physical) == legacy_key(["tenant = 2-"])
 
 
 def test_query_inner_table_rls_partitions_column_values_cache_key(
