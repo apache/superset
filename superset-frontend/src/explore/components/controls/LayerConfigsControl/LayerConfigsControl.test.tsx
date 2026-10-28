@@ -48,6 +48,23 @@ const chooseLayerType = async (type: 'WMS' | 'WFS' | 'XYZ') => {
 
 const existing = [wms('Roads', 'https://maps.example.com/wms')];
 
+// The layer form reads the app locale and config from the bootstrap data.
+beforeEach(() => {
+  const app = document.createElement('div');
+  app.id = 'app';
+  app.setAttribute(
+    'data-bootstrap',
+    JSON.stringify({
+      common: { conf: {}, menu_data: { navbar_right: { locale: 'en' } } },
+    }),
+  );
+  document.body.appendChild(app);
+});
+
+afterEach(() => {
+  document.getElementById('app')?.remove();
+});
+
 const setup = (value?: LayerConf[]) => {
   const onChange = jest.fn();
   render(
@@ -57,6 +74,7 @@ const setup = (value?: LayerConf[]) => {
       value={value}
       onChange={onChange}
     />,
+    { useDnd: true },
   );
   return { onChange };
 };
@@ -84,7 +102,7 @@ test('removing a layer emits the list without it', async () => {
   const [removeRoads] = screen.getAllByRole('button', { name: /close/i });
   await userEvent.click(removeRoads);
   expect(onChange).toHaveBeenCalledWith([
-    wms('Rivers', 'https://b.example.com'),
+    expect.objectContaining(wms('Rivers', 'https://b.example.com')),
   ]);
 });
 
@@ -108,15 +126,15 @@ test('adding a layer opens the form and prepends the saved layer', async () => {
 
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith([
-    {
+    expect.objectContaining({
       type: 'WMS',
       version: '1.3.0',
       title: 'Parcels',
       url: 'https://new.example.com/wms',
       layersParam: 'parcels',
       attribution: undefined,
-    },
-    ...existing,
+    }),
+    ...existing.map(l => expect.objectContaining(l)),
   ]);
 });
 
@@ -208,12 +226,12 @@ test('adding an XYZ layer emits only the base fields', async () => {
   );
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith([
-    {
+    expect.objectContaining({
       type: 'XYZ',
       title: 'Tiles',
       url: 'https://tiles.example.com/{z}/{x}/{y}.png',
       attribution: undefined,
-    },
+    }),
   ]);
 });
 
@@ -248,16 +266,17 @@ test('adding a WFS layer emits its type name, version and feature limit', async 
   expect(saved).not.toHaveProperty('layersParam');
 });
 
-test('dragging a layer onto another reorders the list', () => {
+test('dragging a layer onto another emits the reordered list', () => {
   const roads = wms('Roads', 'https://a.example.com');
   const rivers = wms('Rivers', 'https://b.example.com');
   const lakes = wms('Lakes', 'https://c.example.com');
   const { onChange } = setup([roads, rivers, lakes]);
-  const treeNode = (title: string) =>
+  // The drag source and drop target is the DragContainer wrapping each item.
+  const dragContainer = (title: string) =>
     // eslint-disable-next-line testing-library/no-node-access
-    screen.getByRole('button', { name: title }).closest('.ant-tree-treenode')!;
-  const source = treeNode('Roads');
-  const target = treeNode('Lakes');
+    screen.getByRole('button', { name: title }).parentElement!.parentElement!;
+  const source = dragContainer('Roads');
+  const target = dragContainer('Lakes');
 
   fireEvent.dragStart(source);
   fireEvent.dragEnter(target);
@@ -267,5 +286,9 @@ test('dragging a layer onto another reorders the list', () => {
 
   // jsdom reports empty layout rects, so the drop lands after the target.
   expect(onChange).toHaveBeenCalledTimes(1);
-  expect(onChange).toHaveBeenCalledWith([rivers, lakes, roads]);
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining(rivers),
+    expect.objectContaining(lakes),
+    expect.objectContaining(roads),
+  ]);
 });

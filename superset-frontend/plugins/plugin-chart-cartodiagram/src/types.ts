@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
+import {
+  ChartProps,
+  DataRecord,
+  TimeseriesDataRecord,
+} from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { RenderFunction } from 'ol/layer/Layer';
 import { Extent } from 'ol/extent';
@@ -25,6 +30,7 @@ import { Coordinate } from 'ol/coordinate';
 import { Map } from 'ol';
 import { Feature, FeatureCollection, Point } from 'geojson';
 import { Style } from 'geostyler-style';
+import { GeometryFormat } from './constants';
 
 export interface CartodiagramPluginStylesProps {
   height: number;
@@ -32,8 +38,9 @@ export interface CartodiagramPluginStylesProps {
   theme: SupersetTheme;
 }
 
-// TODO find a way to reference props from other charts
-export type ChartConfigProperties = any;
+export type ChartConfigProperties = Record<string, unknown>;
+
+export type ChartTransformer = (props: ChartProps) => ChartConfigProperties;
 
 export type ChartConfigFeature = Feature<Point, ChartConfigProperties>;
 export type ChartConfig = FeatureCollection<
@@ -41,14 +48,39 @@ export type ChartConfig = FeatureCollection<
   ChartConfigFeature['properties']
 >;
 
+export type MapMaxExtentConfigs = {
+  extentMode: 'NONE' | 'CUSTOM';
+  maxX: number;
+  maxY: number;
+  minX: number;
+  minY: number;
+  fixedMaxX: number | undefined;
+  fixedMaxY: number | undefined;
+  fixedMinX: number | undefined;
+  fixedMinY: number | undefined;
+};
+
+export type MapMaxExtentConfigsControlProps =
+  ControlComponentProps<MapMaxExtentConfigs>;
+
+export interface MapMaxExtentTagProps {
+  value: MapMaxExtentConfigs;
+  className?: string;
+}
+
 interface CartodiagramPluginCustomizeProps {
   geomColumn: string;
+  geomFormat: GeometryFormat;
   selectedChart: string;
   chartConfigs: ChartConfig;
+  chartTransformer?: ChartTransformer;
   chartSize: ZoomConfigs;
   chartVizType: string;
   layerConfigs: LayerConf[];
   mapView: MapViewConfigs;
+  maxZoom: number;
+  minZoom: number;
+  mapMaxExtent: MapMaxExtentConfigs;
   chartBackgroundColor: {
     r: number;
     g: number;
@@ -57,6 +89,7 @@ interface CartodiagramPluginCustomizeProps {
   };
   chartBackgroundBorderRadius: number;
   setControlValue: Function;
+  mapExtentPadding?: number | undefined;
 }
 
 export type CartodiagramPluginProps = CartodiagramPluginStylesProps &
@@ -70,14 +103,15 @@ export interface OlChartMapProps extends CartodiagramPluginProps {
 }
 
 export interface BaseLayerConf {
+  id?: string;
   title: string;
-  url: string;
   type: string;
   attribution?: string;
 }
 
 export interface WfsLayerConf extends BaseLayerConf {
   type: 'WFS';
+  url: string;
   typeName: string;
   version: string;
   maxFeatures?: number;
@@ -86,15 +120,26 @@ export interface WfsLayerConf extends BaseLayerConf {
 
 export interface XyzLayerConf extends BaseLayerConf {
   type: 'XYZ';
+  url: string;
 }
 
 export interface WmsLayerConf extends BaseLayerConf {
   type: 'WMS';
+  url: string;
   version: string;
   layersParam: string;
 }
 
-export type LayerConf = WmsLayerConf | WfsLayerConf | XyzLayerConf;
+export interface DataLayerConf extends BaseLayerConf {
+  type: 'DATA';
+  style?: Style;
+}
+
+export type LayerConf =
+  | WmsLayerConf
+  | WfsLayerConf
+  | XyzLayerConf
+  | DataLayerConf;
 
 export type EventHandlers = Record<string, { (props: any): void }>;
 
@@ -173,6 +218,7 @@ export type ChartHtmlElement = {
 export type ChartLayerOptions = {
   chartSizeValues?: ChartSizeValues;
   chartConfigs?: ChartConfig;
+  chartTransformer?: ChartTransformer;
   chartVizType: string;
   onMouseOver?: (this: GlobalEventHandlers, ev: MouseEvent) => any | undefined;
   onMouseOut?: (this: GlobalEventHandlers, ev: MouseEvent) => any | undefined;
@@ -206,4 +252,17 @@ export type ChartWrapperProps = {
   height: number;
   chartConfig: ChartConfigFeature;
   locale: string;
+};
+
+export type MapProjections = {
+  [key: string]: string;
+};
+
+export type MapBootstrapData = {
+  common: {
+    conf: {
+      MAP_PROJECTIONS: MapProjections;
+      MAP_DEFAULT_LAYERS: LayerConf[];
+    };
+  };
 };

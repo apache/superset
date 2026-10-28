@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { LayerConf, WfsLayerConf, WmsLayerConf, XyzLayerConf } from './types';
+import {
+  DataLayerConf,
+  LayerConf,
+  WfsLayerConf,
+  WmsLayerConf,
+  XyzLayerConf,
+} from './types';
 
 export const isWmsLayerConf = (
   layerConf: LayerConf,
@@ -29,3 +35,7 @@ export const isWfsLayerConf = (
 export const isXyzLayerConf = (
   layerConf: LayerConf,
 ): layerConf is XyzLayerConf => layerConf.type === 'XYZ';
+
+export const isDataLayerConf = (
+  layerConf: LayerConf,
+): layerConf is DataLayerConf => layerConf.type === 'DATA';
