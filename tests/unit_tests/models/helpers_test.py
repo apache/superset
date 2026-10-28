@@ -6821,3 +6821,104 @@ def test_not_in_filter_null_check_uses_the_engine_spec_hook(
     kql = compile_not_in()
     assert "isnull(state)" in kql
     assert "IS NULL" not in kql
+
+
+def test_get_sqla_query_malformed_temporal_range_raises_validation_error(
+    database: Database,
+) -> None:
+    """
+    Test that an invalid temporal range filter (e.g. 'a : b' or inverted dates)
+    raises QueryObjectValidationError naming the column, returning 400 instead of 500.
+    Fixes #45459.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ds", type="TIMESTAMP", is_dttm=True),
+            TableColumn(column_name="other_ds", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="other_ds"):
+        table.get_sqla_query(
+            columns=["ds"],
+            metrics=[],
+            extras={},
+            filter=[
+                {
+                    "col": "ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01 : 2024-01-02",
+                },
+                {
+                    "col": "other_ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "a : b",
+                },
+            ],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+    with pytest.raises(QueryObjectValidationError, match="other_ds"):
+        table.get_sqla_query(
+            columns=["ds"],
+            metrics=[],
+            extras={},
+            filter=[
+                {
+                    "col": "ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-01-01 : 2024-01-02",
+                },
+                {
+                    "col": "other_ds",
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": "2024-02-01 : 2024-01-01",
+                },
+            ],
+            granularity=None,
+            is_timeseries=False,
+        )
+
+
+def test_processing_time_offsets_malformed_time_range_raises_validation_error(
+    database: Database,
+) -> None:
+    """
+    Test that processing_time_offsets raises QueryObjectValidationError on
+    malformed temporal filters when calculating time shifts.
+    Fixes #45459.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="ds", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    query_object = QueryObject(
+        columns=["ds"],
+        filter=[
+            {"col": "ds", "op": FilterOperator.TEMPORAL_RANGE, "val": "a : b"},
+        ],
+        time_offsets=["1 day ago"],
+    )
+
+    df = pd.DataFrame({"ds": [pd.Timestamp("2024-01-01")]})
+
+    with pytest.raises(QueryObjectValidationError):
+        table.processing_time_offsets(df, query_object)

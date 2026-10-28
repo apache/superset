@@ -61,6 +61,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
+from marshmallow import ValidationError
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
@@ -88,6 +89,10 @@ from sqlalchemy_utils import UUIDType
 
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
+from superset.commands.chart.exceptions import (
+    TimeRangeAmbiguousError,
+    TimeRangeParseFailError,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
     grouping_marker_label,
@@ -3037,7 +3042,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
 
-        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        try:
+            outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(
+                query_object
+            )
+        except (
+            TimeRangeParseFailError,
+            TimeRangeAmbiguousError,
+            ValidationError,
+            ValueError,
+        ) as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
+
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
                 _(
@@ -3065,7 +3081,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         offset_from_dttm, offset_to_dttm = (
                             get_since_until_from_time_range(time_range=offset)
                         )
-                    except ValueError as ex:
+                    except (
+                        TimeRangeParseFailError,
+                        TimeRangeAmbiguousError,
+                        ValidationError,
+                        ValueError,
+                    ) as ex:
                         raise QueryObjectValidationError(str(ex)) from ex
 
                     # Use the specified range directly
@@ -3189,13 +3210,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             flt.get("val"), str
                         ):
                             time_range = cast(str, flt.get("val"))
-                            (
-                                new_outer_from_dttm,
-                                new_outer_to_dttm,
-                            ) = get_since_until_from_time_range(
-                                time_range=time_range,
-                                time_shift=offset,
-                            )
+                            try:
+                                (
+                                    new_outer_from_dttm,
+                                    new_outer_to_dttm,
+                                ) = get_since_until_from_time_range(
+                                    time_range=time_range,
+                                    time_shift=offset,
+                                )
+                            except (
+                                TimeRangeParseFailError,
+                                TimeRangeAmbiguousError,
+                                ValidationError,
+                                ValueError,
+                            ) as ex:
+                                col_name = flt.get("col") or "unknown"
+                                raise QueryObjectValidationError(
+                                    _(
+                                        "Cannot parse time range for filter "
+                                        "'%(col)s': %(err)s",
+                                        col=col_name,
+                                        err=str(ex),
+                                    )
+                                ) from ex
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
                 else:
                     # If it IS a datetime series, we still need to clear conflicts
@@ -6980,11 +7017,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):
-                        _since, _until = get_since_until_from_time_range(
-                            time_range=eq,
-                            time_shift=time_shift,
-                            extras=extras,
-                        )
+                        try:
+                            _since, _until = get_since_until_from_time_range(
+                                time_range=eq,
+                                time_shift=time_shift,
+                                extras=extras,
+                            )
+                        except (
+                            TimeRangeParseFailError,
+                            TimeRangeAmbiguousError,
+                            ValidationError,
+                            ValueError,
+                        ) as ex:
+                            col_name = (
+                                col_obj.column_name
+                                if hasattr(col_obj, "column_name")
+                                else str(col_obj)
+                            )
+                            raise QueryObjectValidationError(
+                                _(
+                                    "Cannot parse time range for filter "
+                                    "'%(col)s': %(err)s",
+                                    col=col_name,
+                                    err=str(ex),
+                                )
+                            ) from ex
                         _temporal_filter = self.get_time_filter(
                             time_col=col_obj,
                             start_dttm=_since,
