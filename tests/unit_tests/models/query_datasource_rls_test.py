@@ -302,3 +302,27 @@ def test_query_datasource_cache_key_has_rls_of_dataset_sharing_its_id(
         cache_keys = query.get_extra_cache_keys({})
 
     assert cache_keys == [json.dumps(["rls", None, "main", "t", PREDICATE])]
+
+
+def test_query_datasource_cache_key_has_global_guest_rls(
+    database: Database,
+    session: Session,
+    global_guest_rule: None,
+) -> None:
+    """Include global guest rules in the table-tagged key, matching execution."""
+    query = Query(
+        id=8,
+        client_id="rls-guest-key",
+        database=database,
+        schema="main",
+        sql="SELECT * FROM t",
+    )
+    session.add(query)
+    session.flush()
+
+    from_clause, _ = query.get_from_clause()
+
+    assert PREDICATE in str(from_clause)
+    assert query.get_extra_cache_keys({}) == [
+        json.dumps(["rls", None, "main", "t", f"({PREDICATE})"])
+    ]
