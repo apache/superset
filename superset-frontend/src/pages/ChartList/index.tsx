@@ -95,6 +95,10 @@ import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
+import ReviewStatusTag, {
+  useOpenChanges,
+} from 'src/features/changeManagement/ReviewStatusTag';
+import ReplacesPendingChange from 'src/features/changeManagement/ReplacesPendingChange';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -113,11 +117,6 @@ const FlexRowContainer = styled.div`
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
-
-import ReviewStatusTag, {
-  useOpenChanges,
-} from 'src/features/changeManagement/ReviewStatusTag';
-import ReplacesPendingChange from 'src/features/changeManagement/ReplacesPendingChange';
 
 const PAGE_SIZE = 25;
 // How many blocking alerts/reports the archive modal previews before the

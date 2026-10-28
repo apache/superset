@@ -140,7 +140,13 @@ function rowsOf(diff?: NamedDiff): Row[] {
     items.forEach(item => {
       const fields = item.fields ?? [];
       if (!fields.length) {
-        rows.push({ kind, name: item.name, field: '—', before: null, after: null });
+        rows.push({
+          kind,
+          name: item.name,
+          field: '—',
+          before: null,
+          after: null,
+        });
         return;
       }
       fields.forEach(f =>
@@ -211,12 +217,14 @@ export default function DatasetReviewModal({
   ];
   // Open where the change is. Landing on an empty tab and reading "no
   // column changed" reads as nothing having changed at all.
-  const firstWithChanges = tabs.find(entry => entry.count > 0)?.key ?? 'columns';
+  const firstWithChanges =
+    tabs.find(entry => entry.count > 0)?.key ?? 'columns';
   const [tab, setTab] = useState(firstWithChanges);
 
   if (!detail) return null;
 
-  const rows = tab === 'metrics' ? metricRows : tab === 'columns' ? columnRows : [];
+  const rows =
+    tab === 'metrics' ? metricRows : tab === 'columns' ? columnRows : [];
 
   return (
     <Modal
@@ -226,7 +234,11 @@ export default function DatasetReviewModal({
       onHide={onClose}
       footer={
         <FooterRow>
-          <a href={assetUrl(changeRequest)} target="_blank" rel="noopener noreferrer">
+          <a
+            href={assetUrl(changeRequest)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t('Open live dataset')}
           </a>
           <span>
@@ -263,7 +275,12 @@ export default function DatasetReviewModal({
         closable={false}
         message={t(
           'Used by %s on %s. Changes apply to all of them once approved.',
-          tn('%s chart', '%s charts', detail.impact.charts, detail.impact.charts),
+          tn(
+            '%s chart',
+            '%s charts',
+            detail.impact.charts,
+            detail.impact.charts,
+          ),
           tn(
             '%s dashboard',
             '%s dashboards',
@@ -327,7 +344,7 @@ export default function DatasetReviewModal({
         <Table>
           <thead>
             <tr>
-              <th />
+              <th aria-label={t('Change type')} />
               <th>{tab === 'metrics' ? t('Metric') : t('Column')}</th>
               <th>{t('Field')}</th>
               <th>{t('Live')}</th>

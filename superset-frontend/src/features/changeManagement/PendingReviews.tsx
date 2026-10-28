@@ -99,7 +99,6 @@ const Footer = styled.div`
   `}
 `;
 
-
 /**
  * Pending reviews on Home.
  *
@@ -165,11 +164,7 @@ export default function PendingReviews() {
                       displayName(row.author),
                       age(row.submitted_at),
                     )
-                  : t(
-                      '%s · %s',
-                      displayName(row.author),
-                      ago(row.changed_on),
-                    )}
+                  : t('%s · %s', displayName(row.author), ago(row.changed_on))}
               </Meta>
             </Card>
           ))}

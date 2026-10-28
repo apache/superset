@@ -82,6 +82,7 @@ import {
   RightMenuProps,
 } from './types';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
+import NotificationBell from 'src/features/changeManagement/NotificationBell';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -119,8 +120,6 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
     }
   `}
 `;
-
-import NotificationBell from 'src/features/changeManagement/NotificationBell';
 
 const RightMenu = ({
   align,

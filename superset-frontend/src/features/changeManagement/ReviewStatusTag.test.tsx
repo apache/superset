@@ -61,9 +61,7 @@ test('clicking the tag opens the change request page', async () => {
     useRouter: true,
   });
 
-  await userEvent.click(
-    screen.getByRole('link', { name: 'Changes pending' }),
-  );
+  await userEvent.click(screen.getByRole('link', { name: 'Changes pending' }));
 
   // The tag opens the list, which is the one way in now: it reviews a
   // dashboard or chart on the asset, and a dataset in place.

@@ -141,7 +141,11 @@ export default function AssetReview({
   }, [pendingRequest, changeRequest?.status]);
 
   const run = useCallback(
-    async (action: () => Promise<unknown>, message: string, applied = false) => {
+    async (
+      action: () => Promise<unknown>,
+      message: string,
+      applied = false,
+    ) => {
       setBusy(true);
       try {
         await action();
@@ -154,7 +158,8 @@ export default function AssetReview({
         // replacing them with a generic failure here would throw away the
         // only useful part.
         const detail =
-          (error as { message?: string })?.message ?? t('Something went wrong.');
+          (error as { message?: string })?.message ??
+          t('Something went wrong.');
         addDangerToast(detail);
       } finally {
         setBusy(false);
@@ -239,22 +244,22 @@ export default function AssetReview({
 
       {panelOpen && !changeRequest.dataset_detail
         ? renderPanel(
-        <WhatChangedPanel
-          changeRequest={changeRequest}
-          onClose={() => setPanelOpen(false)}
-          review={
-            isReviewer
-              ? {
-                  busy,
-                  onApprove: note => {
-                    setApproveNote(note);
-                    setApproveOpen(true);
-                  },
-                  onRequestChanges: () => setChangesOpen(true),
-                }
-              : undefined
-          }
-        />,
+            <WhatChangedPanel
+              changeRequest={changeRequest}
+              onClose={() => setPanelOpen(false)}
+              review={
+                isReviewer
+                  ? {
+                      busy,
+                      onApprove: note => {
+                        setApproveNote(note);
+                        setApproveOpen(true);
+                      },
+                      onRequestChanges: () => setChangesOpen(true),
+                    }
+                  : undefined
+              }
+            />,
           )
         : null}
 

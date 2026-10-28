@@ -96,7 +96,11 @@ export default function ReviewBanner({
   busy = false,
 }: ReviewBannerProps) {
   const content = useMemo<BannerContent>(() => {
-    const { status, is_author: isAuthor, can_approve: canApprove } = changeRequest;
+    const {
+      status,
+      is_author: isAuthor,
+      can_approve: canApprove,
+    } = changeRequest;
     const author = displayName(changeRequest.author);
     const whatChanged = {
       key: 'what-changed',
@@ -174,7 +178,11 @@ export default function ReviewBanner({
       // Another editor, who cannot approve this one.
       return {
         type: 'info',
-        message: t('%s has changes awaiting review · %s', author, changeCount(changeRequest)),
+        message: t(
+          '%s has changes awaiting review · %s',
+          author,
+          changeCount(changeRequest),
+        ),
         actions: [whatChanged, openLive],
       };
     }

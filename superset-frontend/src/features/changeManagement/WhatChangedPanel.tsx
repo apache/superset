@@ -233,100 +233,102 @@ export default function WhatChangedPanel({
       </Header>
 
       <Body>
-      <Section>
-        <SectionTitle>{t('Status')}</SectionTitle>
-        <div>{STATUS_LABEL[changeRequest.status]}</div>
-        <Muted>
-          {t('by %s · %s', displayName(changeRequest.author), ago(changeRequest.changed_on))}
-        </Muted>
-      </Section>
-
-      {changeRequest.note || review ? (
         <Section>
-          <SectionTitle>{t('Note')}</SectionTitle>
-          {changeRequest.note ? <Note>{changeRequest.note}</Note> : null}
-          {review ? (
-            <AddNote
-              value={extraNote}
-              onChange={e => setExtraNote(e.target.value)}
-              placeholder={t('Add to the note (optional)')}
-              rows={2}
-              data-test="approver-note"
-            />
-          ) : null}
+          <SectionTitle>{t('Status')}</SectionTitle>
+          <div>{STATUS_LABEL[changeRequest.status]}</div>
+          <Muted>
+            {t(
+              'by %s · %s',
+              displayName(changeRequest.author),
+              ago(changeRequest.changed_on),
+            )}
+          </Muted>
         </Section>
-      ) : null}
 
-      {changeRequest.review_note ? (
-        <Section>
-          <SectionTitle>{t('What needs to change')}</SectionTitle>
-          <Note>{changeRequest.review_note}</Note>
-          <Muted>{t('— %s', displayName(changeRequest.reviewer))}</Muted>
-        </Section>
-      ) : null}
+        {changeRequest.note || review ? (
+          <Section>
+            <SectionTitle>{t('Note')}</SectionTitle>
+            {changeRequest.note ? <Note>{changeRequest.note}</Note> : null}
+            {review ? (
+              <AddNote
+                value={extraNote}
+                onChange={e => setExtraNote(e.target.value)}
+                placeholder={t('Add to the note (optional)')}
+                rows={2}
+                data-test="approver-note"
+              />
+            ) : null}
+          </Section>
+        ) : null}
 
-      {/* A dataset's definition diff *is* its list of changes. Rendering it
+        {changeRequest.review_note ? (
+          <Section>
+            <SectionTitle>{t('What needs to change')}</SectionTitle>
+            <Note>{changeRequest.review_note}</Note>
+            <Muted>{t('— %s', displayName(changeRequest.reviewer))}</Muted>
+          </Section>
+        ) : null}
+
+        {/* A dataset's definition diff *is* its list of changes. Rendering it
           in its own section and then a second "What changed" section below
           produced a panel that listed a renamed metric and then said
           "0 changes · Nothing differs from the live version" underneath
           it: two sections counting from two different fields. One section
           now, counted once. */}
-      {isDatasetDefinition ? (
-        <Section>
-          <SectionTitle>
-            {`${t('What changed')} · ${changeCount(changeRequest)}`}
-          </SectionTitle>
-          <DatasetReview detail={changeRequest.dataset_detail!} />
-        </Section>
-      ) : (
-      <Section>
-        <SectionTitle>
-          {changeRequest.operation === 'delete'
-            ? t('What happens')
-            : `${t('What changed')} · ${changeCount(changeRequest)}`}
-        </SectionTitle>
-
-        {changeRequest.operation === 'delete' ? (
-          // A delete has no fields. Saying "0 changes" would describe the
-          // most consequential request in the system as nothing happening.
-          <Muted>
-            {t('This asset would be removed once approved.')}
-          </Muted>
-        ) : fields.length === 0 ? (
-          // Everything submitted matched what was already stored. Saying
-          // "no fields recorded" would imply we lost the detail; the truth
-          // is the save carried nothing new.
-          <Muted>{t('Nothing differs from the live version.')}</Muted>
+        {isDatasetDefinition ? (
+          <Section>
+            <SectionTitle>
+              {`${t('What changed')} · ${changeCount(changeRequest)}`}
+            </SectionTitle>
+            <DatasetReview detail={changeRequest.dataset_detail!} />
+          </Section>
         ) : (
-          (changeRequest.changes ?? []).map(change => (
-            <FieldBlock key={change.field}>
-              <FieldName>{fieldLabel(change.field)}</FieldName>
-              {change.opaque ? (
-                change.layout ? (
-                  <Muted>
-                    {t(
-                      '%s added, %s removed, %s moved',
-                      change.layout.added,
-                      change.layout.removed,
-                      change.layout.changed,
-                    )}
-                  </Muted>
-                ) : change.keys?.length ? (
-                  <Muted>{summarise(change.keys)}</Muted>
-                ) : (
-                  <Tag>{t('Changed')}</Tag>
-                )
-              ) : (
-                <>
-                  <Before>{String(change.before ?? '—')}</Before>
-                  <After>{String(change.after ?? '—')}</After>
-                </>
-              )}
-            </FieldBlock>
-          ))
+          <Section>
+            <SectionTitle>
+              {changeRequest.operation === 'delete'
+                ? t('What happens')
+                : `${t('What changed')} · ${changeCount(changeRequest)}`}
+            </SectionTitle>
+
+            {changeRequest.operation === 'delete' ? (
+              // A delete has no fields. Saying "0 changes" would describe the
+              // most consequential request in the system as nothing happening.
+              <Muted>{t('This asset would be removed once approved.')}</Muted>
+            ) : fields.length === 0 ? (
+              // Everything submitted matched what was already stored. Saying
+              // "no fields recorded" would imply we lost the detail; the truth
+              // is the save carried nothing new.
+              <Muted>{t('Nothing differs from the live version.')}</Muted>
+            ) : (
+              (changeRequest.changes ?? []).map(change => (
+                <FieldBlock key={change.field}>
+                  <FieldName>{fieldLabel(change.field)}</FieldName>
+                  {change.opaque ? (
+                    change.layout ? (
+                      <Muted>
+                        {t(
+                          '%s added, %s removed, %s moved',
+                          change.layout.added,
+                          change.layout.removed,
+                          change.layout.changed,
+                        )}
+                      </Muted>
+                    ) : change.keys?.length ? (
+                      <Muted>{summarise(change.keys)}</Muted>
+                    ) : (
+                      <Tag>{t('Changed')}</Tag>
+                    )
+                  ) : (
+                    <>
+                      <Before>{String(change.before ?? '—')}</Before>
+                      <After>{String(change.after ?? '—')}</After>
+                    </>
+                  )}
+                </FieldBlock>
+              ))
+            )}
+          </Section>
         )}
-      </Section>
-      )}
       </Body>
 
       {review ? (

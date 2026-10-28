@@ -72,7 +72,13 @@ export function useAssetReview(
   // A save that was captured for review happened on this page, so what we
   // fetched on load is already stale: re-read rather than make the author
   // reload to discover their own draft (129074).
-  useEffect(() => onChangeCaptured(() => void refresh()), [refresh]);
+  useEffect(
+    () =>
+      onChangeCaptured(() => {
+        refresh();
+      }),
+    [refresh],
+  );
 
   return { changeRequest, loading, refresh };
 }
@@ -88,7 +94,9 @@ export function useOpenChange(
   assetType: ReviewAssetType,
   assetId?: number | null,
 ) {
-  const [changeRequest, setChangeRequest] = useState<ChangeRequest | null>(null);
+  const [changeRequest, setChangeRequest] = useState<ChangeRequest | null>(
+    null,
+  );
 
   useEffect(() => {
     let live = true;

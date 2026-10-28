@@ -87,11 +87,10 @@ export interface ReviewStatusTagProps {
   assetId?: number | string;
 }
 
-function LinkedReviewTag({
-  status,
-  assetType,
-  assetId,
-}: Required<ReviewStatusTagProps>) {
+// `assetType` and `assetId` are what the caller used to decide this variant
+// should render at all, and they are passed on for that reason -- the link
+// itself is the author's queue rather than this asset's own request.
+function LinkedReviewTag({ status }: Required<ReviewStatusTagProps>) {
   const history = useHistory();
 
   const openRequest = useCallback(() => {

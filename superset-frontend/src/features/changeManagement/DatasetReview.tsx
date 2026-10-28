@@ -113,7 +113,8 @@ function DiffList({ title, diff }: { title: string; diff?: NamedDiff }) {
           <Tag color="orange">{t('Changed')}</Tag> <Name>{item.name}</Name>
           {(item.fields ?? []).map(f => (
             <Delta key={f.field}>
-              {f.field}: <Was>{show(f.before)}</Was> → <Now>{show(f.after)}</Now>
+              {f.field}: <Was>{show(f.before)}</Was> →{' '}
+              <Now>{show(f.after)}</Now>
             </Delta>
           ))}
         </div>
@@ -147,7 +148,12 @@ export default function DatasetReview({ detail }: { detail: DatasetDetail }) {
               review reads as a bug and undermines the number beside it. */}
           {t(
             'Used by %s on %s. Changes apply to all of them once approved.',
-            tn('%s chart', '%s charts', detail.impact.charts, detail.impact.charts),
+            tn(
+              '%s chart',
+              '%s charts',
+              detail.impact.charts,
+              detail.impact.charts,
+            ),
             tn(
               '%s dashboard',
               '%s dashboards',

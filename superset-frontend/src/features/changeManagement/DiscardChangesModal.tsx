@@ -81,7 +81,10 @@ export default function DiscardChangesModal({
             )}
       </div>
       <Hint>
-        {t('%s sees this in their Approvals history: "Discarded by you".', author)}
+        {t(
+          '%s sees this in their Approvals history: "Discarded by you".',
+          author,
+        )}
       </Hint>
     </Modal>
   );

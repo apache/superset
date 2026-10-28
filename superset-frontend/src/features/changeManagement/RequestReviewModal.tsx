@@ -22,11 +22,7 @@ import { Modal, Select } from '@superset-ui/core/components';
 import { Input } from '@superset-ui/core/components/Input';
 import { styled } from '@apache-superset/core/theme';
 import { displayName } from './types';
-import {
-  fetchAssetEditorIds,
-  fetchEditorOptions,
-  saveEditors,
-} from './api';
+import { fetchAssetEditorIds, fetchEditorOptions, saveEditors } from './api';
 import type { ChangeRequest, UserBrief } from './types';
 
 const Field = styled.div`
@@ -111,17 +107,18 @@ export default function RequestReviewModal({
     fetchAssetEditorIds(changeRequest.asset_type, changeRequest.asset_id)
       .then(setEditorIds)
       .catch(() => setEditorIds([]));
-  }, [open, approvers.length, changeRequest.asset_type, changeRequest.asset_id]);
+  }, [
+    open,
+    approvers.length,
+    changeRequest.asset_type,
+    changeRequest.asset_id,
+  ]);
 
   const onEditorsPicked = async (ids: number[]) => {
     setEditorIds(ids);
     setSavingEditors(true);
     try {
-      await saveEditors(
-        changeRequest.asset_type,
-        changeRequest.asset_id,
-        ids,
-      );
+      await saveEditors(changeRequest.asset_type, changeRequest.asset_id, ids);
       await onEditorsChanged?.();
     } finally {
       setSavingEditors(false);

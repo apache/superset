@@ -66,7 +66,9 @@ export function namesOf(users: UserBrief[] | undefined): string {
 }
 
 function namedCount(diff?: NamedDiff): number {
-  return diff ? diff.added.length + diff.changed.length + diff.removed.length : 0;
+  return diff
+    ? diff.added.length + diff.changed.length + diff.removed.length
+    : 0;
 }
 
 /**
@@ -76,9 +78,7 @@ function namedCount(diff?: NamedDiff): number {
  * the change -- so a count that reads only `changes` reports zero for a
  * request that plainly renames a metric.
  */
-export function datasetChangeCount(
-  detail?: DatasetDetail | null,
-): number {
+export function datasetChangeCount(detail?: DatasetDetail | null): number {
   if (!detail) return 0;
   const sqlChanged =
     !!detail.sql && (detail.sql.before ?? '') !== (detail.sql.after ?? '');
@@ -131,12 +131,16 @@ export function assetUrl(changeRequest: ChangeRequest): string {
  *
  * Surfaces that have no review banner of their own (a modal over a list, for
  * one) would otherwise leave the author with no way to reach the request they
- * just created. The link carries the change request's id, which is the id
- * `/approvals/<id>/` expects.
+ * just created, so the link lands them on their own queue.
+ *
+ * The request's id is taken but not used in the link yet. Pointing at
+ * `/approvals/<id>` would be a better landing place, and `approvalsPath`
+ * already builds it; the behaviour as it stands is what the tests pin, so
+ * changing it is a decision rather than a tidy-up.
  */
 export function reviewRequiredToast(
   message: string | undefined,
-  changeRequestId: number,
+  _changeRequestId: number,
 ): { text: string; options: { allowHtml: boolean; duration: number } } {
   const text =
     message ?? t('Changes saved. Viewers still see the live version.');
