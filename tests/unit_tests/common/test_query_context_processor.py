@@ -33,9 +33,11 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
+from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
+from superset.superset_typing import AdhocColumn
 from superset.utils import json as superset_json
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, QueryObjectFilterClause
 from superset.utils.date_parser import get_past_or_future
 
 
@@ -3128,6 +3130,230 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 
     assert result == {"records": [{"x": 1}]}
     assert query_object.annotation_layers == []
+
+
+HOST_RANGE = "2004-01-01 : 2005-01-01"
+
+
+def _axis_column(time_grain: str) -> AdhocColumn:
+    return {
+        "columnType": "BASE_AXIS",
+        "sqlExpression": "order_date",
+        "label": "order_date",
+        "timeGrain": time_grain,
+    }
+
+
+def _source_query(
+    filters: list[QueryObjectFilterClause] | None = None,
+) -> QueryObject:
+    """A chart-sourced annotation query, as a Table chart with a Day grain saves it."""
+    return QueryObject(
+        columns=[_axis_column("P1D"), "status"],
+        metrics=[],
+        filters=(
+            [{"col": "order_date", "op": "TEMPORAL_RANGE", "val": "No filter"}]
+            if filters is None
+            else filters
+        ),
+        extras={"time_grain_sqla": "P1D"},
+    )
+
+
+def _host_query(
+    filters: list[QueryObjectFilterClause] | None = None,
+    time_range: str | None = None,
+) -> QueryObject:
+    """The host chart query: a Month grain line chart restricted to 2004."""
+    return QueryObject(
+        columns=[_axis_column("P1M")],
+        metrics=[],
+        filters=(
+            [{"col": "order_date", "op": "TEMPORAL_RANGE", "val": HOST_RANGE}]
+            if filters is None
+            else filters
+        ),
+        extras={"time_grain_sqla": "P1M"},
+        time_range=time_range,
+    )
+
+
+def _run_layer(
+    layer: dict[str, Any],
+    source_queries: list[QueryObject],
+    host_query: QueryObject | None,
+    column_names: list[str] | None = None,
+) -> None:
+    """Fetch annotation data for ``layer`` with the source chart mocked out."""
+    query_context: MagicMock = MagicMock(queries=source_queries)
+    query_context.datasource.column_names = column_names or ["order_date", "status"]
+    chart: MagicMock = MagicMock(id=42)
+    chart.get_query_context.return_value = query_context
+    command: MagicMock = MagicMock()
+    command.run.return_value = {"queries": [{"data": []}]}
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source", "timeColumn": "order_date", **layer},
+            force=False,
+            host_query=host_query,
+        )
+
+
+def test_get_viz_annotation_data_inherits_host_time_range(app_context: Any) -> None:
+    """A ``None`` time range override runs the source over the host's range."""
+    source: QueryObject = _source_query()
+    _run_layer({"overrides": {"time_range": None}}, [source], _host_query())
+    assert source.time_range == HOST_RANGE
+    assert source.filter[0]["val"] == HOST_RANGE
+    assert source.from_dttm == datetime(2004, 1, 1)
+    assert source.to_dttm == datetime(2005, 1, 1)
+
+
+def test_get_viz_annotation_data_applies_explicit_time_range(app_context: Any) -> None:
+    """An explicit time range override rewrites the source's TEMPORAL_RANGE filter."""
+    source: QueryObject = _source_query()
+    _run_layer(
+        {"overrides": {"time_range": "2005-01-01 : 2006-01-01"}},
+        [source],
+        _host_query(),
+    )
+    assert source.time_range == "2005-01-01 : 2006-01-01"
+    assert source.filter[0]["val"] == "2005-01-01 : 2006-01-01"
+    assert source.from_dttm == datetime(2005, 1, 1)
+    assert source.to_dttm == datetime(2006, 1, 1)
+
+
+def test_get_viz_annotation_data_without_overrides_keeps_source(
+    app_context: Any,
+) -> None:
+    """Without override keys the source chart runs with its own settings."""
+    source: QueryObject = _source_query()
+    _run_layer({"overrides": {}}, [source], _host_query())
+    assert source.time_range is None
+    assert source.filter[0]["val"] == "No filter"
+    assert source.from_dttm is None
+    assert source.to_dttm is None
+    assert source.columns[0] == _axis_column("P1D")
+    assert source.extras["time_grain_sqla"] == "P1D"
+
+
+def test_get_viz_annotation_data_without_host_keeps_source(app_context: Any) -> None:
+    """Inheriting with no host query (the old call signature) changes nothing."""
+    source: QueryObject = _source_query()
+    _run_layer(
+        {"overrides": {"time_range": None, "time_grain_sqla": None}}, [source], None
+    )
+    assert source.time_range is None
+    assert source.filter[0]["val"] == "No filter"
+    assert source.columns[0] == _axis_column("P1D")
+
+
+def test_get_viz_annotation_data_inherits_dashboard_time_range(
+    app_context: Any,
+) -> None:
+    """A dashboard range left in the host's ``time_range`` is inherited."""
+    source: QueryObject = _source_query()
+    _run_layer(
+        {"overrides": {"time_range": None}},
+        [source],
+        _host_query(filters=[], time_range="Last year"),
+    )
+    assert source.time_range == "Last year"
+    assert source.filter[0]["val"] == "Last year"
+
+
+def test_get_viz_annotation_data_adds_time_filter_on_layer_column(
+    app_context: Any,
+) -> None:
+    """A source without a time filter gets one on the layer's time column."""
+    source: QueryObject = _source_query(filters=[])
+    _run_layer({"overrides": {"time_range": None}}, [source], _host_query())
+    assert source.filter == [
+        {"col": "order_date", "op": "TEMPORAL_RANGE", "val": HOST_RANGE}
+    ]
+    assert source.time_range == HOST_RANGE
+
+
+def test_get_viz_annotation_data_skips_time_filter_on_unknown_column(
+    app_context: Any,
+) -> None:
+    """No time filter is added when the layer's time column is not in the source."""
+    source: QueryObject = _source_query(filters=[])
+    _run_layer(
+        {"overrides": {"time_range": None}, "timeColumn": "ts"},
+        [source],
+        _host_query(),
+        column_names=["order_date"],
+    )
+    assert source.filter == []
+
+
+def test_get_viz_annotation_data_inherits_host_time_grain(app_context: Any) -> None:
+    """A ``None`` grain override applies the host's BASE_AXIS grain to the source."""
+    source: QueryObject = _source_query()
+    _run_layer(
+        {"overrides": {"time_grain_sqla": None, "granularity": None}},
+        [source],
+        _host_query(),
+    )
+    assert source.columns[0] == _axis_column("P1M")
+    assert source.extras["time_grain_sqla"] == "P1M"
+    assert source.granularity is None
+
+
+def test_get_viz_annotation_data_applies_explicit_time_grain(app_context: Any) -> None:
+    """An explicit grain override is applied to the source's BASE_AXIS column."""
+    source: QueryObject = _source_query()
+    _run_layer({"overrides": {"time_grain_sqla": "P1W"}}, [source], _host_query())
+    assert source.columns[0] == _axis_column("P1W")
+    assert source.extras["time_grain_sqla"] == "P1W"
+
+
+def test_get_viz_annotation_data_overrides_every_source_query(
+    app_context: Any,
+) -> None:
+    """Overrides reach every query of a multi-query source chart."""
+    first: QueryObject = _source_query()
+    second: QueryObject = _source_query()
+    _run_layer(
+        {"overrides": {"time_range": None, "time_grain_sqla": None}},
+        [first, second],
+        _host_query(),
+    )
+    for source in (first, second):
+        assert source.filter[0]["val"] == HOST_RANGE
+        assert source.columns[0] == _axis_column("P1M")
+
+
+def test_get_annotation_data_passes_host_query(app_context: Any) -> None:
+    """The host query is handed to the source chart lookup."""
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock(force=True))
+    layer: dict[str, Any] = {
+        "annotationType": "EVENT",
+        "sourceType": "table",
+        "name": "Source",
+        "value": 42,
+    }
+    query: QueryObject = QueryObject(columns=[], metrics=[], annotation_layers=[layer])
+    with (
+        patch.object(
+            QueryContextProcessor, "get_native_annotation_data", return_value={}
+        ),
+        patch.object(
+            QueryContextProcessor, "get_viz_annotation_data", return_value={"x": 1}
+        ) as get_viz,
+    ):
+        assert processor.get_annotation_data(query) == {"Source": {"x": 1}}
+    get_viz.assert_called_once_with(layer, True, host_query=query)
 
 
 def test_semantic_annotation_null_protocol_versions_parent_cache(

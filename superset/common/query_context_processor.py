@@ -39,7 +39,10 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_time_range,
+    get_time_range_from_filters,
+)
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
@@ -75,6 +78,7 @@ from superset.utils.core import (
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
+    FilterOperator,
     GenericDataType,
     get_column_name,
     get_column_names_from_columns,
@@ -149,6 +153,131 @@ def is_summable(series: pd.Series) -> bool:
     if series.dtype.kind in "biufc":
         return True
     return infer_dtype(series, skipna=True) == "decimal"
+
+
+def _resolve_override(overrides: dict[str, Any], key: str, inherited: Any) -> Any:
+    """Return the value an annotation layer override resolves to.
+
+    An absent key means "no override". A key stored as ``None`` means
+    "inherit from the host chart", which is what the layer popover checkboxes
+    write, and resolves to ``inherited``. Any other value is used as given.
+    """
+    if key not in overrides:
+        return None
+    value = overrides[key]
+    return inherited if value is None else value
+
+
+def _host_time_range(host_query: QueryObject | None) -> str | None:
+    """Return the host chart's time range expression, or ``None`` without one."""
+    if host_query is None:
+        return None
+    has_temporal_filter = any(
+        flt.get("op") == FilterOperator.TEMPORAL_RANGE for flt in host_query.filter
+    )
+    if not host_query.time_range and not has_temporal_filter:
+        return None
+    return get_time_range_from_filters(
+        host_query.time_range, host_query.filter, host_query.columns
+    )
+
+
+def _host_time_grain(host_query: QueryObject | None) -> str | None:
+    """Return the host chart's time grain, or ``None`` when it has none.
+
+    Charts with a generic x-axis carry the grain on their BASE_AXIS column;
+    legacy charts carry it in ``extras["time_grain_sqla"]``.
+    """
+    if host_query is None:
+        return None
+    for column in host_query.columns:
+        if is_adhoc_column(column) and column.get("columnType") == "BASE_AXIS":
+            if grain := column.get("timeGrain"):
+                return grain
+    return host_query.extras.get("time_grain_sqla")
+
+
+def _apply_time_range(
+    query_context: QueryContext, time_range: str, time_column: Any
+) -> None:
+    """Run every query of an annotation source chart over ``time_range``.
+
+    Mirrors ``QueryContextFactory._apply_filters``: the range is written to
+    ``time_range`` and to every TEMPORAL_RANGE filter, which is where charts
+    with a generic x-axis read it, and ``from_dttm``/``to_dttm`` are
+    recomputed for charts on the legacy ``granularity`` path. A source query
+    without a TEMPORAL_RANGE filter gets one on the layer's time column when
+    that column belongs to the source dataset.
+    """
+    column_names = query_context.datasource.column_names
+    for query_object in query_context.queries:
+        query_object.time_range = time_range
+        temporal_filters = [
+            flt
+            for flt in query_object.filter
+            if flt.get("op") == FilterOperator.TEMPORAL_RANGE
+        ]
+        if temporal_filters:
+            for flt in temporal_filters:
+                flt["val"] = time_range
+        elif isinstance(time_column, str) and time_column in column_names:
+            query_object.filter.append(
+                {
+                    "col": time_column,
+                    "op": FilterOperator.TEMPORAL_RANGE,
+                    "val": time_range,
+                }
+            )
+        else:
+            logger.debug(
+                "Annotation source query has no TEMPORAL_RANGE filter and the "
+                "layer time column %r is not a column of the source dataset; "
+                "no time range filter was added",
+                time_column,
+            )
+        query_object.from_dttm, query_object.to_dttm = get_since_until_from_time_range(
+            time_range, extras=query_object.extras
+        )
+
+
+def _apply_time_grain(query_context: QueryContext, time_grain: str) -> None:
+    """Run every query of an annotation source chart at ``time_grain``.
+
+    Charts with a generic x-axis read the grain from their BASE_AXIS column;
+    legacy charts read ``extras["time_grain_sqla"]``.
+    """
+    for query_object in query_context.queries:
+        query_object.extras["time_grain_sqla"] = time_grain
+        for column in query_object.columns:
+            if is_adhoc_column(column) and column.get("columnType") == "BASE_AXIS":
+                column["timeGrain"] = time_grain
+
+
+def _apply_annotation_overrides(
+    query_context: QueryContext,
+    annotation_layer: dict[str, Any],
+    host_query: QueryObject | None,
+) -> None:
+    """Apply an annotation layer's ``overrides`` to its source chart queries.
+
+    Each override key is either absent (the source chart's own setting is
+    kept), ``None`` (the host chart's setting is inherited; the layer popover
+    checkboxes store this) or an explicit value (applied as given).
+    """
+    overrides = annotation_layer.get("overrides") or {}
+    time_range = _resolve_override(
+        overrides, "time_range", _host_time_range(host_query)
+    )
+    if isinstance(time_range, str) and time_range:
+        _apply_time_range(query_context, time_range, annotation_layer.get("timeColumn"))
+    # The popover stores ``granularity`` next to ``time_grain_sqla``, but it
+    # names the host dataset's time column, which the source dataset may not
+    # have, so only the grain is applied.
+    time_grain = _resolve_override(
+        overrides, "time_grain_sqla", _host_time_grain(host_query)
+    )
+    if isinstance(time_grain, str) and time_grain:
+        _apply_time_grain(query_context, time_grain)
 
 
 class QueryContextProcessor:
@@ -909,7 +1038,7 @@ class QueryContextProcessor:
         ]:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
-                annotation_layer, self._query_context.force
+                annotation_layer, self._query_context.force, host_query=query_obj
             )
         return annotation_data
 
@@ -961,9 +1090,16 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_viz_annotation_data(  # noqa: C901
-        annotation_layer: dict[str, Any], force: bool
+    def get_viz_annotation_data(
+        annotation_layer: dict[str, Any],
+        force: bool,
+        host_query: QueryObject | None = None,
     ) -> dict[str, Any]:
+        """Run the chart an annotation layer is sourced from and return its rows.
+
+        ``host_query`` is the query of the chart drawing the layer; the layer's
+        ``overrides`` may inherit its time range and time grain.
+        """
         # pylint: disable=import-outside-toplevel
         from superset.commands.chart.data.get_data_command import ChartDataCommand
 
@@ -997,17 +1133,7 @@ class QueryContextProcessor:
             for query_object in query_context.queries:
                 query_object.annotation_layers = []
 
-            if overrides := annotation_layer.get("overrides"):
-                if time_grain_sqla := overrides.get("time_grain_sqla"):
-                    for query_object in query_context.queries:
-                        query_object.extras["time_grain_sqla"] = time_grain_sqla
-
-                if time_range := overrides.get("time_range"):
-                    from_dttm, to_dttm = get_since_until_from_time_range(time_range)
-
-                    for query_object in query_context.queries:
-                        query_object.from_dttm = from_dttm
-                        query_object.to_dttm = to_dttm
+            _apply_annotation_overrides(query_context, annotation_layer, host_query)
 
             query_context.force = force
             command = ChartDataCommand(query_context)
