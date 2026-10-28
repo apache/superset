@@ -124,4 +124,8 @@ export default {
   },
   reporters: reporters,
   testTimeout: 20000,
+  // CI and the default use 80% of the cores. Set JEST_MAX_WORKERS (a number or
+  // a percentage string such as "50%") to cap the worker pool on a shared or
+  // busy machine without changing the npm scripts.
+  maxWorkers: process.env.JEST_MAX_WORKERS || '80%',
 };
