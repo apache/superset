@@ -189,7 +189,7 @@
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
     "nanoid": "^6.0.2",
-    "ol": "^10.10.0",
+    "ol": "^10.11.0",
     "postcss": "^8.5.30",
     "query-string": "9.5.1",
     "re-resizable": "^6.11.2",
