@@ -3161,6 +3161,23 @@ def test_table_time_format_strips_surrounding_whitespace(time_format: str) -> No
         "local!%Y-%m-%d",
         "%Y local!",
         "%H:%M:%S.%f",
+        "%Y %Z",
+        "%Y %z",
+        "%c",
+        "%X",
+        "%s",
+        "%C",
+        "%D",
+        "%F",
+        "%h",
+        "%k",
+        "%l",
+        "%n",
+        "%P",
+        "%r",
+        "%R",
+        "%t",
+        "%T",
     ],
 )
 def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
@@ -3177,6 +3194,29 @@ def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> 
     ``%f`` is recognized by both but means different things: d3 scales the
     milliseconds it has, so its microseconds always end in ``000``. The column
     is left raw instead, the way an unsupported number format is.
+
+    ``%Z`` is recognized by both and disagrees whichever way the value comes
+    in. After the UTC conversion ``strftime`` renders the zone name, ``2024
+    UTC`` against d3's ``2024 +0000``, and on a naive value it renders nothing
+    at all.
+
+    The cases after it come from running every letter through both
+    implementations rather than from reading either, and they cover every
+    letter outside the set that the two disagree on. ``%c`` and ``%X`` are
+    substituted by both and lay the locale out differently, ``4/2/2024,
+    1:45:09 PM`` against ``Tue Apr  2 13:45:09 2024``. ``%s`` is substituted
+    by both as well, and reads the epoch in UTC in d3 against local time in
+    glibc, so the two sit a whole server offset apart and the report would
+    move with the host's zone. ``%z`` and ``%C %D %F %h %k %l %n %P %r %R %t
+    %T`` go the other way: ``strftime`` substitutes them and d3 copies the
+    bare letter, so ``%T`` would read ``13:45:09`` in the report against ``T``
+    in the chart and ``%t`` a tab against ``t``.
+
+    The letters outside the set that do agree have no case of their own:
+    ``%a``, ``%A``, ``%B``, ``%e``, ``%g`` and ``%p``, with ``%b`` appearing
+    above only as the tail of the ``%-d`` pad-modifier case. Adding one of
+    them to the set would be a widening rather than a regression, and a case
+    here would block it.
     """
     df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
     form_data = {
@@ -3353,6 +3393,25 @@ def test_payload_coltypes_reads_repeated_labels_positionally() -> None:
         GenericDataType.STRING,
         GenericDataType.TEMPORAL,
     ]
+
+
+def test_payload_coltypes_keeps_an_all_null_column_temporal() -> None:
+    """
+    A column of nothing but nulls keeps the type the dataset gives it.
+
+    ``dropna`` leaves nothing for ``infer_dtype`` to read, and it calls an
+    empty series ``"empty"`` rather than ``"string"``, so the dataset's
+    ``is_dttm`` stands. Widening the check to ``("string", "empty")`` would
+    report the column ``STRING`` and stop ``chart_data_to_dataframe`` casting
+    it back for the notification table. The null case above mixes a string in
+    with the ``NaT``, which reads as ``"string"`` and passes either way.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    df = pd.DataFrame({"ds": [None, None]}, dtype=object)
+
+    assert payload_coltypes(df, datasource) == [GenericDataType.TEMPORAL]
 
 
 def test_report_payload_keeps_an_unformatted_temporal_column_temporal() -> None:
