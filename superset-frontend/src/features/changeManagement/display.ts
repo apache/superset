@@ -19,6 +19,7 @@
 import { escape } from 'lodash-es';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t } from '@apache-superset/core/translation';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { approvalsPath } from './approvalsPath';
 import type {
   ChangeRequest,
@@ -117,13 +118,16 @@ export function changeCount(changeRequest: ChangeRequest): string {
  * the same asset.
  */
 export function assetUrl(changeRequest: ChangeRequest): string {
+  // Rooted, because these are real `href`s rather than router pushes: under
+  // a subdirectory deployment, and inside the host app's iframe, a bare
+  // path resolves against the wrong place (QA-22).
   if (changeRequest.asset_type === 'dashboard') {
-    return `/superset/dashboard/${changeRequest.asset_id}/`;
+    return ensureAppRoot(`/superset/dashboard/${changeRequest.asset_id}/`);
   }
   if (changeRequest.asset_type === 'chart') {
-    return `/explore/?slice_id=${changeRequest.asset_id}`;
+    return ensureAppRoot(`/explore/?slice_id=${changeRequest.asset_id}`);
   }
-  return '/tablemodelview/list/';
+  return ensureAppRoot('/tablemodelview/list/');
 }
 
 /**

@@ -132,6 +132,11 @@ export default function RequestReviewModal({
       onHide={onClose}
       onHandledPrimaryAction={() => onSubmit(note, approverId)}
       primaryButtonName={t('Request review')}
+      // The server refuses this with 422 when nobody else can approve, and
+      // the dialog already says so a few lines down. Leaving the button live
+      // made the author press it to be told a second time, in a worse place
+      // (QA-20).
+      disablePrimaryButton={approvers.length === 0}
       data-test="request-review-modal"
     >
       <Field>

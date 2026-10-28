@@ -16,6 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+const mockApplicationRoot = jest.fn<string, []>(() => '');
+
+// `assetUrl` reads the app root through `ensureAppRoot`, which resolves it
+// per call, so mocking the reader is enough.
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual<
+    typeof import('src/utils/getBootstrapData')
+  >('src/utils/getBootstrapData');
+  return {
+    __esModule: true,
+    ...actual,
+    applicationRoot: () => mockApplicationRoot(),
+  };
+});
+
 import { assetUrl, changeCount, datasetChangeCount } from './display';
 import type { ChangeRequest, DatasetDetail } from './types';
 
@@ -87,4 +102,41 @@ test('every asset type resolves to one live URL', () => {
   expect(assetUrl(request({ asset_type: 'dataset' }))).toBe(
     '/tablemodelview/list/',
   );
+});
+
+describe('assetUrl under a subdirectory deployment', () => {
+  afterEach(() => mockApplicationRoot.mockReturnValue(''));
+
+  // These are real `href`s, not router pushes, so nothing adds the root for
+  // them. A bare path resolves against the wrong place under a subdirectory,
+  // and inside the host app's iframe it leaves the host entirely (QA-22).
+  test('a dashboard link carries the application root', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    expect(assetUrl(request({ asset_type: 'dashboard', asset_id: 3 }))).toBe(
+      '/analytics/superset/dashboard/3/',
+    );
+  });
+
+  test('a chart link carries it, query string intact', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    expect(assetUrl(request({ asset_type: 'chart', asset_id: 9 }))).toBe(
+      '/analytics/explore/?slice_id=9',
+    );
+  });
+
+  test('the dataset list carries it too', () => {
+    mockApplicationRoot.mockReturnValue('/analytics');
+
+    expect(assetUrl(request({ asset_type: 'dataset' }))).toBe(
+      '/analytics/tablemodelview/list/',
+    );
+  });
+
+  test('nothing is added when Superset serves from the domain root', () => {
+    expect(assetUrl(request({ asset_type: 'dashboard', asset_id: 3 }))).toBe(
+      '/superset/dashboard/3/',
+    );
+  });
 });

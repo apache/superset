@@ -234,11 +234,9 @@ export default function DatasetReviewModal({
       onHide={onClose}
       footer={
         <FooterRow>
-          <a
-            href={assetUrl(changeRequest)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          {/* No `target`: a plain click stays inside the host app, and a
+              middle- or ctrl-click still opens the side-by-side tab (QA-22). */}
+          <a href={assetUrl(changeRequest)} rel="noopener noreferrer">
             {t('Open live dataset')}
           </a>
           <span>

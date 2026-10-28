@@ -269,7 +269,12 @@ export default function ReviewBanner({
                 {...(a.href
                   ? {
                       href: a.href,
-                      target: '_blank',
+                      // No `target`. SOW 5.3 wants the live version reachable
+                      // for a side-by-side read, and a real `href` still gives
+                      // that to a middle- or ctrl-click. Forcing every plain
+                      // click into a new tab broke the embedded case, where
+                      // the new tab leaves the host app and lands on the raw
+                      // Superset origin (QA-22).
                       rel: 'noopener noreferrer',
                     }
                   : {})}
