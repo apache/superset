@@ -227,26 +227,32 @@ way to widen what a user can reach.
 
 #### Using Superset's API from a page
 
-`@superset-ui/core` is shared with extensions, so `SupersetClient` works with
-the host's configuration, including CSRF tokens on writes. Extensions
-scaffolded by `superset-extensions init` declare the share already; an older
-extension needs `@superset-ui/core` added to the `shared` block of its webpack
-config to use the host's copy rather than bundling its own.
+Call Superset's API through the `http` namespace. It carries the host's
+session and attaches a CSRF token to every write, so a page never fetches one
+of its own:
 
-A `shared` entry is a runtime instruction, and TypeScript never sees it. The
-package has to be installed locally too for the import to compile: as a peer
-dependency, to record that the host supplies it at runtime, and as a dev
-dependency, so `tsc` can read its types. The scaffold does not do this yet, so
-an import of `SupersetClient` in a freshly generated extension will not
-resolve until you add it.
+```ts
+import { http } from '@apache-superset/core';
 
-Be careful which types you then get. The copy published to npm is not the one
-the host runs -- both currently carry the same version number with about two
-years between them -- and neither side of the share declares a
-`requiredVersion`, so nothing warns you. A symbol the published types export
-but the host no longer does will compile and be `undefined` at runtime. Where
-`@apache-superset/core` covers what you need, prefer it: it is the package
-this host versions alongside itself.
+const { json } = await http.get<{ result: Review[] }>({
+  endpoint: '/api/v1/acme/reviews/',
+});
+
+await http.post({
+  endpoint: '/api/v1/acme/reviews/',
+  jsonPayload: { asset_id: 42 },
+});
+```
+
+`get`, `post`, `put` and `delete` all take an `endpoint` -- a path under this
+Superset, beginning with `/`, to which the host applies the application root
+-- and return the parsed `json`, the `status` and the response `headers`. An
+absolute or protocol-relative URL is refused: the call carries your session,
+so reaching another origin is `fetch`'s job, not this namespace's.
+
+`@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
+part of the extension API. An extension that imports it bundles its own copy,
+which is never configured, so calls through it go out without a CSRF token.
 
 ## Backend
 
