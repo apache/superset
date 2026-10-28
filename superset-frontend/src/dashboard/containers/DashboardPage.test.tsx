@@ -781,3 +781,35 @@ test('clears undo history after hydrating the dashboard', async () => {
     .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
+
+test('document.title falls back to the app name on unmount, not the title present at mount', async () => {
+  // A direct page load of a dashboard URL arrives with the dashboard name
+  // already in <title>, so restoring the title seen at mount leaves the stale
+  // name in the tab after navigating away.
+  document.title = 'Test Dashboard';
+
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+  await waitFor(() => expect(document.title).toBe('Test Dashboard'));
+
+  unmount();
+
+  expect(document.title).toBe('Superset');
+});
