@@ -31,6 +31,7 @@ from uuid import uuid4
 import pytest
 from flask import current_app, g, request
 from flask_appbuilder.security.sqla.models import Role
+from flask_login import AnonymousUserMixin
 from pytest_mock import MockerFixture
 
 from superset import security_manager
@@ -122,6 +123,27 @@ def test_is_guest_user_does_not_depend_on_username(
 
     assert security_manager.is_guest_user() is True
     assert security_manager.get_current_guest_user_if_guest() is not None
+
+
+@pytest.mark.parametrize(
+    "current_user",
+    [None, AnonymousUserMixin()],
+    ids=["no-user", "anonymous-user"],
+)
+def test_is_guest_user_is_false_without_a_guest(
+    embedded_feature_enabled: None, current_user: Any
+) -> None:
+    g.user = current_user
+
+    assert security_manager.is_guest_user() is False
+
+
+def test_is_guest_user_is_false_when_no_user_is_set(
+    embedded_feature_enabled: None,
+) -> None:
+    g.pop("user", None)
+
+    assert security_manager.is_guest_user() is False
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
