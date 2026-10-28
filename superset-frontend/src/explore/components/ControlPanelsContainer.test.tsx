@@ -50,6 +50,11 @@ import {
 import { ExplorePageState } from 'src/explore/types';
 import { setControlValue } from 'src/explore/actions/exploreActions';
 import {
+  hydrateExplore,
+  HydrateExplore,
+} from 'src/explore/actions/hydrateExplore';
+import { exploreInitialData } from 'src/explore/fixtures';
+import {
   getControlStateFromControlConfig,
   getFormDataFromControls,
 } from 'src/explore/controlUtils';
@@ -227,9 +232,13 @@ describe('ControlPanelsContainer', () => {
     } as ControlPanelsContainerProps;
   }
 
-  test.each([undefined, 21])(
-    'new and saved semantic selections expose explicit field initialization (slice=%s)',
-    async sliceId => {
+  test.each([
+    { sliceId: undefined, version: undefined },
+    { sliceId: 21, version: undefined },
+    { sliceId: 21, version: 'old' },
+  ])(
+    'unverified semantic selections expose explicit field initialization (%j)',
+    async ({ sliceId, version }) => {
       const registry = getChartControlPanelRegistry();
       const previous = registry.get('line');
       registry.registerValue('line', defaultTableConfig);
@@ -251,15 +260,23 @@ describe('ControlPanelsContainer', () => {
           viz_type: 'line',
           matrixify_enable: true,
           matrixify_mode_rows: 'metrics',
-          semantic_selection_version: undefined,
+          semantic_selection_version: version,
         };
         render(<ControlPanelsContainer {...props} />, { useRedux: true });
         expect(screen.queryByText('Query')).not.toBeInTheDocument();
         expect(
+          screen.getByText('Re-pick fields for this chart'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            "This chart was saved with an older format of field names for this semantic view, so the fields it refers to can't be confirmed. Re-pick the metrics and dimensions to keep using it. The saved chart doesn't change until you save.",
+          ),
+        ).toBeInTheDocument();
+        expect(
           screen.queryByRole('tab', { name: /matrixify/i }),
         ).not.toBeInTheDocument();
         await userEvent.click(
-          screen.getByRole('button', { name: 'Start field selection' }),
+          screen.getByRole('button', { name: 'Re-pick fields' }),
         );
         expect(resetSemanticSelections).toHaveBeenCalledWith(sliceId);
       } finally {
@@ -268,6 +285,38 @@ describe('ControlPanelsContainer', () => {
       }
     },
   );
+
+  test('new identity-only semantic chart hydrates without the banner', () => {
+    const dispatch = jest.fn();
+    hydrateExplore({
+      ...exploreInitialData,
+      slice: null,
+      form_data: { datasource: '8__semantic_view', viz_type: 'table' },
+      dataset: {
+        ...exploreInitialData.dataset,
+        type: DatasourceType.SemanticView,
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    })(
+      dispatch,
+      () =>
+        ({
+          user: {},
+          charts: {},
+          datasources: {},
+          common: {},
+          explore: {},
+        }) as ExplorePageState,
+    );
+    const { explore } = (dispatch.mock.calls[0][0] as HydrateExplore).data;
+    const props = getDefaultProps();
+    props.exploreState = explore;
+    props.form_data = explore.form_data;
+    props.controls = explore.controls;
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Query')).toBeInTheDocument();
+  });
 
   test('current semantic selections render query controls', async () => {
     const props = getDefaultProps();
@@ -283,7 +332,7 @@ describe('ControlPanelsContainer', () => {
     render(<ControlPanelsContainer {...props} />, { useRedux: true });
     expect(screen.getByText('Query')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Start field selection' }),
+      screen.queryByRole('button', { name: 'Re-pick fields' }),
     ).not.toBeInTheDocument();
   });
 

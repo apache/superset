@@ -28,6 +28,7 @@ import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
+  DatasourceType,
   DataMaskStateWithId,
   JsonObject,
   ensureIsArray,
@@ -90,6 +91,21 @@ export const hydrateExplore =
       : [initialSlice, initialFormData];
     const initialSliceName =
       primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
+    // Only identity-only input is provably free of legacy or plugin selections.
+    // Stamp before defaults, controls and chart query snapshots are constructed.
+    if (
+      !initialSlice &&
+      !sliceId &&
+      dataset.type === DatasourceType.SemanticView &&
+      dataset.semantic_selection_version &&
+      Object.keys(explore.hiddenFormData ?? {}).length === 0 &&
+      Object.keys(initialFormData).every(key =>
+        ['datasource', 'viz_type'].includes(key),
+      )
+    ) {
+      initialFormData.semantic_selection_version =
+        dataset.semantic_selection_version;
+    }
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
