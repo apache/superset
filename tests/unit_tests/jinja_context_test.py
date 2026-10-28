@@ -3682,3 +3682,20 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+def test_where_in_duckdb_backslash_preserved() -> None:
+    """
+    Test that ``where_in`` leaves backslashes untouched on DuckDB, which the
+    duckdb-engine dialect reports as ``name == "duckdb"`` while inheriting
+    ``_backslash_escapes = True`` from the psycopg2 PostgreSQL dialect. A
+    fresh instance built by ``Database.get_dialect()`` never runs the
+    connection probe that PostgreSQL uses to correct the flag, so the
+    normalizer must cover DuckDB explicitly; doubling the backslash would
+    silently fail to match the original value.
+    """
+    pytest.importorskip("duckdb_engine")
+    from duckdb_engine import Dialect as DuckDBDialect
+
+    where_in = WhereInMacro(DuckDBDialect())
+    assert where_in([r"C:\Users"]) == r"('C:\Users')"

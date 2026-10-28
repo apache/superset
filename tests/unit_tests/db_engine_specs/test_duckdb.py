@@ -362,8 +362,7 @@ def test_extended_aggregation_func_median_stddev_var_compiles() -> None:
 
 
 def test_extended_aggregation_func_median_stddev_var_executes() -> None:
-    """
-    MEDIAN/STDDEV_SAMP/VAR_SAMP execute against a live in-process DuckDB
+    """MEDIAN/STDDEV_SAMP/VAR_SAMP execute against a live in-process DuckDB
     instance and return values matching Python's `statistics` module
     (sample standard deviation/variance) for the same input.
     """
@@ -395,3 +394,87 @@ def test_extended_aggregation_func_median_stddev_var_executes() -> None:
             query = select(func(literal_column("sales"))).select_from(text("t"))
             result = conn.execute(query).scalar()
             assert result == pytest.approx(expected_value)
+
+
+def test_register_engine_events_disables_backslash_escaping() -> None:
+    """
+    The duckdb dialect inherits ``_backslash_escapes = True`` from the
+    psycopg2 PostgreSQL dialect and never probes a live connection to correct
+    it, so string literals compiled with ``literal_binds`` double every
+    backslash. A filter value like ``name\\email`` then matches zero rows
+    (#38453). DuckDB has no escape character; the flag must be off.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    DuckDBEngineSpec.register_engine_events(engine)
+
+    assert engine.dialect._backslash_escapes is False
+
+
+def test_backslash_filter_value_compiles_verbatim_and_matches() -> None:
+    """
+    End-to-end: a string filter value containing a backslash compiles to a
+    literal that a live in-process DuckDB instance reads back as the original
+    value — the exact scenario of #38453.
+    """
+    from sqlalchemy import column, create_engine, text
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    DuckDBEngineSpec.register_engine_events(engine)
+
+    value = "name\\email"
+    expr = column("columnA").in_([value])
+    compiled = str(expr.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # verbatim single backslash inside the literal, not an escaped pair
+    assert "'name\\email'" in compiled
+
+    with engine.connect() as conn:
+        conn.execute(text("CREATE TABLE t (columnA VARCHAR)"))
+        conn.execute(
+            text("INSERT INTO t VALUES (:v), (:o)"),
+            [{"v": value, "o": "other"}],
+        )
+        # feed the compiled IN-list through the driver as a table function so
+        # the literal SQL text itself (not a bound parameter) is exercised
+        rows = conn.execute(
+            text(
+                # IN-list text comes from SQLAlchemy's literal compiler
+                f"SELECT * FROM t WHERE columnA IN {compiled[compiled.index('(') :]}"  # noqa: S608
+            )
+        ).fetchall()
+        assert [row[0] for row in rows] == [value]
+
+
+def test_where_in_jinja_backslash_preserved_on_fresh_dialect() -> None:
+    """A DuckDB virtual dataset using the ``where_in`` Jinja filter must not
+    double backslashes. The Jinja helpers compile against
+    ``Database.get_dialect()`` — a fresh dialect instance where
+    ``_backslash_escapes`` is back to ``True`` — so the shared normalizer in
+    ``jinja_context`` has to cover DuckDB too, not just PostgreSQL (#38453).
+    """
+    from duckdb_engine import Dialect as DuckDBDialect
+
+    from superset.jinja_context import WhereInMacro
+
+    where_in = WhereInMacro(DuckDBDialect())
+    assert where_in([r"C:\Users"]) == r"('C:\Users')"
+    assert where_in(["name\\email"]) == r"('name\email')"
+
+
+def test_extra_cache_escape_value_backslash_preserved_on_fresh_dialect() -> None:
+    """The value-escaping path in ``ExtraCache`` uses the same fresh-dialect
+    compilation (``current_username`` / ``url_param`` / guest attributes), so
+    a backslash in a viewer-controlled macro must also round-trip verbatim.
+    """
+    from duckdb_engine import Dialect as DuckDBDialect
+
+    from superset.jinja_context import ExtraCache
+
+    cache = ExtraCache(dialect=DuckDBDialect())
+    assert cache._escape_value(r"C:\Users") == r"C:\Users"
