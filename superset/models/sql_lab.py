@@ -22,7 +22,8 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, cast, Optional, TYPE_CHECKING
+from functools import cache
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -405,25 +406,41 @@ class Query(
         the tables the query references would collide on the same cache
         entry, regardless of their own access.
         """
-        return list(self.get_inner_rls_cache_key())
-
-    def get_inner_rls_cache_key(self) -> list[str]:
-        """
-        The table-bound RLS predicates execution injects into the tables this
-        query reads, as cache key components. See ``SqlaTable.get_inner_rls_cache_key``.
-        """
         if not self.sql:
             return []
-        from superset.utils.rls import (  # pylint: disable=import-outside-toplevel
-            collect_rls_predicates_for_sql,
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        predicates = self.get_inner_rls_cache_key(
+            resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
         )
+        predicates.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
+        return list(dict.fromkeys(predicates))
 
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Key query-backed caches on the RLS execution injects into inner tables."""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not self.sql:
+            return []
         return collect_rls_predicates_for_sql(
             self.sql,
             self.database,
             self.catalog,
             self.schema,
-            include_table_identity=True,
+            include_global_guest_rls=False,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
         )
 
     def get_time_grains(self) -> list[TimeGrainDict]:

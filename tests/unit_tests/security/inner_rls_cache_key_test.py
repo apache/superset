@@ -40,6 +40,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
+from tests.unit_tests.conftest import with_feature_flags
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
@@ -125,7 +127,7 @@ def _inner_key(predicate: str) -> str:
     """Expected component binding an RLS predicate to the physical table."""
     from superset.utils import json
 
-    return "rls-table:" + json.dumps([None, "main", "t", predicate])
+    return json.dumps(["rls", None, "main", "t", predicate])
 
 
 def _key(datasource: Any) -> str:
@@ -620,7 +622,7 @@ def test_schema_lookup_outage_serves_viewer_scoped_column_values(
     )
     mocker.patch.object(
         datasource.database,
-        "get_default_schema",
+        "resolve_query_default_schema",
         side_effect=ConnectionError("database unreachable"),
     )
     mocker.patch("superset.utils.rls.get_user_id", side_effect=lambda: viewer.name)
@@ -657,7 +659,7 @@ def test_schema_lookup_outage_builds_guest_annotation_context(
     virtual_dataset.schema = None
     mocker.patch.object(
         virtual_dataset.database,
-        "get_default_schema",
+        "resolve_query_default_schema",
         side_effect=ConnectionError("database unreachable"),
     )
     first = _annotation_context(source_chart)
@@ -697,11 +699,56 @@ def test_schema_less_keys_preserve_resolved_table_rls(
         )
     )
     resolve = mocker.patch.object(
-        datasource.database, "get_default_schema", return_value=default_schema
+        datasource.database, "resolve_query_default_schema", return_value=default_schema
     )
     assert datasource.get_inner_rls_cache_key() == [_inner_key("(tenant = 1)")]
-    resolve.assert_called_once_with(datasource.catalog)
+    resolve.assert_called_once_with(
+        datasource.sql,
+        datasource.schema,
+        datasource.catalog,
+        datasource.template_params_dict,
+    )
     first = _key(datasource)
     viewer.name = "bob"
     assert datasource.get_inner_rls_cache_key() == [_inner_key("(tenant = 2)")]
     assert _key(datasource) != first
+
+
+@pytest.mark.parametrize("datasource_type", ["virtual", "query", "physical"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_expression_schema_outage_keeps_chart_keys_viewer_scoped(
+    virtual_dataset: SqlaTable,
+    viewer: SimpleNamespace,
+    mocker: MockerFixture,
+    datasource_type: str,
+) -> None:
+    """Expression-only table reads retain isolation when schema discovery fails."""
+    from superset.models.sql_lab import Query
+
+    datasource: SqlaTable | Query = virtual_dataset
+    if datasource_type == "query":
+        datasource = Query(
+            database=virtual_dataset.database, sql="SELECT 1", client_id="client"
+        )
+    elif datasource_type == "physical":
+        datasource.sql = None
+    else:
+        datasource.sql = "SELECT 1"
+    mocker.patch.object(
+        datasource, "_get_rls_schema", side_effect=ConnectionError("unreachable")
+    )
+    mocker.patch("superset.utils.rls.get_user_id", side_effect=lambda: viewer.name)
+
+    def keys() -> list[Any]:
+        """Collect keys with independent expression subqueries enabled."""
+        return datasource.get_extra_cache_keys(
+            {
+                "columns": [
+                    {"sqlExpression": "(SELECT MAX(tenant) FROM t)", "label": "x"}
+                ]
+            }
+        )
+
+    assert keys() == ["rls-predicate-parse-failed-for-user-alice"]
+    viewer.name = "bob"
+    assert keys() == ["rls-predicate-parse-failed-for-user-bob"]

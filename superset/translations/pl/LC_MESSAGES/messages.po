@@ -5664,6 +5664,9 @@ msgstr ""
 "Niestandardowe pola SQL nie mogą być przeanalizowane jako pojedyncza "
 "instrukcja SQL."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."

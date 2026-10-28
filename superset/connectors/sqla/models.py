@@ -24,6 +24,7 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import cache
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -2568,6 +2569,20 @@ class SqlaTable(
                 )
             ) from ex
 
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        render: Callable[[str], str | None],
+    ) -> str | None:
+        """Match adhoc execution's metadata lookup and quoted-reference fallback."""
+        if saved_column := self.get_column(rendered_sql.strip()):
+            return render(saved_column.expression) if saved_column.expression else None
+        if col.get("isColumnReference"):
+            # Render the quoted source, never the already-rendered lookup SQL.
+            return render(self.database.quote_identifier(col["sqlExpression"]))
+        return rendered_sql
+
     def _shift_temporal_column_if_needed(
         self,
         sqla_column: ColumnClause,
@@ -3198,12 +3213,24 @@ class SqlaTable(
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,
+                execute_prequeries=False,
             )
             extra_cache_keys += sqla_query.extra_cache_keys
 
-        # For virtual datasets, include RLS predicates in the cache key
-        extra_cache_keys.extend(self.get_inner_rls_cache_key())
-
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        extra_cache_keys.extend(
+            self.get_inner_rls_cache_key(
+                resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
+            )
+        )
+        extra_cache_keys.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
         # An active partition filter mapping changes the SQL a cached result came
         # from, so it has to participate in the key or a mapping fix leaves stale
         # pruned results behind. Only appended when the mapping is actually
@@ -3227,19 +3254,13 @@ class SqlaTable(
 
         return list(set(extra_cache_keys))
 
-    def get_inner_rls_cache_key(self) -> list[str]:
-        """
-        The table-bound RLS predicates execution injects into the tables read
-        by this dataset's SQL, as cache key components.
-
-        ``security_manager.get_rls_cache_key`` covers only the dataset's own
-        rules, so a cache of a virtual dataset's results must also key on these,
-        or viewers whose RLS differs only on an inner table share entries. Empty
-        for a physical dataset. If the predicates cannot be collected, a
-        viewer-scoped marker is returned instead.
-
-        :return: The RLS predicates, one cache key component each
-        """
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Key caches on table-bound inner RLS, with viewer isolation on failure."""
         from superset.utils.rls import collect_rls_predicates_for_sql
 
         if not (self.is_virtual and self.sql):
@@ -3250,7 +3271,9 @@ class SqlaTable(
             self.catalog,
             self.schema,
             exclude_dataset_id=self.id,
-            include_table_identity=True,
+            include_global_guest_rls=False,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
         )
 
     @property

@@ -5241,6 +5241,9 @@ msgstr ""
 "Benutzerdefinierte SQL-Felder können nicht als einzelne SQL-Anweisung "
 "ausgewertet werden."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Benutzerdefinierte SQL-Felder dürfen keine Mengenoperationen enthalten."
 
