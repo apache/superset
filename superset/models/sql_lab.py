@@ -438,7 +438,8 @@ class Query(
             self.database,
             self.catalog,
             self.schema,
-            include_global_guest_rls=False,
+            # Match ``get_from_clause``: a Query has no outer RLS application.
+            include_global_guest_rls=True,
             resolve_catalog=resolve_catalog,
             resolve_schema=resolve_schema or self._get_rls_schema,
         )
