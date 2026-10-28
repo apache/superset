@@ -41,7 +41,7 @@ from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.db_engine_specs.tdengine import TDengineEngineSpec
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
-from superset.jinja_context import BaseTemplateProcessor
+from superset.jinja_context import BaseTemplateProcessor, PrestoTemplateProcessor
 from superset.models import helpers
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -545,6 +545,75 @@ def static_schema_datasource(
     with session.no_autoflush:
         yield virtual, rule
     engine.dispose()
+
+
+@pytest.mark.parametrize("partition_discovery_fails", [False, True])
+@pytest.mark.parametrize("sink", ["column", "filter", "time", "expression"])
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_does_not_render_unneeded_partition_macro(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    partition_discovery_fails: bool,
+    sink: str,
+) -> None:
+    """A warehouse macro must not run before a plain-column cache lookup."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = (
+        "SELECT col1, '2020-01-01' AS ds FROM physical "
+        "WHERE col1 = {{ presto.latest_sub_partition('physical', ds='2020-01-01') }}"
+    )
+    # Exercise the real Presto macro with SQLite-backed RLS metadata. The
+    # engine method would discover indexes and query partitions in a warehouse.
+    mocker.patch(
+        "superset.jinja_context.get_template_processors",
+        return_value={"sqlite": PrestoTemplateProcessor},
+    )
+    partition_query = mocker.patch.object(
+        virtual.database.db_engine_spec,
+        "latest_sub_partition",
+        create=True,
+        return_value="1",
+        side_effect=RuntimeError("Partition discovery failed")
+        if partition_discovery_fails
+        else None,
+    )
+    columns = [
+        *virtual.columns,
+        TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+    ]
+    if isinstance(virtual, SqlaTable):
+        virtual.columns = columns
+    else:
+        mocker.patch.object(
+            Query, "columns", new_callable=PropertyMock, return_value=columns
+        )
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {"sqlExpression": "(SELECT MAX(col1) FROM physical)", "label": "value"}
+        ]
+        if sink == "expression"
+        else ["col1"],
+        metrics=[],
+        filters=[{"col": "col1", "op": "==", "val": 1}] if sink == "filter" else [],
+        granularity="ds" if sink == "time" else None,
+        is_timeseries=False,
+    )
+    render = mocker.spy(virtual, "get_rendered_sql")
+
+    assert virtual.get_extra_cache_keys(query.to_dict()) == [PHYSICAL_RLS_KEYS[1]]
+    render.assert_not_called()
+    partition_query.assert_not_called()
+
+    # The template is executable, and normal SQL generation still runs it.
+    if partition_discovery_fails:
+        with pytest.raises(RuntimeError, match="Partition discovery failed"):
+            virtual.get_rendered_sql(virtual.get_template_processor())
+    else:
+        assert "WHERE col1 = 1" in virtual.get_rendered_sql(
+            virtual.get_template_processor()
+        )
+    partition_query.assert_called_once()
 
 
 def test_virtual_dataset_rls_uses_connection_schema(

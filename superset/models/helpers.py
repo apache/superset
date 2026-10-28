@@ -4164,6 +4164,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         }
         metric_labels = {utils.get_metric_name(metric) for metric in selected_metrics}
         expressions: list[str] = []
+        from_template_rendered = False
+
+        def populate_removed_filters() -> None:
+            """Render FROM only when removal can suppress a chart expression."""
+            nonlocal from_template_rendered
+            if self.sql and not from_template_rendered:
+                self.get_rendered_sql(template_processor)
+                from_template_rendered = True
 
         def add_expression(expression: str) -> None:
             """Render source SQL, preserving literal Jinja in its output."""
@@ -4211,11 +4219,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if not isinstance(value, str):
                 add(value)
             elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
+                if columns.get(granularity or ""):
+                    populate_removed_filters()
                 if value not in removed_filters and granularity not in removed_filters:
                     add(granularity)
             elif (col := self._get_filter_column(value, columns_by_name)) is not None:
-                if value not in removed_filters and col.expression:
-                    add_expression(col.expression)
+                if col.expression:
+                    populate_removed_filters()
+                    if value not in removed_filters:
+                        add_expression(col.expression)
             elif value in metrics:
                 add(value, metric=True)
             elif value in adhoc_columns_by_label:
@@ -4253,10 +4265,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             add(metric_value, metric=True)
         for orderby_value, _ascending in query_obj.get("orderby") or []:
             add_orderby(orderby_value)
-        # FROM templates remove filters before execution renders time/filter columns.
-        # Render with the same processor so its removal state reaches this collector.
-        if self.sql:
-            self.get_rendered_sql(template_processor)
+        # Only calculated time/filter columns depend on FROM's removal state.
+        # Bare columns have no SQL to collect; rendering FROM for them could run
+        # warehouse-hitting macros before the chart cache lookup.
+        if (
+            not query_obj.get("is_timeseries", True) and columns.get(granularity or "")
+        ) or (
+            granularity
+            and self.always_filter_main_dttm
+            and self.main_dttm_col in self.dttm_cols
+            and self.main_dttm_col != granularity
+            and columns.get(self.main_dttm_col)
+        ):
+            populate_removed_filters()
         collect_time_column = query_obj.get("is_timeseries", True) or (
             granularity not in removed_filters
             and utils.DTTM_ALIAS not in removed_filters
