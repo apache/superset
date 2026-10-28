@@ -4128,10 +4128,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             default_schema = self.database.get_default_schema(self.catalog)
             try:
                 rls_applied = False
-                # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
-                # ExploreMixin itself. getattr keeps this safe for non-dataset
-                # subclasses (e.g. SQL Lab Query), which have no RLS to dedupe.
-                self_id = getattr(self, "id", None)
+                # Only a dataset applies its own RLS on the outer WHERE, so only
+                # a dataset's own id is excluded here. Other subclasses (e.g. a
+                # SQL Lab Query) have an ``id`` that is not a dataset id, and
+                # excluding it would drop the RLS of whichever dataset shares
+                # that number. Imported locally to avoid a circular import with
+                # the connectors package.
+                from superset.connectors.sqla.models import SqlaTable
+
+                self_id = self.id if isinstance(self, SqlaTable) else None
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
