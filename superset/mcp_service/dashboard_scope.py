@@ -1019,14 +1019,14 @@ def scoped_dataset_query(
     temporal = {f["col"] for f in final if f.get("op") == TEMPORAL_RANGE}
     # An explicit range appends a TEMPORAL_RANGE on the query's time column.
     # Without it, granularity can replace a different column's temporal filter
-    # and discard every dashboard predicate on that column.
+    # and discard both caller and dashboard predicates on that column.
     if not time_range and temporal and time_column and time_column not in temporal:
-        if dropped := sorted(temporal & constraints.columns):
-            raise MCPDashboardScopeError(
-                f"the dashboard filter on {dropped[0]!r} would be dropped because "
-                f"the query's time range is on {time_column!r} instead.",
-                "Pass the time range on that column, or use the dashboard's charts.",
-            )
+        dropped = sorted(temporal)[0]
+        raise MCPDashboardScopeError(
+            f"the filter on {dropped!r} would be dropped because "
+            f"the query's time column is {time_column!r} instead.",
+            "Pass the time range on that column, or use the dashboard's charts.",
+        )
 
     return final, time_range, time_column
 

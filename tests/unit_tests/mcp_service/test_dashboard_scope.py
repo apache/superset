@@ -576,11 +576,16 @@ def test_dataset_query_keeps_a_scope_clause_on_the_time_column() -> None:
 
 
 @pytest.mark.parametrize("tool_name", ["query_dataset", "get_table"])
+@pytest.mark.parametrize(
+    "dashboard_filters",
+    [[{"col": "order_date", "op": "==", "val": 1064966400000}], [CLIENT_A]],
+    ids=["dashboard-temporal-column", "caller-only-temporal-column"],
+)
 def test_dataset_query_refuses_a_clause_on_a_non_time_temporal_column(
     tool_name: str,
+    dashboard_filters: list[dict[str, Any]],
 ) -> None:
-    """Refuse a granularity swap that would discard the dashboard comparison."""
-    clause = {"col": "order_date", "op": "==", "val": 1064966400000}
+    """Refuse a swap that discards a caller range, with or without a scope clause."""
     dataset = _dataset(main_dttm_col="ship_date")
     dataset.columns.extend(
         [_column("ship_date", is_dttm=True), _column("order_date", is_dttm=True)]
@@ -597,7 +602,7 @@ def test_dataset_query_refuses_a_clause_on_a_non_time_temporal_column(
         else GetTableRequest.model_validate({**fields, "dimensions": ["client"]})
     )
     with (
-        scope_header(encode(scope_payload({"11": {"filters": [clause]}}))),
+        scope_header(encode(scope_payload({"11": {"filters": dashboard_filters}}))),
         dashboard([11]),
         patch(
             "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
@@ -609,11 +614,11 @@ def test_dataset_query_refuses_a_clause_on_a_non_time_temporal_column(
         ) as excinfo,
     ):
         _rewrite(tool_name, request)
-    assert "'ship_date' instead" in str(excinfo.value)
+    assert "the query's time column is 'ship_date' instead." in str(excinfo.value)
     assert "No query was run." in str(excinfo.value)
 
 
-@pytest.mark.parametrize("scope_op", ["==", "TEMPORAL_RANGE"])
+@pytest.mark.parametrize("scope_op", ["==", "TEMPORAL_RANGE", "unrelated"])
 @pytest.mark.parametrize(
     ("time_column", "time_range", "model_temporal_columns"),
     [
@@ -630,18 +635,22 @@ def test_dataset_query_keeps_scope_clauses_with_safe_temporal_bindings(
     model_temporal_columns: list[str],
 ) -> None:
     """Keep dashboard comparisons and ranges unless granularity drops the column."""
-    clause = {
-        "col": "order_date",
-        "op": scope_op,
-        "val": "Last year" if scope_op == "TEMPORAL_RANGE" else 1064966400000,
-    }
+    clause: dict[str, Any]
+    if scope_op == "unrelated":
+        clause = CLIENT_A
+    else:
+        clause = {
+            "col": "order_date",
+            "op": scope_op,
+            "val": "Last year" if scope_op == "TEMPORAL_RANGE" else 1064966400000,
+        }
     model_filters = [
         {"col": column, "op": "TEMPORAL_RANGE", "val": "Last year"}
         for column in model_temporal_columns
     ]
     result = _dataset_query(
         DashboardConstraints((clause,), None, None),
-        columns={"order_date", "ship_date"},
+        columns={"client", "order_date", "ship_date"},
         temporal_columns={"order_date", "ship_date"},
         filters=model_filters,
         time_column=time_column,
