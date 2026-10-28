@@ -95,8 +95,9 @@ export interface Page {
    *
    * Declared in the manifest; the host creates it against the extension when
    * the extension loads, so an administrator can grant it in the Roles
-   * screen as, for example, `can_review on acme.tools`. The server refuses
-   * the page with 403 to anyone without it.
+   * screen as, for example, `can_review on extension:acme.tools` -- the
+   * host names the view menu after the extension, with that prefix. The
+   * server refuses the page with 403 to anyone without it.
    *
    * Omit to require only that the user is signed in, which is how every page
    * behaves without this field.
@@ -132,7 +133,10 @@ export interface ResolvedPage extends Page {
  * extension importing either gets a second module instance with its own
  * React context, and `useLocation()` throws at runtime. Use `useSubPath` and
  * `useNavigate` below, which read the host's router from inside the host
- * bundle, and `@superset-ui/core` -- which is shared -- for `SupersetClient`.
+ * bundle, and `@superset-ui/core`, which the host offers in the share scope,
+ * for `SupersetClient`. The share is a runtime arrangement and says nothing
+ * to TypeScript, so that package has to be declared in your own
+ * `package.json` as well for the import to compile.
  *
  * Registering the same path twice within one extension replaces the first
  * registration and logs a warning. Across extensions it cannot happen: the
@@ -148,9 +152,15 @@ export declare function registerPage(
 ): Disposable;
 
 /**
- * Retrieves every registered page, in registration order.
+ * Retrieves every registered page, in registration order -- which, across
+ * extensions, is the order their bundles finished loading. Sort it yourself
+ * if you need a stable order.
+ *
+ * The array and the pages in it are frozen: they are the host's own routing
+ * and navigation input, so they are shared rather than copied. Sort, filter
+ * or map into your own array before changing anything.
  */
-export declare function getPages(): ResolvedPage[];
+export declare function getPages(): readonly ResolvedPage[];
 
 /**
  * The path beneath this page's own root, always beginning with `/`.
@@ -175,11 +185,12 @@ export declare function useSubPath(): string;
 /**
  * Returns a function that navigates within this page.
  *
- * The argument is relative to the page's own root, so a page never writes
- * its own URL and cannot navigate out of its namespace by accident. It is a
- * client-side transition through the host's router, so the back button, the
- * host's scroll restoration and its navigation logging all behave as they do
- * on a host screen.
+ * The argument is relative to the page's own root, so a page never writes its
+ * own URL. A target that resolves outside the page -- through `..` segments,
+ * say -- is logged and ignored rather than followed. It is a client-side
+ * transition through the host's router, so the back button, the host's scroll
+ * restoration and its navigation logging all behave as they do on a host
+ * screen.
  *
  * @example
  * ```typescript
@@ -189,6 +200,41 @@ export declare function useSubPath(): string;
  * ```
  */
 export declare function useNavigate(): (subPath: string) => void;
+
+/**
+ * The contributed page the user is on, or `undefined` on a host screen.
+ *
+ * Finer than `navigation.getPage()`, which names the surface: every
+ * contributed page is `'extension'` there, so moving from one to another is
+ * not a change in that value.
+ *
+ * @example
+ * ```typescript
+ * const page = pages.getCurrentPage();
+ * if (page?.extensionId === 'acme.tools') {
+ *   // the user is on one of this extension's pages
+ * }
+ * ```
+ */
+export declare function getCurrentPage(): ResolvedPage | undefined;
+
+/**
+ * Event fired when the user moves to or from a contributed page.
+ *
+ * Fires with `undefined` when the user leaves for a host screen, and with
+ * the page when one arrives -- including when an extension registers a page
+ * for the URL the user is already sitting on.
+ *
+ * @example
+ * ```typescript
+ * const sub = pages.onDidChangeCurrentPage(page => {
+ *   if (page) {
+ *     // the user opened `page`
+ *   }
+ * });
+ * ```
+ */
+export declare const onDidChangeCurrentPage: Event<ResolvedPage | undefined>;
 
 /** Event fired when a page is registered. */
 export declare const onDidRegisterPage: Event<ResolvedPage>;

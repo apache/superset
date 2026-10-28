@@ -22,7 +22,12 @@ import { logging } from '@apache-superset/core/utils';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import {
   findPageByPath,
+  getCurrentPage,
   getPages,
+  notifyPathnameChanged,
+  onDidChangeCurrentPage,
+  onDidRegisterPage,
+  onDidUnregisterPage,
   registerPageFor,
   resolvePage,
   type DeclaredPage,
@@ -100,8 +105,10 @@ test('refusing a page does not throw, so one page cannot kill the bundle', () =>
 });
 
 test('a page the server refused says so, not that the author got it wrong', () => {
-  // The path was taken by Superset or another extension. Nothing in the
-  // extension's own source shows that, so the message has to point outward.
+  // Nothing in the extension's own source shows why there is no rule, so the
+  // message has to point outward -- and at both causes, since a path that is
+  // already served and a page added after the server started arrive here
+  // identically.
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
     register('acme.tools', { path: '/review-queue', name: 'X' }, [
@@ -109,9 +116,10 @@ test('a page the server refused says so, not that the author got it wrong', () =
     ]);
 
     expect(getPages()).toEqual([]);
-    expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('this deployment already serves'),
-    );
+    const message = error.mock.calls[0][0] as string;
+    expect(message).toContain('registered no route for it');
+    expect(message).toContain('already served');
+    expect(message).toContain('restart it');
   } finally {
     error.mockRestore();
   }
@@ -373,4 +381,189 @@ test('the declaration cannot smuggle in a different path or permission flag', ()
   expect(page.path).toBe('/review-queue');
   expect(page.permitted).toBe(false);
   expect(page).not.toHaveProperty('registered');
+});
+
+describe.each([
+  ['onDidRegisterPage', onDidRegisterPage],
+  ['onDidUnregisterPage', onDidUnregisterPage],
+])('%s', (_name, subscribe) => {
+  test('calls the listener with the thisArgs it was given', () => {
+    // `Event<T>` takes `(listener, thisArgs?)`, so an extension may pass a
+    // method and its owner. A wrapper that forwards only the listener leaves
+    // the method unbound, and it throws on its first `this`.
+    class Controller {
+      seen: string[] = [];
+
+      addPage(page: { path: string }) {
+        this.seen.push(page.path);
+      }
+    }
+    const controller = new Controller();
+    disposables.push(subscribe(controller.addPage, controller));
+
+    const disposable = register('acme.tools', {
+      path: '/review-queue',
+      name: 'Queue',
+    });
+    disposable.dispose();
+
+    expect(controller.seen).toEqual(['/review-queue']);
+  });
+});
+
+describe('the snapshot handed to callers', () => {
+  test('is frozen, array and pages alike', () => {
+    // `getPages` is public, so an extension holds the host's own routing and
+    // menu input. Rewriting a path here would point a live route elsewhere.
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    );
+
+    const [page] = getPages();
+    expect(Object.isFrozen(getPages())).toBe(true);
+    expect(Object.isFrozen(page)).toBe(true);
+    expect(() => {
+      (page as { path: string }).path = '/dashboard/list';
+    }).toThrow();
+    expect(getPages()[0].path).toBe('/review-queue');
+  });
+
+  test('keeps its identity between registrations', () => {
+    // Frozen rather than copied on read for this reason: `getPages` is the
+    // `getSnapshot` for `useSyncExternalStore`, which compares by reference,
+    // so a fresh array per call would re-render forever.
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    );
+
+    expect(getPages()).toBe(getPages());
+  });
+});
+
+test('a listener that throws does not stop its peers, or the registration', () => {
+  // Listeners are global and shared across extensions, and the page is in
+  // the registry before the event fires.
+  const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  const seen: string[] = [];
+  disposables.push(
+    onDidRegisterPage(() => {
+      throw new Error('listener blew up');
+    }),
+  );
+  disposables.push(onDidRegisterPage(page => seen.push(page.path)));
+
+  expect(() =>
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    ),
+  ).not.toThrow();
+
+  expect(seen).toEqual(['/review-queue']);
+  expect(getPages()).toHaveLength(1);
+  expect(error).toHaveBeenCalled();
+});
+
+describe('the current contributed page', () => {
+  // `navigation.getPage()` reports the surface, where every contributed page
+  // is `'extension'`. These cover the finer question it cannot answer.
+  afterEach(() => notifyPathnameChanged('/'));
+
+  test('is undefined on a host screen', () => {
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+    notifyPathnameChanged('/welcome');
+
+    expect(getCurrentPage()).toBeUndefined();
+  });
+
+  test('is the page whose path the user is on', () => {
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+    notifyPathnameChanged('/review-queue');
+
+    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+  });
+
+  test('a sub-path still counts as that page', () => {
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+    notifyPathnameChanged('/review-queue/42/edit');
+
+    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+  });
+
+  test('moving between two contributed pages fires, where the surface does not', () => {
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+    disposables.push(
+      register('acme.tools', { path: '/review-queue-archive', name: 'A' }),
+    );
+    notifyPathnameChanged('/review-queue');
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    notifyPathnameChanged('/review-queue-archive');
+
+    expect(seen).toEqual(['/review-queue-archive']);
+  });
+
+  test('leaving for a host screen fires with undefined', () => {
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+    notifyPathnameChanged('/review-queue');
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    notifyPathnameChanged('/welcome');
+
+    expect(seen).toEqual([undefined]);
+  });
+
+  test('a sub-path move within one page fires nothing', () => {
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+    notifyPathnameChanged('/review-queue');
+
+    const seen: unknown[] = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page)));
+    notifyPathnameChanged('/review-queue/42');
+
+    expect(seen).toEqual([]);
+  });
+
+  test('a page registering for the URL already open becomes current', () => {
+    // The normal case, not the exception: the bundle lands after the route.
+    notifyPathnameChanged('/review-queue');
+    expect(getCurrentPage()).toBeUndefined();
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+    );
+
+    expect(seen).toEqual(['/review-queue']);
+    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+  });
+
+  test('disposing the page the user is on clears it', () => {
+    const disposable = register('acme.tools', {
+      path: '/review-queue',
+      name: 'Q',
+    });
+    notifyPathnameChanged('/review-queue');
+
+    const seen: Array<string | undefined> = [];
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposable.dispose();
+
+    expect(seen).toEqual([undefined]);
+    expect(getCurrentPage()).toBeUndefined();
+  });
 });

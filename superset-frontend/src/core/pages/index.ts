@@ -45,7 +45,7 @@ import { logging } from '@apache-superset/core/utils';
 import PageBoundary from './PageBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
-import { createEventEmitter } from '../utils';
+import { createEventEmitter, createValueEventEmitter } from '../utils';
 
 type Page = pagesApi.Page;
 type ResolvedPage = pagesApi.ResolvedPage;
@@ -91,9 +91,55 @@ const unregisterEmitter = createEventEmitter<ResolvedPage>();
 
 // `useSyncExternalStore` requires a referentially stable snapshot between
 // notifications, so the array is rebuilt only when the registry changes.
-let snapshot: ResolvedPage[] = [];
+let snapshot: readonly ResolvedPage[] = Object.freeze([]);
+/** The page registered for a path, or undefined when nothing claims it. */
+export const findPageByPath = (path: string): ResolvedPage | undefined =>
+  // Longest match, not the first registered. `/reports` and
+  // `/reports/archive` can both claim `/reports/archive`, and taking the
+  // first leaves the deeper page unreachable whenever it happens to be
+  // registered second -- which is load order, not anything an author
+  // controls. The server resolves the same way, because Werkzeug prefers the
+  // rule with more static segments.
+  snapshot
+    .filter(page => path === page.path || path.startsWith(`${page.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+
+// Which contributed page the user is on, or undefined on a host screen.
+//
+// Separate from `navigation.getPage()`, which names the *surface*: every
+// contributed page is `'extension'` there, so moving between two of them is
+// not a change and fires nothing. This answers the other question -- which
+// page -- and so does change on that move.
+const currentPageEmitter = createValueEventEmitter<ResolvedPage | undefined>(
+  undefined,
+);
+let currentPathname: string | null = null;
+
+const recomputeCurrentPage = (): void => {
+  const next =
+    currentPathname === null ? undefined : findPageByPath(currentPathname);
+  if (next === currentPageEmitter.getCurrent()) {
+    return;
+  }
+  currentPageEmitter.fire(next);
+};
+
 const refresh = () => {
-  snapshot = Array.from(pageRegistry.values(), entry => entry.page);
+  // Frozen rather than copied on read. `getPages` is handed to extension
+  // code through the public namespace, and it is also the `getSnapshot` for
+  // `useSyncExternalStore`, which compares by reference -- so returning a
+  // fresh array per call would give React a new snapshot on every render and
+  // never settle. Freezing gives the same protection without giving up the
+  // stable identity: the pages are the host's own routing and menu input,
+  // and a caller rewriting a `path` would point a live route somewhere else.
+  snapshot = Object.freeze(
+    Array.from(pageRegistry.values(), entry => Object.freeze(entry.page)),
+  );
+  // Registering a page can make it the current one -- an extension whose
+  // bundle lands while the user is already sitting on its URL is the normal
+  // case -- and unregistering can take that away. Recomputed from the
+  // rebuilt snapshot, so the lookup sees the registration that caused it.
+  recomputeCurrentPage();
   syncListeners.forEach(listener => listener());
 };
 
@@ -139,14 +185,19 @@ export const registerPageFor = (
   }
 
   if (declaration.registered === false) {
-    // The path was taken by Superset, an operator's blueprint, or another
-    // extension. The author cannot see that from here, so the message says
-    // where to look rather than implying they got it wrong.
+    // Two causes, and from here they look the same: the path is held by
+    // Superset, an operator's blueprint or another extension, or the page was
+    // added to the manifest after this server started, since rules are
+    // registered at boot while the extensions API re-reads the manifest every
+    // request. Naming only the conflict sent an author who had just added a
+    // page looking for one that does not exist, so the message names both and
+    // says where the answer is.
     logging.error(
-      `Extension "${extensionId}" declares a page at "${page.path}", which ` +
-        `this deployment already serves, so no route was registered for it. ` +
-        `The page was ignored; the server log names what holds the path. ` +
-        `Choose a different path in the manifest.`,
+      `Extension "${extensionId}" declares a page at "${page.path}", but the ` +
+        `server registered no route for it, so the page was ignored. Either ` +
+        `the path is already served -- the server log names what holds it, ` +
+        `and the manifest needs a different path -- or the page was added ` +
+        `after the server started, in which case restart it.`,
     );
     return INERT;
   }
@@ -202,22 +253,10 @@ export const registerPageFor = (
   });
 };
 
-export const getPages = (): ResolvedPage[] => snapshot;
+export const getPages = (): readonly ResolvedPage[] => snapshot;
 
-export const usePages = (): ResolvedPage[] =>
+export const usePages = (): readonly ResolvedPage[] =>
   useSyncExternalStore(subscribe, getPages, getPages);
-
-/** The page registered for a path, or undefined when nothing claims it. */
-export const findPageByPath = (path: string): ResolvedPage | undefined =>
-  // Longest match, not the first registered. `/reports` and
-  // `/reports/archive` can both claim `/reports/archive`, and taking the
-  // first leaves the deeper page unreachable whenever it happens to be
-  // registered second -- which is load order, not anything an author
-  // controls. The server resolves the same way, because Werkzeug prefers the
-  // rule with more static segments.
-  snapshot
-    .filter(page => path === page.path || path.startsWith(`${page.path}/`))
-    .sort((a, b) => b.path.length - a.path.length)[0];
 
 /**
  * The root path of the page currently rendering.
@@ -261,15 +300,38 @@ export const useNavigate: typeof pagesApi.useNavigate = () => {
       if (!root) {
         return;
       }
-      // Relative by contract: a page states where it is going within itself,
-      // and so cannot navigate out of its own namespace by accident.
+      // Relative by contract: a page states where it is going within itself.
       const suffix = subPath.startsWith('/') ? subPath : `/${subPath}`;
       // No `ensureAppRoot` here. Superset's router is mounted as
       // `<BrowserRouter basename={applicationRoot()}>`, so it adds the app
       // root on push and strips it from `location.pathname`. Adding it here
       // too produced `/root/root/page` under a subdirectory deployment --
       // invisible wherever the app root is empty, which is most deployments.
-      history.push(`${root}${suffix === '/' ? '' : suffix}`);
+      const target = `${root}${suffix === '/' ? '' : suffix}`;
+      // `history.push` keeps `..` verbatim, while the browser's URL parser
+      // resolves it out of the address bar on `pushState`. An unnormalised
+      // target therefore leaves the router and the URL disagreeing, and
+      // enough `..` climbs past the router's basename as well. Parsing with
+      // the same algorithm the browser applies keeps the check from drifting
+      // from what the address bar will do, and covers `%2E%2E` with it.
+      // The base is a constant so the parse is deterministic in tests, as in
+      // `src/utils/navigationUtils.ts`.
+      const resolved = new URL(target, 'http://pages.invalid');
+      if (
+        resolved.pathname !== root &&
+        !resolved.pathname.startsWith(`${root}/`)
+      ) {
+        logging.error(
+          `A page at "${root}" tried to navigate to "${subPath}", which ` +
+            `resolves outside the page. Sub-paths are relative to the page ` +
+            `root; the navigation was ignored.`,
+        );
+        return;
+      }
+      // `search` and `hash` are re-appended: `history.push` parses them off a
+      // whole path string, so pushing `pathname` alone would quietly drop the
+      // query and fragment from `navigate('/42?tab=x#y')`.
+      history.push(`${resolved.pathname}${resolved.search}${resolved.hash}`);
     },
     [history, root],
   );
@@ -294,11 +356,36 @@ export const resolvePage = (id: string): React.ReactElement => {
   );
 };
 
-export const onDidRegisterPage = (listener: (e: ResolvedPage) => void) =>
-  registerEmitter.subscribe(listener);
+// `thisArgs` is part of `Event<T>`, and `subscribe` binds it. Dropping it here
+// would leave `pages.onDidRegisterPage(controller.addPage, controller)` --
+// which the type invites -- calling `addPage` unbound.
+/**
+ * Tells the registry where the user is. Called by the navigation tracker.
+ *
+ * Not public: an extension observes the current page, it does not set it.
+ */
+export const notifyPathnameChanged = (pathname: string): void => {
+  currentPathname = pathname;
+  recomputeCurrentPage();
+};
 
-export const onDidUnregisterPage = (listener: (e: ResolvedPage) => void) =>
-  unregisterEmitter.subscribe(listener);
+export const getCurrentPage = (): ResolvedPage | undefined =>
+  currentPageEmitter.getCurrent();
+
+export const onDidChangeCurrentPage = (
+  listener: (page: ResolvedPage | undefined) => void,
+  thisArgs?: unknown,
+) => currentPageEmitter.subscribe(listener, thisArgs);
+
+export const onDidRegisterPage = (
+  listener: (e: ResolvedPage) => void,
+  thisArgs?: unknown,
+) => registerEmitter.subscribe(listener, thisArgs);
+
+export const onDidUnregisterPage = (
+  listener: (e: ResolvedPage) => void,
+  thisArgs?: unknown,
+) => unregisterEmitter.subscribe(listener, thisArgs);
 
 /**
  * The namespace handed to extension code, with `registerPage` unbound.
@@ -309,6 +396,8 @@ export const onDidUnregisterPage = (listener: (e: ResolvedPage) => void) =>
 export const pages = {
   useSubPath,
   useNavigate,
+  getCurrentPage,
+  onDidChangeCurrentPage,
   registerPage: (() => {
     throw new Error(
       'pages.registerPage is bound per extension by the loader and cannot ' +

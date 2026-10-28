@@ -29,8 +29,13 @@ from types import SimpleNamespace
 import pytest
 from flask import Flask, g
 from pydantic import ValidationError
-from superset_core.extensions.types import Contributions, Manifest, Page
-from werkzeug.exceptions import Forbidden, NotFound
+from superset_core.extensions.types import (
+    Contributions,
+    Manifest,
+    ManifestFrontend,
+    Page,
+)
+from werkzeug.exceptions import NotFound
 
 from superset.constants import EXTENSION_VIEW_MENU_PREFIX
 from superset.extensions import view
@@ -56,6 +61,13 @@ def manifest(
         publisher=publisher,
         name=name,
         displayName="Tools",
+        # A page needs a bundle to supply its component, so a manifest that
+        # contributes one always has a frontend. Fixtures say so too, or they
+        # would be testing a shape the loader never produces.
+        frontend=ManifestFrontend(
+            remoteEntry="remoteEntry.js",
+            moduleFederationName=f"{publisher}_{name.replace('-', '_')}",
+        ),
         contributions=Contributions(
             pages=[Page(path=path, name=path, permission=permission) for path in paths]
         ),
@@ -72,13 +84,15 @@ class FakeSecurityManager:
         self.asked: list[tuple[str, str]] = []
         self.rollbacks = 0
         self.admin_role = SimpleNamespace(name="Admin", permissions=[])
-        self.roles: dict[str, object] = {"Admin": self.admin_role}
+        self.roles: dict[str, SimpleNamespace] = {"Admin": self.admin_role}
 
     def can_access(self, permission: str, view: str) -> bool:
         self.asked.append((permission, view))
         return (permission, view) in self.granted
 
-    def find_permission_view_menu(self, permission: str, view: str) -> object | None:
+    def find_permission_view_menu(
+        self, permission: str, view: str
+    ) -> SimpleNamespace | None:
         if (permission, view) not in self.existing:
             return None
         # FAB's PermissionView carries `role`, the roles holding it. The
@@ -97,23 +111,30 @@ class FakeSecurityManager:
         self.existing.add((permission, view))
         self.created.append((permission, view))
 
-    def find_role(self, name: str) -> object | None:
+    def find_role(self, name: str) -> SimpleNamespace | None:
         return self.roles.get(name)
 
-    def add_permission_role(self, role: object, perm_view: object) -> None:
+    def add_permission_role(
+        self, role: SimpleNamespace, perm_view: SimpleNamespace
+    ) -> None:
         # Stored as the (permission, view_menu) pair the rest of this file
         # asserts against, and the pair `find_permission_view_menu` derives
         # `role` from -- so a grant made here is visible to the next lookup.
         held = (perm_view.permission.name, perm_view.view_menu.name)
-        if held not in role.permissions:  # type: ignore[attr-defined]
-            role.permissions.append(held)  # type: ignore[attr-defined]
+        if held not in role.permissions:
+            role.permissions.append(held)
 
     # Named to match SupersetSecurityManager. A fake that invents its own
     # attribute names lets production code call something that is not there.
     @property
     def session(self) -> SimpleNamespace:
+        return SimpleNamespace(rollback=self._record_rollback)
+
+    def _record_rollback(self) -> None:
+        # Counts the call, not the read of `session`. Code that takes the
+        # session after a failed insert and never rolls back leaves the
+        # dirty state in place, and has to fail the assertion.
         self.rollbacks += 1
-        return SimpleNamespace(rollback=lambda: None)
 
 
 @pytest.fixture
@@ -282,11 +303,16 @@ def render_with(
     user_id: int | None = 1,
     permission: str | None = None,
     granted: bool = False,
+    recorded: bool = True,
 ) -> object:
     """Run one page view's guards without rendering a real template.
 
     The guards are the whole of the view; what it renders on success is
     ``spa.html`` unchanged, which the host's own screens already cover.
+
+    ``recorded`` stands in for what registration does: the requirement is
+    written to the app when the rule is added, and the view reads it on the
+    way in. Pass ``False`` to exercise a rule whose page nothing registered.
     """
     import superset
 
@@ -301,8 +327,9 @@ def render_with(
     monkeypatch.setattr(view, "_render_shell", lambda: "SHELL")
     monkeypatch.setattr(view, "redirect_to_login", lambda: "LOGIN")
 
-    page = Page(path="/approvals", name="Approvals", permission=permission)
-    page_view = view._make_page_view("acme.tools", page)
+    if recorded:
+        view._requirements(app)[("acme.tools", "/approvals")] = permission
+    page_view = view._make_page_view("acme.tools", "/approvals")
 
     with app.test_request_context("/approvals"):
         g.user = object() if user_id else None
@@ -538,17 +565,81 @@ def test_a_refused_page_is_never_reported_as_permitted(
     )
 
 
+def test_a_rule_with_no_recorded_requirement_is_refused(
+    monkeypatch: pytest.MonkeyPatch, app: Flask
+) -> None:
+    """A live route whose page nothing registered does not serve.
+
+    The requirement is what says a page exists and what it needs, so a rule
+    with no entry against it has no page behind it. Refusing is the only safe
+    reading: the alternative is that an unrecorded page requires nothing,
+    which would make the pages nobody registered the most open ones there
+    are. The permission is granted here, so the refusal can only come from
+    the missing record.
+    """
+    with pytest.raises(NotFound):
+        render_with(
+            monkeypatch, app, permission="can_review", granted=True, recorded=False
+        )
+
+
+def test_the_api_reports_the_requirement_the_route_enforces(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """An edited manifest cannot move what is advertised away from what is
+    enforced.
+
+    `get_extensions` re-reads the bundle on every request, so the manifest
+    reaching here is not necessarily the one the rule was registered with.
+    The route enforces `can_review`; this manifest has since dropped it.
+    Reading the requirement from the table rather than from the manifest
+    beside it keeps the two answers the same -- the page stays hidden until
+    the permission the route actually checks is granted.
+    """
+    register_extension_pages(app, manifest("/a", permission="can_review"))
+
+    assert permitted_page_paths(app, manifest("/a")) == set()
+
+    security.granted.add(("can_review", VIEW_MENU))
+    assert permitted_page_paths(app, manifest("/a")) == {"/a"}
+
+
+def test_a_manifest_claiming_more_than_the_route_enforces_does_not_hide_it(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """The other direction of the same drift.
+
+    The route was registered open and admits any signed-in user; the manifest
+    has since grown a permission it does not enforce. Believing the manifest
+    would hide the entry from a navigation bar while the page itself stayed
+    reachable, which is the worse way round to be wrong about it.
+    """
+    register_extension_pages(app, manifest("/a"))
+
+    assert permitted_page_paths(app, manifest("/a", permission="can_review")) == {"/a"}
+    assert security.asked == []
+
+
 @pytest.mark.parametrize("permission", ["Can_Review", "can review", "can-review", ""])
 def test_a_malformed_permission_is_rejected_by_the_manifest(permission: str) -> None:
     with pytest.raises(ValidationError, match="should match pattern"):
         Page(path="/a", name="A", permission=permission)
 
 
-def test_a_signed_in_user_without_the_permission_gets_403_not_the_shell(
+def test_a_signed_in_user_without_the_permission_gets_the_shell_with_403(
     monkeypatch: pytest.MonkeyPatch, app: Flask
 ) -> None:
-    with pytest.raises(Forbidden):
-        render_with(monkeypatch, app, permission="can_review", granted=False)
+    """Refused, but answered with a page rather than a JSON error body.
+
+    ``show_http_exception`` renders HTML only for 404 and 500, so aborting
+    here answered a browser with the generic "unexpected error" issue code.
+    The shell at 403 gives a cold load the same "not authorized" screen the
+    client shows when the user arrives in-app, and keeps the status honest.
+    """
+    assert render_with(monkeypatch, app, permission="can_review", granted=False) == (
+        "SHELL",
+        403,
+    )
 
 
 def test_a_signed_in_user_with_the_permission_gets_the_shell(
@@ -910,7 +1001,7 @@ def test_permission_syncing_can_be_switched_off(
 
 
 def test_a_settled_deployment_does_not_look_up_the_role(
-    app: Flask, security: FakeSecurityManager
+    app: Flask, security: FakeSecurityManager, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Every worker runs this at every start, so the quiet path stays quiet.
 
@@ -920,10 +1011,12 @@ def test_a_settled_deployment_does_not_look_up_the_role(
     security.existing.add(("can_review", VIEW_MENU))
     security.admin_role.permissions.append(("can_review", VIEW_MENU))
     looked_up: list[str] = []
-    security.find_role = lambda name: (  # type: ignore[assignment]
-        looked_up.append(name),
-        security.roles.get(name),
-    )[1]
+
+    def find_role(name: str) -> SimpleNamespace | None:
+        looked_up.append(name)
+        return security.roles.get(name)
+
+    monkeypatch.setattr(security, "find_role", find_role)
 
     register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
@@ -931,3 +1024,97 @@ def test_a_settled_deployment_does_not_look_up_the_role(
 
     assert security.created == []
     assert looked_up == []
+
+
+def duplicate_manifest() -> Manifest:
+    """One path declared twice, the second without the permission."""
+    return Manifest(
+        publisher="acme",
+        name="tools",
+        displayName="Tools",
+        frontend=ManifestFrontend(
+            remoteEntry="remoteEntry.js", moduleFederationName="acme_tools"
+        ),
+        contributions=Contributions(
+            pages=[
+                Page(path="/review-queue", name="Queue", permission="can_review"),
+                Page(path="/review-queue", name="Queue again"),
+            ]
+        ),
+    )
+
+
+def test_a_duplicate_declaration_cannot_relax_the_permission(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """The second declaration is refused, and the first keeps the requirement.
+
+    Registration takes the first claimant, so the looser duplicate never gets
+    a rule. What the frontend is told has to agree with that: deriving it from
+    the manifest row rather than from the rule's own requirement would let the
+    unrestricted duplicate advertise a page the server answers 403 for.
+    """
+    manifest = duplicate_manifest()
+    register_extension_pages(app, manifest)
+
+    assert registered_page_paths(app, "acme.tools") == ["/review-queue"]
+    assert view._requirements(app)[("acme.tools", "/review-queue")] == "can_review"
+
+    with app.app_context():
+        assert permitted_page_paths(app, manifest) == set()
+
+    security.granted.add(("can_review", VIEW_MENU))
+    with app.app_context():
+        assert permitted_page_paths(app, manifest) == {"/review-queue"}
+
+
+def test_a_page_shadowing_the_application_root_is_refused(
+    app: Flask, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Its real URL would be '/analytics/analytics/review'.
+
+    The client cannot build that link: a path already starting with the root
+    segment is indistinguishable from one that has been rooted already, so
+    `ensureAppRoot` leaves it alone and the menu entry points somewhere that
+    does not exist. Refused here, where the ambiguity is visible, rather than
+    served as a page nothing can link to.
+    """
+    app.config["APPLICATION_ROOT"] = "/analytics"
+
+    with caplog.at_level(logging.ERROR):
+        register_extension_pages(app, manifest("/analytics/review"))
+
+    assert registered_page_paths(app, "acme.tools") == []
+    assert "application root" in caplog.text
+
+
+def test_the_root_segment_is_matched_whole(app: Flask) -> None:
+    """`/analytics-archive` only looks like it starts with `/analytics`."""
+    app.config["APPLICATION_ROOT"] = "/analytics"
+
+    register_extension_pages(app, manifest("/analytics-archive"))
+
+    assert registered_page_paths(app, "acme.tools") == ["/analytics-archive"]
+
+
+def test_the_default_root_refuses_nothing(app: Flask) -> None:
+    """Most deployments serve from the domain root, where there is no clash."""
+    app.config["APPLICATION_ROOT"] = "/"
+
+    register_extension_pages(app, manifest("/review"))
+
+    assert registered_page_paths(app, "acme.tools") == ["/review"]
+
+
+def test_pages_from_a_manifest_with_no_frontend_are_refused(
+    app: Flask, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Nothing could ever register a component for them."""
+    backend_only = manifest("/review")
+    backend_only.frontend = None
+
+    with caplog.at_level(logging.ERROR):
+        register_extension_pages(app, backend_only)
+
+    assert registered_page_paths(app, "acme.tools") == []
+    assert "no frontend" in caplog.text
