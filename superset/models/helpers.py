@@ -3679,7 +3679,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # The full-range option is only meaningful for relative offsets aligned
             # on a temporal join column (time_grain set). Date-range offsets and the
-            # grain-less path keep the existing left-join behavior.
+            # grain-less path keep the existing left-join behavior. An empty offset
+            # result is replaced by a one-row all-NaN placeholder in
+            # processing_time_offsets, so it is detected by its join key, not .empty.
             use_outer_join = (
                 full_range
                 and bool(time_grain)
