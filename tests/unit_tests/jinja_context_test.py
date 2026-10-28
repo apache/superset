@@ -3722,6 +3722,11 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         "{% if current_username is defined %}x{% endif %}",
         "{{ current_username | default('x') }}",
         "{% if addon_value is not callable %}x{% endif %}",
+        # Existing attributes, whose sandbox undefined names the real type.
+        "{{ current_user_id.__class__ }}",
+        "{{ current_user_id.__doc__ }}",
+        "{% if 'partial' in (current_user_id.__class__|string) %}x{% endif %}",
+        "{% if 'dict' in (presto.__class__|string) %}x{% endif %}",
         # The engine namespace persists across execution renders.
         "{{ presto.update({'x': 1}) }}",
         "{% if presto.seen is defined %}x{% endif %}",

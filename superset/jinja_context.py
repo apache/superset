@@ -972,7 +972,9 @@ class _OpaqueValue:
 
     __slots__ = ()
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattribute__(self, name: str) -> Any:
+        # Every attribute, including existing ones such as ``__class__`` that
+        # the sandbox would otherwise describe in an undefined by type name.
         raise OpaqueTemplateError(name)
 
 

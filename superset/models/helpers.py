@@ -4366,7 +4366,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         if series_limit_metric
                         else query_obj.get("orderby") or [],
                         "extras": extras,
-                        "columns": get_non_base_axis_columns(selected_columns),
+                        # Grouped execution selects ``groupby or columns``
+                        # without the timestamp pseudo column.
+                        "columns": get_non_base_axis_columns(effective_columns),
                         "order_desc": True,
                     }
                 )

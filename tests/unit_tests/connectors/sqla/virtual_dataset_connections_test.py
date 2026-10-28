@@ -3843,25 +3843,40 @@ def test_engine_namespace_state_across_renders_is_viewer_scoped(
     assert keys[0] != keys[1]
 
 
+PREQUERY_METRICS = {
+    "row_limit": (
+        "{% if row_limit == 1 %}MAX((SELECT MAX(col1) FROM physical))"
+        "{% else %}COUNT(*){% endif %}"
+    ),
+    "columns": (
+        "{% if '__timestamp' not in columns %}MAX((SELECT MAX(col1) FROM physical))"
+        "{% else %}COUNT(*){% endif %}"
+    ),
+}
+
+
+@pytest.mark.parametrize("context", PREQUERY_METRICS)
 @pytest.mark.parametrize("allows_joins", [False, True])
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
 def test_series_prequery_context_cache_keys_are_user_scoped(
     static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
     mocker: MockerFixture,
     allows_joins: bool,
+    context: str,
 ) -> None:
-    """A series-limit prequery renders templates with its own row limit."""
+    """A series-limit prequery renders templates with its own context: its row
+    limit, and grouped columns without the timestamp pseudo column."""
     virtual, rule = static_schema_datasource
     virtual.sql = "SELECT 1 AS col1"
     mocker.patch.object(virtual.db_engine_spec, "allows_joins", allows_joins)
     query = QueryObject(
         datasource=virtual,
-        columns=["col1"],
+        # A legacy request can carry the timestamp pseudo column.
+        columns=["col1", "__timestamp"] if context == "columns" else ["col1"],
         metrics=[
             {
                 "expressionType": "SQL",
-                "sqlExpression": "{% if row_limit == 1 %}"
-                "MAX((SELECT MAX(col1) FROM physical)){% else %}COUNT(*){% endif %}",
+                "sqlExpression": PREQUERY_METRICS[context],
                 "label": "total",
             }
         ],
@@ -3892,3 +3907,40 @@ def test_series_prequery_context_cache_keys_are_user_scoped(
         assert virtual.get_extra_cache_keys(query.to_dict()) == (
             [] if allows_joins else [PHYSICAL_RLS_KEYS[user_id]]
         )
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_stub_attribute_type_name_cache_keys_are_viewer_scoped(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """A template must not tell a stub from the real macro by its type name."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    virtual, rule = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    query = QueryObject(
+        datasource=virtual,
+        columns=[
+            {
+                "sqlExpression": "{% if 'partial' in (current_user_id.__class__"
+                "|string) %}(SELECT MAX(col1) FROM physical){% else %}1{% endif %}",
+                "label": "axis",
+            }
+        ],
+        metrics=[],
+        is_timeseries=False,
+    )
+    rows = []
+    keys = []
+    for user_id in (1, 2):
+        g.user = User(id=user_id, username=f"viewer{user_id}")
+        rule.clause = f"col1 = {user_id}"
+        result = virtual.get_query_result(query)
+        assert result.status == "success", result.error_message
+        rows.append(result.df["axis"].tolist())
+        extra_keys = virtual.get_extra_cache_keys(query.to_dict())
+        assert extra_keys == [f"rls-predicate-parse-failed-for-user-{user_id}"]
+        keys.append(query.cache_key(extra_cache_keys=extra_keys))
+    assert rows == [[1], [2]]
+    assert keys[0] != keys[1]
