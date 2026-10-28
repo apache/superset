@@ -90,8 +90,10 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -651,7 +653,7 @@ class QueryContextProcessor:
                     df,
                     coltypes,
                     self._query_context.form_data or {},
-                    self._qc_datasource,
+                    cast("BaseDatasource | Query | None", self._qc_datasource),
                 )
 
             result = None

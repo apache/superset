@@ -19,7 +19,7 @@
 import io
 from decimal import Decimal
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
 
@@ -32,8 +32,8 @@ from tests.unit_tests.conftest import with_feature_flags
 
 def _make_processor(
     result_format: ChartDataResultFormat,
-    form_data: dict,
-    datasource_data: dict | None = None,
+    form_data: dict[str, Any],
+    datasource_data: dict[str, Any] | None = None,
 ) -> QueryContextProcessor:
     datasource = SimpleNamespace(data=datasource_data or {})
     context = SimpleNamespace(
@@ -44,7 +44,18 @@ def _make_processor(
     return QueryContextProcessor(cast(QueryContext, context))
 
 
-def _read_xlsx_column(payload: bytes, column: str) -> list:
+def _csv_text(payload: str | bytes | list[dict[str, Any]]) -> str:
+    # get_data() is typed as a union over export formats; the CSV branch always
+    # returns bytes, so narrow before decoding.
+    assert isinstance(payload, bytes)
+    return payload.decode("utf-8-sig")
+
+
+def _read_xlsx_column(
+    payload: str | bytes | list[dict[str, Any]], column: str
+) -> list[Any]:
+    # The XLSX branch of get_data() always returns bytes; narrow the union.
+    assert isinstance(payload, bytes)
     frame = pd.read_excel(io.BytesIO(payload))
     return frame[column].tolist()
 
@@ -60,7 +71,7 @@ def test_csv_export_applies_configured_number_format(app_context: None) -> None:
 
     result = processor.get_data(df, [GenericDataType.NUMERIC])
 
-    text = result.decode("utf-8-sig")
+    text = _csv_text(result)
     assert "19.8" in text
     assert "19.7999992" not in text
 
@@ -75,7 +86,7 @@ def test_csv_export_unformattable_value_takes_fixed_point_fallback(
 
     result = processor.get_data(df, [GenericDataType.NUMERIC])
 
-    text = result.decode("utf-8-sig")
+    text = _csv_text(result)
     # Exact fixed-point text, never a float repr / scientific notation.
     assert "19.7999992" in text
     assert "e" not in text.lower().split("amount")[-1]
@@ -90,7 +101,7 @@ def test_xlsx_export_matches_csv_for_shared_column(app_context: None) -> None:
     csv_result = csv_processor.get_data(
         pd.DataFrame({"amount": [19.7999992]}), [GenericDataType.NUMERIC]
     )
-    csv_value = csv_result.decode("utf-8-sig").splitlines()[1].strip()
+    csv_value = _csv_text(csv_result).splitlines()[1].strip()
 
     xlsx_processor = _make_processor(ChartDataResultFormat.XLSX, form_data)
     xlsx_result = xlsx_processor.get_data(
@@ -114,7 +125,7 @@ def test_csv_escapes_formatted_formula_prefixed_value(app_context: None) -> None
 
     result = processor.get_data(df, [GenericDataType.NUMERIC])
 
-    text = result.decode("utf-8-sig")
+    text = _csv_text(result)
     # The formatter emits "+19.8"; escaping (which runs after formatting)
     # must prefix the formula-like value with a single quote.
     assert "'+19.8" in text
@@ -192,7 +203,7 @@ def test_csv_export_de_locale_formats_consistently(app_context: None, mocker) ->
 
     result = processor.get_data(df, [GenericDataType.NUMERIC])
 
-    text = result.decode("utf-8-sig")
+    text = _csv_text(result)
     # Consistent localized currency text: no raw float survives, and the value
     # is not coerced to a date.
     assert "€" in text
@@ -309,7 +320,7 @@ def test_csv_export_null_nan_inf_pass_through(app_context: None) -> None:
 
     result = processor.get_data(df, [GenericDataType.STRING, GenericDataType.NUMERIC])
 
-    text = result.decode("utf-8-sig")
+    text = _csv_text(result)
     # The finite cell is formatted; the frame still has three data rows.
     assert "19.8" in text
     assert len(text.strip().splitlines()) == 1 + 3
@@ -328,7 +339,7 @@ def test_csv_export_unformattable_decimal_edge_values(app_context: None) -> None
 
     result = processor.get_data(df, [GenericDataType.NUMERIC])
 
-    text = result.decode("utf-8-sig")
+    text = _csv_text(result)
     assert "19.7999992" in text
     # No scientific notation leaked into the serialized decimal.
     assert "e+" not in text.lower()
