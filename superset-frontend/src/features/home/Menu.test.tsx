@@ -1415,7 +1415,9 @@ describe('the More dropdown for contributed pages', () => {
   });
 
   test('three contributed pages need no dropdown', async () => {
-    ['/alpha', '/beta', '/gamma'].forEach(path => contribute(path, path.slice(1)));
+    ['/alpha', '/beta', '/gamma'].forEach(path =>
+      contribute(path, path.slice(1)),
+    );
     renderMenu();
 
     await screen.findByText('gamma');

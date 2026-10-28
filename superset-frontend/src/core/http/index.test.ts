@@ -42,7 +42,9 @@ const answer = (json: unknown = { result: [] }, status = 200) => ({
 });
 
 beforeEach(() => {
-  Object.values(mocked).forEach(fn => fn.mockReset().mockResolvedValue(answer()));
+  Object.values(mocked).forEach(fn =>
+    fn.mockReset().mockResolvedValue(answer()),
+  );
 });
 
 test.each(['get', 'post', 'put', 'delete'] as const)(
@@ -82,7 +84,10 @@ test('an absent payload is not forwarded as undefined', async () => {
 });
 
 test('plain search params become a URLSearchParams', async () => {
-  await http.get({ endpoint: '/api/v1/chart/', searchParams: { q: 1, all: true } });
+  await http.get({
+    endpoint: '/api/v1/chart/',
+    searchParams: { q: 1, all: true },
+  });
 
   const { searchParams } = mocked.get.mock.calls[0][0];
   expect(searchParams).toBeInstanceOf(URLSearchParams);
