@@ -25,7 +25,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
