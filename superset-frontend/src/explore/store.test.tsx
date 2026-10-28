@@ -503,4 +503,3 @@ test('applyDefaultFormData keeps legacy interval_color_indices unresolved for da
     getChartControlPanelRegistry().remove(VizType.Gauge);
   }
 });
-

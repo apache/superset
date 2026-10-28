@@ -62,9 +62,7 @@ type FormData = QueryFormData & {
   color_scheme?: string;
 };
 
-export function handleDeprecatedControls(
-  formData: FormData,
-): void {
+export function handleDeprecatedControls(formData: FormData): void {
   // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
