@@ -288,6 +288,42 @@ test('a temporal X axis without a grain stays an exact match', () => {
   expect(mask.extraFormData.time_range).toBeUndefined();
 });
 
+test('an adhoc temporal X axis compares the truncated expression', () => {
+  const orderDate = '2021-01-01T00:00:00';
+  const column = {
+    sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+    label: 'order_date',
+    expressionType: 'SQL' as const,
+  };
+  const formattedVal = getTimeFormatter('%Y-%m-%d')(new Date(`${orderDate}Z`));
+  const mask = getWaterfallCrossFilterDataMask({
+    category: {
+      ...breakdownBar,
+      xColumn: column,
+      xValue: orderDate,
+    },
+    selectedKeys: [],
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+    timeFormat: '%Y-%m-%d',
+    timeGrain: TimeGranularity.MONTH,
+  }).dataMask;
+  expect(mask.extraFormData.filters).toEqual([
+    {
+      col: {
+        ...column,
+        columnType: 'BASE_AXIS',
+        timeGrain: TimeGranularity.MONTH,
+      },
+      op: '==',
+      val: orderDate,
+      formattedVal,
+      grain: TimeGranularity.MONTH,
+    },
+    { col: 'name', op: 'IN', val: ['Sylvester'] },
+  ]);
+  expect(mask.extraFormData.time_range).toBeUndefined();
+});
+
 test('a time grain does not bucket a non-temporal X axis', () => {
   const mask = getWaterfallCrossFilterDataMask({
     category: yearBar,

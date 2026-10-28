@@ -21,6 +21,8 @@ import {
   DataRecordValue,
   getColumnLabel,
   getTimeFormatter,
+  isAdhocColumn,
+  isPhysicalColumn,
   QueryFormColumn,
   QueryObjectFilterClause,
   TimeGranularity,
@@ -159,8 +161,28 @@ function isTemporalColumn(
 }
 
 /**
+ * Puts the grain on an adhoc column. The backend truncates that expression
+ * from the column itself and ignores `grain` once the SQL is compiled.
+ * `TEMPORAL_RANGE` is not an option: it requires a dataset column.
+ */
+function adhocBucketColumn(
+  col: QueryFormColumn,
+  timeGrain: TimeGranularity,
+): QueryFormColumn {
+  if (!isAdhocColumn(col)) {
+    return col;
+  }
+  return {
+    ...col,
+    columnType: 'BASE_AXIS',
+    timeGrain: col.timeGrain || timeGrain,
+  };
+}
+
+/**
  * Range covering the clicked bucket. Absent when the column is not temporal,
- * no grain is set, or the grain has no frontend bucket bounds.
+ * no grain is set, the grain has no frontend bucket bounds, or the column is
+ * an adhoc expression.
  */
 function temporalBucketFilter(
   col: QueryFormColumn,
@@ -168,7 +190,11 @@ function temporalBucketFilter(
   formattedVal: string,
   { coltypeMapping, timeGrain }: FilterContext,
 ): BinaryQueryObjectFilterClause | undefined {
-  if (!timeGrain || !isTemporalColumn(col, coltypeMapping)) {
+  if (
+    !timeGrain ||
+    !isPhysicalColumn(col) ||
+    !isTemporalColumn(col, coltypeMapping)
+  ) {
     return undefined;
   }
   const filter = getTemporalXAxisDrillByFilter(
@@ -256,6 +282,19 @@ function crossFilterClause(
     );
     if (range) {
       return range;
+    }
+    if (
+      !isPhysicalColumn(dimension.col) &&
+      dimension.value != null &&
+      context.timeGrain &&
+      isTemporalColumn(dimension.col, context.coltypeMapping)
+    ) {
+      return drillFilter(
+        adhocBucketColumn(dimension.col, context.timeGrain),
+        dimension.value,
+        formattedVal,
+        context.timeGrain,
+      );
     }
   }
   return dimensionFilter(dimension.col, dimension.value);

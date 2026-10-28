@@ -284,3 +284,26 @@ test('uses the default cursor when cross-filtering is off', () => {
   const series = transformedProps.echartOptions.series as BarSeriesOption[];
   expect(series[0]?.cursor).toBe('default');
 });
+
+test('dims bars outside the selection when cross-filtering is off', () => {
+  const transformedProps = transformProps(
+    new ChartProps({
+      formData: formData as unknown as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [{ data }],
+      filterState: { selectedValues: [JSON.stringify(['2019'])] },
+      emitCrossFilters: false,
+      theme: supersetTheme,
+    }) as unknown as EchartsWaterfallChartProps,
+  );
+  const series = transformedProps.echartOptions.series as BarSeriesOption[];
+  const increase = series[1]?.data as Array<{
+    itemStyle?: { opacity?: number };
+  }>;
+  const decrease = series[2]?.data as Array<{
+    itemStyle?: { opacity?: number };
+  }>;
+  expect(increase[0]?.itemStyle?.opacity).toBeUndefined();
+  expect(decrease[1]?.itemStyle?.opacity).toBe(OpacityEnum.SemiTransparent);
+});
