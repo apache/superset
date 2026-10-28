@@ -116,8 +116,13 @@ class FakeSecurityManager:
     # attribute names lets production code call something that is not there.
     @property
     def session(self) -> SimpleNamespace:
+        return SimpleNamespace(rollback=self._record_rollback)
+
+    def _record_rollback(self) -> None:
+        # Counts the call, not the read of `session`. Code that takes the
+        # session after a failed insert and never rolls back leaves the
+        # dirty state in place, and has to fail the assertion.
         self.rollbacks += 1
-        return SimpleNamespace(rollback=lambda: None)
 
 
 @pytest.fixture
@@ -1007,3 +1012,42 @@ def test_a_settled_deployment_does_not_look_up_the_role(
 
     assert security.created == []
     assert looked_up == []
+
+
+def duplicate_manifest() -> Manifest:
+    """One path declared twice, the second without the permission."""
+    return Manifest(
+        publisher="acme",
+        name="tools",
+        displayName="Tools",
+        contributions=Contributions(
+            pages=[
+                Page(path="/review-queue", name="Queue", permission="can_review"),
+                Page(path="/review-queue", name="Queue again"),
+            ]
+        ),
+    )
+
+
+def test_a_duplicate_declaration_cannot_relax_the_permission(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """The second declaration is refused, and the first keeps the requirement.
+
+    Registration takes the first claimant, so the looser duplicate never gets
+    a rule. What the frontend is told has to agree with that: deriving it from
+    the manifest row rather than from the rule's own requirement would let the
+    unrestricted duplicate advertise a page the server answers 403 for.
+    """
+    manifest = duplicate_manifest()
+    register_extension_pages(app, manifest)
+
+    assert registered_page_paths(app, "acme.tools") == ["/review-queue"]
+    assert view._requirements(app)[("acme.tools", "/review-queue")] == "can_review"
+
+    with app.app_context():
+        assert permitted_page_paths(app, manifest) == set()
+
+    security.granted.add(("can_review", VIEW_MENU))
+    with app.app_context():
+        assert permitted_page_paths(app, manifest) == {"/review-queue"}

@@ -29,6 +29,7 @@
 
 import { ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { logging } from '@apache-superset/core/utils';
 import { render, screen } from 'spec/helpers/testing-library';
 import { PageRootContext, useNavigate, useSubPath } from './index';
 
@@ -48,7 +49,7 @@ jest.mock('src/utils/navigationUtils', () => ({
     path.startsWith(`${APP_ROOT}/`) ? path.slice(APP_ROOT.length) : path,
 }));
 
-const renderAt = (pathname: string, root = '/review-queue') => {
+const renderAt = (pathname: string, root = '/review-queue', target = '/42') => {
   window.history.replaceState({}, '', `${APP_ROOT}${pathname}`);
 
   const Probe = () => {
@@ -57,7 +58,7 @@ const renderAt = (pathname: string, root = '/review-queue') => {
     return (
       <>
         <span data-test="sub-path">{subPath}</span>
-        <button type="button" onClick={() => navigate('/42')}>
+        <button type="button" onClick={() => navigate(target)}>
           go
         </button>
       </>
@@ -77,6 +78,7 @@ const renderAt = (pathname: string, root = '/review-queue') => {
 
 afterEach(() => {
   window.history.replaceState({}, '', '/');
+  jest.restoreAllMocks();
 });
 
 test('useSubPath reads the path beneath the page under an app root', () => {
@@ -101,4 +103,52 @@ test('useNavigate pushes one app root, not two', () => {
   // and renders blank -- and is invisible in any deployment served from the
   // domain root, which is most of them.
   expect(window.location.pathname).toBe(`${APP_ROOT}/review-queue/42`);
+});
+
+/**
+ * A sub-path is relative by contract, but `history.push` keeps `..` verbatim
+ * while the browser resolves it out of the address bar, so an unnormalised
+ * target leaves the two disagreeing. These cover the normalisation, not a
+ * security boundary: extension code runs in the host realm and can reach
+ * `window.history` directly.
+ */
+describe('a sub-path that resolves outside the page', () => {
+  test.each([
+    ['a parent segment', '/../welcome'],
+    ['an encoded parent segment', '/%2E%2E/welcome'],
+    ['segments climbing past the app root', '/../../superset/welcome'],
+    ['a parent segment after a real one', '/a/../../welcome'],
+  ])('%s is ignored', (_label, target) => {
+    const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
+    renderAt('/review-queue', '/review-queue', target);
+
+    screen.getByRole('button', { name: 'go' }).click();
+
+    expect(window.location.pathname).toBe(`${APP_ROOT}/review-queue`);
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('resolves outside the page'),
+    );
+  });
+
+  test('a sub-path that only looks like one is still followed', () => {
+    const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
+    renderAt('/review-queue', '/review-queue', '/a/../42');
+
+    screen.getByRole('button', { name: 'go' }).click();
+
+    expect(window.location.pathname).toBe(`${APP_ROOT}/review-queue/42`);
+    expect(error).not.toHaveBeenCalled();
+  });
+});
+
+test('useNavigate keeps the query and the fragment', () => {
+  renderAt('/review-queue', '/review-queue', '/42?tab=history#latest');
+
+  screen.getByRole('button', { name: 'go' }).click();
+
+  // The whole string reaches `history.push`, which parses the query and the
+  // fragment off it. Normalising and pushing only `pathname` would drop them.
+  expect(window.location.pathname).toBe(`${APP_ROOT}/review-queue/42`);
+  expect(window.location.search).toBe('?tab=history');
+  expect(window.location.hash).toBe('#latest');
 });
