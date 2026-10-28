@@ -269,7 +269,14 @@ playwright = ["playwright>=1.64.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.340.0"]
-prophet = ["prophet>=1.5.0, <2"]
+prophet = [
+    "prophet>=1.5.0, <2",
+    # Security: fonttools (pulled in transitively via matplotlib) < 4.62.0
+    # evaluates TTX XML values with eval() in cffLib parseBlendList(),
+    # allowing arbitrary code execution from a crafted TTX file
+    # (fonttools/fonttools#4039, fixed in 4.62.0 by #4040).
+    "fonttools>=4.62.0,<5.0.0",
+]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
