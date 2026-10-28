@@ -91,9 +91,18 @@ const unregisterEmitter = createEventEmitter<ResolvedPage>();
 
 // `useSyncExternalStore` requires a referentially stable snapshot between
 // notifications, so the array is rebuilt only when the registry changes.
-let snapshot: ResolvedPage[] = [];
+let snapshot: readonly ResolvedPage[] = Object.freeze([]);
 const refresh = () => {
-  snapshot = Array.from(pageRegistry.values(), entry => entry.page);
+  // Frozen rather than copied on read. `getPages` is handed to extension
+  // code through the public namespace, and it is also the `getSnapshot` for
+  // `useSyncExternalStore`, which compares by reference -- so returning a
+  // fresh array per call would give React a new snapshot on every render and
+  // never settle. Freezing gives the same protection without giving up the
+  // stable identity: the pages are the host's own routing and menu input,
+  // and a caller rewriting a `path` would point a live route somewhere else.
+  snapshot = Object.freeze(
+    Array.from(pageRegistry.values(), entry => Object.freeze(entry.page)),
+  );
   syncListeners.forEach(listener => listener());
 };
 
@@ -207,9 +216,9 @@ export const registerPageFor = (
   });
 };
 
-export const getPages = (): ResolvedPage[] => snapshot;
+export const getPages = (): readonly ResolvedPage[] => snapshot;
 
-export const usePages = (): ResolvedPage[] =>
+export const usePages = (): readonly ResolvedPage[] =>
   useSyncExternalStore(subscribe, getPages, getPages);
 
 /** The page registered for a path, or undefined when nothing claims it. */

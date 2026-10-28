@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { common as core } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 
 type Listener<T> = (e: T) => unknown;
 
@@ -46,7 +47,21 @@ export function createEventEmitter<T>(): EventEmitter<T> {
     return { dispose: () => listeners.delete(bound) };
   };
   return {
-    fire: value => listeners.forEach(fn => fn(value)),
+    // Each listener is isolated. Listeners come from extensions as well as
+    // from the host, they are held in one set per event, and `fire` is called
+    // from the middle of operations that have already taken effect -- a page
+    // is in the registry before `onDidRegisterPage` fires. Letting one throw
+    // would abort the rest of the notification, so a single bad listener
+    // would stop its peers being told and surface inside whichever extension
+    // happened to trigger the event, aborting that module's evaluation.
+    fire: value =>
+      listeners.forEach(fn => {
+        try {
+          fn(value);
+        } catch (error) {
+          logging.error('An event listener threw; continuing.', error);
+        }
+      }),
     subscribe,
   };
 }

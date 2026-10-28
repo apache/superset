@@ -407,3 +407,55 @@ describe.each([
     expect(controller.seen).toEqual(['/review-queue']);
   });
 });
+
+describe('the snapshot handed to callers', () => {
+  test('is frozen, array and pages alike', () => {
+    // `getPages` is public, so an extension holds the host's own routing and
+    // menu input. Rewriting a path here would point a live route elsewhere.
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    );
+
+    const [page] = getPages();
+    expect(Object.isFrozen(getPages())).toBe(true);
+    expect(Object.isFrozen(page)).toBe(true);
+    expect(() => {
+      (page as { path: string }).path = '/dashboard/list';
+    }).toThrow();
+    expect(getPages()[0].path).toBe('/review-queue');
+  });
+
+  test('keeps its identity between registrations', () => {
+    // Frozen rather than copied on read for this reason: `getPages` is the
+    // `getSnapshot` for `useSyncExternalStore`, which compares by reference,
+    // so a fresh array per call would re-render forever.
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    );
+
+    expect(getPages()).toBe(getPages());
+  });
+});
+
+test('a listener that throws does not stop its peers, or the registration', () => {
+  // Listeners are global and shared across extensions, and the page is in
+  // the registry before the event fires.
+  const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  const seen: string[] = [];
+  disposables.push(
+    onDidRegisterPage(() => {
+      throw new Error('listener blew up');
+    }),
+  );
+  disposables.push(onDidRegisterPage(page => seen.push(page.path)));
+
+  expect(() =>
+    disposables.push(
+      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    ),
+  ).not.toThrow();
+
+  expect(seen).toEqual(['/review-queue']);
+  expect(getPages()).toHaveLength(1);
+  expect(error).toHaveBeenCalled();
+});
