@@ -460,6 +460,7 @@ def test_default_path_follows_same_origin_get_redirects_only(
         ("https://PROVIDER.EXAMPLE/next", True),
         ("https://provider.example./next", False),
         ("https://provider.example:443/next", True),
+        ("https://provider.example:8443/next", False),
         ("https://provider.example:0/next", True),
         ("http://provider.example/next", False),
         ("/next", True),
@@ -1377,12 +1378,20 @@ def test_cross_scheme_redirect_returns_status_without_reading_body(
 ) -> None:
     from unittest.mock import MagicMock
 
-    response: MagicMock = MagicMock(
-        status_code=302,
-        url="https://fixture.test/",
-        headers={"Location": "http://fixture.test/"},
-    )
-    response.__enter__.return_value = response
+    response: requests.Response = requests.Response()
+    response.status_code = 302
+    response.url = "https://fixture.test/"
+    response.headers["Location"] = "http://fixture.test/"
+    response.raw = MagicMock(spec=HTTPResponse)
+    response.raw.read.side_effect = AssertionError("Refused redirect body was read")
+    response.raw.read1.side_effect = AssertionError("Refused redirect body was read")
+
+    def body_access(*args: Any, **kwargs: Any) -> bytes:
+        raise AssertionError("Refused redirect body accessor was used")
+
+    monkeypatch.setattr(requests.Response, "content", property(body_access))
+    monkeypatch.setattr(requests.Response, "text", property(body_access))
+    monkeypatch.setattr(response, "iter_content", body_access)
     send: MagicMock = MagicMock(return_value=response)
     monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
     with pytest.raises(ProviderRequestError) as raised:
@@ -1816,3 +1825,49 @@ def test_scheduler_lock_initialization_is_serialized_across_os_threads() -> None
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_keep_alive_redirect_releases_abandoned_connection() -> None:
+    """A single-threaded provider must accept the next hop before the deadline."""
+    seen: list[str] = []
+
+    class KeepAlive(BaseHTTPRequestHandler):
+        protocol_version: str = "HTTP/1.1"
+
+        def do_GET(self) -> None:  # noqa: N802
+            seen.append(self.path)
+            if self.path == "/start":
+                self.send_response(302)
+                self.send_header("Location", "/final")
+                self.send_header("Content-Length", "4")
+                self.end_headers()
+                self.wfile.write(b"skip")
+                self.wfile.flush()
+            else:
+                self.send_response(200)
+                self.send_header("Content-Length", "2")
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.wfile.write(b"ok")
+                self.close_connection = True
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    server: HTTPServer = HTTPServer(("127.0.0.1", 0), KeepAlive)
+    worker: Thread = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        with _internal_hosts(True):
+            response: ProviderResponse = provider_request(
+                "fixture",
+                "GET",
+                f"http://127.0.0.1:{server.server_port}/start",
+                timeout=1,
+            )
+        assert response.body == b"ok"
+        assert seen == ["/start", "/final"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        worker.join(2)

@@ -108,8 +108,10 @@ class HostProviderTransport(ProviderTransport):
                             else None
                         )
                         if target is not None:
+                            response.close()
+                            bound.release_sockets()
                             url, params = target, None
-                            continue  # Context closes the unread redirect body.
+                            continue
                         if not 200 <= response.status_code < 300:
                             raise ProviderRequestError(
                                 Failure.HTTP_STATUS, status=response.status_code
@@ -312,6 +314,11 @@ class _Deadline:
     def watch(self, sock: socket.socket) -> None:
         _scheduler().register(self, sock)
 
+    def release_sockets(self) -> None:
+        """Release the abandoned hop without resetting the request deadline."""
+        if _SCHEDULER is not None:
+            _SCHEDULER.release_sockets(self)
+
     def close(self) -> None:
         # A request rejected before connecting need not start a scheduler.
         if _SCHEDULER is not None:
@@ -346,10 +353,15 @@ class DeadlineScheduler:
         with self._condition:
             bound.closed = True
             self._tokens.discard(bound)
+            self.release_sockets(bound)
+            self._condition.notify()
+
+    def release_sockets(self, bound: _Deadline) -> None:
+        """Drop duplicate descriptors while preserving scheduled expiry."""
+        with self._condition:
             for sock in bound.sockets:
                 sock.close()
             bound.sockets.clear()
-            self._condition.notify()
 
     @staticmethod
     def _expire(bound: _Deadline) -> None:
