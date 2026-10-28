@@ -307,6 +307,86 @@ def test_search_numeric_is_unsupported_without_query(
     assert meta.query_count == 0
 
 
+_HASH_ORDERED_MATCHES = ["Rwanda", "Angola", "Tanzania", "Ghana", "Andorra"]
+
+
+@pytest.mark.parametrize(
+    ("controls", "expected"),
+    [
+        ({}, ["Andorra", "Angola", "Ghana", "Rwanda", "Tanzania"]),
+        (
+            {"sortAscending": True},
+            ["Andorra", "Angola", "Ghana", "Rwanda", "Tanzania"],
+        ),
+        (
+            {"sortAscending": False},
+            ["Tanzania", "Rwanda", "Ghana", "Angola", "Andorra"],
+        ),
+        ({"sortMetric": "count", "sortAscending": True}, _HASH_ORDERED_MATCHES),
+    ],
+    ids=["default", "ascending", "descending", "sort_metric"],
+)
+@pytest.mark.parametrize("limit", [2, 25])
+def test_search_sorts_fetched_matches_before_limit(
+    native_query: dict[str, Any],
+    controls: dict[str, Any],
+    expected: list[str],
+    limit: int,
+) -> None:
+    """Search skips ORDER BY like the dropdown, so values sort before slicing."""
+    native_query["rows"][:] = [{"region": value} for value in _HASH_ORDERED_MATCHES]
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter(controlValues={"multiSelect": True, **controls})),
+        _request(
+            filter_value_requests=[
+                {"filter_id": "region", "search": "an", "limit": limit}
+            ]
+        ),
+    )
+    available = _available(summaries[0])
+    assert available.values == expected[:limit]
+    assert available.status == ("truncated" if limit == 2 else "complete")
+    query = native_query["contexts"][0].queries[0]
+    # A sort metric selects which rows return, so its engine order is kept.
+    assert query.orderby == ([("count", True)] if "sortMetric" in controls else [])
+
+
+@pytest.mark.parametrize(
+    ("ascending", "expected"),
+    [(True, ["Iran", "Japan", None]), (False, ["Japan", "Iran", None])],
+)
+def test_search_sort_places_null_last_after_omitting_unsafe_rows(
+    native_query: dict[str, Any], ascending: bool, expected: list[str | None]
+) -> None:
+    """Null never compares with text, and incompatible rows stay omitted."""
+    native_query["rows"][:] = [
+        {"region": "Japan"},
+        {"region": None},
+        {"region": 7},
+        {"region": "Iran"},
+    ]
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(
+            _filter(controlValues={"multiSelect": True, "sortAscending": ascending})
+        ),
+        _request(filter_value_requests=[{"filter_id": "region", "search": "an"}]),
+    )
+    available = _available(summaries[0])
+    assert available.values == expected
+    assert (available.status, available.reason) == ("truncated", "invalid_scalar")
+
+
+@pytest.mark.parametrize("ascending", [True, False])
+def test_option_sort_ranks_scalar_families_without_cross_type_comparison(
+    ascending: bool,
+) -> None:
+    """Mixed scalar families sort deterministically instead of raising TypeError."""
+    ordered: list[Any] = [1.5, 3, "a", "b", False, True]
+    expected = ordered if ascending else ordered[::-1]
+    values: list[Any] = [3, "b", True, None, 1.5, "a", False]
+    assert choices._sorted_options(values, ascending) == [*expected, None]
+
+
 @pytest.mark.parametrize(
     "error",
     [

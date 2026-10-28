@@ -640,6 +640,15 @@ search or exact probes to discover values outside a bounded sample. Supplying an
 discovery control without opt-in is invalid, including an explicit zero offset.
 Projecting out `native_filters` skips all choice and proposal queries.
 
+Options follow the filter's sort metric if it has one, otherwise their values in
+the `sortAscending` direction. Listings sort in the database. Searches without a
+sort metric skip that `ORDER BY`, as the dashboard dropdown does, and sort the
+fetched matches before applying `limit`, comparing strings by code point rather
+than database collation. Their page is therefore the leading matches unless the
+search reaches the native filter row limit (`NATIVE_FILTER_DEFAULT_ROW_LIMIT`);
+that `truncated/row_limit` page is sorted but drawn from whichever matches the
+database returned.
+
 `complete` establishes completeness only for the specified mode, predicate, and
 authorized effective parent selections. `truncated` never establishes absence.
 When several bounds apply, the reason priority is `response_limit`, then

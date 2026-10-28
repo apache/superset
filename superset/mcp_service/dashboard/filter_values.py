@@ -946,6 +946,22 @@ def _scalar_equal(left: FilterValueScalar, right: FilterValueScalar) -> bool:
     )
 
 
+def _sorted_options(
+    values: list[FilterValueScalar], ascending: bool
+) -> list[FilterValueScalar]:
+    """Order options by value, never comparing across scalar families.
+
+    Booleans rank apart from numbers, strings compare by code point, and null
+    sorts last in either direction.
+    """
+    present = [value for value in values if value is not None]
+    present.sort(
+        key=lambda value: (type(value) is bool, isinstance(value, str), value),
+        reverse=not ascending,
+    )
+    return [*present, *[None] * (len(values) - len(present))]
+
+
 def _scalar(value: Any) -> FilterValueScalar:  # noqa: C901
     """Normalize supported database scalars without text or numeric loss."""
     if value is NA:
@@ -1079,9 +1095,13 @@ def _run(  # noqa: C901
         raise _DiscoveryUnavailableError("query_failed")
     values: list[FilterValueScalar] = []
     strict_probe = proposal is not None or "exact_value" in item.model_fields_set
+    # Search without a sort metric skips ORDER BY, as the dashboard dropdown
+    # does; the dropdown sorts its returned page client-side, so sort here too.
+    unordered = not command.query_context.queries[0].orderby
     skipped = False
-    # The extra row is only evidence of a longer domain, never a returned option.
-    selected_rows = rows if strict_probe else rows[: item.limit]
+    # Rows past the limit are only evidence of a longer domain, never returned
+    # options, unless every fetched row must be sorted before choosing the page.
+    selected_rows = rows if strict_probe or unordered else rows[: item.limit]
     for row in selected_rows:
         if not isinstance(row, dict) or target.column.column_name not in row:
             raise _DiscoveryUnavailableError("query_failed")
@@ -1110,6 +1130,9 @@ def _run(  # noqa: C901
             skipped = True
             continue
         values.append(value)
+    if unordered:
+        controls = conf.get("controlValues") or {}
+        values = _sorted_options(values, bool(controls.get("sortAscending", True)))
     row_limited = (
         len(rows) > item.limit
         or len(rows) >= limit
