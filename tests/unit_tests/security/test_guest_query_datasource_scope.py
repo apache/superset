@@ -25,7 +25,7 @@ the tables that query touches.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -41,7 +41,11 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.security.manager import SupersetSecurityManager
+from superset.utils import json
 from superset.utils.core import DatasourceType
+
+if TYPE_CHECKING:
+    from superset.app import SupersetApp
 
 QUERY_ID = 1
 DASHBOARD_ID = 10
@@ -298,3 +302,102 @@ def test_chart_data_passes_query_context_for_query_datasource(
         query_context=query_context,
         allow_editorship=False,
     )
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"EMBEDDED_SUPERSET": True}}], indirect=True
+)
+@pytest.mark.parametrize(
+    "datasets, bound_chart, expected_status",
+    [
+        pytest.param(None, False, 403, id="unbound-query"),
+        pytest.param([QUERY_ID], False, 403, id="dataset-claim-is-not-query-access"),
+        pytest.param(None, True, 200, id="saved-chart-on-authorized-dashboard"),
+        pytest.param([QUERY_ID], True, 403, id="bound-query-with-dataset-claim"),
+    ],
+)
+def test_chart_data_api_scopes_guest_query_datasource(
+    mocker: MockerFixture,
+    app: "SupersetApp",
+    datasets: Optional[list[int]],
+    bound_chart: bool,
+    expected_status: int,
+) -> None:
+    """HTTP chart-data enforces query scope and preserves the saved-chart path."""
+    from superset import security_manager
+    from superset.models.slice import Slice
+
+    guest = _guest_user(datasets)
+    load_guest = mocker.patch.object(
+        security_manager, "get_guest_user_from_request", return_value=guest
+    )
+    # Give the guest both the route permission and access to the query's tables;
+    # neither grant authorizes this query outside an embedded dashboard.
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    mocker.patch.object(
+        security_manager, "get_schema_perm", return_value="[db].[public]"
+    )
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    get_datasource = mocker.patch(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        return_value=_query(99),
+    )
+    # Stop before execution if authorization erroneously succeeds. The response
+    # then becomes 200, so this test cannot pass on an unrelated execution error.
+    get_data = mocker.patch(
+        "superset.charts.data.api.ChartDataRestApi._get_data_response",
+        return_value=app.response_class("{}", status=200, mimetype="application/json"),
+    )
+    mocker.patch(
+        "superset.charts.data.api.ChartDataRestApi._should_run_async",
+        return_value=False,
+    )
+
+    payload = {
+        "datasource": {"id": QUERY_ID, "type": "query"},
+        "queries": [{"columns": ["sales"], "metrics": [], "row_limit": 10}],
+        "form_data": {},
+        "result_type": "full",
+        "result_format": "json",
+    }
+    if bound_chart:
+        payload["form_data"] = {"slice_id": SLICE_ID, "dashboardId": DASHBOARD_ID}
+        chart = Slice(
+            id=SLICE_ID,
+            datasource_id=QUERY_ID,
+            datasource_type=DatasourceType.QUERY,
+            params="{}",
+            query_context=json.dumps(payload),
+        )
+        mocker.patch(
+            "superset.common.query_context_factory.ChartDAO.find_by_id",
+            return_value=chart,
+        )
+        dashboard = MagicMock(id=DASHBOARD_ID, slices=[chart], embedded=[MagicMock()])
+        session = MagicMock()
+        session.query.return_value.filter.return_value.one_or_none.return_value = (
+            dashboard
+        )
+        mocker.patch.object(
+            SupersetSecurityManager, "session", new_callable=mocker.PropertyMock
+        ).return_value = session
+
+    with app.test_client() as client:
+        response = client.post(
+            "/api/v1/chart/data",
+            headers={app.config["GUEST_TOKEN_HEADER_NAME"]: "test-guest-token"},
+            json=payload,
+        )
+
+    assert response.status_code == expected_status, response.get_data(as_text=True)
+    load_guest.assert_called_once()
+    get_datasource.assert_called_once_with(
+        datasource_type=DatasourceType.QUERY, database_id_or_uuid=QUERY_ID
+    )
+    if expected_status == 403:
+        assert response.json == {"message": "Forbidden"}
+        get_data.assert_not_called()
+    else:
+        get_data.assert_called_once()
