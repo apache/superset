@@ -58,6 +58,9 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Link } from 'react-router-dom';
+import ReviewStatusTag, {
+  useOpenChangeStatus,
+} from 'src/features/changeManagement/ReviewStatusTag';
 import SliceInfo from './SliceInfo';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -201,6 +204,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       !isEmbedded() || uiConfig.showRowLimitWarning;
     const dashboardPageId = useContext(DashboardPageIdContext);
     const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
+    const reviewStatus = useOpenChangeStatus(slice.slice_id);
     const headerRef = useRef<HTMLDivElement>(null);
     // TODO: change to indicator field after it will be implemented
     const crossFilterValue = useSelector<RootState, any>(
@@ -305,6 +309,14 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               />
             </div>
           </Tooltip>
+          {/* Beside the name, as on the chart list. An editor opening a
+              dashboard could not otherwise see which cards have a change
+              waiting -- the tag existed on the list and nowhere here. */}
+          <ReviewStatusTag
+            status={reviewStatus}
+            assetType="chart"
+            assetId={slice.slice_id}
+          />
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"

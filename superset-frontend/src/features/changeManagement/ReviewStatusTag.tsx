@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import type { PropsWithChildren } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
@@ -116,6 +123,36 @@ function LinkedReviewTag({ status }: Required<ReviewStatusTagProps>) {
       </Tag>
     </a>
   );
+}
+
+const OpenChangesContext = createContext<Record<string, ChangeStatus>>({});
+
+/**
+ * One bulk read of review state, shared by everything inside it.
+ *
+ * A dashboard shows many charts, and asking per chart would turn opening a
+ * dashboard into a request per card -- the same reason the list pages read
+ * once for the whole page. Mounted around the dashboard, the headers below
+ * read the answer out of context instead.
+ */
+export function OpenChangesProvider({
+  assetType,
+  children,
+}: PropsWithChildren<{ assetType: ReviewAssetType }>) {
+  const open = useOpenChanges(assetType);
+  return (
+    <OpenChangesContext.Provider value={open}>
+      {children}
+    </OpenChangesContext.Provider>
+  );
+}
+
+/** The open change for one asset, from the nearest provider. */
+export function useOpenChangeStatus(
+  assetId: number | string | undefined,
+): ChangeStatus | undefined {
+  const open = useContext(OpenChangesContext);
+  return assetId === undefined ? undefined : open[String(assetId)];
 }
 
 export default function ReviewStatusTag({

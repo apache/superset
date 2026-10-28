@@ -24,6 +24,7 @@ import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
+import { OpenChangesProvider } from 'src/features/changeManagement/ReviewStatusTag';
 import { debounce } from 'lodash-es';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 
@@ -169,7 +170,9 @@ const DashboardWrapper: FC<PropsWithChildren<{}>> = ({ children }) => {
         'dragdroppable--dragging': editMode && isDragged,
       })}
     >
-      {children}
+      {/* One read of review state for the whole dashboard, so the chart
+          headers below can show a pending change without a request each. */}
+      <OpenChangesProvider assetType="chart">{children}</OpenChangesProvider>
     </StyledDiv>
   );
 };
