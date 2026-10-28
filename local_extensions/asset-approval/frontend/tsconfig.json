@@ -15,12 +15,6 @@
       ],
       "@apache-superset/core/*": [
         "/app/superset-frontend/packages/superset-core/lib/*"
-      ],
-      "@superset-ui/core": [
-        "/app/superset-frontend/packages/superset-ui-core/lib/index.d.ts"
-      ],
-      "@superset-ui/core/*": [
-        "/app/superset-frontend/packages/superset-ui-core/lib/*"
       ]
     }
   },

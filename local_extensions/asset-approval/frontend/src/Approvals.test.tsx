@@ -21,9 +21,9 @@
  * @fileoverview The Approvals list, as the host mounts it.
  *
  * The page reaches the host through exactly two seams -- `pages.useSubPath`
- * and `pages.useNavigate` for where it is, and `SupersetClient` for the
- * review API. Both are stubbed, so these tests say what the page does with
- * the host rather than re-testing the host.
+ * and `pages.useNavigate` for where it is, and `http` for the review API.
+ * Both are stubbed, so these tests say what the page does with the host
+ * rather than re-testing the host.
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

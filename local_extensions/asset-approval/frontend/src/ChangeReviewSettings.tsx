@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Switch, styled, t } from './host';
-import { SupersetClient } from '@superset-ui/core';
+import { http } from '@apache-superset/core';
 
 const Page = styled.div`
   ${({ theme }) => `
@@ -90,8 +90,11 @@ export default function ChangeReviewSettings() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
-    SupersetClient.get({ endpoint: '/api/v1/change_request/enabled' })
-      .then(({ json }) => setEnabled(!!json?.result?.enabled))
+    http
+      .get<{ result?: { enabled?: boolean } }>({
+        endpoint: '/api/v1/change_request/enabled',
+      })
+      .then(({ json }) => setEnabled(!!json.result?.enabled))
       // The page describes configuration, not live state; if the probe
       // fails it still has something true to say.
       .catch(() => setEnabled(null));

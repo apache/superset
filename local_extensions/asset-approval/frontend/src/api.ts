@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { http } from '@apache-superset/core';
 import type {
   ApprovalsView,
   ChangeRequest,
@@ -39,24 +39,26 @@ export async function fetchForAsset(
   assetType: ReviewAssetType,
   assetId: number,
 ): Promise<ChangeRequest | null> {
-  const { json } = await SupersetClient.get({
+  const { json } = await http.get<{ result?: ChangeRequest | null }>({
     endpoint: `${BASE}/asset/${assetType}/${assetId}`,
   });
-  return (json?.result as ChangeRequest | null) ?? null;
+  return json.result ?? null;
 }
 
 export async function fetchChangeRequest(id: number): Promise<ChangeRequest> {
-  const { json } = await SupersetClient.get({ endpoint: `${BASE}/${id}` });
-  return json.result as ChangeRequest;
+  const { json } = await http.get<{ result: ChangeRequest }>({
+    endpoint: `${BASE}/${id}`,
+  });
+  return json.result;
 }
 
 export async function fetchList(
   show: ApprovalsView = 'for_me',
 ): Promise<ChangeRequest[]> {
-  const { json } = await SupersetClient.get({
+  const { json } = await http.get<{ result?: ChangeRequest[] }>({
     endpoint: `${BASE}/?show=${show}`,
   });
-  return (json?.result as ChangeRequest[]) ?? [];
+  return json.result ?? [];
 }
 
 /**
@@ -68,16 +70,18 @@ export async function fetchList(
 export async function fetchOpenByAsset(
   assetType: ReviewAssetType,
 ): Promise<Record<string, ChangeStatus>> {
-  const { json } = await SupersetClient.get({
+  const { json } = await http.get<{ result?: Record<string, ChangeStatus> }>({
     endpoint: `${BASE}/open/${assetType}`,
   });
-  return (json?.result as Record<string, ChangeStatus>) ?? {};
+  return json.result ?? {};
 }
 
 /** The bell's red number. Hidden at zero (Decision 9). */
 export async function fetchPendingCount(): Promise<PendingCount> {
-  const { json } = await SupersetClient.get({ endpoint: `${BASE}/count` });
-  return (json?.result as PendingCount) ?? { needs_me: 0, returned: 0 };
+  const { json } = await http.get<{ result?: PendingCount }>({
+    endpoint: `${BASE}/count`,
+  });
+  return json.result ?? { needs_me: 0, returned: 0 };
 }
 
 async function act(
@@ -85,11 +89,11 @@ async function act(
   action: string,
   body: Record<string, unknown> = {},
 ): Promise<ChangeRequest | null> {
-  const { json } = await SupersetClient.post({
+  const { json } = await http.post<{ result?: ChangeRequest | null }>({
     endpoint: `${BASE}/${id}/${action}`,
     jsonPayload: body,
   });
-  return (json?.result as ChangeRequest | null) ?? null;
+  return json.result ?? null;
 }
 
 export const submitForReview = (
@@ -133,7 +137,7 @@ export const discardChange = (id: number) => act(id, 'discard');
  * server captures it like any other governed write and answers 202.
  */
 export const requestPublish = (dashboardId: number) =>
-  SupersetClient.put({
+  http.put({
     endpoint: `/api/v1/dashboard/${dashboardId}`,
     jsonPayload: { published: true },
   });
@@ -150,10 +154,10 @@ export const requestPublish = (dashboardId: number) =>
 export const fetchEditorOptions = async (
   assetType: ReviewAssetType,
 ): Promise<UserBrief[]> => {
-  const { json } = await SupersetClient.get({
+  const { json } = await http.get<{ result?: Record<string, unknown>[] }>({
     endpoint: `/api/v1/${assetType}/related/editors?q=(page_size:100)`,
   });
-  return ((json?.result as Record<string, unknown>[]) ?? []).map(row => ({
+  return (json.result ?? []).map(row => ({
     id: row.value as number,
     first_name: row.text as string,
     last_name: '',
@@ -166,12 +170,10 @@ export const fetchAssetEditorIds = async (
   assetType: ReviewAssetType,
   assetId: number,
 ): Promise<number[]> => {
-  const { json } = await SupersetClient.get({
-    endpoint: `/api/v1/${assetType}/${assetId}`,
-  });
-  const editors = ((json?.result as Record<string, unknown>)?.editors ??
-    []) as { id: number }[];
-  return editors.map(editor => editor.id);
+  const { json } = await http.get<{ result?: { editors?: { id: number }[] } }>(
+    { endpoint: `/api/v1/${assetType}/${assetId}` },
+  );
+  return (json.result?.editors ?? []).map(editor => editor.id);
 };
 
 export const saveEditors = (
@@ -179,7 +181,7 @@ export const saveEditors = (
   assetId: number,
   editorIds: number[],
 ) =>
-  SupersetClient.put({
+  http.put({
     endpoint: `/api/v1/${assetType}/${assetId}`,
     jsonPayload: { editors: editorIds },
   });

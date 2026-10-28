@@ -24,10 +24,9 @@ module.exports = {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/spec/tsconfig.json' }],
   },
   moduleNameMapper: {
-    // The host provides these at runtime through Module Federation; under
-    // test they are stubbed, which is also the honest boundary to test at.
+    // The host provides this at runtime through Module Federation; under
+    // test it is stubbed, which is also the honest boundary to test at.
     '^@apache-superset/core$': '<rootDir>/spec/coreStub.tsx',
-    '^@superset-ui/core$': '<rootDir>/spec/supersetUiStub.ts',
   },
   testMatch: ['<rootDir>/src/**/*.test.tsx'],
 };

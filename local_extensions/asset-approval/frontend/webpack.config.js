@@ -27,8 +27,6 @@ module.exports = () => ({
         react: { singleton: true, import: false },
         "react-dom": { singleton: true, import: false },
         "@apache-superset/core": { singleton: true, import: false },
-        // Provided by the host; never bundled into the extension.
-        "@superset-ui/core": { singleton: true, import: false },
       },
     }),
   ],

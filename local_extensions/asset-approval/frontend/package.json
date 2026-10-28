@@ -8,7 +8,6 @@
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
-    "@superset-ui/core": "*",
     "react": "^18.3.0"
   },
   "devDependencies": {

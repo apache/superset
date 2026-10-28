@@ -62,6 +62,43 @@ export const pages = {
   registerPage: jest.fn(),
 };
 
+// The review API seam. Every method resolves to an empty 200 unless a test
+// says otherwise, so a component that calls one it does not care about does
+// not have to be told about it.
+//
+// Typed rather than left as a bare `jest.fn`, because the real methods are
+// generic -- `http.get<{ result: Thing[] }>(...)` -- and a stub that is not
+// would reject every call site it is standing in for.
+interface HttpResponse<T> {
+  json: T;
+  status: number;
+  headers: Headers;
+}
+
+interface HttpRequest {
+  endpoint: string;
+  jsonPayload?: unknown;
+  searchParams?: Record<string, string | number | boolean> | URLSearchParams;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+  timeout?: number;
+}
+
+type HttpMethod = (<T = unknown>(
+  request: HttpRequest,
+) => Promise<HttpResponse<T>>) &
+  jest.Mock;
+
+const emptyResponse = () =>
+  Promise.resolve({ json: {}, status: 200, headers: new Headers() });
+
+export const http = {
+  get: jest.fn(emptyResponse) as unknown as HttpMethod,
+  post: jest.fn(emptyResponse) as unknown as HttpMethod,
+  put: jest.fn(emptyResponse) as unknown as HttpMethod,
+  delete: jest.fn(emptyResponse) as unknown as HttpMethod,
+};
+
 // The host's `t` interpolates; the real signature takes substitutions.
 export const translation = {
   t: (value: string, ...args: unknown[]) =>

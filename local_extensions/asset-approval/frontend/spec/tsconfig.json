@@ -11,8 +11,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@apache-superset/core": ["./coreStub.tsx"],
-      "@superset-ui/core": ["./supersetUiStub.ts"]
+      "@apache-superset/core": ["./coreStub.tsx"]
     }
   },
   "exclude": [],
