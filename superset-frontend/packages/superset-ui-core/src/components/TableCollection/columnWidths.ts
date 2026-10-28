@@ -74,7 +74,7 @@ export const COLUMN_LAYOUT_PRESETS: Record<
   FixedColumnLayout | Required<FlexColumnLayout>
 > = {
   icon: { fixed: 48 },
-  status: { fixed: 112 },
+  status: { fixed: 128 },
   statusWide: { fixed: 168 },
   count: { fixed: 136 },
   people: { fixed: 140 },
