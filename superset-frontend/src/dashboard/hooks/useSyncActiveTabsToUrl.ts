@@ -72,8 +72,16 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     // `navigateWithState` updates the address bar without the router, so after
     // an in-session save the router can hold a stale pathname (e.g. an old
     // slug). Writing it back would undo that navigation.
+    // The router decodes its pathname, so compare against the decoded address
+    // bar to keep non-ASCII slugs from reading as a divergence.
+    let addressBarPath = window.location.pathname;
+    try {
+      addressBarPath = decodeURI(addressBarPath);
+    } catch {
+      // malformed escapes: compare the raw path
+    }
     if (
-      window.location.pathname !==
+      addressBarPath !==
       history.createHref({ pathname: history.location.pathname })
     ) {
       return;

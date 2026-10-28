@@ -991,3 +991,58 @@ test('withholds the builder until this load hydrates despite retained Redux stat
     window.history.replaceState({}, '', '/');
   }
 });
+
+test('a superseded permalink lookup does not mark the current load as hydrated', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  type PermalinkValue = Awaited<ReturnType<typeof getPermalinkValue>>;
+  const permalinkValue: PermalinkValue = {
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  };
+  const resolvers: Array<(value: PermalinkValue) => void> = [];
+  jest.mocked(getPermalinkValue).mockImplementation(
+    () =>
+      new Promise<PermalinkValue>(resolve => {
+        resolvers.push(resolve);
+      }),
+  );
+  const page = (
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>
+  );
+
+  const { rerender, unmount } = render(page, {
+    useRedux: true,
+    useRouter: true,
+    initialState: {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+  });
+
+  try {
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+    mockUseDashboard.mockReturnValue({ result: undefined, error: null });
+    rerender(page);
+    mockUseDashboard.mockReturnValue({ result: mockDashboard, error: null });
+    rerender(page);
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+
+    resolvers[0](permalinkValue);
+    await waitFor(() => expect(hydrateDashboard).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
+
+    resolvers[1](permalinkValue);
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+  } finally {
+    resolvers.forEach(resolve => resolve(permalinkValue));
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});

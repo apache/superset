@@ -218,3 +218,12 @@ test('does not undo a navigation made outside the router, such as a slug change 
   expect(window.location.pathname).toBe('/superset/dashboard/new-slug/');
   expect(window.location.search).toBe('');
 });
+
+test('syncs tabs on a dashboard with a non-ASCII slug', () => {
+  window.history.replaceState({}, '', '/superset/dashboard/café/');
+  const { update } = setup({ activeTabs: ['TAB-first'] });
+
+  update({ activeTabs: ['TAB-second'] });
+
+  expect(window.location.search).toBe('?active_tabs=TAB-second');
+});
