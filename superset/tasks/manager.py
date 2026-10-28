@@ -74,7 +74,9 @@ def _release_session_on_error(fn: Callable[[], T]) -> Callable[[], T]:
             from superset import db
 
             try:
-                db.session.rollback()
+                # Not a unit of work: this only discards a failed read poll's
+                # session, so @transaction (which commits on success) doesn't fit.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 db.session.remove()
             except Exception:  # pylint: disable=broad-except
                 logger.debug("Session cleanup after failed poll failed", exc_info=True)
