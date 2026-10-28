@@ -227,7 +227,7 @@ type ContributedPage = {
  */
 export function withExtensionPages(
   menu: MenuObjectProps[],
-  pages: ContributedPage[],
+  pages: readonly ContributedPage[],
 ): MenuObjectProps[] {
   // A page the user may not open is left out rather than shown and refused:
   // the server answers 403 for it, so an entry here would only advertise a
@@ -279,7 +279,7 @@ export function withExtensionPages(
  */
 export function withExtensionSettings(
   settings: MenuObjectProps[],
-  pages: ContributedPage[],
+  pages: readonly ContributedPage[],
 ): MenuObjectProps[] {
   const contributed = pages.filter(
     page => page.nav?.category && page.permitted !== false,

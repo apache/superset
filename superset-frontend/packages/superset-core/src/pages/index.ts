@@ -152,9 +152,15 @@ export declare function registerPage(
 ): Disposable;
 
 /**
- * Retrieves every registered page, in registration order.
+ * Retrieves every registered page, in registration order -- which, across
+ * extensions, is the order their bundles finished loading. Sort it yourself
+ * if you need a stable order.
+ *
+ * The array and the pages in it are frozen: they are the host's own routing
+ * and navigation input, so they are shared rather than copied. Sort, filter
+ * or map into your own array before changing anything.
  */
-export declare function getPages(): ResolvedPage[];
+export declare function getPages(): readonly ResolvedPage[];
 
 /**
  * The path beneath this page's own root, always beginning with `/`.
