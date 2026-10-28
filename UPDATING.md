@@ -24,60 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-- MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
-  values with "Text must not be empty"; omit the field to keep the stored title.
-  MCP chart names and theme names are capped at 250 characters, matching their
-  model columns (the published chart-name limit was 255).
-
-- **MCP authentication hooks and disabled API keys:** Custom `MCP_USER_RESOLVER`
-  functions that read `access_token.client_id` must use
-  `get_verifier_client_id(access_token)` from
-  `superset.mcp_service.composite_token_verifier` instead. FastMCP 4's `MultiAuth`
-  qualifies `client_id`; the helper returns the originating verifier's ID on
-  both FastMCP 3 and 4. This ID routes authentication; it is not proof that the
-  bearer is valid. When API keys are disabled (`MCP_API_KEY_ENABLED=False`, or
-  `FAB_API_KEY_ENABLED=False` without an MCP override), an explicit API-key
-  pass-through token raises `PermissionError` instead of falling through to
-  another identity. `tools/list` returns an empty list for that client, not
-  public tools. Remove the API-key credential to use another authentication
-  method, or explicitly enable API-key authentication.
-
-- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
-  query (no post-processing or time offsets, and not a report's client-processed
-  result), a dimension column of nullable integers that holds a value beyond
-  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
-  strings (the existing contract for large integers), and CSV, Excel and Arrow
-  exports carry the exact integer. Consumers that parsed these values as JSON
-  numbers receive a string for them. Metric columns are unchanged, and results
-  cached before the upgrade keep the old values until they expire.
-
-- **Bulk semantic view creation is capped and time-bounded.** With
-  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
-  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
-  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
-  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
-  up. Clients adding more views should split them across requests and retry
-  timed-out views.
-
-- `superset-frontend` type-checks with TypeScript 7, whose native compiler no
-  longer ships the JavaScript compiler API. The webpack dev server therefore
-  no longer runs `fork-ts-checker-webpack-plugin`, and the `DISABLE_TS_CHECKER`
-  environment variable is gone; run `npm run type` (or `npm run type -- --watch`)
-  for type errors and `npm run plugins:build` to refresh package `.d.ts` output.
-  Storybook's prop tables now come from `react-docgen` instead of
-  `react-docgen-typescript`.
-- MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
-  row-collapsing post-processing leaves input coverage unverified, not only when
-  truncation is observed. Output row counts do not prove complete input coverage.
-  `fetch_row_limit` reports the executed query limit, including server caps.
-
-- MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
-  share charts with the source dashboard must pass `duplicate_slices=false`.
-  MCP `list_dashboards`, `list_charts`, `list_datasets`, `list_reports` and
-  `list_databases` reject unknown request fields instead of silently ignoring
-  them, with suggestions for supported fields. Use `created_by_me` for authorship
-  or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
-
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
   metrics, including two SUM metrics. Metric-specific values and totals remain
@@ -87,17 +33,22 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
-- **`@superset-ui/core` is now offered to extensions through Module
-  Federation.** The host provides it in the share scope and
-  `superset-extensions init` declares it, so a newly scaffolded extension
-  resolves it to the host's copy. That is what makes `SupersetClient` usable
-  from an extension -- a bundled copy is never configured, so calls through it
-  go out without a CSRF token -- and what keeps the registries in that
-  package, which hold state in module-level closures, from silently splitting
-  in two. An extension built before this keeps bundling its own copy and is
-  unaffected; to use the host's it must add `@superset-ui/core` to the
-  `shared` block of its own webpack config, since Module Federation consumes
-  the share scope only for modules the remote declares.
+- **Extensions reach Superset's API through a new `http` namespace on
+  `@apache-superset/core`.** `http.get` / `post` / `put` / `delete` take an
+  `endpoint` -- a path under this Superset, to which the host applies the
+  application root -- and return the parsed `json`, the `status` and the
+  response `headers`. The host supplies the session and attaches a CSRF token
+  to every write, so an extension no longer fetches one. An absolute or
+  protocol-relative endpoint is refused, since the call carries the session.
+
+  `@superset-ui/core` is deliberately **not** shared with extensions, and
+  `SupersetClient` is not extension API. Sharing it made the whole surface of
+  a large internal package into a contract by accident, with nothing saying
+  which parts an extension could rely on, and it exposed extensions to a
+  package whose published copy and in-repo copy carry the same version number
+  with about two years between them. An extension that imports
+  `@superset-ui/core` bundles its own copy, which is never configured, so
+  calls through it go out without a CSRF token; move those calls to `http`.
 
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
@@ -932,17 +883,14 @@ them had no effect and they can be deleted from custom configs.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
-This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
-(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
-releases, it is the same minimal image.
+but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
 
 **What operators should expect:**
 
@@ -2579,14 +2527,6 @@ Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
-
-- `NOT IN` filters on SQLAlchemy-backed datasets now also return rows where the
-  column is NULL. Previously these rows were dropped by SQL three-valued logic
-  (`NULL NOT IN (...)` is not true), so a filter such as "Exclude selected values"
-  removed NULL rows in addition to the selected values. Dashboards, charts and
-  reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
-  list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
-  and `NOT ILIKE` are unchanged.
 
 ## 6.1.0
 

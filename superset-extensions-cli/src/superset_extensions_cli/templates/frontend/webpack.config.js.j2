@@ -61,15 +61,6 @@ module.exports = (env, argv) => {
             singleton: true,
             import: false,
           },
-          // Declared here as well as by the host, because Module Federation
-          // only consumes the share scope for modules the remote itself
-          // declares as shared. Without this the extension bundles its own
-          // copy, whose SupersetClient is never configured -- so every call
-          // through it goes out without a CSRF token.
-          "@superset-ui/core": {
-            singleton: true,
-            import: false,
-          },
         },
       }),
     ],

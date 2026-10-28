@@ -31,6 +31,7 @@ export * from './chat';
 export * from './commands';
 export * from './editors';
 export * from './extensions';
+export * from './http';
 export * from './menus';
 export * from './models';
 export * from './navigation';
