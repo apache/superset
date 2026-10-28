@@ -428,6 +428,13 @@ THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
   requests can share an imageless refresh already in progress or its completed replacement.
   A refresh still carrying older bytes is replaced with an imageless generation, so the
   forced request's image URL waits for the new capture.
+- **Retained image:** a refresh can only keep serving a capture that the cache backend still
+  holds when it turns stale. This holds on backends without TTL eviction (for example S3), when
+  `THUMBNAIL_CACHE_CONFIG`'s `CACHE_DEFAULT_TIMEOUT` is `0`, or when that timeout exceeds this TTL.
+  With the defaults (both 7 days), an evicting backend such as Redis expires a capture as it
+  turns stale, so the refresh renders without an image, as a first render does. On a backend that
+  keeps the capture, the on-demand endpoint can still find it for about `CACHE_DEFAULT_TIMEOUT`
+  after it turns stale (indefinitely when that timeout is `0`); a later request renders without it.
 - **Clock skew:** cache timestamps are naive local times written by the host that rendered the
   image, so run web servers and thumbnail workers with the same `TZ` and keep this TTL above any
   clock offset between them. A worker clock running ahead of the web servers only postpones the

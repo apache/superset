@@ -1417,10 +1417,11 @@ THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 # Refresh threshold for UPDATED dashboard screenshots requested by the on-demand
 # endpoint or dashboard thumbnails refreshed by compute-thumbnails without --force.
 # Chart screenshots and card-list thumbnail endpoints do not use this check.
-# Retained images remain servable during refresh and error backoff: this triggers
-# recomputation, not image expiry. Defaults to match THUMBNAIL_CACHE_CONFIG's
-# CACHE_DEFAULT_TIMEOUT (7 days). Set to 0 or None to disable this check;
-# cache backend expiry and eviction still apply.
+# Images the cache backend still holds remain servable during refresh and error
+# backoff: this triggers recomputation, not image expiry. Defaults to match
+# THUMBNAIL_CACHE_CONFIG's CACHE_DEFAULT_TIMEOUT (7 days), so an evicting backend
+# (e.g. Redis) drops an image as it turns stale. Set to 0 or None to disable this
+# check; cache backend expiry and eviction still apply.
 THUMBNAIL_UPDATED_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
 # Cache warmup user — must be set explicitly before enabling the cache-warmup

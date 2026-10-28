@@ -18,6 +18,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument
 
 from inspect import signature
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,6 +29,7 @@ from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
     DashboardScreenshot,
+    MAX_API_POINTER_TTL_EXTENSION_SECONDS,
     ScreenshotCacheError,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
@@ -240,6 +242,61 @@ def test_api_generation_publication_does_not_require_thumbnail_cache_cas(
         screenshot.get_current_api_generation_cache_key(request_key, scope)
         == "new-generation"
     )
+
+
+@pytest.mark.parametrize(
+    ("backend_timeout", "updated_ttl", "expected_timeout"),
+    [
+        pytest.param(604800, 604800, 604800 + 604800 + 360, id="default"),
+        pytest.param(604800, 0, 604800, id="ttl-zero-disabled"),
+        pytest.param(604800, None, 604800, id="ttl-none-disabled"),
+        pytest.param(604800, -604800, 604800, id="ttl-negative"),
+        pytest.param(
+            604800,
+            float("inf"),
+            604800 + MAX_API_POINTER_TTL_EXTENSION_SECONDS,
+            id="ttl-infinite",
+        ),
+        pytest.param(
+            604800,
+            10**12,
+            604800 + MAX_API_POINTER_TTL_EXTENSION_SECONDS,
+            id="ttl-huge",
+        ),
+        pytest.param(0, 604800, 0, id="backend-no-expiry"),
+    ],
+)
+def test_api_pointer_cache_outlives_updated_ttl(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    backend_timeout: int,
+    updated_ttl: float | None,
+    expected_timeout: int,
+) -> None:
+    """The request pointer outlives a capture stamped within one computing lease.
+
+    The pointer is written at publication, before the worker stamps the capture,
+    so expiring it with the backend timeout alone drops it before the capture
+    ages past THUMBNAIL_UPDATED_CACHE_TTL. A no-expiry backend and a disabled or
+    negative TTL keep the backend timeout; a very large or infinite TTL extends
+    it by a bounded amount so the pointer's expiry stays representable.
+    """
+    from flask import current_app
+
+    monkeypatch.setattr(BaseScreenshot, "api_pointer_cache", None)
+    monkeypatch.setattr(
+        BaseScreenshot,
+        "cache",
+        SimpleNamespace(cache=SimpleNamespace(default_timeout=backend_timeout)),
+    )
+    monkeypatch.setitem(current_app.config, "THUMBNAIL_UPDATED_CACHE_TTL", updated_ttl)
+    monkeypatch.setitem(current_app.config, "THUMBNAIL_COMPUTING_CACHE_TTL", 360)
+
+    pointer_cache = (
+        DashboardScreenshot._get_api_pointer_cache()  # pylint: disable=protected-access
+    )
+
+    assert pointer_cache.default_timeout == expected_timeout
 
 
 def test_explicit_cache_write_rejection_raises(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1373,10 +1373,15 @@ theme editor picker.
   D1 has no transactions, so a failed upload could leave a half-written table.
 - Dashboard screenshot requests without `force=true` refresh successfully-rendered
   (`UPDATED`) images older than `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days),
-  retaining the last valid image during refresh and error backoff. This also applies
-  to dashboard thumbnails refreshed by `superset compute-thumbnails` without
-  `--force`; chart screenshots and card-list thumbnail endpoints are excluded.
-  Set the TTL to `0` or `None` to disable this freshness check and rely on the cache
+  retaining the last valid image during refresh and error backoff when the cache
+  backend still holds it: on backends without TTL eviction, such as S3, or with a
+  thumbnail `CACHE_DEFAULT_TIMEOUT` of `0` or above the TTL. With the default 7-day
+  timeout, evicting backends such as Redis expire the image as it turns stale, so
+  the refresh renders without one. The on-demand endpoint finds a retained image for
+  about that timeout after it turns stale (indefinitely when it is `0`). This also
+  applies to dashboard thumbnails refreshed by `superset compute-thumbnails` without
+  `--force`; chart screenshots and card-list thumbnail endpoints are excluded. Set
+  the TTL to `0` or `None` to disable this freshness check and rely on the cache
   backend's retention policy. Only backends without TTL eviction, such as S3, can
   then serve a cached image indefinitely. Timestamps are naive local time, so run
   web servers and workers with the same `TZ` and keep the TTL above any clock offset

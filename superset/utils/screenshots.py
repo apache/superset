@@ -54,6 +54,10 @@ DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
 DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
 DEFAULT_DASHBOARD_WINDOW_SIZE = 1600, 1200
 DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
+# Bounds how far THUMBNAIL_UPDATED_CACHE_TTL extends the API request pointer, so
+# a very large or infinite TTL (refresh effectively disabled) cannot overflow the
+# pointer's expiry datetime.
+MAX_API_POINTER_TTL_EXTENSION_SECONDS = 10 * 365 * 24 * 60 * 60
 
 try:
     from PIL import Image
@@ -965,6 +969,24 @@ class DashboardScreenshot(BaseScreenshot):
             if configured_timeout is not None
             else app.config["CACHE_DEFAULT_TIMEOUT"]
         )
+        # The pointer is written at publication, before the worker stamps the
+        # capture's UPDATED time, so expiring it with the backend timeout alone
+        # drops it before the capture ages past THUMBNAIL_UPDATED_CACHE_TTL
+        # whenever that timeout does not exceed the TTL (as with the defaults).
+        # A force-less request would then publish an imageless generation
+        # instead of carrying the stale capture forward. Adding that TTL plus one
+        # computing lease keeps the pointer of a capture stamped within the lease
+        # alive for the backend timeout after the capture turns stale, so an
+        # evicting backend drops the capture before its pointer. A backend
+        # timeout of 0 (no expiry) and a disabled TTL keep the backend timeout.
+        updated_ttl = app.config.get("THUMBNAIL_UPDATED_CACHE_TTL") or 0
+        if default_timeout > 0 and updated_ttl > 0:
+            default_timeout += int(
+                min(
+                    updated_ttl + app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
+                    MAX_API_POINTER_TTL_EXTENSION_SECONDS,
+                )
+            )
         return SupersetMetastoreCache(
             namespace=get_uuid_namespace(
                 "dashboard_screenshot_api_generation_pointer",

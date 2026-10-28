@@ -8158,6 +8158,73 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert successor.get_image().read() == retained_image
         assert successor.is_in_progress()
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config(
+        {
+            "THUMBNAIL_UPDATED_CACHE_TTL": int(timedelta(days=7).total_seconds()),
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 360,
+        }
+    )
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_pointer_outlives_updated_ttl(self) -> None:
+        """With the default 7-day backend timeout and TTL, a force-less request
+        for a stale capture must still resolve the request pointer and carry the
+        capture forward. The pointer is written at publication, before the worker
+        stamps the capture, so a pointer expiring with the backend timeout alone
+        lapses first: the request then publishes an imageless generation and
+        ``image_url`` 404s while the object store still holds the capture."""
+
+        class ObjectStoreCache(SimpleCache):
+            """Advertises a 7-day default timeout but never evicts, like S3."""
+
+            def __init__(self) -> None:
+                super().__init__(default_timeout=int(timedelta(days=7).total_seconds()))
+                # flask_caching.Cache exposes its backend as ``cache``.
+                self.cache = self
+
+            def _normalize_timeout(self, timeout: Any) -> int:
+                return 0
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .one()
+        )
+        image = b"\x89PNG\r\n\x1a\nretained capture"
+        published_at = datetime(2026, 10, 27, 12, 0, 0)
+        cache = ObjectStoreCache()
+
+        with (
+            patch("superset.utils.screenshots.DashboardScreenshot.cache", cache),
+            patch("superset.dashboards.api.cache_dashboard_screenshot") as task,
+        ):
+            with freeze_time(published_at):
+                first = self._cache_screenshot(dashboard.id)
+            assert first.status_code == 202
+            first_key = first.json["cache_key"]
+            permalink_key = first.json["dashboard_url"].rstrip("/").rsplit("/", 1)[-1]
+
+            with freeze_time(published_at + timedelta(seconds=30)):
+                rendered = ScreenshotCachePayload.from_dict(cache.get(first_key))
+                rendered.update(image)
+                cache.set(first_key, rendered.to_dict())
+
+            with freeze_time(published_at + timedelta(days=8)):
+                refresh = self._cache_screenshot(
+                    dashboard.id, payload={"permalinkKey": permalink_key}
+                )
+                refresh_image = self.client.get(refresh.json["image_url"])
+
+        assert refresh.status_code == 202
+        assert refresh.json["cache_key"] != first_key
+        assert refresh.json["task_status"] == "Pending"
+        assert task.delay.call_count == 2
+        assert task.delay.call_args.kwargs["cache_key"] == refresh.json["cache_key"]
+        # Load-bearing: once the pointer lapses, the refresh is imageless and 404s.
+        assert refresh_image.status_code == 200
+        assert refresh_image.data == image
+
     @parameterized.expand(
         [
             ("wrong_scope", "dashboard:999999", b"\x89PNG\r\n\x1a\nprior capture"),
