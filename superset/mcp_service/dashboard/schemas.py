@@ -732,9 +732,10 @@ class AddChartToDashboardResponse(DashboardMutationErrorFields):
         default=False,
         description=(
             "True when the operation failed because the current user does not "
-            "have edit rights on the target dashboard. When True, inform the "
-            "user and ask if they would like a new dashboard created instead. "
-            "Do NOT silently create a new dashboard — always confirm first."
+            "have edit rights on the target dashboard or access to the chart. "
+            "Do not retry or create another dashboard to bypass denied chart "
+            "access. For a dashboard-edit denial, ask the user before creating "
+            "a new dashboard; chart access must still be checked."
         ),
     )
 
@@ -878,12 +879,19 @@ class GenerateDashboardRequest(BaseModel):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
         with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                data[key] = "" if raw == "" else None
+                return data
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
             if was_modified and not sanitized:
                 raise ValueError(
                     "dashboard_title contained only disallowed content "
@@ -891,6 +899,7 @@ class GenerateDashboardRequest(BaseModel):
                     "sanitization. Provide a dashboard_title with plain text, "
                     "or omit it to auto-generate one from chart names."
                 )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -901,8 +910,8 @@ class GenerateDashboardRequest(BaseModel):
 
     @field_validator("dashboard_title")
     @classmethod
-    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
-        """Sanitize dashboard title to prevent XSS.
+    def normalize_blank_dashboard_title(cls, v: str | None) -> str | None:
+        """Normalize blank titles; nonblank titles are sanitized above.
 
         Preserves an explicit empty string (caller-provided ``""``) rather
         than collapsing it to ``None``, since the tool treats ``None`` as
@@ -911,9 +920,7 @@ class GenerateDashboardRequest(BaseModel):
         """
         if v is None or v == "":
             return v
-        return sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
-        )
+        return v if v.strip() else None
 
 
 class UpdateDashboardRequest(OmittedMeansUnchanged):
@@ -925,7 +932,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
     the REST API) without a full re-create.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
@@ -1043,18 +1050,27 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
         with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                raise PydanticCustomError(
+                    "empty_text", "dashboard_title cannot be empty"
+                )
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
             if was_modified and not sanitized:
                 raise ValueError(
                     "dashboard_title contained only disallowed content "
                     "(HTML/script/URL schemes) and was removed entirely by "
                     "sanitization. Provide a dashboard_title with plain text."
                 )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1065,17 +1081,17 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
 
     @field_validator("dashboard_title")
     @classmethod
-    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
-        """Sanitize dashboard title to prevent XSS."""
-        if v is None or v == "":
+    def normalize_blank_dashboard_title(cls, v: str | None) -> str | None:
+        """Reject blank updates; nonblank titles are sanitized above."""
+        if v is None:
             return v
-        return sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
-        )
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "dashboard_title cannot be empty")
+        return v
 
-    @field_validator("slug")
+    @field_validator("slug", mode="before")
     @classmethod
-    def normalize_slug(cls, v: str | None) -> str | None:
+    def normalize_slug(cls, v: object) -> object:
         """Normalize the slug to match the REST DashboardPutSchema contract.
 
         Mirrors ``BaseDashboardSchema.post_load``: strip, replace spaces with
@@ -1086,7 +1102,9 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         REST schema behavior. Raises ``ValueError`` when a non-whitespace input
         normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
         """
-        if not v:
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str) or not v:
             return v
         stripped = v.strip()
         if not stripped:
@@ -1380,11 +1398,15 @@ class ManageDashboardCertificationRequest(BaseModel):
             raise ValueError("identifier must be an integer ID, UUID, or slug string")
         return value
 
-    @field_validator("certified_by")
+    @field_validator("certified_by", mode="before")
     @classmethod
-    def sanitize_certified_by(cls, v: str | None) -> str | None:
+    def sanitize_certified_by(cls, v: object) -> object:
         """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
-        if v is None or v == "":
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
+        if v == "":
             return v
         sanitized: str | None = sanitize_user_input(
             v, "certified_by", max_length=500, allow_empty=True
@@ -1400,12 +1422,16 @@ class ManageDashboardCertificationRequest(BaseModel):
             )
         return sanitized
 
-    @field_validator("certification_details")
+    @field_validator("certification_details", mode="before")
     @classmethod
-    def sanitize_certification_details(cls, v: str | None) -> str | None:
+    def sanitize_certification_details(cls, v: object) -> object:
         """Sanitize certification_details to prevent XSS; it renders in the
         same CertifiedBadge tooltip as certified_by."""
-        if v is None or v == "":
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
+        if v == "":
             return v
         sanitized: str | None = sanitize_user_input(
             v, "certification_details", max_length=5000, allow_empty=True
@@ -1461,7 +1487,7 @@ class GenerateDashboardResponse(BaseModel):
 class DuplicateDashboardRequest(BaseModel):
     """Request schema for duplicating an existing dashboard."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     dashboard_id: Annotated[
         int | str,
@@ -1501,8 +1527,8 @@ class DuplicateDashboardRequest(BaseModel):
     def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
         """Reject empty-after-sanitization titles and warn on partial strip.
 
-        Runs before the ``dashboard_title`` field validator rewrites the
-        value. If the caller supplied a title that sanitization would strip
+        Sanitizes once before field constraints are applied.
+        If the caller supplied a title that sanitization would strip
         entirely (XSS-only content), we raise so the caller gets a clear
         error instead of a blank-titled dashboard. When the sanitizer only
         trims part of the title, we record a warning the tool can return
@@ -1521,18 +1547,27 @@ class DuplicateDashboardRequest(BaseModel):
                 break
         else:
             raw = None
-        if not isinstance(raw, str) or not raw.strip():
-            return data
         with field_validation_error("dashboard_title"):
+            if isinstance(raw, (bytes, bytearray)):
+                raw = raw.decode()
+            if not isinstance(raw, str):
+                return data
+            if not raw.strip():
+                raise PydanticCustomError(
+                    "empty_text", "dashboard_title cannot be empty"
+                )
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
             if was_modified and not sanitized:
                 raise ValueError(
                     "dashboard_title contained only disallowed content "
                     "(HTML/script/URL schemes) and was removed entirely by "
                     "sanitization. Provide a dashboard_title with plain text."
                 )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1543,14 +1578,11 @@ class DuplicateDashboardRequest(BaseModel):
 
     @field_validator("dashboard_title")
     @classmethod
-    def sanitize_dashboard_title(cls, v: str) -> str:
-        """Sanitize dashboard title to prevent XSS."""
-        sanitized = sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if not sanitized:
-            raise ValueError("dashboard_title cannot be empty")
-        return sanitized
+    def reject_blank_dashboard_title(cls, v: str) -> str:
+        """Reject blank duplicates; nonblank titles are sanitized above."""
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "dashboard_title cannot be empty")
+        return v
 
 
 class DuplicateDashboardResponse(BaseModel):
