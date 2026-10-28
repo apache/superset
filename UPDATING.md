@@ -33,22 +33,22 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
-- **`@superset-ui/core` is now offered to extensions through Module
-  Federation.** The host provides it in the share scope and
-  `superset-extensions init` declares the share, so a newly scaffolded
-  extension resolves it to the host's copy *at runtime*. The share is
-  invisible to TypeScript, so the package must also be installed locally --
-  as a peer dependency to record that the host supplies it, and as a dev
-  dependency for its types -- which the scaffold does not yet do, so an
-  import of `SupersetClient` does not compile until you add it. That is what
-  makes `SupersetClient` usable
-  from an extension -- a bundled copy is never configured, so calls through it
-  go out without a CSRF token -- and what keeps the registries in that
-  package, which hold state in module-level closures, from silently splitting
-  in two. An extension built before this keeps bundling its own copy and is
-  unaffected; to use the host's it must add `@superset-ui/core` to the
-  `shared` block of its own webpack config, since Module Federation consumes
-  the share scope only for modules the remote declares.
+- **Extensions reach Superset's API through a new `http` namespace on
+  `@apache-superset/core`.** `http.get` / `post` / `put` / `delete` take an
+  `endpoint` -- a path under this Superset, to which the host applies the
+  application root -- and return the parsed `json`, the `status` and the
+  response `headers`. The host supplies the session and attaches a CSRF token
+  to every write, so an extension no longer fetches one. An absolute or
+  protocol-relative endpoint is refused, since the call carries the session.
+
+  `@superset-ui/core` is deliberately **not** shared with extensions, and
+  `SupersetClient` is not extension API. Sharing it made the whole surface of
+  a large internal package into a contract by accident, with nothing saying
+  which parts an extension could rely on, and it exposed extensions to a
+  package whose published copy and in-repo copy carry the same version number
+  with about two years between them. An extension that imports
+  `@superset-ui/core` bundles its own copy, which is never configured, so
+  calls through it go out without a CSRF token; move those calls to `http`.
 
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which

@@ -33,6 +33,7 @@ import type {
   core,
   editors,
   extensions,
+  http,
   menus,
   navigation,
   pages,
@@ -48,6 +49,7 @@ export interface Namespaces {
   commands: typeof commands;
   editors: typeof editors;
   extensions: typeof extensions;
+  http: typeof http;
   menus: typeof menus;
   navigation: typeof navigation;
   pages: typeof pages;

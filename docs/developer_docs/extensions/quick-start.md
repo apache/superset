@@ -291,16 +291,6 @@ module.exports = (env, argv) => {
             singleton: true,
             import: false, // Resolved to a per-extension instance by the loader
           },
-          // Declared here as well as by the host, because Module Federation
-          // consumes the share scope only for modules the remote itself
-          // declares. Without it the extension bundles its own copy, whose
-          // SupersetClient is never configured, so calls through it go out
-          // with no CSRF token. Declare it in `package.json` too, or the
-          // import will not type-check -- see above.
-          '@superset-ui/core': {
-            singleton: true,
-            import: false,
-          },
         },
       }),
     ],
