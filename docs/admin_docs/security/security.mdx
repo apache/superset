@@ -706,8 +706,14 @@ discovered. The configured dataset schema remains the fallback for RLS lookup an
 cache keys when neither the connection parameters nor the inspector yields a schema.
 Expression RLS cache keys are collected without building the chart query or running
 series-limit prequeries; schema discovery is shared with the dataset SQL's RLS lookup.
-Expression templates are rendered once for predicate discovery, matching query execution.
-Literal template syntax produced by a template is not evaluated again.
+For predicate discovery, each expression template is rendered with the context query
+execution uses (including a series-limit prequery's), before the cache lookup and
+without calling warehouse or viewer-dependent macros. Template parameters and the macros
+that only read the request's filters and URL parameters (`filter_values`, `get_filters`,
+`url_param`) are evaluated. Other macros, such as `presto.latest_partition`, `dataset`,
+`metric`, `get_time_filter` and the `current_user_*` functions, are not called: an
+expression that uses one gets a cache key scoped to the current user instead of RLS
+predicates. Literal template syntax produced by a template is not evaluated again.
 
 For example, if you have:
 

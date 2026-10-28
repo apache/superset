@@ -44,11 +44,16 @@ from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
     get_template_processor,
+    JinjaTemplateProcessor,
     JsonValue,
     metric_macro,
+    NoOpTemplateProcessor,
+    OpaqueTemplateError,
+    PrestoTemplateProcessor,
     safe_proxy,
     TimeFilter,
     to_datetime,
+    TrinoTemplateProcessor,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -3682,3 +3687,156 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        # Warehouse, metadata and viewer-dependent callables.
+        "{{ presto.latest_partition('t') }}",
+        "{{ presto.latest_sub_partition('t', ds='x') }}",
+        "{% if presto.latest_partition %}x{% endif %}",
+        "{{ dataset(1) }}",
+        "{{ metric('m') }}",
+        "{{ current_username() }}",
+        "{{ current_user_id() }}",
+        "{{ get_time_filter('ds') }}",
+        "{{ addon() }}",
+        # Any use of a stub, not only a call.
+        "{{ current_username }}",
+        "{{ current_username ~ '' }}",
+        "{% for x in current_username %}{% endfor %}",
+        "{{ current_username == 1 }}",
+        "{% if current_username %}x{% endif %}",
+        "{{ current_username | length }}",
+        "{{ current_username.__name__ }}",
+        # Non-deterministic built-ins could render differently at execution.
+        "{{ ['a', 'b'] | random }}",
+        "{{ lipsum(1) }}",
+        "{{ 'a' | custom_probe }}",
+        "{{ 'a' is custom_test }}",
+        # Tests and filters can inspect a stub without using it.
+        "{% if presto is mapping %}x{% endif %}",
+        "{% if presto is not sameas trino %}x{% endif %}",
+        "{% if current_username is callable %}x{% endif %}",
+        "{% if current_username is defined %}x{% endif %}",
+        "{{ current_username | default('x') }}",
+        "{% if addon_value is not callable %}x{% endif %}",
+        # The engine namespace persists across execution renders.
+        "{{ presto.update({'x': 1}) }}",
+        "{% if presto.seen is defined %}x{% endif %}",
+    ],
+)
+def test_render_for_discovery_stubs_macros(
+    mocker: MockerFixture, template: str
+) -> None:
+    """Discovery rendering never runs a macro; using one makes it opaque."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    probe = mocker.MagicMock(return_value="1")
+    mocker.patch(
+        "superset.jinja_context.context_addons",
+        return_value={"addon": probe, "addon_value": datetime(2020, 1, 1)},
+    )
+    mocker.patch.object(PrestoTemplateProcessor, "latest_partitions", probe)
+    mocker.patch.object(PrestoTemplateProcessor, "latest_sub_partition", probe)
+    processor = TrinoTemplateProcessor(database=database)
+    processor.env.filters["custom_probe"] = probe
+    processor.env.tests["custom_test"] = probe
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery(template)
+    probe.assert_not_called()
+
+
+def test_render_for_discovery_matches_execution_for_data() -> None:
+    """Plain parameters, built-ins and structure render exactly as execution."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = PrestoTemplateProcessor(
+        database=database,
+        p="(FROM t) + LENGTH('",
+        q=[1],
+        d={"k": "v"},
+        s={"a"},
+        r="')",
+    )
+    template = (
+        "{{ p ~ q ~ r }}|{{ p + q|string + r }}|{{ d.k|upper }}|{{ d['k'] }}"
+        "|{{ q|join(',') }}|{{ s|first }}|{% set x = namespace(v=1) %}{{ x.v }}"
+        "|{% for i in range(2) %}{{ i }}{% endfor %}|{{ q is sequence }}"
+        "|{{ ['a']|map('upper')|join }}"
+        "|{{ q|where_in }}|{{ '2020-01-01 00:00:00'|to_datetime }}|{{ missing }}"
+    )
+    rendered = processor.render_for_discovery(template)
+    assert rendered == processor.process_template(template)
+    assert rendered.startswith("(FROM t) + LENGTH('[1]')|")
+
+
+def test_render_for_discovery_runs_request_filter_readers(
+    mocker: MockerFixture,
+) -> None:
+    """Request-only readers stay live, so FROM removal state is discoverable."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "name",
+            }
+        ],
+        "url_params": {"p": "bar"},
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    removed: list[str] = []
+    processor = JinjaTemplateProcessor(database=database, removed_filters=removed)
+    template = (
+        "{{ filter_values('name', remove_filter=True) }}"
+        "{{ get_filters('name')[0].op }}{{ url_param('p') }}"
+        "{{ cache_key_wrapper('k') }}"
+    )
+    with current_app.test_request_context():
+        assert processor.render_for_discovery(template) == "['foo']INbark"
+    assert removed == ["name"]
+
+
+def test_render_for_discovery_custom_processors(mocker: MockerFixture) -> None:
+    """Processors whose rendering is unknown are opaque; no-op ones are exact."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    class CustomProcessor(JinjaTemplateProcessor):
+        def process_template(self, sql: str, **kwargs: Any) -> str:
+            return sql.replace("$X", "(SELECT 1 FROM t)")
+
+    class CustomNoOp(NoOpTemplateProcessor):
+        def process_template(self, sql: str, **kwargs: Any) -> str:
+            return sql.replace("$X", "(SELECT 1 FROM t)")
+
+    for processor_class in (CustomProcessor, CustomNoOp):
+        with pytest.raises(OpaqueTemplateError):
+            processor_class(database=database).render_for_discovery("$X")
+    assert (
+        NoOpTemplateProcessor(database=database).render_for_discovery("{{ $X }}")
+        == "{{ $X }}"
+    )
+
+    processor = JinjaTemplateProcessor(database=database)
+    processor.env.finalize = str
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("1")
+    processor = JinjaTemplateProcessor(database=database)
+    processor.env.add_extension("jinja2.ext.do")
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("1")
+    # Unknown context values and globals are stubbed rather than evaluated.
+    processor = JinjaTemplateProcessor(database=database)
+    processor.env.globals["probe"] = mocker.MagicMock()
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("{{ probe() }}")
+    processor = JinjaTemplateProcessor(database=database, value=datetime(2020, 1, 1))
+    mocker.patch(
+        "superset.jinja_context.validate_template_context",
+        side_effect=lambda engine, context: context,
+    )
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("{{ value.now() }}")

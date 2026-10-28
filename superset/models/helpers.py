@@ -60,7 +60,6 @@ from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
-from jinja2 import nodes
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
 from pandas import DateOffset, Timedelta
@@ -4136,97 +4135,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         col: AdhocColumn,
         rendered_sql: str,
-        template_processor: BaseTemplateProcessor,
+        render: Callable[[str], str | None],
     ) -> str | None:
         """Query-backed adhoc columns execute their rendered SQL literally."""
         return rendered_sql
-
-    def _get_rls_expression_sources(  # noqa: C901
-        self,
-        expression: str,
-        template_processor: BaseTemplateProcessor,
-    ) -> set[str]:
-        """Inspect SQL and literal template inputs without executing any macros.
-
-        Include parameter values and constant outputs so templated subqueries
-        and saved-column references are not mistaken for plain expressions.
-        This is only a prefilter; rendered SQL still undergoes AST discovery.
-        """
-        sources = {expression.strip()}
-        try:
-            template = template_processor.env.parse(expression)
-        except TemplateError:
-            return sources
-        unknown = object()
-
-        def literal(node: nodes.Node) -> Any:  # noqa: C901
-            """Read JSON values and concatenate strings, never calls or filters."""
-            if isinstance(node, nodes.Const):
-                return node.value
-            if isinstance(node, nodes.TemplateData):
-                return node.data
-            if isinstance(node, nodes.Name):
-                return self.template_params_dict.get(node.name, unknown)
-            if isinstance(node, (nodes.Getattr, nodes.Getitem)):
-                value = literal(node.node)
-                key = (
-                    node.attr if isinstance(node, nodes.Getattr) else literal(node.arg)
-                )
-                if isinstance(value, dict) and isinstance(key, (str, int)):
-                    return value.get(key, unknown)
-                if isinstance(value, list) and isinstance(key, int):
-                    try:
-                        return value[key]
-                    except IndexError:
-                        pass
-                return unknown
-            if isinstance(node, nodes.Add):
-                left, right = literal(node.left), literal(node.right)
-                if isinstance(left, str) and isinstance(right, str):
-                    return left + right
-                if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-                    return left + right
-                return unknown
-            parts = node.nodes if isinstance(node, (nodes.Output, nodes.Concat)) else []
-            values = [literal(part) for part in parts]
-            if parts and all(
-                isinstance(value, (str, int, float, bool, type(None)))
-                for value in values
-            ):
-                return "".join(str(value) for value in values)
-            return unknown
-
-        for output in template.find_all(nodes.Output):
-            if isinstance(value := literal(output), str):
-                sources.add(value.strip())
-        return sources
-
-    def _may_have_rls_subquery(
-        self,
-        expression: str,
-        template_processor: BaseTemplateProcessor,
-    ) -> bool | None:
-        """Detect subqueries without rendering; return None for ambiguous SQL."""
-        ambiguous = False
-        for source in self._get_rls_expression_sources(expression, template_processor):
-            # Jinja calls are opaque, not SQL. Inspect the surrounding SQL and
-            # literal template outputs separately, without executing either.
-            source = re.sub(
-                r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", "NULL", source, flags=re.DOTALL
-            )
-            # Use the execution parser, not a keyword gate: table subqueries
-            # can start with FROM, including in otherwise SELECT-less SQL.
-            try:
-                script = SQLScript(f"SELECT {source}", self.db_engine_spec.engine)
-            except SupersetParseError:
-                ambiguous = True
-            else:
-                if any(
-                    statement.has_subquery() and statement.tables
-                    for statement in script.statements
-                ):
-                    return True
-        return None if ambiguous else False
 
     def _get_query_sql_expressions(  # noqa: C901
         self,
@@ -4234,12 +4146,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor: BaseTemplateProcessor,
         granularity: str | None,
         removed_filters: list[str],
-        unrendered_templates: list[str],
+        opaque_templates: list[str],
+        prequery_objs: list[QueryObjectDict],
     ) -> list[str]:
         """Render SQL-bearing chart fields without building a chart or its prequeries.
 
-        Render only possible subqueries, once per source, matching execution.
-        An adhoc column resolving to saved metadata also checks its expression.
+        Render each source expression once, matching execution, but through
+        ``render_for_discovery`` so no macro runs before the cache lookup. An
+        expression that needs a macro is recorded in ``opaque_templates``. An
+        adhoc column that resolves to saved metadata also renders that column's
+        expression. A series-limit prequery is appended to ``prequery_objs``.
         """
         columns_by_name = {col.column_name: col for col in self.columns}
         columns = {name: col.expression for name, col in columns_by_name.items()}
@@ -4253,70 +4169,30 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         }
         metric_labels = {utils.get_metric_name(metric) for metric in selected_metrics}
         expressions: list[str] = []
-        from_template_rendered = False
 
-        def record_unrendered_template(expression: str) -> None:
-            """Keep opaque macro outputs viewer-scoped without executing them."""
-            if self._may_have_rls_subquery(expression, template_processor) is None:
-                unrendered_templates.append(expression)
-                return
+        def render(expression: str) -> str | None:
+            """Render like execution without running macros; None when opaque."""
+            # Only FROM's removals may skip filter columns: execution renders
+            # FROM first, so they are a subset of its own and collection can
+            # only over-include. Removals made by a chart expression are
+            # discarded for the same reason.
+            removed = list(removed_filters)
             try:
-                template = template_processor.env.parse(expression)
-            except TemplateError:
-                unrendered_templates.append(expression)
-                return
-            string_inputs = any(
-                isinstance(node, nodes.TemplateData)
-                or (isinstance(node, nodes.Const) and isinstance(node.value, str))
-                or (
-                    isinstance(node, nodes.Name)
-                    and isinstance(self.template_params_dict.get(node.name), str)
-                )
-                for node in template.find_all(nodes.Node)
-            )
-            unknown_string_operation = string_inputs and any(
-                not isinstance(
-                    node,
-                    (
-                        nodes.Output,
-                        nodes.TemplateData,
-                        nodes.Const,
-                        nodes.Name,
-                        nodes.Add,
-                        nodes.Concat,
-                    ),
-                )
-                for node in template.find_all(nodes.Node)
-            )
-            if (
-                any(
-                    template.find_all(
-                        (nodes.Call, nodes.Filter, nodes.Getattr, nodes.Getitem)
-                    )
-                )
-                or any(
-                    name.name not in self.template_params_dict
-                    for name in template.find_all(nodes.Name)
-                )
-                or unknown_string_operation
-            ):
-                unrendered_templates.append(expression)
-
-        def populate_removed_filters() -> None:
-            """Render FROM only when removal can suppress a chart expression."""
-            nonlocal from_template_rendered
-            if self.sql and not from_template_rendered:
-                self.get_rendered_sql(template_processor)
-                from_template_rendered = True
+                return template_processor.render_for_discovery(expression)
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                # Opaque (a stubbed macro was used) or invalid: either way the
+                # SQL execution produces is unknown here.
+                opaque_templates.append(expression)
+                return None
+            finally:
+                removed_filters[:] = removed
 
         def add_expression(expression: str) -> None:
             """Render source SQL, preserving literal Jinja in its output."""
-            if self._may_have_rls_subquery(expression, template_processor):
-                expressions.append(template_processor.process_template(expression))
-            else:
-                record_unrendered_template(expression)
+            if (rendered := render(expression)) is not None:
+                expressions.append(rendered)
 
-        def add(value: Any, metric: bool = False) -> None:  # noqa: C901
+        def add(value: Any, metric: bool = False) -> None:
             """Resolve stored references in the namespace used by the query sink."""
             if isinstance(value, str):
                 references = metrics if metric else columns
@@ -4325,35 +4201,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if expression := references.get(value):
                     add_expression(expression)
             elif isinstance(value, dict):
-                if sql := value.get("sqlExpression"):
-                    sources = self._get_rls_expression_sources(sql, template_processor)
+                if (sql := value.get("sqlExpression")) and (
+                    sql := render(sql)
+                ) is not None:
                     if not metric:
-                        for source in sources:
-                            if (
-                                saved_expression := columns.get(source)
-                            ) and not self._may_have_rls_subquery(
-                                saved_expression, template_processor
-                            ):
-                                record_unrendered_template(saved_expression)
-                    if self._may_have_rls_subquery(sql, template_processor) or (
-                        not metric
-                        and any(
-                            self._may_have_rls_subquery(
-                                columns[source], template_processor
-                            )
-                            for source in sources
-                            if columns.get(source)
+                        sql = self._get_adhoc_column_rls_expression(
+                            cast(AdhocColumn, value), sql, render
                         )
-                    ):
-                        sql = template_processor.process_template(sql)
-                        if not metric:
-                            sql = self._get_adhoc_column_rls_expression(
-                                cast(AdhocColumn, value), sql, template_processor
-                            )
-                        if sql:
-                            expressions.append(sql)
-                    else:
-                        record_unrendered_template(sql)
+                    if sql:
+                        expressions.append(sql)
                 add(value.get("column"))
                 add(value.get("column_name"))
 
@@ -4372,28 +4228,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 or (isinstance(value, str) and value in metrics),
             )
 
-        def add_filter(value: Any) -> None:  # noqa: C901
+        def add_filter(value: Any) -> None:
             """Filters accept verbose column names before stored metric names."""
             # Execution renders adhoc/metric SQL before checking removal, but
             # delays saved-column SQL until after that check.
             if not isinstance(value, str):
                 add(value)
             elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
-                if (
-                    expression := columns.get(granularity or "")
-                ) and self._may_have_rls_subquery(expression, template_processor):
-                    populate_removed_filters()
                 if value not in removed_filters and granularity not in removed_filters:
                     add(granularity)
             elif (col := self._get_filter_column(value, columns_by_name)) is not None:
-                if col.expression and self._may_have_rls_subquery(
-                    col.expression, template_processor
-                ):
-                    populate_removed_filters()
-                    if value not in removed_filters:
-                        add_expression(col.expression)
-                elif col.expression:
-                    record_unrendered_template(col.expression)
+                if value not in removed_filters and col.expression:
+                    add_expression(col.expression)
             elif value in metrics:
                 add(value, metric=True)
             elif value in adhoc_columns_by_label:
@@ -4431,22 +4277,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             add(metric_value, metric=True)
         for orderby_value, _ascending in query_obj.get("orderby") or []:
             add_orderby(orderby_value)
-        # Only inspected time/filter subqueries need FROM's removal state.
-        # Rendering FROM for other expressions could run warehouse macros
-        # before the chart cache lookup.
-        if (
-            not query_obj.get("is_timeseries", True)
-            and (expression := columns.get(granularity or ""))
-            and self._may_have_rls_subquery(expression, template_processor)
-        ) or (
-            granularity
-            and self.always_filter_main_dttm
-            and self.main_dttm_col in self.dttm_cols
-            and self.main_dttm_col != granularity
-            and (expression := columns.get(self.main_dttm_col))
-            and self._may_have_rls_subquery(expression, template_processor)
-        ):
-            populate_removed_filters()
+        # FROM templates remove filters before execution renders time/filter
+        # columns. Discovery runs the request-only filter readers for real, so
+        # their removals reach this collector. A macro aborts the render early,
+        # recording fewer removals, which only over-includes expressions.
+        if self.sql:
+            try:
+                template_processor.render_for_discovery(self.sql.strip("\t\r\n; "))
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001, S110
+                pass
         collect_time_column = query_obj.get("is_timeseries", True) or (
             granularity not in removed_filters
             and utils.DTTM_ALIAS not in removed_filters
@@ -4503,11 +4342,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and not self.db_engine_spec.time_groupby_inline
             ):
                 add(granularity)
-            add(
-                query_obj.get("series_limit_metric")
-                or query_obj.get("timeseries_limit_metric"),
-                metric=True,
+            series_limit_metric = query_obj.get("series_limit_metric") or query_obj.get(
+                "timeseries_limit_metric"
             )
+            add(series_limit_metric, metric=True)
+            if not (
+                self.db_engine_spec.allows_joins
+                and self.db_engine_spec.allows_subqueries
+            ):
+                # Execution runs a prequery for the top series, which renders
+                # these templates again with its own context (row limit,
+                # columns), so collect it as execution builds it.
+                prequery_objs.append(
+                    {
+                        "is_timeseries": False,
+                        "row_limit": series_limit,
+                        "metrics": selected_metrics,
+                        "granularity": granularity,
+                        "groupby": query_obj.get("groupby") or [],
+                        "filter": query_obj.get("filter") or [],
+                        # The series metric is rendered by the main query.
+                        "orderby": []
+                        if series_limit_metric
+                        else query_obj.get("orderby") or [],
+                        "extras": extras,
+                        "columns": get_non_base_axis_columns(selected_columns),
+                        "order_desc": True,
+                    }
+                )
         return expressions
 
     def _get_query_rls_cache_keys(
@@ -4556,13 +4418,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs.update(removed_filters=removed_filters, applied_filters=[])
         template_processor = self.get_template_processor(**template_kwargs)
         predicates: set[str] = set()
-        unrendered_templates: list[str] = []
+        opaque_templates: list[str] = []
+        prequery_objs: list[QueryObjectDict] = []
         for expression in self._get_query_sql_expressions(
             query_obj,
             template_processor,
             granularity,
             removed_filters,
-            unrendered_templates,
+            opaque_templates,
+            prequery_objs,
         ):
             sql = f"SELECT {expression}"
             try:
@@ -4586,12 +4450,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     resolve_catalog=resolve_catalog,
                 )
             )
-        if unrendered_templates:
-            # A macro may generate SQL that cannot be inspected statically.
+        if opaque_templates:
+            # A macro may generate SQL that cannot be known without running it.
             # Match the collector's parse-failure isolation policy rather than
-            # evaluating it before a cache lookup or sharing an unknown scope.
+            # running it before a cache lookup or sharing an unknown scope.
             predicates.add(
                 f"rls-predicate-parse-failed-for-user-{_get_cache_identity()}"
+            )
+        for prequery_obj in prequery_objs:
+            predicates.update(
+                self._get_query_rls_cache_keys(
+                    prequery_obj, default_schema, resolve_catalog
+                )
             )
         return sorted(predicates)
 
