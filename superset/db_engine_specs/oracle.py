@@ -96,6 +96,13 @@ class OracleEngineSpec(BaseEngineSpec):
         return cls.max_column_name_length
 
     @classmethod
+    def get_column_name_length(
+        cls, label: str, database: Database | None = None
+    ) -> int:
+        """Measure Oracle identifiers in bytes, conservatively using UTF-8."""
+        return len(label.encode("utf-8"))
+
+    @classmethod
     def get_server_major_version(cls, database: Database) -> int | None:
         """
         Return the major version of the Oracle server, or `None` if unknown.

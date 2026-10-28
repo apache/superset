@@ -307,6 +307,23 @@ def test_make_label_compatible_uses_database_identifier_limit(
 
 
 @pytest.mark.parametrize(
+    "version, max_bytes",
+    [("11.2.0.4", 30), ("12.2.0.1", 128)],
+)
+def test_make_label_compatible_uses_oracle_identifier_bytes(
+    version: str, max_bytes: int, server_versions: Any
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    label = "é" * (max_bytes // 2 + 1)
+
+    compatible_label = OracleEngineSpec.make_label_compatible(label, database)
+
+    assert len(str(compatible_label).encode("utf-8")) <= max_bytes
+
+
+@pytest.mark.parametrize(
     "version, expected",
     [
         ("10g", LimitMethod.WRAP_ROWNUM),

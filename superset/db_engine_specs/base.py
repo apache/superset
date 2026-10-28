@@ -1205,6 +1205,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.max_column_name_length
 
     @classmethod
+    def get_column_name_length(
+        cls,
+        label: str,
+        database: Database | None = None,  # pylint: disable=unused-argument
+    ) -> int:
+        """Return the length of a column name in the engine's supported units."""
+        return len(label)
+
+    @classmethod
     def get_limit_method(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -2721,8 +2730,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if database is not None
             else cls.max_column_name_length
         )
-        if max_column_name_length and len(label_mutated) > max_column_name_length:
-            label_mutated = cls._truncate_label(label, max_column_name_length)
+        if max_column_name_length and (
+            cls.get_column_name_length(label_mutated, database) > max_column_name_length
+        ):
+            label_mutated = cls._truncate_label(label)
+            while (
+                cls.get_column_name_length(label_mutated, database)
+                > max_column_name_length
+            ):
+                label_mutated = label_mutated[:-1]
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -2772,7 +2788,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label
 
     @classmethod
-    def _truncate_label(cls, label: str, max_length: int | None = None) -> str:
+    def _truncate_label(cls, label: str) -> str:
         """
         In the case that a label exceeds the max length supported by the engine,
         this method is used to construct a deterministic and unique label based on
@@ -2785,9 +2801,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         label = hash_from_str(label)
         # truncate hash if it exceeds max length
-        max_length = max_length or cls.max_column_name_length
-        if max_length and len(label) > max_length:
-            label = label[:max_length]
+        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
+            label = label[: cls.max_column_name_length]
         return label
 
     @classmethod

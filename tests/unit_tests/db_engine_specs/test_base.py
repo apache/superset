@@ -66,6 +66,13 @@ from tests.conftest import with_config
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
+def test_make_label_compatible_supports_engine_specific_truncation() -> None:
+    label = BigQueryEngineSpec.make_label_compatible("x" * 129)
+
+    assert label.startswith("_")
+    assert len(label) == 65
+
+
 def create_expected_superset_error(
     message: str,
     error_type: SupersetErrorType = SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
