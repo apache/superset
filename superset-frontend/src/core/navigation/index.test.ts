@@ -236,3 +236,28 @@ test('a host route still wins over a contributed page at the same path', async (
     registered.dispose();
   }
 });
+
+test('moving between two contributed pages does not change the surface', async () => {
+  // Deliberate, and the reason `pages.onDidChangeCurrentPage` exists. `Page`
+  // names the surface, and both of these are `'extension'`, so this module
+  // has nothing to report. An extension that needs to know *which* page it
+  // is on asks the registry.
+  const { navigation, notifyLocationChanged } = await importNavigation();
+  const first = await registerPage('/approvals');
+  const second = await registerPage('/review-log');
+  try {
+    notifyLocationChanged('/approvals');
+    expect(navigation.getPage()).toBe('extension');
+
+    const seen: string[] = [];
+    const sub = navigation.onDidChangePage(page => seen.push(page));
+    notifyLocationChanged('/review-log');
+
+    expect(navigation.getPage()).toBe('extension');
+    expect(seen).toEqual([]);
+    sub.dispose();
+  } finally {
+    first.dispose();
+    second.dispose();
+  }
+});

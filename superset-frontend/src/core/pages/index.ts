@@ -45,7 +45,7 @@ import { logging } from '@apache-superset/core/utils';
 import PageBoundary from './PageBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
-import { createEventEmitter } from '../utils';
+import { createEventEmitter, createValueEventEmitter } from '../utils';
 
 type Page = pagesApi.Page;
 type ResolvedPage = pagesApi.ResolvedPage;
@@ -92,6 +92,26 @@ const unregisterEmitter = createEventEmitter<ResolvedPage>();
 // `useSyncExternalStore` requires a referentially stable snapshot between
 // notifications, so the array is rebuilt only when the registry changes.
 let snapshot: readonly ResolvedPage[] = Object.freeze([]);
+// Which contributed page the user is on, or undefined on a host screen.
+//
+// Separate from `navigation.getPage()`, which names the *surface*: every
+// contributed page is `'extension'` there, so moving between two of them is
+// not a change and fires nothing. This answers the other question -- which
+// page -- and so does change on that move.
+const currentPageEmitter = createValueEventEmitter<ResolvedPage | undefined>(
+  undefined,
+);
+let currentPathname: string | null = null;
+
+const recomputeCurrentPage = (): void => {
+  const next =
+    currentPathname === null ? undefined : findPageByPath(currentPathname);
+  if (next === currentPageEmitter.getCurrent()) {
+    return;
+  }
+  currentPageEmitter.fire(next);
+};
+
 const refresh = () => {
   // Frozen rather than copied on read. `getPages` is handed to extension
   // code through the public namespace, and it is also the `getSnapshot` for
@@ -103,6 +123,11 @@ const refresh = () => {
   snapshot = Object.freeze(
     Array.from(pageRegistry.values(), entry => Object.freeze(entry.page)),
   );
+  // Registering a page can make it the current one -- an extension whose
+  // bundle lands while the user is already sitting on its URL is the normal
+  // case -- and unregistering can take that away. Recomputed from the
+  // rebuilt snapshot, so the lookup sees the registration that caused it.
+  recomputeCurrentPage();
   syncListeners.forEach(listener => listener());
 };
 
@@ -334,6 +359,24 @@ export const resolvePage = (id: string): React.ReactElement => {
 // `thisArgs` is part of `Event<T>`, and `subscribe` binds it. Dropping it here
 // would leave `pages.onDidRegisterPage(controller.addPage, controller)` --
 // which the type invites -- calling `addPage` unbound.
+/**
+ * Tells the registry where the user is. Called by the navigation tracker.
+ *
+ * Not public: an extension observes the current page, it does not set it.
+ */
+export const notifyPathnameChanged = (pathname: string): void => {
+  currentPathname = pathname;
+  recomputeCurrentPage();
+};
+
+export const getCurrentPage = (): ResolvedPage | undefined =>
+  currentPageEmitter.getCurrent();
+
+export const onDidChangeCurrentPage = (
+  listener: (page: ResolvedPage | undefined) => void,
+  thisArgs?: unknown,
+) => currentPageEmitter.subscribe(listener, thisArgs);
+
 export const onDidRegisterPage = (
   listener: (e: ResolvedPage) => void,
   thisArgs?: unknown,
@@ -353,6 +396,8 @@ export const onDidUnregisterPage = (
 export const pages = {
   useSubPath,
   useNavigate,
+  getCurrentPage,
+  onDidChangeCurrentPage,
   registerPage: (() => {
     throw new Error(
       'pages.registerPage is bound per extension by the loader and cannot ' +

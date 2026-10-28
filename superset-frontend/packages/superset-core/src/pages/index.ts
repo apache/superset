@@ -201,6 +201,41 @@ export declare function useSubPath(): string;
  */
 export declare function useNavigate(): (subPath: string) => void;
 
+/**
+ * The contributed page the user is on, or `undefined` on a host screen.
+ *
+ * Finer than `navigation.getPage()`, which names the surface: every
+ * contributed page is `'extension'` there, so moving from one to another is
+ * not a change in that value.
+ *
+ * @example
+ * ```typescript
+ * const page = pages.getCurrentPage();
+ * if (page?.extensionId === 'acme.tools') {
+ *   // the user is on one of this extension's pages
+ * }
+ * ```
+ */
+export declare function getCurrentPage(): ResolvedPage | undefined;
+
+/**
+ * Event fired when the user moves to or from a contributed page.
+ *
+ * Fires with `undefined` when the user leaves for a host screen, and with
+ * the page when one arrives -- including when an extension registers a page
+ * for the URL the user is already sitting on.
+ *
+ * @example
+ * ```typescript
+ * const sub = pages.onDidChangeCurrentPage(page => {
+ *   if (page) {
+ *     // the user opened `page`
+ *   }
+ * });
+ * ```
+ */
+export declare const onDidChangeCurrentPage: Event<ResolvedPage | undefined>;
+
 /** Event fired when a page is registered. */
 export declare const onDidRegisterPage: Event<ResolvedPage>;
 
