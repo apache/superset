@@ -72,8 +72,11 @@ def answer_gate_signals(app: object) -> None:
     a fresh app, and these have to be registered before it serves a
     request.
     """
-    from asset_approval.entrypoint import install_http, install_views
-
     with app.app_context():  # type: ignore[attr-defined]
+        # The import has to happen inside the context too: importing the
+        # entrypoint runs its module-level ``init()``, which creates the
+        # extension's tables and so reaches for ``db.engine``.
+        from asset_approval.entrypoint import install_http, install_views
+
         install_http()
         install_views()
