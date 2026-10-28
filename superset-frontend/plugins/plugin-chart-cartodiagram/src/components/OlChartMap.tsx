@@ -25,8 +25,8 @@ import BaseEvent from 'ol/events/Event';
 import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
 import { toLonLat, transformExtent } from 'ol/proj';
-import { debounce } from 'lodash-es';
-import { fitMapToData, fitMapToCharts } from '../util/mapUtil';
+import { debounce, isEqual } from 'lodash-es';
+import { fitMapToData } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
 import {
@@ -452,17 +452,22 @@ export const OlChartMap = (props: OlChartMapProps) => {
    * Refit the map when new data arrives while the view fits the data.
    * A dashboard auto-refresh keeps the chart mounted, so the initial
    * extent effect above doesn't run again for the new rows.
+   * We only refit the map if the geometries have changed.
    */
-  const fittedChartConfigs = useRef(currentChartConfigs);
+  const fittedGeometries = useRef(
+    currentChartConfigs.features.map(f => f.geometry),
+  );
   useEffect(() => {
-    if (currentChartConfigs === fittedChartConfigs.current) {
+    const geometries = currentChartConfigs.features.map(f => f.geometry);
+    if (isEqual(geometries, fittedGeometries.current)) {
       return;
     }
-    fittedChartConfigs.current = currentChartConfigs;
+    fittedGeometries.current = geometries;
     if (currentMapView.mode === 'FIT_DATA') {
-      fitMapToCharts(olMap, currentChartConfigs);
+      const padding = getMapExtentPadding(mapExtentPadding);
+      fitMapToData(olMap, currentChartConfigs, padding);
     }
-  }, [olMap, currentChartConfigs, currentMapView.mode]);
+  }, [olMap, currentChartConfigs, currentMapView.mode, mapExtentPadding]);
 
   /**
    * Send updated zoom to chart config control.

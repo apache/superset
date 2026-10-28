@@ -17,7 +17,10 @@
  * under the License.
  */
 import { ChartProps, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { getChartConfigs, parseSelectedChart } from '../util/transformPropsUtil';
+import {
+  getChartConfigs,
+  parseSelectedChart,
+} from '../util/transformPropsUtil';
 import { ChartConfig } from '../types';
 
 export default function transformProps(chartProps: ChartProps) {
