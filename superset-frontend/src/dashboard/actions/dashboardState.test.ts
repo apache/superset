@@ -503,14 +503,6 @@ describe('dashboardState actions', () => {
     test('Save As sends the cross-filter config with the copy and leaves the source dashboard alone', async () => {
       const sourceDashboardId = 1;
       const vizType = 'interactive_test_chart';
-      getChartMetadataRegistry().registerValue(
-        vizType,
-        new ChartMetadata({
-          name: 'interactive test chart',
-          thumbnail: '.png',
-          behaviors: [Behavior.InteractiveChart],
-        }),
-      );
       const chartLayoutItem = (chartId: number) => ({
         children: [],
         id: `CHART-${chartId}`,
@@ -560,57 +552,70 @@ describe('dashboardState actions', () => {
       const dispatch: jest.Mock = jest.fn(action =>
         typeof action === 'function' ? action(dispatch, getState) : action,
       );
+      getChartMetadataRegistry().registerValue(
+        vizType,
+        new ChartMetadata({
+          name: 'interactive test chart',
+          thumbnail: '.png',
+          behaviors: [Behavior.InteractiveChart],
+        }),
+      );
       const requestStub = jest
         .spyOn(SupersetClient, 'request')
         .mockResolvedValue({ json: { result: {} } } as any);
-      postStub.mockRestore();
-      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
-        json: { result: { id: 999, last_modified_time: 0 } },
-      } as any);
+      try {
+        postStub.mockRestore();
+        postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+          json: { result: { id: 999, last_modified_time: 0 } },
+        } as any);
 
-      await saveDashboardRequest(
-        { ...newDashboardData, duplicate_slices: true },
-        sourceDashboardId,
-        SAVE_TYPE_NEWDASHBOARD,
-      )(dispatch, getState);
+        await saveDashboardRequest(
+          { ...newDashboardData, duplicate_slices: true },
+          sourceDashboardId,
+          SAVE_TYPE_NEWDASHBOARD,
+        )(dispatch, getState);
 
-      await waitFor(() => expect(mockNavigateTo).toHaveBeenCalled());
-      expect(
-        dispatch.mock.calls.some(
-          ([action]) => action?.type === 'SAVE_CHART_CONFIG_BEGIN',
-        ),
-      ).toBe(false);
-      expect(requestStub).not.toHaveBeenCalled();
-      expect(putStub).not.toHaveBeenCalled();
-      const { endpoint, jsonPayload } = postStub.mock.calls[0][0];
-      expect(endpoint).toBe(`/api/v1/dashboard/${sourceDashboardId}/copy/`);
-      const metadata = JSON.parse(jsonPayload.json_metadata);
-      const { chartConfiguration, globalChartConfiguration } =
-        getCrossFiltersConfiguration(
-          state.dashboardLayout.present as any,
-          state.dashboardInfo.metadata as any,
-          state.charts as any,
+        await waitFor(() => expect(mockNavigateTo).toHaveBeenCalled());
+        expect(
+          dispatch.mock.calls.some(
+            ([action]) => action?.type === 'SAVE_CHART_CONFIG_BEGIN',
+          ),
+        ).toBe(false);
+        expect(requestStub).not.toHaveBeenCalled();
+        expect(putStub).not.toHaveBeenCalled();
+        const { endpoint, jsonPayload } = postStub.mock.calls[0][0];
+        expect(endpoint).toBe(`/api/v1/dashboard/${sourceDashboardId}/copy/`);
+        const metadata = JSON.parse(jsonPayload.json_metadata);
+        const { chartConfiguration, globalChartConfiguration } =
+          getCrossFiltersConfiguration(
+            state.dashboardLayout.present as any,
+            state.dashboardInfo.metadata as any,
+            state.charts as any,
+          );
+        expect(metadata.chart_configuration).toEqual(chartConfiguration);
+        expect(metadata.global_chart_configuration).toEqual(
+          globalChartConfiguration,
         );
-      expect(metadata.chart_configuration).toEqual(chartConfiguration);
-      expect(metadata.global_chart_configuration).toEqual(
-        globalChartConfiguration,
-      );
-      expect(metadata.chart_configuration).toEqual({
-        '1': {
-          id: 1,
-          crossFilters: {
-            scope: { rootPath: ['ROOT_ID'], excluded: [2] },
-            chartsInScope: [],
+        expect(metadata.chart_configuration).toEqual({
+          '1': {
+            id: 1,
+            crossFilters: {
+              scope: { rootPath: ['ROOT_ID'], excluded: [2] },
+              chartsInScope: [],
+            },
           },
-        },
-        '2': {
-          id: 2,
-          crossFilters: { scope: 'global', chartsInScope: [1] },
-        },
-      });
-      expect(metadata.global_chart_configuration.chartsInScope).toEqual([1, 2]);
-      requestStub.mockRestore();
-      getChartMetadataRegistry().remove(vizType);
+          '2': {
+            id: 2,
+            crossFilters: { scope: 'global', chartsInScope: [1] },
+          },
+        });
+        expect(metadata.global_chart_configuration.chartsInScope).toEqual([
+          1, 2,
+        ]);
+      } finally {
+        requestStub.mockRestore();
+        getChartMetadataRegistry().remove(vizType);
+      }
     });
 
     // `navigateWithState` regression for the
