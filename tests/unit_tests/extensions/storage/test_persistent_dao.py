@@ -25,11 +25,13 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from flask import Flask
 from flask_babel import Babel
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm.session import Session
 
 from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
 from superset.extensions.storage.persistent_dao import (
+    _decrypt_if_needed,
     _derive_key,
     _enc_type,
     ExtensionStorageDAO,
@@ -955,3 +957,72 @@ def test_list_returns_empty_when_no_entries_match(
 
     assert entries == []
     assert total_count == 0
+
+
+def test_dao_encryption_roundtrip_with_real_enc_type(app: Flask) -> None:
+    """Extension storage values written with encrypt=True can be decrypted.
+
+    Regression test for #45787.
+    """
+    with app.app_context():
+        dialect = make_url("sqlite://").get_dialect()
+        raw_payload = b'{"conversation_history": ["prompt", "response"]}'
+
+        # Test shared scope
+        enc_shared = _enc_type(None)
+        ciphertext_shared = enc_shared.process_bind_param(raw_payload, dialect)
+        assert isinstance(ciphertext_shared, bytes)
+        assert ciphertext_shared != raw_payload
+        decrypted_shared = enc_shared.process_result_value(ciphertext_shared, dialect)
+        assert decrypted_shared == raw_payload
+
+        # Test user scope
+        enc_user = _enc_type(user_fk=42)
+        ciphertext_user = enc_user.process_bind_param(raw_payload, dialect)
+        assert isinstance(ciphertext_user, bytes)
+        assert ciphertext_user != raw_payload
+        decrypted_user = enc_user.process_result_value(ciphertext_user, dialect)
+        assert decrypted_user == raw_payload
+
+
+def test_decrypt_if_needed_with_real_ciphertext(app: Flask) -> None:
+    """_decrypt_if_needed successfully decrypts stored ciphertext without mock.
+
+    Regression test for #45787.
+    """
+    with app.app_context():
+        dialect = make_url("sqlite://").get_dialect()
+        raw_payload = b'{"status": "active", "code": 200}'
+        ciphertext = _enc_type(user_fk=7).process_bind_param(raw_payload, dialect)
+
+        entry = MagicMock()
+        entry.is_encrypted = True
+        entry.user_fk = 7
+        entry.value = ciphertext
+
+        with patch("superset.extensions.storage.persistent_dao.db") as mock_db:
+            mock_db.engine.dialect = dialect
+            result = _decrypt_if_needed(entry, "my-ext", "test-key")
+            assert result == raw_payload
+
+
+def test_decrypt_if_needed_with_aes_gcm(app: Flask) -> None:
+    """_decrypt_if_needed succeeds with AES-GCM engine.
+
+    Regression test for #45787.
+    """
+    app.config["SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"] = "aes-gcm"
+    with app.app_context():
+        dialect = make_url("sqlite://").get_dialect()
+        raw_payload = b'{"authenticated": true}'
+        ciphertext = _enc_type(user_fk=None).process_bind_param(raw_payload, dialect)
+
+        entry = MagicMock()
+        entry.is_encrypted = True
+        entry.user_fk = None
+        entry.value = ciphertext
+
+        with patch("superset.extensions.storage.persistent_dao.db") as mock_db:
+            mock_db.engine.dialect = dialect
+            result = _decrypt_if_needed(entry, "my-ext", "test-key")
+            assert result == raw_payload

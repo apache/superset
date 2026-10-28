@@ -19,7 +19,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import String
+from sqlalchemy import LargeBinary, String
 from sqlalchemy.engine import make_url
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEngine
 from sqlalchemy_utils.types.encrypted.padding import PKCS5Padding
@@ -444,3 +444,49 @@ def test_engine_migration_unreadable_value_counts_as_failure() -> None:
 
     assert stats == ReEncryptStats(failed=1)
     assert conn.execute.call_count == 0
+
+
+def test_encrypted_type_large_binary_roundtrip_aes_cbc() -> None:
+    """EncryptedType(LargeBinary) round-trips binary payloads under AES-CBC.
+
+    Regression test for #45787.
+    """
+    t = EncryptedType(
+        LargeBinary, key=lambda: SECRET_KEY, engine=BackwardCompatibleAesEngine
+    )
+    payload = b'{"conversation_history": ["hello", "world"]}'
+    ciphertext = t.process_bind_param(payload, DIALECT)
+    assert isinstance(ciphertext, bytes)
+    assert ciphertext != payload
+    decrypted = t.process_result_value(ciphertext, DIALECT)
+    assert decrypted == payload
+
+
+def test_encrypted_type_large_binary_roundtrip_aes_gcm() -> None:
+    """EncryptedType(LargeBinary) round-trips binary payloads under AES-GCM.
+
+    Regression test for #45787.
+    """
+    t = EncryptedType(LargeBinary, key=lambda: SECRET_KEY, engine=AesGcmEngine)
+    payload = b'{"encrypted": true, "binary": "\x00\x01\xfe\xff"}'
+    ciphertext = t.process_bind_param(payload, DIALECT)
+    assert isinstance(ciphertext, bytes)
+    assert ciphertext != payload
+    decrypted = t.process_result_value(ciphertext, DIALECT)
+    assert decrypted == payload
+
+
+def test_encrypted_type_large_binary_arbitrary_bytes() -> None:
+    """EncryptedType(LargeBinary) preserves non-UTF8 bytes and empty bytes."""
+    t = EncryptedType(LargeBinary, key=lambda: SECRET_KEY, engine=AesGcmEngine)
+    for payload in [b"", b"\x00\x00\x00", b"\xff\xfe\xfd\x80\x90", b"a" * 10000]:
+        ciphertext = t.process_bind_param(payload, DIALECT)
+        assert isinstance(ciphertext, bytes)
+        assert t.process_result_value(ciphertext, DIALECT) == payload
+
+
+def test_encrypted_type_large_binary_handles_none() -> None:
+    """EncryptedType(LargeBinary) returns None when input is None."""
+    t = EncryptedType(LargeBinary, key=lambda: SECRET_KEY, engine=AesGcmEngine)
+    assert t.process_bind_param(None, DIALECT) is None
+    assert t.process_result_value(None, DIALECT) is None

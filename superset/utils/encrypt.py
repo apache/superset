@@ -39,6 +39,37 @@ from sqlalchemy_utils.types.encrypted.padding import (
 class EncryptedType(SqlaEncryptedType):
     cache_ok = True
 
+    def _is_binary_type(self) -> bool:
+        try:
+            return issubclass(self.underlying_type.python_type, (bytes, bytearray))
+        except (AttributeError, NotImplementedError):
+            return False
+
+    def process_bind_param(self, value: Any, dialect: Dialect) -> Any:
+        if value is not None and self._is_binary_type():
+            self._update_key()
+            if isinstance(value, (bytes, bytearray)):
+                raw_bytes = bytes(value)
+            elif isinstance(value, str):
+                raw_bytes = value.encode("utf-8")
+            else:
+                raw_bytes = str(value).encode("utf-8")
+            text_value = base64.b64encode(raw_bytes).decode("ascii")
+            encrypted = self.engine.encrypt(text_value)
+            return (
+                encrypted.encode("utf-8") if isinstance(encrypted, str) else encrypted
+            )
+        return super().process_bind_param(value, dialect)
+
+    def process_result_value(self, value: Any, dialect: Dialect) -> Any:
+        if value is not None and self._is_binary_type():
+            self._update_key()
+            if isinstance(value, bytes):
+                value = value.decode("utf-8")
+            decrypted = self.engine.decrypt(value)
+            return base64.b64decode(decrypted)
+        return super().process_result_value(value, dialect)
+
 
 class BackwardCompatibleAesEngine(AesEngine):
     """AES-CBC engine that pads new writes with PKCS5, not sqlalchemy_utils'
