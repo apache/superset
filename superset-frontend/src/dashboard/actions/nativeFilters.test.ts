@@ -79,3 +79,46 @@ test('setFilterConfiguration still applies a normal save', async () => {
     SET_NATIVE_FILTERS_CONFIG_COMPLETE,
   );
 });
+
+test('setFilterConfiguration says why a refused save was refused', async () => {
+  // The gate answers 409 when the asset already has an open change. The
+  // modal has closed and the filter is gone from the bar by now, so an
+  // unreported failure reads as the save having worked (QA-04).
+  const message = 'Alex Agor is already changing this dashboard.';
+  fetchMock.put('glob:*/api/v1/dashboard/1/filters', {
+    status: 409,
+    body: {
+      asset_id: 1,
+      asset_type: 'dashboard',
+      author: 'Alex Agor',
+      message,
+    },
+  });
+  const dispatch = jest.fn();
+
+  await setFilterConfiguration(filterChanges)(dispatch, getState);
+
+  const types = dispatch.mock.calls.map(([action]) => action.type);
+  expect(types).toContain(SET_NATIVE_FILTERS_CONFIG_FAIL);
+  expect(types).not.toContain(SET_NATIVE_FILTERS_CONFIG_COMPLETE);
+  const toasts = dispatch.mock.calls.filter(
+    ([action]) => action.type === 'ADD_TOAST',
+  );
+  expect(toasts).toHaveLength(1);
+  expect(toasts[0][0].payload.toastType).toBe('DANGER_TOAST');
+  expect(toasts[0][0].payload.text).toBe(message);
+});
+
+test('setFilterConfiguration still says something when the server says nothing', async () => {
+  fetchMock.put('glob:*/api/v1/dashboard/1/filters', { status: 500, body: {} });
+  const dispatch = jest.fn();
+
+  await setFilterConfiguration(filterChanges)(dispatch, getState);
+
+  const toasts = dispatch.mock.calls.filter(
+    ([action]) => action.type === 'ADD_TOAST',
+  );
+  expect(toasts).toHaveLength(1);
+  expect(toasts[0][0].payload.toastType).toBe('DANGER_TOAST');
+  expect(toasts[0][0].payload.text).toBeTruthy();
+});

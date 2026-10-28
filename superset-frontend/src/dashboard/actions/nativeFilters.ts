@@ -20,16 +20,21 @@ import {
   Filter,
   FilterConfiguration,
   Filters,
+  getClientErrorObject,
   makeApi,
   Divider,
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
 import { cloneDeep, omit } from 'lodash-es';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
-import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
 import {
   isReviewRequired,
   type ReviewRequiredResponse,
@@ -130,11 +135,29 @@ export const setFilterConfiguration =
       });
       dispatch(nativeFiltersConfigChanged(savedFilters));
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
-    } catch (err) {
+    } catch (errorObject) {
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,
         filterConfig: filterChanges,
       });
+      // Said out loud, because the modal has already closed by now and the
+      // filter the author built is gone from the bar. Swallowing the error
+      // read as the save having worked, which is the worst reading of a
+      // refusal: the commonest one here is the review gate answering 409
+      // because the asset already has an open change, and the author needs
+      // to know that rather than rebuild the filter and lose it again
+      // (QA-04).
+      // `makeApi` throws a `SupersetApiError` carrying the body's own
+      // message, which for a refusal is the part the author can act on:
+      // who holds the asset, or why the write could not be replayed.
+      // `getClientErrorObject` answers the status text for a status it
+      // knows, turning that into the word "Conflict", so it is the
+      // fallback rather than the first choice.
+      const reason =
+        errorObject instanceof Error && errorObject.message
+          ? errorObject.message
+          : (await getClientErrorObject(errorObject)).error;
+      dispatch(addDangerToast(reason || t('Failed to save filter changes')));
     }
   };
 
