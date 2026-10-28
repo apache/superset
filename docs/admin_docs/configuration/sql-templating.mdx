@@ -569,31 +569,16 @@ WHERE
   AND dttm < {{ time_filter.to_expr }}
 ```
 
-### Datasets
+### Datasets {#datasets}
 
 It's possible to query physical and virtual datasets using the `dataset` macro. This is useful if you've defined computed columns and metrics on your datasets, and want to reuse the definition in adhoc SQL Lab queries.
 
-To use the macro, you can reference the dataset either by its numeric ID or by its name.
-
-- By ID: you need to find the dataset's ID. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/explore/?dataset_type=table&dataset_id=42 its ID is 42.
-- By name: pass the dataset’s exact name. If multiple datasets have the same name, you will need to provide additional qualifiers to avoid an ambiguous match error
+To use the macro, first you need to find the ID of the dataset. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/explore/?dataset_type=table&dataset_id=42 its ID is 42.
 
 Once you have the ID you can query it as if it were a table:
 
 ```sql
 SELECT * FROM {{ dataset(42) }} LIMIT 10
-```
-
-If you prefer dataset's name:
-
-```sql
-SELECT * FROM {{ dataset(dataset_name="my_dataset") }} LIMIT 10
-```
-
-If name is ambiguous, pass optional qualifiers (`catalog`, `schema`, either `database_id` or `database_name`) to narrow down the search:
-
-```sql
-SELECT * FROM {{ dataset(dataset_name="my_dataset", database_id=1, catalog=None, schema="datasets") }} LIMIT 10
 ```
 
 If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
@@ -614,7 +599,7 @@ You can also force an alias for the returned subquery:
 SELECT a.* FROM {{ dataset(42, alias="a") }} LIMIT 10
 ```
 
-### Metrics
+### Metrics {#metrics}
 
 The `{{ metric('metric_key', dataset_id) }}` macro can be used to retrieve the metric SQL syntax from a dataset. This can be useful for different purposes:
 
@@ -627,6 +612,34 @@ This macro avoids copy/paste, allowing users to centralize the metric definition
 
 The `dataset_id` parameter is optional, and if not provided Superset will use the current dataset from context (for example, when using this macro in the Chart Builder, by default the `macro_key` will be searched in the dataset powering the chart).
 The parameter can be used in SQL Lab, or when fetching a metric from another dataset.
+
+### Get Dataset ID
+
+If you don't want to hardcode a dataset ID or look it up manually in the interface, you can resolve it dynamically by its name using the `get_dataset_id` macro.
+
+This macro queries the internal metadata to find the correct ID based on the current database context. To use it, simply pass the name of your dataset:
+
+```sql
+SELECT {{ get_dataset_id('my_dataset') }}
+```
+
+The macro uses the active database context. If multiple datasets share the same name across different schemas or catalogs, you can pass optional qualifiers to disambiguate the search:
+
+```sql
+SELECT {{ get_dataset_id('my_dataset', catalog=None, schema="my_schema") }}
+```
+
+This macro integrates seamlessly with other macros like [dataset](#datasets) or [metric](#metrics):
+
+```sql
+SELECT {{ dataset(get_dataset_id('my_dataset')) }}
+```
+
+```sql
+SELECT {{ metric('metric_key', get_dataset_id('my_dataset')) }}
+```
+
+Note: If the macro cannot find any dataset matching the criteria, or if it finds multiple matching datasets, a template execution error will be raised.
 
 ## Available Filters
 

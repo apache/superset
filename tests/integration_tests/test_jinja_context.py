@@ -237,9 +237,9 @@ def test_custom_template_processors_ignored(app_context: AppContext) -> None:
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_dataset_macro_access_filters(app_context: AppContext) -> None:
-    """Test that the dataset macro properly enforces datasource access security
-    by successfully resolving for a granted user and throwing an access
+def test_get_dataset_id_macro_access_filters(app_context: AppContext) -> None:
+    """Test that the get_dataset_id macro properly enforces datasource access security
+    by successfully resolving for a granted user and throwing a not found
     exception for a denied user."""
     database = superset.utils.database.get_example_database()
     table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
@@ -261,25 +261,17 @@ def test_dataset_macro_access_filters(app_context: AppContext) -> None:
     db.session.commit()
 
     try:
-        with mock.patch.object(
-            SqlaTable,
-            "get_query_str_extended",
-            return_value=mock.Mock(sql="SELECT * FROM mocked_birth_names"),
-        ) as get_query:
-            query = "SELECT * FROM {{ dataset(dataset_name='birth_names') }}"
+        query = "SELECT {{ get_dataset_id('birth_names') }}"
 
-            with override_user(granted_user):  # Granted user
-                processor = get_template_processor(database=database)
+        with override_user(granted_user):  # Granted user
+            processor = get_template_processor(database=database)
+            result = processor.process_template(query)
+            assert result == f"SELECT {table.id}"
+
+        with override_user(denied_user):  # Non-granted user
+            processor = get_template_processor(database=database)
+            with pytest.raises(DatasetNotFoundError):
                 processor.process_template(query)
-                assert get_query.called is True
-
-            get_query.reset_mock()
-
-            with override_user(denied_user):  # Non-granted user
-                processor = get_template_processor(database=database)
-                with pytest.raises(DatasetNotFoundError):
-                    processor.process_template(query)
-                assert get_query.called is False
     finally:
         # Restore previous state
         if role in granted_user.roles:

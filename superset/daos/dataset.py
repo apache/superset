@@ -931,35 +931,23 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def get_table_by_catalog_schema_and_name(
+        database_id: int,
         table_name: str,
-        database_id: int | None = None,
         schema: str | type[_Unset] | None = _Unset,
         catalog: str | type[_Unset] | None = _Unset,
         skip_base_filter: bool = False,
-        *,
-        database_name: str | None = None,
     ) -> SqlaTable | None:
-        # Filter by ``table_name`` and any additional identification attributes
-        # provided (either ``database_id`` or ``database_name``, ``catalog``,
-        # ``schema``). The full identification tuple, using either ``database_id``
-        # or ``database_name`` with ``catalog`` and ``schema``, can be used to
-        # disambiguate datasets sharing the same ``table_name`` (#30377), while
-        # partial criteria may match multiple datasets (#35662).
-        if database_id is not None and database_name is not None:
-            raise ValueError("Specify either 'database_id' or 'database_name'.")
-
-        query = db.session.query(SqlaTable).filter(SqlaTable.table_name == table_name)
-
-        if not skip_base_filter:
-            query = DatasetDAO._apply_base_filter(query)
-
-        if database_id is not None:
-            query = query.filter(SqlaTable.database_id == database_id)
-
-        if database_name is not None:
-            query = query.filter(
-                SqlaTable.database.has(Database.database_name == database_name)
-            )
+        # Filter by ``database_id`` and ``table_name`` as well as any additional
+        # identification attributes provided (``catalog`` or ``schema``).
+        # The full identification tuple, using ``database_id`` with ``catalog``
+        # and ``schema``, can be used to disambiguate datasets sharing the same
+        # ``table_name`` (#30377), whilec partial criteria may match multiple
+        # datasets (#35662).
+        query = db.session.query(SqlaTable).filter(
+            SqlaTable.database_id == database_id,
+            SqlaTable.table_name == table_name,
+        )
+        query = DatasetDAO._apply_base_filter(query, skip_base_filter)
 
         if catalog is not _Unset:
             query = query.filter(
