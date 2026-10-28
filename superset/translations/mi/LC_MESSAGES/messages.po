@@ -5436,6 +5436,9 @@ msgstr "Kāore i whakahohengia ngā ine ad-hoc SQL Ritenga mō tēnei rārangi r
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Kāore e taea ngā āpure SQL whakaahuatia te tatau hei tauākī SQL kotahi."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Kāore e taea e ngā āpure SQL Ritenga te whai i ngā pātai-iti."
