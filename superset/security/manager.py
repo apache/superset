@@ -5170,6 +5170,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
+        # An embedded guest token grants only the data sources reachable through
+        # the dashboards it authorizes, and no SQL execution. The query branch
+        # below authorizes on the tables a query touches, which says nothing
+        # about the token's scope, so a guest must first show that the query is
+        # the datasource of a chart on a dashboard the token authorizes.
+        if (
+            query
+            and self.is_guest_user()
+            and (
+                is_ephemeral_query
+                or not self._guest_dashboard_authorizes_query(query, query_context)
+            )
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=_("Guest user cannot access this query"),
+                    level=ErrorLevel.WARNING,
+                )
+            )
+
         if database and table or query:
             if query:
                 # Type narrow: only SQL Lab Query objects have .database attribute
@@ -6582,6 +6603,56 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             isinstance(allowed_datasets, list)
             and all(isinstance(d, int) for d in allowed_datasets)
             and datasource_id in allowed_datasets
+        )
+
+    def _guest_dashboard_authorizes_query(
+        self,
+        query: "Query | Explorable",
+        query_context: Optional["QueryContext"],
+    ) -> bool:
+        """Return whether the current guest token reaches this SQL Lab query.
+
+        A guest reaches a query only as the datasource of a chart, requested
+        with its saved payload, on an embedded dashboard the token authorizes.
+        A token carrying a ``datasets`` allowlist reaches no query, since that
+        allowlist names SQL datasets only.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+
+        guest_user = self.get_current_guest_user_if_guest()
+        if not guest_user or query_context is None:
+            return False
+        if guest_user.guest_token.get("datasets") is not None:
+            return False
+        if query_context.datasource is not query:
+            return False
+
+        form_data = query_context.form_data or {}
+        if (
+            form_data.get("type") == "NATIVE_FILTER"
+            or form_data.get("parent_slice_id") is not None
+            or query_context_modified(query_context)
+        ):
+            return False
+
+        return bool(
+            (dashboard_id := form_data.get("dashboardId"))
+            and (slice_id := form_data.get("slice_id"))
+            and (
+                dashboard := self.session.query(Dashboard)
+                .filter(Dashboard.id == dashboard_id)
+                .one_or_none()
+            )
+            and (
+                slc := self.session.query(Slice)
+                .filter(Slice.id == slice_id)
+                .one_or_none()
+            )
+            and slc in dashboard.slices
+            and _datasource_matches(query, slc.datasource_id, slc.datasource_type)
+            and self.has_guest_access(dashboard)
         )
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
