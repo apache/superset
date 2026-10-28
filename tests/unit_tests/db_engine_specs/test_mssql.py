@@ -931,6 +931,8 @@ def test_handle_boolean_filter() -> None:
         )
         == "test_col = 0"
     )
+
+
 def test_azure_synapse_properties() -> None:
     from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
 
