@@ -24,6 +24,7 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from functools import cache
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -2568,6 +2569,20 @@ class SqlaTable(
                 )
             ) from ex
 
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        render: Callable[[str], str | None],
+    ) -> str | None:
+        """Match adhoc execution's metadata lookup and quoted-reference fallback."""
+        if saved_column := self.get_column(rendered_sql.strip()):
+            return render(saved_column.expression) if saved_column.expression else None
+        if col.get("isColumnReference"):
+            # Render the quoted source, never the already-rendered lookup SQL.
+            return render(self.database.quote_identifier(col["sqlExpression"]))
+        return rendered_sql
+
     def _shift_temporal_column_if_needed(
         self,
         sqla_column: ColumnClause,
@@ -3200,22 +3215,32 @@ class SqlaTable(
             sqla_query = self.get_sqla_query(
                 **cast(Any, filtered_query_obj),
                 mirror_partition_filters=False,
+                execute_prequeries=False,
             )
             extra_cache_keys += sqla_query.extra_cache_keys
 
+        resolve_catalog = cache(self.database.get_default_catalog)
+        default_schema = None
         # For virtual datasets, include RLS predicates in the cache key
         if self.is_virtual and self.sql:
-            default_schema = self.database.get_default_schema(self.catalog)
+            default_schema = self._get_rls_schema()
             rls_predicates = collect_rls_predicates_for_sql(
                 self.sql,
                 self.database,
                 self.catalog,
-                self.schema or default_schema or "",
+                default_schema,
                 exclude_dataset_id=self.id,
+                # As ``get_from_clause`` applies them to the inner SQL.
+                include_global_guest_rls=False,
+                resolve_catalog=resolve_catalog,
             )
-            # Add each predicate as a separate cache key component
+            # Keep each predicate associated with its qualified table, including
+            # when merging rules discovered in independent expression subqueries.
             extra_cache_keys.extend(rls_predicates)
 
+        extra_cache_keys.extend(
+            self._get_query_rls_cache_keys(query_obj, default_schema, resolve_catalog)
+        )
         # An active partition filter mapping changes the SQL a cached result came
         # from, so it has to participate in the key or a mapping fix leaves stale
         # pruned results behind. Only appended when the mapping is actually
