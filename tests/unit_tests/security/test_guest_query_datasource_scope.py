@@ -105,6 +105,7 @@ def _bound_query_context(
     slice_datasource_type: str = DatasourceType.QUERY,
     modified: bool = False,
     guest_has_dashboard: bool = True,
+    stored_chart: bool = True,
 ) -> MagicMock:
     """A chart-data request for a query-backed chart on an embedded dashboard."""
     slc = MagicMock()
@@ -115,15 +116,8 @@ def _bound_query_context(
     dashboard.id = DASHBOARD_ID
     dashboard.slices = [slc]
 
-    def _lookup(model: Any) -> MagicMock:
-        result = MagicMock()
-        result.filter.return_value.one_or_none.return_value = (
-            dashboard if model.__name__ == "Dashboard" else slc
-        )
-        return result
-
     session = MagicMock()
-    session.query.side_effect = _lookup
+    session.query.return_value.filter.return_value.one_or_none.return_value = dashboard
     mocker.patch.object(
         SupersetSecurityManager, "session", new_callable=mocker.PropertyMock
     ).return_value = session
@@ -134,7 +128,7 @@ def _bound_query_context(
 
     query_context = MagicMock()
     query_context.datasource = query
-    query_context.slice_ = slc
+    query_context.slice_ = slc if stored_chart else None
     query_context.form_data = {"dashboardId": DASHBOARD_ID, "slice_id": SLICE_ID}
     return query_context
 
@@ -237,6 +231,7 @@ def test_guest_bound_query_still_needs_table_access(
         pytest.param({}, [3], id="datasets-claim"),
         pytest.param({"modified": True}, None, id="modified-payload"),
         pytest.param({"guest_has_dashboard": False}, None, id="dashboard-not-granted"),
+        pytest.param({"stored_chart": False}, None, id="no-stored-chart"),
         pytest.param(
             {"slice_datasource_type": DatasourceType.TABLE},
             None,

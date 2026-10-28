@@ -6619,7 +6619,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         # pylint: disable=import-outside-toplevel
         from superset.models.dashboard import Dashboard
-        from superset.models.slice import Slice
 
         guest_user = self.get_current_guest_user_if_guest()
         if not guest_user or query_context is None:
@@ -6629,9 +6628,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if query_context.datasource is not query:
             return False
 
+        # The chart must be the query context's own stored chart, so the
+        # payload comparison below runs against it.
         form_data = query_context.form_data or {}
+        slc = query_context.slice_
         if (
-            form_data.get("type") == "NATIVE_FILTER"
+            slc is None
+            or not form_data.get("slice_id")
+            or form_data.get("slice_id") != slc.id
+            or form_data.get("type") == "NATIVE_FILTER"
             or form_data.get("parent_slice_id") is not None
             or query_context_modified(query_context)
         ):
@@ -6639,15 +6644,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return bool(
             (dashboard_id := form_data.get("dashboardId"))
-            and (slice_id := form_data.get("slice_id"))
             and (
                 dashboard := self.session.query(Dashboard)
                 .filter(Dashboard.id == dashboard_id)
-                .one_or_none()
-            )
-            and (
-                slc := self.session.query(Slice)
-                .filter(Slice.id == slice_id)
                 .one_or_none()
             )
             and slc in dashboard.slices
