@@ -169,3 +169,12 @@ def test_json_codec_decodes_legacy_non_finite_floats():
     decoded = JsonKeyValueCodec().decode(b'{"score": NaN, "limit": Infinity}')
     assert math.isnan(decoded["score"])
     assert decoded["limit"] == float("inf")
+
+
+def test_json_codec_encodes_non_finite_floats():
+    """NaN/Infinity must round-trip instead of being coerced to null."""
+    encoded = JsonKeyValueCodec().encode({"score": float("nan"), "limit": float("inf")})
+    assert encoded == b'{"score": NaN, "limit": Infinity}'
+    decoded = JsonKeyValueCodec().decode(encoded)
+    assert math.isnan(decoded["score"])
+    assert decoded["limit"] == float("inf")

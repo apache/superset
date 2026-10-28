@@ -131,7 +131,12 @@ class JsonKeyValueCodec(KeyValueCodec):
         if _contains_bytes(value):
             raise KeyValueCodecEncodeException("Cannot JSON-encode a bytes value")
         try:
-            return bytes(json.dumps(value), encoding="utf-8")
+            # keep NaN/Infinity round-trippable, as stdlib json did, rather than
+            # coercing them to null
+            return bytes(
+                json.dumps(value, allow_nan=True, ignore_nan=False),
+                encoding="utf-8",
+            )
         except TypeError as ex:
             raise KeyValueCodecEncodeException(str(ex)) from ex
 
