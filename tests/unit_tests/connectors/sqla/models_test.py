@@ -15,10 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import MagicMock, PropertyMock
 
 import pandas as pd
 import pytest
+from freezegun import freeze_time
 from jinja2.exceptions import UndefinedError
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
@@ -27,12 +32,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import (
+    BaseDatasource,
     SqlaTable,
     SqlMetric,
     TableColumn,
     validate_stored_expression,
 )
 from superset.daos.dataset import DatasetDAO
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -50,7 +57,13 @@ from superset.models.helpers import (
     validate_rendered_expression,
 )
 from superset.sql.parse import Table
-from superset.superset_typing import AdhocMetric, QueryObjectDict
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
+from superset.superset_typing import (
+    AdhocMetric,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import json
 
 
@@ -534,6 +547,83 @@ def test_normalize_prequery_result_type_custom_sql() -> None:
     )
 
 
+def _fetch_metadata_table(mocker: MockerFixture, **kwargs: Any) -> SqlaTable:
+    """A table whose source reports one temporal column and one partition key."""
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+    # A real engine spec, so `is_temporal` resolves the declared type instead
+    # of comparing a mock against `GenericDataType.TEMPORAL`.
+    database.db_engine_spec = BaseEngineSpec
+
+    table = SqlaTable(table_name="web_events", database=database, **kwargs)
+    mocker.patch.object(
+        table,
+        "external_metadata",
+        return_value=[
+            {"column_name": "event_time", "type": "TIMESTAMP"},
+            {"column_name": "dt_epoch", "type": "TIMESTAMP"},
+        ],
+    )
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+    return table
+
+
+def test_fetch_metadata_does_not_default_onto_the_partition_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A POST can set `partition_column` before any column exists, so create
+    validates the mapping with no `main_dttm_col` to resolve against. If
+    `fetch_metadata` then picks that same column as the default datetime
+    column, the mapping resolves onto itself -- and nobody asked for it.
+
+    The partition column is also a poor default on its own merits: an epoch
+    integer or a lowercased key that no analyst filters on.
+    """
+    table = _fetch_metadata_table(mocker)
+    table.partition_column = "event_time"
+
+    table.fetch_metadata()
+
+    assert table.main_dttm_col == "dt_epoch"
+
+
+def test_fetch_metadata_leaves_no_default_when_only_the_partition_column_is_temporal(
+    mocker: MockerFixture,
+) -> None:
+    """
+    No default datetime column is the right answer here, not a self-mapping.
+    """
+    table = _fetch_metadata_table(mocker)
+    table.partition_column = "event_time"
+    mocker.patch.object(
+        table,
+        "external_metadata",
+        return_value=[
+            {"column_name": "event_time", "type": "TIMESTAMP"},
+            {"column_name": "country", "type": "VARCHAR"},
+        ],
+    )
+
+    table.fetch_metadata()
+
+    assert table.main_dttm_col is None
+
+
+def test_fetch_metadata_still_defaults_without_a_partition_column(
+    mocker: MockerFixture,
+) -> None:
+    """The entire installed base: unchanged."""
+    table = _fetch_metadata_table(mocker)
+
+    table.fetch_metadata()
+
+    assert table.main_dttm_col == "event_time"
+
+
 def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
     """Test that fetch_metadata correctly assigns comment field to description
     for new columns
@@ -937,6 +1027,315 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
     assert columns_by_name["col_with_valid_comment"].description == "Valid comment"
 
 
+def _table_for_fetch_metadata(
+    mocker: MockerFixture,
+    source_columns: Sequence[Mapping[str, object]],
+    existing: list[dict[str, str]] | None = None,
+) -> SqlaTable:
+    """Build a SqlaTable whose ``fetch_metadata`` reads *source_columns*."""
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+    database.db_engine_spec = mocker.MagicMock()
+    table = SqlaTable(table_name="test_table", database=database)
+    table.id = 1
+    existing_cols = [
+        TableColumn(
+            column_name=spec["column_name"],
+            type=spec["type"],
+            table=table,
+            expression=spec.get("expression") or "",
+        )
+        for spec in existing or []
+    ]
+    table.columns = existing_cols
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = existing_cols
+    mocker.patch.object(table, "external_metadata", return_value=source_columns)
+    return table
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_type_changes(
+    mocker: MockerFixture,
+) -> None:
+    """Schema drift on an existing column must bump ``changed_on``.
+
+    ``query_cache_key`` includes ``datasource.changed_on``; without this bump
+    a Refresh-columns action would keep serving chart results computed
+    against the previous type. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "VARCHAR"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["revenue"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_added(
+    mocker: MockerFixture,
+) -> None:
+    """A newly discovered source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+        existing=[{"column_name": "id", "type": "INTEGER"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_physical_column_removed(
+    mocker: MockerFixture,
+) -> None:
+    """Dropping a physical source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.removed == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_drops_nested_physical_column_and_bumps_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """A dropped nested ROW field has an expression but is still physical.
+
+    Keeping it would leave a stale TableColumn and skip the changed_on bump.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            },
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "metadata.uuid" in result.removed
+    assert all(col.column_name != "metadata.uuid" for col in table.columns)
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_expression_changes(
+    mocker: MockerFixture,
+) -> None:
+    """A physical expression change is schema drift and must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            }
+        ],
+        existing=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": "",
+            }
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["metadata.uuid"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_does_not_bump_changed_on_when_schema_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """A no-op refresh must not invalidate chart cache keys."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "INTEGER"}],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == []
+    assert result.modified == []
+    assert result.removed == []
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Calculated columns are reported in ``removed`` but kept; that is not drift."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "profit",
+                "type": "INTEGER",
+                "expression": "revenue - cost",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "profit" in result.removed
+    assert any(col.column_name == "profit" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_keeps_dotted_calculated_column(
+    mocker: MockerFixture,
+) -> None:
+    """A user calculated column with a dotted name must survive a refresh.
+
+    Only Trino's quoted-path expression signature for expanded ``ROW``
+    fields identifies a leftover as physical; a bare dot in the name is
+    not enough, since ``DatasetColumnsPutSchema.column_name`` allows any
+    name up to 255 characters. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "revenue.usd",
+                "type": "INTEGER",
+                "expression": "revenue * fx_rate",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "revenue.usd" in result.removed
+    assert any(col.column_name == "revenue.usd" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
+def _bigquery_struct_source_columns() -> list[ResultSetColumnType]:
+    """Columns of ``SELECT calendar`` as BigQuery expands them for a virtual dataset."""
+    from google.cloud.bigquery import SchemaField
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = [
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[SchemaField("day", "STRING"), SchemaField("year", "INTEGER")],
+        )
+    ]
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+    return BigQueryEngineSpec.expand_nested_columns(
+        cursor,
+        [
+            ResultSetColumnType(
+                name="calendar", column_name="calendar", type="RECORD", is_dttm=False
+            )
+        ],
+    )
+
+
+def test_fetch_metadata_keeps_calculated_column_named_like_struct_field(
+    mocker: MockerFixture,
+) -> None:
+    """An expanded STRUCT member never replaces a calculated column of its name.
+
+    Such calculated columns were the way to reach STRUCT fields on virtual
+    datasets before the fields were listed, so a refresh must keep them.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=_bigquery_struct_source_columns(),
+        existing=[
+            {"column_name": "calendar", "type": "RECORD"},
+            {
+                "column_name": "calendar.day",
+                "type": "STRING",
+                "expression": "UPPER(calendar.day)",
+            },
+        ],
+    )
+    result = table.fetch_metadata()
+
+    names = [col.column_name for col in table.columns]
+    assert sorted(names) == ["calendar", "calendar.day", "calendar.year"]
+    calculated = next(col for col in table.columns if col.column_name == "calendar.day")
+    assert calculated.expression == "UPPER(calendar.day)"
+    assert result.added == ["calendar.year"]
+    assert result.modified == []
+
+
+def test_fetch_metadata_source_column_replaces_calculated_column(
+    mocker: MockerFixture,
+) -> None:
+    """A source column that is not an expanded nested field still wins its name."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "calendar.day", "type": "STRING"}],
+        existing=[
+            {
+                "column_name": "calendar.day",
+                "type": "STRING",
+                "expression": "UPPER(calendar.day)",
+            },
+        ],
+    )
+
+    result = table.fetch_metadata()
+
+    assert [col.column_name for col in table.columns] == ["calendar.day"]
+    assert table.columns[0].expression == ""
+    assert result.modified == ["calendar.day"]
+
+
 @pytest.mark.parametrize(
     "supports_cross_catalog,table_name,catalog,schema,expected_name,expected_schema",
     [
@@ -1172,6 +1571,74 @@ def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
     # Should have each part quoted separately:
     # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
     assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
+
+
+def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that set ``quote_table_includes_schema = False`` (e.g. MongoDB, whose
+    PyMongoSQL driver resolves ``schema.collection`` as a literal collection name
+    instead of parsing it) must get an unqualified FROM-clause identifier from
+    ``get_sqla_table``, built through the engine spec's own ``quote_table``, the
+    same way ``select_star`` builds it for SQL Lab's Data Preview. Regression test
+    for datasets on such engines returning no rows once a schema is set.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("sqlite://")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = False
+    database.db_engine_spec.quote_table.side_effect = (
+        lambda table, dialect: dialect.identifier_preparer.quote(table.table)
+    )
+    database.get_dialect.return_value = engine.dialect
+
+    table = SqlaTable(
+        table_name="orders",
+        database=database,
+        schema="testdb",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "FROM orders" in compiled
+    assert "testdb" not in compiled
+    database.db_engine_spec.quote_table.assert_called_once()
+
+
+def test_get_sqla_table_schema_qualified_by_default(mocker: MockerFixture) -> None:
+    """
+    Engines that don't override ``quote_table_includes_schema`` (the default,
+    ``True``) keep qualifying the FROM clause with the schema, unaffected by the
+    opt-out path above.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = True
+
+    table = SqlaTable(
+        table_name="My-Table",
+        database=database,
+        schema="My-Schema",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert '"My-Schema"."My-Table"' in compiled
+    database.db_engine_spec.quote_table.assert_not_called()
 
 
 def test_sqla_table_currency_code_column_property() -> None:
@@ -2237,6 +2704,34 @@ def test_get_fetch_values_predicate_wraps_undefined_error(
         sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
 
 
+def test_adhoc_column_to_sqla_wraps_undefined_error_in_metadata_lookup(
+    mocker: MockerFixture,
+) -> None:
+    """A template that raises a raw ``UndefinedError`` (an undefined name that is
+    not shaped like a function call, e.g. ``{{ foo.bar }}``) while rendering an
+    adhoc column for the metadata lookup must surface as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    from superset.jinja_context import JinjaTemplateProcessor
+
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    template_processor = JinjaTemplateProcessor(database=database, table=sqla_table)
+
+    with pytest.raises(QueryObjectValidationError, match="Error in jinja expression"):
+        sqla_table.adhoc_column_to_sqla(
+            {
+                "label": "my_col",
+                "sqlExpression": "{{ foo.bar }}",
+            },
+            template_processor=template_processor,
+        )
+
+
 def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
     """A ``TypeError`` raised by a Python builtin invoked from within the
     template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
@@ -2254,3 +2749,53 @@ def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
         ExploreMixin.get_rendered_sql.__get__(datasource)(
             template_processor=template_processor
         )
+
+
+def test_data_exposes_editors(mocker: MockerFixture) -> None:
+    """
+    ``SqlaTable.data`` exposes the dataset editors.
+
+    Explore gates the "Edit dataset" action on ``datasource.editors``, so the
+    payload built from this property has to carry them. They are serialized with
+    the same compact subject shape the dataset REST API returns for
+    ``editors.id`` / ``editors.label`` / ``editors.type``.
+    """
+    mocker.patch.object(
+        BaseDatasource,
+        "data",
+        new_callable=PropertyMock,
+        return_value={},
+    )
+
+    dataset = SqlaTable(
+        database=Database(database_name="my_db", sqlalchemy_uri="sqlite://"),
+        table_name="my_table",
+    )
+    dataset.editors = [
+        Subject(id=1, label="alice", type=SubjectType.USER),
+        Subject(id=7, label="Alpha", type=SubjectType.ROLE),
+    ]
+
+    assert dataset.data["editors"] == [
+        {"id": 1, "label": "alice", "type": SubjectType.USER},
+        {"id": 7, "label": "Alpha", "type": SubjectType.ROLE},
+    ]
+
+
+def test_data_exposes_editors_when_empty(mocker: MockerFixture) -> None:
+    """
+    A dataset without editors reports an empty list rather than omitting the key.
+    """
+    mocker.patch.object(
+        BaseDatasource,
+        "data",
+        new_callable=PropertyMock,
+        return_value={},
+    )
+
+    dataset = SqlaTable(
+        database=Database(database_name="my_db", sqlalchemy_uri="sqlite://"),
+        table_name="my_table",
+    )
+
+    assert dataset.data["editors"] == []
