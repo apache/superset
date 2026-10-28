@@ -419,8 +419,8 @@ class Query(
             self.database,
             self.catalog,
             default_schema,
-            # As ``get_from_clause`` applies them to the inner SQL.
-            include_global_guest_rls=False,
+            # Match ``get_from_clause``: a Query has no outer RLS application.
+            include_global_guest_rls=True,
             resolve_catalog=resolve_catalog,
         )
         predicates.extend(
