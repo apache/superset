@@ -37,14 +37,12 @@ pip-upgrade() {
 npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  # cache-restore npm
   say "::group::Install npm packages"
   echo "npm: $(npm --version)"
   echo "node: $(node --version)"
   npm ci
   say "::endgroup::"
 
-  # cache-save npm
 }
 
 build-assets() {
@@ -68,12 +66,13 @@ build-instrumented-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets with JS instrumented for test coverage"
-  cache-restore instrumented-assets
+  # The E2E workflow restores superset/static/assets from the Actions cache
+  # (its "Restore instrumented assets" step) before this runs and saves it
+  # after the job on a miss, so a present manifest means a cache hit.
   if [[ -f "$ASSETS_MANIFEST" ]]; then
     echo 'Skip frontend build because instrumented static assets already exist.'
   else
     npm run build-instrumented
-    cache-save instrumented-assets
   fi
   say "::endgroup::"
 }
