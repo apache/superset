@@ -502,3 +502,19 @@ def test_listen_runs_inside_configured_background_context(
     assert factory_threads == [caller]
     assert checked_inside == [True]
     assert events == ["enter", "exit"]
+
+
+def test_listen_without_app_context_does_not_require_one(
+    mocker: MockerFixture,
+) -> None:
+    """Callers outside an app context get the no-op context, not a RuntimeError."""
+    mocker.patch("superset.coordination.base.has_app_context", return_value=False)
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+
+    fired = threading.Event()
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: True, on_signal=fired.set, poll_interval=0.01
+    )
+    assert fired.wait(timeout=2.0) is True
+    listener.stop()
+    listener._thread.join(timeout=2.0)

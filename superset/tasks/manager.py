@@ -58,6 +58,31 @@ def _in_app_context(app: "Flask | None", fn: Callable[[], T]) -> Callable[[], T]
     return wrapped
 
 
+def _release_session_on_error(fn: Callable[[], T]) -> Callable[[], T]:
+    """Wrap ``fn`` so a failure rolls back and discards the scoped DB session.
+
+    When the listener thread is wrapped in a long-lived context (see
+    ``BACKGROUND_THREAD_CONTEXT_FACTORY``), no per-poll app context is pushed, so
+    the usual teardown never runs. Without this, a failed query could leave the
+    session in a failed transaction and every later poll would fail too.
+    """
+
+    def wrapped() -> T:
+        try:
+            return fn()
+        except Exception:
+            from superset import db
+
+            try:
+                db.session.rollback()
+                db.session.remove()
+            except Exception:  # pylint: disable=broad-except
+                logger.debug("Session cleanup after failed poll failed", exc_info=True)
+            raise
+
+    return wrapped
+
+
 class TaskManager:
     """
     Handles task creation, scheduling, and abort notifications.
@@ -493,7 +518,9 @@ class TaskManager:
 
         return CoordinationService.listen_for_signal(
             cls.get_abort_channel(task_uuid),
-            check=_in_app_context(app, lambda: cls._check_abort_status(task_uuid)),
+            check=_release_session_on_error(
+                _in_app_context(app, lambda: cls._check_abort_status(task_uuid))
+            ),
             on_signal=_in_app_context(app, callback),
             poll_interval=poll_interval,
             name=str(task_uuid),

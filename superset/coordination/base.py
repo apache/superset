@@ -27,7 +27,7 @@ import threading
 import time
 from typing import Any, Callable, ContextManager, TYPE_CHECKING, TypeVar, Union
 
-from flask import current_app
+from flask import current_app, has_app_context
 from redis.exceptions import RedisError, TimeoutError as RedisTimeoutError
 
 from superset.coordination.exceptions import CoordinationBackendUnavailableError
@@ -541,8 +541,11 @@ class CoordinationService:
         the request/task context is live) and returns the callable the background
         thread uses to enter an equivalent context. Without a configured factory
         the returned context manager is a no-op, leaving the thread to push a bare
-        app context per call as before.
+        app context per call as before. Callers outside an app context cannot have
+        configured a factory, so they also get the no-op.
         """
+        if not has_app_context():
+            return contextlib.nullcontext
         factory = current_app.config.get("BACKGROUND_THREAD_CONTEXT_FACTORY")
         return factory() if factory else contextlib.nullcontext
 
