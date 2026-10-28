@@ -2838,6 +2838,98 @@ def test_a_mixed_number_in_list_is_probed_as_the_predicate_binds_it(
     assert probed == [[9007199254740992.0, 1.5]]
 
 
+def test_a_literal_mixed_number_in_list_is_probed_unwidened(app: Flask) -> None:
+    """
+    A literal `IN` binds each member as its own typed literal, so it skips the
+    widening above and keeps an integer beyond 2^53 exact. The mirror has to
+    probe those same unwidened members, or it prunes away the partition holding
+    the exact key the predicate compares.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="metric_value",
+        partition_mapped_column="metric_value",
+        partition_column="region_key",
+    )
+    table.columns.append(TableColumn(column_name="metric_value", type="DOUBLE"))
+    for column in table.columns:
+        if column.column_name == "metric_value":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["a", "b"]
+
+    with app.app_context():
+        with patch(PROBE, side_effect=record):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "metric_value",
+                        "op": FilterOperator.IN.value,
+                        "val": [9007199254740993, 1.5],
+                        "is_literal": True,
+                    }
+                ],
+            )
+
+    assert probed == [[9007199254740993, 1.5]]
+    assert "metric_value IN (9007199254740993, 1.5)" in sql
+    assert "region_key IN ('a', 'b')" in sql
+
+
+def test_a_literal_boolean_is_probed_as_the_engine_literal_it_binds(
+    app: Flask,
+) -> None:
+    """
+    Strict-boolean engines bind `true()`/`false()` rather than Python booleans
+    (see `coerce_boolean_for_sql`). A literal filter skips
+    `filter_values_handler` but applies that same coercion before the mirror
+    collects `eq`, so it probes exactly what an ordinary filter probes.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="flag",
+        partition_mapped_column="flag",
+        partition_column="region_key",
+    )
+    table.columns.append(TableColumn(column_name="flag", type="BOOLEAN"))
+    for column in table.columns:
+        if column.column_name == "flag":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    def run(predicate: dict[str, Any]) -> tuple[list[list[Any]], str]:
+        probed: list[list[Any]] = []
+
+        def record(*args: Any, **kwargs: Any) -> list[Any]:
+            probed.append(list(args[-1]))
+            return ["a", "b"]
+
+        with app.app_context():
+            with patch.object(
+                table.database.db_engine_spec,
+                "coerce_boolean_for_sql",
+                classmethod(lambda cls, value: sa.true() if value else sa.false()),
+            ):
+                with patch(PROBE, side_effect=record):
+                    sql = _query(table, filter=[predicate])
+        return probed, sql
+
+    ordinary = {"col": "flag", "op": FilterOperator.IN.value, "val": [True, False]}
+    literal_probed, literal_sql = run({**ordinary, "is_literal": True})
+
+    assert literal_probed == [[RawProbeValue(sql="1"), RawProbeValue(sql="0")]]
+    assert (literal_probed, literal_sql) == run(ordinary)
+    assert "flag IN (true, false)" in literal_sql
+
+
 def test_a_mixed_number_probe_result_is_bound_as_one_type(app: Flask) -> None:
     """
     The same inference, one step later and on the other side of the probe. The
