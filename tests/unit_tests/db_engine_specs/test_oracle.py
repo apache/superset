@@ -243,9 +243,9 @@ def server_versions() -> Any:
     """Start each test with no cached Oracle server versions."""
     from superset.db_engine_specs import oracle as oracle_spec
 
-    oracle_spec._server_major_versions.clear()
-    yield oracle_spec._server_major_versions
-    oracle_spec._server_major_versions.clear()
+    oracle_spec._server_versions.clear()
+    yield oracle_spec._server_versions
+    oracle_spec._server_versions.clear()
 
 
 def mock_oracle_database(
@@ -264,6 +264,46 @@ def mock_oracle_database(
     connection = engine.connect.return_value.__enter__.return_value
     connection.dialect.server_version_info = server_version_info
     return database
+
+
+@pytest.mark.parametrize(
+    "version, expected",
+    [
+        ("11g", 30),
+        ("11.2.0.4", 30),
+        ("12.1.0.2", 30),
+        ("12c", 30),
+        ("12.2.0.1", 128),
+        ("19c", 128),
+        (None, 128),
+    ],
+)
+def test_get_max_column_name_length_configured_version(
+    version: Any, expected: int, server_versions: Any
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    assert OracleEngineSpec.get_max_column_name_length(database) == expected
+    if version is not None:
+        database.get_sqla_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "version, expected_length",
+    [("11.2.0.4", 30), ("12.2.0.1", 40)],
+)
+def test_make_label_compatible_uses_database_identifier_limit(
+    version: str, expected_length: int, server_versions: Any
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    database = mock_oracle_database(version=version)
+    label = "x" * 40
+
+    compatible_label = OracleEngineSpec.make_label_compatible(label, database)
+
+    assert len(compatible_label) == expected_length
 
 
 @pytest.mark.parametrize(

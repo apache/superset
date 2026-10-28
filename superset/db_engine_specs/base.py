@@ -1197,6 +1197,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return cls.allows_alias_in_select
 
     @classmethod
+    def get_max_column_name_length(
+        cls,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> int | None:
+        """Return the maximum supported column-name length for a database."""
+        return cls.max_column_name_length
+
+    @classmethod
     def get_limit_method(
         cls,
         database: Database,  # pylint: disable=unused-argument
@@ -2693,7 +2701,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
 
     @classmethod
-    def make_label_compatible(cls, label: str) -> str | quoted_name:
+    def make_label_compatible(
+        cls, label: str, database: Database | None = None
+    ) -> str | quoted_name:
         """
         Conditionally mutate and/or quote a sqlalchemy expression label. If
         force_column_alias_quotes is set to True, return the label as a
@@ -2706,11 +2716,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: conditionally mutated label supported by the db engine
         """
         label_mutated = cls._mutate_label(label)
+        max_column_name_length = (
+            cls.get_max_column_name_length(database)
+            if database is not None
+            else cls.max_column_name_length
+        )
         if (
-            cls.max_column_name_length
-            and len(label_mutated) > cls.max_column_name_length
+            max_column_name_length
+            and len(label_mutated) > max_column_name_length
         ):
-            label_mutated = cls._truncate_label(label)
+            label_mutated = cls._truncate_label(label, max_column_name_length)
         if cls.force_column_alias_quotes:
             label_mutated = quoted_name(label_mutated, True)
         return label_mutated
@@ -2760,7 +2775,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label
 
     @classmethod
-    def _truncate_label(cls, label: str) -> str:
+    def _truncate_label(cls, label: str, max_length: int | None = None) -> str:
         """
         In the case that a label exceeds the max length supported by the engine,
         this method is used to construct a deterministic and unique label based on
@@ -2773,8 +2788,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         label = hash_from_str(label)
         # truncate hash if it exceeds max length
-        if cls.max_column_name_length and len(label) > cls.max_column_name_length:
-            label = label[: cls.max_column_name_length]
+        max_length = max_length or cls.max_column_name_length
+        if max_length and len(label) > max_length:
+            label = label[:max_length]
         return label
 
     @classmethod
