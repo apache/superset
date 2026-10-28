@@ -65,7 +65,8 @@ Embedded guest tokens grant access to data sources reachable through their
 authorized dashboards, not to SQL Lab queries or ad hoc SQL execution. Charts
 cannot use a SQL Lab `query` datasource. Naming an authorized chart or dashboard
 in a request does not grant a guest access to a stored query, even when the
-guest role has permission to read its underlying tables.
+guest role has permission to read its underlying tables. Requests to `/api/v1/explore/form_data`
+for an unauthorized query datasource return HTTP 403, like unauthorized dataset requests.
 
 ## Chart display names
 

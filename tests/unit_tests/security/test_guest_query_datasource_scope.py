@@ -158,6 +158,50 @@ def test_guest_cannot_read_query_datasource_outside_token_scope(
     assert excinfo.value.error.error_type == GUEST_DENIED
 
 
+def test_guest_refused_query_even_with_authorship_bypass(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """The Explore GET shape cannot grant query access to a guest author."""
+    sm = _security_manager(mocker, _guest_user())
+    query = _query(None)
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(
+            query=query,
+            datasource=query,
+            allow_query_authorship_bypass=True,
+            allow_editorship=False,
+        )
+    assert excinfo.value.error.error_type == GUEST_DENIED
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        pytest.param({}, id="tag-query-defaults"),
+        pytest.param(
+            {"allow_query_authorship_bypass": True, "allow_editorship": False},
+            id="explore-check-query-access",
+        ),
+        pytest.param({"force_dataset_match": True}, id="query-model"),
+        pytest.param(
+            {"force_dataset_match": True, "template_params": {"value": 1}},
+            id="sql-lab-validator",
+        ),
+    ],
+)
+def test_guest_refused_query_call_shapes(
+    mocker: MockerFixture,
+    app_context: None,
+    kwargs: dict[str, Any],
+) -> None:
+    """Explore, query-model and SQL Lab validator flags cannot exempt guests."""
+    sm = _security_manager(mocker, _guest_user())
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=_query(None), **kwargs)
+    assert excinfo.value.error.error_type == GUEST_DENIED
+
+
 def test_guest_cannot_read_query_datasource_with_unbound_query_context(
     mocker: MockerFixture,
     app_context: None,
@@ -476,3 +520,105 @@ def test_legacy_datasource_views_refuse_guest_query(
     assert "SELECT" not in body
     get_datasource.assert_called_once_with(DatasourceType.QUERY, str(QUERY_ID))
     query.external_metadata.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"EMBEDDED_SUPERSET": True}}], indirect=True
+)
+@pytest.mark.parametrize(
+    "datasource_type", [DatasourceType.QUERY, DatasourceType.TABLE]
+)
+def test_form_data_refuses_guest_query_like_denied_dataset(
+    mocker: MockerFixture,
+    app: "SupersetApp",
+    datasource_type: DatasourceType,
+) -> None:
+    """Form-data creation returns 403, not 500, for an unauthorized source."""
+    from superset import security_manager
+
+    mocker.patch.object(
+        security_manager, "get_guest_user_from_request", return_value=_guest_user()
+    )
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    mocker.patch.object(security_manager, "can_access_datasource", return_value=False)
+    query = _query(None)
+    mocker.patch("superset.explore.utils.QueryDAO.find_by_id", return_value=query)
+    mocker.patch(
+        "superset.explore.utils.DatasetDAO.find_by_id", return_value=MagicMock()
+    )
+    cache_set = mocker.patch(
+        "superset.commands.explore.form_data.create.cache_manager.explore_form_data_cache.set"
+    )
+
+    with app.test_client() as client:
+        response = client.post(
+            "/api/v1/explore/form_data",
+            headers={app.config["GUEST_TOKEN_HEADER_NAME"]: "test-guest-token"},
+            json={
+                "datasource_id": QUERY_ID,
+                "datasource_type": datasource_type,
+                "form_data": json.dumps(
+                    {"datasource": f"{QUERY_ID}__{datasource_type}"}
+                ),
+            },
+        )
+
+    assert response.status_code == 403, response.get_data(as_text=True)
+    cache_set.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"EMBEDDED_SUPERSET": True}}], indirect=True
+)
+def test_form_data_gamma_with_table_access_still_creates_query_state(
+    mocker: MockerFixture,
+    app: "SupersetApp",
+) -> None:
+    """A Gamma user with access to the query's tables keeps the 201 path."""
+    from flask_appbuilder.security.sqla.models import Role, User
+
+    from superset import security_manager
+
+    gamma = User(id=7, username="gamma", roles=[Role(name="Gamma")])
+    mocker.patch.object(app.login_manager, "_user_callback", return_value=gamma)
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager, "get_schema_perm", return_value="[db].[public]"
+    )
+    mocker.patch("superset.security.manager.get_user_id", return_value=7)
+    mocker.patch("superset.explore.utils.QueryDAO.find_by_id", return_value=_query(99))
+    mocker.patch(
+        "superset.commands.explore.form_data.create.cache_manager.explore_form_data_cache.get",
+        return_value=None,
+    )
+    cache_set = mocker.patch(
+        "superset.commands.explore.form_data.create.cache_manager.explore_form_data_cache.set"
+    )
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["_user_id"] = "7"
+            session["_fresh"] = True
+        response = client.post(
+            "/api/v1/explore/form_data",
+            json={
+                "datasource_id": QUERY_ID,
+                "datasource_type": "query",
+                "form_data": json.dumps({"datasource": f"{QUERY_ID}__query"}),
+            },
+        )
+
+    assert response.status_code == 201, response.get_data(as_text=True)
+    assert cache_set.call_count == 2
+
+
+def test_can_access_datasource_refuses_guest_query(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """The boolean datasource wrapper translates the guest refusal to False."""
+    sm = _security_manager(mocker, _guest_user())
+    assert not sm.can_access_datasource(_query(None))
