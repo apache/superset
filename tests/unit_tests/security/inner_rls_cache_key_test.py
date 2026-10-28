@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The shared column-values cache must keep viewers apart when their RLS differs
-only on a table read inside a virtual dataset's SQL.
+Shared caches must keep viewers apart when their RLS differs only on a table
+read inside a virtual dataset's SQL.
 
 Executing a virtual dataset injects the RLS of every table its SQL reads, so
 two viewers with the same rules on the virtual dataset itself but different
-rules on an inner table see different values, and must not share an entry.
+rules on an inner table see different rows, and must not share an entry. This
+covers the column-values cache, the chart cache key, and the annotation data
+cached on a parent chart's entry.
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 from flask_caching.backends import SimpleCache
@@ -37,8 +40,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
+from tests.unit_tests.conftest import with_feature_flags
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
     from superset.models.sql_lab import Query
 
 # Per-viewer RLS rules on the physical table ``t``; neither viewer has a rule on
@@ -254,3 +260,128 @@ def test_chart_cache_key_carries_the_same_inner_rls(
         viewer.name = "bob"
         assert "(tenant = 2)" in datasource.get_extra_cache_keys({})
         assert datasource.get_inner_rls_cache_key() == ["(tenant = 2)"]
+
+
+@pytest.fixture
+def guest(mocker: MockerFixture, virtual_dataset: SqlaTable) -> SimpleNamespace:
+    """
+    Current embedded guest, whose token scopes one RLS rule to the physical
+    table ``t`` and none to the virtual dataset that reads it.
+    """
+    from superset import db, security_manager
+    from superset.connectors.sqla.models import SqlaTable
+
+    physical_id = db.session.query(SqlaTable).filter_by(table_name="t").one().id
+    current = SimpleNamespace(clause="tenant = 1")
+
+    def get_current_guest_user_if_guest() -> SimpleNamespace:
+        rules = [{"dataset": physical_id, "clause": current.clause}]
+        return SimpleNamespace(rls=rules, guest_token={"rls_rules": rules})
+
+    mocker.patch.object(
+        security_manager,
+        "get_current_guest_user_if_guest",
+        new=get_current_guest_user_if_guest,
+    )
+    mocker.patch.object(security_manager, "get_rls_filters", return_value=[])
+    # Guests have no user id, so it cannot tell two guests' entries apart.
+    mocker.patch(
+        "superset.common.query_context_processor.get_user_id", return_value=None
+    )
+    return current
+
+
+@pytest.fixture
+def source_chart(
+    mocker: MockerFixture, session: Session, virtual_dataset: SqlaTable
+) -> Slice:
+    """An annotation source chart on the virtual dataset."""
+    from superset.models.slice import Slice
+
+    chart = Slice(
+        slice_name="source",
+        viz_type="line",
+        datasource_type="table",
+        datasource_id=virtual_dataset.id,
+    )
+    session.add(chart)
+    session.flush()
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    return chart
+
+
+def _annotation_context(chart: Slice) -> dict[str, Any]:
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    query = MagicMock(
+        annotation_layers=[{"sourceType": "line", "name": "a", "value": chart.id}]
+    )
+    return QueryContextProcessor._annotation_cache_context(MagicMock(), query)
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_annotation_context_partitions_guests_by_inner_table_rls(
+    guest: SimpleNamespace, source_chart: Slice
+) -> None:
+    """Guests with different rules on the source's inner table get different keys."""
+    guest.clause = "tenant = 1"
+    first = _annotation_context(source_chart)
+    guest.clause = "tenant = 2"
+    second = _annotation_context(source_chart)
+
+    # The source dataset's own rules are the same for both guests, so only the
+    # inner-table rules can keep their annotation data apart.
+    assert first["source_rls"] == second["source_rls"]
+    assert first != second
+    assert first["source_inner_rls"] == {str(source_chart.id): ["(tenant = 1)"]}
+    assert second["source_inner_rls"] == {str(source_chart.id): ["(tenant = 2)"]}
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_annotation_context_shares_entry_for_equal_inner_table_rls(
+    guest: SimpleNamespace, source_chart: Slice
+) -> None:
+    """Guests with identical effective rules keep sharing one entry."""
+    guest.clause = "tenant = 1"
+    first = _annotation_context(source_chart)
+    second = _annotation_context(source_chart)
+
+    assert first == second
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_annotation_context_falls_back_to_viewer_scoped_key(
+    guest: SimpleNamespace, source_chart: Slice, mocker: MockerFixture
+) -> None:
+    """If the inner predicates can't be collected, the key is viewer-scoped."""
+    mocker.patch("superset.sql.parse.SQLScript", side_effect=ValueError("bad sql"))
+
+    guest.clause = "tenant = 1"
+    first = _annotation_context(source_chart)
+    guest.clause = "tenant = 2"
+    second = _annotation_context(source_chart)
+
+    assert first != second
+
+
+def test_annotation_context_shape_unchanged_without_inner_rls(
+    viewer: SimpleNamespace, source_chart: Slice
+) -> None:
+    """A source with no inner-table rules keeps the existing context shape."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+
+    physical = db.session.query(SqlaTable).filter_by(table_name="t").one()
+    source_chart.datasource_id = physical.id
+    db.session.flush()
+    db.session.expire(source_chart)
+
+    assert set(_annotation_context(source_chart)) == {
+        "user_id",
+        "source_rls",
+        "semantic_filter_protocol",
+        "source_versions",
+    }
