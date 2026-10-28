@@ -25,7 +25,10 @@ from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
-from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+from superset.mcp_service.composite_token_verifier import (
+    CompositeTokenVerifier,
+    get_verifier_client_id,
+)
 from superset.mcp_service.constants import (
     DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_MAX_PNG_RESPONSE_BYTES,
@@ -954,8 +957,9 @@ def default_user_resolver(app: Any, access_token: Any) -> str | None:
     # Legacy attribute access for backward compatibility
     if hasattr(access_token, "subject") and access_token.subject:
         return access_token.subject
-    if hasattr(access_token, "client_id") and access_token.client_id:
-        return access_token.client_id
+    # The verifier's own client_id, not FastMCP MultiAuth's qualified form.
+    if client_id := get_verifier_client_id(access_token):
+        return client_id
     if hasattr(access_token, "payload") and isinstance(access_token.payload, dict):
         return (
             access_token.payload.get("sub")

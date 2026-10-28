@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate only refreshes the pinned base-image digests in the root Dockerfile; Dependabot (.github/dependabot.yml) owns npm, pip and GitHub Actions updates.",
+  "extends": ["config:recommended", "docker:pinDigests"],
+  "enabledManagers": ["dockerfile", "custom.regex"],
+  "includePaths": ["Dockerfile"],
+  "labels": ["dependencies", "docker"],
+  "schedule": ["* 0-5 * * 1"],
+  "packageRules": [
+    {
+      "description": "The python image is referenced as `FROM python:${PY_VER}`, so its tag and digest live in the PY_VER ARG; leave it to the custom manager below so the dockerfile manager can't propose a competing update.",
+      "matchManagers": ["dockerfile"],
+      "matchDepNames": ["python"],
+      "enabled": false
+    },
+    {
+      "description": "Base image tags (Node major, PY_VER's Python line, Debian release) are deliberate choices, not routine bumps; see python-nightly-canary.yml for how PY_VER moves. Only refresh the digest behind the current tag.",
+      "matchManagers": ["dockerfile", "custom.regex"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "enabled": false
+    },
+    {
+      "description": "Refresh all base-image digests in one weekly PR so the Node and Python stages are rebuilt together.",
+      "matchManagers": ["dockerfile", "custom.regex"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "groupName": "Docker base image digests"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the digest pinned in the Dockerfile's PY_VER ARG (tag@sha256:...), which FROM python:${PY_VER} consumes.",
+      "managerFilePatterns": ["/^Dockerfile$/"],
+      "matchStrings": ["ARG PY_VER=(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})"],
+      "depNameTemplate": "python",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ]
+}
