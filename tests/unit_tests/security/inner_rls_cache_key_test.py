@@ -40,8 +40,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
-from tests.unit_tests.conftest import with_feature_flags
-
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
@@ -269,6 +267,7 @@ def guest(mocker: MockerFixture, virtual_dataset: SqlaTable) -> SimpleNamespace:
     table ``t`` and none to the virtual dataset that reads it.
     """
     from superset import db, security_manager
+    from superset.connectors.sqla import models
     from superset.connectors.sqla.models import SqlaTable
 
     physical_id = db.session.query(SqlaTable).filter_by(table_name="t").one().id
@@ -284,6 +283,14 @@ def guest(mocker: MockerFixture, virtual_dataset: SqlaTable) -> SimpleNamespace:
         new=get_current_guest_user_if_guest,
     )
     mocker.patch.object(security_manager, "get_rls_filters", return_value=[])
+    # Guest rules only apply with embedding on. Patched where the RLS filters
+    # read it, so a flag callback left by another test cannot override it.
+    is_feature_enabled = models.is_feature_enabled
+    mocker.patch.object(
+        models,
+        "is_feature_enabled",
+        new=lambda flag: flag == "EMBEDDED_SUPERSET" or is_feature_enabled(flag),
+    )
     # Guests have no user id, so it cannot tell two guests' entries apart.
     mocker.patch(
         "superset.common.query_context_processor.get_user_id", return_value=None
@@ -319,10 +326,11 @@ def _annotation_context(chart: Slice) -> dict[str, Any]:
     query = MagicMock(
         annotation_layers=[{"sourceType": "line", "name": "a", "value": chart.id}]
     )
-    return QueryContextProcessor._annotation_cache_context(MagicMock(), query)
+    # The context reads nothing from the processor's query context.
+    processor = QueryContextProcessor.__new__(QueryContextProcessor)
+    return processor._annotation_cache_context(query)
 
 
-@with_feature_flags(EMBEDDED_SUPERSET=True)
 def test_annotation_context_partitions_guests_by_inner_table_rls(
     guest: SimpleNamespace, source_chart: Slice
 ) -> None:
@@ -340,7 +348,6 @@ def test_annotation_context_partitions_guests_by_inner_table_rls(
     assert second["source_inner_rls"] == {str(source_chart.id): ["(tenant = 2)"]}
 
 
-@with_feature_flags(EMBEDDED_SUPERSET=True)
 def test_annotation_context_shares_entry_for_equal_inner_table_rls(
     guest: SimpleNamespace, source_chart: Slice
 ) -> None:
@@ -352,7 +359,6 @@ def test_annotation_context_shares_entry_for_equal_inner_table_rls(
     assert first == second
 
 
-@with_feature_flags(EMBEDDED_SUPERSET=True)
 def test_annotation_context_falls_back_to_viewer_scoped_key(
     guest: SimpleNamespace, source_chart: Slice, mocker: MockerFixture
 ) -> None:
