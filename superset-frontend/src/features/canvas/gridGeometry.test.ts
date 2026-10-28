@@ -22,6 +22,8 @@ import {
   gridDelta,
   movedPlacement,
   RESIZE_CORNERS,
+  type GridMetrics,
+  placementAt,
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
@@ -246,4 +248,28 @@ test('a container cannot be shrunk below the rows its content needs', () => {
   expect(
     resizedPlacement(lower, { cols: 0, rows: -2 }, 24, full, 'ne'),
   ).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 8 });
+});
+
+test('a widget keeps its share of the width when it changes grid', () => {
+  // Carried over as a proportion, not as a number of columns. A widget
+  // filling a twelve-column group fills the twenty-four-column canvas it is
+  // dropped on, rather than arriving at half the width it had a moment ago.
+  const box = { left: 0, top: 0, width: 1160 };
+  const root: GridMetrics = { columns: 24, gap: 16, rowUnit: 40 };
+  const group: GridMetrics = { columns: 12, gap: 16, rowUnit: 40 };
+  const full = { colSpan: 12, rowSpan: 4 };
+
+  // Out of a full-width group slot and onto the canvas: still full width.
+  expect(placementAt(0, 0, 0, 0, box, root, full, 12).colSpan).toBe(24);
+  // And back in: still full width, not overflowing the group.
+  expect(
+    placementAt(0, 0, 0, 0, box, group, { colSpan: 24, rowSpan: 4 }, 24)
+      .colSpan,
+  ).toBe(12);
+  // A half-width widget stays half width either way.
+  expect(
+    placementAt(0, 0, 0, 0, box, root, { colSpan: 6, rowSpan: 2 }, 12).colSpan,
+  ).toBe(12);
+  // Rows are the same height everywhere, so they are left alone.
+  expect(placementAt(0, 0, 0, 0, box, root, full, 12).rowSpan).toBe(4);
 });

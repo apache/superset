@@ -38,21 +38,31 @@ import {
   useRef,
   useState,
 } from 'react';
-import { css, styled } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components';
 import {
+  columnWidth,
   GridMetrics,
   gridDelta,
   movedPlacement,
   NO_DELTA,
+  placementAt,
   RESIZE_CORNERS,
   type ResizeCorner,
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
-import { previewGrid, type GridLayout } from './resolveGrid';
-import type { GridPlacement, SpanConstraints } from './types';
+import {
+  insertIndex,
+  previewGrid,
+  resolveGrid,
+  swapPartner,
+  swapped,
+} from './resolveGrid';
+import { useCanvasDrag } from './useCanvasDrag';
+import { CanvasWidgetChromeContext } from './widgetChrome';
+import type { GridLayout, GridPlacement, SpanConstraints } from './types';
 
 type GestureKind = 'move' | 'resize';
 
@@ -104,8 +114,17 @@ interface Gesture {
    * pointer may be over something else entirely.
    */
   capture: HTMLElement;
+  /**
+   * Where inside the widget it was grabbed, in pixels. A drop into another
+   * grid lands the widget relative to this, so it keeps its hold on the
+   * pointer instead of jumping its own corner under it.
+   */
+  grabX: number;
+  grabY: number;
   /** For a resize, the corner being dragged; the opposite one stays put. */
   corner: ResizeCorner;
+  /** The grid's height when it was grabbed; see `Grid`'s `heldHeight`. */
+  heldHeight: number;
 }
 
 /** Pixels of travel before a press on a widget body becomes a drag. */
@@ -193,11 +212,41 @@ const travelled = (
   dy: clientY - gesture.startY - (top - gesture.startTop),
 });
 
-const Grid = styled.div<GridMetrics>`
+const Grid = styled.div<GridMetrics & { heldHeight?: number }>`
   display: grid;
   grid-template-columns: repeat(${({ columns }) => columns}, minmax(0, 1fr));
   grid-auto-rows: ${({ rowUnit }) => rowUnit}px;
   gap: ${({ gap }) => gap}px;
+  /*
+   * Held at the height it had when the gesture started, for as long as the
+   * gesture lasts.
+   *
+   * The preview reflows the grid on every move, and dragging a widget up can
+   * leave it needing fewer rows. Shrinking it while the view is scrolled near
+   * the bottom makes the browser clamp the scroll position, which slides the
+   * content under a still pointer -- and since travel is measured against the
+   * grid's own position, that feeds straight back into the preview, which
+   * reflows again. The result is a drag that fights the user, visible as the
+   * page scrolling by itself. A floor costs nothing: the grid may still grow,
+   * which is what dragging past the end needs.
+   */
+  ${({ heldHeight }) =>
+    heldHeight &&
+    `
+    min-height: ${heldHeight}px;
+    /*
+     * And the browser keeps its hands off the scroll position.
+     *
+     * Scroll anchoring adjusts scrollTop when content above the viewport
+     * changes size, to hold the visible part steady. Dragging a widget
+     * upwards reorders everything above it on every move, so the browser
+     * corrects the scroll, which moves the grid, which is what travel is
+     * measured against -- so the preview moves, which reflows again. The
+     * drag runs away on its own, and only once the target is off-screen,
+     * because that is when there is anything above to anchor to.
+     */
+    overflow-anchor: none;
+  `}
 `;
 
 const GridItem = styled.div<{
@@ -264,12 +313,25 @@ const DropPreview = styled.div<{ placement: GridPlacement }>`
  * `:hover` matches every ancestor, so a container would otherwise light up
  * alongside whichever of its children the pointer is actually over.
  */
-const Interactive = styled.div`
-  ${({ theme }) => css`
+const Interactive = styled.div<{ showBounds?: boolean }>`
+  ${({ theme, showBounds }) => css`
     height: 100%;
     position: relative;
     border-radius: ${theme.borderRadius}px;
     transition: box-shadow ${theme.motionDurationMid};
+
+    ${
+      showBounds &&
+      css`
+        /*
+       * Every widget shows its edges while a drag is running, containers
+       * included. A drop target you cannot see is one you cannot aim at, and
+       * revealing a widget only once the pointer is near it tells you where
+       * it is just as you arrive.
+       */
+        box-shadow: 0 0 0 1px ${theme.colorBorderSecondary};
+      `
+    }
 
     /* Direct children only: hovering a container must not reveal the
        handles of every widget nested inside it. */
@@ -293,6 +355,19 @@ const Interactive = styled.div`
     & > .canvas-handle:focus-visible {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    /* A widget's own chrome appears on the same terms as the handles, and
+       stays while its menu is open. */
+    & > .canvas-chrome {
+      opacity: 0;
+      transition: opacity ${theme.motionDurationMid};
+    }
+
+    &:hover:not(:has(.canvas-interactive:hover)) > .canvas-chrome,
+    & > .canvas-chrome:focus-within,
+    & > .canvas-chrome:has(.ant-dropdown-open) {
+      opacity: 1;
     }
   `}
 `;
@@ -320,6 +395,20 @@ const handleOffset = (
 };
 
 /**
+ * Where a widget's top-right controls sit: the grip, and the menu beside it.
+ *
+ * Flush with the top on the root grid, where the resize corners are too.
+ * Nested, it steps down to clear the controls of the container around it --
+ * a container's box begins where its first child's does, and the child's
+ * paint above, so sharing the spot makes the container unreachable.
+ */
+export const handleTop = (
+  sizeUnit: number,
+  depth: number,
+  extent: number,
+): number => (depth === 0 ? 0 : handleOffset(sizeUnit, depth, extent));
+
+/**
  * The widget itself, kept inside the cells it was given.
  *
  * A widget renders at its natural height — a table with every row, say — so
@@ -331,6 +420,16 @@ const Content = styled.div<{ editable: boolean }>`
   ${({ editable }) => css`
     height: 100%;
     overflow: auto;
+    /*
+     * A stacking context of its own, so a widget's internal layering stays
+     * inside it rather than competing with the canvas. An antd table's
+     * sticky header sits at columns * 2 + 3 -- nine for three columns, and
+     * higher with every column it gains -- so it would otherwise paint over
+     * the handles and the drop outline, which sit at 3 and 1 and cannot
+     * outbid a number with no ceiling. Isolated, the header can only reach
+     * the top of this box.
+     */
+    isolation: isolate;
     ${
       editable &&
       css`
@@ -342,12 +441,18 @@ const Content = styled.div<{ editable: boolean }>`
         user-select: none;
 
         /*
-         * While a widget inside this one is being dragged, stop clipping. A
+         * While a widget inside this one is being *moved*, stop clipping. A
          * child dragged towards the edge of its container is leaving the
          * container's box, and scrolling it back into view is the opposite of
          * what the gesture means -- it would cut the widget off at the edge
          * and grow a scrollbar. Only an ancestor matches: the dragged widget's
          * own content does not contain its grid cell.
+         *
+         * A resize is not a move: the widget stays inside its container, so
+         * unclipping gains nothing and costs plenty. Dropping the clip makes
+         * every scrolling widget inside render at its full height for the
+         * length of the gesture, which for a table means its rows -- and its
+         * sticky header -- spilling out over whatever is below.
          */
         &:has([data-dragging='true']) {
           overflow: visible;
@@ -357,10 +462,80 @@ const Content = styled.div<{ editable: boolean }>`
   `}
 `;
 
+/**
+ * Where a widget's own controls go: over the widget, outside the box its
+ * content scrolls in.
+ *
+ * Transparent to the pointer, so it does not shadow the widget beneath it;
+ * what it holds takes presses for itself.
+ */
+const Chrome = styled.div<{ offset: number }>`
+  ${({ theme, offset }) => css`
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    .canvas-widget-controls {
+      position: absolute;
+      /*
+       * The same step down the handles take, so the controls stay level with
+       * the grip at every depth. Nested, the grip moves clear of the grip of
+       * the container around it; leaving the menu behind splits what should
+       * read as one row.
+       */
+      top: ${offset}px;
+      /*
+       * Clear of the widget's right edge, where both the resize handle and a
+       * scrollbar live. See WithQuery, which uses the same inset when it
+       * renders in place.
+       */
+      right: ${theme.sizeUnit * 5}px;
+      pointer-events: auto;
+    }
+  `}
+`;
+
+/**
+ * A widget's content, and the node its chrome renders into.
+ *
+ * The two are siblings so chrome escapes the content's scrolling, clipping
+ * and stacking; see `CanvasWidgetChromeContext`.
+ */
+function WidgetBody({
+  editable,
+  offset,
+  children,
+}: {
+  editable: boolean;
+  /** Where the handles sit, so the chrome can sit level with them. */
+  offset: number;
+  children: ReactNode;
+}) {
+  const [chrome, setChrome] = useState<HTMLDivElement | null>(null);
+  return (
+    <>
+      <Content editable={editable}>
+        <CanvasWidgetChromeContext.Provider value={chrome}>
+          {children}
+        </CanvasWidgetChromeContext.Provider>
+      </Content>
+      <Chrome ref={setChrome} className="canvas-chrome" offset={offset} />
+    </>
+  );
+}
+
 const Grip = styled.button<{ depth: number; extent: number }>`
   ${({ theme, depth, extent }) => css`
     position: absolute;
-    top: ${handleOffset(theme.sizeUnit, depth, extent)}px;
+    /*
+     * On the root grid the grip sits flush with the top, where the widget's
+     * own controls and the resize corners already are, so the three read as
+     * one row. Nested, it steps down to clear the grip of the widget inside
+     * it -- a container's box begins where its first child's does, and the
+     * child's grip paints above, so sharing the spot makes the container
+     * ungrabbable.
+     */
+    top: ${handleTop(theme.sizeUnit, depth, extent)}px;
     /* Deeper handles above shallower ones: the innermost wins a shared spot. */
     z-index: ${3 + depth};
     /*
@@ -374,10 +549,12 @@ const Grip = styled.button<{ depth: number; extent: number }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: ${theme.sizeUnit / 2}px;
-    border: 1px solid ${theme.colorBorder};
-    border-radius: ${theme.borderRadiusSM}px;
-    background: ${theme.colorBgElevated};
+    /* The same box as the controls button beside it, so the two line up. */
+    width: ${theme.sizeUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
+    padding: 0;
+    border: none;
+    background: none;
     color: ${theme.colorTextSecondary};
     cursor: grab;
     touch-action: none;
@@ -479,7 +656,29 @@ export interface CanvasGridSurfaceProps {
    * container's grip would sit over its child's and swallow the click.
    */
   depth: number;
+  /** The container this grid lays out; the root grid's own id for the root. */
+  parentId: string;
   onPlace: (nodeId: string, placement: GridPlacement) => void;
+  /**
+   * Persist two widgets exchanging places, which is what a drop landing
+   * squarely on one widget does.
+   */
+  onSwap: (
+    nodeId: string,
+    placement: GridPlacement,
+    partnerId: string,
+    partnerPlacement: GridPlacement,
+  ) => void;
+  /**
+   * Persist a widget dragged into this grid from another one. `index` is
+   * where it belongs in this grid's reading order.
+   */
+  onMove: (
+    nodeId: string,
+    parent: string,
+    index: number,
+    placement: GridPlacement,
+  ) => void;
   renderNode: (nodeId: string) => ReactNode;
 }
 
@@ -493,18 +692,95 @@ export default function CanvasGridSurface({
   constraints,
   editable,
   depth,
+  parentId,
   onPlace,
+  onSwap,
+  onMove,
   renderNode,
 }: CanvasGridSurfaceProps) {
+  const theme = useTheme();
+  const drag = useCanvasDrag();
   const [measureGrid, width] = useElementWidth();
+  // Registered so a gesture anywhere on the canvas can find this grid under
+  // the pointer, and so this one can find the others.
+  const [gridNode, setGridNode] = useState<HTMLDivElement | null>(null);
+  // Read by another grid's drag, so it has to be current without this grid
+  // re-registering on every render.
+  const contents = useRef({ childIds, layouts });
+  contents.current = { childIds, layouts };
+  const snapshot = useCallback(() => contents.current, []);
+  useEffect(() => {
+    if (!gridNode) return undefined;
+    return drag.register({
+      parentId,
+      element: gridNode,
+      columns,
+      gap,
+      rowUnit,
+      depth,
+      snapshot,
+    });
+  }, [drag, gridNode, parentId, columns, gap, rowUnit, depth, snapshot]);
+
   // The grid node, for reading where it sits in the viewport mid-gesture.
   const grid = useRef<HTMLDivElement | null>(null);
   const gridRef = useCallback(
     (node: HTMLDivElement | null) => {
       grid.current = node;
+      setGridNode(node);
       measureGrid(node);
     },
     [measureGrid],
+  );
+
+  /**
+   * Where the dragged widget would land in another grid, when the pointer is
+   * over one.
+   *
+   * A drag only sends `place` while the widget stays put, so without this a
+   * widget cannot leave its container -- dropping a tile below its group just
+   * grows the group. The destination is whichever grid is under the pointer,
+   * and the landing is computed in *its* units: the origin the gesture
+   * started from means nothing there.
+   */
+  const landingFor = useCallback(
+    (current: Gesture, clientX: number, clientY: number) => {
+      if (current.kind !== 'move') return undefined;
+      const hit = drag.gridAt(clientX, clientY);
+      const over = hit?.grid;
+      if (!hit || !over || over.parentId === parentId) return undefined;
+      const metrics: GridMetrics = {
+        columns: over.columns,
+        gap: over.gap,
+        rowUnit: over.rowUnit,
+      };
+      // Placed against the same box it was found by, so detection and the
+      // drop cannot disagree about where the grid is.
+      const placement = placementAt(
+        clientX,
+        clientY,
+        current.grabX,
+        current.grabY,
+        { left: hit.left, top: hit.top, width: hit.width },
+        metrics,
+        current.origin,
+        columns,
+      );
+      // Its place in the destination's reading order, by the rule the server
+      // applies on the drop.
+      const there = over.snapshot();
+      const resolved = resolveGrid(
+        there.childIds.map(id => there.layouts[id] ?? {}),
+        over.columns,
+      );
+      return {
+        nodeId: current.nodeId,
+        parentId: over.parentId,
+        placement,
+        index: insertIndex(resolved, placement),
+      };
+    },
+    [drag, parentId],
   );
 
   /**
@@ -559,13 +835,31 @@ export default function CanvasGridSurface({
    * land exactly where the widget already sits.
    */
   const commit = useCallback(
-    (nodeId: string, next: GridPlacement | undefined, from: GridPlacement) => {
+    (
+      nodeId: string,
+      next: GridPlacement | undefined,
+      from: GridPlacement,
+      kind: GestureKind,
+    ) => {
       const placement = placements[nodeId];
       if (!next || !placement) return;
       if (samePlacement(next, from) || samePlacement(next, placement)) return;
+      // Landing squarely on one widget exchanges places with it: it takes
+      // the slot this one came from. Anything less definite -- empty space,
+      // or straddling two -- still pushes the widgets below it down. Only a
+      // move: growing a widget over its neighbour is not an offer to trade
+      // places with it.
+      const partner =
+        kind === 'move'
+          ? swapPartner(childIds, placements, nodeId, next)
+          : undefined;
+      if (partner) {
+        onSwap(nodeId, next, partner, swapped(placements[partner], from));
+        return;
+      }
       onPlace(nodeId, next);
     },
-    [onPlace, placements],
+    [onPlace, onSwap, placements, childIds],
   );
 
   const begin =
@@ -603,6 +897,11 @@ export default function CanvasGridSurface({
       // and claims the press; the rest stand down.
       if (claimedPresses.has(event.nativeEvent)) return;
       claimedPresses.add(event.nativeEvent);
+      // Pin where every grid is, before any preview starts moving them: a
+      // container has to stay where the user is aiming rather than being
+      // pushed along with the rest of its grid. At the press, because a
+      // handle gesture is already armed by its first move.
+      drag.freeze();
       // Where the grid sits now, so later moves can tell scrolling apart from
       // pointer travel.
       const box = grid.current?.getBoundingClientRect();
@@ -622,6 +921,16 @@ export default function CanvasGridSurface({
         startY: event.clientY,
         startLeft: box?.left ?? 0,
         startTop: box?.top ?? 0,
+        // Measured against where the widget sits in this grid, which is the
+        // only place its origin means anything.
+        grabX:
+          event.clientX -
+          ((box?.left ?? 0) +
+            (origin.col - 1) *
+              (columnWidth(width, { columns, gap, rowUnit }) + gap)),
+        grabY:
+          event.clientY -
+          ((box?.top ?? 0) + (origin.row - 1) * (rowUnit + gap)),
         dx: 0,
         dy: 0,
         lastX: event.clientX,
@@ -630,6 +939,7 @@ export default function CanvasGridSurface({
         armed,
         capture: event.currentTarget,
         corner,
+        heldHeight: grid.current?.offsetHeight ?? 0,
       });
     };
 
@@ -651,7 +961,7 @@ export default function CanvasGridSurface({
   useEffect(() => {
     if (!gestureLive) return undefined;
 
-    const onMove = (event: PointerEvent) => {
+    const onPointerMove = (event: PointerEvent) => {
       const { current } = live;
       if (!current || current.pointerId !== event.pointerId) return;
       const at = originOf(current);
@@ -662,9 +972,21 @@ export default function CanvasGridSurface({
         at.left,
         at.top,
       );
-      // A deferred gesture arms only once the pointer has really travelled.
+      /*
+       * A deferred gesture arms only once the *pointer* has really travelled.
+       *
+       * Measured from where the press landed, not from `moved`, which folds
+       * in how far the content has scrolled since. Holding a widget and
+       * wheel-scrolling a few rows without moving the hand would otherwise
+       * put the threshold behind you, so the next pixel of pointer movement
+       * arms a drag the user never began -- and releasing writes it.
+       */
       const armed =
-        current.armed || Math.hypot(moved.dx, moved.dy) >= DRAG_THRESHOLD;
+        current.armed ||
+        Math.hypot(
+          event.clientX - current.startX,
+          event.clientY - current.startY,
+        ) >= DRAG_THRESHOLD;
       if (!armed) return;
       if (!current.armed && current.capture.isConnected) {
         // It is a drag after all, so take the pointer from here on. Capturing
@@ -679,6 +1001,9 @@ export default function CanvasGridSurface({
         lastY: event.clientY,
         armed,
       });
+      // Over another grid? Then that grid shows the drop, and this one
+      // reflows as though the widget had already left.
+      drag.setLanding(landingFor(current, event.clientX, event.clientY));
     };
 
     /**
@@ -704,10 +1029,21 @@ export default function CanvasGridSurface({
       const { current } = live;
       if (!current || current.pointerId !== event.pointerId) return;
       update(undefined);
+      // Where it landed, from the release event's own position: the pointer
+      // can travel between the last move and the release, and the drop
+      // belongs where the user let go.
+      const landed = current.armed
+        ? landingFor(current, event.clientX, event.clientY)
+        : undefined;
+      drag.setLanding(undefined);
+      drag.release();
       if (!current.armed) return;
-      // From the release event's own position: the pointer can travel between
-      // the last move event and the release, and the drop belongs where the
-      // user let go.
+      if (landed) {
+        // It left its container, which the server takes as a different
+        // operation: the layout alone cannot say where a widget now lives.
+        onMove(landed.nodeId, landed.parentId, landed.index, landed.placement);
+        return;
+      }
       const at = originOf(current);
       const { dx, dy } = travelled(
         current,
@@ -727,6 +1063,7 @@ export default function CanvasGridSurface({
           current.corner,
         ),
         current.origin,
+        current.kind,
       );
     };
 
@@ -736,24 +1073,26 @@ export default function CanvasGridSurface({
       const { current } = live;
       if (!current || current.pointerId !== event.pointerId) return;
       update(undefined);
+      drag.setLanding(undefined);
+      drag.release();
     };
 
     // Capture phase, so these run before anything in the document: a widget
     // that stops `pointerup` for its own reasons would otherwise keep the
     // release from ever reaching here.
-    window.addEventListener('pointermove', onMove, true);
+    window.addEventListener('pointermove', onPointerMove, true);
     window.addEventListener('pointerup', onUp, true);
     window.addEventListener('pointercancel', onCancel, true);
     // Capture phase for `scroll` as well, which does not bubble: a listener
     // here still sees a scroll on any element on its way down.
     window.addEventListener('scroll', onScroll, true);
     return () => {
-      window.removeEventListener('pointermove', onMove, true);
+      window.removeEventListener('pointermove', onPointerMove, true);
       window.removeEventListener('pointerup', onUp, true);
       window.removeEventListener('pointercancel', onCancel, true);
       window.removeEventListener('scroll', onScroll, true);
     };
-  }, [gestureLive, commit, targetOf, update]);
+  }, [gestureLive, commit, targetOf, update, drag, landingFor, onMove]);
 
   // A gesture whose node stops being placeable, or that editing has stopped
   // allowing, can never be released by its own handle: that handle is gone,
@@ -807,6 +1146,7 @@ export default function CanvasGridSurface({
               corner,
             ),
         placement,
+        kind,
       );
     };
 
@@ -820,20 +1160,61 @@ export default function CanvasGridSurface({
         gesture.corner,
       )
     : undefined;
+  // A drag that has wandered into another grid. The one it came from shows
+  // the widget gone; the one under the pointer shows it arriving.
+  const { landing } = drag;
+  const leaving = Boolean(gesture?.armed && landing?.nodeId === gesture.nodeId);
+  const arriving = landing?.parentId === parentId ? landing : undefined;
+
   // Where every widget sits for the layout being previewed. Runs the same
   // rules the server will apply on the drop, so the neighbours move aside
   // under the pointer and nothing jumps once the write lands.
-  const shown =
-    preview && gesture
-      ? previewGrid(
-          childIds,
-          layouts,
-          placements,
-          gesture.nodeId,
-          preview,
-          columns,
-        )
-      : placements;
+  const shown = (() => {
+    if (arriving) {
+      // Resolved with the incoming widget in place, so this grid's children
+      // make room for it before the drop rather than after.
+      const withIt = [...childIds];
+      withIt.splice(arriving.index, 0, arriving.nodeId);
+      return previewGrid(
+        withIt,
+        { ...layouts, [arriving.nodeId]: arriving.placement },
+        placements,
+        arriving.nodeId,
+        arriving.placement,
+        columns,
+      );
+    }
+    if (leaving) {
+      // Resolved without it: it belongs to another grid now.
+      const without = childIds.filter(id => id !== gesture?.nodeId);
+      const resolved = resolveGrid(
+        without.map(id => layouts[id] ?? {}),
+        columns,
+      );
+      return Object.fromEntries(
+        without.map((id, index) => [id, resolved[index]]),
+      );
+    }
+    if (!preview || !gesture) return placements;
+    // Landing on one widget shows the exchange, so the drop matches what was
+    // on screen a moment before it.
+    const partner = swapPartner(childIds, placements, gesture.nodeId, preview);
+    if (partner) {
+      return {
+        ...placements,
+        [gesture.nodeId]: preview,
+        [partner]: swapped(placements[partner], gesture.origin),
+      };
+    }
+    return previewGrid(
+      childIds,
+      layouts,
+      placements,
+      gesture.nodeId,
+      preview,
+      columns,
+    );
+  })();
 
   return (
     <Grid
@@ -841,11 +1222,23 @@ export default function CanvasGridSurface({
       columns={columns}
       gap={gap}
       rowUnit={rowUnit}
+      heldHeight={gesture?.heldHeight}
       data-test="canvas-grid-surface"
     >
-      {preview && gesture && !samePlacement(preview, gesture.origin) && (
-        <DropPreview placement={preview} data-test="canvas-drop-preview" />
+      {/* The widget is arriving from another grid: show where it lands. */}
+      {arriving && (
+        <DropPreview
+          placement={arriving.placement}
+          data-test="canvas-drop-preview"
+        />
       )}
+      {/* Its own drag, as long as it has not wandered off to another grid. */}
+      {!leaving &&
+        preview &&
+        gesture &&
+        !samePlacement(preview, gesture.origin) && (
+          <DropPreview placement={preview} data-test="canvas-drop-preview" />
+        )}
       {childIds.map(childId => {
         const dragging = gesture?.armed && gesture.nodeId === childId;
         // Neighbours follow the previewed layout, so they move aside while
@@ -861,18 +1254,26 @@ export default function CanvasGridSurface({
             key={childId}
             placement={dragging && gesture ? gesture.origin : placed}
             dragging={dragging && gesture?.kind === 'move'}
-            data-dragging={dragging ? 'true' : undefined}
+            data-dragging={
+              dragging && gesture?.kind === 'move' ? 'true' : undefined
+            }
             offset={dragging ? { x: gesture.dx, y: gesture.dy } : undefined}
             data-test="canvas-node"
             data-node-id={childId}
           >
             <Interactive
               className="canvas-interactive"
+              showBounds={drag.dragging}
               {...(editable && placements[childId]
                 ? { onPointerDown: begin(childId, 'move', false) }
                 : {})}
             >
-              <Content editable={editable}>{renderNode(childId)}</Content>
+              <WidgetBody
+                editable={editable}
+                offset={handleTop(theme.sizeUnit, depth, extent)}
+              >
+                {renderNode(childId)}
+              </WidgetBody>
               {editable && placements[childId] && (
                 <>
                   <Grip

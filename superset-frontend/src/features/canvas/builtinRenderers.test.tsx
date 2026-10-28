@@ -85,6 +85,8 @@ test('renders core containers and markdown without extensions', async () => {
         revision: result.revision,
         saving: false,
         place: jest.fn(),
+        move: jest.fn(),
+        swap: jest.fn(),
         dismissError: jest.fn(),
       }}
       editable={false}

@@ -29,6 +29,28 @@ import type {
   SpanConstraints,
 } from './types';
 
+/**
+ * A pending write for one node.
+ *
+ * A drag within a grid replaces the node's layout; a drag into another grid
+ * reparents it as well, which the server takes as a different operation.
+ * Either way the node ends up somewhere, so both queue and coalesce the same.
+ */
+export type LayoutWrite =
+  | { kind: 'place'; layout: GridPlacement }
+  | { kind: 'move'; parent: string; index: number; layout: GridPlacement };
+
+const asOperation = (id: string, write: LayoutWrite) =>
+  write.kind === 'place'
+    ? { op: 'place', id, layout: write.layout }
+    : {
+        op: 'move',
+        id,
+        parent: write.parent,
+        index: write.index,
+        layout: write.layout,
+      };
+
 /** The newest layout this client knows of, and the revision it belongs to. */
 interface AppliedLayout {
   revision: number;
@@ -85,6 +107,26 @@ export interface CanvasLayout {
   saving: boolean;
   /** Persist a node's new placement. A no-op when the user can't edit. */
   place: (nodeId: string, placement: GridPlacement) => void;
+  /**
+   * Exchange two widgets' places, in one request. A drop landing squarely on
+   * one widget takes its slot and gives up its own.
+   */
+  swap: (
+    nodeId: string,
+    placement: GridPlacement,
+    partnerId: string,
+    partnerPlacement: GridPlacement,
+  ) => void;
+  /**
+   * Persist a node moving into another container, at `index` in its reading
+   * order and `placement` in its grid. A no-op when the user can't edit.
+   */
+  move: (
+    nodeId: string,
+    parent: string,
+    index: number,
+    placement: GridPlacement,
+  ) => void;
   /** Why the last write failed, for a dismissable notice. */
   error?: string;
   dismissError: () => void;
@@ -128,7 +170,7 @@ export function useCanvasLayout(
   const fetched = useRef(revision);
   const writing = useRef(false);
   // Newest intent per node while a write is in flight; sent as one batch.
-  const queued = useRef(new Map<string, GridPlacement>());
+  const queued = useRef(new Map<string, LayoutWrite>());
   // The definition's placements, for an optimistic view that has no newer
   // local layout to build on.
   const fetchedPlacements = useRef(result.placements);
@@ -175,7 +217,7 @@ export function useCanvasLayout(
   }, [canvasId, draftToken]);
 
   const send = useCallback(
-    (ops: Map<string, GridPlacement>) => {
+    (ops: Map<string, LayoutWrite>) => {
       writing.current = true;
       setSaving(true);
       // The surface this write belongs to, as of now. Everything below runs
@@ -183,11 +225,7 @@ export function useCanvasLayout(
       // discarded the plan, or navigated to another canvas.
       const era = generation.current;
       const base = Math.max(fetched.current, confirmed.current ?? 0);
-      const placeOps = [...ops].map(([id, layout]) => ({
-        op: 'place',
-        id,
-        layout,
-      }));
+      const placeOps = [...ops].map(([id, write]) => asOperation(id, write));
       // While a draft is open the layout belongs to the draft, not the
       // published canvas: same operations, but its own route, its own
       // revision field, and the token that authorizes it.
@@ -223,7 +261,9 @@ export function useCanvasLayout(
           // widget would snap back until the follow-up request returned. The
           // view is tagged a revision ahead, which is what the follow-up will
           // produce, so a refetch of this revision doesn't drop them either.
-          const waiting = [...queued.current];
+          const waiting = [...queued.current].map(
+            ([id, write]) => [id, write.layout] as const,
+          );
           setApplied({
             revision: written.revision + (waiting.length > 0 ? 1 : 0),
             placements:
@@ -281,13 +321,16 @@ export function useCanvasLayout(
     [canvasId, draftToken, reload],
   );
 
-  const place = useCallback(
-    (nodeId: string, placement: GridPlacement) => {
-      if (!canEdit) return;
+  const write = useCallback(
+    (entries: [string, LayoutWrite][]) => {
+      if (!canEdit || entries.length === 0) return;
       setError(undefined);
       // Show the drop straight away, built on the newest layout so an earlier
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
+      const moved = Object.fromEntries(
+        entries.map(([id, entry]) => [id, entry.layout]),
+      );
       setApplied(current => {
         const newer =
           current && current.revision > fetched.current ? current : undefined;
@@ -295,14 +338,14 @@ export function useCanvasLayout(
           revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
           placements: {
             ...(newer?.placements ?? fetchedPlacements.current),
-            [nodeId]: placement,
+            ...moved,
           },
           // The op sends this placement as the node's layout, so that is
           // exactly what the server will store for it. The siblings it pushes
           // keep their old stored layout until the response lands.
           layouts: {
             ...(newer?.layouts ?? fetchedLayouts.current),
-            [nodeId]: placement,
+            ...moved,
           },
           // Left as it stands until the write returns the server's. The
           // reorder depends on where the drop landed relative to every
@@ -315,16 +358,46 @@ export function useCanvasLayout(
       if (writing.current) {
         // Deleted before being set: `Map.set` on a key it already holds keeps
         // that key's original position, and this queue is sent as ordered
-        // `place` ops. The server lets a later op win a contested cell, so a
+        // operations. The server lets a later one win a contested cell, so a
         // node moved twice while a write was in flight has to end up last or
         // its newest drop loses to a sibling it was dropped on top of.
-        queued.current.delete(nodeId);
-        queued.current.set(nodeId, placement);
+        entries.forEach(([id, entry]) => {
+          queued.current.delete(id);
+          queued.current.set(id, entry);
+        });
         return;
       }
-      send(new Map([[nodeId, placement]]));
+      send(new Map(entries));
     },
     [canEdit, send],
+  );
+
+  const place = useCallback(
+    (nodeId: string, placement: GridPlacement) =>
+      write([[nodeId, { kind: 'place', layout: placement }]]),
+    [write],
+  );
+
+  const swap = useCallback(
+    (
+      nodeId: string,
+      placement: GridPlacement,
+      partnerId: string,
+      partnerPlacement: GridPlacement,
+    ) =>
+      // One request: the two placements only make sense together, and sending
+      // them apart would leave the grid overlapping in between.
+      write([
+        [nodeId, { kind: 'place', layout: placement }],
+        [partnerId, { kind: 'place', layout: partnerPlacement }],
+      ]),
+    [write],
+  );
+
+  const move = useCallback(
+    (nodeId: string, parent: string, index: number, placement: GridPlacement) =>
+      write([[nodeId, { kind: 'move', parent, index, layout: placement }]]),
+    [write],
   );
 
   const dismissError = useCallback(() => setError(undefined), []);
@@ -340,6 +413,8 @@ export function useCanvasLayout(
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,
+    move,
+    swap,
     error,
     dismissError,
   };

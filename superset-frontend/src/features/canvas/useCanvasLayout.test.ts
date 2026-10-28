@@ -608,6 +608,71 @@ test('a gesture queued behind a failing write is dropped with it', async () => {
   expect(result.current.saving).toBe(false);
 });
 
+test('a widget leaving its container is sent as a move, not a place', async () => {
+  // `place` only changes a layout within the container a widget already
+  // lives in, so it cannot say that the widget now lives somewhere else.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      layouts: { kpi: MOVED, trend: TREND },
+      childOrder: { root: ['kpi', 'trend'] },
+      layoutConstraints: {},
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => result.current.move('kpi', 'group-1', 2, MOVED));
+
+  // Shown in its new home straight away, as a drag within a grid is.
+  expect(result.current.placements.kpi).toEqual(MOVED);
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  const body = JSON.parse(
+    fetchMock.callHistory.calls()[0].options.body as string,
+  );
+  expect(body.ops).toEqual([
+    { op: 'move', id: 'kpi', parent: 'group-1', index: 2, layout: MOVED },
+  ]);
+});
+
+test('an exchange of places goes out as one request', async () => {
+  // The two placements only make sense together: sent apart, the grid would
+  // be overlapping in between, and a failure would leave one widget moved
+  // and the other not.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: TREND, trend: KPI },
+      layouts: { kpi: TREND, trend: KPI },
+      childOrder: { root: ['trend', 'kpi'] },
+      layoutConstraints: {},
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => result.current.swap('kpi', TREND, 'trend', KPI));
+
+  // Both shown in their new places at once.
+  expect(result.current.placements.kpi).toEqual(TREND);
+  expect(result.current.placements.trend).toEqual(KPI);
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  const body = JSON.parse(
+    fetchMock.callHistory.calls()[0].options.body as string,
+  );
+  expect(body.ops).toEqual([
+    { op: 'place', id: 'kpi', layout: TREND },
+    { op: 'place', id: 'trend', layout: KPI },
+  ]);
+});
+
 test('the reported revision follows the writes, so a commit can use it', async () => {
   // The regression this guards: publishing a draft sends the revision the
   // definition was fetched at. A drag moves the draft on immediately, so a

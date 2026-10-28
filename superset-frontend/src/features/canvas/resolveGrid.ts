@@ -113,6 +113,29 @@ export function resolveGrid(
 }
 
 /**
+ * Where a node dropped at `target` belongs in `rects`' reading order.
+ *
+ * `rects` is the siblings it lands among, resolved and in reading order,
+ * without the dropped node. Mirrors the server's `insert_index`: an overlap
+ * pushes the *later* child down, so the dropped node goes before the first
+ * sibling it overlaps, or that starts after it by row and then column, and
+ * last if there is no such sibling.
+ */
+export function insertIndex(
+  rects: GridPlacement[],
+  target: GridPlacement,
+): number {
+  const targetCells = new Set(cells(target));
+  const found = rects.findIndex(
+    rect =>
+      cells(rect).some(cell => targetCells.has(cell)) ||
+      rect.row > target.row ||
+      (rect.row === target.row && rect.col >= target.col),
+  );
+  return found === -1 ? rects.length : found;
+}
+
+/**
  * The placements a grid would settle on if `moving` were dropped at `target`.
  *
  * The dragged widget takes `target` and is moved in reading order to sit ahead
@@ -145,15 +168,8 @@ export function previewGrid(
   // Where the others sit on their own, which is the order the dropped widget
   // is inserted into.
   const before = resolveGrid(otherLayouts as GridLayout[], columns);
-  const targetCells = new Set(cells(target));
-  const found = before.findIndex(
-    rect =>
-      cells(rect).some(cell => targetCells.has(cell)) ||
-      rect.row > target.row ||
-      (rect.row === target.row && rect.col >= target.col),
-  );
   const ordered = [...others];
-  ordered.splice(found === -1 ? others.length : found, 0, moving);
+  ordered.splice(insertIndex(before, target), 0, moving);
 
   const resolved = resolveGrid(
     ordered.map(nodeId =>
@@ -162,4 +178,44 @@ export function previewGrid(
     columns,
   );
   return Object.fromEntries(ordered.map((id, index) => [id, resolved[index]]));
+}
+
+/**
+ * The single widget a drop lands on, if it lands squarely on one.
+ *
+ * Dropping onto one widget exchanges places with it: the dropped widget takes
+ * its slot, and it takes the slot the dropped widget came from. Dragging
+ * upwards already looked like that, but only by coincidence -- the rule is
+ * "insert before what you overlap, push it down", and pushing a widget down
+ * from the top happens to land it where the dragged one started. Pushed down
+ * from lower in the grid it lands somewhere new, so the same gesture read as
+ * a swap in one direction and a shove in the other.
+ *
+ * Nothing, when the drop straddles two widgets or lands on empty space: there
+ * is no single partner to exchange with, so the push-down rule still applies.
+ */
+export function swapPartner(
+  childIds: string[],
+  placements: Record<string, GridPlacement>,
+  moving: string,
+  target: GridPlacement,
+): string | undefined {
+  const landing = new Set(cells(target));
+  const touched = childIds.filter(
+    nodeId =>
+      nodeId !== moving &&
+      placements[nodeId] &&
+      cells(placements[nodeId]).some(cell => landing.has(cell)),
+  );
+  return touched.length === 1 ? touched[0] : undefined;
+}
+
+/** Where two widgets end up once they exchange places. */
+export function swapped(
+  partner: GridPlacement,
+  vacated: GridPlacement,
+): GridPlacement {
+  // Its own size, in the slot the dragged widget left: a swap exchanges
+  // places, not shapes.
+  return { ...partner, col: vacated.col, row: vacated.row };
 }

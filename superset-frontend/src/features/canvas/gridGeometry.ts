@@ -172,3 +172,58 @@ export const samePlacement = (a: GridPlacement, b: GridPlacement): boolean =>
   a.row === b.row &&
   a.colSpan === b.colSpan &&
   a.rowSpan === b.rowSpan;
+
+/** Where a grid sits on screen, and how wide its content box is. */
+export interface GridBox {
+  left: number;
+  top: number;
+  width: number;
+}
+
+/**
+ * Where a widget lands in a grid it did not start in.
+ *
+ * `offsetX`/`offsetY` are where inside the widget it was grabbed, in pixels,
+ * so it keeps that relationship to the pointer rather than jumping its own
+ * corner under it.
+ *
+ * The column span is carried over as a *proportion* of the grid it came
+ * from, not as a number of columns: a widget filling a twelve-column group
+ * fills the twenty-four-column canvas it is dragged onto, rather than
+ * arriving at half the width it had a moment ago. Rows are the same height
+ * everywhere, so the row span is kept as it is.
+ */
+export function placementAt(
+  clientX: number,
+  clientY: number,
+  offsetX: number,
+  offsetY: number,
+  box: GridBox,
+  metrics: GridMetrics,
+  spans: { colSpan: number; rowSpan: number },
+  fromColumns: number,
+): GridPlacement {
+  const { columns, gap, rowUnit } = metrics;
+  const colPitch = columnWidth(box.width, metrics) + gap;
+  const rowPitch = rowUnit + gap;
+  const colSpan = clamp(
+    fromColumns > 0
+      ? Math.round((spans.colSpan / fromColumns) * columns)
+      : spans.colSpan,
+    1,
+    columns,
+  );
+  const lastCol = Math.max(1, columns - colSpan + 1);
+  const col =
+    colPitch > 0
+      ? Math.round((clientX - offsetX - box.left) / colPitch) + 1
+      : 1;
+  const row =
+    rowPitch > 0 ? Math.round((clientY - offsetY - box.top) / rowPitch) + 1 : 1;
+  return {
+    col: clamp(col, 1, lastCol),
+    row: Math.max(1, row),
+    colSpan,
+    rowSpan: spans.rowSpan,
+  };
+}

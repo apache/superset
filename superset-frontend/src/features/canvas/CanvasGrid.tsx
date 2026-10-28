@@ -26,6 +26,7 @@ import CanvasGridSurface from './CanvasGridSurface';
 import type { CanvasLayout } from './useCanvasLayout';
 import { CanvasDefinitionResult } from './types';
 import { CanvasDraftContext } from './useWidgetRows';
+import { CanvasDragProvider } from './useCanvasDrag';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
@@ -134,7 +135,15 @@ export default function CanvasGrid({
   // Span limits come from the layout rather than the fetched definition: a
   // container's row minimum follows the rows its children occupy, so a write
   // that moves a child moves the minimum with it.
-  const { placements, layouts, childOrder, layoutConstraints, place } = layout;
+  const {
+    placements,
+    layouts,
+    childOrder,
+    layoutConstraints,
+    place,
+    move,
+    swap,
+  } = layout;
   /**
    * A grid's children in reading order. The server's order wins where it has
    * one: a `place` reorders them so the dropped widget keeps the spot it
@@ -178,12 +187,14 @@ export default function CanvasGrid({
   // of the widgets inside it: a container's own box starts where its first
   // child's does, and the container's handles are painted last.
   const renderGrid = (
+    parentId: string,
     childIds: string[],
     gridColumnCount: number,
     render: (nodeId: string) => ReactNode,
     depth: number,
   ) => (
     <CanvasGridSurface
+      parentId={parentId}
       childIds={childIds}
       columns={gridColumnCount}
       gap={gap}
@@ -193,6 +204,8 @@ export default function CanvasGrid({
       constraints={layoutConstraints}
       editable={editable}
       onPlace={place}
+      onSwap={swap}
+      onMove={move}
       renderNode={render}
       depth={depth}
     />
@@ -264,6 +277,7 @@ export default function CanvasGrid({
           renderGrid={() =>
             childGridColumns !== undefined ? (
               renderGrid(
+                nodeId,
                 childIds,
                 childGridColumns,
                 childId => renderNode(childId, depth + 1),
@@ -284,14 +298,19 @@ export default function CanvasGrid({
 
   return (
     <CanvasDraftContext.Provider value={draftToken}>
-      <div data-test="canvas-grid">
-        {renderGrid(
-          orderOf(ROOT_NODE_ID, definition.root.children),
-          columns,
-          renderNode,
-          0,
-        )}
-      </div>
+      {/* One drag at a time, shared by every grid: dragging a widget out of
+          its container is a conversation between two of them. */}
+      <CanvasDragProvider>
+        <div data-test="canvas-grid">
+          {renderGrid(
+            ROOT_NODE_ID,
+            orderOf(ROOT_NODE_ID, definition.root.children),
+            columns,
+            renderNode,
+            0,
+          )}
+        </div>
+      </CanvasDragProvider>
     </CanvasDraftContext.Provider>
   );
 }

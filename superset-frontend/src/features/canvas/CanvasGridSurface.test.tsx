@@ -17,10 +17,12 @@
  * under the License.
  */
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import CanvasGridSurface from './CanvasGridSurface';
+import { CanvasWidgetChromeContext } from './widgetChrome';
+import { CanvasDragProvider } from './useCanvasDrag';
 import { RESIZE_CORNERS } from './gridGeometry';
 import type { GridPlacement, SpanConstraints } from './types';
 
@@ -32,7 +34,10 @@ const ROW_PITCH = 56;
 
 const placements: Record<string, GridPlacement> = {
   kpi: { col: 1, row: 1, colSpan: 6, rowSpan: 4 },
-  trend: { col: 1, row: 5, colSpan: 24, rowSpan: 8 },
+  // Well below `kpi`, so the ordinary drags in these tests land on empty
+  // space. Dropping squarely onto a widget is a swap, which the tests for
+  // that arrange deliberately.
+  trend: { col: 1, row: 9, colSpan: 24, rowSpan: 8 },
 };
 
 const surface = (
@@ -47,20 +52,28 @@ const surface = (
     <div>{`widget ${nodeId}`}</div>
   ),
   depth = 0,
+  onSwap: jest.Mock = jest.fn(),
 ) => (
-  <CanvasGridSurface
-    childIds={childIds}
-    columns={24}
-    gap={16}
-    rowUnit={40}
-    placements={live}
-    layouts={live}
-    constraints={constraints}
-    editable={editable}
-    depth={depth}
-    onPlace={onPlace}
-    renderNode={renderNode}
-  />
+  // With a provider, as a canvas always has one: the grids register with it,
+  // and it is what knows a drag is running.
+  <CanvasDragProvider>
+    <CanvasGridSurface
+      parentId="root"
+      onMove={jest.fn()}
+      onSwap={onSwap}
+      childIds={childIds}
+      columns={24}
+      gap={16}
+      rowUnit={40}
+      placements={live}
+      layouts={live}
+      constraints={constraints}
+      editable={editable}
+      depth={depth}
+      onPlace={onPlace}
+      renderNode={renderNode}
+    />
+  </CanvasDragProvider>
 );
 
 const renderSurface = ({
@@ -71,9 +84,11 @@ const renderSurface = ({
   childIds = Object.keys(placements),
   renderNode,
   depth = 0,
+  onSwap = jest.fn(),
 }: {
   editable?: boolean;
   onPlace?: jest.Mock;
+  onSwap?: jest.Mock;
   constraints?: Record<string, SpanConstraints>;
   live?: Record<string, GridPlacement>;
   childIds?: string[];
@@ -81,10 +96,20 @@ const renderSurface = ({
   depth?: number;
 } = {}) => {
   const { rerender, container } = render(
-    surface(live, editable, onPlace, constraints, childIds, renderNode, depth),
+    surface(
+      live,
+      editable,
+      onPlace,
+      constraints,
+      childIds,
+      renderNode,
+      depth,
+      onSwap,
+    ),
   );
   return Object.assign(onPlace, {
     container,
+    onSwap,
     /** Simulate this grid's membership changing, e.g. a node reparented. */
     replaceChildren: (next: string[]) =>
       rerender(
@@ -552,7 +577,7 @@ test('a gesture is released when its node stops being placeable', () => {
   drag(handles('Move widget')[0], 0, ROW_PITCH);
   expect(onPlace).toHaveBeenCalledWith('trend', {
     col: 1,
-    row: 6,
+    row: 10,
     colSpan: 24,
     rowSpan: 8,
   });
@@ -584,7 +609,7 @@ test('a gesture is released when its node moves to another grid', () => {
   drag(handles('Move widget')[0], 0, ROW_PITCH);
   expect(onPlace).toHaveBeenCalledWith('trend', {
     col: 1,
-    row: 6,
+    row: 10,
     colSpan: 24,
     rowSpan: 8,
   });
@@ -592,10 +617,18 @@ test('a gesture is released when its node moves to another grid', () => {
 
 const gripTop = () => getComputedStyle(handles('Move widget')[0]).top;
 
-test('a root grid puts its handles at the top of each widget', () => {
+test("a root grid's grip lines up with the widget's own controls", () => {
+  // The grip, the More Options button and the north-east resize corner all
+  // sit in the widget's top right, so they have to read as one row. The
+  // controls are a `sizeUnit * 8` square at `top: 0` (see WithQuery's
+  // `.canvas-widget-controls`); the grip matches both, or it floats a few
+  // pixels high next to them.
   renderSurface();
+  const grip = getComputedStyle(handles('Move widget')[0]);
 
-  expect(gripTop()).toBe('4px');
+  expect(grip.top).toBe('0px');
+  expect(grip.height).toBe('32px');
+  expect(grip.width).toBe('32px');
 });
 
 test('a nested grid offsets its handles clear of its container', () => {
@@ -691,21 +724,69 @@ const rowOf = (container: HTMLElement, nodeId: string) =>
     container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
   ).gridRow;
 
-test('neighbours move aside while the pointer is still down', () => {
-  // Live reflow: the same rules the server will apply on the drop run on
-  // every move, so nothing jumps once the write lands.
+test('a drop onto one widget exchanges places with it, before the drop', () => {
+  // Live reflow: the same rules the write will apply run on every move, so
+  // nothing jumps once it lands. Landing squarely on one widget is a swap --
+  // it takes the slot the dragged one came from.
   const onPlace = renderSurface();
   const handle = handles('Move widget')[0];
-  const before = rowOf(onPlace.container, 'trend');
+
+  expect(rowOf(onPlace.container, 'trend')).toContain('9');
 
   pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
-  // 'kpi' is 4 rows tall at row 1; four rows down puts it on 'trend'.
-  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 4 });
+  // 'kpi' is 4 rows tall at row 1; eight rows down puts it on 'trend'.
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 8 });
 
-  // 'kpi' comes first in reading order, so it takes row 5 and 'trend' is
-  // pushed below it -- visibly, before the drop.
-  expect(rowOf(onPlace.container, 'trend')).not.toBe(before);
-  expect(rowOf(onPlace.container, 'trend')).toContain('9');
+  // 'trend' takes row 1, which 'kpi' has just left.
+  expect(rowOf(onPlace.container, 'trend')).toContain('1/');
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 8 });
+
+  // And both are written together, as the exchange they are.
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('a drop straddling two widgets pushes them down instead', () => {
+  // Only a definite landing is an exchange. Across two widgets there is no
+  // single partner to trade with, so reading order decides and the ones it
+  // lands among move down.
+  const onPlace = jest.fn();
+  const stacked = {
+    a: { col: 1, row: 1, colSpan: 24, rowSpan: 2 },
+    b: { col: 1, row: 3, colSpan: 24, rowSpan: 2 },
+    c: { col: 1, row: 5, colSpan: 24, rowSpan: 2 },
+  };
+  render(
+    <CanvasDragProvider>
+      <CanvasGridSurface
+        parentId="root"
+        onMove={jest.fn()}
+        onSwap={jest.fn()}
+        childIds={['a', 'b', 'c']}
+        columns={24}
+        gap={16}
+        rowUnit={40}
+        placements={stacked}
+        layouts={stacked}
+        constraints={{}}
+        editable
+        depth={0}
+        onPlace={onPlace}
+        renderNode={nodeId => <div>{`widget ${nodeId}`}</div>}
+      />
+    </CanvasDragProvider>,
+  );
+
+  // 'a' is two rows tall; two rows down straddles 'b' and 'c'.
+  const handle = handles('Move widget')[0];
+  drag(handle, 0, ROW_PITCH * 3);
+
+  expect(onPlace).toHaveBeenCalledWith('a', {
+    col: 1,
+    row: 4,
+    colSpan: 24,
+    rowSpan: 2,
+  });
 });
 
 test('neighbours go back when a gesture is abandoned', () => {
@@ -870,7 +951,7 @@ const recover = (onPlace: jest.Mock & { container: HTMLElement }) => {
 
   expect(onPlace).toHaveBeenCalledWith('trend', {
     col: 1,
-    row: 7,
+    row: 11,
     colSpan: 24,
     rowSpan: 8,
   });
@@ -1122,6 +1203,24 @@ test('a widget taller than its cells scrolls rather than spilling over', () => {
   expect(getComputedStyle(content).height).toBe('100%');
 });
 
+test("a widget's own layering cannot escape over the handles", () => {
+  // A widget stacks inside its own box. Without that, anything it renders
+  // with a high z-index paints over the canvas: an antd table's sticky header
+  // sits at columns * 2 + 3, which already beats the handles at three columns
+  // and climbs from there, so raising the handles is not a fix.
+  const onPlace = renderSurface();
+  const content = onPlace.container.querySelector(
+    '[data-node-id="kpi"] .canvas-interactive > div',
+  ) as HTMLElement;
+
+  expect(getComputedStyle(content).isolation).toBe('isolate');
+
+  // And the handles still sit above that box, as siblings of it.
+  const grip = handles('Move widget')[0];
+  expect(Number(getComputedStyle(grip).zIndex)).toBeGreaterThan(0);
+  expect(grip.parentElement).toBe(content.parentElement);
+});
+
 test('the handles are not inside the scrolling area', () => {
   // They are siblings of the content, so they stay pinned to the widget's
   // corners instead of scrolling away with it.
@@ -1168,6 +1267,31 @@ test('only the widget being dragged is marked as such', () => {
   pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
 
   expect(item('kpi')).not.toHaveAttribute('data-dragging');
+});
+
+test('a resize does not unclip the containers around it', () => {
+  // The marker makes every ancestor scroll box stop clipping, which is right
+  // for a move -- the widget is leaving its container -- and wrong for a
+  // resize, where it stays put. Unclipping during a resize lets a scrolling
+  // widget render at full height for the length of the gesture: a table
+  // spills its rows, and its sticky header, over whatever is below.
+  const onPlace = renderSurface();
+  const corner = corners(onPlace.container, 'se')[0];
+  const item = onPlace.container.querySelector('[data-node-id="kpi"]');
+
+  pointer(corner, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(corner, 'pointermove', {
+    clientX: COL_PITCH * 3,
+    clientY: ROW_PITCH,
+  });
+
+  // Really resizing -- the outline is up -- but nothing is marked as dragged.
+  expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
+  expect(item).not.toHaveAttribute('data-dragging');
+
+  pointer(corner, 'pointerup', { clientX: COL_PITCH * 3, clientY: ROW_PITCH });
+
+  expect(onPlace).toHaveBeenCalled();
 });
 
 test("a container's scroll box stops clipping while a widget inside it drags", () => {
@@ -1283,4 +1407,228 @@ test('a press held while scrolling is not turned into a drag', () => {
   pointer(body, 'pointerup', { clientX: 0, clientY: 0 });
 
   expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('the grid cannot shrink while a gesture is running', () => {
+  // Dragging a widget up can leave the grid needing fewer rows. Letting it
+  // shrink while the view is scrolled near the bottom makes the browser clamp
+  // the scroll position, sliding the content under a still pointer -- which
+  // feeds back into the preview, since travel is measured against the grid's
+  // own position. The drag then fights the user and the page scrolls by
+  // itself. The floor holds until the gesture ends.
+  const onPlace = renderSurface();
+  const surface = screen.getByTestId('canvas-grid-surface');
+  Object.defineProperty(surface, 'offsetHeight', {
+    configurable: true,
+    value: 720,
+  });
+  const floor = () => getComputedStyle(surface).minHeight;
+
+  expect(floor()).toBe('');
+
+  const handle = handles('Move widget')[1];
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: -ROW_PITCH * 2 });
+
+  expect(floor()).toBe('720px');
+  // And the browser stops correcting the scroll position behind our back:
+  // reordering content above the viewport would otherwise make it adjust
+  // scrollTop, which moves the grid that travel is measured against.
+  expect(getComputedStyle(surface).overflowAnchor).toBe('none');
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: -ROW_PITCH * 2 });
+
+  // Released: the grid is free to settle at whatever the new layout needs,
+  // and anchoring goes back to normal.
+  expect(floor()).toBe('');
+  expect(getComputedStyle(surface).overflowAnchor).not.toBe('none');
+  expect(onPlace).toHaveBeenCalled();
+});
+
+/** A widget that puts something in whatever chrome node the canvas offers. */
+const PortalProbe = () => {
+  const chrome = useContext(CanvasWidgetChromeContext);
+  return (
+    <>
+      <span>widget body</span>
+      {chrome && createPortal(<button type="button">probe</button>, chrome)}
+    </>
+  );
+};
+
+test('a widget is offered a chrome node beside its content', () => {
+  // A widget's content box scrolls, clips and is its own stacking context, so
+  // chrome rendered inside it is subject to whatever that widget stacks -- an
+  // antd table's sticky header buries a menu at the top right. The canvas
+  // offers a node beside that box, as a sibling of the handles.
+  const onPlace = renderSurface({ renderNode: () => <PortalProbe /> });
+
+  const probe = screen.getAllByRole('button', { name: 'probe' })[0];
+  const chrome = probe.parentElement as HTMLElement;
+  const wrapper = chrome.parentElement as HTMLElement;
+
+  expect(chrome).toHaveClass('canvas-chrome');
+  // Beside the scrolling content, and inside the box the handles are pinned to.
+  expect(wrapper).toHaveClass('canvas-interactive');
+  expect(getComputedStyle(chrome).pointerEvents).toBe('none');
+
+  const content = onPlace.container.querySelector(
+    '[data-node-id="kpi"] .canvas-interactive > div',
+  ) as HTMLElement;
+  expect(content.contains(probe)).toBe(false);
+});
+
+test('scrolling under a held pointer does not arm a drag', () => {
+  // The threshold is about what the hand did, not what the content did.
+  // Folding the scroll into it means holding a widget and wheel-scrolling a
+  // few rows puts the threshold behind you, so the next pixel of pointer
+  // movement arms a drag nobody began -- and releasing writes it.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+
+  // Several rows of content pass under a still pointer.
+  scrollTo(ROW_PITCH * 4);
+  fireEvent.scroll(onPlace.container.firstChild as HTMLElement);
+
+  // Then the hand twitches, well inside the threshold.
+  pointer(body, 'pointermove', { clientX: 1, clientY: 1 });
+
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+
+  pointer(body, 'pointerup', { clientX: 1, clientY: 1 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('the preview resolves auto-placed siblings from their stored layouts', () => {
+  // The fixture elsewhere passes the same object as both `placements` and
+  // `layouts`, so it cannot tell the two apart. They differ for an
+  // auto-placed widget: its stored layout has no col/row at all, while its
+  // placement is wherever the server put it. Resolving from the placement
+  // pins it there, so it would not flow into the row a drag frees up.
+  const stacked = {
+    first: { col: 1, row: 1, colSpan: 24, rowSpan: 1 },
+    second: { col: 1, row: 2, colSpan: 24, rowSpan: 1 },
+  };
+  const onPlace = jest.fn();
+  const { container } = render(
+    <CanvasGridSurface
+      parentId="root"
+      onMove={jest.fn()}
+      onSwap={jest.fn()}
+      childIds={['first', 'second']}
+      columns={24}
+      gap={16}
+      rowUnit={40}
+      placements={stacked}
+      // Neither has a col or row of its own: the server auto-placed both.
+      layouts={{ first: { rowSpan: 1 }, second: { rowSpan: 1 } }}
+      constraints={{}}
+      editable
+      depth={0}
+      onPlace={onPlace}
+      renderNode={nodeId => <div>{`widget ${nodeId}`}</div>}
+    />,
+  );
+
+  const rowOfNode = (nodeId: string) =>
+    getComputedStyle(
+      container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
+    ).gridRow;
+
+  expect(rowOfNode('second')).toBe('2/span 1');
+
+  // Drag the first widget down to row 3, without releasing.
+  const handle = handles('Move widget')[0];
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 2 });
+
+  // Row 1 is free, and an auto-placed widget flows into it.
+  expect(rowOfNode('second')).toBe('1/span 1');
+});
+
+test("a nested widget's chrome steps down with its handles", () => {
+  // The grip moves clear of the grip of the container around it, and the
+  // menu beside it has to move with it. Leaving the menu at the top splits
+  // what should read as one row -- visible as a nested widget whose dots sit
+  // well below its own menu.
+  const flat = renderSurface();
+  const flatChrome = flat.container.querySelector(
+    '.canvas-chrome',
+  ) as HTMLElement;
+  expect(
+    getComputedStyle(
+      flat.container.querySelector(
+        '[data-test="canvas-drag-handle"]',
+      ) as HTMLElement,
+    ).top,
+  ).toBe('0px');
+  expect(flatChrome.className).toContain('canvas-chrome');
+
+  const nested = renderSurface({ depth: 1 });
+  const grips = nested.container.querySelectorAll(
+    '[data-test="canvas-drag-handle"]',
+  );
+  const gripTopNested = getComputedStyle(grips[0] as HTMLElement).top;
+
+  // Whatever the step is, the chrome takes the same one.
+  expect(gripTopNested).toBe('36px');
+  const rules = Array.from(document.styleSheets)
+    .flatMap(sheet => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .map(rule => rule.cssText)
+    .filter(text => text.includes('canvas-widget-controls'));
+
+  expect(rules.join('\n')).toContain('top: 36px');
+});
+
+test('every widget shows its edges while a drag is running', () => {
+  // A drop target you cannot see is one you cannot aim at, and revealing a
+  // widget only once the pointer is near it tells you where it is just as
+  // you arrive.
+  const onPlace = renderSurface();
+  const edges = (nodeId: string) =>
+    getComputedStyle(
+      onPlace.container.querySelector(
+        `[data-node-id="${nodeId}"] .canvas-interactive`,
+      ) as HTMLElement,
+    ).boxShadow;
+
+  expect(edges('trend')).toBe('');
+
+  const handle = handles('Move widget')[0];
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+
+  // Including the widgets the pointer is nowhere near.
+  expect(edges('trend')).not.toBe('');
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: 0 });
+
+  expect(edges('trend')).toBe('');
+});
+
+test('a resize that grows over a neighbour is not an offer to trade places', () => {
+  // Exchanging places is what a *move* onto a widget means. Growing a widget
+  // until it covers its neighbour is a resize, and the neighbour should be
+  // pushed out of the way, not teleported to the slot this one still holds.
+  const onSwap = jest.fn();
+  const onPlace = renderSurface({ onSwap });
+
+  // 'kpi' is 4 rows tall at row 1; eight more rows reaches 'trend' at row 9.
+  drag(corners(onPlace.container, 'se')[0], 0, ROW_PITCH * 8);
+
+  expect(onSwap).not.toHaveBeenCalled();
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 1,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 12,
+  });
 });
