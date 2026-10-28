@@ -80,11 +80,6 @@ EXCEL_PERCENT_FORMAT = "0.0%"
 # column meta and formatter selection, so it shares this post-processor.
 AG_GRID_TABLE = "ag-grid-table"
 
-# "Adaptive formatting" in the time format controls, mirroring ``SMART_DATE_ID``
-# in ``superset-ui-core/time-format``. It is an alias the browser resolves to a
-# formatter that picks a representation per value, not a format string.
-SMART_DATE = "smart_date"
-
 # ``strftime`` copies a directive it does not recognize into its output
 # verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
 # ``%q`` stay ``%L`` and ``%q`` rather than becoming milliseconds and a quarter.
