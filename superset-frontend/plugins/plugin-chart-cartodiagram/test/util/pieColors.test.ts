@@ -145,56 +145,53 @@ test.each([
     initialCenter: [100, 135],
     resizedCenter: [200, 220],
   },
-])('recalculates $name layout after resizing', ({
-  donut,
-  startAngle,
-  sweptAngle,
-  initialCenter,
-  resizedCenter,
-}) => {
-  const props = new ChartProps({
-    theme: supersetTheme,
-    formData: {
-      ...params,
-      show_legend: false,
-      donut,
-      startAngle,
-      sweptAngle,
-    },
-    queriesData: [{ data: [{ cat: 'bar', total: 1 }] }],
-  });
-  const feature = {
-    type: 'Feature' as const,
-    geometry: { type: 'Point' as const, coordinates: [0, 0] },
-    properties: { ...props },
-  };
-  const transformer = (child: ChartProps) =>
-    pieTransform(child as EchartsPieChartProps);
-  const initial = createChartComponent(
-    'pie',
-    feature,
-    200,
-    200,
-    supersetTheme,
-    'en',
-    transformer,
-  );
-  const resized = createChartComponent(
-    'pie',
-    feature,
-    400,
-    300,
-    supersetTheme,
-    'en',
-    transformer,
-  );
-  expect(initial?.props.chartConfig.properties).toMatchObject({
-    echartOptions: { series: [{ center: initialCenter }] },
-  });
-  expect(resized?.props.chartConfig.properties).toMatchObject({
-    echartOptions: { series: [{ center: resizedCenter }] },
-  });
-});
+])(
+  'recalculates $name layout after resizing',
+  ({ donut, startAngle, sweptAngle, initialCenter, resizedCenter }) => {
+    const props = new ChartProps({
+      theme: supersetTheme,
+      formData: {
+        ...params,
+        show_legend: false,
+        donut,
+        startAngle,
+        sweptAngle,
+      },
+      queriesData: [{ data: [{ cat: 'bar', total: 1 }] }],
+    });
+    const feature = {
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [0, 0] },
+      properties: { ...props },
+    };
+    const transformer = (child: ChartProps) =>
+      pieTransform(child as EchartsPieChartProps);
+    const initial = createChartComponent(
+      'pie',
+      feature,
+      200,
+      200,
+      supersetTheme,
+      'en',
+      transformer,
+    );
+    const resized = createChartComponent(
+      'pie',
+      feature,
+      400,
+      300,
+      supersetTheme,
+      'en',
+      transformer,
+    );
+    expect(initial?.props.chartConfig.properties).toMatchObject({
+      echartOptions: { series: [{ center: initialCenter }] },
+    });
+    expect(resized?.props.chartConfig.properties).toMatchObject({
+      echartOptions: { series: [{ center: resizedCenter }] },
+    });
+  },
+);
 
 test('assigns distinct colors to different categories across locations in Explore', () => {
   const groups = transform();

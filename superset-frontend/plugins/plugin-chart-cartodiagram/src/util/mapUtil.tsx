@@ -30,33 +30,13 @@ import proj4 from 'proj4';
 import { FeatureCollection } from 'geojson';
 import { FitOptions } from 'ol/View';
 import { getExtentFromFeatures } from './geometryUtil';
-import { ChartConfig, MapProjections } from '../types';
+import { MapProjections } from '../types';
 import { GeometryFormat } from '../constants';
 import { ReadOptions } from 'ol/format/Feature';
 
 // default map extent of world if no features are found
 // TODO: move to generic config file or plugin configuration
 const defaultExtent = [-16000000, -7279000, 20500000, 11000000];
-
-/**
- * Fits map to the spatial extent of provided charts.
- *
- * @param olMap The OpenLayers map
- * @param chartConfigs The chart configuration
- */
-export const fitMapToCharts = (olMap: Map, chartConfigs: ChartConfig) => {
-  const view = olMap.getView();
-  const features = new GeoJSON().readFeatures(chartConfigs, {
-    featureProjection: 'EPSG:3857',
-  });
-
-  const extent = getExtentFromFeatures(features) || defaultExtent;
-
-  view.fit(extent, {
-    // tested for a desktop size monitor
-    size: [250, 250],
-  });
-};
 
 const fitToData = (
   olMap: Map,

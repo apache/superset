@@ -17,7 +17,11 @@
  * under the License.
  */
 import { ControlComponentProps } from '@superset-ui/chart-controls';
-import { ChartProps, DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
+import {
+  ChartProps,
+  DataRecord,
+  TimeseriesDataRecord,
+} from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { RenderFunction } from 'ol/layer/Layer';
 import { Extent } from 'ol/extent';
@@ -132,7 +136,10 @@ export interface DataLayerConf extends BaseLayerConf {
 }
 
 export type LayerConf =
-  WmsLayerConf | WfsLayerConf | XyzLayerConf | DataLayerConf;
+  | WmsLayerConf
+  | WfsLayerConf
+  | XyzLayerConf
+  | DataLayerConf;
 
 export type EventHandlers = Record<string, { (props: any): void }>;
 

@@ -24,7 +24,12 @@ import VectorSource from 'ol/source/Vector';
 import OlStyle from 'ol/style/Style';
 import Fill from 'ol/style/Fill';
 import Feature from 'ol/Feature';
-import { DataLayerConf, WfsLayerConf, WmsLayerConf, XyzLayerConf } from '../../src/types';
+import {
+  DataLayerConf,
+  WfsLayerConf,
+  WmsLayerConf,
+  XyzLayerConf,
+} from '../../src/types';
 import {
   createDataLayer,
   createLayer,

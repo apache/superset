@@ -82,29 +82,26 @@ test.each([
   [-1, 100],
   [NaN, 100],
   [100, Infinity],
-])(
-  'skips transformation for invalid dimensions %s by %s',
-  (width, height) => {
-    const transformer = jest.fn();
-    const feature: ChartConfigFeature = {
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [0, 0] },
-      properties: {},
-    };
-    expect(
-      createChartComponent(
-        'pie',
-        feature,
-        width,
-        height,
-        supersetTheme,
-        'en',
-        transformer,
-      ),
-    ).toBeNull();
-    expect(transformer).not.toHaveBeenCalled();
-  },
-);
+])('skips transformation for invalid dimensions %s by %s', (width, height) => {
+  const transformer = jest.fn();
+  const feature: ChartConfigFeature = {
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [0, 0] },
+    properties: {},
+  };
+  expect(
+    createChartComponent(
+      'pie',
+      feature,
+      width,
+      height,
+      supersetTheme,
+      'en',
+      transformer,
+    ),
+  ).toBeNull();
+  expect(transformer).not.toHaveBeenCalled();
+});
 
 test('keeps a failed chart transformation from breaking map rendering', () => {
   const transformer = jest.fn(() => {
@@ -167,7 +164,10 @@ test('detects changed callbacks while ignoring outer chart dimensions', () => {
     ),
   ).toBe(true);
   expect(
-    isChartConfigEqual(makeConfig(100, onContextMenu), makeConfig(100, jest.fn())),
+    isChartConfigEqual(
+      makeConfig(100, onContextMenu),
+      makeConfig(100, jest.fn()),
+    ),
   ).toBe(false);
 });
 
