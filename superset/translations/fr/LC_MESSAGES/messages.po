@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -407,6 +407,10 @@ msgstr "%s CLÉ PRIVÉE TUNNEL SSH"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s MOT DE PASSE DE CLÉ PRIVÉE TUNNEL SSH"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -5303,6 +5307,9 @@ msgstr ""
 "Les champs SQL personnalisés ne peuvent pas être traités en tant que "
 "seule instruction SQL"
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Les champs SQL personnalisés ne peuvent pas définir d'opérations."
 
@@ -6114,6 +6121,16 @@ msgid "Delete %s"
 msgstr "Supprimer %s"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "Supprimer %s?"
 
@@ -6125,6 +6142,13 @@ msgstr "Supprimer le groupe ?"
 
 msgid "Delete Layer?"
 msgstr "Effacer couche?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "Supprimer la requête?"
@@ -6150,8 +6174,23 @@ msgstr "Supprimer le thème ?"
 msgid "Delete User?"
 msgstr "Supprimer l'utilisateur ?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Delete all Really?"
 msgstr "Vraiment tout effacer?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "Supprimer l'annotation"
@@ -6188,6 +6227,9 @@ msgstr "Supprimer la requête"
 
 msgid "Delete role"
 msgstr "Supprimer le rôle"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "Supprimer template"
@@ -6322,6 +6364,12 @@ msgid ""
 msgstr ""
 "La suppression d'un onglet supprimera tout le contenu qu'il contient. "
 "Vous pouvez toujours annuler cette action avec le"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -7680,6 +7728,9 @@ msgstr "Expérimental"
 msgid "Expired"
 msgstr "Expiré"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -7925,6 +7976,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -7949,6 +8003,9 @@ msgstr "Échec de la génération de l'URL de modification du graphique"
 #, python-format
 msgid "Failed to generate download: %s"
 msgstr "Échec de la génération de la ressource à télécharger : %s"
+
+msgid "Failed to load OAuth2 tokens."
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Échec du chargement des données du graphique"
@@ -10213,6 +10270,13 @@ msgstr ""
 msgid "Manage"
 msgstr "Gérer"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "Gérer les éditeurs du tableau de bord et les autorisations d’accès"
 
@@ -11544,6 +11608,14 @@ msgstr "Interval numérique"
 msgid "OAuth2 client information"
 msgstr "Informations du client OAuth2"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "OCT"
 
@@ -11599,6 +11671,9 @@ msgstr "Un ou plusieurs contrôles à pivoter en tant que colonnes"
 
 msgid "One or many metrics to display"
 msgstr "Une ou plusieurs mesures à afficher"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 msgid "One or more annotation layers failed loading."
 msgstr "Le chargement d'une ou plusieurs couches d'annotations a échoué."
@@ -14042,6 +14117,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "Rechercher les mesures et les colonnes"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr "Rechercher un canal par son nom, ou coller un identifiant de canal"
 
@@ -14062,6 +14140,9 @@ msgstr "Rechercher par"
 
 msgid "Search by query text"
 msgstr "Recherche par texte d'interrogation"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 msgid "Search calculated columns by name"
 msgstr "Rechercher les colonnes calculées par nom"
@@ -17492,15 +17573,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "L'unité de temps utilisée pour le regroupement des blocs"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -17513,6 +17585,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -18913,6 +18994,9 @@ msgstr "Erreur de dépassement de délai"
 
 msgid "Timestamp format"
 msgstr "Format d'horodatage"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Fuseau horaire"

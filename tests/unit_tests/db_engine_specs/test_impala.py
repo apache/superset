@@ -62,8 +62,8 @@ def test_get_cancel_query_id() -> None:
 
 
 @patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
-@patch("requests.post")
-def test_cancel_query(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
+@patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
+def test_cancel_query(requester_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
         database_name="test_impala",
@@ -73,10 +73,12 @@ def test_cancel_query(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
 
     response_mock = Mock()
     response_mock.status_code = 200
+    post_mock = requester_mock.return_value.post
     post_mock.return_value = response_mock
 
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
+    requester_mock.assert_called_once_with(allow_unsafe_hosts=False)
     post_mock.assert_called_once_with(
         "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
@@ -86,8 +88,8 @@ def test_cancel_query(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
 
 
 @patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
-@patch("requests.post")
-def test_cancel_query_failed(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
+@patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
+def test_cancel_query_failed(requester_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
         database_name="test_impala",
@@ -97,6 +99,7 @@ def test_cancel_query_failed(post_mock: Mock, _safe_host: Mock) -> None:  # noqa
 
     response_mock = Mock()
     response_mock.status_code = 500
+    post_mock = requester_mock.return_value.post
     post_mock.return_value = response_mock
 
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
@@ -110,8 +113,8 @@ def test_cancel_query_failed(post_mock: Mock, _safe_host: Mock) -> None:  # noqa
 
 
 @patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
-@patch("requests.post")
-def test_cancel_query_exception(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
+@patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
+def test_cancel_query_exception(requester_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
         database_name="test_impala",
@@ -119,7 +122,7 @@ def test_cancel_query_exception(post_mock: Mock, _safe_host: Mock) -> None:  # n
     )
     query.database = database
 
-    post_mock.side_effect = Exception("Network error")
+    requester_mock.return_value.post.side_effect = Exception("Network error")
 
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
