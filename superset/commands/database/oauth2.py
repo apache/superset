@@ -26,8 +26,12 @@ from marshmallow import ValidationError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
-from superset.commands.database.exceptions import DatabaseNotFoundError
-from superset.daos.database import DatabaseUserOAuth2TokensDAO
+from superset.commands.database.exceptions import (
+    DatabaseNotFoundError,
+    OAuth2TokenNotFoundError,
+    OAuth2TokensDeleteFailedError,
+)
+from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
 from superset.daos.key_value import KeyValueDAO
 from superset.databases.schemas import OAuth2ProviderResponseSchema
 from superset.exceptions import OAuth2Error, OAuth2RejectedError
@@ -151,3 +155,47 @@ class OAuth2StoreTokenCommand(BaseCommand):
             self._database = database
         else:
             raise DatabaseNotFoundError("Database not found")
+
+
+class OAuth2DeleteTokensCommand(BaseCommand):
+    """
+    Command to delete OAuth2 tokens for a DB connection.
+
+    Supports deleting specific tokens by ID(s) or all existing tokens.
+    """
+
+    def __init__(
+        self,
+        database_id: int,
+        token_ids: list[int] | None = None,
+        *,
+        delete_all: bool = False,
+    ) -> None:
+        self._database_id = database_id
+        self._token_ids = token_ids
+        self._delete_all = delete_all
+        self._database: Database | None = None
+        self._tokens: list[DatabaseUserOAuth2Tokens] = []
+
+    @transaction(on_error=partial(on_error, reraise=OAuth2TokensDeleteFailedError))
+    def run(self) -> None:
+        self.validate()
+        if self._delete_all:
+            assert self._database is not None
+            DatabaseUserOAuth2TokensDAO.delete_all_tokens(self._database.id)
+        else:
+            DatabaseUserOAuth2TokensDAO.delete(self._tokens)
+
+    def validate(self) -> None:
+        if self._delete_all == (self._token_ids is not None):
+            raise ValueError("Specify token_ids or delete_all=True, exclusively.")
+        self._database = DatabaseDAO.find_by_id(self._database_id)
+        if self._database is None:
+            raise DatabaseNotFoundError()
+        if self._token_ids is not None:
+            token_ids = list(dict.fromkeys(self._token_ids))
+            self._tokens = DatabaseUserOAuth2TokensDAO.find_by_database_and_ids(
+                self._database.id, token_ids
+            )
+            if not self._tokens or len(self._tokens) != len(token_ids):
+                raise OAuth2TokenNotFoundError()
