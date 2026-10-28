@@ -133,7 +133,8 @@ kill other database sessions. Superset does not capture SQL Server session IDs o
 send `KILL`: those IDs can be reassigned to unrelated connections.
 
 This support does not extend to ordinary SQL Lab or chart-task cancellation from
-another process, `pymssql` (which has no public `cursor.cancel()` API), Azure
-Synapse dedicated pools, or SAP Sybase. Configure driver connection, query, and
+another process, `pymssql` (which has no public `cursor.cancel()` API), `pytds`
+(whose cancellation reads from the query's socket), Azure Synapse dedicated
+pools, or SAP Sybase. Configure driver connection, query, and
 network timeouts as well: native cancellation is best effort and cannot guarantee
 that an unreachable or unresponsive driver stops within a fixed time.

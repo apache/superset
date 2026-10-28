@@ -792,11 +792,9 @@ class QueryCancellation:
 
     def register(self) -> None:
         """Publish a usable handle, including one obtained after the deadline."""
+        live = self.spec.can_cancel_live_cursor(self.database.driver, self.cursor)
         with self.call.lock:
-            if self.spec.has_implicit_cancel() or (
-                self.spec.supports_cancel_on_live_cursor is True
-                and callable(getattr(self.cursor, "cancel", None))
-            ):
+            if self.spec.has_implicit_cancel() or live is True:
                 self.call.cancel_query = self.cancel_live_cursor
             elif (
                 self.cancel_id is not None

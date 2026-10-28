@@ -103,6 +103,11 @@ class MssqlEngineSpec(BaseEngineSpec):
     # SQLAlchemy's default IS true/false emits invalid syntax (IS 1 / IS 0).
     use_equality_for_boolean_filters = True
 
+    @classmethod
+    def can_cancel_live_cursor(cls, driver: str, cursor: Any) -> bool:
+        """Only pyodbc's ``cancel()`` (ODBC SQLCancel) is safe across threads."""
+        return driver == "pyodbc" and super().can_cancel_live_cursor(driver, cursor)
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATEADD(SECOND, \

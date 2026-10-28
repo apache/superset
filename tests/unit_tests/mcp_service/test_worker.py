@@ -418,24 +418,36 @@ def test_query_cancellation_capture_resets_stale_id_on_failed_recapture() -> Non
     assert call.cancel_query is None
 
 
-@pytest.mark.parametrize("native_cancel", [False, True])
-def test_sql_server_cancellation_uses_only_the_live_cursor(native_cancel: bool) -> None:
-    """SQL Server cancellation requires a driver with a native cursor API."""
+@pytest.mark.parametrize(
+    ("driver", "native_cancel", "registered"),
+    [
+        ("pyodbc", False, False),
+        ("pyodbc", True, True),
+        ("pytds", True, False),
+        ("pymssql", True, False),
+    ],
+)
+def test_sql_server_cancellation_uses_only_the_live_cursor(
+    driver: str, native_cancel: bool, registered: bool
+) -> None:
+    """SQL Server cancellation requires pyodbc's native cursor API."""
     from superset.db_engine_specs.mssql import MssqlEngineSpec
     from superset.mcp_service.worker import _active_call, warehouse_cursor
 
     call = Mock(lock=threading.RLock(), expired=threading.Event())
-    database = Mock(id=42, db_engine_spec=MssqlEngineSpec)
+    database = Mock(id=42, db_engine_spec=MssqlEngineSpec, driver=driver)
     cursor = Mock(spec=["execute", "cancel"] if native_cancel else ["execute"])
     token = _active_call.set(call)
     try:
         with warehouse_cursor(database, cursor, None, None):
-            if native_cancel:
+            if registered:
                 assert call.cancel_query is not None
                 call.cancel_query()
                 cursor.cancel.assert_called_once_with()
             else:
                 assert call.cancel_query is None
+                if native_cancel:
+                    cursor.cancel.assert_not_called()
         assert call.cancel_query is None
         cursor.execute.assert_not_called()
     finally:

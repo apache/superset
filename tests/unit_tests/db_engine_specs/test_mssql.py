@@ -906,6 +906,7 @@ def test_other_tsql_engines_do_not_inherit_sql_server_cancellation() -> None:
     for spec in (AzureSynapseSpec, SybaseEngineSpec):
         cursor, query = Mock(), Mock()
         assert not spec.supports_cancel_on_live_cursor
+        assert not spec.can_cancel_live_cursor("pyodbc", cursor)
         assert spec.get_cancel_query_id(cursor, query) is None
         assert not spec.cancel_query(cursor, query, "73")
         cursor.execute.assert_not_called()
