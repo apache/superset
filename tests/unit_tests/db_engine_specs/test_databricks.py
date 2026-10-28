@@ -269,17 +269,32 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert adjusted_args_fallback["catalog"] == "connect_arg_cat"
     assert adjusted_args_fallback["schema"] == "default"
 
+    # Test preserving connect_args schema over URI query schema when no override is given
+    legacy_url = (
+        "databricks+connector://token:abc@my_hostname:1234/legacy?schema=url_schema"
+    )
+    adj_url_saved, adj_args_saved = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(legacy_url),
+        connect_args={"schema": "finance"},
+    )
+    assert adj_url_saved.query["schema"] == "finance"
+    assert adj_args_saved["schema"] == "finance"
+
 
 def test_databricks_connector_dialect_registration() -> None:
-    """Test that databricks.connector dialect is registered and resolves to DatabricksDialect."""
+    """
+    Test that databricks.connector dialect is registered and resolves
+    to DatabricksDialect.
+    """
     import sys
     from unittest import mock
+
     from sqlalchemy.dialects import registry
 
     assert "databricks.connector" in registry.impls
 
-    # Verify that registry.load accurately resolves to the DatabricksDialect class
-    # even when the optional databricks-sqlalchemy extra is not installed in the test environment
+    # Verify that registry.load accurately resolves to DatabricksDialect
+    # even when databricks-sqlalchemy is not installed in test environment
     mock_dialect_cls = type("DatabricksDialect", (), {})
     mock_pkg = mock.MagicMock()
     mock_mod = mock.MagicMock(DatabricksDialect=mock_dialect_cls)
