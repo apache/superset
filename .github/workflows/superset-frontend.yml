@@ -74,7 +74,7 @@ jobs:
           name: docker-image
           path: docker-image.tar.zst
 
-  sharded-jest-tests:
+  sharded-frontend-tests:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     strategy:
@@ -109,8 +109,25 @@ jobs:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage
 
+  frontend-tests-required:
+    needs: [sharded-frontend-tests]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check sharded-frontend-tests result
+        env:
+          RESULT: ${{ needs.sharded-frontend-tests.result }}
+        run: |
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "sharded-frontend-tests did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "sharded-frontend-tests result: $RESULT"
+
   report-coverage:
-    needs: [sharded-jest-tests]
+    needs: [sharded-frontend-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 15
