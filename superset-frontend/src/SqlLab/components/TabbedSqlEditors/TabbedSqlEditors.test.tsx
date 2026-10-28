@@ -32,6 +32,8 @@ import { RootState } from 'src/views/store';
 import { QueryEditor } from 'src/SqlLab/types';
 import { commands, menus } from 'src/core';
 import { ViewLocations } from 'src/SqlLab/contributions';
+import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
+import { SupersetClient } from '@superset-ui/core';
 
 jest.mock('src/SqlLab/components/SqlEditor', () =>
   // eslint-disable-next-line react/display-name
@@ -397,4 +399,53 @@ test('empty state add control opens the dropdown instead of creating a plain tab
 
   expect(await screen.findByText('SQL Editor')).toBeInTheDocument();
   expect(screen.getByText('Contributed Tab')).toBeInTheDocument();
+});
+
+test('new tab button ignores clicks while extensions load, then opens the dropdown once ready', async () => {
+  const resetLoader = () => {
+    (ExtensionsLoader as unknown as { instance?: ExtensionsLoader }).instance =
+      undefined;
+  };
+  const previousFlags = window.featureFlags;
+  window.featureFlags = { ...previousFlags, EnableExtensions: true };
+  resetLoader();
+  let resolveList: (value: unknown) => void = () => {};
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockReturnValue(
+    new Promise(resolve => {
+      resolveList = resolve;
+    }) as ReturnType<typeof SupersetClient.get>,
+  );
+  try {
+    contributeNewTabItem('ext.newTab');
+    newTabDisposables.push(
+      commands.registerCommand(
+        { id: 'ext.newTab', title: 'Contributed Tab' },
+        jest.fn(),
+      ),
+    );
+    ExtensionsLoader.getInstance().initializeExtensions();
+
+    const { getAllByRole } = setup(undefined, initialState);
+    const tabCount = () =>
+      getAllByRole('tab').filter(
+        tab => !tab.classList.contains('ant-tabs-tab-remove'),
+      ).length;
+    const countBefore = tabCount();
+
+    fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+    expect(screen.queryByText('Contributed Tab')).not.toBeInTheDocument();
+    expect(tabCount()).toEqual(countBefore);
+
+    resolveList({ json: { result: [] } });
+    await waitFor(() =>
+      expect(ExtensionsLoader.getInstance().isReady()).toBe(true),
+    );
+
+    fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+    expect(await screen.findByText('Contributed Tab')).toBeInTheDocument();
+  } finally {
+    getSpy.mockRestore();
+    window.featureFlags = previousFlags;
+    resetLoader();
+  }
 });
