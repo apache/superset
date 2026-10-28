@@ -2131,6 +2131,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             comments=comments,
         ).generate(self._parsed, copy=True)
 
+    def format_select_clause(
+        self, *, orderby: bool = False, apply_dialect: bool = True
+    ) -> str:
+        """Unwrap a synthetic SELECT using its parsed projection or ORDER BY nodes.
+
+        Extract clauses structurally so keywords inside comments are never wrappers.
+        Disable dialect rewrites when unwrapping sanitize_clause's neutral output.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            raise SupersetParseError("Expected a SELECT statement")
+        select = self._parsed
+        clause = select.args.get("order") if orderby else select
+        if clause is None:
+            raise SupersetParseError("Expected an ORDER BY clause")
+        expressions = [expression.copy() for expression in clause.expressions]
+        if expressions:
+            expressions[0].add_comments(select.comments)
+        generator = _normalized_generator(
+            self._dialect if apply_dialect else None, pretty=False, comments=True
+        )
+        result = ", ".join(generator.generate(expression) for expression in expressions)
+        if not orderby and (distinct := select.args.get("distinct")):
+            result = f"{generator.generate(distinct.copy())} {result}"
+        return result
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL statement.

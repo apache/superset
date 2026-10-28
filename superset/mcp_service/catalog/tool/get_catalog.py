@@ -42,7 +42,6 @@ Security properties:
 
 import base64
 import binascii
-import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -73,6 +72,7 @@ from superset.mcp_service.privacy import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+from superset.utils.hashing import hash_from_str
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +184,7 @@ _ASSET_SPECS: dict[str, _AssetSpec] = {
 def _search_digest(search: str | None) -> str:
     if not search:
         return ""
-    return hashlib.sha256(search.encode("utf-8")).hexdigest()[:16]
+    return hash_from_str(search)[:16]
 
 
 def encode_cursor(asset_type: str, search: str | None, after_id: int) -> str:
