@@ -106,12 +106,12 @@ def _bound_query_context(
     sm: SupersetSecurityManager,
     query: MagicMock,
     *,
-    slice_datasource_type: str = DatasourceType.QUERY,
+    slice_datasource_type: str = DatasourceType.TABLE,
     modified: bool = False,
     guest_has_dashboard: bool = True,
     stored_chart: bool = True,
 ) -> MagicMock:
-    """A chart-data request for a query-backed chart on an embedded dashboard."""
+    """A query request naming a dataset-backed chart on an embedded dashboard."""
     slc = MagicMock()
     slc.id = SLICE_ID
     slc.datasource_id = QUERY_ID
@@ -191,25 +191,26 @@ def test_guest_cannot_run_ad_hoc_sql(
     assert excinfo.value.error.error_type == GUEST_DENIED
 
 
-def test_guest_reads_query_backed_chart_on_authorized_dashboard(
+def test_guest_cannot_read_query_despite_authorized_dashboard_chart_payload(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
-    """A query-backed chart on an embedded dashboard the token authorizes is
-    reachable, subject to the usual table-level checks."""
+    """Naming an authorized dashboard's chart never grants query access."""
     sm = _security_manager(mocker, _guest_user())
     query = _query(99)
     query_context = _bound_query_context(mocker, sm, query)
-    sm.raise_for_access(
-        query=query, query_context=query_context, allow_editorship=False
-    )
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(
+            query=query, query_context=query_context, allow_editorship=False
+        )
+    assert excinfo.value.error.error_type == GUEST_DENIED
 
 
-def test_guest_bound_query_still_needs_table_access(
+def test_guest_bound_query_refused_without_table_access(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
-    """The dashboard binding does not replace the table-level checks."""
+    """Guests are refused queries before table-level permission checks."""
     sm = _security_manager(mocker, _guest_user())
     mocker.patch.object(sm, "can_access", return_value=False)
     sales = MagicMock()
@@ -224,9 +225,7 @@ def test_guest_bound_query_still_needs_table_access(
         sm.raise_for_access(
             query=query, query_context=query_context, allow_editorship=False
         )
-    assert (
-        excinfo.value.error.error_type == SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR
-    )
+    assert excinfo.value.error.error_type == GUEST_DENIED
 
 
 @pytest.mark.parametrize(
@@ -249,10 +248,7 @@ def test_guest_bound_query_refused_outside_token_scope(
     kwargs: dict[str, Any],
     datasets: Optional[list[int]],
 ) -> None:
-    """The dashboard binding only holds when the token authorizes that
-    dashboard, the chart reads this exact query, the payload is the saved one,
-    and the token carries no dataset allowlist (which names SQL datasets only).
-    """
+    """Token claims, chart payloads and dashboard membership cannot grant queries."""
     sm = _security_manager(mocker, _guest_user(datasets))
     query = _query(99)
     query_context = _bound_query_context(mocker, sm, query, **kwargs)
@@ -283,11 +279,10 @@ def test_non_guest_query_access_unchanged(
         sm.raise_for_access(query=_query(7))
 
 
-def test_chart_data_passes_query_context_for_query_datasource(
+def test_chart_data_checks_query_datasource_access(
     mocker: MockerFixture,
 ) -> None:
-    """The chart-data processor hands the request to ``raise_for_access`` so the
-    guest dashboard binding can be checked for a query datasource."""
+    """The chart-data processor checks query access without chart binding."""
     from superset.common.query_context_processor import QueryContextProcessor
 
     raise_for_access = mocker.patch(
@@ -299,7 +294,6 @@ def test_chart_data_passes_query_context_for_query_datasource(
     QueryContextProcessor(query_context).raise_for_access()
     raise_for_access.assert_called_once_with(
         query=query_context.datasource,
-        query_context=query_context,
         allow_editorship=False,
     )
 
@@ -312,7 +306,7 @@ def test_chart_data_passes_query_context_for_query_datasource(
     [
         pytest.param(None, False, 403, id="unbound-query"),
         pytest.param([QUERY_ID], False, 403, id="dataset-claim-is-not-query-access"),
-        pytest.param(None, True, 200, id="saved-chart-on-authorized-dashboard"),
+        pytest.param(None, True, 403, id="chart-on-authorized-dashboard"),
         pytest.param([QUERY_ID], True, 403, id="bound-query-with-dataset-claim"),
     ],
 )
@@ -323,7 +317,7 @@ def test_chart_data_api_scopes_guest_query_datasource(
     bound_chart: bool,
     expected_status: int,
 ) -> None:
-    """HTTP chart-data enforces query scope and preserves the saved-chart path."""
+    """HTTP chart-data refuses queries even when an authorized chart is named."""
     from superset import security_manager
     from superset.models.slice import Slice
 
@@ -332,7 +326,7 @@ def test_chart_data_api_scopes_guest_query_datasource(
         security_manager, "get_guest_user_from_request", return_value=guest
     )
     # Give the guest both the route permission and access to the query's tables;
-    # neither grant authorizes this query outside an embedded dashboard.
+    # neither grant authorizes a query datasource for an embedded guest.
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_database", return_value=False)
     mocker.patch.object(
@@ -367,9 +361,11 @@ def test_chart_data_api_scopes_guest_query_datasource(
         chart = Slice(
             id=SLICE_ID,
             datasource_id=QUERY_ID,
-            datasource_type=DatasourceType.QUERY,
+            datasource_type=DatasourceType.TABLE,
             params="{}",
-            query_context=json.dumps(payload),
+            query_context=json.dumps(
+                {**payload, "datasource": {"id": QUERY_ID, "type": "table"}}
+            ),
         )
         mocker.patch(
             "superset.common.query_context_factory.ChartDAO.find_by_id",
@@ -396,8 +392,5 @@ def test_chart_data_api_scopes_guest_query_datasource(
     get_datasource.assert_called_once_with(
         datasource_type=DatasourceType.QUERY, database_id_or_uuid=QUERY_ID
     )
-    if expected_status == 403:
-        assert response.json == {"message": "Forbidden"}
-        get_data.assert_not_called()
-    else:
-        get_data.assert_called_once()
+    assert response.json == {"message": "Forbidden"}
+    get_data.assert_not_called()

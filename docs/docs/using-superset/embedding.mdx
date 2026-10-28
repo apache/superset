@@ -59,6 +59,14 @@ embedDashboard({
 
 `fetchGuestToken` must return a **guest token** obtained from your server by calling Superset's `/api/v1/security/guest_token/` endpoint with a service account. Do not call this endpoint from client-side code.
 
+## Guest data access
+
+Embedded guest tokens grant access to data sources reachable through their
+authorized dashboards, not to SQL Lab queries or ad hoc SQL execution. Charts
+cannot use a SQL Lab `query` datasource. Naming an authorized chart or dashboard
+in a request does not grant a guest access to a stored query, even when the
+guest role has permission to read its underlying tables.
+
 ## Chart display names
 
 Dashboard charts and cross-filter chips use configured column and metric display

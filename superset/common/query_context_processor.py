@@ -1051,12 +1051,8 @@ class QueryContextProcessor:
                 # datasource_access checks this ongoing-fetch path has always
                 # used (it is deliberately not the stricter
                 # ``force_dataset_match`` that SQL Lab execution uses).
-                # The query context is passed along so an embedded guest can be
-                # held to the chart and dashboard its token authorizes.
                 security_manager.raise_for_access(
-                    query=self._qc_datasource,
-                    query_context=self._query_context,
-                    allow_editorship=False,
+                    query=self._qc_datasource, allow_editorship=False
                 )
             except TemplateError as ex:
                 raise SupersetTemplateException(str(ex)) from ex
