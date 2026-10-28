@@ -233,3 +233,24 @@ def test_inner_rls_collection_failure_falls_back_to_viewer_scoped_key(
     bob_key = _key(virtual_dataset)
 
     assert alice_key != bob_key
+
+
+def test_chart_cache_key_carries_the_same_inner_rls(
+    virtual_dataset: SqlaTable, viewer: SimpleNamespace
+) -> None:
+    """The chart cache key keys on the same inner predicates as column values."""
+    from superset.models.sql_lab import Query
+
+    query: Query = Query(
+        database=virtual_dataset.database,
+        schema="main",
+        sql="SELECT tenant, name FROM t",
+        client_id="client",
+    )
+    for datasource in (virtual_dataset, query):
+        viewer.name = "alice"
+        assert "(tenant = 1)" in datasource.get_extra_cache_keys({})
+        assert datasource.get_inner_rls_cache_key() == ["(tenant = 1)"]
+        viewer.name = "bob"
+        assert "(tenant = 2)" in datasource.get_extra_cache_keys({})
+        assert datasource.get_inner_rls_cache_key() == ["(tenant = 2)"]
