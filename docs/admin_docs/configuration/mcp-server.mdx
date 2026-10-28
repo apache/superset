@@ -798,6 +798,10 @@ curl -X POST http://localhost:5008/mcp \
 
 ## Text input validation
 
+`generate_dashboard` generates a title from chart names when `dashboard_title`
+(or its `title` / `name` alias) is omitted, empty, or whitespace-only.
+`update_dashboard` and `duplicate_dashboard` reject blank titles.
+
 Dashboard titles and chart names may contain punctuation and prose labels such
 as `substitute data: Jira support tickets`. URL payloads using `javascript:`,
 `vbscript:`, or `data:` remain rejected, including schemes with embedded ASCII
