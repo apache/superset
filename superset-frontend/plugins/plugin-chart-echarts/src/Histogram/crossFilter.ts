@@ -123,11 +123,19 @@ function formatGroupbyValue(
 function binFilters(
   column: QueryFormColumn,
   bin: HistogramBin,
+  cumulative: boolean,
 ): QueryObjectFilterClause[] {
-  return [
-    { col: column, op: '>=', val: bin.start },
-    { col: column, op: bin.isLast ? '<=' : '<', val: bin.end },
-  ];
+  // A cumulative bar is the running total up to this bin's right edge, so
+  // the filter has no lower bound. Earlier bins stay half-open on the right.
+  const upper: QueryObjectFilterClause = {
+    col: column,
+    op: bin.isLast ? '<=' : '<',
+    val: bin.end,
+  };
+  if (cumulative) {
+    return [upper];
+  }
+  return [{ col: column, op: '>=', val: bin.start }, upper];
 }
 
 function groupbyFilters(
@@ -164,6 +172,7 @@ export function getHistogramCrossFilterDataMask({
   groupbyValues,
   selectedKeys,
   coltypeMapping,
+  cumulative = false,
 }: {
   column: QueryFormColumn;
   groupby: QueryFormColumn[];
@@ -171,12 +180,16 @@ export function getHistogramCrossFilterDataMask({
   groupbyValues: DataRecordValue[];
   selectedKeys: string[];
   coltypeMapping?: Record<string, number>;
+  cumulative?: boolean;
 }) {
   const key = getHistogramCrossFilterKey(bin, groupbyValues);
   const isCurrentValueSelected = selectedKeys.includes(key);
   const filters: QueryObjectFilterClause[] = isCurrentValueSelected
     ? []
-    : [...binFilters(column, bin), ...groupbyFilters(groupby, groupbyValues)];
+    : [
+        ...binFilters(column, bin, cumulative),
+        ...groupbyFilters(groupby, groupbyValues),
+      ];
   const label = isCurrentValueSelected
     ? null
     : crossFilterLabel(bin, groupby, groupbyValues, coltypeMapping);

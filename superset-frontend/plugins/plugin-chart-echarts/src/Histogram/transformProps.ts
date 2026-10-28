@@ -124,17 +124,28 @@ export default function transformProps(
   });
   const xAxisData = bins.map(bin => bin.label);
   const seriesGroupby: DataRecordValue[][] = [];
-  const barSeries: BarSeriesOption[] = data.map(datum => {
-    const groupbyValues = groupby.map(
+  const rows = data.map(datum => ({
+    datum,
+    groupbyValues: groupby.map(
       key => datum[getColumnLabel(key)] as DataRecordValue,
+    ),
+  }));
+  // Edges are derived from the current result. A stored key from older edges
+  // matches no bar, and dimming every bar would hide that the selection is stale.
+  const hasMatchingSelection =
+    selectedKeys.length > 0 &&
+    rows.some(({ groupbyValues }) =>
+      bins.some(bin =>
+        selectedKeys.includes(getHistogramCrossFilterKey(bin, groupbyValues)),
+      ),
     );
+  const barSeries: BarSeriesOption[] = rows.map(({ datum, groupbyValues }) => {
     seriesGroupby.push(groupbyValues);
     const seriesName =
       groupby.length > 0 ? groupbyValues.join(', ') : getColumnLabel(column);
     const seriesData = bins.map((bin, index) => {
       const filterKey = getHistogramCrossFilterKey(bin, groupbyValues);
-      const isDimmed =
-        selectedKeys.length > 0 && !selectedKeys.includes(filterKey);
+      const isDimmed = hasMatchingSelection && !selectedKeys.includes(filterKey);
       const value = datum[binKeys[index]] as number;
       return isDimmed
         ? { value, itemStyle: { opacity: OpacityEnum.SemiTransparent } }

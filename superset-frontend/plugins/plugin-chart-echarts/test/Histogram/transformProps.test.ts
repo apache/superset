@@ -135,6 +135,61 @@ test('dims bars outside the selected bin and uses a pointer cursor', () => {
   expect(series[0].cursor).toBe('pointer');
 });
 
+test('leaves bars undimmed when the selected edges match no bar', () => {
+  const props = new ChartProps({
+    formData,
+    width: 800,
+    height: 600,
+    queriesData: [{ data: [{ '0 - 5': 3, '5 - 10': 7 }] }],
+    theme: supersetTheme,
+    filterState: {
+      selectedValues: [getHistogramCrossFilterKey({ start: 1, end: 6 }, [])],
+    },
+  });
+  const { series } = readChart(props);
+  const points = series[0].data as {
+    value: number;
+    itemStyle?: { opacity?: number };
+  }[];
+
+  expect(points[0].itemStyle?.opacity).toBeUndefined();
+  expect(points[1].itemStyle?.opacity).toBeUndefined();
+});
+
+test("dims another group's bar for the same selected bin", () => {
+  const props = new ChartProps({
+    formData: { ...formData, groupby: ['region'] },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { region: 'WEST', '0 - 5': 3, '5 - 10': 1 },
+          { region: 'EAST', '0 - 5': 4, '5 - 10': 2 },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+    filterState: {
+      selectedValues: [
+        getHistogramCrossFilterKey({ start: 0, end: 5 }, ['WEST']),
+      ],
+    },
+  });
+  const { series } = readChart(props);
+  const opacity = (seriesIndex: number, dataIndex: number) =>
+    (
+      series[seriesIndex].data as {
+        itemStyle?: { opacity?: number };
+      }[]
+    )[dataIndex].itemStyle?.opacity;
+
+  expect(series[0].name).toBe('WEST');
+  expect(series[1].name).toBe('EAST');
+  expect(opacity(0, 0)).toBeUndefined();
+  expect(opacity(1, 0)).toBe(0.3);
+});
+
 test('renders an empty chart when the query returns no rows', () => {
   const props = new ChartProps({
     formData,

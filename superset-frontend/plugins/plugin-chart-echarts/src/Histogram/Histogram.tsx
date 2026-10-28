@@ -53,7 +53,7 @@ export default function Histogram(props: HistogramTransformedProps) {
     setDataMask = noop,
     width,
   } = props;
-  const { column, groupby = [] } = formData;
+  const { column, cumulative, groupby = [] } = formData;
   const groupbyColumns = groupby as QueryFormColumn[];
 
   const legendEventHandlers = useLegendEventHandlers(
@@ -83,6 +83,7 @@ export default function Histogram(props: HistogramTransformedProps) {
           groupbyValues,
           selectedKeys,
           coltypeMapping,
+          cumulative,
         }),
       };
     };
@@ -122,6 +123,7 @@ export default function Histogram(props: HistogramTransformedProps) {
     bins,
     coltypeMapping,
     column,
+    cumulative,
     emitCrossFilters,
     filterState?.selectedValues,
     groupbyColumns,

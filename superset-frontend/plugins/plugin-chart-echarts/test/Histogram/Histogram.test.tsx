@@ -63,6 +63,7 @@ function setup(
     emitCrossFilters?: boolean;
     filterState?: { selectedValues?: string[] | null };
     groupby?: string[];
+    cumulative?: boolean;
   } = {},
 ) {
   const onContextMenu = jest.fn();
@@ -72,6 +73,7 @@ function setup(
       formData: {
         ...formData,
         groupby: overrides.groupby ?? formData.groupby,
+        cumulative: overrides.cumulative ?? formData.cumulative,
       },
       width: 800,
       height: 600,
@@ -122,6 +124,23 @@ test('click filters the histogram column by the bin and the series group', () =>
       filterState: expect.objectContaining({
         label: '0 - 5, WEST',
       }),
+    }),
+  );
+});
+
+test('a cumulative click filters every value up to the bin edge', () => {
+  const { eventHandlers, setDataMask } = setup({ cumulative: true });
+
+  eventHandlers.click({ seriesIndex: 0, dataIndex: 0 });
+
+  expect(setDataMask).toHaveBeenCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          { col: 'price', op: '<', val: 5 },
+          { col: 'region', op: 'IN', val: ['WEST'] },
+        ],
+      },
     }),
   );
 });

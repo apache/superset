@@ -61,6 +61,33 @@ test('getHistogramCrossFilterDataMask filters a bin with a half-open range', () 
   ]);
 });
 
+test('a cumulative bin filter drops the lower bound', () => {
+  const earlier = getHistogramCrossFilterDataMask({
+    column: 'price',
+    groupby: [],
+    bin: bin(5, 10),
+    groupbyValues: [],
+    selectedKeys: [],
+    cumulative: true,
+  }).dataMask;
+  expect(earlier.extraFormData.filters).toEqual([
+    { col: 'price', op: '<', val: 10 },
+  ]);
+
+  const last = getHistogramCrossFilterDataMask({
+    column: 'price',
+    groupby: ['region'],
+    bin: bin(10, 15, true),
+    groupbyValues: ['WEST'],
+    selectedKeys: [],
+    cumulative: true,
+  }).dataMask;
+  expect(last.extraFormData.filters).toEqual([
+    { col: 'price', op: '<=', val: 15 },
+    { col: 'region', op: 'IN', val: ['WEST'] },
+  ]);
+});
+
 test('getHistogramCrossFilterDataMask includes the right edge of the last bin', () => {
   const { dataMask } = getHistogramCrossFilterDataMask({
     column: 'price',
