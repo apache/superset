@@ -148,6 +148,65 @@ def test_inner_table_rls_partitions_column_values_cache_key(
     assert alice_key != bob_key
 
 
+@pytest.fixture(params=["physical", "virtual"])
+def templated_own_rls(
+    request: pytest.FixtureRequest,
+    virtual_dataset: SqlaTable,
+    session: Session,
+    mocker: MockerFixture,
+) -> tuple[SqlaTable, SimpleNamespace]:
+    """A shared own-RLS rule whose rendered value depends on the viewer."""
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+
+    datasource = (
+        virtual_dataset
+        if request.param == "virtual"
+        else session.query(SqlaTable).filter_by(table_name="t").one()
+    )
+    current = SimpleNamespace(name="alpha")
+    rule = SimpleNamespace(
+        id=1, clause="name = '{{ current_username() }}'", group_key=None
+    )
+    mocker.patch.object(
+        security_manager,
+        "get_rls_filters",
+        side_effect=lambda table: [rule] if table.id == datasource.id else [],
+    )
+    mocker.patch(
+        "superset.jinja_context.get_username", side_effect=lambda: current.name
+    )
+    return datasource, current
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_templated_own_rls_partitions_column_values_cache_key(
+    templated_own_rls: tuple[SqlaTable, SimpleNamespace],
+    data_cache: SimpleCache,
+) -> None:
+    """Shared templated rules partition keys and cached values by rendered RLS."""
+    from superset import security_manager
+    from superset.datasource.api import get_cached_column_values
+
+    datasource, current = templated_own_rls
+
+    def values() -> tuple[list[Any], bool]:
+        """Read column values through the shared cache."""
+        return get_cached_column_values(
+            datasource, column_name="name", limit=100, denormalize_column=False
+        )
+
+    raw_rls = security_manager.get_rls_cache_key(datasource)
+    first_key = _key(datasource)
+    assert values() == (["alpha"], False)
+    assert values() == (["alpha"], True)
+    current.name = "beta"
+    assert security_manager.get_rls_cache_key(datasource) == raw_rls
+    assert _key(datasource) != first_key
+    assert values() == (["beta"], False)
+    assert values() == (["beta"], True)
+
+
 def test_inner_table_rls_viewers_only_see_their_own_cached_values(
     virtual_dataset: SqlaTable, viewer: SimpleNamespace, data_cache: SimpleCache
 ) -> None:
@@ -178,8 +237,8 @@ def test_cached_column_values_are_served_without_reaching_the_database(
     mocker: MockerFixture,
 ) -> None:
     """
-    Building the key of a dataset with a schema does not connect to its
-    database, so a cache hit still serves values when the database is down.
+    A dynamic-schema engine with an explicit schema does not connect while
+    building the key, so a warm cache entry survives a warehouse outage.
     """
     from superset.datasource.api import get_cached_column_values
     from superset.models.sql_lab import Query
@@ -192,13 +251,16 @@ def test_cached_column_values_are_served_without_reaching_the_database(
             denormalize_column=False,
         )
 
+    # PostgreSQL honors the explicit query schema; SQLite discovers its
+    # connection schema through the inspector even when a schema is supplied.
+    virtual_dataset.database.sqlalchemy_uri = "postgresql://"
     viewer.name = "alice"
     assert values() == (["alpha"], False)
 
-    # Looking up the default schema opens a connection to the database.
+    # Catch any warehouse discovery path, not just Database.get_default_schema.
     unreachable = mocker.patch.object(
         virtual_dataset.database,
-        "get_default_schema",
+        "get_inspector",
         side_effect=ConnectionError("database unreachable"),
     )
     assert values() == (["alpha"], True)
@@ -403,6 +465,36 @@ def test_annotation_context_partitions_guests_by_inner_table_rls(
     }
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_templated_own_rls_partitions_annotation_context(
+    templated_own_rls: tuple[SqlaTable, SimpleNamespace],
+    source_chart: Slice,
+    mocker: MockerFixture,
+) -> None:
+    """Rendered source rules isolate annotation entries even without a user id."""
+    datasource, current = templated_own_rls
+    mocker.patch(
+        "superset.common.query_context_processor.QueryContextProcessor."
+        "_annotation_source_datasource",
+        return_value=datasource,
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.get_user_id", return_value=None
+    )
+    first = _annotation_context(source_chart)
+    first_chart_keys = datasource.get_extra_cache_keys(
+        {"columns": ["name"], "is_timeseries": False}
+    )
+    current.name = "beta"
+    second = _annotation_context(source_chart)
+    assert first["source_rls"] == second["source_rls"]
+    assert first != second
+    assert (
+        datasource.get_extra_cache_keys({"columns": ["name"], "is_timeseries": False})
+        != first_chart_keys
+    )
+
+
 def test_annotation_context_shares_entry_for_equal_inner_table_rls(
     guest: SimpleNamespace, source_chart: Slice
 ) -> None:
@@ -517,6 +609,34 @@ def swapped_inner_rules(
         "superset.common.query_context_processor.get_user_id", return_value=None
     )
     return current
+
+
+@pytest.mark.parametrize("datasource_type", ["virtual", "query"])
+def test_every_inner_table_contributes_its_own_component(
+    virtual_dataset: SqlaTable,
+    swapped_inner_rules: SimpleNamespace,
+    datasource_type: str,
+) -> None:
+    """Each referenced table contributes its own qualified RLS component."""
+    from superset.models.sql_lab import Query
+    from superset.utils import json
+
+    datasource = (
+        virtual_dataset
+        if datasource_type == "virtual"
+        else Query(
+            database=virtual_dataset.database,
+            schema="main",
+            sql=virtual_dataset.sql,
+            client_id="client",
+        )
+    )
+    assert datasource.get_inner_rls_cache_key() == sorted(
+        [
+            _inner_key("(tenant = 1)"),
+            json.dumps(["rls", None, "main", "u", "(tenant = 2)"]),
+        ]
+    )
 
 
 def test_swapped_table_rules_do_not_share_cached_column_values(

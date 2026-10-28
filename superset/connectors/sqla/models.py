@@ -3254,6 +3254,26 @@ class SqlaTable(
 
         return list(set(extra_cache_keys))
 
+    def get_rendered_rls_cache_key(self) -> list[str]:
+        """Fingerprint own RLS when templates can depend on viewer context.
+
+        Scan only own RLS with the chart cache's macro detection, including
+        guest-token clauses. Scanning the entire datasource would also load
+        unrelated SQL, columns and metrics before every cache lookup.
+        Compile the filters rather than collecting macro cache keys so even a
+        macro opting out of extra keys cannot hide a different RLS predicate.
+        Static RLS is already represented by ``get_rls_cache_key``.
+        """
+        if not any(
+            ExtraCache.regex.search(clause)
+            for clause in security_manager.get_rls_cache_key(self)
+        ):
+            return []
+        return sorted(
+            str(clause.compile(compile_kwargs={"literal_binds": True}))
+            for clause in self.get_sqla_row_level_filters()
+        )
+
     def get_inner_rls_cache_key(
         self,
         *,

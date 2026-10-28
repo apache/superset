@@ -494,6 +494,7 @@ class QueryContextProcessor:
         """
         source_rls: dict[str, list[str] | None] = {}
         source_inner_rls: dict[str, list[str]] = {}
+        source_rendered_rls: dict[str, list[str]] = {}
         source_versions: dict[str, tuple[str, str]] = {}
         metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
@@ -515,6 +516,10 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
+            if isinstance(annotation_datasource, SqlaTable) and (
+                rendered_rls := annotation_datasource.get_rendered_rls_cache_key()
+            ):
+                source_rendered_rls[str(layer_value)] = rendered_rls
             if isinstance(annotation_datasource, (SqlaTable, Query)) and (
                 inner_rls := annotation_datasource.get_inner_rls_cache_key()
             ):
@@ -531,12 +536,14 @@ class QueryContextProcessor:
             "semantic_filter_protocol": "semantic-null-filters-v1",
             "source_versions": metadata_versions,
         }
-        if source_versions:
-            context["semantic_result_versions"] = source_versions
-        # Only added when non-empty, so contexts without inner rules keep their
-        # bytes.
-        if source_inner_rls:
-            context["source_inner_rls"] = source_inner_rls
+        # Omit optional components when empty to preserve unaffected key bytes.
+        for key, component in (
+            ("semantic_result_versions", source_versions),
+            ("source_rendered_rls", source_rendered_rls),
+            ("source_inner_rls", source_inner_rls),
+        ):
+            if component:
+                context[key] = component
         return context
 
     @staticmethod
