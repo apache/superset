@@ -5440,3 +5440,22 @@ def test_validation_pipeline_reports_ambiguous_bullet_reference_error_code() -> 
     assert result.error.error_code == "AMBIGUOUS_COLUMN_REFERENCE"
     assert result.error.error_type == "ambiguous_column_reference"
     assert "differ only by case" in result.error.details
+
+
+def test_bullet_ranges_update_resets_stale_range_colors() -> None:
+    """Replacing `ranges` without `range_colors` must not re-apply the old
+    per-band colors by position to the new thresholds."""
+    from superset.mcp_service.chart.chart_utils import merge_bullet_form_data
+
+    existing = {
+        "viz_type": "bullet",
+        "ranges": "50,100",
+        "range_colors": ["#ff0000", "#00ff00"],
+    }
+    replaced = {"viz_type": "bullet", "ranges": "100,200,300"}
+    merge_bullet_form_data(existing, replaced)
+    assert replaced["range_colors"] == []
+
+    untouched = {"viz_type": "bullet"}
+    merge_bullet_form_data(existing, untouched)
+    assert untouched["range_colors"] == ["#ff0000", "#00ff00"]
