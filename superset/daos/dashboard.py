@@ -348,49 +348,12 @@ def _unreadable_new_chart_ids(
     }
 
 
-def _remap_copy_layout_chart_ids(
-    positions: dict[str, Any],
-    layout_chart_ids: set[int],
-    old_to_new_slice_ids: dict[int, int],
-) -> None:
-    """Point a copy-with-charts layout's chart slots at the clones, in place.
-
-    A chart outside the source's membership has no clone. If the caller
-    cannot read it, its slot becomes the missing-chart placeholder, as a
-    nonexistent chart's does; otherwise the copy is refused.
-    """
-    outside_ids: set[int] = layout_chart_ids - set(old_to_new_slice_ids)
-    unreadable_ids: set[int] = set()
-    if outside_ids:
-        with skip_visibility_filter(db.session, Slice):
-            unreadable_ids = _unreadable_new_chart_ids(
-                db.session.query(Slice).filter(Slice.id.in_(outside_ids)).all(),
-                set(),
-            )
-    slot: str
-    value: Any
-    for slot, value in positions.items():
-        old_id: int | None = _layout_chart_id(value)
-        if old_id is None:
-            continue
-        if old_id in unreadable_ids:
-            positions[slot] = _chart_slot_placeholder(value, MISSING_CHART_PLACEHOLDER)
-            continue
-        new_id: int | None = old_to_new_slice_ids.get(old_id)
-        if new_id is None:
-            raise DashboardLayoutInvalidError(
-                exceptions=[
-                    ValidationError(
-                        f"Cannot copy CHART slot {slot}: its chart is "
-                        "outside the dashboard's membership.",
-                        field_name="json_metadata",
-                    )
-                ]
-            )
-        value["meta"]["chartId"] = new_id
-
-
-def reconcile_position_json(positions: object, dashboard_id: int | None = None) -> int:
+def reconcile_position_json(
+    positions: object,
+    dashboard_id: int | None = None,
+    *,
+    hide_unreadable: bool = False,
+) -> int:
     """Repair dangling ``CHART`` nodes in a raw ``position_json`` layout.
 
     Collects the layout's chart ids, resolves which still exist (soft-deleted
@@ -398,6 +361,10 @@ def reconcile_position_json(positions: object, dashboard_id: int | None = None) 
     :func:`_repair_dangling_chart_nodes`. Used by the raw ``position_json``
     PUT path, which — unlike ``set_dash_metadata`` — has no ``uuid_map`` to
     reuse. Returns the number of nodes repaired.
+
+    With *hide_unreadable*, a chart that is not a member of *dashboard_id*
+    and that the caller cannot read is repaired like an absent one, so a
+    saved layout does not reveal that the chart exists.
     """
     # ``position_json`` is validated as *parseable JSON*, not as an object, so
     # a payload like ``"[]"`` or ``"null"`` reaches here as a non-dict. Leave it
@@ -410,9 +377,14 @@ def reconcile_position_json(positions: object, dashboard_id: int | None = None) 
         for node in positions.values()
         if (chart_id := _layout_chart_id(node)) is not None
     }
-    return _repair_dangling_chart_nodes(
-        positions, _existing_chart_ids(chart_ids), dashboard_id
-    )
+    valid_chart_ids: set[int] = _existing_chart_ids(chart_ids)
+    if hide_unreadable and valid_chart_ids:
+        with skip_visibility_filter(db.session, Slice):
+            valid_chart_ids -= _unreadable_new_chart_ids(
+                db.session.query(Slice).filter(Slice.id.in_(valid_chart_ids)).all(),
+                _member_chart_ids(dashboard_id),
+            )
+    return _repair_dangling_chart_nodes(positions, valid_chart_ids, dashboard_id)
 
 
 def _remap_copy_chart_ids(values: list[Any], key_map: dict[str, int]) -> list[int]:
@@ -1234,8 +1206,12 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # The old IDs still identify the original rows here, and no clone
             # IDs exist to confuse the existence lookup. Repairing first uses
             # the raw-layout markdown placeholder while preserving geometry;
-            # the remap below skips that slot because it has no chartId.
-            reconcile_position_json(metadata.get("positions"), original_dash.id)
+            # the remap below skips that slot because it has no chartId. A chart
+            # outside the source that the caller cannot read gets the same
+            # placeholder, so the copy does not reveal that the chart exists.
+            reconcile_position_json(
+                metadata.get("positions"), original_dash.id, hide_unreadable=True
+            )
             chart_id: int | None
             layout_chart_ids: set[int] = {
                 chart_id
@@ -1256,9 +1232,24 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 new_slice.dashboards.append(dash)
                 old_to_new_slice_ids[slc.id] = new_slice.id
 
-            _remap_copy_layout_chart_ids(
-                metadata["positions"], layout_chart_ids, old_to_new_slice_ids
-            )
+            # update chartId of layout entities
+            slot: str
+            value: Any
+            for slot, value in metadata["positions"].items():
+                old_id: int | None = _layout_chart_id(value)
+                if old_id is not None:
+                    new_id: int | None = old_to_new_slice_ids.get(old_id)
+                    if new_id is None:
+                        raise DashboardLayoutInvalidError(
+                            exceptions=[
+                                ValidationError(
+                                    f"Cannot copy CHART slot {slot}: its chart is "
+                                    "outside the dashboard's membership.",
+                                    field_name="json_metadata",
+                                )
+                            ]
+                        )
+                    value["meta"]["chartId"] = new_id
         elif metadata.get("positions") is None:
             # With a layout, set_dash_metadata links exactly the layout's charts.
             # Linking the source's charts first and then dropping some makes the

@@ -126,7 +126,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # (``data.get("positions") is not None``): a present-but-null
             # ``positions`` makes it skip the layout entirely, so the raw field
             # must still be reconciled here or a dangling layout would be
-            # written as-is.
+            # written as-is. A non-member chart the caller cannot read is
+            # repaired like a missing one, as ``set_dash_metadata`` does.
             metadata_carries_positions: bool = (
                 isinstance(metadata, dict) and metadata.get("positions") is not None
             )
@@ -134,7 +135,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             if position_json := self._properties.get("position_json"):
                 positions: object = json.loads(position_json)
                 if not metadata_carries_positions:
-                    reconcile_position_json(positions, self._model.id)
+                    reconcile_position_json(
+                        positions, self._model.id, hide_unreadable=True
+                    )
                 # The raw field is flushed before metadata replaces it, so
                 # escape it even when its layout will be superseded.
                 self._properties["position_json"] = json.dumps(positions)

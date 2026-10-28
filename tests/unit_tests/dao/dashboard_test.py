@@ -464,6 +464,10 @@ def test_copy_dashboard_duplicate_slices_with_a_non_member_layout_chart(
         if readable:
             with pytest.raises(DashboardLayoutInvalidError):
                 DashboardDAO.copy_dashboard(source, data)
+            # The caller's transaction rolls back the clone flushed before the
+            # refusal.
+            db.session.rollback()
+            assert db.session.query(Slice).count() == chart_count
             return
         copied: Dashboard = DashboardDAO.copy_dashboard(source, data)
 
@@ -608,6 +612,44 @@ def test_set_dash_metadata_repairs_dangling_chart_tiles(session: Session) -> Non
     assert "chartId" not in gone["meta"]
     assert "uuid" not in gone["meta"]
     assert absent_chart_id not in member_ids
+
+
+@pytest.mark.parametrize("hide_unreadable", [False, True])
+def test_reconcile_position_json_hides_unreadable_non_members(
+    session: Session, hide_unreadable: bool
+) -> None:
+    """With ``hide_unreadable``, a raw layout's tile for a non-member chart
+    the caller cannot read is repaired like a missing chart's. Members stay,
+    readable or not, and so do readable non-members."""
+    Dashboard.metadata.create_all(session.get_bind())
+    member: Slice = Slice(slice_name="raw_member", datasource_type="table")
+    readable: Slice = Slice(slice_name="raw_readable", datasource_type="table")
+    hidden: Slice = Slice(slice_name="raw_hidden", datasource_type="table")
+    dashboard: Dashboard = Dashboard(dashboard_title="raw_dash", slices=[member])
+    db.session.add_all([member, readable, hidden, dashboard])
+    db.session.commit()
+    positions: dict[str, Any] = _chart_layout(member.id, readable.id, hidden.id)[
+        "positions"
+    ]
+
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            lambda chart: chart.id == readable.id,
+        ),
+    ):
+        repaired: int = reconcile_position_json(
+            positions, dashboard.id, hide_unreadable=hide_unreadable
+        )
+
+    assert repaired == (1 if hide_unreadable else 0)
+    assert positions[f"CHART-{member.id}"]["type"] == "CHART"
+    assert positions[f"CHART-{readable.id}"]["type"] == "CHART"
+    assert positions[f"CHART-{hidden.id}"]["type"] == (
+        "MARKDOWN" if hide_unreadable else "CHART"
+    )
 
 
 @with_feature_flags(SOFT_DELETE=True)

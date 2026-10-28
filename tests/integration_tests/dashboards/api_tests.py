@@ -6472,7 +6472,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         own charts rather than through the caller's access. A tile for a chart
         outside the source is never cloned: if the caller cannot read the
         chart it becomes the missing-chart placeholder, and if they can the
-        copy is refused as before.
+        copy is refused with HTTP 422.
         """
         with self._layout_access_fixture() as ids:
             self.login(GAMMA_USERNAME)
@@ -6572,17 +6572,64 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert self._member_names(ids) == {"member", "archived", "readable"}
             self._assert_missing_chart_slot(ids["dashboard"], ids["foreign"])
 
-    @parameterized.expand([("foreign",), ("restricted",)])
-    def test_update_dashboard_layout_unreadable_chart_matches_missing_chart(
-        self, unreadable: str
+    def _save_layout(
+        self, route: str, dashboard_id: int, positions: dict[str, Any]
+    ) -> tuple[int, int | None]:
+        """Save *positions* through *route*; return the status and the ID of
+        the dashboard that holds the saved layout."""
+        metadata: str = json.dumps({"positions": positions})
+        rv: TestResponse
+        if route == "put_metadata":
+            rv = self.client.put(
+                f"/api/v1/dashboard/{dashboard_id}", json={"json_metadata": metadata}
+            )
+            return rv.status_code, dashboard_id
+        if route == "put_raw":
+            rv = self.client.put(
+                f"/api/v1/dashboard/{dashboard_id}",
+                json={"position_json": json.dumps(positions)},
+            )
+            return rv.status_code, dashboard_id
+        if route == "post":
+            rv = self.client.post(
+                "/api/v1/dashboard/",
+                json={
+                    "dashboard_title": "layout-access-parity",
+                    "json_metadata": metadata,
+                },
+            )
+            return rv.status_code, rv.json.get("id")
+        rv = self.client.post(
+            f"/api/v1/dashboard/{dashboard_id}/copy/",
+            json={
+                "dashboard_title": "layout-access-parity",
+                "duplicate_slices": route == "copy_charts",
+                "json_metadata": metadata,
+            },
+        )
+        return rv.status_code, (rv.json.get("result") or {}).get("id")
+
+    @parameterized.expand(
+        [
+            (route, unreadable)
+            for route in ("put_metadata", "put_raw", "post", "copy", "copy_charts")
+            for unreadable in ("foreign", "restricted")
+        ]
+    )
+    def test_layout_save_unreadable_chart_matches_missing_chart(
+        self, route: str, unreadable: str
     ) -> None:
         """Saving a tile for a chart the caller cannot read returns and
-        stores exactly what saving a tile for a nonexistent chart does, so
-        the save does not reveal that the chart exists."""
+        stores exactly what saving a tile for a nonexistent chart does, on
+        every route that saves a layout, so the save does not reveal that the
+        chart exists."""
         with self._layout_access_fixture() as ids:
-            missing_id: int = (db.session.query(func.max(Slice.id)).scalar() or 0) + 1
+            # Far above any ID a save on this route can create (copies clone).
+            missing_id: int = (
+                db.session.query(func.max(Slice.id)).scalar() or 0
+            ) + 100000
             self.login(GAMMA_USERNAME)
-            outcomes: list[tuple[int, dict[str, Any], set[str]]] = []
+            outcomes: list[tuple[int, dict[str, Any], bool]] = []
             chart_id: int
             for chart_id in (ids[unreadable], missing_id):
                 positions: dict[str, Any] = self._chart_layout(ids["member"])
@@ -6592,21 +6639,28 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                     "children": [],
                     "meta": {"chartId": chart_id, "width": 4, "height": 50},
                 }
-                rv: TestResponse = self.client.put(
-                    f"/api/v1/dashboard/{ids['dashboard']}",
-                    json={"json_metadata": json.dumps({"positions": positions})},
+                status: int
+                saved_id: int | None
+                status, saved_id = self._save_layout(route, ids["dashboard"], positions)
+                assert saved_id is not None, status
+                linked: bool = (
+                    db.session.query(dashboard_slices)
+                    .filter(
+                        dashboard_slices.c.dashboard_id == saved_id,
+                        dashboard_slices.c.slice_id == chart_id,
+                    )
+                    .count()
+                    > 0
                 )
                 outcomes.append(
-                    (
-                        rv.status_code,
-                        self._stored_layout(ids["dashboard"]),
-                        self._member_names(ids),
-                    )
+                    (status, self._stored_layout(saved_id)["CHART-stale"], linked)
                 )
             assert outcomes[0] == outcomes[1]
-            assert outcomes[0][0] == 200
-            assert outcomes[0][2] == {"member", "archived"}
-            self._assert_missing_chart_slot(ids["dashboard"], missing_id, "CHART-stale")
+            assert outcomes[0][0] in (200, 201)
+            assert outcomes[0][2] is False
+            assert outcomes[0][1]["type"] == "MARKDOWN"
+            assert outcomes[0][1]["meta"]["code"] == MISSING_CHART_PLACEHOLDER
+            assert self._member_names(ids) == {"member", "archived"}
 
     @staticmethod
     def _member_names(ids: dict[str, int]) -> set[str]:
