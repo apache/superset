@@ -29,6 +29,9 @@ type RowCountLabelProps = {
   // Overrides the default "chart" wording for panes (e.g. samples) where the
   // limit reached isn't the chart's own row_limit.
   limitReachedMessage?: React.ReactNode;
+  // The total is a floor rather than an exact count, e.g. samples from a
+  // partitioned table where counting every row would be a full scan.
+  isLowerBound?: boolean;
 };
 
 const limitReachedMsg = t(
@@ -42,11 +45,14 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     loading,
     label,
     limitReachedMessage,
+    isLowerBound = false,
   } = props;
   const limitReached = limit && rowcount >= limit;
   const type =
     limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
-  const formattedRowCount = getNumberFormatter()(rowcount);
+  const formattedRowCount = `${getNumberFormatter()(rowcount)}${
+    isLowerBound ? '+' : ''
+  }`;
   const labelText = (
     <Label type={type} monospace>
       {loading ? (

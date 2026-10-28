@@ -395,6 +395,14 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "main_dttm_col",
     "granularity_sqla",
     "time_grain_sqla",
+    # The partition filter mapping names two of the dataset's columns and
+    # carries the raw value transform in `evaluated_transform`, so it is the
+    # same class of disclosure as `columns` and `main_dttm_col` above. Only the
+    # dataset editor and Explore's pruning indicator read it; nothing in the
+    # dashboard does, so dropping it costs a caller in this branch nothing.
+    "partition_column",
+    "partition_mapped_column",
+    "partition_filter_mapping",
 )
 
 
