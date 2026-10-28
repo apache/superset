@@ -2906,6 +2906,35 @@ def test_table_applies_time_format_alongside_number_format() -> None:
     assert formatted["SUM(num)"].tolist() == ["1,234,567.00", "42.00"]
 
 
+def test_table_leaves_a_null_time_format_alone() -> None:
+    """
+    A ``d3TimeFormat`` of JSON ``null`` leaves the column alone.
+
+    ``column_config`` is free-form JSON out of the saved chart params, so the
+    key can be present and null. ``config.get("d3TimeFormat", "").strip()``
+    would raise ``AttributeError: 'NoneType' object has no attribute 'strip'``
+    and fail the whole report, and every other table test here passes either
+    way because none of them puts a null in the key.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {0: pd.Timestamp("2024-04-02 13:45:00")},
+            "SUM(num)": {0: 1234.5678},
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["SUM(num)"],
+        "column_config": {
+            "ds": {"d3TimeFormat": None},
+            "SUM(num)": {"d3NumberFormat": ",.1f"},
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+    assert formatted["SUM(num)"].tolist() == ["1,234.6"]
+
+
 @pytest.mark.parametrize(
     ("time_format", "expected"),
     [
