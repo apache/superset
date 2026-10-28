@@ -4264,13 +4264,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for value, _ascending in query_obj.get("orderby") or []
             )
         )
+        # Grouped execution labels unknown strings with their rendered SQL.
+        rendered_groupby: dict[str, str | None] = {}
         for value in effective_columns:
             if isinstance(value, str) and value not in columns:
                 # GROUP BY executes unknown strings as SQL. Detail selections
                 # quote them before rendering, unlike saved bare column names.
-                add_expression(
-                    value if need_groupby else self.database.quote_identifier(value)
-                )
+                if not need_groupby:
+                    add_expression(self.database.quote_identifier(value))
+                elif (rendered := render(value)) is not None:
+                    rendered_groupby[value] = rendered
+                    expressions.append(rendered)
             else:
                 add(value)
         for metric_value in selected_metrics:
@@ -4321,14 +4325,45 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self.db_engine_spec.make_label_compatible(name)
             for name in utils.get_column_names(query_obj.get("series_columns"))
         }
+
+        def get_groupby_label(value: Any) -> str | None:
+            """The label grouped execution gives a selection; None when unknown."""
+            if not isinstance(value, str) or value in columns or value == granularity:
+                return utils.get_column_name(value)
+            # Execution labels unknown strings with their processed SQL.
+            engine = self.database.backend
+            if (rendered := rendered_groupby.get(value)) is None:
+                return None
+            try:
+                sql = f"SELECT {rendered}"
+                if SQLStatement(sql, engine).has_subquery():
+                    # RLS rewrites the subquery, and so the label, per viewer.
+                    return None
+                return _unwrap_select_clause(sanitize_clause(sql, engine), engine)
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                return None
+
+        def is_series_groupby(value: Any) -> bool:
+            label = get_groupby_label(value)
+            return (
+                label is None
+                or self.db_engine_spec.make_label_compatible(label) in series_columns
+            )
+
         has_series_groupby = bool(
             need_groupby
             and effective_columns
             and (
                 (query_obj.get("is_timeseries", True) and not series_columns)
-                or series_columns.intersection(
-                    self.db_engine_spec.make_label_compatible(name)
-                    for name in utils.get_column_names(effective_columns)
+                or (
+                    series_columns
+                    # Without aliases execution names columns by their SQL.
+                    and (
+                        not self.db_engine_spec.get_allows_alias_in_select(
+                            self.database
+                        )
+                        or any(is_series_groupby(value) for value in effective_columns)
+                    )
                 )
             )
         )

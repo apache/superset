@@ -2861,6 +2861,127 @@ def test_cache_key_collects_series_metric_for_normalized_labels(
 
 
 @pytest.mark.parametrize(
+    "groupby",
+    ["{{ dim }}", "col1;", "{{ 'col1' }} ;"],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_collects_series_metric_for_rendered_groupby_labels(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+    groupby: str,
+) -> None:
+    """String GROUP BY SQL is labeled after rendering, so match series that way."""
+    virtual, rule = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    mocker.patch.object(
+        type(virtual),
+        "template_params_dict",
+        new_callable=PropertyMock,
+        return_value={"dim": "col1"},
+    )
+    query: QueryObjectDict = {
+        "columns": [groupby],
+        "groupby": [groupby],
+        "metrics": [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "total"}
+        ],
+        "is_timeseries": False,
+        "series_limit": 1,
+        "series_columns": ["col1"],
+        "series_limit_metric": {
+            "expressionType": "SQL",
+            "sqlExpression": "MAX((SELECT MAX(col1) FROM physical))",
+            "label": "restricted",
+        },
+    }
+    # Execution matches the rendered label and runs the restricted metric.
+    assert "col1 = 1" in str(
+        virtual.get_sqla_query(
+            columns=query["columns"],
+            groupby=query["groupby"],
+            metrics=query["metrics"],
+            is_timeseries=False,
+            series_limit=1,
+            series_columns=query["series_columns"],
+            series_limit_metric=query["series_limit_metric"],
+            execute_prequeries=False,
+        ).sqla_query
+    )
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_cache_key_collects_series_metric_without_select_aliases(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    """Engines without SELECT aliases name grouped columns by their SQL."""
+    virtual, rule = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    mocker.patch.object(
+        virtual.db_engine_spec, "get_allows_alias_in_select", return_value=False
+    )
+    query: QueryObjectDict = {
+        "groupby": ["col1 + 0"],
+        "metrics": [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "total"}
+        ],
+        "is_timeseries": False,
+        "series_limit": 1,
+        "series_columns": ["(col1 + 0)"],
+        "series_limit_metric": {
+            "expressionType": "SQL",
+            "sqlExpression": "MAX((SELECT MAX(col1) FROM physical))",
+            "label": "restricted",
+        },
+    }
+    assert "col1 = 1" in str(
+        virtual.get_sqla_query(
+            groupby=query["groupby"],
+            metrics=query["metrics"],
+            is_timeseries=False,
+            series_limit=1,
+            series_columns=query["series_columns"],
+            series_limit_metric=query["series_limit_metric"],
+            execute_prequeries=False,
+        ).sqla_query
+    )
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[1]]
+    rule.clause = "col1 = 2"
+    assert virtual.get_extra_cache_keys(query) == [PHYSICAL_RLS_KEYS[2]]
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True, ENABLE_TEMPLATE_PROCESSING=True)
+def test_cache_key_collects_series_metric_for_opaque_groupby_label(
+    static_schema_datasource: tuple[SqlaTable | Query, MagicMock],
+) -> None:
+    """A GROUP BY label that needs a macro may match any series column, so the
+    series metric's RLS is keyed alongside the viewer-scoped key."""
+    virtual, _ = static_schema_datasource
+    virtual.sql = "SELECT 1 AS col1"
+    query: QueryObjectDict = {
+        "groupby": ["{{ current_username() }}"],
+        "metrics": [
+            {"expressionType": "SQL", "sqlExpression": "MAX(col1)", "label": "total"}
+        ],
+        "is_timeseries": False,
+        "series_limit": 1,
+        "series_columns": ["col1"],
+        "series_limit_metric": {
+            "expressionType": "SQL",
+            "sqlExpression": "MAX((SELECT MAX(col1) FROM physical))",
+            "label": "restricted",
+        },
+    }
+    assert set(virtual.get_extra_cache_keys(query)) == {
+        PHYSICAL_RLS_KEYS[1],
+        viewer_scoped_key(),
+    }
+
+
+@pytest.mark.parametrize(
     ("static_schema_datasource", "sink"),
     [
         (datasource, sink)
