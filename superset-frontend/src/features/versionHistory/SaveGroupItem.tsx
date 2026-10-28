@@ -293,17 +293,8 @@ export default function SaveGroupItem({
     }
   };
 
-  // The synthetic starting-version group (sc-120488) carries no change
-  // rows, so the per-record ActionRow preview never renders for it —
-  // without its own affordance the scope's "previewable like any other
-  // version" would silently not hold. An explicit button (natively
-  // keyboard-accessible) rather than a synthetic field-change row; the
-  // current version has nothing to preview, mirroring ActionRow.
-  const showCreationPreview =
-    Boolean(group.creationKind) &&
-    !hasRecords &&
-    group.versionUuid != null &&
-    !isCurrent;
+  // Every saved historical version is previewable without expanding its changes.
+  const showPreview = group.versionUuid != null && !isCurrent;
 
   const visibleRecords = showAll
     ? group.records
@@ -344,7 +335,7 @@ export default function SaveGroupItem({
             {meta}
           </Meta>
         </HeaderText>
-        {showCreationPreview && (
+        {showPreview && (
           <Button
             buttonSize="xsmall"
             buttonStyle="link"
