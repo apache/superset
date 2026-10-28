@@ -622,3 +622,134 @@ def test_can_access_datasource_refuses_guest_query(
     """The boolean datasource wrapper translates the guest refusal to False."""
     sm = _security_manager(mocker, _guest_user())
     assert not sm.can_access_datasource(_query(None))
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"EMBEDDED_SUPERSET": True}}], indirect=True
+)
+@pytest.mark.parametrize("method", ["POST", "GET"])
+@pytest.mark.parametrize(
+    "datasource_type", [DatasourceType.QUERY, DatasourceType.TABLE]
+)
+def test_permalink_refuses_guest_query_like_denied_dataset(
+    mocker: MockerFixture,
+    app: "SupersetApp",
+    method: str,
+    datasource_type: DatasourceType,
+) -> None:
+    """Both permalink routes refuse guests without storing or returning state."""
+    from superset import security_manager
+
+    mocker.patch.object(
+        security_manager, "get_guest_user_from_request", return_value=_guest_user()
+    )
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    mocker.patch.object(security_manager, "can_access_datasource", return_value=False)
+    mocker.patch(
+        "superset.explore.utils.QueryDAO.find_by_id", return_value=_query(None)
+    )
+    mocker.patch(
+        "superset.explore.utils.DatasetDAO.find_by_id", return_value=MagicMock()
+    )
+    state = {"formData": {"datasource": f"{QUERY_ID}__{datasource_type}"}}
+    create_entry = mocker.patch("superset.daos.key_value.KeyValueDAO.create_entry")
+    mocker.patch(
+        "superset.commands.explore.permalink.get.decode_permalink_id", return_value=1
+    )
+    mocker.patch(
+        "superset.commands.explore.permalink.base.get_permalink_salt",
+        return_value="test-salt",
+    )
+    mocker.patch(
+        "superset.daos.key_value.KeyValueDAO.get_value",
+        return_value={
+            "datasourceId": QUERY_ID,
+            "datasourceType": datasource_type,
+            "state": state,
+        },
+    )
+
+    with app.test_client() as client:
+        response = client.open(
+            "/api/v1/explore/permalink" + ("/test-key" if method == "GET" else ""),
+            method=method,
+            headers={app.config["GUEST_TOKEN_HEADER_NAME"]: "test-guest-token"},
+            json=state if method == "POST" else None,
+        )
+
+    assert response.status_code == 403, response.get_data(as_text=True)
+    assert "state" not in response.json
+    create_entry.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"EMBEDDED_SUPERSET": True}}], indirect=True
+)
+def test_permalink_gamma_with_table_access_still_reads_query_state(
+    mocker: MockerFixture,
+    app: "SupersetApp",
+) -> None:
+    """A Gamma user with table access keeps the POST 201 and GET 200 paths."""
+    from flask_appbuilder.security.sqla.models import Role, User
+
+    from superset import security_manager
+
+    gamma = User(id=7, username="gamma", roles=[Role(name="Gamma")])
+    mocker.patch.object(app.login_manager, "_user_callback", return_value=gamma)
+    mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_database", return_value=False)
+    mocker.patch.object(
+        security_manager,
+        "can_access",
+        side_effect=lambda permission, resource: (
+            (permission, resource) == ("datasource_access", "sales-grant")
+        ),
+    )
+    table_lookup = mocker.patch(
+        "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name",
+        return_value=[MagicMock(perm="sales-grant")],
+    )
+    mocker.patch.object(
+        security_manager, "get_schema_perm", return_value="[db].[public]"
+    )
+    mocker.patch("superset.security.manager.get_user_id", return_value=7)
+    mocker.patch("superset.explore.utils.QueryDAO.find_by_id", return_value=_query(99))
+    state = {"formData": {"datasource": f"{QUERY_ID}__query"}}
+    create_entry = mocker.patch(
+        "superset.daos.key_value.KeyValueDAO.create_entry", return_value=MagicMock(id=1)
+    )
+    mocker.patch("superset.commands.explore.permalink.create.db.session.flush")
+    mocker.patch(
+        "superset.commands.explore.permalink.create.encode_permalink_key",
+        return_value="test-key",
+    )
+    mocker.patch(
+        "superset.commands.explore.permalink.get.decode_permalink_id", return_value=1
+    )
+    mocker.patch(
+        "superset.commands.explore.permalink.base.get_permalink_salt",
+        return_value="test-salt",
+    )
+    mocker.patch(
+        "superset.daos.key_value.KeyValueDAO.get_value",
+        return_value={
+            "datasourceId": QUERY_ID,
+            "datasourceType": DatasourceType.QUERY,
+            "state": state,
+        },
+    )
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["_user_id"] = "7"
+            session["_fresh"] = True
+        response = client.post("/api/v1/explore/permalink", json=state)
+        assert response.status_code == 201, response.get_data(as_text=True)
+        assert response.json["key"] == "test-key"
+        response = client.get("/api/v1/explore/permalink/test-key")
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    assert response.json["state"] == state
+    create_entry.assert_called_once()
+    assert table_lookup.call_count == 2

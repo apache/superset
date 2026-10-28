@@ -66,6 +66,8 @@ authorized dashboards, not to SQL Lab queries or ad hoc SQL execution. Charts
 cannot use a SQL Lab `query` datasource. Naming an authorized chart or dashboard
 in a request does not grant a guest access to a stored query, even when the
 guest role has permission to read its underlying tables. Requests to `/api/v1/explore/form_data`
+and to the Explore permalink POST and GET endpoints
+(`/api/v1/explore/permalink` and `/api/v1/explore/permalink/<key>`)
 for an unauthorized query datasource return HTTP 403, like unauthorized dataset requests.
 
 ## Chart display names
