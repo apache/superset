@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import hashlib
 import logging
 from typing import Any, cast
 
@@ -67,6 +66,7 @@ from superset.utils.core import (
     SqlExpressionType,
 )
 from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -110,10 +110,7 @@ def _column_values_cache_key(
         inner_rls := datasource.get_inner_rls_cache_key()
     ):
         material["inner_rls"] = inner_rls
-    return (
-        "col_values:"
-        + hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
-    )
+    return "col_values:" + hash_from_dict(material)
 
 
 def get_cached_column_values(
@@ -731,20 +728,14 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = (
-            "compatible:"
-            + hashlib.sha256(
-                json.dumps(
-                    {
-                        "uid": datasource_uid,
-                        "changed_on": str(getattr(datasource, "changed_on", "")),
-                        "metadata_version": metadata_version,
-                        "m": sorted(selected_metrics),
-                        "d": sorted(selected_dimensions),
-                    },
-                    sort_keys=True,
-                ).encode()
-            ).hexdigest()
+        cache_key = "compatible:" + hash_from_dict(
+            {
+                "uid": datasource_uid,
+                "changed_on": str(getattr(datasource, "changed_on", "")),
+                "metadata_version": metadata_version,
+                "m": sorted(selected_metrics),
+                "d": sorted(selected_dimensions),
+            }
         )
 
         timeout: int = datasource.cache_timeout or app.config.get(
