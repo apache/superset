@@ -1082,9 +1082,7 @@ def _run(  # noqa: C901
     if not isinstance(queries, list) or len(queries) != 1 or queries[0].get("error"):
         raise _DiscoveryUnavailableError("query_failed")
     probes_target = (
-        bool(item.search)
-        or proposal is not None
-        or "exact_value" in item.model_fields_set
+        bool(item.search) or probe is not None or "exact_value" in item.model_fields_set
     )
     if probes_target and target.column.column_name in (
         queries[0].get("applied_template_filters") or []
@@ -1140,7 +1138,7 @@ def _run(  # noqa: C901
         values.append(value)
     if listed:
         # Each returned row is a dropdown option, however long the domain is;
-        # values past the native row limit are not offered and stay unproven.
+        # values past the native row limit are not listed and stay unproven.
         return values, False, None
     if unordered:
         controls = conf.get("controlValues") or {}

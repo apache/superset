@@ -2863,6 +2863,40 @@ def test_listed_proposal_ignores_unrelated_unrepresentable_options(
     assert _available(summaries[0]).values == ["EMEA"]
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_listed_proposal_accepts_an_option_its_listing_offers(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """A macro reading an ancestor's predicate never sees a listed proposal."""
+    sqlite_native_execution["dataset"].sql = (
+        _RAW_FILTER_LENGTH_SQL + " {% for f in get_filters('country') %}{% endfor %}"
+    )
+    ancestor = _filter(
+        "g",
+        targets=[{"datasetId": 5, "column": {"name": "country"}}],
+        defaultDataMask={"filterState": {"value": ["France"]}, "extraFormData": {}},
+    )
+    dashboard = _dashboard(
+        ancestor,
+        _filter("country", cascadeParentIds=["g"]),
+        _filter("region", cascadeParentIds=["country"]),
+    )
+    summaries, _ = choices.discover_filter_values(
+        dashboard, _request(filter_value_requests=[{"filter_id": "country"}])
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["France"]
+
+    request = _request(
+        filter_value_requests=[{"filter_id": "region"}],
+        proposed_filter_values=[{"filter_id": "country", "values": ["France"]}],
+    )
+    summaries, metadata = choices.discover_filter_values(dashboard, request)
+    assert metadata.validated_proposed_filter_values == request.proposed_filter_values
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["EMEA"]
+
+
 _SWALLOWED_COUNTRY_SQL = (
     "select * from sales where 1 = 1 "
     "{% for f in get_filters('country', remove_filter=True) %}{% endfor %}"
