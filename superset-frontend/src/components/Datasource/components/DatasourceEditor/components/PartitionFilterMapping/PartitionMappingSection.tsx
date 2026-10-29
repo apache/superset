@@ -30,6 +30,7 @@ import {
   Loading,
   Typography,
 } from '@superset-ui/core/components';
+import PartitionDataValidation from './PartitionDataValidation';
 import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
@@ -332,7 +333,9 @@ export default function PartitionMappingSection({
                 iconColor={theme.colorSuccess}
                 iconSize="s"
               />
-              <Typography.Text type="success">{t('Valid')}</Typography.Text>
+              <Typography.Text>
+                {t('Expression evaluated — data not checked')}
+              </Typography.Text>
             </Flex>
           </Flex>
           <Flex gap={theme.sizeUnit * 2}>
@@ -350,6 +353,20 @@ export default function PartitionMappingSection({
         </Flex>
       )}
 
+      <PartitionDataValidation
+        datasetId={datasource.id}
+        mappedColumn={columnName}
+        partitionColumn={datasource.partition_column ?? ''}
+        valueTransform={transform}
+        isMonotonic={isMonotonic}
+        sampleValues={sampleValuesFor(item)}
+        operator={previewOperatorFor(item)}
+        disabled={
+          !transform ||
+          transformErrors.length > 0 ||
+          preview?.reason === 'unsaved'
+        }
+      />
       {/* Only one of preview and error is ever visible. */}
       {!loading && preview && !preview.valid && (
         <Alert

@@ -191,6 +191,7 @@ from typing import Any, cast, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
+import sqlglot
 from dateutil.relativedelta import relativedelta
 from flask import current_app as app
 from flask_babel import lazy_gettext as _
@@ -1121,6 +1122,50 @@ def _find_niladic_calls(statement: SQLStatement) -> set[str]:
     return NON_DETERMINISTIC_WHEN_NILADIC & statement.get_niladic_functions()
 
 
+def epoch_mapping_refusal(
+    datasource: SqlaTable,
+    mapped_column: str | None,
+    partition_column: str | None,
+    transform: str | None,
+) -> dict[str, str] | None:
+    """Decline the former epoch default, whose bucket size is unspecified."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+
+    columns = {col.column_name: col for col in datasource.columns}
+    source = columns.get(mapped_column)
+    target = columns.get(partition_column)
+    if (
+        not transform
+        or source is None
+        or target is None
+        or not issubclass(datasource.db_engine_spec, (HiveEngineSpec, ImpalaEngineSpec))
+        or _native_generic_type(source) != utils.GenericDataType.TEMPORAL
+        or _native_generic_type(target) != utils.GenericDataType.NUMERIC
+    ):
+        return None
+    try:
+        expression = sqlglot.parse_one(parse_skeleton(transform), read="hive").unnest()
+        former_default = sqlglot.parse_one("unix_timestamp(NULL)", read="hive")
+        if expression != former_default:
+            return None
+    except sqlglot.errors.ParseError:
+        return None
+    return {
+        "reason": "unbucketed_epoch",
+        "mapped_column": str(mapped_column),
+        "partition_column": str(partition_column),
+        "value_transform": transform,
+        "message": str(
+            _(
+                "Raw epoch conversion does not specify the partition bucket. "
+                "Use the expression that populates the partition key, including "
+                "its hour or day rounding and timezone. Filters will not be mirrored."
+            )
+        ),
+    }
+
+
 def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     """
     Resolve the dataset's mapping, or ``None`` when nothing may be mirrored.
@@ -1177,6 +1222,11 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         # `translate_filter` builds its own predicate shape from *translated*
         # values, so the `(operator, value)` pair the operator matrix reasons
         # about does not exist and mirroring would apply the wrong values.
+        return None
+
+    if epoch_mapping_refusal(
+        datasource, mapped_column_name, partition_column, transform
+    ):
         return None
 
     return PartitionMapping(
@@ -1824,6 +1874,7 @@ def _evaluate_with_text_forms(
     values: list[Any],
     errors: list[str] | None,
     text_answers: list[tuple[int, Any]],
+    fresh: bool = False,
 ) -> tuple[bool, list[Any] | None]:
     """
     `evaluate_transform` with each temporal value also asked as text -- see its
@@ -1843,6 +1894,7 @@ def _evaluate_with_text_forms(
             transform,
             values + [_as_filter_text(values[index]) for index in indexes],
             errors=errors,
+            fresh=fresh,
         )
         if combined is not None:
             text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
@@ -1854,7 +1906,9 @@ def _evaluate_with_text_forms(
         # range. The typed values are asked alone, a second round trip only
         # on this path, and `_declined_for_reading_by_type` checks what they
         # answer against the instants they were asked about instead.
-        typed = evaluate_transform(database, catalog, schema, transform, values)
+        typed = evaluate_transform(
+            database, catalog, schema, transform, values, fresh=fresh
+        )
         if typed is not None:
             text_answers.extend((index, TEXT_REFUSED) for index in indexes)
         return True, typed
@@ -1870,6 +1924,7 @@ def evaluate_transform(
     *,
     errors: list[str] | None = None,
     text_answers: list[tuple[int, Any]] | None = None,
+    fresh: bool = False,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -1899,7 +1954,7 @@ def evaluate_transform(
 
     if text_answers is not None:
         answered, result = _evaluate_with_text_forms(
-            database, catalog, schema, transform, values, errors, text_answers
+            database, catalog, schema, transform, values, errors, text_answers, fresh
         )
         if answered:
             return result
@@ -1939,6 +1994,11 @@ def evaluate_transform(
         )
         return None
 
+    if fresh:
+        return _fresh_probe_values(
+            database, catalog, schema, transform, distinct, values, errors
+        )
+
     cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
     cached = _cache_get(cache_key)
     if cached is None:
@@ -1955,6 +2015,23 @@ def evaluate_transform(
         zip((_hashable(value) for value in distinct), cached, strict=False)
     )
     return [evaluated[_hashable(value)] for value in values]
+
+
+def _fresh_probe_values(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    distinct: list[Any],
+    values: list[Any],
+    errors: list[str] | None,
+) -> list[Any] | None:
+    """Evaluate diagnostic samples without reading or recording cached verdicts."""
+    result = _probe(database, catalog, schema, transform, distinct, errors=errors)
+    if result is None:
+        return None
+    answers = dict(zip((_hashable(value) for value in distinct), result, strict=True))
+    return [answers[_hashable(value)] for value in values]
 
 
 def _run_probe(
@@ -2875,6 +2952,15 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     ):
         return {"valid": False, "reason": "validation", "error": reason}
 
+    if refusal := epoch_mapping_refusal(
+        datasource, mapped_column, partition_column, value_transform
+    ):
+        return {
+            "valid": False,
+            "reason": refusal["reason"],
+            "error": refusal["message"],
+        }
+
     mapping = PartitionMapping(
         partition_column=str(partition_column),
         mapped_column=mapped_column,
@@ -3441,7 +3527,12 @@ def build_mirrored_predicates(
         one of the three whose fix is to stop the transform producing the
         character.
     """
-    if not requests:
+    if not requests or epoch_mapping_refusal(
+        datasource,
+        mapping.mapped_column,
+        mapping.partition_column,
+        mapping.value_transform,
+    ):
         return []
 
     partition_column = next(

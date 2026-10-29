@@ -1455,3 +1455,62 @@ test('the unsaved notice is not reported as a failed verdict', async () => {
   ).toBeInTheDocument();
   expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
 });
+
+test('saved safety refusal is shown before expanding or previewing the mapped row', () => {
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+    partition_filter_mapping: {
+      safety_refusal: {
+        reason: 'unbucketed_epoch' as const,
+        mapped_column: 'event_time',
+        partition_column: 'dt_epoch',
+        value_transform: 'unix_timestamp(:value)',
+        message: 'Raw epoch conversion does not specify the partition bucket.',
+      },
+    },
+  };
+  const common = {
+    columns: MAPPED_COLUMNS,
+    onPartitionColumnChange: jest.fn(),
+    onNavigateToColumn: jest.fn(),
+  };
+  const { rerender } = render(
+    <PartitionColumnFields
+      {...common}
+      datasource={datasource}
+      allColumns={MAPPED_COLUMNS}
+      previewMirrors
+    />,
+  );
+  expect(
+    screen.getByText(
+      'Raw epoch conversion does not specify the partition bucket.',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/will automatically apply/),
+  ).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.called()).toBe(false);
+  const corrected = MAPPED_COLUMNS.map(column =>
+    column.column_name === 'event_time'
+      ? {
+          ...column,
+          partition_value_transform: 'floor(unix_timestamp(:value)/3600)*3600',
+        }
+      : column,
+  );
+  rerender(
+    <PartitionColumnFields
+      {...common}
+      datasource={datasource}
+      allColumns={corrected}
+    />,
+  );
+  expect(
+    screen.queryByText(
+      'Raw epoch conversion does not specify the partition bucket.',
+    ),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(/will automatically apply/)).toBeInTheDocument();
+});

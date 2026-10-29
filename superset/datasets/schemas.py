@@ -29,7 +29,7 @@ from marshmallow import (
     validates_schema,
     ValidationError,
 )
-from marshmallow.validate import Length, OneOf, Range
+from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from superset import security_manager
 from superset.connectors.sqla.partition_mapping import (
@@ -633,6 +633,17 @@ class PartitionMappingPreviewSchema(Schema):
             "description": (
                 "Values to evaluate the transform at. A comparison operator "
                 "takes one; IN takes the whole list."
+            )
+        },
+    )
+    validation_partition_values = fields.List(
+        fields.String(validate=[Length(1, 21), Regexp(r"^-?[0-9]+$")]),
+        load_default=None,
+        validate=Length(1, 3),
+        metadata={
+            "description": (
+                "One to three existing integer partition keys "
+                "for explicit data validation"
             )
         },
     )

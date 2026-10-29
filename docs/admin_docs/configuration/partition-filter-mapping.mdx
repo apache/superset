@@ -66,13 +66,57 @@ Expand the mapped column's row in *Column Settings* and set the **value transfor
 expression containing a `:value` placeholder, which stands for the filter value being
 mirrored. The **Transform preserves ordering** checkbox sits directly beneath it.
 
-| Mapped column | Partition column | Transform |
-|---|---|---|
-| `event_time` (`TIMESTAMP`) | `dt_epoch` (`BIGINT`) | `unix_timestamp(:value)` |
-| `country` (`VARCHAR`) | `region_key` (`VARCHAR`) | `lower(:value)` |
+No engine default can infer how your pipeline buckets a numeric partition key.
+Enter the expression that actually populates it, including units and timezone.
 
-A filter of `event_time >= '2026-01-01'` then adds `dt_epoch >= 1767225600` to the query.
-The added predicate is an ordinary `WHERE` clause and shows up in **View query**.
+| Mapped column | Stored partition key | Transform |
+|---|---|---|
+| Epoch seconds (`BIGINT`, datetime format `epoch_s`) | Hour-start epoch seconds | `CAST(floor(:value / 3600) * 3600 AS BIGINT)` |
+| Epoch seconds (`BIGINT`, datetime format `epoch_s`) | UTC day-start epoch seconds | `CAST(floor(:value / 86400) * 86400 AS BIGINT)` |
+| UTC `TIMESTAMP`, with UTC epoch conversion in the database session | Hour-start epoch seconds | `CAST(floor(unix_timestamp(:value) / 3600) * 3600 AS BIGINT)` |
+| UTC `TIMESTAMP`, with UTC epoch conversion in the database session | UTC day-start epoch seconds | `CAST(floor(unix_timestamp(:value) / 86400) * 86400 AS BIGINT)` |
+| `country` (`VARCHAR`) | Lowercase `region_key` | `lower(:value)` |
+
+The timestamp examples use Hive/Impala syntax. Confirm conversion settings in both
+query and transform-evaluation sessions; `unix_timestamp` can depend on session timezone.
+The numeric epoch examples avoid that conversion. Use mathematical floor, including for
+negative epochs. Millisecond inputs require conversion to seconds before these expressions;
+local-calendar-day keys are not interchangeable with fixed UTC 86,400-second buckets.
+
+Bare `unix_timestamp(:value)` is not suggested or mirrored for temporal-to-numeric
+mappings on Hive/Impala and their engine-spec subclasses. It produces an instant,
+not an hour/day boundary, and can silently exclude matching rows. Existing expressions
+remain editable; replace them with the pipeline's actual partition expression.
+
+Dataset time-range bounds already pass through Superset's timezone/hour-offset adjustment
+before mirroring. Do not convert those bounds from the dataset timezone a second time.
+The added partition predicate remains visible in **View query**.
+
+### Validate against stored data
+
+The automatic preview reports **Expression evaluated — data not checked**. This means
+Superset could evaluate the expression and build a predicate, not that it matches your data.
+
+For a physical dataset with a numeric epoch key, enter one to three **existing partition
+keys**, then choose **Validate against data**. Superset reads at most 50 rows from each
+selected partition and compares each transformed business value with that same row's
+stored key. It applies your data-access permissions and row-level security. It does not
+run a total-count query or infer sample partitions from the candidate expression.
+
+- **Matched sampled rows** reports the checked rows and covered partitions. This is
+  evidence about that sample, not proof for all rows, backfills, or future ingestion.
+- **Partition mismatch found** shows the business value, stored key, and transform output.
+  An output found in another partition still fails the same-row comparison.
+- **Validation inconclusive** means a selected partition had no checkable rows or an
+  evaluation/query failed. NULL business values cannot establish a match.
+
+Choose partitions containing off-boundary business timestamps, such as 10:47:23, and repeat
+across relevant dates and timezone transitions. The read is restricted to the selected keys;
+a row limit does not guarantee a cheap scan within a large partition. Existing warehouse
+query limits still apply. Changing the candidate clears the displayed validation.
+Validation does not save a global verdict, change chart behavior, or override the bare-epoch
+safety refusal. Before enabling a production mapping, compare chart row IDs and counts with
+and without its partition predicates, including equality, IN, and partial-bucket ranges.
 
 ### Transform preserves ordering
 
@@ -89,7 +133,7 @@ declare it rather than guessing.
 
 A *bucketing* transform preserves ordering and is the common case rather than
 an exception: `to_char(:value, 'YYYYMMDD')`, `date(:value)` and
-`cast(unix_timestamp(:value) / 86400 as bigint)` each map a whole day onto one
+`CAST(floor(unix_timestamp(:value) / 86400) * 86400 AS BIGINT)` each map a whole day onto one
 partition key, which is exactly what a daily-partitioned table wants. Check the
 box for these.
 
@@ -239,7 +283,7 @@ column. That substitution is only valid if, for every row in the table:
 partition_column = <transform>(mapped_column)
 ```
 
-**Superset cannot verify this.** It is a property of whatever ETL populates the partition
+**Sample validation cannot prove this for the entire dataset.** It is a property of whatever ETL populates the partition
 column. If that job lags, backfills with different logic, or writes the partition key in a
 different timezone than the transform resolves, mirrored predicates silently drop real rows
 and charts show quietly wrong numbers. Confirm the invariant with whoever owns the pipeline
@@ -285,7 +329,7 @@ value it got, and the fix is to cast the result to the key's own type —
 Because the evaluation happens in a **different session** from the chart query, transforms
 that call non-deterministic functions are rejected when you save. That includes `now()`,
 `current_date`, `current_timestamp`, `rand()` and the zero-argument `unix_timestamp()`, which
-means "now" on Hive and Impala. The one-argument `unix_timestamp(:value)` is fine.
+means "now" on Hive and Impala. The one-argument function is deterministic only under consistent session settings; the bare expression is declined for temporal-to-numeric Hive/Impala-family mappings because it does not specify a bucket.
 
 Session-dependent behaviour that Superset cannot detect is still your responsibility:
 `unix_timestamp(:value)` is timezone-dependent on Hive and Impala, so if the evaluating

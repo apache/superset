@@ -3278,3 +3278,82 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
     # The filter itself is untouched: the query is still correct, it just reads
     # every partition.
     assert "dt_epoch = 5" in sql
+
+
+@pytest.mark.parametrize("bucket", [3600, 86400])
+@pytest.mark.parametrize("operator", ["==", "IN", ">", ">=", "<", "<=", "range"])
+def test_epoch_bucket_queries_preserve_actual_rows(
+    app: Flask, bucket: int, operator: str
+) -> None:
+    """Execute generated SQL and compare rows against independently built keys."""
+    import math
+    import sqlite3
+    from datetime import timezone
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("floor", 1, math.floor)
+    connection.create_function(
+        "unix_timestamp",
+        1,
+        lambda value: int(
+            datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+        ),
+    )
+    connection.execute(
+        "CREATE TABLE web_events (country TEXT, event_time TEXT, dt_epoch BIGINT)"
+    )
+    origin = 1790812800  # 2026-10-01 UTC
+    seconds = [-1, 0, 1] + [
+        origin + hour * 3600 + offset
+        for hour in range(48)
+        for offset in (0, 1, 1800, 3599)
+    ]
+    rows: list[tuple[str, str, int | None]] = [
+        (
+            str(index),
+            datetime.fromtimestamp(value, timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            value // bucket * bucket,
+        )
+        for index, value in enumerate(seconds)
+    ]
+    rows.append(("null_partition", "2026-10-01 10:30:00", None))
+    connection.executemany("INSERT INTO web_events VALUES (?, ?, ?)", rows)
+    table = _table(
+        transform=(
+            f"CAST(floor(unix_timestamp(:value) / {bucket}.0) * {bucket} AS BIGINT)"
+        )
+    )
+    if operator == "range":
+        arguments = {
+            "granularity": "event_time",
+            "from_dttm": datetime(2026, 10, 1, 10, 30),
+            "to_dttm": datetime(2026, 10, 2, 10, 30),
+        }
+    else:
+        arguments = {
+            "filter": [
+                {
+                    "col": "event_time",
+                    "op": operator,
+                    "val": ["2026-10-01 10:30:00", "2026-10-02 11:59:59"]
+                    if operator == "IN"
+                    else "2026-10-01 10:30:00",
+                }
+            ]
+        }
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "get_df",
+            side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
+        ),
+    ):
+        mirrored_sql = _query(table, **arguments)
+        table.partition_column = None
+        unmirrored_sql = _query(table, **arguments)
+    assert "dt_epoch" in mirrored_sql
+    assert sorted(connection.execute(mirrored_sql).fetchall()) == sorted(
+        connection.execute(unmirrored_sql).fetchall()
+    )
+    connection.close()

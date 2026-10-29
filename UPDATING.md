@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression stop pruning to prevent incorrect counts on hour/day epoch keys. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
+
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
   `PUT /api/v1/dataset/<id>/refresh`) no longer resets **Is dimension** and
