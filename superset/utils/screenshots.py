@@ -678,10 +678,15 @@ class ChartScreenshot(BaseScreenshot):
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
     ):
-        # Chart reports are in standalone="true" mode
+        # Chart reports render chart-only, with no nav and no editor controls.
+        # REPORT rather than HIDE_NAV so the frontend can distinguish an automated
+        # capture from a live standalone embed: `isReportScreenshotMode()` in
+        # plugin-chart-echarts suppresses animation for captures, which prevents a
+        # screenshot catching a chart mid-draw. HIDE_NAV (1) is a live embed there
+        # and deliberately keeps its animation.
         url = modify_url_query(
             url,
-            standalone=ChartStandaloneMode.HIDE_NAV.value,
+            standalone=ChartStandaloneMode.REPORT.value,
         )
         super().__init__(url, digest)
         self.window_size = window_size or DEFAULT_CHART_WINDOW_SIZE

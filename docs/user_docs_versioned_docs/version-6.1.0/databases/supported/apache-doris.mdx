@@ -161,3 +161,11 @@ export const databaseInfo = {
 };
 
 <DatabasePage name="Apache Doris" database={databaseInfo} />
+
+## TLS connections
+
+The SSL toggle uses certificate verification (`ssl_mode=VERIFY_CA`). Configure a
+trusted CA with the driver's `ssl_ca` URI option or a native `ssl` dictionary in
+`connect_args`. Editing a URI with `ssl_mode=REQUIRED` keeps the SSL toggle enabled
+and upgrades it to `VERIFY_CA` when saved. An explicit `VERIFY_IDENTITY` mode is
+preserved, including hostname verification, along with other URI query options.
