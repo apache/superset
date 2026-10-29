@@ -35,10 +35,26 @@ const SAFE_ABSOLUTE_URL_RE = /^(https?|ftp|mailto|tel):/i;
  * Potentially dangerous schemes such as javascript: and data: are not treated
  * as absolute and will be prefixed.
  *
+ * Protocol-relative detection is backslash-aware: browsers normalise the
+ * leading `\` of `/\evil.com`, `\/evil.com`, `\\evil.com` etc. into `//` in
+ * the special-scheme authority, so these inputs are cross-origin navigations
+ * masquerading as router-relative paths. Returning them unchanged lets the
+ * downstream navigation guard reject them (see
+ * `navigationUtils.assertSafeNavigationUrl`).
+ *
+ * If `path` is null or undefined, it falls back to the application root so the
+ * caller (e.g. partial theme overrides leaving brand tokens unset) doesn't
+ * crash.
+ *
  * @param path A string path or URL to a resource
  */
-export function ensureAppRoot(path: string): string {
-  if (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//')) {
+const PROTOCOL_RELATIVE_LIKE_RE = /^[/\\][/\\]/;
+
+export function ensureAppRoot(path: string | null | undefined): string {
+  if (path == null) {
+    return applicationRoot() || '/';
+  }
+  if (SAFE_ABSOLUTE_URL_RE.test(path) || PROTOCOL_RELATIVE_LIKE_RE.test(path)) {
     return path;
   }
   const root = applicationRoot();
@@ -68,4 +84,33 @@ export function ensureAppRoot(path: string): string {
  */
 export function makeUrl(path: string): string {
   return ensureAppRoot(path);
+}
+
+/**
+ * Returns the path with a leading application-root segment removed. Useful when
+ * handing an already-rooted path to a consumer that re-prepends the root —
+ * e.g. react-router-dom's Link resolves its `to` prop against the Router's
+ * `basename`, so passing an already-rooted path would result in a doubled
+ * prefix in the rendered anchor href.
+ *
+ * Idempotent: stripping a path that does not start with the application root
+ * returns it unchanged. Absolute URLs and protocol-relative URLs pass through.
+ *
+ * @param path - The path to strip
+ * @returns The path without a leading application-root segment
+ */
+export function stripAppRoot(path: string): string {
+  if (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//')) {
+    return path;
+  }
+  const root = applicationRoot();
+  if (!root) return path;
+  // Single-pass strip mirrors
+  // `normalizeBackendUrlString` and `SupersetClientClass.getUrl` exactly. A
+  // genuine `/superset/superset/<slug>` is a legitimate route under the
+  // single-prefix invariant (backend emits relative URLs, frontend prefixes once),
+  // not a double-prefix bug. Greedy stripping would corrupt such routes.
+  if (path === root) return '/';
+  if (path.startsWith(`${root}/`)) return path.slice(root.length);
+  return path;
 }

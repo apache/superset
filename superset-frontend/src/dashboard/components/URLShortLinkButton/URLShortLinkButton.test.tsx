@@ -26,6 +26,9 @@ const PERMALINK_PAYLOAD = {
   key: '123',
   url: 'http://fakeurl.com/123',
 };
+// rewritePermalinkOrigin substitutes window.location.origin (jsdom: http://localhost)
+// for the permalink's origin while preserving the path. See urlUtils.ts.
+const REWRITTEN_URL = `${window.location.origin}/123`;
 const FILTER_STATE_PAYLOAD = {
   value: '{}',
 };
@@ -51,16 +54,14 @@ test('renders with default props', () => {
 
 test('renders overlay on click', async () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
 test('obtains short url', async () => {
   render(<URLShortLinkButton {...props} />, { useRedux: true });
-  userEvent.click(screen.getByRole('button'));
-  expect(await screen.findByRole('tooltip')).toHaveTextContent(
-    PERMALINK_PAYLOAD.url,
-  );
+  await userEvent.click(screen.getByRole('button'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(REWRITTEN_URL);
 });
 
 test('creates email anchor', async () => {
@@ -78,8 +79,8 @@ test('creates email anchor', async () => {
     },
   );
 
-  const href = `mailto:?Subject=${subject}%20&Body=${content}${PERMALINK_PAYLOAD.url}`;
-  userEvent.click(screen.getByRole('button'));
+  const href = `mailto:?Subject=${subject}%20&Body=${content}${REWRITTEN_URL}`;
+  await userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('link')).toHaveAttribute('href', href);
 });
 
@@ -94,6 +95,6 @@ test('renders error message on short url error', async () => {
     </>,
     { useRedux: true },
   );
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(await screen.findByRole('alert')).toBeInTheDocument();
 });

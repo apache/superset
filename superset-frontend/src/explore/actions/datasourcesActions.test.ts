@@ -93,14 +93,59 @@ test('change datasource action', () => {
       datasource: CURRENT_DATASOURCE,
     },
   }));
+  // NEW_DATASOURCE has no metrics with currency, so currency_formats is {}
+  const expectedDatasource = { ...NEW_DATASOURCE, currency_formats: {} };
   // ignore getState type check - we dont need explore.datasource field for this test
   // @ts-expect-error
   changeDatasource(NEW_DATASOURCE)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledTimes(2);
-  expect(dispatch).toHaveBeenNthCalledWith(1, setDatasource(NEW_DATASOURCE));
+  expect(dispatch).toHaveBeenNthCalledWith(
+    1,
+    setDatasource(expectedDatasource),
+  );
   expect(dispatch).toHaveBeenNthCalledWith(
     2,
-    updateFormDataByDatasource(CURRENT_DATASOURCE, NEW_DATASOURCE),
+    updateFormDataByDatasource(CURRENT_DATASOURCE, expectedDatasource),
+  );
+});
+
+test('changeDatasource computes currency_formats from metric currencies', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    explore: { datasource: CURRENT_DATASOURCE },
+  }));
+  const datasourceWithCurrencyMetric = {
+    ...NEW_DATASOURCE,
+    metrics: [
+      {
+        uuid: 'uuid-revenue',
+        metric_name: 'revenue',
+        expression: 'SUM(revenue)',
+        currency: { symbol: 'EUR', symbolPosition: 'prefix' },
+      },
+      {
+        uuid: 'uuid-cost',
+        metric_name: 'cost',
+        expression: 'SUM(cost)',
+        currency: null,
+      },
+    ],
+  };
+  const expectedDatasource = {
+    ...datasourceWithCurrencyMetric,
+    currency_formats: {
+      revenue: { symbol: 'EUR', symbolPosition: 'prefix' },
+    },
+  };
+  // @ts-expect-error
+  changeDatasource(datasourceWithCurrencyMetric)(dispatch, getState);
+  expect(dispatch).toHaveBeenNthCalledWith(
+    1,
+    setDatasource(expectedDatasource),
+  );
+  expect(dispatch).toHaveBeenNthCalledWith(
+    2,
+    updateFormDataByDatasource(CURRENT_DATASOURCE, expectedDatasource),
   );
 });
 

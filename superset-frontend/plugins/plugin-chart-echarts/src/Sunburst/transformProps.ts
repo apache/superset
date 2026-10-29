@@ -25,6 +25,9 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   getTimeFormatter,
+  getTimeFormatterForGranularity,
+  SMART_DATE_ID,
+  TimeGranularity,
   getValueFormatter,
   NumberFormats,
   tooltipHtml,
@@ -43,7 +46,9 @@ import {
   NodeItemOption,
   SunburstTransformedProps,
 } from './types';
+import { getSunburstTimeGrain } from './timeGrain';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getSunburstSelectionKey, isSunburstPathSelected } from './utils';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -186,6 +191,9 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
+    // Default to true so charts saved before this control existed keep
+    // showing null values instead of silently hiding them on upgrade.
+    showNullValues = true,
     sliceId,
   } = formData;
   const {
@@ -251,6 +259,7 @@ export default function transformProps(
     columnLabels,
     metricLabel,
     secondaryMetricLabel,
+    !showNullValues,
   );
   const totalValue = treeData.reduce(
     (result, treeNode) => result + treeNode.value,
@@ -294,9 +303,22 @@ export default function transformProps(
     treeNodes.map(treeNode => {
       const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
       const records = [...(pathRecords || []), nodeName];
+      const timeGrain = getSunburstTimeGrain(
+        formData,
+        columns[records.length - 1],
+      );
       let name = formatSeriesName(nodeName, {
         numberFormatter,
-        timeFormatter: getTimeFormatter(dateFormat),
+        timeFormatter:
+          dateFormat === SMART_DATE_ID &&
+          timeGrain &&
+          [
+            TimeGranularity.MONTH,
+            TimeGranularity.QUARTER,
+            TimeGranularity.YEAR,
+          ].some(grain => grain === timeGrain)
+            ? getTimeFormatterForGranularity(timeGrain)
+            : getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
           coltype: coltypeMapping[groupBy],
         }),
@@ -319,7 +341,18 @@ export default function transformProps(
         name = newPath.join(',');
       }
       columnsLabelMap.set(name, newPath);
-      if (filterState.selectedValues?.[0]?.includes(name) === false) {
+      const selectionKey = getSunburstSelectionKey(
+        records,
+        newPath,
+        columns,
+        coltypeMapping,
+      );
+      const selectedValue = filterState.selectedValues?.[0];
+      if (
+        selectedValue != null &&
+        !isSunburstPathSelected(selectedValue, selectionKey) &&
+        !isSunburstPathSelected(selectedValue, newPath.join(','))
+      ) {
         item = {
           ...item,
           itemStyle: {

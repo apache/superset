@@ -99,7 +99,7 @@ test('renders all required column headers', async () => {
   const expectedHeaders = [
     'Name',
     'Status',
-    'Owners',
+    'Editors',
     'Last modified',
     'Actions',
   ];

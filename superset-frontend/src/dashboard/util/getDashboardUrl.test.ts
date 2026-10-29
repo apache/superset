@@ -29,9 +29,8 @@ describe('getChartIdsFromLayout', () => {
     },
   };
 
-  const globalLocation = window.location;
   afterEach(() => {
-    window.location = globalLocation;
+    jest.restoreAllMocks();
   });
 
   test('should encode filters', () => {
@@ -93,16 +92,11 @@ describe('getChartIdsFromLayout', () => {
   });
 
   test('should preserve unknown filters', () => {
-    const windowSpy = jest.spyOn(window, 'window', 'get');
-    windowSpy.mockImplementation(
-      () =>
-        ({
-          location: {
-            origin: 'https://localhost',
-            search: '?unknown_param=value',
-          },
-        }) as unknown as Window & typeof globalThis,
-    );
+    jest.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      origin: 'https://localhost',
+      search: '?unknown_param=value',
+    } as Location);
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters: {},
@@ -112,7 +106,6 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithStandalone).toBe(
       `path?unknown_param=value&standalone=${DashboardStandaloneMode.HideNav}`,
     );
-    windowSpy.mockRestore();
   });
 
   test('should pass through a router-relative pathname unchanged', () => {
@@ -122,21 +115,18 @@ describe('getChartIdsFromLayout', () => {
       hash: '',
       standalone: DashboardStandaloneMode.HideNav,
     });
-    expect(url).toBe(`/dashboard/1/?standalone=${DashboardStandaloneMode.HideNav}`);
+    expect(url).toBe(
+      `/dashboard/1/?standalone=${DashboardStandaloneMode.HideNav}`,
+    );
   });
 
   test('should process native filters key', () => {
-    const windowSpy = jest.spyOn(window, 'window', 'get');
-    windowSpy.mockImplementation(
-      () =>
-        ({
-          location: {
-            origin: 'https://localhost',
-            search:
-              '?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
-          },
-        }) as unknown as Window & typeof globalThis,
-    );
+    jest.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      origin: 'https://localhost',
+      search:
+        '?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
+    } as Location);
 
     const urlWithNativeFilters = getDashboardUrl({
       pathname: 'path',
@@ -146,6 +136,5 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithNativeFilters).toBe(
       'path?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
     );
-    windowSpy.mockRestore();
   });
 });

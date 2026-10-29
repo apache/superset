@@ -20,17 +20,24 @@ Tests for the list_charts request schema
 """
 
 import importlib
+from copy import copy
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
+from superset.daos.base import ColumnOperatorEnum
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ListChartsRequest,
 )
-from superset.mcp_service.constants import MAX_PAGE_SIZE
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     remove_chart_data_model_columns,
@@ -80,7 +87,7 @@ def mock_chart():
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.uuid = "test-uuid-123"
     chart.cache_timeout = None
     chart.form_data = {}
@@ -107,7 +114,7 @@ class TestListChartsRequestSchema:
         assert request.order_column is None
         assert request.order_direction == "asc"
         assert request.page == 1
-        assert request.page_size == 10
+        assert request.page_size == DEFAULT_PAGE_SIZE
 
     def test_request_with_filters(self):
         """Test creating request with filters."""
@@ -147,6 +154,12 @@ class TestListChartsRequestSchema:
         assert request.page == 2
         assert request.page_size == 50
 
+    @pytest.mark.parametrize("value", ["true", "false", 0, 1])
+    def test_certified_requires_json_boolean(self, value):
+        """Reject values that Pydantic's non-strict bool would coerce."""
+        with pytest.raises(ValueError, match="valid boolean"):
+            ListChartsRequest(certified=value)
+
     def test_invalid_order_direction(self):
         """Test that invalid order direction raises validation error."""
         with pytest.raises(ValueError, match="Input should be 'asc' or 'desc'"):
@@ -183,6 +196,30 @@ class TestListChartsRequestSchema:
         # Invalid filter - missing required fields
         with pytest.raises(ValueError, match="Field required"):
             ChartFilter(col="slice_name")  # Missing opr and value
+
+    def test_dashboards_filter_accepted(self):
+        """`dashboards` is a valid filter column for finding charts on a dashboard."""
+        # The filter is accepted at schema-validation time
+        f = ChartFilter(col="dashboards", opr="eq", value=42)
+        assert f.col == "dashboards"
+        assert f.opr.value == "eq"
+        assert f.value == 42
+
+        # And composes into a request like any other filter
+        request = ListChartsRequest(filters=[f])
+        assert request.filters[0].col == "dashboards"
+
+    def test_invalid_filter_column_rejected(self):
+        """Unknown filter columns are rejected by the literal."""
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Input should be 'slice_name', 'viz_type', 'datasource_name', "
+                "'datasource_id', "
+                "'editor', 'created_by_fk', 'changed_by_fk' or 'dashboards'"
+            ),
+        ):
+            ChartFilter(col="nonexistent_column", opr="eq", value=1)
 
     def test_search_and_filters_conflict_validation(self):
         """Test that using both search and filters raises validation error."""
@@ -284,6 +321,7 @@ class TestChartDataModelMetadataPrivacy:
 
     def test_user_can_view_data_model_metadata_uses_dataset_permission(self):
         with patch("superset.security_manager", new_callable=Mock) as security_manager:
+            security_manager.is_guest_user.return_value = False
             security_manager.can_access.side_effect = [False, True, False]
 
             assert user_can_view_data_model_metadata() is True
@@ -330,3 +368,242 @@ async def test_list_charts_no_arguments(mock_list, mcp_server):
         result = await client.call_tool("list_charts", {})
     data = json.loads(result.content[0].text)
     assert "charts" in data
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("certified", "expected_names"),
+    [
+        (True, ["Certified"]),
+        (False, ["Uncertified"]),
+        (None, ["Certified", "Uncertified"]),
+    ],
+)
+async def test_list_charts_certified_filter(
+    mock_list, mcp_server, mock_chart, certified, expected_names
+):
+    """Certification is opt-in and supports certified, uncertified, and all."""
+    certified_chart = copy(mock_chart)
+    certified_chart.id = 1
+    certified_chart.slice_name = "Certified"
+    certified_chart.certified_by = "Data Governance"
+    certified_chart.deleted_at = None
+    uncertified_chart = mock_chart
+    uncertified_chart.id = 2
+    uncertified_chart.slice_name = "Uncertified"
+    uncertified_chart.deleted_at = None
+    charts = [certified_chart, uncertified_chart]
+
+    def list_side_effect(**kwargs):
+        custom_filter = (kwargs.get("custom_filters") or {}).get("certified")
+        if custom_filter is None:
+            selected = charts
+        else:
+            query = Mock()
+            custom_filter.apply(query, None)
+            predicate = str(query.filter.call_args.args[0])
+            expected_predicate = (
+                "slices.certified_by IS NOT NULL"
+                if certified
+                else "slices.certified_by IS NULL"
+            )
+            assert expected_predicate in predicate
+            selected = [charts[0] if certified else charts[1]]
+        return selected, len(selected)
+
+    mock_list.side_effect = list_side_effect
+    request = ListChartsRequest(certified=certified)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_charts", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    actual_names = [chart["slice_name"] for chart in data["charts"]]
+    assert len(actual_names) == len(expected_names)
+    assert all(
+        expected in actual
+        for expected, actual in zip(expected_names, actual_names, strict=False)
+    )
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_changed_on_delta_humanized_order_column(
+    mock_list, mcp_server
+):
+    """Regression test: order_column='changed_on_delta_humanized' is the
+    "Last modified" column name used by Superset's own REST API and list
+    views. Production chatbot calls pass it when asked to sort by "most
+    recently modified" and must not be rejected. It resolves to 'changed_on'
+    for the DAO, matching REST API sort behaviour (see
+    models/helpers.py:changed_on_delta_humanized, @renders("changed_on"))."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_charts",
+            {"request": {"order_column": "changed_on_delta_humanized"}},
+        )
+    mock_list.assert_called_once()
+    call_args = mock_list.call_args[1]
+    assert call_args["order_column"] == "changed_on"
+    data = json.loads(result.content[0].text)
+    assert "charts" in data
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_invalid_order_column_raises_tool_error(
+    mock_list, mcp_server
+):
+    """A genuinely unknown order_column must still be rejected."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+            await client.call_tool(
+                "list_charts", {"request": {"order_column": "random"}}
+            )
+        assert "Invalid order_column" in str(excinfo.value)
+    mock_list.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("opr", "value", "expected_ids"),
+    [
+        ("eq", 10, [1, 2]),
+        ("ne", 10, [3, 4]),
+        ("in", [10, 30], [1, 2, 4]),
+        ("nin", [10, 30], [3]),
+    ],
+)
+@pytest.mark.asyncio
+async def test_list_charts_datasource_id_filter(
+    mcp_server: Any, opr: str, value: int | list[int], expected_ids: list[int]
+) -> None:
+    """Dataset filters reach the DAO and use its SQL column operators."""
+    from superset.daos.chart import ChartDAO
+    from superset.models.slice import Slice
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Slice.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            Slice.__table__.insert(),
+            [
+                {"id": 1, "datasource_id": 10, "datasource_type": "table"},
+                {"id": 2, "datasource_id": 10, "datasource_type": "table"},
+                {"id": 3, "datasource_id": 20, "datasource_type": "table"},
+                {"id": 4, "datasource_id": 30, "datasource_type": "table"},
+                {"id": 5, "datasource_id": 10, "datasource_type": "semantic_view"},
+                {"id": 6, "datasource_id": 20, "datasource_type": "semantic_view"},
+            ],
+        )
+
+        def list_filtered(**kwargs: Any) -> tuple[list[Slice], int]:
+            filters = kwargs["column_operators"]
+            assert len(filters) == 1
+            assert filters[0].col == "datasource_id"
+            assert filters[0].opr.value == opr
+            assert filters[0].value == value
+            query = ChartDAO.apply_column_operators(
+                session.query(Slice.id, Slice.datasource_id), filters
+            )
+            charts = [
+                Slice(id=row.id, datasource_id=row.datasource_id)
+                for row in query.order_by(Slice.id).all()
+            ]
+            return charts, len(charts)
+
+        with (
+            patch("superset.daos.chart.ChartDAO.list", side_effect=list_filtered),
+            patch.object(
+                list_charts_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "list_charts",
+                    {
+                        "request": {
+                            "filters": [
+                                {"col": "datasource_id", "opr": opr, "value": value}
+                            ],
+                            "select_columns": ["id", "datasource_id"],
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert [chart["id"] for chart in data["charts"]] == expected_ids
+        assert data["total_count"] == len(expected_ids)
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "opr",
+    [
+        operator.value
+        for operator in ColumnOperatorEnum
+        if operator.value not in {"eq", "ne", "in", "nin"}
+    ],
+)
+def test_datasource_id_rejects_unsupported_operators(opr: str) -> None:
+    """An ID supports equality and membership, not text or range operators."""
+    with pytest.raises(ValueError, match="datasource_id.*eq, ne, in, nin"):
+        ChartFilter(col="datasource_id", opr=opr, value=10)
+
+
+@pytest.mark.parametrize(
+    ("opr", "value"),
+    [
+        ("eq", [10]),
+        ("ne", [10]),
+        ("in", 10),
+        ("nin", 10),
+        ("eq", "10"),
+        ("eq", True),
+        ("eq", 10.5),
+        ("in", [10, "20"]),
+    ],
+)
+def test_datasource_id_rejects_invalid_values(opr: str, value: Any) -> None:
+    """Dataset ID filters require an integer or an integer list by operator."""
+    with pytest.raises(ValueError, match="datasource_id.*integer"):
+        ChartFilter(col="datasource_id", opr=opr, value=value)
+
+
+def test_datasource_id_filter_description() -> None:
+    """The filter schema explains how to find charts on dataset X."""
+    col = ChartFilter.model_json_schema()["properties"]["col"]
+    assert "datasource_id" in col["enum"]
+    assert "charts on dataset X" in col["description"]
+    assert "SQL datasets only" in col["description"]
+
+
+@pytest.mark.asyncio
+async def test_datasource_id_filter_preserves_metadata_privacy(mcp_server: Any) -> None:
+    """Dataset filters cannot bypass the existing data-model metadata gate."""
+    with (
+        patch.object(
+            list_charts_module, "user_can_view_data_model_metadata", return_value=False
+        ),
+        patch("superset.daos.chart.ChartDAO.list") as list_dao,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_charts",
+                {
+                    "request": {
+                        "filters": [{"col": "datasource_id", "opr": "eq", "value": 10}]
+                    }
+                },
+            )
+    assert (
+        json.loads(result.content[0].text)["error_type"]
+        == DATA_MODEL_METADATA_ERROR_TYPE
+    )
+    list_dao.assert_not_called()

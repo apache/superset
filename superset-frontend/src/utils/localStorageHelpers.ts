@@ -57,9 +57,12 @@ export enum LocalStorageKeys {
   DashboardExploreContext = 'dashboard__explore_context',
   DashboardEditorShowOnlyMyCharts = 'dashboard__editor_show_only_my_charts',
   CommonResizableSidebarWidths = 'common__resizable_sidebar_widths',
+  ChatState = 'chat__state',
+  LastArchivedType = 'archive__last_type',
 }
 
 export type LocalStorageValues = {
+  archive__last_type: 'chart' | 'dashboard' | 'dataset' | null;
   db: object | null;
   chart_split_sizes: [number, number];
   controls_width: number;
@@ -78,6 +81,7 @@ export type LocalStorageValues = {
   dashboard__explore_context: Record<string, DashboardContextForExplore>;
   dashboard__editor_show_only_my_charts: boolean;
   common__resizable_sidebar_widths: Record<string, number>;
+  chat__state: { open: boolean; mode: string };
 };
 
 /*

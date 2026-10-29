@@ -19,6 +19,7 @@
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import type Subject from 'src/types/Subject';
 import DuplicateDatasetModal from './DuplicateDatasetModal';
 
 // Test-only fixture type that includes all fields from API responses
@@ -32,7 +33,7 @@ interface VirtualDatasetFixture {
     id: string;
     database_name: string;
   };
-  owners: Array<{ first_name: string; last_name: string; id: number }>;
+  editors: Subject[];
   changed_by_name: string;
   changed_by: string;
   changed_on_delta_humanized: string;
@@ -51,7 +52,7 @@ const mockDataset: VirtualDatasetFixture = {
     id: '1',
     database_name: 'PostgreSQL',
   },
-  owners: [],
+  editors: [{ id: 1, label: 'Admin User', type: 1 }],
   changed_by_name: 'Admin',
   changed_by: 'Admin User',
   changed_on_delta_humanized: '1 day ago',
@@ -103,6 +104,19 @@ test('modal opens when dataset is provided', async () => {
   expect(
     screen.getByRole('button', { name: /duplicate/i }),
   ).toBeInTheDocument();
+});
+
+test('duplicate button is disabled when modal first opens', async () => {
+  const onHide = jest.fn();
+  const onDuplicate = jest.fn();
+
+  renderModal(mockDataset, onHide, onDuplicate);
+
+  const duplicateButton = await screen.findByRole('button', {
+    name: /duplicate/i,
+  });
+
+  expect(duplicateButton).toBeDisabled();
 });
 
 test('modal does not open when dataset is null', () => {
@@ -191,6 +205,21 @@ test('pressing Enter key triggers duplicate action', async () => {
   await waitFor(() => {
     expect(onDuplicate).toHaveBeenCalledWith('new_dataset_copy');
   });
+});
+
+test('pressing Enter with empty input does not trigger duplicate action', async () => {
+  const onHide = jest.fn();
+  const onDuplicate = jest.fn();
+
+  renderModal(mockDataset, onHide, onDuplicate);
+
+  const input = await screen.findByTestId('duplicate-modal-input');
+
+  // Press Enter without typing a name
+  await userEvent.type(input, '{enter}');
+
+  // onPressEnter should not bypass the disabled state
+  expect(onDuplicate).not.toHaveBeenCalled();
 });
 
 test('modal closes when onHide is called', async () => {

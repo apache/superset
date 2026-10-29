@@ -22,7 +22,8 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, cast, Optional, TYPE_CHECKING
+from functools import cache
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -53,7 +54,11 @@ from superset_core.queries.models import (
 )
 
 from superset import security_manager
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
@@ -61,6 +66,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
+    SqlExpressionContext,
 )
 from superset.sql.parse import (
     CTASMethod,
@@ -78,6 +84,7 @@ from superset.utils.core import (
     QueryStatus,
     user_label,
 )
+from superset.utils.dates import naive_utcnow
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -99,6 +106,14 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
             )
         except (SupersetSecurityException, SupersetParseError, TemplateError):
             return []
+        except SupersetException as ex:
+            # Jinja macros such as ``{{ dataset(id) }}`` or ``{{ metric(...) }}``
+            # may reference resources that no longer exist (e.g. a deleted
+            # dataset). Surfacing the failure here would break list endpoints
+            # that include ``sql_tables`` in their payload, hiding every saved
+            # query from the user. Treat it as a parse failure instead.
+            logger.warning("Unable to extract tables from SQL via Jinja: %s", ex)
+            return []
 
 
 class Query(
@@ -114,6 +129,12 @@ class Query(
 
     __tablename__ = "query"
     type = "query"
+
+    # Query results are raw rows, so samples are meaningful. Declared
+    # explicitly (rather than relying on a fail-open ``getattr`` default)
+    # so every member of ``DatasourceDAO.sources`` carries the capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
     query_language = "sql"
@@ -158,7 +179,7 @@ class Query(
     tracking_url_raw = Column(Text, name="tracking_url")
 
     changed_on = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+        DateTime, default=naive_utcnow, onupdate=naive_utcnow, nullable=True
     )
 
     @hybrid_property
@@ -178,7 +199,14 @@ class Query(
     database = relationship(
         "Database",
         foreign_keys=[database_id],
-        backref=backref("queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `query.database` no longer
+            # cascades the Query into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
@@ -282,7 +310,6 @@ class Query(
             "id": self.id,
             "type": self.type,
             "sql": self.sql,
-            "owners": self.owners_data,
             "database": {"id": self.database_id, "backend": self.database.backend},
             "order_by_choices": order_by_choices,
             "catalog": self.catalog,
@@ -294,20 +321,24 @@ class Query(
         """
         Raise an exception if the user cannot access the resource.
 
+        Re-validation of a SQL Lab query uses the same strict scoping as the
+        initial execute path (``force_dataset_match=True``) so that fetching
+        results, exporting CSV, and streaming-exporting all enforce the same
+        per-table dataset-match requirement. ``raise_for_access`` parses
+        ``executed_sql`` (the Jinja-rendered query that actually ran) when
+        set, keeping the table set aligned with execution even though the
+        original ``template_params`` are not persisted on the query record.
+
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        security_manager.raise_for_access(query=self)
+        security_manager.raise_for_access(query=self, force_dataset_match=True)
 
     @property
     def db_engine_spec(
         self,
     ) -> builtins.type["BaseEngineSpec"]:  # pylint: disable=unsubscriptable-object
         return self.database.db_engine_spec
-
-    @property
-    def owners_data(self) -> list[dict[str, Any]]:
-        return []
 
     @property
     def uid(self) -> str:
@@ -342,7 +373,16 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        if not self.database:
+            return ""
+        return (
+            security_manager.get_schema_perm(
+                self.database.database_name,
+                self.catalog or self.database.get_default_catalog(),
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:
@@ -353,7 +393,56 @@ class Query(
         return ""
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        """
+        Include the RLS predicates that apply to this ad-hoc query's
+        underlying tables in the cache key, mirroring what
+        ``SqlaTable.get_extra_cache_keys`` already does for virtual datasets.
+
+        ``is_rls_supported`` is ``False`` for a SQL Lab query (it has no RLS
+        rules of its own to look up via ``get_rls_cache_key``), which left
+        ``security_manager.get_rls_cache_key()`` contributing nothing here.
+        Without this, two viewers of the same not-yet-saved query-backed
+        chart (e.g. via a shared Explore permalink) with different RLS on
+        the tables the query references would collide on the same cache
+        entry, regardless of their own access.
+        """
+        if not self.sql:
+            return []
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        predicates = self.get_inner_rls_cache_key(
+            resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
+        )
+        predicates.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
+        return list(dict.fromkeys(predicates))
+
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Key query-backed caches on the RLS execution injects into inner tables."""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not self.sql:
+            return []
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema,
+            # Match ``get_from_clause``: a Query has no outer RLS application.
+            include_global_guest_rls=True,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
+        )
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """
@@ -402,7 +491,7 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
-    def get_column(self, column_name: Optional[str]) -> Optional[dict[str, Any]]:
+    def get_column(self, column_name: Optional[str]) -> Optional["TableColumn"]:
         if not column_name:
             return None
         for col in self.columns:
@@ -415,6 +504,8 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
@@ -426,14 +517,33 @@ class Query(
         :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
+        sql_expression = col["sqlExpression"]
+        time_grain = col.get("timeGrain")
+        has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
+        is_dttm = False
+        pdf = None
+
+        if col_in_metadata := self.get_column(sql_expression):
+            is_dttm = col_in_metadata.is_temporal
+            pdf = col_in_metadata.python_date_format
+
         expression = self._process_sql_expression(
-            expression=col["sqlExpression"],
-            database_id=self.database_id,
-            engine=self.database.backend,
-            schema=self.schema,
-            template_processor=template_processor,
+            sql_expression,
+            SqlExpressionContext(
+                self.database.backend,
+                self.schema,
+                template_processor,
+            ),
         )
         sqla_column = literal_column(expression)
+
+        if is_dttm and has_timegrain:
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=pdf,
+                time_grain=time_grain,
+            )
+
         col_meta = next((c for c in self.columns if c.column_name == label), None)
         generic_type = col_meta.type_generic if col_meta else None
         return self.make_sqla_column_compatible(sqla_column, label), generic_type
@@ -449,6 +559,13 @@ class SavedQuery(
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
+
+    # Saved queries are backed by raw rows, so samples are meaningful.
+    # Declared explicitly (rather than relying on a fail-open ``getattr``
+    # default) so every member of ``DatasourceDAO.sources`` carries the
+    # capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
@@ -460,13 +577,25 @@ class SavedQuery(
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `saved_query.user` no longer
+            # cascades the SavedQuery into the User's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[user_id],
     )
     database = relationship(
         "Database",
         foreign_keys=[db_id],
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: see `user` above.
+            cascade_backrefs=False,
+        ),
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
@@ -576,6 +705,21 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
     def to_dict(self) -> dict[str, Any]:
+        latest_query = None
+        try:
+            if self.latest_query:
+                latest_query = self.latest_query.to_dict()
+        except Exception:
+            query = self.__dict__.get("latest_query")
+            logger.warning(
+                "Failed to load/serialize latest_query for tab state %s "
+                "(latest_query_id=%s, query_status=%s)",
+                self.id,
+                self.latest_query_id,
+                getattr(query, "status", "N/A"),
+                exc_info=True,
+            )
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -587,7 +731,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,
             "query_limit": self.query_limit,
-            "latest_query": self.latest_query.to_dict() if self.latest_query else None,
+            "latest_query": latest_query,
             "autorun": self.autorun,
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,

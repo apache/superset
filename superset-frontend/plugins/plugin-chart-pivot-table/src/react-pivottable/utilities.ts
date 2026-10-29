@@ -20,6 +20,11 @@
 import PropTypes from 'prop-types';
 import { t } from '@apache-superset/core/translation';
 
+import {
+  getResultAggregation,
+  isFractionResultAggregation,
+} from '../plugin/resultAggregation';
+
 type SortFunction = (
   a: string | number | null,
   b: string | number | null,
@@ -39,6 +44,12 @@ interface NumberFormatOptions {
 interface Aggregator {
   push(record: PivotRecord): void;
   value(): string | number | null;
+  /**
+   * Value used to order keys when sorting by value. Differs from `value()`
+   * only for a slot that renders blank because it mixes metrics: sorting
+   * still needs a key there, independent of what is displayed.
+   */
+  sortValue?(): string | number | null;
   format(x: string | number | null, agg?: Aggregator): string;
   numInputs?: number;
   getCurrencies?(): string[];
@@ -47,12 +58,41 @@ interface Aggregator {
   isColSubtotal?: boolean;
 }
 
+/**
+ * A plain `Aggregator`, plus the two fields `isAllNullScope` reads -- present
+ * only on a `sum`-templated aggregator (see its `sawNull`/`sawValue`
+ * tracking above), optional here because `fractionOf` can wrap any
+ * aggregator template, not just `sum`.
+ */
+type NullTrackingAggregator = Aggregator & {
+  sawNull?: boolean;
+  sawValue?: boolean;
+};
+
+/**
+ * The shape `fractionOf`'s denominator lookup expects: whichever concrete
+ * `Aggregator` is actually configured for the table (the same `aggregators`
+ * map builds every cell, subtotal, and metric-total slot alike), narrowed to
+ * the one property this lookup reads off it -- the wrapped aggregator a
+ * `fractionOf` instance delegates to.
+ */
+type FractionDenominator = Aggregator & { inner?: NullTrackingAggregator };
+
 interface SubtotalOptions {
   rowEnabled?: boolean;
   colEnabled?: boolean;
   rowPartialOnTop?: boolean;
   colPartialOnTop?: boolean;
 }
+
+// Given an array of attribute values, convert to a key that
+// can be used in objects. A non-empty array is prefixed with a marker so
+// that depth zero (`[]`) never collides with a single empty-string category
+// (`['']`), which a bare join would flatten to the same key.
+const flatKey = (attrVals: string[]): string =>
+  attrVals.length === 0
+    ? ''
+    : String.fromCharCode(1) + attrVals.join(String.fromCharCode(0));
 
 const addSeparators = function (
   nStr: string,
@@ -91,6 +131,29 @@ const numberFormat = function (optsIn?: NumberFormatOptions): Formatter {
     return `${opts.prefix}${result}${opts.suffix}`;
   };
 };
+
+/**
+ * Safely converts any value to a number for aggregation purposes
+ * Handles null/undefined, strings, and non-numeric values
+ */
+function toAggregationNumber(value: unknown): number {
+  if (value == null) return 0;
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? 0 : value;
+  }
+  if (typeof value === 'string') {
+    const num = parseFloat(value.trim());
+    return Number.isNaN(num) ? 0 : num;
+  }
+  return 0;
+}
+
+type DataFunction = (key: string[], context: never[]) => unknown;
+
+interface GroupNode {
+  auto_agg_sum: number;
+  [childKey: string]: GroupNode | number;
+}
 
 const rx = /(\d+)|(\D+)/g;
 const rd = /\d/;
@@ -167,6 +230,125 @@ const naturalSort: SortFunction = (as, bs) => {
   return aArr.length - bArr.length;
 };
 
+/**
+ * Precomputes aggregate sums for all group levels using safe numeric conversion
+ */
+function buildGroupAggregates(
+  keys: string[][],
+  dataFunc: DataFunction,
+): GroupNode {
+  const root: GroupNode = { auto_agg_sum: 0 } as GroupNode;
+
+  const terminalKeys = keys.filter(
+    key =>
+      !keys.some(
+        ancestorKey =>
+          ancestorKey.length > key.length &&
+          key.every((segment, idx) => ancestorKey[idx] === segment),
+      ),
+  );
+  for (const key of terminalKeys) {
+    let current: GroupNode = root;
+
+    for (let i = 0; i < key.length - 1; i += 1) {
+      const segment = key[i];
+
+      if (!current[segment]) {
+        current[segment] = { auto_agg_sum: 0 } as GroupNode;
+      }
+
+      const childNode = current[segment] as GroupNode;
+      childNode.auto_agg_sum += toAggregationNumber(dataFunc(key, []));
+      current = childNode;
+    }
+  }
+
+  return root;
+}
+
+/**
+ * Creates a comparator function for hierarchical keys with subtotal awareness
+ */
+function createHierarchicalComparator(
+  groups: GroupNode,
+  top: boolean | undefined,
+  asc: boolean,
+  dataFunc: DataFunction,
+): (a: string[], b: string[]) => number {
+  const hierarchyMultiplier = top ? 1 : -1;
+  const valueMultiplier = asc ? 1 : -1;
+
+  return (a: string[], b: string[]) => {
+    const minLen = Math.min(a.length, b.length);
+    let currentGroup: GroupNode = groups;
+    let diffIndex = -1;
+
+    for (let i = 0; i < minLen; i += 1) {
+      if (a[i] !== b[i]) {
+        diffIndex = i;
+        break;
+      }
+      currentGroup = currentGroup[a[i]] as GroupNode;
+    }
+
+    if (diffIndex === -1 && a.length !== b.length) {
+      return (a.length < b.length ? -1 : 1) * hierarchyMultiplier;
+    }
+
+    const isLastLevelComparison =
+      diffIndex === -1 ||
+      (diffIndex === a.length - 1 && diffIndex === b.length - 1);
+
+    if (isLastLevelComparison) {
+      const valA = dataFunc(a, []) as string | number | null;
+      const valB = dataFunc(b, []) as string | number | null;
+
+      const result = naturalSort(valA, valB) * valueMultiplier;
+
+      if (result === 0) {
+        const lastA = a[a.length - 1] ?? '';
+        const lastB = b[b.length - 1] ?? '';
+        return lastA.localeCompare(lastB) * valueMultiplier;
+      }
+      return result;
+    }
+
+    const segmentA = a[diffIndex];
+    const segmentB = b[diffIndex];
+
+    const nodeA = currentGroup[segmentA] as GroupNode | undefined;
+    const nodeB = currentGroup[segmentB] as GroupNode | undefined;
+
+    const sumA = nodeA?.auto_agg_sum ?? 0;
+    const sumB = nodeB?.auto_agg_sum ?? 0;
+
+    if (sumA === sumB) {
+      return segmentA.localeCompare(segmentB) * valueMultiplier;
+    }
+    return (sumA > sumB ? 1 : -1) * valueMultiplier;
+  };
+}
+
+/**
+ * @param keys Hierarchical keys to sort ([[row1, row2], [row1, row3], ...])
+ * @param dataFunc Function to retrieve aggregate value (may return string/number/null)
+ * @param top true = subtotals at top/left, false = subtotals at bottom/right
+ * @param asc true = ascending sort, false = descending sort
+ *
+ * @see https://github.com/apache/superset/issues/20564
+ */
+export function groupingValueSort(
+  keys: string[][],
+  dataFunc: DataFunction,
+  top: boolean | undefined,
+  asc: boolean,
+): void {
+  const groups = buildGroupAggregates(keys, dataFunc);
+
+  const comparator = createHierarchicalComparator(groups, top, asc, dataFunc);
+  keys.sort(comparator);
+}
+
 const sortAs = function (order: (string | number)[]): SortFunction {
   const mapping: Record<string | number, number> = {};
 
@@ -236,10 +418,101 @@ const usFmtPct = numberFormat({
   suffix: '%',
 });
 
+// A Sum aggregator whose every input was a SQL NULL: its `value()` is 0, but
+// the scope has no measured value, so fractions built on it stay blank.
+const isAllNullScope = (agg: {
+  sawNull?: boolean;
+  sawValue?: boolean;
+}): boolean => agg.sawNull === true && agg.sawValue !== true;
+
 const fmtNonString =
   (formatter: Formatter) =>
-  (x: string | number | null): string =>
-    typeof x === 'string' ? x : formatter(x as number);
+  (x: string | number | null): string => {
+    if (typeof x === 'string') return x;
+    // A null total (mixed-metric Min/Max, empty DB rollup) renders blank
+    // rather than whatever a custom formatter makes of null.
+    if (x === null || x === undefined) return '';
+    return formatter(x as number);
+  };
+
+/*
+ * Tracks which metric (via the `__metricKey`/`__rows`/`__columns` tagging
+ * every record carries, see PivotTableChart.tsx) a series of pushed records
+ * belong to. An aggregator slot opposite the Metric pseudo-dimension (the
+ * Total axis/corner when there's more than one metric -- see `processRecord`'s
+ * "Metric-collapse totals" and `processResultRecord` below) can receive one
+ * record per metric, e.g. MAX(sales) and MEDIAN(msrp) both landing in the
+ * same grand-total cell. There's no single number that means anything for
+ * "max of sales combined with median of msrp" regardless of which metric an
+ * aggregator would otherwise favor, so every aggregator that can land in one
+ * of those shared slots calls `sawMixedMetric` on every push and renders
+ * blank once it returns true, rather than silently guessing.
+ */
+function makeMixedMetricTracker(): {
+  sawMixedMetric: (record: PivotRecord) => boolean;
+} {
+  let seenMetric: string | undefined;
+  let mixedMetrics = false;
+  return {
+    sawMixedMetric(record: PivotRecord): boolean {
+      const metricDim = record.__metricKey as unknown as string | undefined;
+      if (metricDim) {
+        const metric = String(record[metricDim]);
+        if (seenMetric === undefined) {
+          seenMetric = metric;
+        } else if (metric !== seenMetric) {
+          mixedMetrics = true;
+        }
+      }
+      return mixedMetrics;
+    },
+  };
+}
+
+/*
+ * Passthrough "aggregator" for the rollup pivot. Because the database already
+ * computed every rollup level (via a single GROUPING SETS query where the
+ * engine supports it, or one query per level as a fallback otherwise), each
+ * cell receives exactly one record per metric, whose value we store verbatim
+ * rather than re-aggregating. This is what makes non-additive totals correct.
+ * See SIP.md. Currency tracking mirrors the real aggregators for AUTO-mode
+ * detection. See `makeMixedMetricTracker` above for the one exception (the
+ * Total axis/corner opposite the Metric pseudo-dimension).
+ */
+const cellValue =
+  (formatter: Formatter = usFmt) =>
+  ([attr]: string[]) =>
+  () => ({
+    val: null as string | number | null,
+    mixedMetricTracker: makeMixedMetricTracker(),
+    mixedMetrics: false,
+    currencySet: new Set<string>(),
+    push(record: PivotRecord) {
+      this.mixedMetrics = this.mixedMetricTracker.sawMixedMetric(record);
+      this.val = record[attr] as string | number | null;
+      if (
+        record.__currencyColumn &&
+        record[record.__currencyColumn as string]
+      ) {
+        this.currencySet.add(String(record[record.__currencyColumn as string]));
+      }
+    },
+    value() {
+      return this.mixedMetrics ? null : this.val;
+    },
+    sortValue() {
+      return this.val;
+    },
+    getCurrencies() {
+      return Array.from(this.currencySet);
+    },
+    // A DB-computed rollup value can legitimately be null (e.g. AVG over an
+    // empty group, or a 0/0 ratio). Render it as a blank cell instead of the
+    // literal "null" string that the shared formatter would otherwise produce.
+    format: (x: string | number | null) =>
+      x === null ? '' : fmtNonString(formatter)(x),
+    numInputs: typeof attr !== 'undefined' ? 0 : 1,
+  });
 
 /*
  * Aggregators track currencies via push() and expose them via getCurrencies()
@@ -300,12 +573,36 @@ const baseAggregatorTemplates = {
       return function () {
         return {
           sum: 0 as any,
+          // Tracks whether every pushed value was a SQL NULL, so a fraction
+          // aggregator can keep an all-null scope blank instead of 0.
+          sawNull: false,
+          sawValue: false,
           currencySet: new Set<string>(),
           push(record: PivotRecord) {
-            if (Number.isNaN(Number(record[attr]))) {
-              this.sum = record[attr];
+            const val = record[attr];
+            // A metric's own value can be a real SQL NULL (e.g. SUM over an
+            // empty group). Number(null) coerces to 0, not NaN, so it would
+            // otherwise fall into the numeric branch below, where
+            // parseFloat(String(null)) ('parseFloat("null")') is NaN and
+            // silently poisons the running sum -- skip it entirely, the same
+            // way a group with no matching leaf record at all is excluded.
+            if (val === null || val === undefined) {
+              this.sawNull = true;
+              if (
+                record.__currencyColumn &&
+                record[record.__currencyColumn as string]
+              ) {
+                this.currencySet.add(
+                  String(record[record.__currencyColumn as string]),
+                );
+              }
+              return;
+            }
+            this.sawValue = true;
+            if (Number.isNaN(Number(val))) {
+              this.sum = val;
             } else {
-              this.sum += parseFloat(String(record[attr]));
+              this.sum += parseFloat(String(val));
             }
             if (
               record.__currencyColumn &&
@@ -317,7 +614,9 @@ const baseAggregatorTemplates = {
             }
           },
           value() {
-            return this.sum;
+            // An all-NULL scope has no measured value; keep it blank rather
+            // than rendering the 0 the running sum starts from.
+            return isAllNullScope(this) ? null : this.sum;
           },
           getCurrencies() {
             return Array.from(this.currencySet);
@@ -331,17 +630,29 @@ const baseAggregatorTemplates = {
 
   extremes(mode: string, formatter = usFmt) {
     return function ([attr]: string[]) {
-      return function (data: any) {
+      return function () {
         return {
           val: null as any,
           currencySet: new Set<string>(),
-          sorter: getSort(
-            typeof data !== 'undefined' ? data.sorters : null,
-            attr,
-          ),
           push(record: PivotRecord) {
             const x = record[attr];
             if (['min', 'max'].includes(mode)) {
+              // A metric's own value can be a real SQL NULL. Number(null)
+              // coerces to 0, not NaN, so it would otherwise compete with
+              // genuine values as if it were an actual zero -- skip it
+              // entirely, the same way a group with no matching leaf record
+              // at all is excluded.
+              if (x === null || x === undefined) {
+                if (
+                  record.__currencyColumn &&
+                  record[record.__currencyColumn as string]
+                ) {
+                  this.currencySet.add(
+                    String(record[record.__currencyColumn as string]),
+                  );
+                }
+                return;
+              }
               const coercedValue = Number(x);
               if (Number.isNaN(coercedValue)) {
                 this.val =
@@ -357,21 +668,9 @@ const baseAggregatorTemplates = {
                   this.val !== null ? this.val : coercedValue,
                 );
               }
-            } else if (
-              mode === 'first' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) <= 0
-            ) {
-              this.val = x;
-            } else if (
-              mode === 'last' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) >= 0
-            ) {
+            } else if (mode === 'first') {
+              this.val = this.val === null ? x : this.val;
+            } else if (mode === 'last') {
               this.val = x;
             }
             if (
@@ -390,6 +689,9 @@ const baseAggregatorTemplates = {
             return Array.from(this.currencySet);
           },
           format(x: any) {
+            if (x === null || x === undefined) {
+              return '';
+            }
             if (typeof x === 'number') {
               return formatter(x);
             }
@@ -410,6 +712,22 @@ const baseAggregatorTemplates = {
           currencySet: new Set<string>(),
           push(record: PivotRecord) {
             const val = record[attr];
+            // A metric's own value can be a real SQL NULL (e.g. AVG over an
+            // empty group). JS coerces `Number(null)` to 0, which would
+            // silently count a missing group as a real zero instead of
+            // excluding it from the median -- skip it entirely, the same way
+            // a group with no matching leaf record at all is excluded.
+            if (val === null || val === undefined) {
+              if (
+                record.__currencyColumn &&
+                record[record.__currencyColumn as string]
+              ) {
+                this.currencySet.add(
+                  String(record[record.__currencyColumn as string]),
+                );
+              }
+              return;
+            }
             const x = Number(val);
 
             if (Number.isNaN(x)) {
@@ -470,6 +788,24 @@ const baseAggregatorTemplates = {
           strValue: null as string | null,
           currencySet: new Set<string>(),
           push(record: PivotRecord) {
+            // A metric's own value can be a real SQL NULL (e.g. AVG over an
+            // empty group). JS coerces `Number(null)` to 0, which would
+            // silently count a missing group as a real zero in the mean/
+            // variance/stdev instead of excluding it -- skip it entirely, the
+            // same way a group with no matching leaf record at all is
+            // excluded, rather than routing it through the NaN/string branch
+            // below (a real SQL NULL is not a string value to display either).
+            if (record[attr] === null || record[attr] === undefined) {
+              if (
+                record.__currencyColumn &&
+                record[record.__currencyColumn as string]
+              ) {
+                this.currencySet.add(
+                  String(record[record.__currencyColumn as string]),
+                );
+              }
+              return;
+            }
             const x = Number(record[attr]);
             if (Number.isNaN(x)) {
               this.strValue =
@@ -509,9 +845,13 @@ const baseAggregatorTemplates = {
 
             if (mode === 'mean') {
               if (this.n === 0) {
-                return 0 / 0;
+                return null;
               }
               return this.m;
+            }
+            // Every input was NULL (or the scope is empty): blank, not 0.
+            if (this.n === 0) {
+              return null;
             }
             if (this.n <= ddof) {
               return 0;
@@ -584,20 +924,170 @@ const baseAggregatorTemplates = {
             type
           ],
           inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
+          // The metric this cell belongs to, and which axis carries it (see the
+          // "Metric" pseudo-dimension in PivotTableChart). With multiple
+          // metrics, the axis holding the metric is never actually empty, so
+          // collapsing it to `[]` (as the `selector` above does) would route
+          // every metric's lookup to the same shared total slot -- see
+          // `processRecord`'s "Metric-collapse totals". Keeping the metric's
+          // own key segment instead routes the lookup to the per-metric total
+          // that's already correctly split out. Updated on every push (not
+          // just the first) to stay in sync with `inner`, which likewise
+          // reflects the last-pushed record for a shared Total/corner slot --
+          // otherwise the numerator (last metric) and the denominator lookup
+          // (first metric's axis) could point at two different metrics.
+          metricAxis: undefined as
+            | { axis: 'row' | 'col'; value: string }
+            | null
+            | undefined,
           push(record: PivotRecord) {
+            const metricDim = record.__metricKey as unknown as
+              | string
+              | undefined;
+            const cols = data.props.cols as string[] | undefined;
+            const rows = data.props.rows as string[] | undefined;
+            if (metricDim && cols?.includes(metricDim)) {
+              this.metricAxis = {
+                axis: 'col',
+                value: String(record[metricDim]),
+              };
+            } else if (metricDim && rows?.includes(metricDim)) {
+              this.metricAxis = {
+                axis: 'row',
+                value: String(record[metricDim]),
+              };
+            } else {
+              this.metricAxis = null;
+            }
             this.inner.push(record);
           },
           format: fmtNonString(formatter),
           value() {
-            const acc = data
-              .getAggregator(...Array.from(this.selector || []))
-              .inner.value();
+            return this.fraction(false);
+          },
+          // Mirrors `value()` but reads the wrapped aggregators' `sortValue()`
+          // when they expose one, so a mixed-metric slot (blank when
+          // displayed) still orders by the value it would otherwise carry.
+          sortValue() {
+            return this.fraction(true);
+          },
+          fraction(forSort: boolean) {
+            const read = (agg: Aggregator) =>
+              forSort && agg.sortValue ? agg.sortValue() : agg.value();
+            // `buildGroupbyCombinations` requests the denominator's rollup
+            // level whenever a percent `showValuesAs` is selected, but fall
+            // back to `null` (rendered blank) instead of throwing if it is
+            // ever missing -- e.g. a denominator aggregator with no matching
+            // rows in the response.
+            let [selRow, selCol] = (this.selector || [[], []]) as [
+              string[],
+              string[],
+            ];
+            // `type`'s selector (above) collapses one or both axes to `[]`,
+            // meaning "sum across everything on that axis". When Metric
+            // itself lives on the collapsed axis, "everything" would mean
+            // "every metric", silently adding unlike units together (e.g.
+            // SUM and MAX in the same denominator) -- substitute the
+            // metric's own key back in so the lookup stays scoped to this
+            // cell's own metric, the same way it's already scoped to this
+            // cell's own row/column. This applies to 'row'/'col' just as
+            // much as 'total': a row-fraction denominator still needs to
+            // stay within one metric, not sum across the metrics sharing
+            // that row.
+            let metricSubstituted: 'row' | 'col' | undefined;
+            if (this.metricAxis) {
+              if (this.metricAxis.axis === 'col' && selCol.length === 0) {
+                selCol = [this.metricAxis.value];
+                metricSubstituted = 'col';
+              } else if (
+                this.metricAxis.axis === 'row' &&
+                selRow.length === 0
+              ) {
+                selRow = [this.metricAxis.value];
+                metricSubstituted = 'row';
+              }
+            }
+            // A metric-substituted lookup must go straight to the per-metric
+            // maps (`rowMetricTotals`/`colMetricTotals` for 'total',
+            // `rowGroupMetricTotals`/`colGroupMetricTotals` for 'row'/'col'),
+            // never through the generic keyed tree below: the tree's flat
+            // keys aren't namespaced by dimension, so a real category value
+            // that happens to equal the metric's own name (e.g. a "sales"
+            // metric alongside a "sales" category) flattens to the same key
+            // as the substituted metric address and would silently return
+            // that category's subtotal instead of the metric's total.
+            // `processRecord` (the DB-precomputed path `showValuesAs` drives)
+            // populates these same maps itself -- see its "Metric-collapse
+            // totals" section -- so they resolve there too, not just under
+            // `processResultRecord`'s result-aggregation reducer.
+            let denominatorAggregator: FractionDenominator | undefined;
+            if (metricSubstituted === 'col') {
+              denominatorAggregator =
+                selRow.length === 0
+                  ? data.colMetricTotals[this.metricAxis!.value]
+                  : data.rowGroupMetricTotals[flatKey(selRow)]?.[
+                      this.metricAxis!.value
+                    ];
+            } else if (metricSubstituted === 'row') {
+              denominatorAggregator =
+                selCol.length === 0
+                  ? data.rowMetricTotals[this.metricAxis!.value]
+                  : data.colGroupMetricTotals[flatKey(selCol)]?.[
+                      this.metricAxis!.value
+                    ];
+            } else {
+              denominatorAggregator = data.getAggregator(selRow, selCol);
+            }
+            if (!denominatorAggregator || !denominatorAggregator.inner) {
+              return null;
+            }
+
+            // A DB-computed rollup value can legitimately be a real SQL NULL
+            // (e.g. AVG over an empty group), and a mixed-metric slot's
+            // `inner.value()` is null by construction (see `cellValue`).
+            // Check this before looking at the denominator at all: the
+            // denominator's own `typeof acc === 'string'` branch below
+            // returns immediately for a string-valued metric (e.g. a
+            // MAX()/MIN() on a text column), which would otherwise leak that
+            // unrelated metric's raw string past a numerator that should stay
+            // blank. `null / acc` also coerces to `0` in JS, which would
+            // render a measured "0.0%" for a value that should stay blank,
+            // same as it does in "Actual values" mode.
+            const numerator = read(this.inner);
+            if (numerator === null || isAllNullScope(this.inner)) {
+              return null;
+            }
+            // Mirrors the denominator's own `typeof acc === 'string'` branch
+            // below: a string-valued numerator (e.g. MAX()/MIN() on a text
+            // column) has no ratio to compute either, and `numerator / acc`
+            // would otherwise coerce it through JS's numeric coercion rather
+            // than render it as-is.
+            if (typeof numerator === 'string') {
+              return numerator;
+            }
+
+            const acc = read(denominatorAggregator.inner);
 
             if (typeof acc === 'string') {
               return acc;
             }
+            // A `null` denominator (e.g. a DB-computed total that is itself
+            // null) coerces to `0` under `/`, producing `Infinity`/`NaN`
+            // instead of the blank the null/missing-denominator contract
+            // above already establishes.
+            if (acc === null || isAllNullScope(denominatorAggregator.inner)) {
+              return null;
+            }
+            // A literal zero denominator (e.g. a row that nets to zero on a
+            // signed metric) would otherwise produce Infinity/NaN under `/`.
+            // The backend's equivalent (`_apply_show_values_as` in
+            // client_processing.py) blanks this same case by replacing a
+            // zero denominator with NaN before dividing; match that here.
+            if (acc === 0) {
+              return null;
+            }
 
-            return this.inner.value() / acc;
+            return numerator / acc;
           },
           getCurrencies() {
             return this.inner.getCurrencies ? this.inner.getCurrencies() : [];
@@ -649,6 +1139,16 @@ const aggregatorTemplates = {
   ...baseAggregatorTemplates,
   ...extendedAggregatorTemplates,
 };
+
+// Maps the pivot's "Show values as" control (see ../types.ts's
+// ShowValuesAsEnum) to fractionOf's `type` parameter. `undefined`/'actual'
+// means "no wrapping" and isn't listed here.
+const FRACTION_TYPE_BY_SHOW_VALUES_AS: Record<string, 'total' | 'row' | 'col'> =
+  {
+    percent_total: 'total',
+    percent_row: 'row',
+    percent_col: 'col',
+  };
 
 // default aggregators & renderers use US naming and number formatting
 const aggregators = (tpl => ({
@@ -761,11 +1261,6 @@ const derivers = {
   },
 };
 
-// Given an array of attribute values, convert to a key that
-// can be used in objects.
-const flatKey = (attrVals: string[]): string =>
-  attrVals.join(String.fromCharCode(0));
-
 /*
 Data Model class
 */
@@ -773,6 +1268,11 @@ Data Model class
 class PivotData {
   props: Record<string, unknown>;
   aggregator: (...args: unknown[]) => Aggregator;
+  // A true leaf cell (see `processResultRecord`) always holds one metric's
+  // own DB-computed value -- unlike `aggregator`, this never becomes a
+  // result-aggregation reducer, so a leaf record renders verbatim instead of
+  // being folded through e.g. "Count" into 1.
+  leafAggregator: (...args: unknown[]) => Aggregator;
   formattedAggregators:
     | Record<string, Record<string, (...args: unknown[]) => Aggregator>>
     | false;
@@ -781,9 +1281,42 @@ class PivotData {
   colKeys: string[][];
   rowTotals: Record<string, Aggregator>;
   colTotals: Record<string, Aggregator>;
-  allTotal: Aggregator;
+  // Result aggregation only (see `processResultRecord`): a per-metric total
+  // for the Metric pseudo-dimension, collapsing every other dimension on its
+  // axis, kept independently of `subtotals.rowEnabled`/`colEnabled` and of
+  // where Metric happens to sit in `rows`/`cols`. `fractionOf`'s "... as
+  // Fraction of ..." denominators need this scope whenever a chart has 2+
+  // metrics, whether or not the corresponding subtotal is actually rendered.
+  rowMetricTotals: Record<string, Aggregator>;
+  colMetricTotals: Record<string, Aggregator>;
+  // Same idea as `rowMetricTotals`/`colMetricTotals`, but scoped to one
+  // specific row/column group as well as the metric, for the 'row'/'col'
+  // (not 'total') fraction types: a row-fraction denominator with Metric on
+  // columns needs "this row, this metric, every column sharing it" -- a
+  // scope the depth-gated tree only has when column subtotals happen to be
+  // on. Keyed by the row's/column's own flat key, then by metric value.
+  rowGroupMetricTotals: Record<string, Record<string, Aggregator>>;
+  colGroupMetricTotals: Record<string, Record<string, Aggregator>>;
+  allTotal: Aggregator | null;
   subtotals: SubtotalOptions;
   sorted: boolean;
+  // Result aggregation only: how many records map to each full-depth
+  // (row, col) address, keyed the same way as `tree` (row flat key, then
+  // col flat key). Reaching full row/col depth does NOT by itself mean a
+  // true single-record leaf -- any attribute absent from `rows`/`cols`
+  // (e.g. a `store` dimension) can still collapse several records into the
+  // same address, and those need the result-aggregation reducer applied
+  // across them exactly like a subtotal does. Computed once up front so
+  // `processResultRecord` can tell the two cases apart before it has seen
+  // every record.
+  leafRecordCounts: Record<string, Record<string, number>>;
+  // Whether the active result aggregation is one of the "... as Fraction of
+  // ..." choices. Those never "reduce" a leaf's records into a summary stat
+  // -- they divide a scope's own sum/count by another scope's (row/col/
+  // total) via `fractionOf`'s cross-lookup -- so, unlike every other result
+  // aggregation, they must run at leaf cells too, never fall back to
+  // `leafAggregator`'s raw DB passthrough.
+  isFractionResult: boolean;
 
   static forEachRecord: (
     input: unknown,
@@ -805,46 +1338,183 @@ class PivotData {
       'PivotData',
     );
 
-    const aggregatorsFactory = this.props.aggregatorsFactory as (
-      fmt: unknown,
-    ) => Record<string, (vals: unknown) => (...args: unknown[]) => Aggregator>;
-    const aggregatorName = this.props.aggregatorName as string;
     const vals = this.props.vals as string[];
-    this.aggregator = aggregatorsFactory(this.props.defaultFormatter)[
-      aggregatorName
-    ](vals);
-    this.formattedAggregators = this.props.customFormatters
-      ? Object.entries(
-          this.props.customFormatters as Record<
-            string,
-            Record<string, unknown>
-          >,
-        ).reduce(
-          (
-            acc: Record<
+    // Result aggregation (see resultAggregation.ts): a second aggregation pass
+    // over a metric's own grouped results (e.g. the median of a set of
+    // per-store SUM(sales) values), restoring the pre-SIP-216 "Aggregation
+    // function" choice, computed correctly this time -- `processResultRecord`
+    // below feeds each scope its own original contributing leaf records,
+    // never another scope's already-computed output. `aggregators` already
+    // has a real template for every choice (it's the same dict the
+    // pre-SIP-216 pivot table used); wrap whichever one is selected so a
+    // shared Total/corner slot that ends up seeing more than one metric (see
+    // `makeMixedMetricTracker`) blanks instead of quietly mixing them.
+    const resultAggregation = getResultAggregation(
+      this.props.aggregateFunction,
+    );
+    // `showValuesAs`'s control is hidden once a result aggregation is active
+    // (see controlPanel.tsx) because a result aggregation has its own
+    // "... as Fraction of ..." choices and takes over the computation
+    // entirely -- but hiding the control doesn't reset its stored value, so
+    // a percent choice selected before switching to e.g. "Average" stays in
+    // `this.props.showValuesAs`. Gate `fractionType` on `resultAggregation`
+    // being unset so that stale value can't leak in: left ungated, a leaf
+    // cell would wrap in `fractionOf` and look up a denominator built from
+    // the (non-fraction) result aggregator, which has no `.inner`, and
+    // render blank instead of its actual value.
+    const fractionType = resultAggregation
+      ? undefined
+      : FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
+    const defaultFormat =
+      (this.props.defaultFormatter as Formatter | undefined) ?? usFmt;
+    const resultFactory = resultAggregation
+      ? (...args: unknown[]): Aggregator => {
+          const build = aggregators[resultAggregation] as (
+            v: string[],
+          ) => (...a: unknown[]) => Aggregator;
+          const inner = build(vals)(...args);
+          const innerValue = inner.value.bind(inner);
+          const innerPush = inner.push.bind(inner);
+          const tracker = makeMixedMetricTracker();
+          let mixed = false;
+          return {
+            ...inner,
+            // The summary templates bake in a fixed US formatter; use the
+            // chart's own format so leaves and summaries match.
+            ...(isFractionResultAggregation(resultAggregation)
+              ? {}
+              : { format: fmtNonString(defaultFormat) }),
+            push(record: PivotRecord) {
+              mixed = tracker.sawMixedMetric(record);
+              innerPush(record);
+            },
+            value() {
+              return mixed ? null : innerValue();
+            },
+            sortValue() {
+              return innerValue();
+            },
+          };
+        }
+      : undefined;
+    // Values come pre-aggregated from the database (one query per rollup level),
+    // so the pivot stores them verbatim via `cellValue` instead of aggregating.
+    // When "Show values as" a fraction is active, wrap that passthrough with
+    // the same fractionOf template the pre-SIP-216 "Sum as Fraction of ..."
+    // aggregators used: it divides a cell's own value by the value at the
+    // requested scope (row/column/grand total), each of which is itself one
+    // of these uniformly-wrapped aggregators, so `fractionOf`'s cross-lookup
+    // (`data.getAggregator(...).inner.value()`) resolves correctly no matter
+    // which scope it's called for -- including the totals dividing by
+    // themselves to read 100%. This needs no new query and no per-metric
+    // aggregator-override control (that control is gone, see SIP.md); it's a
+    // pure display transform over values that are already DB-correct.
+    const plainAggregator = fractionType
+      ? aggregatorTemplates.fractionOf(
+          cellValue(),
+          fractionType,
+          usFmtPct,
+        )(vals)
+      : cellValue(this.props.defaultFormatter as Formatter)(vals);
+    this.aggregator = resultFactory ?? plainAggregator;
+    // A result aggregation reduces the *rollup* scopes (subtotals, row/col
+    // totals, the grand total) over a metric's own leaf-level results -- it
+    // never reduces the leaf cells themselves (see resultAggregation.ts), so
+    // `leafAggregator` stays this plain, DB-verbatim aggregator even when
+    // `this.aggregator` above is a reducer.
+    this.leafAggregator = plainAggregator;
+    this.isFractionResult = isFractionResultAggregation(resultAggregation);
+    // Percentage display always uses a fixed percent format -- a per-metric
+    // custom formatter (currency, decimals, etc.) doesn't apply to a ratio,
+    // so the " as Fraction of " result aggregations (like `fractionType`)
+    // keep the unformatted default. The other result aggregations (Median,
+    // Sum, ...) re-aggregate a metric's own values and should keep that
+    // metric's configured formatter -- reuse `this.aggregator` (already the
+    // correct, mixed-metric-aware reducer for the active mode) and swap only
+    // its `format`, rather than building a second, differently-reduced
+    // aggregator from `cellValue` that would drop the result aggregation
+    // entirely for any custom-formatted metric.
+    const buildCustomFormattedAggregator = (
+      formatter: Formatter,
+    ): ((...args: unknown[]) => Aggregator) => {
+      if (!resultFactory) {
+        return cellValue(formatter)(vals);
+      }
+      if (isFractionResultAggregation(resultAggregation)) {
+        // Fraction result aggregations always render their own percentage;
+        // a per-metric custom formatter doesn't apply, the same as
+        // `fractionType` above -- keep the default, unformatted reducer.
+        return (...args: unknown[]): Aggregator => this.aggregator(...args);
+      }
+      return (...args: unknown[]): Aggregator => ({
+        ...this.aggregator(...args),
+        format: fmtNonString(formatter),
+      });
+    };
+    this.formattedAggregators =
+      !fractionType && this.props.customFormatters
+        ? Object.entries(
+            this.props.customFormatters as Record<
               string,
-              Record<string, (...args: unknown[]) => Aggregator>
+              Record<string, unknown>
             >,
-            [key, columnFormatter],
-          ) => {
-            acc[key] = {};
-            Object.entries(columnFormatter).forEach(([column, formatter]) => {
-              acc[key][column] =
-                aggregatorsFactory(formatter)[aggregatorName](vals);
-            });
-            return acc;
-          },
-          {},
-        )
-      : false;
+          ).reduce(
+            (
+              acc: Record<
+                string,
+                Record<string, (...args: unknown[]) => Aggregator>
+              >,
+              [key, columnFormatter],
+            ) => {
+              acc[key] = {};
+              Object.entries(columnFormatter).forEach(([column, formatter]) => {
+                acc[key][column] = buildCustomFormattedAggregator(
+                  formatter as Formatter,
+                );
+              });
+              return acc;
+            },
+            {},
+          )
+        : false;
     this.tree = {};
     this.rowKeys = [];
     this.colKeys = [];
     this.rowTotals = {};
     this.colTotals = {};
-    this.allTotal = this.aggregator(this, [], []);
+    // Created lazily by pushAllTotal() on the first record that lands in it, so
+    // it resolves its formatter through getFormattedAggregator like every other
+    // slot.
+    this.allTotal = null;
+    // Object.create(null): metricValue is a user-controlled metric name, and
+    // a metric literally named "constructor" or "__proto__" would otherwise
+    // collide with Object.prototype instead of indexing a fresh aggregator.
+    this.rowMetricTotals = Object.create(null);
+    this.colMetricTotals = Object.create(null);
+    this.rowGroupMetricTotals = Object.create(null);
+    this.colGroupMetricTotals = Object.create(null);
     this.subtotals = subtotals;
     this.sorted = false;
+    // See `leafRecordCounts` above: only needed for result aggregation, and
+    // only cheap to get right by counting up front, since `processRecord`
+    // below sees records one at a time and can't yet know whether its own
+    // full-depth address will end up shared by a later record.
+    this.leafRecordCounts = Object.create(null);
+    if (resultFactory) {
+      const rows = this.props.rows as string[];
+      const cols = this.props.cols as string[];
+      (this.props.data as PivotRecord[]).forEach(record => {
+        const rowKey = flatKey(
+          rows.map(key => String(key in record ? record[key] : 'null')),
+        );
+        const colKey = flatKey(
+          cols.map(key => String(key in record ? record[key] : 'null')),
+        );
+        this.leafRecordCounts[rowKey] ??= Object.create(null);
+        this.leafRecordCounts[rowKey][colKey] =
+          (this.leafRecordCounts[rowKey][colKey] ?? 0) + 1;
+      });
+    }
 
     // iterate through input, accumulating data for cells
     PivotData.forEachRecord(this.props.data, this.processRecord);
@@ -867,6 +1537,63 @@ class PivotData {
       return this.aggregator;
     }
     return fmtAggs[groupName][String(groupValue)] || this.aggregator;
+  }
+
+  /*
+   * Push a record into the grand-total slot, building that slot's aggregator
+   * from the first record that reaches it.
+   *
+   * The grand total has no key of its own, so -- exactly like rowTotals and
+   * colTotals -- its aggregator is derived from the records that reach it rather
+   * than fixed up front. Building it in the constructor from `this.aggregator`
+   * (as this used to) pinned it to `defaultFormatter`, so a metric configured
+   * with a currency or custom d3 format had its total render as a bare number
+   * while its body cells rendered as money.
+   *
+   * The slot is never rebuilt: every later record, from any metric, pushes into
+   * the same aggregator so `cellValue`'s `push()` can detect a cross-metric
+   * mismatch and blank the total rather than render the last metric's value.
+   */
+  pushAllTotal(record: PivotRecord): void {
+    // Only the first record's formatter builds the slot. Every later record,
+    // from any metric, pushes into the same aggregator so `cellValue`'s
+    // `push()` can detect a cross-metric mismatch and blank the total instead
+    // of rendering whichever metric happened to be pushed last.
+    if (!this.allTotal) {
+      this.allTotal = this.getFormattedAggregator(record)(this, [], []);
+    }
+    this.allTotal.push(record);
+  }
+
+  /**
+   * Leaf-cell counterpart to `getFormattedAggregator`, for the true leaf
+   * scope in `processResultRecord` (both axes at full depth): resolves the
+   * same `customFormatters` match, but against `leafAggregator`/a verbatim
+   * `cellValue`, never `this.aggregator`'s result-aggregation reducer.
+   */
+  getLeafAggregator(record: PivotRecord, totalsKeys?: string[]) {
+    const customFormatters = this.props.customFormatters as
+      | Record<string, Record<string, Formatter>>
+      | undefined;
+    if (!customFormatters) {
+      return this.leafAggregator;
+    }
+    const [groupName, groupValue] =
+      Object.entries(record).find(
+        ([name, value]) =>
+          customFormatters[name] && customFormatters[name][String(value)],
+      ) || [];
+    if (
+      !groupName ||
+      !groupValue ||
+      (totalsKeys && !totalsKeys.includes(String(groupValue)))
+    ) {
+      return this.leafAggregator;
+    }
+    const formatter = customFormatters[groupName][String(groupValue)];
+    return formatter
+      ? cellValue(formatter)(this.props.vals as string[])
+      : this.leafAggregator;
   }
 
   arrSort(attrs: string[], partialOnTop: boolean | undefined, reverse = false) {
@@ -897,7 +1624,12 @@ class PivotData {
       this.sorted = true;
       const rows = this.props.rows as string[];
       const cols = this.props.cols as string[];
-      const v = (r: string[], c: string[]) => this.getAggregator(r, c).value();
+      const sortValueOf = (agg: Aggregator) =>
+        agg.sortValue ? agg.sortValue() : agg.value();
+      const vr = (r: string[], c: string[]) =>
+        sortValueOf(this.getAggregator(r, c));
+      const vc = (c: string[], r: string[]) =>
+        sortValueOf(this.getAggregator(r, c));
       switch (this.props.rowOrder) {
         case 'key_z_to_a':
           this.rowKeys.sort(
@@ -905,10 +1637,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.rowKeys.sort((a, b) => naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.rowKeys.sort((a, b) => -naturalSort(v(a, []), v(b, [])));
+          groupingValueSort(
+            this.rowKeys,
+            vr,
+            this.subtotals.rowPartialOnTop,
+            false,
+          );
           break;
         default:
           this.rowKeys.sort(this.arrSort(rows, this.subtotals.rowPartialOnTop));
@@ -920,10 +1662,20 @@ class PivotData {
           );
           break;
         case 'value_a_to_z':
-          this.colKeys.sort((a, b) => naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            true,
+          );
           break;
         case 'value_z_to_a':
-          this.colKeys.sort((a, b) => -naturalSort(v([], a), v([], b)));
+          groupingValueSort(
+            this.colKeys,
+            vc,
+            this.subtotals.colPartialOnTop,
+            false,
+          );
           break;
         default:
           this.colKeys.sort(this.arrSort(cols, this.subtotals.colPartialOnTop));
@@ -941,77 +1693,300 @@ class PivotData {
     return this.rowKeys;
   }
 
+  /**
+   * Result aggregation (see resultAggregation.ts): unlike `processRecord`
+   * below, which places each DB-precomputed record into exactly one rollup
+   * slot, every leaf record here is fed directly to every scope it
+   * contributes to -- one cell, one subtotal per enabled row/column depth,
+   * and the grand total -- so each aggregator reduces real original results,
+   * never another aggregator's already-computed value.
+   */
+  processResultRecord(record: PivotRecord): void {
+    const rows = this.props.rows as string[];
+    const cols = this.props.cols as string[];
+    const rowKey = rows.map(key =>
+      String(key in record ? record[key] : 'null'),
+    );
+    const colKey = cols.map(key =>
+      String(key in record ? record[key] : 'null'),
+    );
+    // Depth 0 is the fully collapsed (grand total/opposite-axis) scope;
+    // depth === length is the leaf; anything between is a subtotal, included
+    // only when that axis's subtotals are enabled. Computed before the
+    // metric-scope block below so `rowGroupMetricTotals`/`colGroupMetricTotals`
+    // can be recorded at every depth a subtotal denominator might need, not
+    // just the leaf.
+    const rowDepths = [
+      0,
+      ...rows
+        .map((_, i) => i + 1)
+        .filter(depth => depth === rows.length || this.subtotals.rowEnabled),
+    ];
+    const colDepths = [
+      0,
+      ...cols
+        .map((_, i) => i + 1)
+        .filter(depth => depth === cols.length || this.subtotals.colEnabled),
+    ];
+    // A per-metric total (see `rowMetricTotals`/`colMetricTotals`), needed by
+    // "... as Fraction of ..." result aggregations independently of whether
+    // the corresponding subtotal is enabled, and of where the Metric
+    // pseudo-dimension sits in `rows`/`cols` (`combineMetric` can place it
+    // first or last): keyed purely by the metric's own value, not by depth,
+    // so it doesn't matter which position it collapses from.
+    const metricDim = record.__metricKey as unknown as string | undefined;
+    if (metricDim) {
+      const colMetricIndex = cols.indexOf(metricDim);
+      if (colMetricIndex !== -1) {
+        const metricValue = colKey[colMetricIndex];
+        this.colMetricTotals[metricValue] ??= this.getFormattedAggregator(
+          record,
+        )(this, [], [metricValue]);
+        this.colMetricTotals[metricValue].push(record);
+
+        // Row+metric scope: this record's own row, just this metric, across
+        // every column that shares it -- the 'row' fraction type's
+        // denominator when Metric sits on columns. Independent of
+        // `subtotals.colEnabled`, unlike the depth-gated tree. Recorded at
+        // every enabled row depth (not just the leaf) so a row subtotal's
+        // own (shorter) prefix key finds a denominator too, instead of only
+        // the full leaf-level row ever getting an entry.
+        rowDepths.forEach(ri => {
+          const rowPrefix = rowKey.slice(0, ri);
+          const flatRk = flatKey(rowPrefix);
+          this.rowGroupMetricTotals[flatRk] ??= Object.create(null);
+          this.rowGroupMetricTotals[flatRk][metricValue] ??=
+            this.getFormattedAggregator(record)(this, rowPrefix, [metricValue]);
+          this.rowGroupMetricTotals[flatRk][metricValue].push(record);
+        });
+      }
+      const rowMetricIndex = rows.indexOf(metricDim);
+      if (rowMetricIndex !== -1) {
+        const metricValue = rowKey[rowMetricIndex];
+        this.rowMetricTotals[metricValue] ??= this.getFormattedAggregator(
+          record,
+        )(this, [metricValue], []);
+        this.rowMetricTotals[metricValue].push(record);
+
+        // Col+metric scope: the mirror of the above for the 'col' fraction
+        // type when Metric sits on rows instead, recorded at every enabled
+        // column depth for the same subtotal-prefix reason.
+        colDepths.forEach(ci => {
+          const colPrefix = colKey.slice(0, ci);
+          const flatCk = flatKey(colPrefix);
+          this.colGroupMetricTotals[flatCk] ??= Object.create(null);
+          this.colGroupMetricTotals[flatCk][metricValue] ??=
+            this.getFormattedAggregator(record)(this, [metricValue], colPrefix);
+          this.colGroupMetricTotals[flatCk][metricValue].push(record);
+        });
+      }
+    }
+    rowDepths.forEach(ri =>
+      colDepths.forEach(ci => {
+        if (ri === 0 && ci === 0) {
+          this.pushAllTotal(record);
+          return;
+        }
+        const r = rowKey.slice(0, ri);
+        const c = colKey.slice(0, ci);
+        const rk = flatKey(r);
+        const ck = flatKey(c);
+        let target: Record<string, Aggregator>;
+        let key: string;
+        if (ci === 0) {
+          target = this.rowTotals;
+          key = rk;
+          if (!target[key]) this.rowKeys.push(r);
+        } else if (ri === 0) {
+          target = this.colTotals;
+          key = ck;
+          if (!target[key]) this.colKeys.push(c);
+        } else {
+          this.tree[rk] ??= {};
+          target = this.tree[rk];
+          key = ck;
+        }
+        // Both axes at full depth AND exactly one record shares this
+        // address: a true leaf, which must keep that record's own
+        // DB-computed value, never a result-aggregation reducer applied to
+        // a one-item set (see `leafAggregator`/`getLeafAggregator`). Full
+        // depth alone isn't enough -- see `leafRecordCounts`. Fraction
+        // result aggregations are never leaf-passthrough eligible -- see
+        // `isFractionResult`.
+        const isLeafScope =
+          !this.isFractionResult &&
+          ri === rows.length &&
+          ci === cols.length &&
+          this.leafRecordCounts[rk]?.[ck] === 1;
+        target[key] ??= (
+          isLeafScope
+            ? this.getLeafAggregator(
+                record,
+                ci === 0 ? r : ri === 0 ? c : undefined,
+              )
+            : this.getFormattedAggregator(
+                record,
+                ci === 0 ? r : ri === 0 ? c : undefined,
+              )
+        )(this, r, c);
+        target[key].push(record);
+        target[key].isRowSubtotal = ri > 0 && ri < rows.length;
+        target[key].isColSubtotal = ci > 0 && ci < cols.length;
+        target[key].isSubtotal =
+          target[key].isRowSubtotal || target[key].isColSubtotal;
+      }),
+    );
+  }
+
   processRecord(record: PivotRecord): void {
-    // this code is called in a tight loop
+    if (getResultAggregation(this.props.aggregateFunction)) {
+      this.processResultRecord(record);
+      return;
+    }
+    // this code is called in a tight loop.
+    // Each record is tagged (in PivotTableChart) with `__rows`/`__columns`:
+    // the dimension labels of the rollup level that produced it. The database
+    // has already aggregated that level, so we place the value into exactly
+    // one slot and store it verbatim (no re-aggregation). A key shorter than
+    // the full dimension list identifies a subtotal level. Records without
+    // tags (e.g. direct unit-test construction) fall back to the full
+    // dimension lists, i.e. they are treated as leaf rows. The `__` prefix
+    // keeps these rollup tags from colliding with a real dataset column
+    // named `rows`/`columns`.
+    const recordRows = (record.__rows as unknown as string[]) ?? null;
+    const recordColumns = (record.__columns as unknown as string[]) ?? null;
+    const levelRows = recordRows ?? (this.props.rows as string[]);
+    const levelColumns = recordColumns ?? (this.props.cols as string[]);
+
     const colKey: string[] = [];
     const rowKey: string[] = [];
-    (this.props.cols as string[]).forEach((col: string) => {
+    levelColumns.forEach((col: string) => {
       colKey.push(col in record ? String(record[col]) : 'null');
     });
-    (this.props.rows as string[]).forEach((row: string) => {
+    levelRows.forEach((row: string) => {
       rowKey.push(row in record ? String(record[row]) : 'null');
     });
 
-    this.allTotal.push(record);
+    const flatRowKey = flatKey(rowKey);
+    const flatColKey = flatKey(colKey);
 
-    const rowStart = this.subtotals.rowEnabled ? 1 : Math.max(1, rowKey.length);
-    const colStart = this.subtotals.colEnabled ? 1 : Math.max(1, colKey.length);
+    const isColSubtotal = colKey.length < (this.props.cols as string[]).length;
+    const isRowSubtotal = rowKey.length < (this.props.rows as string[]).length;
 
-    let isRowSubtotal;
-    let isColSubtotal;
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
-      if (!this.rowTotals[flatRowKey]) {
-        this.rowKeys.push(fRowKey);
-        this.rowTotals[flatRowKey] = this.getFormattedAggregator(
-          record,
-          rowKey,
-        )(this, fRowKey, []);
+    // Register/create the column-total slot the first time this colKey is seen.
+    if (colKey.length > 0 && !this.colTotals[flatColKey]) {
+      if (!isColSubtotal || this.subtotals.colEnabled) {
+        this.colKeys.push(colKey);
       }
-      this.rowTotals[flatRowKey].push(record);
-      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+      this.colTotals[flatColKey] = this.getFormattedAggregator(record, colKey)(
+        this,
+        [],
+        colKey,
+      );
     }
-
-    for (let ci = colStart; ci <= colKey.length; ci += 1) {
-      isColSubtotal = ci < colKey.length;
-      const fColKey = colKey.slice(0, ci);
-      const flatColKey = flatKey(fColKey);
-      if (!this.colTotals[flatColKey]) {
-        this.colKeys.push(fColKey);
-        this.colTotals[flatColKey] = this.getFormattedAggregator(
-          record,
-          colKey,
-        )(this, [], fColKey);
+    // Register/create the row-total slot the first time this rowKey is seen.
+    if (rowKey.length > 0 && !this.rowTotals[flatRowKey]) {
+      if (!isRowSubtotal || this.subtotals.rowEnabled) {
+        this.rowKeys.push(rowKey);
       }
-      this.colTotals[flatColKey].push(record);
-      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+      this.rowTotals[flatRowKey] = this.getFormattedAggregator(record, rowKey)(
+        this,
+        rowKey,
+        [],
+      );
     }
-
-    // And now fill in for all the sub-cells.
-    for (let ri = rowStart; ri <= rowKey.length; ri += 1) {
-      isRowSubtotal = ri < rowKey.length;
-      const fRowKey = rowKey.slice(0, ri);
-      const flatRowKey = flatKey(fRowKey);
+    // Create the body-cell slot.
+    if (rowKey.length > 0 && colKey.length > 0) {
       if (!this.tree[flatRowKey]) {
         this.tree[flatRowKey] = {};
       }
-      for (let ci = colStart; ci <= colKey.length; ci += 1) {
-        isColSubtotal = ci < colKey.length;
-        const fColKey = colKey.slice(0, ci);
-        const flatColKey = flatKey(fColKey);
-        if (!this.tree[flatRowKey][flatColKey]) {
-          this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(
-            record,
-          )(this, fRowKey, fColKey);
-        }
-        this.tree[flatRowKey][flatColKey].push(record);
+      if (!this.tree[flatRowKey][flatColKey]) {
+        this.tree[flatRowKey][flatColKey] = this.getFormattedAggregator(record)(
+          this,
+          rowKey,
+          colKey,
+        );
+      }
+    }
 
-        this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
-        this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
-        this.tree[flatRowKey][flatColKey].isSubtotal =
-          isRowSubtotal || isColSubtotal;
+    // Place the value in exactly one slot, determined by the level.
+    if (rowKey.length === 0 && colKey.length === 0) {
+      this.pushAllTotal(record);
+    } else if (rowKey.length === 0) {
+      this.colTotals[flatColKey].push(record);
+      this.colTotals[flatColKey].isSubtotal = isColSubtotal;
+    } else if (colKey.length === 0) {
+      this.rowTotals[flatRowKey].push(record);
+      this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+    } else {
+      this.tree[flatRowKey][flatColKey].push(record);
+      this.tree[flatRowKey][flatColKey].isRowSubtotal = isRowSubtotal;
+      this.tree[flatRowKey][flatColKey].isColSubtotal = isColSubtotal;
+      this.tree[flatRowKey][flatColKey].isSubtotal =
+        isRowSubtotal || isColSubtotal;
+    }
+
+    // Metric-collapse totals. The metric is a pseudo-dimension always present on
+    // one axis, so no rollup level produces an empty key on that axis -- which
+    // would leave the opposite "Total" axis and the grand-total corner empty.
+    // When a record's axis holds only the metric (no real dims there), its value
+    // is also the collapsed total for that axis, so mirror it into rowTotals /
+    // colTotals / allTotal. For a single metric this equals the metric column.
+    // For multiple metrics, more than one record lands in the same slot; a
+    // cross-metric total (e.g. MAX(sales) combined with MEDIAN(msrp)) has no
+    // single meaningful value, so `cellValue`'s `push()` detects the mismatch
+    // and renders that slot blank rather than showing whichever metric was
+    // pushed last.
+    const metricKey = record.__metricKey as unknown as string | undefined;
+    if (metricKey) {
+      const colMetricIndex = levelColumns.indexOf(metricKey);
+      const rowMetricIndex = levelRows.indexOf(metricKey);
+      const realColCount = levelColumns.filter(c => c !== metricKey).length;
+      const realRowCount = levelRows.filter(r => r !== metricKey).length;
+      if (colMetricIndex !== -1 && realColCount === 0) {
+        if (rowKey.length === 0) this.pushAllTotal(record);
+        else this.rowTotals[flatRowKey]?.push(record);
+        // This record's column axis holds only the metric (no other real col
+        // dims at this rollup level), so its value is also this metric's own
+        // total for whatever the row axis currently is: the pure grand total
+        // (`colMetricTotals`, `rowKey` empty) or this metric's own total for
+        // this particular row/row-subtotal (`rowGroupMetricTotals`, keyed by
+        // the row depth this record was tagged at). `fractionOf`'s
+        // metric-substituted lookup (above) reads these so a percent_total
+        // or percent_row denominator never has to mix this metric's value
+        // with another's, or fall back to a flat-keyed tree lookup that a
+        // same-named category could collide with.
+        const metricValue = colKey[colMetricIndex];
+        if (rowKey.length === 0) {
+          this.colMetricTotals[metricValue] ??= this.getFormattedAggregator(
+            record,
+            [metricValue],
+          )(this, [], [metricValue]);
+          this.colMetricTotals[metricValue].push(record);
+        } else {
+          this.rowGroupMetricTotals[flatRowKey] ??= Object.create(null);
+          this.rowGroupMetricTotals[flatRowKey][metricValue] ??=
+            this.getFormattedAggregator(record)(this, rowKey, [metricValue]);
+          this.rowGroupMetricTotals[flatRowKey][metricValue].push(record);
+        }
+      }
+      if (rowMetricIndex !== -1 && realRowCount === 0) {
+        if (colKey.length === 0) this.pushAllTotal(record);
+        else this.colTotals[flatColKey]?.push(record);
+        // Mirror of the column case above, for a metric tagged onto rows.
+        const metricValue = rowKey[rowMetricIndex];
+        if (colKey.length === 0) {
+          this.rowMetricTotals[metricValue] ??= this.getFormattedAggregator(
+            record,
+            [metricValue],
+          )(this, [metricValue], []);
+          this.rowMetricTotals[metricValue].push(record);
+        } else {
+          this.colGroupMetricTotals[flatColKey] ??= Object.create(null);
+          this.colGroupMetricTotals[flatColKey][metricValue] ??=
+            this.getFormattedAggregator(record)(this, [metricValue], colKey);
+          this.colGroupMetricTotals[flatColKey][metricValue].push(record);
+        }
       }
     }
   }
@@ -1027,10 +2002,20 @@ class PivotData {
     } else if (colKey.length === 0) {
       agg = this.rowTotals[flatRowKey];
     } else {
-      agg = this.tree[flatRowKey][flatColKey];
+      // `flatRowKey` isn't guaranteed to be a populated tree row: a caller
+      // (e.g. `fractionOf`'s per-metric denominator lookup) can construct a
+      // row/column key that was never created, most commonly when the
+      // corresponding axis's subtotals are off. Optional-chain rather than
+      // indexing straight into `this.tree[flatRowKey]` so a sparse lookup
+      // falls through to the "not found" stub below instead of throwing.
+      agg = this.tree[flatRowKey]?.[flatColKey];
     }
     return (
       agg || {
+        // Blank cell: no record ever reached this slot. `push` is a no-op so
+        // this satisfies `Aggregator` -- the slot being unset is only observable
+        // through value()/format().
+        push() {},
         value() {
           return null;
         },
@@ -1055,11 +2040,9 @@ PivotData.forEachRecord = function (
 };
 
 PivotData.defaultProps = {
-  aggregators,
   cols: [],
   rows: [],
   vals: [],
-  aggregatorName: 'Count',
   sorters: {},
   rowOrder: 'key_a_to_z',
   colOrder: 'key_a_to_z',
@@ -1068,7 +2051,6 @@ PivotData.defaultProps = {
 PivotData.propTypes = {
   data: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.func])
     .isRequired,
-  aggregatorName: PropTypes.string,
   cols: PropTypes.arrayOf(PropTypes.string),
   rows: PropTypes.arrayOf(PropTypes.string),
   vals: PropTypes.arrayOf(PropTypes.string),

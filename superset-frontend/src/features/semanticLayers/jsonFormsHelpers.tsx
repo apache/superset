@@ -16,22 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
-import { Spin, Select, Form } from 'antd';
+import { FormItem, Select } from '@superset-ui/core/components';
+import { Spin } from '@superset-ui/core/components/Spin';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
   UISchemaElement,
   ControlProps,
 } from '@jsonforms/core';
-import {
-  rankWith,
-  and,
-  isStringControl,
-  formatIs,
-  schemaMatches,
-} from '@jsonforms/core';
+import { rankWith, and, isStringControl, schemaMatches } from '@jsonforms/core';
 import {
   rendererRegistryEntries,
   TextControl,
@@ -39,33 +35,114 @@ import {
 
 export const SCHEMA_REFRESH_DEBOUNCE_MS = 500;
 
-/**
- * Custom renderer that renders `Input.Password` for fields with
- * `format: "password"` in the JSON Schema (e.g. Pydantic `SecretStr`).
- */
-function PasswordControl(props: ControlProps) {
+/** Check the envelope only; cryptographic validation belongs to the provider. */
+export function hasPemBoundaries(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^\s*-----BEGIN ((?:ENCRYPTED |RSA |EC )?PRIVATE KEY)-----[\s\S]+-----END \1-----\s*$/.test(
+      value,
+    )
+  );
+}
+
+/** Only collapse a nullable password, not a genuine choice of auth methods. */
+function nullablePasswordSchema(schema: JsonSchema): JsonSchema | undefined {
+  return schema.anyOf?.length === 2 &&
+    schema.anyOf.some(branch => branch.type === 'null')
+    ? schema.anyOf.find(
+        branch => branch.type === 'string' && branch.format === 'password',
+      )
+    : undefined;
+}
+
+/** Render schema help, nullable passwords and explicitly marked PEM text areas. */
+function SchemaTextControl(props: ControlProps) {
+  const nullablePassword = nullablePasswordSchema(props.schema);
+  const schema = {
+    ...props.schema,
+    ...nullablePassword,
+  } as JsonSchema & {
+    'x-input-type'?: string;
+    examples?: string[];
+  };
+  const pem = schema['x-input-type'] === 'pem';
+  // A saved-secret sentinel is not a newly entered, incomplete PEM value.
+  const missingBoundaries =
+    pem &&
+    typeof props.data === 'string' &&
+    props.data !== '' &&
+    props.data !== 'XXXXXXXXXX' &&
+    !hasPemBoundaries(props.data);
   const uischema = {
     ...props.uischema,
+    formItemProps: {
+      extra: schema.description,
+      ...(
+        props.uischema as UISchemaElement & {
+          formItemProps?: Record<string, unknown>;
+        }
+      ).formItemProps,
+      ...(missingBoundaries
+        ? {
+            help: t('Include matching BEGIN and END private key lines.'),
+            validateStatus: 'error',
+          }
+        : {}),
+    },
     options: {
+      placeholderText: schema.examples?.[0],
       ...props.uischema.options,
-      type: 'password',
+      // The description is visible below the field, not repeated in a tooltip.
+      tooltip: undefined,
+      type: pem
+        ? 'multiline'
+        : schema.format === 'password'
+          ? 'password'
+          : props.uischema.options?.type,
       inputProps: {
         ...((props.uischema.options?.inputProps as Record<string, unknown>) ??
           {}),
         // Prevent browsers from autofilling stored login passwords into
         // service-token fields. 'new-password' is respected even when
         // 'off' is ignored (Chrome ≥ 34).
-        autoComplete: 'new-password',
+        autoComplete: schema.format === 'password' ? 'new-password' : 'off',
+        ...(pem ? { rows: 4, spellCheck: false } : {}),
       },
     },
   };
-  return TextControl({ ...props, uischema });
+  return (
+    <TextControl
+      {...props}
+      data={nullablePassword ? (props.data ?? '') : props.data}
+      schema={schema}
+      uischema={uischema}
+    />
+  );
 }
-const PasswordRenderer = withJsonFormsControlProps(PasswordControl);
-const passwordEntry = {
-  tester: rankWith(3, and(isStringControl, formatIs('password'))),
-  renderer: PasswordRenderer,
+const SchemaTextRenderer = withJsonFormsControlProps(SchemaTextControl);
+const textEntry = {
+  tester: rankWith(3, isStringControl),
+  renderer: SchemaTextRenderer,
 };
+const nullablePasswordEntry = {
+  tester: rankWith(
+    6,
+    schemaMatches(schema => !!nullablePasswordSchema(schema)),
+  ),
+  renderer: SchemaTextRenderer,
+};
+
+/**
+ * Value equality for default/const backfill guards. Reference equality is
+ * not enough: an object or array default (e.g. ``default: []``) gets a new
+ * identity from JSON Forms on every change cycle, so a reference comparison
+ * would call ``handleChange`` forever ("Maximum update depth exceeded").
+ * Deep equality (rather than serialized comparison) keeps the guard
+ * insensitive to object key order.
+ */
+function valuesEqual(a: unknown, b: unknown): boolean {
+  return a === b || isEqual(a, b);
+}
 
 /**
  * Renderer for `const` properties (e.g. Pydantic discriminator fields).
@@ -75,7 +152,7 @@ const passwordEntry = {
 function ConstControl({ data, handleChange, path, schema }: ControlProps) {
   const constValue = (schema as Record<string, unknown>).const;
   useEffect(() => {
-    if (constValue !== undefined && data !== constValue) {
+    if (constValue !== undefined && !valuesEqual(data, constValue)) {
       handleChange(path, constValue);
     }
   }, [constValue, data, handleChange, path]);
@@ -111,7 +188,7 @@ function ReadOnlyControl({
     (schema as Record<string, unknown>).const ??
     (schema as Record<string, unknown>).default;
   useEffect(() => {
-    if (defaultValue !== undefined && data !== defaultValue) {
+    if (defaultValue !== undefined && !valuesEqual(data, defaultValue)) {
       handleChange(path, defaultValue);
     }
   }, [defaultValue, data, handleChange, path]);
@@ -170,21 +247,92 @@ export function areDependenciesSatisfied(
  * Renderer for fields marked `x-dynamic` in the JSON Schema.
  * Shows a loading spinner inside the input while the schema is being
  * refreshed with dynamic values from the backend.
+ *
+ * Enum-typed fields (e.g. the Snowflake ``schema`` dropdown) get an explicit
+ * wrapped Select so the ``loading``/``disabled`` props work natively — wrapping
+ * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
-function DynamicFieldControl(props: ControlProps) {
-  const { refreshingSchema, formData: cfgData } = props.config ?? {};
-  const deps = (props.schema as Record<string, unknown>)?.['x-dependsOn'];
+export function DynamicFieldControl(props: ControlProps) {
+  const {
+    refreshingSchema,
+    staleSchemaOptions,
+    formData: cfgData,
+  } = props.config ?? {};
+  const schema = props.schema as Record<string, unknown>;
+  const deps = schema?.['x-dependsOn'];
   const refreshing =
-    refreshingSchema &&
+    !!refreshingSchema &&
     Array.isArray(deps) &&
     areDependenciesSatisfied(
       deps as string[],
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
+  // A field is never stale because of its own value: a self-dependent field
+  // (e.g. MetricFlow's mode picker) must stay selectable to satisfy itself.
+  const fieldName: string = props.path.split('.').pop() ?? props.path;
+  const stale =
+    !!staleSchemaOptions &&
+    Array.isArray(deps) &&
+    (deps as string[]).some(dep => dep !== fieldName);
+
+  const enumValues = Array.isArray(schema.enum)
+    ? (schema.enum as unknown[])
+    : undefined;
+  // Honour ``x-enumNames`` when present so labels can differ from values
+  // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
+  const enumNames = Array.isArray(schema['x-enumNames'])
+    ? (schema['x-enumNames'] as unknown[])
+    : undefined;
+  // Memoized so a re-render without an enum change (every host-form
+  // keystroke passes a fresh ``config`` to all controls) does not rebuild
+  // the full option list. No manual sort: the wrapped Select alphabetises
+  // options by label itself, so the backend's undefined set order is fine.
+  const options = useMemo(
+    () =>
+      (enumValues ?? []).map((value, index) => ({
+        value: value as string | number,
+        label:
+          enumNames?.[index] !== undefined
+            ? String(enumNames[index])
+            : String(value),
+      })),
+    [enumValues, enumNames],
+  );
+
+  if (enumValues && enumValues.length > 0) {
+    const placeholder = (props.uischema?.options as Record<string, unknown>)
+      ?.placeholderText as string | undefined;
+    return (
+      <FormItem
+        label={props.label}
+        extra={props.schema.description}
+        required={props.required}
+      >
+        <Select
+          ariaLabel={props.label || undefined}
+          value={(props.data as string | number | undefined) ?? undefined}
+          onChange={value => props.handleChange(props.path, value)}
+          options={options}
+          // Disabling closes the menu without discarding a still-valid value.
+          disabled={!props.enabled || stale}
+          loading={refreshing}
+          allowClear
+          placeholder={refreshing ? t('Loading...') : placeholder}
+        />
+      </FormItem>
+    );
+  }
 
   if (!refreshing) {
-    return TextControl(props);
+    // Keep a suffix mounted: toggling it remounts the input and drops focus.
+    const options = {
+      ...props.uischema.options,
+      inputProps: { suffix: <span /> },
+    };
+    return (
+      <SchemaTextControl {...props} uischema={{ ...props.uischema, options }} />
+    );
   }
 
   const uischema = {
@@ -195,12 +343,16 @@ function DynamicFieldControl(props: ControlProps) {
       inputProps: { suffix: <Spin size="small" /> },
     },
   };
-  return TextControl({ ...props, uischema, enabled: false });
+  return <SchemaTextControl {...props} uischema={uischema} />;
 }
 const DynamicFieldRenderer = withJsonFormsControlProps(DynamicFieldControl);
 const dynamicFieldEntry = {
+  // Rank 6 so we beat ``@great-expectations`` ``EnumControl`` (rank 4) — when
+  // a field is both ``x-dynamic`` and has an ``enum`` (e.g. the Snowflake
+  // ``schema`` dropdown), the plain EnumControl would otherwise win and
+  // bypass our loading / dependency-clearing behavior entirely.
   tester: rankWith(
-    3,
+    6,
     and(
       isStringControl,
       schemaMatches(
@@ -213,7 +365,7 @@ const dynamicFieldEntry = {
 
 /**
  * Renderer for fields that carry an ``x-enumNames`` array alongside their
- * ``enum`` values.  Renders as an Antd Select showing human-readable labels
+ * ``enum`` values.  Renders as a wrapped Select showing human-readable labels
  * (from ``x-enumNames``) while storing the underlying enum values in form
  * data.  Used for MetricFlow's integer-ID fields (account, project,
  * environment) where the backend provides both IDs and display names.
@@ -221,25 +373,31 @@ const dynamicFieldEntry = {
 function EnumNamesControl(props: ControlProps) {
   const { refreshingSchema } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
-  const enumValues = (schema.enum as unknown[]) ?? [];
+  // ``?? undefined`` (not a fresh fallback array) keeps the memo deps
+  // stable across renders; fallbacks live inside the memo.
+  const enumValues = (schema.enum as unknown[] | undefined) ?? undefined;
   const enumNames =
-    (schema['x-enumNames'] as string[]) ?? enumValues.map(String);
+    (schema['x-enumNames'] as string[] | undefined) ?? undefined;
 
-  const options = enumValues.map((value, index) => ({
-    value,
-    label: enumNames[index] ?? String(value),
-  }));
+  const options = useMemo(
+    () =>
+      (enumValues ?? []).map((value, index) => ({
+        value: value as string | number,
+        label: enumNames?.[index] ?? String(value),
+      })),
+    [enumValues, enumNames],
+  );
 
   const tooltip = (props.uischema?.options as Record<string, unknown>)
     ?.tooltip as string | undefined;
 
   return (
-    <Form.Item label={props.label} tooltip={tooltip}>
+    <FormItem label={props.label} tooltip={tooltip}>
       <Select
-        value={props.data ?? null}
+        ariaLabel={props.label || undefined}
+        value={props.data ?? undefined}
         onChange={value => props.handleChange(props.path, value)}
         options={options}
-        style={{ width: '100%' }}
         disabled={!props.enabled}
         allowClear
         loading={!!refreshingSchema}
@@ -248,31 +406,157 @@ function EnumNamesControl(props: ControlProps) {
             ?.placeholderText as string | undefined
         }
       />
-    </Form.Item>
+    </FormItem>
   );
 }
 const EnumNamesRenderer = withJsonFormsControlProps(EnumNamesControl);
-const enumNamesEntry = {
+export const enumNamesEntry = {
   // Rank 5: higher than the default string renderer (2–3) so this fires
   // whenever x-enumNames is present, regardless of the underlying type.
+  // Array-of-enum schemas are handled by ``multiEnumEntry`` below — this
+  // renderer only targets scalar string/number controls.
   tester: rankWith(
     5,
-    schemaMatches(s => {
-      const names = (s as Record<string, unknown>)['x-enumNames'];
-      return Array.isArray(names) && (names as unknown[]).length > 0;
-    }),
+    and(
+      schemaMatches(s => {
+        const names = (s as Record<string, unknown>)['x-enumNames'];
+        return Array.isArray(names) && (names as unknown[]).length > 0;
+      }),
+      schemaMatches(s => (s as Record<string, unknown>)?.type !== 'array'),
+    ),
   ),
   renderer: EnumNamesRenderer,
 };
 
+/**
+ * Renderer for ``{type: 'array', items: {enum: [...]}}`` schemas.  Renders
+ * a single wrapped Select with ``mode="multiple"`` (tag-style multi-select),
+ * matching the natural expectation of a "pick several from a list" control.
+ *
+ * Without this, the default ``PrimitiveArrayControl`` from the upstream
+ * library renders an "Add …" button that creates one single-select per
+ * element — visually wrong for an enum multi-select and unable to display
+ * ``items.x-enumNames`` labels.
+ *
+ * The renderer is dynamic-aware: when the host form is refreshing the
+ * schema (e.g. compatible options narrowing as the user picks), the Select
+ * shows a loading indicator without becoming disabled, so the user can
+ * continue editing while options refresh.
+ */
+export function MultiEnumControl(props: ControlProps) {
+  const { refreshingSchema } = props.config ?? {};
+  const arraySchema = props.schema as Record<string, unknown>;
+  const itemsSchema =
+    (arraySchema.items as Record<string, unknown>) ??
+    ({} as Record<string, unknown>);
+
+  // No fallback allocations out here: a fresh ``[]`` per render would give
+  // the memo new deps every time. Fallbacks live inside the memo.
+  const enumValues = Array.isArray(itemsSchema.enum)
+    ? (itemsSchema.enum as unknown[])
+    : undefined;
+  const enumNames = Array.isArray(itemsSchema['x-enumNames'])
+    ? (itemsSchema['x-enumNames'] as string[])
+    : undefined;
+
+  // Memoized: the host form passes a fresh ``config`` to every control on
+  // each change, so without the memo a catalog of N options is rebuilt on
+  // every one of the user's M selections (O(N·M)).
+  const options = useMemo(
+    () =>
+      (enumValues ?? []).map((value, index) => ({
+        value: value as string | number,
+        label: enumNames?.[index] ?? String(value),
+      })),
+    [enumValues, enumNames],
+  );
+
+  const value = Array.isArray(props.data) ? (props.data as unknown[]) : [];
+
+  const tooltip = (props.uischema?.options as Record<string, unknown>)
+    ?.tooltip as string | undefined;
+
+  return (
+    <FormItem label={props.label} tooltip={tooltip}>
+      <Select
+        ariaLabel={props.label || undefined}
+        mode="multiple"
+        value={value as (string | number)[]}
+        onChange={next => props.handleChange(props.path, next)}
+        options={options}
+        disabled={!props.enabled}
+        loading={!!refreshingSchema}
+        allowClear
+        // Stability fix only: the wrapped Select's bulk select-all/clear
+        // affordance is out of scope for this control (sc-107832).
+        allowSelectAll={false}
+        optionFilterProps={['label']}
+        placeholder={
+          (props.uischema?.options as Record<string, unknown>)
+            ?.placeholderText as string | undefined
+        }
+      />
+    </FormItem>
+  );
+}
+const MultiEnumRenderer = withJsonFormsControlProps(MultiEnumControl);
+export const multiEnumEntry = {
+  // Rank 35: must beat upstream ``PrimitiveArrayRenderer`` (rank 30) so an
+  // ``array``/``items.enum`` schema renders as one Antd multi-select tag
+  // box instead of the "Add" repeater pattern that PrimitiveArray uses.
+  tester: rankWith(
+    35,
+    schemaMatches(s => {
+      const schema = s as Record<string, unknown>;
+      if (schema?.type !== 'array') return false;
+      const items = schema.items as Record<string, unknown> | undefined;
+      return (
+        !!items &&
+        Array.isArray(items.enum) &&
+        (items.enum as unknown[]).length > 0
+      );
+    }),
+  ),
+  renderer: MultiEnumRenderer,
+};
+
 export const renderers = [
   ...rendererRegistryEntries,
-  passwordEntry,
+  textEntry,
+  nullablePasswordEntry,
   constEntry,
   readOnlyEntry,
   enumNamesEntry,
+  multiEnumEntry,
   dynamicFieldEntry,
 ];
+
+/**
+ * Serializes a value with object keys sorted, so two structurally equal
+ * schemas compare equal regardless of the backend's JSON property order.
+ * Array order is deliberately significant: ``x-propertyOrder`` and enum
+ * ordering can be meaningful, so only key order is canonicalized.
+ */
+export function stableSerialize(value: unknown): string {
+  return (
+    JSON.stringify(value, (_key, val) =>
+      val && typeof val === 'object' && !Array.isArray(val)
+        ? Object.keys(val as Record<string, unknown>)
+            .sort()
+            // Null-prototype accumulator: a plain object would treat a
+            // ``__proto__`` key as a prototype assignment and silently drop
+            // it from the output, hiding a genuine schema difference.
+            .reduce(
+              (acc: Record<string, unknown>, k) => {
+                acc[k] = (val as Record<string, unknown>)[k];
+                return acc;
+              },
+              Object.create(null) as Record<string, unknown>,
+            )
+        : val,
+    ) ?? ''
+  );
+}
 
 /**
  * Removes empty `enum` arrays from schema properties. The JSON Schema spec

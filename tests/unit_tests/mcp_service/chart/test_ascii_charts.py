@@ -15,9 +15,88 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for ascii_charts.py NaN/null value handling."""
+"""Unit tests for ASCII charts: trend analysis, NaN/null handling,
+and boolean skipping."""
 
-from superset.mcp_service.chart.ascii_charts import generate_ascii_chart
+from superset.mcp_service.chart.ascii_charts import (
+    _analyze_trend,
+    _extract_time_series_data,
+    generate_ascii_chart,
+)
+
+
+def test_analyze_trend_temporal_upward():
+    values = [100.0, 110.0, 120.0, 130.0, 150.0]
+    result = _analyze_trend(values, is_temporal=True)
+    trend_line = result[0]
+    assert "upward trend" in trend_line.lower()
+    assert "categorical" not in trend_line.lower()
+
+
+def test_analyze_trend_temporal_downward():
+    values = [200.0, 180.0, 150.0, 120.0, 100.0]
+    result = _analyze_trend(values, is_temporal=True)
+    trend_line = result[0]
+    assert "downward trend" in trend_line.lower()
+
+
+def test_analyze_trend_temporal_stable():
+    values = [100.0, 101.0, 100.5, 100.2, 100.8]
+    result = _analyze_trend(values, is_temporal=True)
+    trend_line = result[0]
+    assert "stable" in trend_line.lower()
+
+
+def test_analyze_trend_categorical_skips_direction():
+    values = [200.0, 180.0, 150.0, 120.0, 100.0]
+    result = _analyze_trend(values, is_temporal=False)
+    trend_line = result[0]
+    assert "categorical" in trend_line.lower()
+    assert "downward" not in trend_line.lower()
+    assert "upward" not in trend_line.lower()
+
+
+def test_analyze_trend_categorical_keeps_range_and_volatility():
+    values = [200.0, 180.0, 150.0, 120.0, 100.0]
+    result = _analyze_trend(values, is_temporal=False)
+    full_text = "\n".join(result)
+    assert "Range:" in full_text
+    assert "Volatility:" in full_text
+
+
+def test_analyze_trend_defaults_to_temporal():
+    values = [100.0, 150.0, 200.0]
+    result = _analyze_trend(values)
+    trend_line = result[0]
+    assert "categorical" not in trend_line.lower()
+    assert "upward trend" in trend_line.lower()
+
+
+def test_extract_time_series_data_temporal_column():
+    data = [
+        {"date": "2024-01-01", "value": 100},
+        {"date": "2024-02-01", "value": 200},
+    ]
+    values, labels, is_temporal = _extract_time_series_data(data)
+    assert values == [100, 200]
+    assert is_temporal is True
+
+
+def test_extract_time_series_data_categorical_column():
+    data = [
+        {"country": "Argentina", "value": 500},
+        {"country": "Brazil", "value": 300},
+    ]
+    values, labels, is_temporal = _extract_time_series_data(data)
+    assert values == [500, 300]
+    assert is_temporal is False
+
+
+def test_extract_time_series_data_time_keyword_variants():
+    for key in ["timestamp", "created_time", "month_name", "day_of_week", "year_end"]:
+        data = [{key: "val", "metric": 42}]
+        _, _, is_temporal = _extract_time_series_data(data)
+        assert is_temporal is True, f"Expected temporal for column '{key}'"
 
 
 def test_bar_chart_with_null_values_does_not_raise() -> None:

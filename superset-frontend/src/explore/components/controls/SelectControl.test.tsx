@@ -23,8 +23,8 @@ import {
   render,
   screen,
   userEvent,
-  within,
 } from 'spec/helpers/testing-library';
+import { isCustomControlItem, sections } from '@superset-ui/chart-controls';
 import SelectControl, {
   innerGetOptions,
   areAllValuesNumbers,
@@ -57,6 +57,11 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+// user-event's default `delay` between simulated events relies on real
+// timers; this file uses `jest.useFakeTimers()`, so disable the delay to
+// avoid interactions hanging until the fake clock is advanced.
+const user = userEvent.setup({ delay: null });
+
 const options = [
   { value: '1 year ago', label: '1 year ago' },
   { value: '1 week ago', label: '1 week ago' },
@@ -84,91 +89,88 @@ describe('SelectControl', () => {
   describe('render', () => {
     test('renders with Select by default', () => {
       renderSelectControl();
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
     });
 
-    test('renders as mode multiple', () => {
+    test('renders as mode multiple', async () => {
       renderSelectControl({ multi: true });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
-      userEvent.click(selectorInput);
+      await user.click(selectorInput);
       expect(screen.getByText('Select all (3)')).toBeInTheDocument();
     });
 
-    test('renders with allowNewOptions when freeForm', () => {
+    test('renders with allowNewOptions when freeForm', async () => {
       renderSelectControl({ freeForm: true });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
       // Expect a new option to be selectable.
-      userEvent.click(selectorInput);
-      userEvent.type(selectorInput, 'a new option');
+      await user.click(selectorInput);
+      await user.type(selectorInput, 'a new option');
       act(() => jest.runAllTimers());
-      expect(within(selectorWrapper).getByRole('option')).toHaveTextContent(
-        'a new option',
-      );
+      // antd v6 renders the dropdown options in a portal outside the
+      // .ant-select wrapper, so query the whole document.
+      expect(screen.getByRole('option')).toHaveTextContent('a new option');
     });
 
-    test('renders with allowNewOptions=false when freeForm=false', () => {
+    test('renders with allowNewOptions=false when freeForm=false', async () => {
       const container = renderSelectControl({ freeForm: false });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
       // Expect no new option to be selectable.
-      userEvent.click(selectorInput);
-      userEvent.type(selectorInput, 'a new option');
+      await user.click(selectorInput);
+      await user.type(selectorInput, 'a new option');
       act(() => jest.advanceTimersByTime(300));
 
       expect(
         container.querySelector('[role="option"]'),
       ).not.toBeInTheDocument();
+      // antd v6 renders the empty-state ("No data") in a portal outside the
+      // .ant-select wrapper, so query the whole document.
       expect(
-        within(selectorWrapper).getByText('No data', { selector: 'div' }),
+        screen.getByText('No data', { selector: 'div' }),
       ).toBeInTheDocument();
     });
 
-    test('renders with tokenSeparators', () => {
+    test('renders with tokenSeparators', async () => {
       renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
-      userEvent.click(selectorInput);
+      await user.click(selectorInput);
       const paste = createEvent.paste(selectorInput, {
         clipboardData: {
           getData: () => '1 year ago;1 week ago',
@@ -414,8 +416,9 @@ describe('SelectControl', () => {
 
       // The SelectControl should receive a sortComparator for numeric values
       // This is tested by verifying the component renders without errors
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
@@ -429,8 +432,9 @@ describe('SelectControl', () => {
       renderSelectControl({ options: numericOptions, choices: undefined });
 
       // The SelectControl should receive a sortComparator for numeric values
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
@@ -444,8 +448,9 @@ describe('SelectControl', () => {
       renderSelectControl({ choices: mixedChoices });
 
       // Should render without errors and not apply numeric sorting
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
@@ -465,10 +470,101 @@ describe('SelectControl', () => {
         sortComparator: explicitComparator,
       });
 
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
   });
+});
+
+// Control-path regression proof for the deck.gl "Legend Position: None" bug:
+// a string sentinel ('none') survives selection through the real Select and
+// reaches onChange unchanged, so it can hide the legend. A null-valued option
+// did not round-trip reliably, which is why the choice value is a sentinel.
+test('selecting a string "none" option round-trips through onChange', async () => {
+  const onChange = jest.fn();
+  render(
+    <SelectControl
+      name="legend_position"
+      label="Legend Position"
+      clearable={false}
+      default="tr"
+      value="tr"
+      choices={[
+        ['none', 'None'],
+        ['tl', 'Top left'],
+        ['tr', 'Top right'],
+        ['bl', 'Bottom left'],
+        ['br', 'Bottom right'],
+      ]}
+      onChange={onChange}
+    />,
+  );
+
+  const selectorInput = screen.getByLabelText('Legend Position', {
+    selector: 'input',
+  });
+  await user.click(selectorInput);
+  act(() => jest.runAllTimers());
+
+  await user.click(screen.getByRole('option', { name: 'None' }));
+  act(() => jest.runAllTimers());
+
+  expect(onChange).toHaveBeenCalledWith('none', expect.anything());
+});
+
+// Renders the real `time_compare` control config from the Advanced Analytics
+// section, so a change to its `multi`/`freeForm` flags is caught here.
+const getTimeCompareConfig = () => {
+  const control = sections.advancedAnalyticsControls.controlSetRows
+    .flat()
+    .filter(isCustomControlItem)
+    .find(item => item.name === 'time_compare');
+  if (!control) {
+    throw new Error('time_compare control not found in advanced analytics');
+  }
+  return control.config;
+};
+
+// rc-select does not reliably pick up userEvent's `{Enter}` under jsdom, so the
+// key events are dispatched directly. rc-select locks Enter after a keydown
+// until the matching keyup, so both events are needed per press.
+const pressEnter = (element: HTMLElement) => {
+  const key = { key: 'Enter', code: 'Enter', keyCode: 13 };
+  fireEvent.keyDown(element, key);
+  fireEvent.keyUp(element, key);
+};
+
+test('time_compare accepts custom free-form time shifts and shows them as tags', async () => {
+  const onChange = jest.fn();
+  // Only the props that drive selection behavior; explore resolves the
+  // config's label/description before they reach SelectControl.
+  const { multi, freeForm, choices } = getTimeCompareConfig();
+  const props = { multi, freeForm, choices, name: 'time_compare', onChange };
+  const { unmount } = render(<SelectControl {...props} />);
+
+  const selectorInput = screen.getByRole('combobox');
+  await user.click(selectorInput);
+  await user.type(selectorInput, '28 days');
+  act(() => jest.runAllTimers());
+  pressEnter(selectorInput);
+  act(() => jest.runAllTimers());
+  await user.type(selectorInput, '1 year');
+  act(() => jest.runAllTimers());
+  pressEnter(selectorInput);
+  act(() => jest.runAllTimers());
+
+  expect(onChange).toHaveBeenLastCalledWith(
+    ['28 days', '1 year'],
+    expect.anything(),
+  );
+
+  // A fresh mount with the emitted value, free of the open dropdown's
+  // duplicate option text, shows each custom shift as a tag.
+  unmount();
+  render(<SelectControl {...props} value={['28 days', '1 year']} />);
+  expect(screen.getByText('28 days')).toBeInTheDocument();
+  expect(screen.getByText('1 year')).toBeInTheDocument();
 });

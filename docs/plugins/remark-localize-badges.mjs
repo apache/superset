@@ -206,12 +206,26 @@ async function downloadBadge(url, staticDir) {
       badgeCache.set(url, webPath);
       return webPath;
     } catch (error) {
-      // Fail the build on badge download failure
-      throw new Error(
-        `[remark-localize-badges] Failed to download badge: ${url}\n` +
-          `Error: ${error.message}\n` +
-          `Build cannot continue with broken badges. Please fix the badge URL or remove it.`,
+      // Soft fallback: keep the original remote URL in the rendered output
+      // so the badge still appears for readers, and the docs build continues.
+      // External badge services (notably img.shields.io) rate-limit CI IPs
+      // aggressively, and a transient fetch failure shouldn't take the whole
+      // docs build down with it. Set REMARK_BADGES_STRICT=true to opt back
+      // into hard-fail-the-build behavior (e.g. for release builds where you
+      // want to catch genuinely broken badge URLs).
+      if (process.env.REMARK_BADGES_STRICT === 'true') {
+        throw new Error(
+          `[remark-localize-badges] Failed to download badge: ${url}\n` +
+            `Error: ${error.message}\n` +
+            `Build cannot continue with broken badges (REMARK_BADGES_STRICT=true).`,
+        );
+      }
+      console.warn(
+        `[remark-localize-badges] Could not localize ${url} ` +
+          `(${error.message}); falling back to remote URL.`,
       );
+      badgeCache.set(url, url);
+      return url;
     } finally {
       // Clean up the in-flight tracker
       inFlightDownloads.delete(url);

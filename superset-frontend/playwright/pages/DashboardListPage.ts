@@ -19,7 +19,8 @@
 
 import { Page, Locator } from '@playwright/test';
 import { Button, Table } from '../components/core';
-import { BulkSelect } from '../components/ListView';
+import { BulkSelect, BulkSelectActionKey } from '../components/ListView';
+import { gotoWithRetry } from '../helpers/navigation';
 import { URL } from '../utils/urls';
 
 /**
@@ -31,13 +32,12 @@ export class DashboardListPage {
   readonly bulkSelect: BulkSelect;
 
   /**
-   * Action button names for getByRole('button', { name })
-   * DashboardList uses Icons.DeleteOutlined, Icons.UploadOutlined, Icons.EditOutlined
+   * Stable data-test keys for the row action buttons in DashboardList.
    */
-  private static readonly ACTION_BUTTONS = {
-    DELETE: 'delete',
-    EDIT: 'edit',
-    EXPORT: 'upload',
+  private static readonly ACTION_TEST_IDS = {
+    DELETE: 'dashboard-row-delete',
+    EDIT: 'dashboard-row-edit',
+    EXPORT: 'dashboard-row-export',
   } as const;
 
   constructor(page: Page) {
@@ -52,7 +52,7 @@ export class DashboardListPage {
    * (ListviewsDefaultCardView feature flag may enable card view).
    */
   async goto(): Promise<void> {
-    await this.page.goto(`${URL.DASHBOARD_LIST}?viewMode=table`);
+    await gotoWithRetry(this.page, `${URL.DASHBOARD_LIST}?viewMode=table`);
   }
 
   /**
@@ -80,9 +80,7 @@ export class DashboardListPage {
    */
   async clickDeleteAction(dashboardName: string): Promise<void> {
     const row = this.table.getRow(dashboardName);
-    await row
-      .getByRole('button', { name: DashboardListPage.ACTION_BUTTONS.DELETE })
-      .click();
+    await row.getByTestId(DashboardListPage.ACTION_TEST_IDS.DELETE).click();
   }
 
   /**
@@ -91,9 +89,7 @@ export class DashboardListPage {
    */
   async clickEditAction(dashboardName: string): Promise<void> {
     const row = this.table.getRow(dashboardName);
-    await row
-      .getByRole('button', { name: DashboardListPage.ACTION_BUTTONS.EDIT })
-      .click();
+    await row.getByTestId(DashboardListPage.ACTION_TEST_IDS.EDIT).click();
   }
 
   /**
@@ -102,9 +98,7 @@ export class DashboardListPage {
    */
   async clickExportAction(dashboardName: string): Promise<void> {
     const row = this.table.getRow(dashboardName);
-    await row
-      .getByRole('button', { name: DashboardListPage.ACTION_BUTTONS.EXPORT })
-      .click();
+    await row.getByTestId(DashboardListPage.ACTION_TEST_IDS.EXPORT).click();
   }
 
   /**
@@ -123,11 +117,11 @@ export class DashboardListPage {
   }
 
   /**
-   * Clicks a bulk action button by name (e.g., "Export", "Delete")
-   * @param actionName - The name of the bulk action to click
+   * Clicks a bulk action button by its stable action key (e.g., "delete", "export").
+   * @param actionKey - The stable key of the bulk action to click
    */
-  async clickBulkAction(actionName: string): Promise<void> {
-    await this.bulkSelect.clickAction(actionName);
+  async clickBulkAction(actionKey: BulkSelectActionKey): Promise<void> {
+    await this.bulkSelect.clickAction(actionKey);
   }
 
   /**

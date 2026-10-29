@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DTTM_ALIAS } from '@superset-ui/core';
-import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
+import { ChartProps, DTTM_ALIAS, getMetricLabel } from '@superset-ui/core';
+import { DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
@@ -26,6 +26,8 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckPathFormData } from './buildQuery';
+import { isFixedValue, getFixedValue } from '../utils/metricUtils';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 declare global {
   interface Window {
@@ -38,16 +40,12 @@ declare global {
   }
 }
 
-export interface DeckPathTransformPropsFormData extends DeckPathFormData {
-  js_data_mutator?: string;
-  js_tooltip?: string;
-  js_onclick_href?: string;
-}
-
 interface PathFeature {
   path: [number, number][];
   metric?: number;
   timestamp?: unknown;
+  width?: number;
+  cat_color?: string;
   extraProps?: Record<string, unknown>;
   [key: string]: unknown;
 }
@@ -90,7 +88,9 @@ function processPathData(
   lineType: 'polyline' | 'json' | 'geohash' = 'json',
   reverseLongLat: boolean = false,
   metricLabel?: string,
-  jsColumns?: string[],
+  widthMetricLabel?: string,
+  fixedWidthValue?: number | string | null,
+  categoryColumn?: string,
 ): PathFeature[] {
   if (!records.length || !lineColumn) {
     return [];
@@ -103,7 +103,8 @@ function processPathData(
       'timestamp',
       DTTM_ALIAS,
       metricLabel,
-      ...(jsColumns || []),
+      widthMetricLabel,
+      categoryColumn,
     ].filter(Boolean) as string[],
   );
 
@@ -130,9 +131,31 @@ function processPathData(
         feature.metric = metricValue;
       }
     }
+    // Set width from metric or fixed value
+    if (fixedWidthValue != null) {
+      // Use fixed width
+      const parsedFixedWidth = parseMetricValue(fixedWidthValue);
+      if (parsedFixedWidth !== undefined) {
+        feature.width = parsedFixedWidth;
+      }
+    } else if (widthMetricLabel && record[widthMetricLabel] != null) {
+      // Use metric value for width
+      const widthValue = parseMetricValue(record[widthMetricLabel]);
+      if (widthValue !== undefined) {
+        feature.width = widthValue;
+      }
+    }
 
-    feature = addJsColumnsToExtraProps(feature, record, jsColumns);
     feature = addPropertiesToFeature(feature, record, excludeKeys);
+
+    // Assigned after the property copy so a column named `cat_color` cannot
+    // overwrite the selected dimension's category.
+    if (categoryColumn) {
+      feature.cat_color =
+        record[categoryColumn] != null
+          ? String(record[categoryColumn])
+          : NULL_CATEGORY_KEY;
+    }
     return feature;
   });
 }
@@ -143,11 +166,36 @@ export default function transformProps(chartProps: ChartProps) {
     line_column,
     line_type = 'json',
     metric,
+    line_width,
+    dimension,
     reverse_long_lat = false,
-    js_columns,
-  } = formData as DeckPathTransformPropsFormData;
+    breakpoint_metric,
+  } = formData as DeckPathFormData;
 
-  const metricLabel = getMetricLabelFromFormData(metric);
+  // Check so legacy values still work
+  const fixedWidthValue =
+    typeof line_width === 'number'
+      ? line_width
+      : isFixedValue(line_width)
+        ? getFixedValue(line_width)
+        : undefined;
+
+  const widthMetricLabel = getMetricLabelFromFormData(line_width);
+
+  const breakpointMetricLabel = breakpoint_metric
+    ? getMetricLabel(breakpoint_metric)
+    : undefined;
+  const baseMetricLabel = getMetricLabelFromFormData(metric);
+  const metricLabel = breakpointMetricLabel || baseMetricLabel;
+
+  // ensure all metric labels are included
+  const metricLabels = [
+    ...(metricLabel ? [metricLabel] : []),
+    ...(widthMetricLabel && widthMetricLabel !== metricLabel
+      ? [widthMetricLabel]
+      : []),
+  ];
+
   const records = getRecordsFromQuery(chartProps.queriesData);
   const features = processPathData(
     records,
@@ -155,12 +203,10 @@ export default function transformProps(chartProps: ChartProps) {
     line_type,
     reverse_long_lat,
     metricLabel,
-    js_columns,
+    widthMetricLabel,
+    fixedWidthValue,
+    dimension,
   ).reverse();
 
-  return createBaseTransformResult(
-    chartProps,
-    features,
-    metricLabel ? [metricLabel] : [],
-  );
+  return createBaseTransformResult(chartProps, features, metricLabels);
 }

@@ -17,15 +17,17 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import {
   SET_REPORT,
   ADD_REPORT,
+  SUBSCRIBE_REPORT,
   EDIT_REPORT,
   DELETE_REPORT,
   ReportAction,
   SetReportAction,
   AddReportAction,
+  SubscribeReportAction,
   EditReportAction,
   DeleteReportAction,
 } from './actions';
@@ -50,14 +52,10 @@ export default function reportsReducer(
     [SET_REPORT]() {
       const { report, resourceId, creationMethod, filterField } =
         action as SetReportAction;
-      // Map filterField ('dashboard_id' or 'chart_id') to the corresponding
-      // ReportObject property ('dashboard' or 'chart')
-      const propertyName =
-        filterField === 'dashboard_id' ? 'dashboard' : 'chart';
       // For now report count should only be one, but we are checking in case
       // functionality changes.
       const reportObject = report.result?.find(
-        (r: ReportObject) => r[propertyName] === resourceId,
+        (r: ReportObject) => r[filterField] === resourceId,
       );
 
       if (reportObject) {
@@ -105,6 +103,25 @@ export default function reportsReducer(
       };
     },
 
+    [SUBSCRIBE_REPORT]() {
+      const { result, id } = (action as SubscribeReportAction).json;
+      const report: ReportObject = { ...result, id } as ReportObject;
+      const creationMethod = report.creation_method as ReportCreationMethod;
+      const key = report.dashboard ?? report.chart;
+
+      if (key === undefined) {
+        return state;
+      }
+
+      return {
+        ...state,
+        [creationMethod]: {
+          ...state[creationMethod],
+          [key]: report,
+        },
+      };
+    },
+
     [EDIT_REPORT]() {
       const actionTyped = action as EditReportAction;
       const report: ReportObject = {
@@ -138,7 +155,11 @@ export default function reportsReducer(
       const key =
         creationMethod === 'alerts_reports'
           ? report.id
-          : (report.dashboard ?? report.chart);
+          : (report.dashboard ??
+            report.chart ??
+            report.dashboard_id ??
+            report.chart_id ??
+            undefined);
 
       if (key === undefined) {
         return state;

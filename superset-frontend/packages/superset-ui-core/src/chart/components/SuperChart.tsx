@@ -48,6 +48,7 @@ import NoResultsComponent from './NoResultsComponent';
 import { isMatrixifyEnabled } from '../types/matrixify';
 import MatrixifyGridRenderer from './Matrixify/MatrixifyGridRenderer';
 import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
+
 export type FallbackPropsWithDimension = FallbackProps & Partial<Dimension>;
 
 export type WrapperProps = Dimension & {

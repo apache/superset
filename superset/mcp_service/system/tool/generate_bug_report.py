@@ -41,6 +41,7 @@ from superset.mcp_service.system.schemas import (
     GenerateBugReportRequest,
     GenerateBugReportResponse,
 )
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
 from superset.utils.version import get_version_metadata
 
 logger = logging.getLogger(__name__)
@@ -187,11 +188,7 @@ def _collect_user_context() -> dict[str, Any]:
         return ctx
 
     ctx["user_id"] = getattr(user, "id", None)
-    raw_roles = getattr(user, "roles", None) or []
-    try:
-        ctx["roles"] = [r.name for r in raw_roles if hasattr(r, "name")]
-    except TypeError:
-        ctx["roles"] = []
+    ctx["roles"] = get_user_role_names(user)
     return ctx
 
 
@@ -212,6 +209,7 @@ def _format_report(
     environment: dict[str, str],
     user_context: dict[str, Any],
     timestamp: str,
+    mcp_call_id: str | None = None,
 ) -> str:
     """Render the final markdown report."""
     lines: list[str] = [
@@ -224,6 +222,10 @@ def _format_report(
         f"- **Platform:** {environment['platform']}",
         f"- **User ID:** {user_context['user_id']}",
         f"- **Roles:** {', '.join(user_context['roles']) or 'none'}",
+    ]
+    if mcp_call_id:
+        lines.append(f"- **MCP Call ID:** {mcp_call_id}")
+    lines += [
         "",
         "## What the user was doing",
         f"- **MCP tool:** {sanitized.get('tool_name') or 'not provided'}",
@@ -256,6 +258,7 @@ def _format_report(
         title="Generate bug report",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_bug_report(
@@ -316,6 +319,7 @@ async def generate_bug_report(
             environment=environment,
             user_context=user_context,
             timestamp=timestamp,
+            mcp_call_id=request.mcp_call_id,
         )
 
     return GenerateBugReportResponse(

@@ -318,22 +318,6 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('Integration with other form data fields', () => {
-    test('should include js_columns in query columns', () => {
-      const formDataWithJsColumns = {
-        ...baseFormData,
-        js_columns: ['custom_col1', 'custom_col2'],
-      };
-
-      const queryContext = buildQuery(formDataWithJsColumns);
-      const [query] = queryContext.queries;
-
-      expect(query.columns).toEqual([
-        'polygon_geom',
-        'custom_col1',
-        'custom_col2',
-      ]);
-    });
-
     test('should include tooltip_contents columns in query', () => {
       const formDataWithTooltips = {
         ...baseFormData,
@@ -363,6 +347,41 @@ describe('Polygon buildQuery', () => {
       expect(query.filters).toEqual([]);
     });
 
+    test('should include cross_filter_column in query columns when set', () => {
+      const formDataWithCrossFilter = {
+        ...baseFormData,
+        cross_filter_column: 'sa3_name',
+      };
+
+      const queryContext = buildQuery(formDataWithCrossFilter);
+      const [query] = queryContext.queries;
+
+      expect(query.columns).toContain('sa3_name');
+    });
+
+    test('should not duplicate cross_filter_column when it overlaps with line_column', () => {
+      const formDataWithOverlap = {
+        ...baseFormData,
+        cross_filter_column: 'polygon_geom',
+      };
+
+      const queryContext = buildQuery(formDataWithOverlap);
+      const [query] = queryContext.queries;
+
+      const geomCount = query.columns?.filter(
+        (col: unknown) => col === 'polygon_geom',
+      ).length;
+      expect(geomCount).toBe(1);
+    });
+
+    test('should not add cross_filter_column to query columns when unset', () => {
+      const queryContext = buildQuery(baseFormData);
+      const [query] = queryContext.queries;
+
+      // Only the geometry column should be present; the control was not set.
+      expect(query.columns).toEqual(['polygon_geom']);
+    });
+
     test('should build comprehensive query when multiple form data fields are specified', () => {
       const complexFormData = {
         ...baseFormData,
@@ -376,7 +395,6 @@ describe('Polygon buildQuery', () => {
             label: 'AVG(elevation)',
           },
         },
-        js_columns: ['custom_prop'],
         tooltip_contents: [
           { item_type: 'column', column_name: 'tooltip_info' },
         ],
@@ -387,7 +405,6 @@ describe('Polygon buildQuery', () => {
       const [query] = queryContext.queries;
 
       expect(query.columns).toContain('polygon_geom');
-      expect(query.columns).toContain('custom_prop');
       expect(query.columns).toContain('tooltip_info');
       expect(query.metrics).toContain('population');
       expect(query.metrics).toContain(complexFormData.point_radius_fixed.value);

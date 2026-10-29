@@ -275,23 +275,30 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
   return (
     <Tooltip
       title={tooltipContent}
-      visible={tooltipVisible}
-      onVisibleChange={setTooltipVisible}
+      open={tooltipVisible}
+      onOpenChange={setTooltipVisible}
       placement="bottom"
-      overlayStyle={{
-        color: theme.colorText,
-        backgroundColor: theme.colorBgContainer,
-        border: `1px solid ${theme.colorBorder}`,
-        boxShadow: theme.boxShadow,
-      }}
-      overlayInnerStyle={{
-        color: theme.colorText,
-        backgroundColor: theme.colorBgContainer,
+      // antd v6: overlayStyle/overlayInnerStyle -> styles.root/styles.container
+      styles={{
+        root: {
+          color: theme.colorText,
+          backgroundColor: theme.colorBgContainer,
+          border: `1px solid ${theme.colorBorder}`,
+          boxShadow: theme.boxShadow,
+        },
+        container: {
+          color: theme.colorText,
+          backgroundColor: theme.colorBgContainer,
+        },
       }}
     >
       <StyledTag
         ref={triggerRef}
         aria-label={t('Display controls (%s)', customizationsCount)}
+        // Tag doesn't support a polymorphic `as` prop, and this element has
+        // no click action of its own (Tooltip attaches its own hover/focus
+        // handlers to it) - tabIndex + role keep it keyboard-discoverable.
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         tabIndex={0}
       >

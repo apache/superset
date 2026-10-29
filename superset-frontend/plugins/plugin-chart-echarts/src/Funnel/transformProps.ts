@@ -44,15 +44,19 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
   sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { Refs } from '../types';
+import { LegendOrientation, Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+
+// horizontal funnel legends need a taller default height than the regular default of 20.
+const DEFAULT_HORIZONTAL_LEGEND_MARGIN = 40;
 
 export function parseParams({
   params,
@@ -98,6 +102,8 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
+    legendState,
+    legendIndex,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const detectedCurrency = queriesData[0]?.detected_currency;
@@ -122,6 +128,7 @@ export default function transformProps(
     inContextMenu,
     showTooltipLabels,
     showLegend,
+    showSelectorLegend,
     sliceId,
     percentCalculationType,
   }: EchartsFunnelFormData = {
@@ -152,7 +159,12 @@ export default function transformProps(
     };
   }, {});
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
@@ -239,20 +251,27 @@ export default function transformProps(
     formatter,
     show: showLabels,
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
   };
   const legendData = keys.sort((a: string, b: string) => {
     if (!legendSort) return 0;
     return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
+  const isHorizontalLegend = [
+    LegendOrientation.Top,
+    LegendOrientation.Bottom,
+  ].includes(legendOrientation);
+  const resolvedLegendMargin =
+    typeof legendMargin !== 'number' && isHorizontalLegend
+      ? DEFAULT_HORIZONTAL_LEGEND_MARGIN
+      : legendMargin;
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
     legendItems: legendData,
-    legendMargin,
+    legendMargin: resolvedLegendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -318,7 +337,11 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series,
@@ -335,6 +358,8 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
     refs,
     coltypeMapping,
   };

@@ -17,44 +17,435 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import or_, select
-from sqlalchemy.orm import Query
+from marshmallow import ValidationError
+from sqlalchemy import inspect as sa_inspect, or_, select
+from sqlalchemy.engine import Row
+from sqlalchemy.orm import lazyload, Query, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm.state import InstanceState
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardForbiddenError,
+    DashboardLayoutInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.dashboards.filter_scope import derive_metadata_scopes
+from superset.dashboards.filters import DashboardAccessFilter
+from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, dashboard_user, id_or_slug_filter
+from superset.models.dashboard import (
+    Dashboard,
+    dashboard_slices,
+    id_or_slug_filter,
+    is_uuid,
+)
 from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
+from superset.utils.filters import is_excluded_by_extra_access
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
 # Custom filterable fields for dashboards
 DASHBOARD_CUSTOM_FIELDS = {
     "tags": ["eq", "in", "like"],
-    "owners": ["eq", "in"],
     "published": ["eq"],
-    "owner": ["eq", "in"],
+    "editor": ["eq", "in"],
     "favorite": ["eq"],
 }
+
+# Keys ``DashboardDAO.set_dash_metadata`` recomputes or overrides itself,
+# rather than passing straight through from the incoming payload: either
+# because they're structurally transformed (positions, filter_scopes,
+# default_filters), reset to a default when absent (color_namespace, the
+# metadata_defaults fields), or always derived and never sent by the
+# frontend (shared_label_colors, map_label_colors, color_scheme_domain).
+# Excluded from the generic merge so that dedicated handling stays
+# authoritative for them.
+_SET_DASH_METADATA_SPECIAL_KEYS = {
+    "positions",
+    "filter_scopes",
+    "default_filters",
+    "color_namespace",
+    "expanded_slices",
+    "refresh_frequency",
+    "color_scheme",
+    "label_colors",
+    "cross_filters_enabled",
+    "shared_label_colors",
+    "map_label_colors",
+    "color_scheme_domain",
+}
+
+
+# User-facing text persisted into a dangling tile's ``position_json`` slot.
+# A plain literal, not ``gettext``: see ``_repair_dangling_chart_nodes``.
+MISSING_CHART_PLACEHOLDER: str = "This chart no longer exists."
+ARCHIVED_CHART_COPY_PLACEHOLDER: str = "This archived chart was not copied."
+
+
+def _layout_chart_id(node: Any) -> int | None:
+    """Return the integer ``chartId`` of a ``CHART`` layout node, else ``None``.
+
+    Mirrors the frontend ``layoutChartId`` — only ``type == "CHART"`` nodes
+    carry a chart reference; everything else (rows, tabs, markdown, headers)
+    returns ``None``.
+
+    Defensive against malformed persisted layout JSON, which is only validated
+    as parseable: a non-dict ``meta`` (e.g. ``"meta": "x"``) or a non-numeric
+    ``chartId`` (e.g. ``"chartId": [1]``) yields ``None`` so the node is ignored
+    rather than raising on a write path. ``chartId == 0`` is returned as a real
+    reference — no ``Slice`` has id 0, so it resolves as absent and is repaired,
+    matching the frontend, which also recognizes 0.
+
+    Numeric *forms* of an id are coerced rather than dropped: legacy, imported,
+    or JSON-round-tripped layouts can carry ``123.0`` (float) or ``"123"``
+    (digit string), which the pre-reconcile code passed straight into
+    ``Slice.id.in_(...)``. Returning ``None`` for those would silently unlink a
+    real chart on the next save (excluded from the membership rebuild) AND
+    skip its repair (no id to resolve) — a permanent orphan tile. An integral
+    float or a digit string is therefore read as its ``int``; a fractional
+    float, a non-digit string, or a ``bool`` is still ``None``.
+    """
+    if not isinstance(node, dict) or node.get("type") != "CHART":
+        return None
+    meta: Any = node.get("meta")
+    if not isinstance(meta, dict):
+        return None
+    chart_id: Any = meta.get("chartId")
+    # ``bool`` is an ``int`` subclass; exclude it so a stray ``true`` is not
+    # misread as chartId 1.
+    if isinstance(chart_id, bool):
+        return None
+    if isinstance(chart_id, int):
+        return chart_id
+    if isinstance(chart_id, float) and chart_id.is_integer():
+        return int(chart_id)
+    if isinstance(chart_id, str) and chart_id.strip().isdecimal():
+        return int(chart_id.strip())
+    return None
+
+
+def _is_empty_chart_slot(node: object) -> bool:
+    """Recognize legacy copy slots with object metadata but no chart reference."""
+    return (
+        isinstance(node, dict)
+        and node.get("type") == "CHART"
+        and isinstance(node.get("meta"), dict)
+        and node["meta"].get("chartId") is None
+    )
+
+
+def _chart_slot_placeholder(node: dict[str, Any], message: str) -> dict[str, Any]:
+    """Preserve slot geometry and tree placement without retaining a chart link."""
+    meta: dict[str, Any] = node.get("meta") or {}
+    return {
+        **node,
+        "type": "MARKDOWN",
+        "meta": {
+            "width": meta.get("width"),
+            "height": meta.get("height"),
+            "code": message,
+        },
+    }
+
+
+def _replace_archived_copy_slots(positions: object, archived_ids: set[int]) -> None:
+    """Replace archived member slots only in the copy-with-charts layout."""
+    key: str
+    node: Any
+    if isinstance(positions, dict):
+        for key, node in positions.items():
+            if _layout_chart_id(node) in archived_ids:
+                positions[key] = _chart_slot_placeholder(
+                    node, ARCHIVED_CHART_COPY_PLACEHOLDER
+                )
+
+
+def _repair_dangling_chart_nodes(
+    positions: dict[str, Any],
+    valid_chart_ids: set[int],
+    dashboard_id: int | None = None,
+) -> int:
+    """Normalize chart IDs and repair topology before replacing dangling tiles.
+
+    Swap every ``CHART`` layout node whose ``chartId`` is absent from
+    *valid_chart_ids* for a markdown placeholder, in place, and return how
+    many were repaired. Empty legacy copy slots (null/missing chart IDs) are
+    repaired too (logging a diagnostic when any were, since this mutates
+    persisted, shared layout data).
+
+    ``position_json`` is a plain column with no coordination against
+    ``dashboard_slices``: a chart hard-deleted while it was a live member
+    leaves a layout node referencing an id that no longer resolves to any
+    ``Slice`` row, and a restore-with-skips reproduces the same divergence
+    (sc-115325). Left alone, such a slot silently accumulates
+    ``meta.uuid = None`` on every save.
+
+    The repair mirrors the frontend ``swapUnreachableChartSlots`` (#41551):
+    keep the node's id, children, and geometry, and replace only ``type`` and
+    ``meta`` so the slot renders the same "chart no longer exists" placeholder
+    the client already shows at render time — persisting it rather than
+    re-deriving it every load. *valid_chart_ids* must be resolved with the
+    soft-delete visibility filter bypassed, so a soft-deleted (recoverable)
+    member is never treated as dangling.
+
+    The placeholder text is a plain literal, not ``gettext``: ``position_json``
+    is persisted, shared data rendered verbatim to every viewer, so translating
+    it to the saving user's request locale would bake one language into content
+    shown to everyone. Per-viewer localization stays the frontend's job (its
+    ``MissingChart`` render path), which is request-scoped.
+    """
+    repaired: int = 0
+    key: str
+    node: Any
+    for key, node in positions.items():
+        chart_id: int | None = _layout_chart_id(node)
+        if chart_id is not None:
+            # Persist canonical IDs for topology deduplication and filter scopes.
+            node["meta"]["chartId"] = chart_id
+        elif _is_empty_chart_slot(node):
+            # Empty copy slots have no chart identity to deduplicate. Preserve
+            # their content through the layout repair's markdown rescue.
+            positions[key] = _chart_slot_placeholder(node, MISSING_CHART_PLACEHOLDER)
+            repaired += 1
+
+    # Deduplicate detached CHART references before replacing missing charts with
+    # markdown, which the topology repair preserves independently of identity.
+    repaired_positions: dict[str, Any] = repair_position(positions, dashboard_id)
+    if repaired_positions is not positions:
+        positions.clear()
+        positions.update(repaired_positions)
+
+    for key, node in positions.items():
+        chart_id = _layout_chart_id(node)
+        if chart_id is not None and chart_id not in valid_chart_ids:
+            positions[key] = _chart_slot_placeholder(node, MISSING_CHART_PLACEHOLDER)
+            repaired += 1
+    if repaired:
+        logger.info(
+            "Repaired %d dangling chart tile(s) in dashboard %s position_json",
+            repaired,
+            dashboard_id,
+        )
+    return repaired
+
+
+def _reject_malformed_chart_nodes(positions: dict[str, Any]) -> None:
+    """Fail closed on a ``CHART`` layout node whose ``chartId`` cannot be
+    resolved, naming the offending slot(s).
+
+    Used only on the path that rebuilds ``dashboard.slices`` wholesale from
+    the layout: there, skipping such a node would silently detach the chart
+    it references. Null/missing IDs in object metadata are empty legacy copy
+    slots instead: the repair step converts them to geometry-preserving markdown.
+    (The pre-reconcile code failed non-null malformed IDs too, with a 500
+    from the bad ``IN`` value; this is the same fail-closed outcome as a clear
+    422.) The repair path leaves malformed nodes untouched instead — it never
+    rebuilds membership, so ignoring is safe there.
+    """
+    malformed: list[str] = [
+        key
+        for key, node in positions.items()
+        if isinstance(node, dict)
+        and node.get("type") == "CHART"
+        and _layout_chart_id(node) is None
+        and not _is_empty_chart_slot(node)
+    ]
+    if malformed:
+        raise DashboardLayoutInvalidError(
+            exceptions=[
+                ValidationError(
+                    "position_json CHART node(s) without a usable chartId: "
+                    + ", ".join(sorted(malformed)),
+                    field_name="json_metadata",
+                )
+            ]
+        )
+
+
+def _existing_chart_ids(chart_ids: set[int]) -> set[int]:
+    """Return chart IDs that exist, including soft-deleted ones.
+
+    Subset of *chart_ids* that resolve to an actual ``Slice`` row,
+    including soft-deleted ones.
+
+    The soft-delete visibility filter is bypassed on purpose: a soft-deleted
+    chart is still a recoverable dashboard member (its ``dashboard_slices``
+    junction row survives), so its layout slot must be preserved, not
+    repaired away.
+    """
+    ids: set[int] = {cid for cid in chart_ids if cid}
+    if not ids:
+        return set()
+    with skip_visibility_filter(db.session, Slice):
+        rows: list[Row[tuple[int]]] = (
+            db.session.query(Slice.id).filter(Slice.id.in_(ids)).all()
+        )
+    return {row[0] for row in rows}
+
+
+def reconcile_position_json(positions: object, dashboard_id: int | None = None) -> int:
+    """Repair dangling ``CHART`` nodes in a raw ``position_json`` layout.
+
+    Collects the layout's chart ids, resolves which still exist (soft-deleted
+    included), and swaps the rest for placeholders via
+    :func:`_repair_dangling_chart_nodes`. Used by the raw ``position_json``
+    PUT path, which — unlike ``set_dash_metadata`` — has no ``uuid_map`` to
+    reuse. Returns the number of nodes repaired.
+    """
+    # ``position_json`` is validated as *parseable JSON*, not as an object, so
+    # a payload like ``"[]"`` or ``"null"`` reaches here as a non-dict. Leave it
+    # untouched (the caller re-serializes it unchanged) rather than raising.
+    if not isinstance(positions, dict):
+        return 0
+    chart_id: int | None
+    chart_ids: set[int] = {
+        chart_id
+        for node in positions.values()
+        if (chart_id := _layout_chart_id(node)) is not None
+    }
+    return _repair_dangling_chart_nodes(
+        positions, _existing_chart_ids(chart_ids), dashboard_id
+    )
+
+
+def _remap_copy_chart_ids(values: list[Any], key_map: dict[str, int]) -> list[int]:
+    """Drop omitted chart references and use clone IDs when applicable."""
+    new_id: int | None
+    return [
+        new_id for value in values if (new_id := key_map.get(str(value))) is not None
+    ]
+
+
+def _prune_copy_layers(values: list[Any], retained_keys: set[str]) -> list[Any]:
+    """Prune chart layer references without discarding opaque layer selectors."""
+    layers: list[Any] = []
+    value: Any
+    match: re.Match[str] | None
+    for value in values:
+        match = (
+            re.match(r"^chart-(\d+)(.*)$", value) if isinstance(value, str) else None
+        )
+        if match is None or match[1] in retained_keys:
+            layers.append(value)
+    return layers
+
+
+def _remap_copy_scope(config: Any, key_map: dict[str, int]) -> None:
+    """Preserve scope structure while pruning its chart references."""
+    if not isinstance(config, dict):
+        return
+    scope: Any = config.get("scope")
+    if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
+        scope["excluded"] = _remap_copy_chart_ids(scope["excluded"], key_map)
+    if isinstance(scope, dict):
+        selected_layers: Any = scope.get("selectedLayers")
+        if isinstance(selected_layers, list):
+            scope["selectedLayers"] = _prune_copy_layers(selected_layers, set(key_map))
+        elif isinstance(selected_layers, dict):
+            scope["selectedLayers"] = {
+                key: selected_layers[key]
+                for key in _prune_copy_layers(list(selected_layers), set(key_map))
+            }
+    if isinstance(config.get("chartsInScope"), list):
+        config["chartsInScope"] = _remap_copy_chart_ids(
+            config["chartsInScope"], key_map
+        )
+
+
+def _copy_chart_metadata(
+    metadata: dict[str, Any], chart_id_map: dict[int, int]
+) -> dict[str, Any]:
+    """Keep chart-specific copy settings only for charts retained in the copy."""
+    original_key_map: dict[str, int] = {
+        str(old): new for old, new in chart_id_map.items()
+    }
+    copied_key_map: dict[str, int] = {str(new): new for new in chart_id_map.values()}
+    # set_dash_metadata has already remapped filter scopes and chart configuration.
+    # Expanded charts and refresh exemptions still reference the original IDs.
+    key_map: dict[str, int]
+    key: str
+    values: Any
+    for key in ("expanded_slices", "chart_configuration"):
+        key_map = original_key_map if key == "expanded_slices" else copied_key_map
+        values = metadata.get(key)
+        if isinstance(values, dict):
+            metadata[key] = {
+                str(key_map[str(old)]): value
+                for old, value in values.items()
+                if str(old) in key_map
+            }
+    values = metadata.get("timed_refresh_immune_slices")
+    if isinstance(values, list):
+        metadata["timed_refresh_immune_slices"] = _remap_copy_chart_ids(
+            values, original_key_map
+        )
+    values = metadata.get("chart_configuration")
+    if isinstance(values, dict):
+        chart_key: str
+        config: Any
+        for chart_key, config in values.items():
+            if isinstance(config, dict):
+                config["id"] = int(chart_key)
+                _remap_copy_scope(config.get("crossFilters"), copied_key_map)
+    _remap_copy_scope(metadata.get("global_chart_configuration"), copied_key_map)
+    for key in ("native_filter_configuration", "chart_customization_config"):
+        values = metadata.get(key)
+        if isinstance(values, list):
+            for config in values:
+                _remap_copy_scope(config, copied_key_map)
+    return metadata
+
+
+def _install_membership_baseline(dashboard: Dashboard) -> None:
+    """Install *dashboard*'s stored chart membership, archived charts
+    included, as the committed state of ``dashboard.slices``.
+
+    Call inside ``skip_visibility_filter``. Only a persistent dashboard has
+    stored membership. Pending changes to the collection must be flushed
+    first: the baseline query autoflushes them, and a caller running under
+    ``no_autoflush`` flushes explicitly (as ``UpdateDashboardCommand`` does).
+    A change still pending is kept, by leaving the collection alone, because
+    installing the baseline would drop it.
+    """
+    state: InstanceState[Dashboard] = sa_inspect(dashboard)
+    if not state.persistent:
+        return
+    baseline: list[Slice] = (
+        db.session.query(Slice)
+        .join(dashboard_slices, dashboard_slices.c.slice_id == Slice.id)
+        .filter(dashboard_slices.c.dashboard_id == dashboard.id)
+        .all()
+    )
+    if state.attrs.slices.history.has_changes():
+        logger.warning(
+            "dashboard id=%s has unflushed chart-list changes; saving it with "
+            "an archived chart may fail",
+            dashboard.id,
+        )
+        return
+    set_committed_value(dashboard, "slices", baseline)
 
 
 class DashboardDAO(BaseDAO[Dashboard]):
@@ -70,9 +461,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle owner and favorite filters via subqueries.
+        """Override to handle editor and favorite filters via subqueries.
 
-        - owner: filters dashboards by owner user ID via dashboard_user M2M table
+        - editor: filters dashboards by editor user ID via dashboard_editors M2M table
         - favorite: filters dashboards by whether the current user has favorited them
         """
         if not column_operators:
@@ -82,26 +473,46 @@ class DashboardDAO(BaseDAO[Dashboard]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owner":
+            if c.col == "editor":
+                from superset.subjects.models import dashboard_editors, Subject
+
                 operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(dashboard_user.c.dashboard_id).where(
-                    operator_enum.apply(dashboard_user.c.user_id, c.value)
+                subq = (
+                    select(dashboard_editors.c.dashboard_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == dashboard_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
                 )
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
-                owner_subq = select(dashboard_user.c.dashboard_id).where(
-                    dashboard_user.c.user_id == c.value
+                from superset.subjects.models import dashboard_editors, Subject
+
+                editor_subq = (
+                    select(dashboard_editors.c.dashboard_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == dashboard_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
                 )
                 query = query.filter(
                     or_(
                         Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
                     )
                 )
             elif c.col == "favorite":
@@ -137,12 +548,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
+            # This branch skips ``base_filter``, so an
+            # ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry -- which reaches the id
+            # branch below through it -- would otherwise leave the same
+            # dashboard absent by id and readable by uuid.
+            if dashboard and is_excluded_by_extra_access("dashboards", dashboard.id):
+                raise DashboardNotFoundError()
         else:
             query = (
                 db.session.query(Dashboard)
                 .filter(id_or_slug_filter(id_or_slug))
-                .outerjoin(Dashboard.owners)
-                .outerjoin(Dashboard.roles)
+                .outerjoin(Dashboard.editors)
             )
             # Apply dashboard base filters
             query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
@@ -161,9 +577,48 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dashboard
 
     @staticmethod
-    def get_datasets_for_dashboard(id_or_slug: str) -> list[Any]:
+    def prefetch_chart_access(dashboard: Dashboard) -> None:
+        """
+        Load the editors and viewers of a dashboard's charts up front.
+
+        The per-chart access check reads both on every slice, so without this
+        they are two lazy loads per chart rather than two queries in total.
+        """
+        if security_manager.is_admin():
+            # is_editor and is_viewer both answer True for an admin before they
+            # read either relationship, so there is nothing to prefetch and the
+            # access check stays at zero queries.
+            return
+
+        db.session.query(Slice).options(
+            # The rows are already in the session, we only want the two
+            # relationships, so don't re-fire the model's own eager loads.
+            lazyload("*"),
+            selectinload(Slice.editors),
+            selectinload(Slice.viewers),
+        ).filter(
+            # Select the ids through the association table instead of binding
+            # one parameter per chart -- a dashboard with enough charts would
+            # otherwise run past SQLite's 999-variable floor.
+            Slice.id.in_(
+                select(dashboard_slices.c.slice_id).where(
+                    dashboard_slices.c.dashboard_id == dashboard.id
+                )
+            )
+        ).all()
+
+    @staticmethod
+    def get_datasets_for_dashboard(
+        id_or_slug: str,
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
+    ) -> list[tuple[Any, dict[str, Any]]]:
+        """Load datasets, sharing the endpoint's datasource authorization check."""
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
-        return dashboard.datasets_trimmed_for_slices()
+        return dashboard.datasets_trimmed_for_slices(
+            can_access_datasource=can_access_datasource
+        )
 
     @staticmethod
     def get_tabs_for_dashboard(id_or_slug: str) -> dict[str, Any]:
@@ -172,7 +627,16 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> list[Slice]:
-        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        # Materialise the chart collection before prefetching, and return this
+        # same list. The prefetch loads editors/viewers onto these instances;
+        # without a strong reference the weak identity map can discard them, so
+        # a later read of dashboard.slices would reload the charts with those
+        # relationships unloaded again and pay the per-chart queries we avoid.
+        charts = dashboard.slices
+        # The caller narrows each chart by access, which reads these.
+        DashboardDAO.prefetch_chart_access(dashboard)
+        return charts
 
     @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
@@ -244,14 +708,32 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return max(dashboard_changed_on, datasources_changed_on).replace(microsecond=0)
 
     @staticmethod
-    def validate_slug_uniqueness(slug: str) -> bool:
-        if not slug:
+    def validate_slug_uniqueness(slug: str | None) -> bool:
+        # The ``SoftDeleteMixin`` listener auto-appends ``deleted_at IS NULL``
+        # to this query, so soft-deleted rows are correctly ignored on
+        # PostgreSQL and MySQL 8.0+ where slug uniqueness is enforced by a
+        # partial index (``ix_dashboards_active_slug``). On SQLite, MariaDB,
+        # and MySQL <8.0 the database retains a full unique constraint on
+        # ``slug``; a soft-deleted row will still block insertion of a new
+        # row with the same slug at flush time, even though this check
+        # passes. The fallback constraint is documented in UPDATING.md and
+        # in the 9e1f3b8c4d2a migration.
+        #
+        # Use ``slug is None`` (not ``not slug``) so an empty-string slug still
+        # runs the uniqueness check, matching ``validate_update_slug_uniqueness``
+        # below — otherwise two active dashboards could both carry ``slug=""``
+        # at the application layer (colliding only at flush via the partial index).
+        if slug is None:
             return True
         dashboard_query = db.session.query(Dashboard).filter(Dashboard.slug == slug)
         return not db.session.query(dashboard_query.exists()).scalar()
 
     @staticmethod
     def validate_update_slug_uniqueness(dashboard_id: int, slug: str | None) -> bool:
+        # See ``validate_slug_uniqueness`` for the same dialect-gap note:
+        # the partial-index dialects (Postgres / MySQL 8.0+) match this
+        # application-level check; the full-constraint dialects can still
+        # surface an IntegrityError when the colliding row is soft-deleted.
         if slug is not None:
             dashboard_query = db.session.query(Dashboard).filter(
                 Dashboard.slug == slug, Dashboard.id != dashboard_id
@@ -260,7 +742,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return True
 
     @staticmethod
-    def set_dash_metadata(
+    def set_dash_metadata(  # noqa: C901
         dashboard: Dashboard,
         data: dict[Any, Any],
         old_to_new_slice_ids: dict[int, int] | None = None,
@@ -268,29 +750,79 @@ class DashboardDAO(BaseDAO[Dashboard]):
         new_filter_scopes = {}
         md = dashboard.params_dict
 
+        # Merge every incoming metadata key that isn't given dedicated
+        # handling below straight through (e.g. show_chart_timestamps,
+        # stagger_refresh, timed_refresh_immune_slices). Without this, only
+        # the fixed subset of keys this function special-cases would ever
+        # reach ``dashboard.json_metadata`` -- any other field edited via
+        # the Advanced JSON editor would silently revert to its stored
+        # value on save (sadpandajoe, #42142).
+        md.update(
+            {k: v for k, v in data.items() if k not in _SET_DASH_METADATA_SPECIAL_KEYS}
+        )
+
         if (positions := data.get("positions")) is not None:
+            # A CHART node with a non-null malformed ``chartId`` is not merely
+            # "ignored" here: the membership rebuild below is wholesale, so
+            # skipping the node would silently detach the chart it references.
+            # Fail closed with a clear 422 instead (the pre-reconcile code
+            # failed the save too, but with a 500 from the bad ``IN`` value).
+            _reject_malformed_chart_nodes(positions)
             # find slices in the position data
+            chart_id: int | None
             slice_ids = [
-                value.get("meta", {}).get("chartId")
+                chart_id
                 for value in positions.values()
-                if isinstance(value, dict)
+                if (chart_id := _layout_chart_id(value)) is not None
             ]
 
-            current_slices = (
-                db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-            )
-
-            dashboard.slices = current_slices
+            # Bypass the soft-delete visibility filter when resolving the
+            # incoming chart ids: a dashboard's ``position_json`` may still
+            # reference a chart that is currently soft-deleted, and this
+            # assignment REBUILDS ``dashboard.slices`` wholesale. With the
+            # filter active, the hidden member would be silently dropped —
+            # deleting its ``dashboard_slices`` junction row (breaking the
+            # documented restore-reattach contract) and writing
+            # ``uuid: None`` into its position slot via ``uuid_map`` below.
+            #
+            # The bypass must also cover the ASSIGNMENT: assigning to
+            # ``dashboard.slices`` makes the unit of work diff the new
+            # collection against the existing one. A baseline missing the
+            # trashed member makes the diff treat it as net-new and INSERT a
+            # ``dashboard_slices`` row that still exists (soft delete never
+            # removes junction rows), an IntegrityError on the composite
+            # primary key on every save of a dashboard containing a trashed
+            # chart. Lazy-loading the baseline inside the bypass is not
+            # enough: a dashboard loaded through a query carries the
+            # visibility filter into its own lazy loads. Read the baseline
+            # from the association table instead and install it as the
+            # committed state.
+            with skip_visibility_filter(db.session, Slice):
+                current_slices = (
+                    db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                )
+                _install_membership_baseline(dashboard)
+                # Preserve archived membership even when no layout slot represents it.
+                layout_ids: set[int] = {chart.id for chart in current_slices}
+                kept_archived: list[Slice] = [
+                    chart
+                    for chart in dashboard.slices
+                    if chart.deleted_at is not None and chart.id not in layout_ids
+                ]
+                dashboard.slices = current_slices + kept_archived
 
             # add UUID to positions
             uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}
+            # Repair layout nodes referencing a chart that no longer resolves
+            # to any Slice row (hard-deleted / never existed). ``uuid_map`` is
+            # built from ``current_slices``, resolved above with the soft-delete
+            # filter bypassed, so a soft-deleted member stays valid and is
+            # preserved; only genuinely-absent references become placeholders.
+            # Done before the loop below so a repaired (now MARKDOWN) node is
+            # skipped there instead of getting ``meta.uuid = None`` (sc-115325).
+            _repair_dangling_chart_nodes(positions, set(uuid_map), dashboard.id)
             for obj in positions.values():
-                if (
-                    isinstance(obj, dict)
-                    and obj["type"] == "CHART"
-                    and obj["meta"]["chartId"]
-                ):
-                    chart_id = obj["meta"]["chartId"]
+                if (chart_id := _layout_chart_id(obj)) is not None:
                     obj["meta"]["uuid"] = uuid_map.get(chart_id)
 
             # remove leading and trailing white spaces in the dumped json
@@ -317,7 +849,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     else data["filter_scopes"],
                 )
 
-            default_filters_data = json.loads(data.get("default_filters", "{}"))
+            try:
+                default_filters_data = json.loads(data.get("default_filters", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                default_filters_data = {}
             applicable_filters = {
                 key: v
                 for key, v in default_filters_data.items()
@@ -340,14 +875,41 @@ class DashboardDAO(BaseDAO[Dashboard]):
         else:
             md["color_namespace"] = data.get("color_namespace")
 
-        md["expanded_slices"] = data.get("expanded_slices", {})
-        md["refresh_frequency"] = data.get("refresh_frequency", 0)
-        md["color_scheme"] = data.get("color_scheme", "")
-        md["label_colors"] = data.get("label_colors", {})
+        # Only overwrite these metadata fields when the caller explicitly sends
+        # them. Previously each used ``data.get(key, default)``, which reset a
+        # value to its default whenever it was absent from the payload -- e.g. a
+        # ``refresh_frequency`` set directly in the Advanced JSON editor got
+        # wiped on save. ``setdefault`` still seeds a default for brand-new
+        # dashboards that have never had the key, keeping the shape stable
+        # without clobbering existing values (#42116).
+        metadata_defaults: dict[str, Any] = {
+            "expanded_slices": {},
+            "expand_all_slices": False,
+            "refresh_frequency": 0,
+            "color_scheme": "",
+            "label_colors": {},
+            "cross_filters_enabled": True,
+        }
+        for key, default_value in metadata_defaults.items():
+            if key in data:
+                md[key] = data[key]
+            else:
+                md.setdefault(key, default_value)
+
+        # These are derived from ``color_scheme``/``label_colors`` on the
+        # frontend (see ``applyDashboardLabelsColorOnLoad``) and are always
+        # omitted from the Properties modal's payload, so they must keep
+        # resetting to their default when absent rather than being preserved
+        # -- otherwise a color scheme change made through that modal leaves
+        # stale label-to-color mappings in place instead of triggering
+        # recomputation on next load.
         md["shared_label_colors"] = data.get("shared_label_colors", [])
         md["map_label_colors"] = data.get("map_label_colors", {})
         md["color_scheme_domain"] = data.get("color_scheme_domain", [])
-        md["cross_filters_enabled"] = data.get("cross_filters_enabled", True)
+
+        if old_to_new_slice_ids:
+            DashboardDAO._remap_filter_scopes(md, old_to_new_slice_ids)
+
         dashboard.json_metadata = json.dumps(md)
 
     @staticmethod
@@ -364,44 +926,267 @@ class DashboardDAO(BaseDAO[Dashboard]):
             .all()
         ]
 
+    @staticmethod
+    def _remap_slice_id_list(
+        slice_ids: list[Any],
+        old_to_new_slice_ids: dict[int, int],
+    ) -> list[Any]:
+        remapped: list[Any] = []
+        for cid in slice_ids:
+            try:
+                int_id = int(cid)
+                remapped.append(old_to_new_slice_ids.get(int_id, cid))
+            except (ValueError, TypeError):
+                remapped.append(cid)
+        return remapped
+
+    @staticmethod
+    def _remap_layer_key(layer_key: Any, old_to_new_slice_ids: dict[int, int]) -> Any:
+        if not isinstance(layer_key, str):
+            return layer_key
+        if match := re.match(r"^chart-(\d+)(.*)$", layer_key):
+            old_id = int(match.group(1))
+            suffix = match.group(2)
+            new_id = old_to_new_slice_ids.get(old_id, old_id)
+            return f"chart-{new_id}{suffix}"
+        return layer_key
+
+    @classmethod
+    def _remap_selected_layers(
+        cls,
+        selected_layers: Any,
+        old_to_new_slice_ids: dict[int, int],
+    ) -> Any:
+        if isinstance(selected_layers, list):
+            return [
+                cls._remap_layer_key(k, old_to_new_slice_ids) for k in selected_layers
+            ]
+        if isinstance(selected_layers, dict):
+            return {
+                cls._remap_layer_key(k, old_to_new_slice_ids): v
+                for k, v in selected_layers.items()
+            }
+        if isinstance(selected_layers, set):
+            return {
+                cls._remap_layer_key(k, old_to_new_slice_ids) for k in selected_layers
+            }
+        return selected_layers
+
+    @staticmethod
+    def _remap_filter_scope(
+        container: dict[str, Any] | Any,
+        old_to_new_slice_ids: dict[int, int],
+    ) -> None:
+        """Remap scope.excluded, selectedLayers, chartsInScope and chartId."""
+        if not isinstance(container, dict):
+            return
+
+        if container.get("type") in ("DIVIDER", "CHART_CUSTOMIZATION_DIVIDER") or str(
+            container.get("id", "")
+        ).startswith(
+            ("NATIVE_FILTER_DIVIDER", "DIVIDER", "CHART_CUSTOMIZATION_DIVIDER")
+        ):
+            return
+
+        scope = container.get("scope")
+        if isinstance(scope, dict):
+            if isinstance(scope.get("excluded"), list):
+                scope["excluded"] = DashboardDAO._remap_slice_id_list(
+                    scope["excluded"], old_to_new_slice_ids
+                )
+            if isinstance(scope.get("selectedLayers"), (list, dict, set)):
+                scope["selectedLayers"] = DashboardDAO._remap_selected_layers(
+                    scope["selectedLayers"], old_to_new_slice_ids
+                )
+
+        if isinstance(container.get("chartsInScope"), list):
+            container["chartsInScope"] = DashboardDAO._remap_slice_id_list(
+                container["chartsInScope"], old_to_new_slice_ids
+            )
+
+        if (raw_chart_id := container.get("chartId")) is not None and not isinstance(
+            raw_chart_id, bool
+        ):
+            try:
+                int_chart_id = int(raw_chart_id)
+                container["chartId"] = old_to_new_slice_ids.get(
+                    int_chart_id, raw_chart_id
+                )
+            except (ValueError, TypeError):
+                pass
+
+    @classmethod
+    def _remap_chart_configuration(
+        cls,
+        chart_configuration: dict[str, Any],
+        old_to_new_slice_ids: dict[int, int],
+    ) -> dict[str, Any]:
+        new_chart_configuration: dict[str, Any] = {}
+        for old_key, chart_config in chart_configuration.items():
+            try:
+                int_key = int(old_key)
+                new_key = str(old_to_new_slice_ids.get(int_key, int_key))
+            except (ValueError, TypeError):
+                new_key = str(old_key)
+
+            if isinstance(chart_config, dict):
+                if isinstance(chart_config.get("id"), int):
+                    chart_config["id"] = old_to_new_slice_ids.get(
+                        chart_config["id"], chart_config["id"]
+                    )
+                cls._remap_filter_scope(
+                    chart_config.get("crossFilters"), old_to_new_slice_ids
+                )
+            new_chart_configuration[new_key] = chart_config
+        return new_chart_configuration
+
+    @classmethod
+    def _remap_filter_scopes(
+        cls,
+        metadata: dict[str, Any],
+        old_to_new_slice_ids: dict[int, int],
+    ) -> None:
+        """Remap filter scopes and cross-filter references in dashboard metadata."""
+        if not isinstance(metadata, dict) or not old_to_new_slice_ids:
+            return
+
+        for key in ("native_filter_configuration", "chart_customization_config"):
+            if isinstance(metadata.get(key), list):
+                for item in metadata[key]:
+                    cls._remap_filter_scope(item, old_to_new_slice_ids)
+
+        if isinstance(metadata.get("global_chart_configuration"), dict):
+            cls._remap_filter_scope(
+                metadata["global_chart_configuration"], old_to_new_slice_ids
+            )
+
+        if isinstance(metadata.get("chart_configuration"), dict):
+            metadata["chart_configuration"] = cls._remap_chart_configuration(
+                metadata["chart_configuration"], old_to_new_slice_ids
+            )
+
     @classmethod
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
     ) -> Dashboard:
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            original_dash
-        ):
+        if not security_manager.is_editor(original_dash):
             raise DashboardForbiddenError()
 
         dash = Dashboard()
-        dash.owners = [g.user] if g.user else []
+        # The copied dashboard and every chart cloned below share one creator,
+        # so both lookups are resolved here rather than inside the loop, where
+        # they would cost two extra queries for each chart in the dashboard.
+        creator_editors: list[Any] = []
+        creator_viewers: list[Any] = []
+        if getattr(g, "user", None):
+            from superset.subjects.utils import (
+                get_default_viewers_for_new_asset,
+                get_user_subject,
+            )
+
+            user_subject = get_user_subject(g.user.id)
+            creator_editors = [user_subject] if user_subject else []
+            creator_viewers = get_default_viewers_for_new_asset(g.user.id)
+        dash.editors = creator_editors
+        dash.viewers = creator_viewers
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
         metadata = json.loads(data["json_metadata"])
         old_to_new_slice_ids: dict[int, int] = {}
         if data.get("duplicate_slices"):
+            # Copy-with-charts deliberately does not share archived originals.
+            # Query their IDs independently of the relationship's load state:
+            # a fresh collection hides them; an already-loaded one may not.
+            with skip_visibility_filter(db.session, Slice):
+                archived_ids: set[int] = set(
+                    db.session.scalars(
+                        select(Slice.id)
+                        .join(Slice.dashboards)
+                        .where(
+                            Dashboard.id == original_dash.id,
+                            Slice.deleted_at.is_not(None),
+                        )
+                    )
+                )
+            _replace_archived_copy_slots(metadata.get("positions"), archived_ids)
+            # Reconcile before cloning (sc-115325, reviewer finding in #44028):
+            # a chart hard-deleted while a member has no clone, so remapping
+            # its layout ID would write None and fail strict save validation.
+            # The old IDs still identify the original rows here, and no clone
+            # IDs exist to confuse the existence lookup. Repairing first uses
+            # the raw-layout markdown placeholder while preserving geometry;
+            # the remap below skips that slot because it has no chartId.
+            reconcile_position_json(metadata.get("positions"), original_dash.id)
+            chart_id: int | None
+            layout_chart_ids: set[int] = {
+                chart_id
+                for node in metadata["positions"].values()
+                if (chart_id := _layout_chart_id(node)) is not None
+            }
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
+                if slc.id in archived_ids or slc.id not in layout_chart_ids:
+                    continue
                 new_slice = slc.clone()
-                new_slice.owners = [g.user] if g.user else []
+                # ``Slice.clone()`` carries over no subjects, so both
+                # collections start empty on the new chart.
+                new_slice.editors = list(creator_editors)
+                new_slice.viewers = list(creator_viewers)
                 db.session.add(new_slice)
                 db.session.flush()
                 new_slice.dashboards.append(dash)
                 old_to_new_slice_ids[slc.id] = new_slice.id
 
             # update chartId of layout entities
-            for value in metadata["positions"].values():
-                if isinstance(value, dict) and value.get("meta", {}).get("chartId"):
-                    old_id = value["meta"]["chartId"]
-                    new_id = old_to_new_slice_ids.get(old_id)
+            slot: str
+            value: Any
+            for slot, value in metadata["positions"].items():
+                old_id: int | None = _layout_chart_id(value)
+                if old_id is not None:
+                    new_id: int | None = old_to_new_slice_ids.get(old_id)
+                    if new_id is None:
+                        raise DashboardLayoutInvalidError(
+                            exceptions=[
+                                ValidationError(
+                                    f"Cannot copy CHART slot {slot}: its chart is "
+                                    "outside the dashboard's membership.",
+                                    field_name="json_metadata",
+                                )
+                            ]
+                        )
                     value["meta"]["chartId"] = new_id
-        else:
+        elif metadata.get("positions") is None:
+            # With a layout, set_dash_metadata links exactly the layout's charts.
+            # Linking the source's charts first and then dropping some makes the
+            # flush delete dashboard_slices rows that were never inserted.
             dash.slices = original_dash.slices
 
-        dash.params = original_dash.params
+        # Version forks opt into complete metadata to avoid inheriting settings
+        # absent from the selected version. Other copies keep source seeding.
+        dash.params = (
+            "{}" if data.get("replace_metadata", False) else original_dash.params
+        )
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
+        copied_ids: set[int] = {chart.id for chart in dash.slices}
+        chart_id_map: dict[int, int] = (
+            {old: new for old, new in old_to_new_slice_ids.items() if new in copied_ids}
+            if data.get("duplicate_slices")
+            else {chart_id: chart_id for chart_id in copied_ids}
+        )
+        dash.json_metadata = json.dumps(
+            _copy_chart_metadata(dash.params_dict, chart_id_map)
+        )
         db.session.add(dash)
+        # Flush so the returned dashboard always has a real, persisted
+        # identity (dash.id populated) regardless of what the caller does
+        # next. Without this, whether `dash` ends up with a usable id was an
+        # accident of whatever query the caller happened to run afterward
+        # (autoflush would catch it) - the duplicate_slices=True path leaked
+        # this: it flushes internally per-cloned-slice already, and simple
+        # test/caller code that queries the DB again incidentally
+        # autoflushes too, masking that the plain-copy path never did.
+        db.session.flush()
         return dash
 
     @classmethod
@@ -409,7 +1194,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         cls, id: str
     ) -> dict[str, list[dict[str, Any]]]:
         dashboard = cls.get_by_id_or_slug(id)
-        metadata = json.loads(dashboard.json_metadata or "{}")
+        metadata = derive_metadata_scopes(
+            dashboard, json.loads(dashboard.json_metadata or "{}")
+        )
         native_filter_configuration = metadata.get("native_filter_configuration", [])
 
         tab_filters = defaultdict(list)
@@ -431,36 +1218,25 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardUpdateFailedError("Dashboard not found")
 
         if attributes:
-            metadata = json.loads(dashboard.json_metadata or "{}")
+            try:
+                _parsed = json.loads(dashboard.json_metadata or "{}")
+            except (json.JSONDecodeError, TypeError):
+                _parsed = {}
+            metadata = _parsed if isinstance(_parsed, dict) else {}
             native_filter_configuration = metadata.get(
                 "native_filter_configuration", []
             )
             reordered_filter_ids: list[int] = attributes.get("reordered", [])
+            deleted_ids = set(attributes.get("deleted", []))
+            modified_map = {f.get("id"): f for f in attributes.get("modified", [])}
             updated_configuration = []
 
             # Modify / Delete existing filters
             for conf in native_filter_configuration:
-                deleted_filter = next(
-                    (f for f in attributes.get("deleted", []) if f == conf.get("id")),
-                    None,
-                )
-                if deleted_filter:
+                conf_id = conf.get("id")
+                if conf_id in deleted_ids:
                     continue
-
-                modified_filter = next(
-                    (
-                        f
-                        for f in attributes.get("modified", [])
-                        if f.get("id") == conf.get("id")
-                    ),
-                    None,
-                )
-                if modified_filter:
-                    # Filter was modified, substitute it
-                    updated_configuration.append(modified_filter)
-                else:
-                    # Filter was not modified, keep it as is
-                    updated_configuration.append(conf)
+                updated_configuration.append(modified_map.get(conf_id, conf))
 
             # Append new filters
             for new_filter in attributes.get("modified", []):
@@ -489,6 +1265,13 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
             metadata["native_filter_configuration"] = updated_configuration
             dashboard.json_metadata = json.dumps(metadata)
+
+            # The client rebuilds its in-scope state from this response, so hand
+            # back derived scopes rather than the stored caches, which are stale
+            # for every filter the caller did not touch.
+            updated_configuration = derive_metadata_scopes(dashboard, metadata)[
+                "native_filter_configuration"
+            ]
 
         return updated_configuration
 
