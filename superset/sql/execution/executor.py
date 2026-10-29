@@ -58,7 +58,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import hashlib
 import logging
 import time
 import uuid
@@ -89,6 +88,7 @@ from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils, json
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -1063,7 +1063,7 @@ class SQLExecutor:
         if script.statements:
             script.statements[-1].cap_limit_value(
                 effective_limit,
-                self.database.db_engine_spec.limit_method,
+                self.database.db_engine_spec.get_limit_method(self.database),
             )
 
     def _try_get_cached_result(
@@ -1384,7 +1384,7 @@ class SQLExecutor:
             key_parts.append(f"impersonation:{impersonation_key}")
 
         key_string = "|".join(key_parts)
-        return hashlib.sha256(key_string.encode()).hexdigest()
+        return hash_from_str(key_string)
 
     def _submit_query_to_celery(
         self,
