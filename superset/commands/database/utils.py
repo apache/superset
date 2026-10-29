@@ -36,6 +36,7 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import GenericDBException
+from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.security.manager import SupersetSecurityManager
 from superset.utils import json
@@ -134,6 +135,53 @@ def ssh_tunnel_rebind_unsafe(
     return not has_fresh_credential or stale_private_key_password
 
 
+OAUTH2_ENDPOINT_FIELDS = (
+    "authorization_request_uri",
+    "token_request_uri",
+    "redirect_uri",
+)
+
+
+def oauth2_endpoint_rebind_unsafe(
+    existing_encrypted_extra: str | None, submitted_masked_encrypted_extra: str | None
+) -> bool:
+    """
+    Whether a submitted ``masked_encrypted_extra`` repoints the OAuth2 client
+    at different endpoint URIs while reusing the stored client secret (the
+    ``$.oauth2_client_info.secret`` mask is restored verbatim by
+    ``unmask_encrypted_extra`` before the update persists).
+
+    The URI/engine-params destination check does not see these fields, yet
+    the next token exchange posts the real client secret to whatever
+    ``token_request_uri`` now says -- so an endpoint change must come with a
+    freshly supplied secret, exactly like a host change must come with a
+    fresh password.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+        submitted = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    existing_info = (
+        existing.get("oauth2_client_info") if isinstance(existing, dict) else None
+    )
+    submitted_info = (
+        submitted.get("oauth2_client_info") if isinstance(submitted, dict) else None
+    )
+    if not isinstance(existing_info, dict) or not isinstance(submitted_info, dict):
+        return False
+    if not existing_info.get("secret"):
+        return False  # nothing stored to carry over
+    # Only the mask sentinel restores the stored secret; an absent key drops it,
+    # and a different value is a fresh secret the caller is entitled to attach.
+    secret_reused = submitted_info.get("secret") == PASSWORD_MASK
+    endpoint_changed = any(
+        existing_info.get(field) != submitted_info.get(field)
+        for field in OAUTH2_ENDPOINT_FIELDS
+    )
+    return secret_reused and endpoint_changed
+
+
 def ping(engine: Engine) -> bool:
     try:
         time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
@@ -145,6 +193,29 @@ def ping(engine: Engine) -> bool:
         # RuntimeError catches the equivalent error from duckdb.
         with closing(engine.raw_connection()) as conn:
             return engine.dialect.do_ping(conn)
+
+
+def _get_all_schema_names_with_retry(
+    database: Database, catalog: str | None
+) -> set[str]:
+    """
+    Retry the live schema-listing call once before giving up on a catalog.
+
+    Some catalogs are visible but not listable (eg the ``rdsadmin`` catalog on
+    AWS RDS), but the exception caught by the caller doesn't distinguish that
+    from a one-off transient hiccup (eg schema metadata not yet visible right
+    after it was created). A single retry lets a schema that needs a
+    first-time grant survive a fluke without tolerating a persistently
+    unlistable catalog for any longer than before.
+    """
+    try:
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+    except OAuth2RedirectError:
+        # Not transient: retrying would just kick off a second, redundant
+        # OAuth2 authorization redirect for the same request.
+        raise
+    except GenericDBException:  # pylint: disable=broad-except
+        return database.get_all_schema_names(catalog=catalog, cache=False)
 
 
 def add_permissions(database: Database) -> None:
@@ -179,7 +250,8 @@ def add_permissions(database: Database) -> None:
 
     for catalog in catalogs:
         try:
-            for schema in database.get_all_schema_names(catalog=catalog, cache=False):
+            schemas = _get_all_schema_names_with_retry(database, catalog)
+            for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access",
                     security_manager.get_schema_perm(

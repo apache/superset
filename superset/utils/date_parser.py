@@ -38,7 +38,7 @@ from pyparsing import (
     ParserElement,
     ParseResults,
     pyparsing_common,
-    quotedString,
+    quoted_string,
     Suppress,
 )
 
@@ -349,7 +349,7 @@ def handle_nth_of(
         "DATETRUNC(..., year) : DATEADD(DATETRUNC(..., year), 1, week)"
     """
     # Convert ordinal to number
-    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdigit() else 1)
+    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdecimal() else 1)
 
     relative_base = get_relative_base(unit, relative_start)
     effective_scope = scope.lower() if scope else "this"
@@ -458,6 +458,43 @@ def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str)
         raise ValueError(f"Invalid scope: {scope}")
 
 
+# Shared by _shorthand_unit_pattern below and the "this|last|next|prior <unit>"
+# regex in get_since_until()'s time_range_lookup -- kept as one constant so the
+# two can't drift out of sync the way this alternation once did (it was missing
+# "hour" in one of the two, which is what caused this file's sub-day bug).
+_RELATIVE_UNIT_PATTERN = r"(second|minute|hour|day|week|month|quarter|year)"
+
+_shorthand_unit_pattern = re.compile(
+    r"^(?:Last|Next)\s{1,5}(?:[0-9]+\s{0,5})?" + _RELATIVE_UNIT_PATTERN + r"s?$",
+    re.IGNORECASE,
+)
+
+
+def get_default_bound_for_shorthand(time_range: str) -> str:
+    """
+    Determines the default anchor (`now` or `today`) for the bound not covered by
+    a separator-less "Last <unit>" / "Next <unit>" `time_range` shorthand, matching
+    the anchor `get_relative_base` picks for the unit that *is* covered.
+
+    Without this, a sub-day unit (second/minute/hour) paired an unconditional
+    "today" (midnight) against a "now"-anchored other bound, so "Last hour" and
+    similar resolved to since > until whenever evaluated after local midnight.
+
+    Args:
+        time_range (str): The separator-less shorthand, e.g. "Last hour".
+
+    Returns:
+        str: `now` for a granular unit (second/minute/hour), `today` otherwise.
+    """
+    match = _shorthand_unit_pattern.match(time_range)
+    return get_relative_base(match.group(1)) if match else "today"
+
+
+def is_no_time_range(time_range: str | None) -> bool:
+    """Recognize the canonical or request-localized unbounded time range."""
+    return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -492,17 +529,18 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
     """
     separator = " : "
-    _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
+    if is_no_time_range(time_range):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
-        time_range = time_range + separator + _relative_end
+        _end = relative_end or get_default_bound_for_shorthand(time_range)
+        time_range = time_range + separator + _end
 
     if time_range and time_range.startswith("Next") and separator not in time_range:
-        time_range = _relative_start + separator + time_range
+        _start = relative_start or get_default_bound_for_shorthand(time_range)
+        time_range = _start + separator + time_range
 
     if (
         time_range
@@ -620,7 +658,8 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(this|last|next|prior)\s{1,5}"
                 r"([0-9]+)?\s{0,5}"
-                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
+                + _RELATIVE_UNIT_PATTERN
+                + r"s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
@@ -653,6 +692,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
         _since, _until = map(datetime_eval, since_and_until)
     else:
+        # Only an omitted time_range may use the legacy separate bounds.
+        # Explicit values must resolve through the range grammar above.
+        if time_range is not None:
+            raise TimeRangeParseFailError(time_range)
         since = since or ""
         if since:
             since = add_ago_to_since(since)
@@ -833,6 +876,19 @@ class EvalLastDayFunc:  # pylint: disable=too-few-public-methods
             return dttm.replace(
                 month=12, day=31, hour=0, minute=0, second=0, microsecond=0
             )
+        if unit == "quarter":
+            # Both arguments are passed to a single `replace` so the day is
+            # never briefly out of range for the new month (e.g. the 31st
+            # moving into a 30-day quarter-end month).
+            last_month = 3 * ((dttm.month - 1) // 3) + 3
+            return dttm.replace(
+                month=last_month,
+                day=calendar.monthrange(dttm.year, last_month)[1],
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
+            )
         if unit == "month":
             return dttm.replace(
                 day=calendar.monthrange(dttm.year, dttm.month)[1],
@@ -841,6 +897,11 @@ class EvalLastDayFunc:  # pylint: disable=too-few-public-methods
                 second=0,
                 microsecond=0,
             )
+        if unit == "day":
+            # The last day of a day is that same day. Truncating to midnight
+            # keeps the result consistent with every other unit here, which
+            # all return the final day at midnight rather than at its end.
+            return dttm.replace(hour=0, minute=0, second=0, microsecond=0)
         # unit == "week":
         mon = dttm - relativedelta(days=dttm.weekday())
         mon = mon.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -893,25 +954,25 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         "year quarter month week day hour minute second".split(),
     )
     lparen, rparen, comma = map(Suppress, "(),")
-    text_operand = quotedString.setName("text_operand").setParseAction(EvalText)
+    text_operand = quoted_string.set_name("text_operand").set_parse_action(EvalText)
 
     # allow expression to be used recursively
-    datetime_func = Forward().setName("datetime")
-    dateadd_func = Forward().setName("dateadd")
-    datetrunc_func = Forward().setName("datetrunc")
-    lastday_func = Forward().setName("lastday")
-    holiday_func = Forward().setName("holiday")
+    datetime_func = Forward().set_name("datetime")
+    dateadd_func = Forward().set_name("dateadd")
+    datetrunc_func = Forward().set_name("datetrunc")
+    lastday_func = Forward().set_name("lastday")
+    holiday_func = Forward().set_name("holiday")
     date_expr = (
         datetime_func | dateadd_func | datetrunc_func | lastday_func | holiday_func
     )
 
     # literal integer and expression that return a literal integer
-    datediff_func = Forward().setName("datediff")
+    datediff_func = Forward().set_name("datediff")
     int_operand = (
-        pyparsing_common.signed_integer().setName("int_operand") | datediff_func
+        pyparsing_common.signed_integer().set_name("int_operand") | datediff_func
     )
 
-    datetime_func <<= (DATETIME + lparen + text_operand + rparen).setParseAction(
+    datetime_func <<= (DATETIME + lparen + text_operand + rparen).set_parse_action(
         EvalDateTimeFunc
     )
     dateadd_func <<= (
@@ -926,7 +987,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalDateAddFunc)
+    ).set_parse_action(EvalDateAddFunc)
     datetrunc_func <<= (
         DATETRUNC
         + lparen
@@ -937,13 +998,18 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalDateTruncFunc)
+    ).set_parse_action(EvalDateTruncFunc)
     lastday_func <<= (
         LASTDAY
         + lparen
-        + Group(date_expr + comma + (YEAR | MONTH | WEEK) + ppOptional(comma))
+        + Group(
+            date_expr
+            + comma
+            + (YEAR | QUARTER | MONTH | WEEK | DAY)
+            + ppOptional(comma)
+        )
         + rparen
-    ).setParseAction(EvalLastDayFunc)
+    ).set_parse_action(EvalLastDayFunc)
     holiday_func <<= (
         HOLIDAY
         + lparen
@@ -956,7 +1022,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalHolidayFunc)
+    ).set_parse_action(EvalHolidayFunc)
     datediff_func <<= (
         DATEDIFF
         + lparen
@@ -967,7 +1033,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma + (YEAR | DAY) + ppOptional(comma))
         )
         + rparen
-    ).setParseAction(EvalDateDiffFunc)
+    ).set_parse_action(EvalDateDiffFunc)
 
     return date_expr | datediff_func
 
@@ -975,7 +1041,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
 def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
     if datetime_expression:
         try:
-            return datetime_parser().parseString(datetime_expression)[0].eval()
+            return datetime_parser().parse_string(datetime_expression)[0].eval()
         except ParseException as ex:
             raise ValueError(ex) from ex
     return None

@@ -290,3 +290,78 @@ test('Recalculate charts in global filter scope when charts change', () => {
     },
   });
 });
+
+test('Global cross-filter scope includes charts from other tabs (#37665)', () => {
+  // Both charts sit under a different TAB, several layers down from ROOT_ID.
+  // A global-scope cross filter must still see across the tab boundary.
+  const TABBED_LAYOUT = {
+    ROOT_ID: {
+      children: ['TABS-1'],
+      id: 'ROOT_ID',
+      type: 'ROOT',
+    },
+    'TABS-1': {
+      children: ['TAB-1', 'TAB-2'],
+      id: 'TABS-1',
+      type: 'TABS',
+    },
+    'TAB-1': {
+      children: ['ROW-1'],
+      id: 'TAB-1',
+      type: 'TAB',
+    },
+    'TAB-2': {
+      children: ['ROW-2'],
+      id: 'TAB-2',
+      type: 'TAB',
+    },
+    'ROW-1': {
+      children: ['CHART-1'],
+      id: 'ROW-1',
+      type: 'ROW',
+    },
+    'ROW-2': {
+      children: ['CHART-2'],
+      id: 'ROW-2',
+      type: 'ROW',
+    },
+    'CHART-1': {
+      children: [],
+      id: 'CHART-1',
+      meta: {
+        chartId: 1,
+        sliceName: 'Tab 1 chart',
+        height: 1,
+        width: 1,
+        uuid: '1',
+      },
+      parents: ['ROOT_ID', 'TABS-1', 'TAB-1', 'ROW-1'],
+      type: 'CHART',
+    },
+    'CHART-2': {
+      children: [],
+      id: 'CHART-2',
+      meta: {
+        chartId: 2,
+        sliceName: 'Tab 2 chart',
+        height: 1,
+        width: 1,
+        uuid: '2',
+      },
+      parents: ['ROOT_ID', 'TABS-1', 'TAB-2', 'ROW-2'],
+      type: 'CHART',
+    },
+  };
+
+  const { chartConfiguration } = getCrossFiltersConfiguration(
+    // @ts-expect-error
+    TABBED_LAYOUT,
+    {},
+    CHARTS,
+  );
+
+  // Chart 1 (tab 1)'s global-scope config includes chart 2, in tab 2.
+  expect(chartConfiguration['1'].crossFilters.chartsInScope).toEqual([2]);
+  // ...and vice versa, proving the scope resolution isn't tab-local either way.
+  expect(chartConfiguration['2'].crossFilters.chartsInScope).toEqual([1]);
+});

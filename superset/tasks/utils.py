@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime
 from http.client import HTTPResponse
 from typing import Any, cast, Final, TYPE_CHECKING
 from urllib import request
@@ -37,6 +37,10 @@ from superset.tasks.types import (
     FixedExecutor,
 )
 from superset.utils import json
+
+# Re-exported for the task modules that import it from here; the canonical
+# definition lives in superset.utils.dates so every naive-UTC writer shares it.
+from superset.utils.dates import naive_utcnow as naive_utcnow
 from superset.utils.hashing import hash_from_str
 from superset.utils.urls import get_url_path
 
@@ -180,20 +184,6 @@ def fetch_csrf_token(
 
     logger.error("Error fetching CSRF token, status code: %s", response.status)
     return {}
-
-
-def naive_utcnow() -> datetime:
-    """Return the current UTC time with the tzinfo stripped.
-
-    Task timestamp columns (``started_at``, ``ended_at``, ``subscribed_at``) are
-    naive ``DateTime`` columns holding UTC. Writing a tz-aware value to a naive
-    column lets some DB drivers convert it to the session-local timezone, which
-    would skew every duration computed from those columns by the local UTC
-    offset — so the offset is dropped here, once, before the value reaches the DB.
-
-    :returns: Current UTC time as a naive ``datetime``
-    """
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def floored_status_cursor() -> datetime:

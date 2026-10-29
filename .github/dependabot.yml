@@ -9,6 +9,12 @@ updates:
       security:
         applies-to: "security-updates"
         patterns: ["*"]
+      codeql:
+        patterns:
+          - "github/codeql-action/*"
+      gh-actions:
+        patterns:
+          - "actions/*"
     cooldown:
       default-days: 7
 
@@ -37,8 +43,7 @@ updates:
       - dependency-name: "react-checkbox-tree"
         update-types: ["version-update:semver-major"]
       # Babel 8 (7.x -> 8.x) is blocked on the surrounding ecosystem: @emotion/babel-plugin
-      # (NodePath#hoist), babel-plugin-jsx-remove-data-test-id (t.jSXOpeningElement), and
-      # ts-jest all rely on Babel APIs removed in v8 and have not shipped Babel 8 support.
+      # (NodePath#hoist) and babel-plugin-jsx-remove-data-test-id (t.jSXOpeningElement).
       # Ignore the coordinated major bump until the ecosystem catches up; it must be done
       # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
       - dependency-name: "@babel/*"
@@ -50,7 +55,11 @@ updates:
       # hold comments). Remove this once the proxy code is updated to await
       # the async decompress() API.
       - dependency-name: "simple-zstd"
-    directory: "/superset-frontend/"
+    directories:
+      - "/superset-frontend"
+      - "/superset-embedded-sdk"
+      - "/superset-websocket"
+      - "/docs"
     schedule:
       interval: "daily"
     labels:
@@ -67,6 +76,11 @@ updates:
         patterns:
           - "@typescript-eslint/*"
           - "typescript-eslint"
+      jest:
+        patterns:
+          - "jest"
+          - "babel-jest"
+          - "jest-environment-jsdom"
       babel:
         patterns:
           - "@babel/*"
@@ -96,12 +110,33 @@ updates:
       fontsource:
         patterns:
           - "@fontsource/*"
-    open-pull-requests-limit: 30
+      docusaurus:
+        patterns:
+          - "@docusaurus/*"
+      docusaurus-openapi:
+        patterns:
+          - "docusaurus-plugin-openapi-docs"
+          - "docusaurus-theme-openapi-docs"
+      monorepo-dependencies:
+        group-by: dependency-name
+        patterns:
+          - "webpack"
+          - "@types/node"
+          - "oxfmt"
+          - "oxlint"
+          - "oxlint-tsgolint"
+          - "react-resize-detector"
+    open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
       default-days: 7
 
   - package-ecosystem: "pip"
+    ignore:
+      # Only permits patch version to SQLAlchemy v2.0.x as SQLAlchemy v2.1.x contains
+      # significant changes that requires careful curation before landing
+      - dependency-name: "sqlalchemy"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     directory: "/"
     open-pull-requests-limit: 10
     # Bump the lower bound to the new version, not just widen the upper
@@ -135,49 +170,6 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/docs/"
-    schedule:
-      interval: "daily"
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      storybook:
-        patterns:
-          - "@storybook/*"
-          - "storybook"
-      docusaurus:
-        patterns:
-          - "@docusaurus/*"
-      docusaurus-openapi:
-        patterns:
-          - "docusaurus-plugin-openapi-docs"
-          - "docusaurus-theme-openapi-docs"
-      typescript-eslint:
-        patterns:
-          - "@typescript-eslint/*"
-          - "typescript-eslint"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-websocket/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
     schedule:
       interval: "daily"
@@ -189,24 +181,6 @@ updates:
         applies-to: "security-updates"
         patterns: ["*"]
     open-pull-requests-limit: 10
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-embedded-sdk/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      babel:
-        patterns:
-          - "@babel/*"
     versioning-strategy: increase
     cooldown:
       default-days: 7

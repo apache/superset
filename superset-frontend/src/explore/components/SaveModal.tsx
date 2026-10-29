@@ -194,6 +194,7 @@ interface SaveModalProps {
   sliceName?: string;
   slice?: Record<string, any>;
   can_overwrite?: boolean;
+  can_add?: boolean;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
   isVisible: boolean;
@@ -216,6 +217,7 @@ const SaveModal = ({
   sliceName = '',
   slice,
   can_overwrite,
+  can_add,
   datasource,
   dashboardId: dashboardIdProp,
   isVisible,
@@ -227,8 +229,9 @@ const SaveModal = ({
 
   const canOverwriteSlice = useCallback(
     (): boolean =>
+      Boolean(can_add) &&
       canOverwriteSliceFor({ slice, user, canOverwrite: can_overwrite }),
-    [can_overwrite, slice, user],
+    [can_add, can_overwrite, slice, user],
   );
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
@@ -480,6 +483,17 @@ const SaveModal = ({
       };
 
       try {
+        // Persist the form data before any datasource conversion. Saving a
+        // Query as a dataset rewrites form_data through changeDatasource, so
+        // re-applying this render's Query-backed copy afterwards would undo
+        // that conversion right before createSlice reads the store, making
+        // the chart API receive datasource_type="query". Dashboard assignment
+        // does not travel through form_data -- create/updateSlice receive it
+        // as an explicit argument.
+        const formData = form_data || {};
+        delete formData.url_params;
+        actions.setFormData({ ...formData });
+
         if (datasource?.type === DatasourceType.Query) {
           const { schema, sql, database } = datasource;
           const { templateParams } = datasource;
@@ -498,9 +512,6 @@ const SaveModal = ({
         if (slice && action === 'overwrite') {
           sliceDashboards = await actions.getSliceDashboards(slice);
         }
-
-        const formData = form_data || {};
-        delete formData.url_params;
 
         let dashboardResult: DashboardGetResponse | null = null;
         let selectedTabId: string | undefined;
@@ -522,7 +533,6 @@ const SaveModal = ({
             sliceDashboards = sliceDashboards.includes(dashboardResult.id)
               ? sliceDashboards
               : [...sliceDashboards, dashboardResult.id];
-            formData.dashboards = sliceDashboards;
             if (
               action === ChartStatusType.saveas &&
               selectedTab?.value !== 'OUT_OF_TAB'
@@ -531,9 +541,6 @@ const SaveModal = ({
             }
           }
         }
-
-        // Sets the form data
-        actions.setFormData({ ...formData });
 
         //  Update or create slice
         let value: { id: number };
@@ -743,9 +750,11 @@ const SaveModal = ({
                 ? t(
                     "This chart is managed externally and can't be overwritten in Superset.",
                   )
-                : t(
-                    'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
-                  )}
+                : !can_add
+                  ? t('You do not have permission to edit this chart')
+                  : t(
+                      'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
+                    )}
             </Typography.Text>
           </div>
         )}
@@ -914,6 +923,7 @@ interface StateProps {
   datasource: any;
   slice: any;
   can_overwrite: boolean;
+  can_add: boolean;
   user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
@@ -930,6 +940,7 @@ function mapStateToProps({
     datasource: explore.datasource,
     slice: explore.slice,
     can_overwrite: explore.can_overwrite,
+    can_add: explore.can_add,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
