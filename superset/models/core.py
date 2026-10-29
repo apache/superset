@@ -38,7 +38,16 @@ from contextlib import (
 from copy import deepcopy
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, Iterator, Optional, TYPE_CHECKING, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Iterator,
+    NoReturn,
+    Optional,
+    TYPE_CHECKING,
+    TypeVar,
+)
 
 import numpy
 import pandas as pd
@@ -805,20 +814,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 # query as whichever user the connection URL carries. That happens on
                 # a per-user OAuth2 connection with no (or a half-filled)
                 # credential configured -- none of which the viewer or
-                # the dashboard author can see. Refuse instead, with a message an
-                # administrator can act on.
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=__(
-                            "This dashboard's database connection authenticates users "
-                            "individually and has no credential configured for "
-                            "embedded viewers, so this query cannot run."
-                        ),
-                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                    # A configuration problem, not a server fault.
-                    status=400,
+                # the dashboard author can see. Refuse instead.
+                self._refuse_embedded_guest(
+                    'the connection uses OAuth2 with "Impersonate logged in user" '
+                    "turned on but has no complete embedded guest credential. Add "
+                    'one under "Embedded guest credentials" on the connection: a '
+                    "username with a password or a key pair."
                 )
 
             # Deliberately *instead of* impersonation, not alongside it, and this is
@@ -869,21 +870,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # Impersonating a guest here would run on whatever identity the engine
             # derives from the URL -- for Snowflake, the base account, with no error
             # or warning.
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "This dashboard's database connection impersonates its "
-                        "users but has no OAuth2 client information, so embedded "
-                        "viewers cannot be served. Its OAuth2 and embedded viewer "
-                        "settings may have been lost, for example when the "
-                        "dashboard was imported from another environment. An "
-                        "administrator needs to re-enter them on the database "
-                        "connection."
-                    ),
-                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=400,
+            self._refuse_embedded_guest(
+                '"Impersonate logged in user" is turned on but the connection has '
+                "no usable OAuth2 client information, so there is no identity to "
+                'serve embedded viewers under. Either turn off "Impersonate logged '
+                'in user" on the connection, which serves embedded viewers under '
+                "the connection's own credential, or configure OAuth2 client "
+                "information (on the connection or in DATABASE_OAUTH2_CLIENTS) and "
+                "add embedded guest credentials. An imported connection can also "
+                "arrive in this state when its OAuth2 and embedded guest settings "
+                "were not carried over."
             )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
@@ -1811,17 +1807,49 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             self._has_embedded_oauth2_client()
         )
 
+    def _refuse_embedded_guest(self, reason: str) -> NoReturn:
+        """
+        Refuse an embedded guest's query on this connection.
+
+        Only embedded guests reach this, and their error responses are redacted to
+        a generic message unless the error type is one Superset authors itself
+        (`superset.utils.error_sanitization`). So the viewer gets a fixed message
+        under an allowlisted type that names nothing about the connection, and the
+        administrator gets ``reason``, which says how to fix the connection, in
+        the server log.
+        """
+        logger.warning(
+            "Refused an embedded viewer's query on database connection %r (id %s): %s",
+            self.database_name,
+            self.id,
+            reason,
+        )
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "This chart can't be shown here because its database connection "
+                    "isn't set up for embedded dashboards. Please contact the "
+                    "dashboard's owner."
+                ),
+                error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            ),
+            # A configuration problem, not a server fault.
+            status=400,
+        )
+
     def embedded_guest_missing_oauth2_client(self) -> bool:
         """
-        Is this an embedded guest on a connection that has lost its OAuth2 client?
+        Is this an embedded guest on an impersonating connection with no OAuth2 client?
 
         Conditions 1-3 of :meth:`embedded_fallback_applies` hold and impersonation is
-        on, but no usable OAuth2 client is configured. That is the shape a connection
-        takes when its dashboard or chart is promoted by export and import: bundles
-        do not carry ``encrypted_extra``, so the copy keeps "Impersonate logged in
-        user" but loses both its OAuth2 client and its embedded viewer credential.
-        Serving the guest through impersonation would then run on whatever identity
-        the engine derives from the URL, so ``_get_sqla_engine`` refuses instead.
+        on, but no usable OAuth2 client is configured. A connection can be set up
+        that way -- on Snowflake, impersonation without OAuth2 never changed the
+        login -- or arrive that way when its dashboard or chart is promoted by
+        export and import without its OAuth2 client and embedded viewer credential,
+        keeping only "Impersonate logged in user". Serving the guest through
+        impersonation would then run on whatever identity the engine derives from
+        the URL, so ``_get_sqla_engine`` refuses instead.
         """
         return self._is_embedded_guest_on_impersonating_connection() and not (
             self._has_embedded_oauth2_client()
