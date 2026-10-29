@@ -43,6 +43,11 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricList,
     SemanticLayerError,
 )
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -224,10 +229,17 @@ async def _collect_external_metrics(
                         compatible_dimensions=compat_dims,
                     )
                 )
-        except Exception as exc:  # noqa: BLE001
-            # External registry may be empty in OSS — degrade gracefully
+        except AmbiguousDimensionError as exc:
             await ctx.warning(
                 "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
+            )
+        except Exception:  # noqa: BLE001
+            # External registry may be empty in OSS — degrade gracefully
+            logger.warning(
+                "Could not load metrics for view id=%s", view.id, exc_info=True
+            )
+            await ctx.warning(
+                "Unable to retrieve metrics for semantic view id=%s." % view.id
             )
     return results
 
@@ -276,6 +288,13 @@ async def list_metrics(
         % (request.search, request.dataset_id, request.view_id, request.page)
     )
 
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
+    if request.view_id is not None and not semantic_layers_enabled:
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
+
     if not user_can_view_data_model_metadata():
         await ctx.warning("Metric listing blocked by data-model privacy controls")
         return SemanticLayerError.create(
@@ -296,7 +315,7 @@ async def list_metrics(
             all_metrics.extend(_collect_builtin_metrics(request))
             await ctx.debug("Collected %d built-in metrics" % len(all_metrics))
 
-        if request.dataset_id is None:
+        if request.dataset_id is None and semantic_layers_enabled:
             external: list[MetricInfo] = await _collect_external_metrics(request, ctx)
             all_metrics.extend(external)
             await ctx.debug("Collected %d external metrics" % len(external))
@@ -336,8 +355,9 @@ async def list_metrics(
         logger.exception(
             "Unexpected error in list_metrics: %s: %s", type(exc).__name__, str(exc)
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+        message: str = "Unable to retrieve metrics."
+        await ctx.error(message)
         return SemanticLayerError.create(
-            error=f"Internal error listing metrics: {exc}",
+            error=message,
             error_type="InternalError",
         )

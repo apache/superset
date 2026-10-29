@@ -39,11 +39,14 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  isServerPaginationUnsupported,
+  hasMatchingDatasourceMetadata,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
   getHeaderGroupsControlProps,
   getTimeComparisonColumnKeys,
+  getKnownColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -387,6 +390,16 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+                disabledReason: hasMatchingDatasourceMetadata(state)
+                  ? t('This semantic view does not support server pagination.')
+                  : undefined,
+                resetLabel: hasMatchingDatasourceMetadata(state)
+                  ? t('Turn off server pagination')
+                  : undefined,
+              }),
             },
           },
         ],
@@ -399,6 +412,10 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+              }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
@@ -414,7 +431,17 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
+                paginationUnsupported: isServerPaginationUnsupported(state),
+                choices: formatSelectOptions(
+                  ROW_LIMIT_OPTIONS_TABLE.filter(
+                    value =>
+                      !isServerPaginationUnsupported(state) ||
+                      value <=
+                        (state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+                  ),
+                ),
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
@@ -428,12 +455,24 @@ const config: ControlPanelConfig = {
                     state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
                 (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
+                  state?.paginationUnsupported && !state?.server_pagination
+                    ? validateMaxValue(
+                        v,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      ) &&
+                      t(
+                        'Lower the row limit to SQL_MAX_ROW (%s) or less.',
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      )
+                    : validateServerPagination(
+                        v,
+                        state?.server_pagination,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                        state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                      ),
               ],
               // Re run the validations when this control value
               validationDependencies: ['server_pagination'],
@@ -530,6 +569,20 @@ const config: ControlPanelConfig = {
               default: true,
               description: t(
                 'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'json_in_cell',
+            config: {
+              type: 'CheckboxControl',
+              label: t('JSON in cell'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog.',
               ),
             },
           },
@@ -727,6 +780,10 @@ const config: ControlPanelConfig = {
                     coltypes,
                     childColumnMap,
                     timeComparisonColumnMap,
+                    knownKeys: getKnownColumnConfigKeys(
+                      _colnames || [],
+                      explore.datasource,
+                    ),
                   },
                 };
               },

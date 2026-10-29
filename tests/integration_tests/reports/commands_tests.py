@@ -22,7 +22,6 @@ from typing import Optional
 from unittest.mock import ANY, call, Mock, patch
 from uuid import UUID, uuid4
 
-import pandas as pd
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
@@ -2043,16 +2042,28 @@ def test_slack_chart_report_schedule_with_text(
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.commands.report.execute.get_chart_dataframe")
+@patch("superset.commands.report.execute.urllib.request.OpenerDirector.open")
 def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
-    dataframe_mock,
-    slack_client_mock,
-    slack_should_use_v2_api_mock,
-    get_channels_with_search_mock,
-    create_report_slack_chart_with_text,
-):
+    chart_data_request_mock: Mock,
+    slack_client_mock: Mock,
+    slack_should_use_v2_api_mock: Mock,
+    get_channels_with_search_mock: Mock,
+    create_report_slack_chart_with_text: ReportSchedule,
+) -> None:
     """Failed migration sends every text recipient and persists v1 success."""
-    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    chart_data_request_mock.return_value.getcode.return_value = 200
+    chart_data_request_mock.return_value.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": [{"value": 1}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                    "indexnames": [0],
+                }
+            ]
+        }
+    ).encode("utf-8")
     original_configs = [
         json.dumps({"target": "private-a"}),
         json.dumps({"target": "private-b"}),
@@ -2125,7 +2136,7 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
 )
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slack.get_slack_client")
-@patch("superset.commands.report.execute.get_chart_dataframe")
+@patch("superset.commands.report.execute.urllib.request.OpenerDirector.open")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @pytest.mark.parametrize(
     "error_notification_fails",
@@ -2133,16 +2144,28 @@ def test_slack_text_fallback_persists_success_for_multiple_recipient_rows(
     ids=["notification-succeeds", "notification-fails"],
 )
 def test_slack_text_fallback_persists_later_recipient_ambiguous_failure(
-    email_mock,
-    dataframe_mock,
-    slack_client_mock,
-    slack_should_use_v2_api_mock,
-    get_channels_with_search_mock,
-    create_report_slack_chart_with_text,
-    error_notification_fails,
-):
+    email_mock: Mock,
+    chart_data_request_mock: Mock,
+    slack_client_mock: Mock,
+    slack_should_use_v2_api_mock: Mock,
+    get_channels_with_search_mock: Mock,
+    create_report_slack_chart_with_text: ReportSchedule,
+    error_notification_fails: bool,
+) -> None:
     """Mixed-outcome errors persist the fallback warning exactly once."""
-    dataframe_mock.return_value = pd.DataFrame({"value": [1]})
+    chart_data_request_mock.return_value.getcode.return_value = 200
+    chart_data_request_mock.return_value.read.return_value = json.dumps(
+        {
+            "result": [
+                {
+                    "data": [{"value": 1}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                    "indexnames": [0],
+                }
+            ]
+        }
+    ).encode("utf-8")
     original_configs = [
         json.dumps({"target": "private-a"}),
         json.dumps({"target": "private-b"}),

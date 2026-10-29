@@ -37,6 +37,8 @@ export interface NativeFiltersFormItem {
   dataset: {
     value: number;
     label: string | ReactNode;
+    /** `semantic_view` for a semantic view; absent for a SQL dataset. */
+    kind?: string;
   };
   column: string;
   controlValues: {
@@ -77,6 +79,8 @@ export interface ChartCustomizationsFormItem {
   dataset: {
     value: number;
     label: string | ReactNode;
+    /** `semantic_view` for a semantic view; absent for a SQL dataset. */
+    kind?: string;
   };
   column: string;
   controlValues: {
@@ -110,6 +114,10 @@ export interface ChartCustomizationsFormItem {
   defaultValueQueriesData?: ColumnOption[] | null;
   aggregation?: string;
   canSelectMultiple?: boolean;
+  // Form-only: every column the Group By allowlist can offer, recorded when
+  // the dataset's columns load. Used on save to collapse an "all selected"
+  // allowlist back to unset; never persisted.
+  groupableColumns?: string[];
 }
 
 export interface ChartCustomizationsForm {

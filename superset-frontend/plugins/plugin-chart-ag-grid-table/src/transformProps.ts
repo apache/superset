@@ -45,7 +45,10 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
@@ -427,6 +430,11 @@ const processColumns = memoizePerChart(function processColumns(
   const metricsSet = new Set(metrics);
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
+  const normalizedColumnConfig = normalizeColumnConfigKeys(
+    columnConfig,
+    colnames || [],
+    getKnownColumnConfigKeys(colnames || [], props.datasource),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .map((key: string, originalIndex: number) => ({ key, originalIndex }))
@@ -441,7 +449,7 @@ const processColumns = memoizePerChart(function processColumns(
       // an earlier column (e.g. a percent-metric-only one) got filtered
       // out, which would otherwise shift every later column's dataType.
       const dataType = coltypes[originalIndex];
-      const config = columnConfig[key] || {};
+      const config = normalizedColumnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
@@ -607,6 +615,7 @@ const transformProps = (
     header_groups: headerGroups = [],
     allow_rearrange_columns: allowRearrangeColumns = true,
     allow_render_html: allowRenderHtml = true,
+    json_in_cell: jsonInCell = false,
     zebra_striping: zebraStriping = false,
   } = formData;
 
@@ -952,6 +961,7 @@ const transformProps = (
     emitCrossFilters,
     allowRearrangeColumns,
     allowRenderHtml,
+    jsonInCell: Boolean(jsonInCell),
     slice_id,
     serverPagination,
     rowCount,
@@ -966,6 +976,7 @@ const transformProps = (
     isUsingTimeComparison,
     colorPositiveNegative,
     totals,
+    totalsAggregate: toTotalsAggregate(formData.totals_aggregate),
     showTotals,
     columnColorFormatters,
     basicColorColumnFormatters,
