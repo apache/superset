@@ -75,9 +75,16 @@ class KeyValueResource(StrEnum):
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
+    # Self-service AUTH_DB password recovery: outstanding single-use tokens
+    # (stored as verifiers only) and the per-address resend cooldown.
+    PASSWORD_RECOVERY_THROTTLE = "password_recovery_throttle"  # noqa: S105
+    PASSWORD_RECOVERY_TOKEN = "password_recovery_token"  # noqa: S105
     PKCE_CODE_VERIFIER = "pkce_code_verifier"
+    SEMANTIC_EXECUTION = "semantic_execution"
     SQLLAB_PERMALINK = "sqllab_permalink"
 
+
+SEMANTIC_INSTALL_ID_KEY: UUID = UUID("b75b1c70-5553-4c5b-868b-bf8d99612626")
 
 # Stable UUIDs for resources that keep one named row in the key-value store.
 FIXED_RESOURCE_KEYS: dict[KeyValueResource, UUID] = {

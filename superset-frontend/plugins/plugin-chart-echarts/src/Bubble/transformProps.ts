@@ -32,6 +32,7 @@ import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
 import {
+  getColtypesMapping,
   getLegendProps,
   getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
@@ -42,7 +43,12 @@ import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
-import { NULL_STRING } from '../constants';
+import { OpacityEnum } from '../constants';
+import {
+  formatBubbleValue,
+  getBubbleCrossFilterKey,
+  getSelectedBubbleKeys,
+} from './crossFilter';
 
 const isIterable = (obj: any): obj is Iterable<any> =>
   obj != null && typeof obj[Symbol.iterator] === 'function';
@@ -86,9 +92,11 @@ export function formatTooltip(
   yAxisFormatter: NumberFormatter,
   tooltipSizeFormatter: NumberFormatter,
 ) {
-  const title = params.data[4]
-    ? `${params.data[4]} (${params.data[3]})`
-    : params.data[3];
+  const [, , , entityValue, seriesValue] = params.data ?? [];
+  const title =
+    seriesValue != null
+      ? `${formatBubbleValue(seriesValue)} (${formatBubbleValue(entityValue)})`
+      : formatBubbleValue(entityValue);
 
   return tooltipHtml(
     [
@@ -109,11 +117,16 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     formData,
     inContextMenu,
     theme,
+    filterState,
+    emitCrossFilters,
     legendState,
     legendIndex,
   } = chartProps;
 
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
+  const coltypeMapping = getColtypesMapping(queryData);
+  const selectedKeys = getSelectedBubbleKeys(filterState?.selectedValues);
   const {
     x,
     y,
@@ -140,6 +153,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     tooltipSizeFormat,
     opacity,
     showLegend,
+    showSelectorLegend,
     legendOrientation,
     legendMargin,
     legendType,
@@ -163,8 +177,16 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   data.forEach(datum => {
     const dataName = seriesLabel ? datum[seriesLabel] : datum[entityLabel];
-    const name = dataName ? String(dataName) : NULL_STRING;
+    const name = formatBubbleValue(dataName);
     const bubbleSeriesValue = seriesLabel ? datum[seriesLabel] : null;
+
+    const filterKey = getBubbleCrossFilterKey(
+      datum[entityLabel],
+      bubbleSeriesValue,
+      Boolean(seriesLabel),
+    );
+    const isDimmed =
+      selectedKeys.length > 0 && !selectedKeys.includes(filterKey);
 
     series.push({
       name,
@@ -178,9 +200,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         ],
       ],
       type: 'scatter',
+      cursor: emitCrossFilters ? 'pointer' : 'default',
       itemStyle: {
         color: colorFn(name, sliceId),
-        opacity,
+        opacity: isDimmed ? opacity * OpacityEnum.SemiTransparent : opacity,
       },
     });
     legends.add(name);
@@ -202,6 +225,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -269,6 +293,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),
@@ -309,5 +334,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     onLegendStateChanged,
     onLegendScroll,
     formData,
+    filterState,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }
