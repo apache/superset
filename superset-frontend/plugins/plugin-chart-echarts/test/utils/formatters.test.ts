@@ -406,6 +406,53 @@ test('createSpacedXAxisFormatter still dedupes identical consecutive labels when
   expect(labels).toEqual(['Jan', '', '']);
 });
 
+test('#45489 keeps ticks outside the data domain subject to neighboring-label spacing', () => {
+  const formatter = createSpacedXAxisFormatter(String, 100, 200, 1000);
+
+  expect([0, 1, 50, 100, 150, 200, 250, 251, 300].map(formatter)).toEqual([
+    '0',
+    '',
+    '50',
+    '100',
+    '150',
+    '200',
+    '250',
+    '',
+    '300',
+  ]);
+});
+
+test('#45489 handles January 1–31 ticks when data covers January 10–20', () => {
+  const january = (day: number) => Date.UTC(2026, 0, day);
+  const data = Array.from({ length: 11 }, (_, index) => ({
+    __timestamp: january(index + 10),
+  }));
+  const [domainMin, domainMax] = getXAxisDomain([data], '__timestamp');
+  expect([domainMin, domainMax]).toEqual([january(10), january(20)]);
+
+  const formatter = createSpacedXAxisFormatter(
+    getXAxisFormatter('%d %b', TimeGranularity.DAY),
+    domainMin,
+    domainMax,
+    1000,
+    false,
+    getTooltipTimeFormatter('%d %b %Y', TimeGranularity.DAY),
+  );
+  const labels = Array.from({ length: 31 }, (_, index) =>
+    formatter(january(index + 1)),
+  );
+
+  expect(labels).toEqual(
+    Array.from({ length: 31 }, (_, index) => {
+      const day = index + 1;
+      if (day === 11 || day === 19) {
+        return '';
+      }
+      return `${String(day).padStart(2, '0')} Jan${day === 10 || day === 20 ? ' 2026' : ''}`;
+    }),
+  );
+});
+
 test('#45489 reserves space for both aligned boundary labels', () => {
   const formatter = createSpacedXAxisFormatter(
     () => 'Year',

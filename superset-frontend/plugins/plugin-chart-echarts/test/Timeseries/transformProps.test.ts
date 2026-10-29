@@ -4895,6 +4895,54 @@ test.each<[string | undefined, TimeGranularity]>([
   },
 );
 
+test.each([0, 500])(
+  '#45489 uses the plot width after a %spx Y-axis title margin',
+  yAxisTitleMargin => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.DAY,
+          xAxisTimeFormat: SMART_DATE_ID,
+          yAxisTitle: 'Sales',
+          yAxisTitlePosition: 'Left',
+          yAxisTitleMargin,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual([
+      'Wed 5 Mar 2014',
+      yAxisTitleMargin === 0 ? '2016' : '',
+      'Mon 17 Aug 2026',
+    ]);
+  },
+);
+
 test('#45489 retains hour precision in standalone boundary dates', () => {
   const timestamps = [Date.UTC(2026, 7, 17, 9), Date.UTC(2026, 7, 17, 15)];
   const { echartOptions } = transformProps(

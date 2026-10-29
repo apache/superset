@@ -345,15 +345,17 @@ export function createSpacedXAxisFormatter(
       typeof value === 'number' &&
       pixelsPerMs !== undefined &&
       ((domainMin !== undefined &&
-        (value - domainMin) * pixelsPerMs <
+        domainMax !== undefined &&
+        value >= domainMin &&
+        value <= domainMax &&
+        ((value - domainMin) * pixelsPerMs <
           minLabelWidth +
             (label.length * xAxisLabelCharWidthPx) / 2 +
-            xAxisLabelMinGapPx) ||
-        (domainMax !== undefined &&
+            xAxisLabelMinGapPx ||
           (domainMax - value) * pixelsPerMs <
             maxLabelWidth +
               (label.length * xAxisLabelCharWidthPx) / 2 +
-              xAxisLabelMinGapPx) ||
+              xAxisLabelMinGapPx)) ||
         (lastShownValue !== undefined &&
           (value - lastShownValue) * pixelsPerMs <
             label.length * xAxisLabelCharWidthPx + xAxisLabelMinGapPx))
