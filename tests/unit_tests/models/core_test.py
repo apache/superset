@@ -16,10 +16,12 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import gc
 import sqlite3
 from contextlib import nullcontext
 from datetime import datetime
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any, Callable, Iterator
 
 import pandas as pd
 import pytest
@@ -37,6 +39,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import QueuePool
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -766,6 +769,96 @@ def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> Non
     # Both id=1 entries gone; id=2 entry untouched.
     assert not any(k[0] == 1 for k in _ENGINE_CACHE)
     assert any(k[0] == 2 for k in _ENGINE_CACHE)
+
+
+@pytest.fixture
+def duckdb_engine_cache() -> Iterator[None]:
+    """
+    Isolate the engine cache for tests that open a real DuckDB file. Garbage
+    collection is paused so that an engine or connection that is dropped
+    without being closed is not released by an incidental collection, which
+    keeps the tests deterministic.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    pytest.importorskip("duckdb_engine")
+    _ENGINE_CACHE.clear()
+    gc.collect()
+    gc.disable()
+    try:
+        yield
+    finally:
+        gc.enable()
+        for engine in list(_ENGINE_CACHE.values()):
+            engine.dispose()
+        _ENGINE_CACHE.clear()
+
+
+@pytest.fixture
+def pooled_duckdb(mocker: MockerFixture, duckdb_engine_cache: None) -> None:
+    """
+    A DuckDB deployment whose ``DB_CONNECTION_MUTATOR`` swaps the default
+    ``NullPool`` for a real pool, so cached engines keep their connection open
+    between requests.
+    """
+
+    def mutator(
+        uri: Any, params: dict[str, Any], *_: Any
+    ) -> tuple[Any, dict[str, Any]]:
+        return uri, {**params, "poolclass": QueuePool, "pool_size": 1}
+
+    mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutator})
+
+
+def _duckdb_database(path: Path, threads: int) -> Database:
+    """A saved DuckDB database whose connection settings differ by ``threads``."""
+    database = Database(
+        database_name="duck",
+        sqlalchemy_uri=f"duckdb:///{path}",
+        extra=json.dumps(
+            {"engine_params": {"connect_args": {"config": {"threads": threads}}}}
+        ),
+    )
+    database.id = 1
+    return database
+
+
+def _query_duckdb(database: Database) -> None:
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        connection.execute(select(1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_on_update_releases_pooled_connection(tmp_path: Path) -> None:
+    """
+    DuckDB allows one configuration per database file per process. A cached
+    engine whose pool holds an idle connection must therefore release it when
+    the database is explicitly evicted, or the edited configuration cannot be
+    opened until the discarded engine happens to be garbage collected.
+    """
+    from superset.models.core import _evict_engine_cache
+
+    path = tmp_path / "db.duckdb"
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+    edited = _duckdb_database(path, threads=2)
+    _evict_engine_cache(mapper=None, connection=None, target=edited)
+
+    _query_duckdb(edited)
+
+
+@pytest.mark.usefixtures("duckdb_engine_cache")
+def test_has_view_closes_its_connection(tmp_path: Path) -> None:
+    """
+    With the default ``NullPool`` a connection is only closed once it is
+    released. ``has_view`` must release the connection it opens: otherwise the
+    DuckDB database stays open with its old configuration, and opening it again
+    with edited settings fails until the leaked connection is garbage collected.
+    """
+    path = tmp_path / "db.duckdb"
+    _duckdb_database(path, threads=1).has_view(Table("missing"))
+
+    _query_duckdb(_duckdb_database(path, threads=2))
 
 
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
