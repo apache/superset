@@ -21,7 +21,7 @@ from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
-from superset.subjects.schemas import SubjectResponseSchema
+from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
 from superset.utils.schema import (
@@ -65,10 +65,10 @@ dashboard_title_description = "A title for the dashboard."
 description_description = "A description for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
 editors_description = (
-    "A list of subject IDs (users, roles, or groups) that can alter the dashboard."
+    "Subject IDs or explicit principal references that can alter the dashboard."
 )
 viewers_description = (
-    "A list of subject IDs (users, roles, or groups) that can view the dashboard."
+    "Subject IDs or explicit principal references that can view the dashboard."
 )
 position_json_description = (
     "This json object describes the positioning of the widgets "
@@ -378,10 +378,31 @@ class DashboardDatasetSchema(Schema):
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())
+    # Built server-side from accessible member charts only, so it survives both
+    # datasource-access narrowing (which removes ``verbose_map``) and guest narrowing.
+    chart_display_labels = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(keys=fields.Str(), values=fields.Str()),
+        metadata={
+            "description": "Display labels keyed by member chart ID, then by the "
+            "raw column or metric ID that chart uses. Only charts the caller can "
+            "access and labels configured for their saved dimensions and metrics "
+            "are included; omitted for semantic views, when there are none, or "
+            "when the caller has datasource access and already receives verbose_map."
+        },
+    )
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
     always_filter_main_dttm = fields.Bool()
+    # Nullable, because `SqlaTable.data` includes all three unconditionally:
+    # the first two are `None` on any dataset without a mapping, and
+    # `partition_mapped_column` is `None` whenever the mapping follows
+    # `main_dttm_col`. Declared non-nullable, the generated spec rejected an
+    # ordinary successful response under strict client validation.
+    partition_column = fields.Str(allow_none=True)
+    partition_mapped_column = fields.Str(allow_none=True)
+    partition_filter_mapping = fields.Dict(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
@@ -392,7 +413,11 @@ class DashboardDatasetSchema(Schema):
             serialized.pop("semantic_view_features", None)
             serialized.pop("editors", None)
             # Guest users should never receive fields that expose internal
-            # connection or query details.
+            # connection or query details. The partition filter mapping is in
+            # the list for the reason `sql` is: `evaluated_transform` is a SQL
+            # expression, and the other two name columns. Only the dataset
+            # editor and Explore's pruning indicator read them, neither of
+            # which is a guest surface.
             for key in (
                 "sql",
                 "select_star",
@@ -400,6 +425,9 @@ class DashboardDatasetSchema(Schema):
                 "edit_url",
                 "fetch_values_predicate",
                 "template_params",
+                "partition_column",
+                "partition_mapped_column",
+                "partition_filter_mapping",
             ):
                 serialized.pop(key, None)
         return serialized
@@ -444,8 +472,12 @@ class DashboardPostSchema(BaseDashboardSchema):
         metadata={"description": description_description},
         allow_none=True,
     )
-    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
-    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    editors = fields.List(
+        SubjectReferenceField(metadata={"description": editors_description})
+    )
+    viewers = fields.List(
+        SubjectReferenceField(metadata={"description": viewers_description})
+    )
     position_json = fields.String(
         metadata={"description": position_json_description}, validate=validate_json
     )
@@ -485,6 +517,14 @@ class DashboardCopySchema(Schema):
         validate=validate_json_metadata,
         required=True,
     )
+    replace_metadata = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": "Use json_metadata as the complete copy settings instead of "
+            "merging with the source dashboard's settings. Defaults to false. "
+            "Chart-specific settings are pruned and remapped in both modes."
+        },
+    )
     duplicate_slices = fields.Boolean(
         metadata={
             "description": "Whether or not to also copy all charts on the dashboard"
@@ -508,10 +548,14 @@ class DashboardPutSchema(DiscardIsManagedExternallyMixin, BaseDashboardSchema):
         validate=Length(0, 255),
     )
     editors = fields.List(
-        fields.Integer(metadata={"description": editors_description}, allow_none=True)
+        SubjectReferenceField(
+            metadata={"description": editors_description}, allow_none=True
+        )
     )
     viewers = fields.List(
-        fields.Integer(metadata={"description": viewers_description}, allow_none=True)
+        SubjectReferenceField(
+            metadata={"description": viewers_description}, allow_none=True
+        )
     )
     position_json = fields.String(
         metadata={"description": position_json_description},
