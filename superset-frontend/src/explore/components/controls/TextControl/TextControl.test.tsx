@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Constants } from '@superset-ui/core/components';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -171,11 +173,59 @@ test('should coalesce a burst of keystrokes into one onChange with the settled v
   expect(onChange).toHaveBeenCalledWith('120', []);
 });
 
-test('should flush a pending onChange on blur', async () => {
-  const onChange = jest.fn();
-  render(<TextControl {...mockedProps} value="" onChange={onChange} />);
-  const input = screen.getByRole('textbox');
-  await userEvent.type(input, 'abc');
-  fireEvent.blur(input);
-  await waitFor(() => expect(onChange).toHaveBeenCalledWith('abc', []));
+test('should flush the latest typed value on blur before the debounce fires', () => {
+  jest.useFakeTimers();
+  try {
+    const onChange = jest.fn();
+    render(<TextControl {...mockedProps} value="" onChange={onChange} />);
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'abc' } });
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('abc', []);
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('should drop a pending edit when the value is reset externally', () => {
+  jest.useFakeTimers();
+  try {
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <TextControl {...mockedProps} value="1" onChange={onChange} />,
+    );
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '12' } });
+    rerender(<TextControl {...mockedProps} value="9" onChange={onChange} />);
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
+    });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('9')).toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('should drop a pending edit on unmount', () => {
+  jest.useFakeTimers();
+  try {
+    const onChange = jest.fn();
+    const { unmount } = render(
+      <TextControl {...mockedProps} value="1" onChange={onChange} />,
+    );
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '12' } });
+    unmount();
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  } finally {
+    jest.useRealTimers();
+  }
 });

@@ -117,8 +117,14 @@ function TextControl<T extends InputValueType = InputValueType>({
   // (renderTrigger re-renders, filtered collection tables) only see the
   // settled value rather than every intermediate keystroke the deferred value
   // happens to commit.
+  // Newest raw keystroke, not yet emitted. Blur emits this rather than the
+  // (possibly lagging) deferred value so the last character is never lost.
+  const latestTypedRef = useRef<string | null>(null);
   const debouncedEmitRef = useRef(
     debounce((inputValue: string) => {
+      if (latestTypedRef.current === inputValue) {
+        latestTypedRef.current = null;
+      }
       handleChangeRef.current(inputValue);
     }, Constants.FAST_DEBOUNCE),
   );
@@ -142,12 +148,16 @@ function TextControl<T extends InputValueType = InputValueType>({
   );
 
   const onBlurFlush = useCallback(() => {
+    if (latestTypedRef.current !== null) {
+      debouncedEmitRef.current(latestTypedRef.current);
+    }
     debouncedEmitRef.current.flush();
   }, []);
 
   const onChangeWrapper = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const { value: newValue } = event.target;
+      latestTypedRef.current = newValue;
       setLocalValue(newValue);
       setPendingValue(newValue);
     },
@@ -165,6 +175,7 @@ function TextControl<T extends InputValueType = InputValueType>({
     // An external reset supersedes any in-flight edit; clearing it lets an
     // identical edit afterwards register as a fresh change.
     setPendingValue(null);
+    latestTypedRef.current = null;
   }
   const displayValue = localValue;
 
