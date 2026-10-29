@@ -720,24 +720,25 @@ class QueryContextProcessor:
         return scope
 
     @staticmethod
-    def _datasource_rls_data_key(datasource: Datasource) -> list[Any]:
+    def _datasource_rls_data_key(datasource: Datasource) -> Any:
         """
         RLS identity of a datasource for annotation cache keys. Guest or
         templated own-table RLS and RLS injected into the tables a virtual
         dataset's SQL reads can differ between requesters that share a user id
         (or have none), so they are part of the identity alongside the static
-        clauses.
+        clauses. Absent those, this is just the static clauses.
         """
-        data_key: list[Any] = [security_manager.get_rls_cache_key(datasource)]
+        static_rls = security_manager.get_rls_cache_key(datasource)
+        extra: dict[str, list[str]] = {}
         if isinstance(datasource, SqlaTable) and (
             rendered_rls := datasource.get_rendered_rls_cache_key()
         ):
-            data_key.append({"rendered_rls": rendered_rls})
+            extra["rendered_rls"] = rendered_rls
         if isinstance(datasource, (SqlaTable, Query)) and (
             inner_rls := datasource.get_inner_rls_cache_key()
         ):
-            data_key.append({"inner_rls": inner_rls})
-        return data_key
+            extra["inner_rls"] = inner_rls
+        return {"rls": static_rls, **extra} if extra else static_rls
 
     def _get_annotation_data_cached(
         self,
