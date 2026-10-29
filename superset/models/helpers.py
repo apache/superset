@@ -4419,6 +4419,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         default_schema: str | None = None,
         resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
     ) -> list[str]:
         """Collect expression-only RLS rules without building or executing SQL.
 
@@ -4435,6 +4436,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not query_obj or not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             return []
         resolve_catalog = resolve_catalog or cache(self.database.get_default_catalog)
+        resolve_schema = resolve_schema or cache(self._get_rls_schema)
         extras = query_obj.get("extras") or {}
         granularity = query_obj.get("granularity")
         if granularity is not None and granularity not in self.dttm_cols:
@@ -4479,8 +4481,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             else:
                 if not parsed.has_subquery():
                     continue
-            if default_schema is None:
-                default_schema = self._get_rls_schema()
             # A query root lets scope traversal find tables in scalar expressions
             # and select-list fragments such as DISTINCT (SELECT ...). Execution
             # applies every rule, global guest rules included, to these tables.
@@ -4492,6 +4492,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     default_schema,
                     include_global_guest_rls=True,
                     resolve_catalog=resolve_catalog,
+                    resolve_schema=resolve_schema if default_schema is None else None,
                 )
             )
         if opaque_templates:
@@ -4504,7 +4505,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         for prequery_obj in prequery_objs:
             predicates.update(
                 self._get_query_rls_cache_keys(
-                    prequery_obj, default_schema, resolve_catalog
+                    prequery_obj, default_schema, resolve_catalog, resolve_schema
                 )
             )
         return sorted(predicates)

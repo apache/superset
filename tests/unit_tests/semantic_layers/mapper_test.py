@@ -1394,7 +1394,13 @@ def test_sunburst_grained_level_and_cross_filter_on_semantic_view(
     [semantic_query] = map_query_object(query_object)
     grains = {dim.name: dim.grain for dim in semantic_query.dimensions}
     assert grains == {"order_date": Grains.DAY, "category": None}
-    assert {filter_.column.name for filter_ in semantic_query.filters} == {"category"}
+    assert semantic_query.filters is not None
+    filter_columns = set()
+    for filter_ in semantic_query.filters:
+        assert isinstance(filter_, Filter)
+        assert filter_.column is not None
+        filter_columns.add(filter_.column.name)
+    assert filter_columns == {"category"}
 
 
 def test_sunburst_dormant_grain_on_categorical_levels_on_semantic_view(
@@ -5452,8 +5458,14 @@ def test_sunburst_semantic_drill_uses_grained_filter_variant(
     expected = Filter(
         PredicateType.WHERE, monthly, Operator.EQUALS, datetime(2026, 8, 1)
     )
+    assert semantic.filters is not None
     assert expected in semantic.filters
-    assert {f for f in semantic.filters if f.operator == Operator.EQUALS} == {expected}
+    equality_filters = set()
+    for f in semantic.filters:
+        assert isinstance(f, Filter)
+        if f.operator == Operator.EQUALS:
+            equality_filters.add(f)
+    assert equality_filters == {expected}
     if group_limit:
         assert semantic.group_limit is not None
         assert semantic.group_limit.filters is not None
