@@ -1658,7 +1658,7 @@ function DatasourceEditor({
           );
           // A calculated column can be the default datetime column but can
           // never show a transform, and anything already stored on one still
-          // has to go either way, because it is saved and the query path reads
+          // has to go on a move, because it is saved and the query path reads
           // it.
           setCalculatedColumns(prev =>
             applyImplicitMappingMove(prev, moveFrom, value),
