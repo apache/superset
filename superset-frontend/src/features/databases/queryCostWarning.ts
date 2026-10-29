@@ -54,21 +54,6 @@ export function isQueryCostWarningMetric(
   );
 }
 
-/** Accept unrounded nonnegative estimates, including exact large JSON integers. */
-export function isQueryCostWarningEstimate(
-  value: unknown,
-  metric: QueryCostWarningMetric,
-): value is number | bigint {
-  return (
-    (typeof value === 'bigint' && value >= BigInt(0)) ||
-    (typeof value === 'number' &&
-      value >= 0 &&
-      (queryCostWarningMetrics[metric].usesByteUnits
-        ? Number.isSafeInteger(value)
-        : Number.isFinite(value)))
-  );
-}
-
 /** Require positive thresholds and safe whole bytes, unlike potentially large estimates. */
 export function isQueryCostWarningThreshold(
   value: unknown,

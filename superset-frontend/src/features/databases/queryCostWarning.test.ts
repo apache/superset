@@ -24,7 +24,6 @@ import {
   formatWarningBytes,
   parseWarningBytes,
   CostWarningUnit,
-  isQueryCostWarningEstimate,
   isQueryCostWarningMetric,
   isQueryCostWarningThreshold,
 } from './queryCostWarning';
@@ -156,23 +155,22 @@ test('valid disabled unknown metrics remain distinct from invalid enabled rules'
 });
 
 test.each([
-  ['bytes_processed', 0, true, false],
-  ['bytes_processed', 0.5, false, false],
-  ['bytes_processed', Number.MAX_SAFE_INTEGER, true, true],
-  ['bytes_processed', Number.MAX_SAFE_INTEGER + 1, false, false],
-  ['bytes_processed', BigInt('9007199254740993123'), true, false],
-  ['total_cost', 0, true, false],
-  ['total_cost', 0.125, true, true],
-  ['total_cost', BigInt('9007199254740993123'), true, true],
-  ['total_cost', Infinity, false, false],
-  ['total_cost', NaN, false, false],
-  ['total_cost', true, false, false],
-  ['total_cost', '12.5', false, false],
-  ['bytes_processed', -1, false, false],
+  ['bytes_processed', 0, false],
+  ['bytes_processed', 0.5, false],
+  ['bytes_processed', Number.MAX_SAFE_INTEGER, true],
+  ['bytes_processed', Number.MAX_SAFE_INTEGER + 1, false],
+  ['bytes_processed', BigInt('9007199254740993123'), false],
+  ['total_cost', 0, false],
+  ['total_cost', 0.125, true],
+  ['total_cost', BigInt('9007199254740993123'), true],
+  ['total_cost', Infinity, false],
+  ['total_cost', NaN, false],
+  ['total_cost', true, false],
+  ['total_cost', '12.5', false],
+  ['bytes_processed', -1, false],
 ] as const)(
-  '%s value %s has distinct estimate and threshold validation',
-  (metric, value, estimateValid, thresholdValid) => {
-    expect(isQueryCostWarningEstimate(value, metric)).toBe(estimateValid);
+  '%s threshold %s validates without coercion or precision loss',
+  (metric, value, thresholdValid) => {
     expect(isQueryCostWarningThreshold(value, metric)).toBe(thresholdValid);
   },
 );
