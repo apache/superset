@@ -484,16 +484,9 @@ To enable this extension you have to set:
 SESSION_SERVER_SIDE = True
 ```
 
-Flask-Session offers multiple backend session interfaces for Flask, here's an example for Redis:
-
-```python
-from redis import Redis
-
-SESSION_TYPE = "redis"
-SESSION_REDIS = Redis(host="redis", port=6379, db=0)
-# sign the session cookie sid
-SESSION_USE_SIGNER = True
-```
+Flask-Session offers multiple backend session interfaces for Flask. See the
+[production hardening guide](/admin-docs/security/securing_superset#session-management-security-critical)
+for a complete Redis example.
 
 ### Content Security Policy (CSP)
 

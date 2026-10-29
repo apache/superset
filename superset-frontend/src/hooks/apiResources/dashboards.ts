@@ -28,6 +28,7 @@ export const DASHBOARD_GET_COLUMNS = [
   'slug',
   'url',
   'dashboard_title',
+  'description',
   'published',
   'css',
   'theme',

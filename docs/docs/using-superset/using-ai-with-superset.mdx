@@ -99,12 +99,21 @@ MCP Vega-Lite previews of grouped time-series charts retain each series from
 post-processed chart data, including charts with multiple grouping dimensions.
 Saved line, bar, area, and scatter previews honor the requested width and height
 and include the chart name in their description.
+Chart filters on the selected temporal column apply independently of the chart's
+time range, including Big Number trendlines and generated or updated previews.
+Dashboard-scoped dataset queries refuse a time-column override that would discard
+a caller or dashboard predicate on a different temporal column. Use that filtered
+column as `time_column`, or query the dashboard's charts.
 When rebuilding queries for saved charts without a query context, MCP honors
 resampling across the requested time range, inherited table time comparisons,
 and temporal column references for semantic views. A matching inherited table
 comparison preserves other selected offsets, including custom comparisons.
 Forecasts use the x-axis time grain, resolved query grain, or panel grain, with a
 daily fallback.
+
+When chart compilation fails, MCP distinguishes database connection failures from
+query validation errors. For Mixed Timeseries charts, annotation failures on
+either query use the annotation charts' database engines for classification.
 
 ### Create Dashboards
 
@@ -472,6 +481,22 @@ also have `data: null`. For each statement, `executed_sql` is `null` when it equ
 
 - Ask for smaller result sets: use filters, reduce `page_size`, or request specific columns
 - Example: "Show me the top 10 rows from the sales dataset" instead of "Show me all sales data"
+
+### Chart query and template errors
+
+MCP chart tools accept ISO-8601 time grains such as `P1M` for monthly
+buckets, including Big Number trendlines with saved metrics. Template-rendering
+and query-processing validation failures are reported as `compile_error`, with
+the underlying error in `details`, rather than as database connection failures.
+Check the chart configuration or dataset expressions before retrying.
+Connection failures in an annotation layer's chart query are still reported as
+`database_connection_error`, even when the annotation layer wraps the failure as
+a validation error. Typed database exceptions are recognized directly; other
+failures are matched against candidate annotation-chart database engines. If
+multiple engines are candidates or a chart cannot be located, only specific
+connection-error patterns count, not an engine's generic error fallback. If no
+annotation engine can be determined, the main dataset's engine supplies those
+patterns. The error message names the annotation layer as the source.
 
 ### AI doesn't see Superset tools
 

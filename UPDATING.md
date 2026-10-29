@@ -24,6 +24,94 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Webhook alerts/reports and the Impala `cancel_query` call now share
+  `get_ssrf_safe_requester`, whose session sets `trust_env=False`. Unless
+  `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS` / `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS`
+  is `True`, these requests no longer honor `HTTP(S)_PROXY`/`NO_PROXY`,
+  `REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE`, or `.netrc`, because proxied connections
+  would bypass the connected-peer validation. Deployments that must reach webhooks
+  through a proxy or custom CA bundle should set the matching allow-internal flag,
+  which restores the plain `requests` behavior (and skips peer validation).
+
+- MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
+  values with "Text must not be empty"; omit the field to keep the stored title.
+  MCP chart names and theme names are capped at 250 characters, matching their
+  model columns (the published chart-name limit was 255).
+
+- **MCP authentication hooks and disabled API keys:** Custom `MCP_USER_RESOLVER`
+  functions that read `access_token.client_id` must use
+  `get_verifier_client_id(access_token)` from
+  `superset.mcp_service.composite_token_verifier` instead. FastMCP 4's `MultiAuth`
+  qualifies `client_id`; the helper returns the originating verifier's ID on
+  both FastMCP 3 and 4. This ID routes authentication; it is not proof that the
+  bearer is valid. When API keys are disabled (`MCP_API_KEY_ENABLED=False`, or
+  `FAB_API_KEY_ENABLED=False` without an MCP override), an explicit API-key
+  pass-through token raises `PermissionError` instead of falling through to
+  another identity. `tools/list` returns an empty list for that client, not
+  public tools. Remove the API-key credential to use another authentication
+  method, or explicitly enable API-key authentication.
+
+- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
+  query (no post-processing or time offsets, and not a report's client-processed
+  result), a dimension column of nullable integers that holds a value beyond
+  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
+  strings (the existing contract for large integers), and CSV, Excel and Arrow
+  exports carry the exact integer. Consumers that parsed these values as JSON
+  numbers receive a string for them. Metric columns are unchanged, and results
+  cached before the upgrade keep the old values until they expire.
+
+- **Bulk semantic view creation is capped and time-bounded.** With
+  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
+  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
+  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
+  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
+  up. Clients adding more views should split them across requests and retry
+  timed-out views.
+
+- `superset-frontend` type-checks with TypeScript 7, whose native compiler no
+  longer ships the JavaScript compiler API. The webpack dev server therefore
+  no longer runs `fork-ts-checker-webpack-plugin`, and the `DISABLE_TS_CHECKER`
+  environment variable is gone; run `npm run type` (or `npm run type -- --watch`)
+  for type errors and `npm run plugins:build` to refresh package `.d.ts` output.
+  Storybook's prop tables now come from `react-docgen` instead of
+  `react-docgen-typescript`.
+- MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
+  row-collapsing post-processing leaves input coverage unverified, not only when
+  truncation is observed. Output row counts do not prove complete input coverage.
+  `fetch_row_limit` reports the executed query limit, including server caps.
+
+- MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
+  share charts with the source dashboard must pass `duplicate_slices=false`.
+  MCP `list_dashboards`, `list_charts`, `list_datasets`, `list_reports` and
+  `list_databases` reject unknown request fields instead of silently ignoring
+  them, with suggestions for supported fields. Use `created_by_me` for authorship
+  or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
+
+- The extension storage write routes (`PUT`/`DELETE` under
+  `/api/v1/extensions/<publisher>/<name>/storage/`) are no longer exempt from
+  CSRF protection. They inherited the exemption from Flask-AppBuilder's
+  `BaseApi`; they now behave like every other Superset REST API that is not in
+  `WTF_CSRF_EXEMPT_LIST`. The browser already sends the token. Any other client
+  that writes extension storage, whether it authenticates with a session
+  cookie, a JWT bearer token or an API key, must first call
+  `GET /api/v1/security/csrf_token/` with its credential, then send the
+  returned token in the `X-CSRFToken` header together with the session cookie
+  set by that call (the token is bound to the session). The client's role must
+  also have `can_read` on `SecurityRestApi` (shown as `can read on SecurityRestApi`
+  in the role editor) to fetch the token. Over HTTPS, Flask-WTF
+  also requires a same-origin `Referer` header on the write
+  (`WTF_CSRF_SSL_STRICT`, on by default); browsers send one, scripted clients
+  must add it.
+
+- **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
+  CSV/text reports leave Total and Subtotal cells blank when they combine different
+  metrics, including two SUM metrics. Metric-specific values and totals remain
+  available, including with Combine metrics and Transpose pivot enabled. Previously
+  these cells could show an arbitrary metric's value or a sum across unrelated metrics.
+  Downstream consumers must handle empty cells or use a single metric that explicitly
+  computes the desired combined value. This change does not restore result-aggregation
+  parity between exports and the browser.
+
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
@@ -54,6 +142,22 @@ assists people when migrating to a new version.
   target commit can also leave transactional changes committed. Target and
   metadata commits are not atomic: a metadata commit failure after the target
   commit can likewise leave database changes without the committed marker.
+- **Semantic dimension variant resolution.** With `SEMANTIC_LAYERS` enabled,
+  same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. Sorting and series
+  limits use the selected grouping grain. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs or conflicting types, definitions or descriptions for the same
+  name and grain must disambiguate their catalog; such catalogs are rejected
+  instead of silently selecting a variant. On dashboards,
+  only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal predicates are retained unless replaced by the query's
+  time-axis bounds; time-series offsets and separate inner-bound queries replace
+  ranges on their selected axis. Retained predicates can narrow results where
+  earlier releases discarded them.
 
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
@@ -73,6 +177,15 @@ assists people when migrating to a new version.
   reuse cached semantic-view results for narrower queries. Containment keys include
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
   `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
+
+- `!=`, `NOT LIKE` and `NOT ILIKE` filters on SQLAlchemy-backed datasets now also
+  return rows where the column is NULL, as do whole-array `!=` / `NOT IN` filters
+  and `!=` / `NOT IN` filters on advanced data type columns (internet address,
+  port). Previously these rows were dropped by SQL three-valued logic
+  (`NULL != 'CA'` is not true), so a filter such as `state != 'CA'` removed NULL
+  rows in addition to `CA`. Dashboards, charts and reports that use these
+  operators may therefore show additional NULL rows. An explicit NULL operand
+  behaves as before (`!= NULL` still means `IS NOT NULL`).
 
 - Address validation refuses additional non-global address forms. Addresses in
   the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
@@ -102,8 +215,21 @@ assists people when migrating to a new version.
   the metric; select a dimension or remove the unsupported predicate. Dashboard
   filters on incompatible columns (including metrics) are skipped and reported
   as rejected, so the chart renders with an **Incompatible** filter indicator.
-  Unknown chart-defined columns are also reported as rejected, matching SQL
-  datasets. Valid dimension filters are reported as applied.
+  A chart-defined filter on a column the semantic view no longer has also
+  returns a client error naming the column, instead of being skipped (which
+  widened the result); edit the chart's filters and select a dimension. This
+  differs from SQL datasets, which skip and report such filters. Scheduled
+  reports, alerts and thumbnails for such charts fail until the chart is edited.
+  A "No filter" time range on a missing column is not refused. Dashboard time
+  overrides mark only previously unbounded temporal predicates as dashboard
+  filters; bounded chart-defined filters on missing columns or metrics remain
+  refused. This change affects only opt-in, pre-GA deployments with
+  `SEMANTIC_LAYERS` enabled. On upgrade, dashboard tabs already open across the
+  deploy send filters without `isExtra`; their semantic charts return HTTP 400
+  for incompatible dashboard filters until the user reloads the page. This
+  accepted pre-GA compatibility window will be revisited before GA. A dashboard
+  filter carried into a new chart (such as drill-by "Edit chart") becomes a chart
+  filter. Valid dimension filters are reported as applied.
 
 - Dashboard-applied filters now carry `isExtra` in chart-data requests, including
   MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
@@ -113,9 +239,16 @@ assists people when migrating to a new version.
 - Semantic-layer configuration Save and Reload metadata increment a database-backed
   cache generation. Apply the `c179af013f48` migration before deploying the updated
   application; existing semantic chart caches become cold once on upgrade.
-  Providers with local metadata caches must adopt the optional cache-token factory
-  hook for complete invalidation. When tenants share a metadata database or web,
-  Celery and MCP use different database host aliases, configure
+  Providers must accept required keyword-only `cache_token` and `context` on
+  `from_configuration`; the optional `from_configuration_with_cache_token` hook
+  is removed. Local metadata caches must include `cache_token` in their keys
+  before lookup or eager discovery for complete invalidation. The default namespace
+  uses the active metadata database's durable installation identity rather than
+  its address, so web, Celery and MCP agree across host/port/database aliases.
+  This causes a one-time cache miss for semantic-layer results after deployment
+  when using the default namespace; update all roles together. Existing explicit
+  namespaces retain their key scheme. When tenants share a metadata database or
+  a full database clone must be isolated from its source, configure
   `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
   resolves identically in all three contexts. A metadata session must not span
   workspaces. Saves handled by old instances during a rolling deployment do not
@@ -200,6 +333,49 @@ reattached to a reachable container by layout repair.
   owner and role changes. Update the dashboard in its external source of truth
   instead; the response sets `managed_externally: true`. Read-only tools and
   certification inspection are unaffected.
+
+- `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family, plus the
+  two full-text search functions that share its blind spot. Seven shapes were
+  missing -- `schema_to_xml`, `schema_to_xmlschema`,
+  `schema_to_xml_and_xmlschema`, `database_to_xml_and_xmlschema`,
+  `table_to_xmlschema`, `ts_rewrite` and `ts_stat` -- which, being scalar calls
+  with no FROM clause and no sub-query, cleared every gate that reasons about
+  table references. `ts_rewrite` and `ts_stat` run their text argument as a
+  query, so the statement they execute is a string with no clause of its own for
+  such a gate to see. The same reasoning adds a new `oracle` entry naming
+  `getxml`, `getxmltype`, `newcontext` and `newcontextfromhierarchy`, the
+  `DBMS_XMLGEN` / `DBMS_XMLQUERY` calls that run a query handed to them as
+  text, and the URI readers that name a table by path string -- `dburitype`,
+  `xdburitype`, `httpuritype` and `geturi`, the last reached through
+  `URIFACTORY.GETURI(...)`. They are listed by bare name because that is what
+  the parser sees for a package-qualified call.
+
+  The denylist is shared with SQL Lab and Charts, so a
+  deployment relying on any of these functions there will now see it refused --
+  including a deployment that never enables `PARTITION_FILTER_MAPPING`, since
+  the denylist is not gated on the feature flag. Override
+  `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py` if that is intended.
+
+- A partition value transform is now refused if it changes data --
+  `nextval(:value)`, a stored-procedure call, a PostgreSQL large-object writer.
+  The transform is evaluated against the engine to check that it mirrors, and
+  that evaluation is cached and repeated, so it has to be a read. The check is
+  the same `is_mutating` gate SQL Lab and chart queries already apply, and it
+  covers transforms already in storage: one stored by an earlier version simply
+  stops mirroring rather than failing a query.
+
+- Only the mapped column may carry a partition value transform, and that is now
+  enforced on every write rather than only inside `UpdateDatasetCommand`. A
+  transform arriving on any other column is dropped -- by the deprecated
+  `POST /datasource/save/`, and by `PUT /api/v1/dataset/<pk>` and dataset import
+  even when `PARTITION_FILTER_MAPPING` is off. An API client that was storing one there
+  will find the field `null` on the next read. The value was never readable:
+  a transform on a column the mapping does not mirror is invisible in the
+  dataset editor, and it went live the moment the mapped column resolved back to
+  it -- silently dropping rows from every chart on the dataset, with the
+  pruning indicator still reporting the mapping healthy. Transforms already in
+  storage on a column a request does not carry are left alone unless the feature
+  flag is on.
 
 - For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
   defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
@@ -368,6 +544,17 @@ Connector/C this also verifies the server hostname, so the switch needs
 `ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
 host. A Doris FE on its default self-signed certificate fails to connect once
 the switch is on.
+
+### MCP get_chart_data error categories
+
+`get_chart_data` returns `AccessDenied` when a query is refused for access, and
+`ValidationError` when a semantic layer provider rejects the query or Superset's
+query validation rejects it while it runs (for example, a semantic view refusing
+an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+reported as `DataError`.
+Clients that matched on `DataError` for these cases should handle the new types.
+On the saved-chart path these errors also no longer emit an error-level MCP log
+notification; the category is carried by the response envelope alone.
 
 ### Empty MCP chart previews
 
@@ -761,14 +948,34 @@ routes answer 404, and the "Reset Password" and "Reset my password" buttons on
 the legacy FAB user pages that led to them are gone. `superset init` no longer
 assigns their permissions (`can this form get/post on ResetPasswordView` and
 `ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
-`UserDBModelView`) to any role. Every flow they served lives in the SPA:
-administrators reset a user's password from the "New password" fields in the
-Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
-own from the "Reset my password" modal on their profile page (`PUT
-/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
-change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
-instead of the removed form. Deployments that link to either legacy route should
-point at `/user_info/` or the Users list instead.
+`UserDBModelView`) to the built-in Admin/Alpha/Gamma/sql_lab roles, and a data
+migration removes those same permissions from every other (operator-defined)
+role that already held them. The one exception is a custom-named
+`AUTH_ROLE_ADMIN`: FAB re-registers the two `UserDBModelView` action
+permissions on app creation and grants new ones to that role, and `superset
+init` only resyncs the built-in roles, so such a role re-acquires those two
+(still hidden, still 404) entries. Every flow they served lives in the SPA: administrators reset a user's
+password from the "New password" fields in the Users list edit modal (`PUT
+/api/v1/security/users/<id>`), users change their own from the "Reset my
+password" modal on their profile page (`PUT /api/v1/me/`, which requires
+`current_password` when the account already has one), and a pending forced
+password change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile
+page instead of the removed form. Deployments that link to either legacy route
+should point at `/user_info/` or the Users list instead.
+
+Reaching the profile page requires `can_read` on `user`, which the built-in
+Admin/Alpha/Gamma roles hold by default but a custom role is not guaranteed
+to. A user whose only role lacks it and who gets redirected there by a forced
+password change is now redirected to logout with an explanatory message
+instead, so they are never trapped in a redirect loop. Under
+`AUTH_REMOTE_USER` a logout cannot help (the header re-authenticates the user
+immediately), so such a user gets a terminal 403 with the same explanation and
+no logout. Clearing the flag also
+needs `can_read` and `can_write` on `CurrentUserRestApi` (for `GET` and `PUT`
+on `/api/v1/me/`), so grant all three permissions to any custom role whose
+members may have `password_must_change` set on their account.
+`ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
+check on; `password_must_change` is the per-user flag it acts on.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
@@ -785,14 +992,17 @@ them had no effect and they can be deleted from custom configs.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
+This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
+(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
+releases, it is the same minimal image.
 
 **What operators should expect:**
 
@@ -880,21 +1090,22 @@ tags are included in asset export and import.
 
 **What operators should expect:**
 
-- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
-  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
-  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
-  when the flag was on; they are simply no longer opt-in.
+- **Implicit tags no longer accrue.** Saving a chart, dashboard, dataset or
+  saved query, and favoriting an asset, used to write rows to `tag` and
+  `tagged_object` (`type:chart`, `editor:<user id>`, `favorited_by:<user id>`).
+  That generation has since been removed; see "Superset no longer
+  auto-generates `type:`/`editor:`/`favorited_by:` tags" below for what
+  happens to rows created before upgrading.
 - **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
   export bundles carry custom tags. Importers on 6.0 and later understand both;
   older importers skip the unrecognized `tags.yaml` file but reject chart and
   dashboard YAML that contains a `tags` key, so strip that key before importing
   a bundle into Superset 5.x or earlier.
-- **The flag is honored at write time.** The tagging SQLA event listeners are
-  always attached at startup; the ones that create tags check `TAGGING_SYSTEM`
-  when they fire, so the flag, including a runtime override through
-  `GET_FEATURE_FLAGS_FUNC` or `IS_FEATURE_ENABLED_FUNC`, takes effect without a
-  restart. The cleanup listeners run regardless of the flag, so deleting an
-  asset never leaves orphaned `tagged_object` rows behind.
+- **Only the cleanup listeners remain, and they run unconditionally.** The
+  creation listeners from the bullet above are gone entirely; the tagging
+  SQLA event listeners still attached at startup are deletion-only, and they
+  run regardless of `TAGGING_SYSTEM`, so deleting an asset never leaves
+  orphaned `tagged_object` rows behind.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
@@ -1298,6 +1509,36 @@ Discover the value from datasource metadata (or each external metric returned by
 MCP `list_metrics`). The server never adds a missing marker from metadata.
 Explore query controls remain unavailable until explicit field initialization,
 so legacy filter subjects cannot trigger value suggestions before reselection.
+
+### Superset no longer auto-generates `type:`/`editor:`/`favorited_by:` tags
+
+With `TAGGING_SYSTEM` enabled, Superset used to auto-tag every chart,
+dashboard, saved query, and dataset with implicit tags derived from
+metadata (object type, editors, and who favorited it), and generate a
+`favorited_by:<user id>` tag on every favorite/unfavorite. Nothing in the
+UI ever surfaced these tags to users — every tags list and filter in the
+frontend explicitly excluded them — so the generation added continuous
+write overhead (13 SQLAlchemy event listeners across 5 models) with no
+user-visible benefit. That generation is removed.
+
+Manually-created (custom) tags are unaffected: creating, editing,
+listing, and filtering tags still works exactly as before, including the
+`custom_tag` API filter used to distinguish custom from implicit tags.
+
+Deployments already running with `TAGGING_SYSTEM` enabled keep any
+`type:`/`editor:`/`favorited_by:` tag rows created before upgrading — they
+remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
+and are still exempt from bulk tag deletion — but no new ones are created,
+and the `superset sync_tags` CLI command that backfilled them has been
+removed. Nothing maintains those retained rows any more: un-favoriting no
+longer deletes a `favorited_by:` row, and editor changes no longer prune
+`editor:` rows, so they are a frozen snapshot that drifts from current
+favorites and editorship. No migration removes them; delete them manually.
+The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
+dashboard-list filtering it enables are kept, defaulting to `False`, so
+deployments that already set it to `True` to hide legacy implicit tags from
+dashboard-list responses keep that filtering; new deployments with no
+implicit tags left over have no reason to turn it on.
 
 ### MCP tool results preserve stored string values
 
@@ -1929,7 +2170,7 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
-### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control restored)
 
 Pivot Table subtotals and grand totals are now computed by the database at each
 rollup level instead of re-aggregating the already-aggregated cell values on the
@@ -1938,11 +2179,9 @@ client. This fixes long-standing incorrect totals for non-additive metrics
 which previously summed the displayed cell values.
 
 As a result the per-table **"Aggregation function"** control (which let you pick
-how totals were aggregated client-side, e.g. Sum/Average/Count) has been
-removed: totals now always reflect the metric's own definition evaluated at the
-total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. If you previously relied on a plain sum-of-cells total for a
-non-additive metric, that specific behavior is no longer available.
+how totals were aggregated client-side, e.g. Sum/Average/Count) was temporarily
+removed: totals reflected the metric's own definition evaluated at the total's
+granularity, with no way to pick a different reducer for subtotals/totals.
 
 The "Sum as Fraction of Total/Rows/Columns" display options are back as a
 new, standalone **"Show values as"** control (below "Combine metrics" in the
@@ -1955,9 +2194,49 @@ Fraction of ..." variants are **not** migrated: they divided a record count,
 while the new control divides the metric's own value, so translating them
 automatically would silently change what the chart displays rather than
 restore it; those charts need to be manually reconfigured if the value-based
-percentage is what's wanted. Charts that used any other non-fraction
-`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
-that specific behavior remains unavailable per the above.
+percentage is what's wanted.
+
+The **"Aggregation function"** control itself (form_data field
+`aggregateFunction`) is also back, as a second aggregation pass over a
+metric's own grouped results -- e.g. the median of a set of per-store
+`SUM(sales)` values -- computed correctly this time: every scope (subtotal,
+row/column total, grand total) reduces its own original contributing query
+results, never another scope's already-displayed value, so the previous
+non-additive-metric bug this section originally removed the control for does
+not return. It reuses the exact same field name and value spellings as
+before, so a chart that still had e.g. `aggregateFunction: "Median"` sitting
+unused in its saved `params` starts computing totals with that aggregation
+again automatically, with no action required and no value to reconfigure. The
+one exception is a chart that also has a percent "Show values as" selected:
+that control only exists since the per-table aggregation was removed, so the
+percent choice is the more recent, explicit intent (made on top of
+database-computed totals), and a result aggregation would both change those
+totals and hide the percent display. The migration drops the orphaned
+`aggregateFunction` from such a chart (and from its saved `query_context`)
+instead of restoring it, so it keeps rendering exactly as before. This drop
+is a one-time, upgrade-time heuristic, not a durable fact about the chart: if
+you later downgrade past this migration and then re-upgrade, a chart where
+you deliberately chose both an `aggregateFunction` and a percent "Show values
+as" *after* the control was restored looks identical to the original
+pre-restoration orphan, and the migration drops that deliberate choice again.
+Charts arriving through import are neither dropped nor tagged, so they render
+with the restored aggregation and no notice.
+A one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
+custom tag; opening a tagged chart in Explore shows a notice that its totals
+may now look different, which clears once you review and accept it (or save
+the chart). Accepting only removes the tag; it does not rebuild the saved
+`query_context` that alerts, reports and cache warm-up keep using. If you have
+alerts/reports built on one of these charts, re-save each affected chart in
+Explore first, then validate its scheduled outputs, since a scheduled report
+render does not pass through that notice and Accept alone leaves the stale
+`query_context` in place. CSV/XLSX exports and CSV/text reports do apply the
+selected aggregation, but, unlike the chart, apply it to every cell rather
+than scoping it to subtotals and totals the way the chart does, so a leaf
+cell's own database-computed metric value can be overwritten by the
+aggregation instead of passed through
+(https://github.com/apache/superset/issues/45215) -- e.g. a `Count`
+aggregation showing `1` for every leaf, or `Sample Variance` showing `0`,
+where the chart still shows the real per-cell metric value.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -2060,7 +2339,6 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
 Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for capacity limits and measurement guidance. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
-
 
 ### Webhook alerts/reports block private/internal hosts by default
 
@@ -2360,6 +2638,14 @@ Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
+
+- `NOT IN` filters on SQLAlchemy-backed datasets now also return rows where the
+  column is NULL. Previously these rows were dropped by SQL three-valued logic
+  (`NULL NOT IN (...)` is not true), so a filter such as "Exclude selected values"
+  removed NULL rows in addition to the selected values. Dashboards, charts and
+  reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
+  list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
+  and `NOT ILIKE` are unchanged.
 
 ## 6.1.0
 

@@ -18,6 +18,7 @@
  */
 import rison from 'rison';
 import { waitFor } from '@testing-library/react';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { SupersetClient } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import {
@@ -771,3 +772,38 @@ test('handleChartDelete surfaces the blocking alert/report names from a 422', as
     deleteSpy.mockRestore();
   }
 });
+
+test.each([true, false])(
+  'chart delete remembers its type only after archive success (soft delete %s)',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = { ...previousFlags, SOFT_DELETE: enabled };
+    localStorage.removeItem(LocalStorageKeys.LastArchivedType);
+    let completeDelete: ((response: Response) => void) | undefined;
+    const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockImplementation(
+      () =>
+        new Promise<Response>(resolve => {
+          completeDelete = resolve;
+        }),
+    );
+    const addSuccessToast = jest.fn();
+    try {
+      handleChartDelete(
+        { id: 1, slice_name: 'Chart' } as Chart,
+        addSuccessToast,
+        jest.fn(),
+        jest.fn(),
+      );
+      expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBeNull();
+      completeDelete?.(new Response());
+      await waitFor(() => expect(addSuccessToast).toHaveBeenCalledTimes(1));
+      expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe(
+        enabled ? 'chart' : null,
+      );
+    } finally {
+      deleteSpy.mockRestore();
+      window.featureFlags = previousFlags;
+      localStorage.removeItem(LocalStorageKeys.LastArchivedType);
+    }
+  },
+);
