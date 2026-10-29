@@ -67,7 +67,7 @@ export function executeQuery(payload: QueryExecutePayload) {
       const result = await executeQueryApi(payload);
       dispatch(setQueryResult(result as QueryExecuteResponse));
     } catch (error) {
-      dispatch(setQueryError(error.message));
+      dispatch(setQueryError((error as Error).message));
     } finally {
       dispatch(setQueryIsLoading(false));
     }

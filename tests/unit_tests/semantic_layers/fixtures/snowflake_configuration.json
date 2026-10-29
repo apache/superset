@@ -1,0 +1,172 @@
+{
+  "$defs": {
+    "PrivateKeyAuth": {
+      "description": "Private key authentication.",
+      "properties": {
+        "auth_type": {
+          "const": "private_key",
+          "default": "private_key",
+          "title": "Auth Type",
+          "type": "string"
+        },
+        "username": {
+          "description": "The username to authenticate as.",
+          "title": "Username",
+          "type": "string"
+        },
+        "private_key": {
+          "description": "The private key to authenticate with, in PEM format.",
+          "format": "password",
+          "title": "Private Key",
+          "type": "string",
+          "writeOnly": true
+        },
+        "private_key_password": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The password to decrypt the private key with. Omit when the private key is not encrypted.",
+          "title": "Private Key Password"
+        }
+      },
+      "required": [
+        "username",
+        "private_key"
+      ],
+      "title": "Private key",
+      "type": "object"
+    },
+    "UserPasswordAuth": {
+      "description": "Username and password authentication.",
+      "properties": {
+        "auth_type": {
+          "const": "user_password",
+          "default": "user_password",
+          "title": "Auth Type",
+          "type": "string"
+        },
+        "username": {
+          "description": "The username to authenticate as.",
+          "title": "Username",
+          "type": "string"
+        },
+        "password": {
+          "description": "The password to authenticate with.",
+          "format": "password",
+          "title": "Password",
+          "type": "string",
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "username",
+        "password"
+      ],
+      "title": "Username and password",
+      "type": "object"
+    }
+  },
+  "description": "Parameters needed to connect to Snowflake.",
+  "properties": {
+    "account_identifier": {
+      "description": "The Snowflake account identifier.",
+      "examples": [
+        "abc12345"
+      ],
+      "title": "Account Identifier",
+      "type": "string"
+    },
+    "role": {
+      "default": "",
+      "description": "The default role to use.",
+      "examples": [
+        "myrole"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "warehouse": {
+      "default": "",
+      "description": "The default warehouse to use.",
+      "examples": [
+        "testwh"
+      ],
+      "title": "Warehouse",
+      "type": "string"
+    },
+    "auth": {
+      "description": "Authentication method",
+      "discriminator": {
+        "mapping": {
+          "private_key": "#/$defs/PrivateKeyAuth",
+          "user_password": "#/$defs/UserPasswordAuth"
+        },
+        "propertyName": "auth_type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/UserPasswordAuth"
+        },
+        {
+          "$ref": "#/$defs/PrivateKeyAuth"
+        }
+      ],
+      "title": "Auth"
+    },
+    "database": {
+      "default": "",
+      "description": "The default database to use.",
+      "examples": [
+        "testdb"
+      ],
+      "title": "Database",
+      "type": "string",
+      "x-dependsOn": [
+        "account_identifier",
+        "auth"
+      ],
+      "x-dynamic": true
+    },
+    "allow_changing_database": {
+      "default": false,
+      "description": "Allow changing the default database.",
+      "title": "Allow Changing Database",
+      "type": "boolean"
+    },
+    "schema": {
+      "default": "",
+      "description": "The default schema to use.",
+      "examples": [
+        "public"
+      ],
+      "title": "Schema",
+      "type": "string",
+      "x-dependsOn": [
+        "account_identifier",
+        "auth",
+        "database"
+      ],
+      "x-dynamic": true
+    },
+    "allow_changing_schema": {
+      "default": false,
+      "description": "Allow changing the default schema.",
+      "title": "Allow Changing Schema",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "account_identifier",
+    "auth"
+  ],
+  "title": "SnowflakeConfiguration",
+  "type": "object"
+}

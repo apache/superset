@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo } from 'react';
-import { isEqual, sortBy } from 'lodash';
+import { isEqual, sortBy } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Filter,

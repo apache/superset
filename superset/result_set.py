@@ -18,6 +18,7 @@
 
 import datetime
 import logging
+from decimal import Decimal
 from typing import Any, Optional
 
 import numpy as np
@@ -48,10 +49,17 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
     """
     new_l: list[str] = []
     seen: dict[str, int] = {}
+    reserved = {item if case_sensitive else item.lower() for item in l}
+    fixed_case_suffix = suffix if case_sensitive else suffix.lower()
     for item in l:
         s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
             seen[s_fixed_case] += 1
+            while (
+                s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]) in reserved
+            ):
+                seen[s_fixed_case] += 1
+            reserved.add(s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]))
             item += suffix + str(seen[s_fixed_case])
         else:
             seen[s_fixed_case] = 0
@@ -60,7 +68,11 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json.dumps(obj, default=json.json_iso_dttm_ser)
+    # ensure_ascii=False so non-ASCII characters in array/struct/JSON column
+    # values (e.g. Cyrillic or CJK text from array_agg) render verbatim in the
+    # result grid instead of as \uXXXX escape sequences. This only affects the
+    # query result payload, not metadata persisted to the database.
+    return json.dumps(obj, default=json.json_iso_dttm_ser, ensure_ascii=False)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
@@ -73,9 +85,26 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                 obj[na_obj] = None
             else:
                 try:
-                    # for simple string conversions
-                    # this handles odd character types better
-                    obj[...] = obj.astype(str)
+                    val = obj.item()
+                    if isinstance(val, (dict, list)):
+                        try:
+                            # Use json.dumps for valid double-quoted JSON.
+                            # str() gives single-quoted repr like {'a': 1}
+                            # which breaks the frontend cell viewer.
+                            obj[...] = stringify(val)
+                        except TypeError:
+                            # Non-JSON-serializable value (e.g. bytes, custom
+                            # objects): fall back to str() to avoid crashing.
+                            obj[...] = str(val)
+                    elif isinstance(val, Decimal):
+                        # str() switches to scientific notation for small or
+                        # large exponents (-1.0E-7), which CSV export would
+                        # formula-escape. NaN and Infinity have no exact value.
+                        obj[...] = format(val, "f") if val.is_finite() else None
+                    else:
+                        # for simple string conversions
+                        # this handles odd character types better
+                        obj[...] = obj.astype(str)
                 except ValueError:
                     obj[...] = stringify(obj)
 
@@ -84,6 +113,32 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
 
 def destringify(obj: str) -> Any:
     return json.loads(obj)
+
+
+def stringify_extension_columns(table: pa.Table) -> pa.Table:
+    """
+    Replace Arrow extension-typed columns with their string representation.
+
+    Superset cannot render Arrow extension types natively (see
+    ``superset.utils.core.GenericDataType``). The most common case is the
+    canonical ``uuid`` type: PyArrow >= 21 infers Python ``uuid.UUID`` values as
+    that extension type (16-byte binary), which ``Table.to_pandas()`` surfaces as
+    raw bytes. Stringifying here keeps such columns readable (UUID values become
+    their canonical hex form). Plain binary/BLOB columns are not extension types
+    and are left untouched.
+    """
+    for index in range(table.num_columns):
+        field = table.schema.field(index)
+        if isinstance(field.type, pa.BaseExtensionType):
+            stringified = pa.array(
+                [
+                    None if value is None else str(value)
+                    for value in table.column(index).to_pylist()
+                ],
+                type=pa.string(),
+            )
+            table = table.set_column(index, field.name, stringified)
+    return table
 
 
 def convert_to_string(value: Any) -> str:
@@ -137,7 +192,10 @@ class SupersetResultSet:
         data: DbapiResult,
         cursor_description: DbapiDescription,
         db_engine_spec: type[BaseEngineSpec],
+        *,
+        truncated: bool = False,
     ):
+        self.truncated = truncated
         self.db_engine_spec = db_engine_spec
         data = data or []
         column_names: list[str] = []
@@ -188,6 +246,8 @@ class SupersetResultSet:
                 ValueError,
                 TypeError,  # this is super hackey,
                 # https://issues.apache.org/jira/browse/ARROW-7855
+                # Integers outside int64, e.g. BIGINT UNSIGNED above 2**63 - 1.
+                OverflowError,
             ):
                 # Check if original data has nested types (lists/dicts)
                 # before stringifying, since stringification removes
@@ -238,7 +298,13 @@ class SupersetResultSet:
         if not pa_data:
             column_names = []
 
-        self.table = pa.Table.from_arrays(pa_data, names=column_names)
+        # PyArrow >= 21 infers Python `uuid.UUID` values as the Arrow `uuid`
+        # extension type rather than raising (which previously routed them
+        # through the stringification fallback above). Stringify any extension
+        # columns so they render as readable text instead of raw bytes.
+        self.table = stringify_extension_columns(
+            pa.Table.from_arrays(pa_data, names=column_names)
+        )
         self._type_dict: dict[str, Any] = {}
         try:
             # The driver may not be passing a cursor.description
@@ -309,6 +375,11 @@ class SupersetResultSet:
             assert column in df.columns
             df[column] = values
         return df
+
+    @property
+    def nested_columns(self) -> dict[str, list[Any]]:
+        """Original nested values restored by the synchronous DataFrame path."""
+        return self._nested_columns
 
     @property
     def pa_table(self) -> pa.Table:

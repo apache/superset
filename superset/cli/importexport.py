@@ -28,7 +28,7 @@ from flask.cli import with_appcontext
 
 from superset import security_manager
 from superset.extensions import db
-from superset.utils.core import override_user
+from superset.utils.core import override_user, write_zip_entry
 
 logger = logging.getLogger(__name__)
 
@@ -48,16 +48,38 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Force load data even if table already exists",
 )
-def import_directory(directory: str, overwrite: bool, force: bool) -> None:
+@click.option(
+    "--username",
+    "-u",
+    required=False,
+    default="admin",
+    help="Specify the user name to assign imported assets to",
+)
+def import_directory(
+    directory: str, overwrite: bool, force: bool, username: Optional[str]
+) -> None:
     """Imports configs from a given directory"""
     # pylint: disable=import-outside-toplevel
     from superset.examples.utils import load_configs_from_directory
 
-    load_configs_from_directory(
-        root=Path(directory),
-        overwrite=overwrite,
-        force_data=force,
-    )
+    user = security_manager.find_user(username=username)
+    if user is None:
+        raise click.BadParameter(
+            f"User '{username}' not found.", param_hint="'--username'"
+        )
+    with override_user(user=user):
+        try:
+            load_configs_from_directory(
+                root=Path(directory),
+                overwrite=overwrite,
+                force_data=force,
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the directory, please check "
+                "the exception traceback in the log"
+            )
+            sys.exit(1)
 
 
 @click.command()
@@ -83,8 +105,7 @@ def export_dashboards(dashboard_file: Optional[str] = None) -> None:
     try:
         with ZipFile(dashboard_file, "w") as bundle:
             for file_name, file_content in ExportDashboardsCommand(dashboard_ids).run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content().encode())
+                write_zip_entry(bundle, f"{root}/{file_name}", file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the dashboards, please check "
@@ -116,8 +137,7 @@ def export_datasources(datasource_file: Optional[str] = None) -> None:
     try:
         with ZipFile(datasource_file, "w") as bundle:
             for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content().encode())
+                write_zip_entry(bundle, f"{root}/{file_name}", file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the datasets, please check "

@@ -82,8 +82,10 @@ test('collapses on click', async () => {
 
   await userEvent.click(screen.getAllByRole('button')[0]);
 
-  expect(screen.getByText('Content 1').parentNode).toHaveClass(
-    'ant-collapse-content-hidden',
+  // antd v6 moved the hidden state to the panel wrapper element
+  // (ant-collapse-panel-hidden) instead of the content wrapper.
+  expect(screen.getByText('Content 1').parentElement).toHaveClass(
+    'ant-collapse-panel-hidden',
   );
   expect(screen.queryByText('Content 2')).not.toBeInTheDocument();
 });

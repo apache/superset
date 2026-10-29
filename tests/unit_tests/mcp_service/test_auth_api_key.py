@@ -23,6 +23,7 @@ The streamable-http transport does not push a Flask request context, so
 ``flask.request``. These tests mock ``get_access_token`` accordingly.
 """
 
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
@@ -166,21 +167,69 @@ def test_invalid_api_key_raises(app: SupersetApp) -> None:
         app.config.pop("MCP_DEV_USERNAME", None)
 
 
-# -- API key disabled -> falls through to next auth method --
+# -- API key disabled -> rejects an explicit authentication attempt --
 
 
 @pytest.mark.usefixtures("_disable_api_keys")
-def test_api_key_disabled_skips_auth(app: SupersetApp) -> None:
-    """When FAB_API_KEY_ENABLED is False, API key auth is skipped entirely
-    even if an AccessToken is present."""
+def test_api_key_disabled_rejects_explicit_auth(app: SupersetApp) -> None:
+    """Disabled API-key authentication cannot fall through to weaker sources."""
     mock_sm = MagicMock()
 
     with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(_passthrough_access_token("sst_abc123")):
-            with pytest.raises(MCPNoAuthSourceError):
+            with pytest.raises(PermissionError, match="Authentication required"):
                 get_user_from_request()
 
     mock_sm.validate_api_key.assert_not_called()
+
+
+@pytest.mark.usefixtures("_disable_api_keys")
+def test_unauthenticated_error_does_not_leak_config(
+    app: SupersetApp, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The error returned to an unauthenticated client must not reveal which
+    auth mechanisms are configured; the diagnostics stay in the server log."""
+    # Snapshot and restore config: the ``app`` fixture is module-scoped, so
+    # leaving these set would leak into later tests in this module.
+    sentinel = object()
+    saved_auth = app.config.get("MCP_AUTH_ENABLED", sentinel)
+    saved_secret = app.config.get("MCP_JWT_SECRET", sentinel)
+    app.config["MCP_AUTH_ENABLED"] = True
+    app.config["MCP_JWT_SECRET"] = "super-secret-value"  # noqa: S105
+
+    try:
+        with app.test_request_context():
+            g.user = None
+            with caplog.at_level(logging.WARNING, logger="superset.mcp_service.auth"):
+                with pytest.raises(
+                    MCPNoAuthSourceError, match="Authentication required"
+                ) as exc_info:
+                    get_user_from_request()
+    finally:
+        for key, saved in (
+            ("MCP_AUTH_ENABLED", saved_auth),
+            ("MCP_JWT_SECRET", saved_secret),
+        ):
+            if saved is sentinel:
+                app.config.pop(key, None)
+            else:
+                app.config[key] = saved
+
+    message = str(exc_info.value)
+    assert message == "Authentication required. No valid credentials provided."
+    for leaked in (
+        "MCP_AUTH_ENABLED",
+        "JWT keys configured",
+        "API key",
+        "MCP_DEV_USERNAME",
+        "super-secret-value",
+    ):
+        assert leaked not in message
+
+    # The diagnostics the client must not see are still emitted server-side.
+    server_log = caplog.text
+    assert "could not be authenticated" in server_log
+    assert "MCP_AUTH_ENABLED=True" in server_log
 
 
 # -- No AccessToken -> API key auth skipped --
@@ -288,6 +337,7 @@ def test_jwt_access_token_skips_api_key_auth(app: SupersetApp) -> None:
 # -- API key pass-through detection in JWT context resolver --
 
 
+@pytest.mark.usefixtures("_enable_api_keys")
 def test_jwt_context_with_api_key_passthrough_returns_none(app: SupersetApp) -> None:
     """When CompositeTokenVerifier passes through an API key token,
     _resolve_user_from_jwt_context should detect the namespaced

@@ -21,13 +21,93 @@ import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabAction } from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { table, initialState as mockState } from '../fixtures';
+import { table, databases, initialState as mockState } from '../fixtures';
 
 type SqlLabState = SqlLabRootState['sqlLab'];
 const initialState = mockState.sqlLab as unknown as SqlLabState;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sqlLabReducer', () => {
+  test('should merge databases instead of replacing existing database state', () => {
+    const existingDb = {
+      ...databases.result[0],
+      extra: '{}',
+    };
+    const existingDbId = Number(existingDb.id);
+
+    const incomingDb = {
+      ...databases.result[0],
+      id: existingDbId + 1,
+      database_name: 'new database',
+      extra: '{}',
+    };
+    const incomingDbId = Number(incomingDb.id);
+
+    const state = {
+      ...initialState,
+      databases: {
+        [existingDbId]: existingDb,
+      },
+    } as any;
+
+    const action = actions.setDatabases([incomingDb] as any);
+
+    const newState = sqlLabReducer(state, action);
+
+    expect(newState.databases[existingDbId]).toEqual(existingDb);
+    expect(newState.databases[incomingDbId]).toEqual({
+      ...incomingDb,
+      extra_json: {},
+    });
+  });
+
+  test('should default extra_json to an empty object when extra is unset', () => {
+    // `extra` is nullable in the metadata database, and JSON.parse(extra || '')
+    // is guaranteed to throw because '' is never valid JSON, so one such row
+    // took down the whole reducer.
+    const incomingDb = {
+      ...databases.result[0],
+      extra: null,
+    };
+    const incomingDbId = Number(incomingDb.id);
+
+    const action = actions.setDatabases([incomingDb] as any);
+
+    const newState = sqlLabReducer(initialState, action);
+
+    expect(newState.databases[incomingDbId]).toEqual({
+      ...incomingDb,
+      extra_json: {},
+    });
+  });
+
+  test('defaults extra_json when a database has malformed extra', () => {
+    const incomingDb = { ...databases.result[0], extra: '{not json' };
+
+    const newState = sqlLabReducer(
+      initialState,
+      actions.setDatabases([incomingDb] as any),
+    );
+
+    expect(newState.databases[Number(incomingDb.id)].extra_json).toEqual({});
+  });
+
+  test('keeps a valid extra payload', () => {
+    const incomingDb = {
+      ...databases.result[0],
+      extra: '{"engine_params": {"pool_size": 5}}',
+    };
+
+    const newState = sqlLabReducer(
+      initialState,
+      actions.setDatabases([incomingDb] as any),
+    );
+
+    expect(newState.databases[Number(incomingDb.id)].extra_json).toEqual({
+      engine_params: { pool_size: 5 },
+    });
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
     let newState: SqlLabState;
@@ -200,6 +280,27 @@ describe('sqlLabReducer', () => {
       expect(newState.unsavedQueryEditor.sql).toBe(sql);
       expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
     });
+    test('should set Sql when dispatched with tabViewId (backend persistence)', () => {
+      // Simulate SqllabBackendPersistence: queryEditor gets a tabViewId after save
+      const tabViewId = 'tab-view-42';
+      const migrateAction = {
+        type: actions.MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: qe,
+        newQueryEditor: { ...qe!, tabViewId, inLocalStorage: false },
+      };
+      newState = sqlLabReducer(newState, migrateAction as SqlLabAction);
+
+      // Restore SQL using tabViewId (as restoreSql in QueryTable does)
+      const sql = 'SELECT restored_query FROM history';
+      const restoreAction = {
+        type: actions.QUERY_EDITOR_SET_SQL,
+        queryEditor: { id: tabViewId },
+        sql,
+      };
+      newState = sqlLabReducer(newState, restoreAction);
+      expect(newState.unsavedQueryEditor.sql).toBe(sql);
+      expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
+    });
     test('should not fail while setting queryLimit', () => {
       const queryLimit = 101;
       const action = {
@@ -272,6 +373,45 @@ describe('sqlLabReducer', () => {
         newQueryEditor.tabViewId,
       );
     });
+    test('should toggle hideLeftBar via queryEditorId for the active editor', () => {
+      const action = {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: true,
+      };
+      newState = sqlLabReducer(newState, action as SqlLabAction);
+      expect(newState.unsavedQueryEditor.hideLeftBar).toBe(true);
+      expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
+    });
+
+    test('should toggle hideLeftBar back to false via queryEditorId', () => {
+      // first set to true
+      newState = sqlLabReducer(newState, {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: true,
+      } as SqlLabAction);
+      // then back to false
+      newState = sqlLabReducer(newState, {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: qe!.id,
+        hideLeftBar: false,
+      } as SqlLabAction);
+      expect(newState.unsavedQueryEditor.hideLeftBar).toBe(false);
+    });
+
+    test('should toggle hideLeftBar in queryEditors array for non-active editor', () => {
+      const nonActiveId = defaultQueryEditor.id;
+      const action = {
+        type: actions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+        queryEditorId: nonActiveId,
+        hideLeftBar: true,
+      };
+      newState = sqlLabReducer(newState, action as SqlLabAction);
+      const updated = newState.queryEditors.find(e => e.id === nonActiveId);
+      expect(updated?.hideLeftBar).toBe(true);
+    });
+
     test('should clear the destroyed query editors', () => {
       const expectedQEId = '1233289';
       const action = {
@@ -601,6 +741,49 @@ describe('sqlLabReducer', () => {
         }),
       );
       expect(newState.queries['sync-query'].state).toBe(QueryState.Fetching);
+    });
+    test('should move an async query from running to success when polling reports it finished', () => {
+      const asyncQuery = {
+        ...query,
+        id: 'async-query',
+        state: QueryState.Running,
+        runAsync: true,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { 'async-query': asyncQuery },
+        },
+        actions.refreshQueries({
+          'async-query': {
+            ...asyncQuery,
+            state: QueryState.Success,
+          },
+        }),
+      );
+      expect(newState.queries['async-query'].state).toBe(QueryState.Success);
+    });
+    test('should downgrade a premature poller success to fetching for a running sync query', () => {
+      const syncQuery = {
+        ...query,
+        id: 'sync-running',
+        state: QueryState.Running,
+        runAsync: false,
+        results: null,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { 'sync-running': syncQuery },
+        },
+        actions.refreshQueries({
+          'sync-running': {
+            ...syncQuery,
+            state: QueryState.Success,
+          },
+        }),
+      );
+      expect(newState.queries['sync-running'].state).toBe(QueryState.Fetching);
     });
   });
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

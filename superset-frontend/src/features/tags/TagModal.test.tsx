@@ -45,6 +45,11 @@ test('renders correctly in create mode', () => {
   expect(getByText('Create Tag')).toBeInTheDocument();
 });
 
+test('description input has an accessible name', async () => {
+  render(<TagModal {...mockedProps} />);
+  expect(await screen.findByLabelText('Tag description')).toBeInTheDocument();
+});
+
 test('renders correctly in edit mode', () => {
   fetchMock.get(fetchEditFetchObjects, [[]]);
   const editTag: Tag = {

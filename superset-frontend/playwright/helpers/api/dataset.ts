@@ -49,7 +49,7 @@ export interface VirtualDatasetCreatePayload {
   schema: string | null;
   table_name: string;
   sql: string;
-  owners?: number[];
+  editors?: number[];
 }
 
 /**
@@ -65,7 +65,7 @@ export interface DatasetResult {
     id: number;
     database_name: string;
   };
-  owners?: Array<{ id: number }>;
+  editors?: Array<{ id: number }>;
   dataset_type?: 'physical' | 'virtual';
 }
 
@@ -124,7 +124,7 @@ export async function createTestVirtualDataset(
     schema: '',
     table_name: name,
     sql: "SELECT 1 as id, 'test' as name",
-    owners: [],
+    editors: [],
   });
 
   if (!response.ok()) {

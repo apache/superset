@@ -23,6 +23,7 @@ import {
   CategoricalColorNamespace,
   getNumberFormatter,
   AxisType,
+  getColumnLabel,
   getMetricLabel,
   NumberFormatter,
   tooltipHtml,
@@ -30,14 +31,24 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import {
+  getColtypesMapping,
+  getLegendProps,
+  getLegendScrollDataIndex,
+  getMinAndMaxFromBounds,
+} from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
-import { NULL_STRING } from '../constants';
+import { OpacityEnum } from '../constants';
+import {
+  formatBubbleValue,
+  getBubbleCrossFilterKey,
+  getSelectedBubbleKeys,
+} from './crossFilter';
 
 const isIterable = (obj: any): obj is Iterable<any> =>
   obj != null && typeof obj[Symbol.iterator] === 'function';
@@ -81,9 +92,11 @@ export function formatTooltip(
   yAxisFormatter: NumberFormatter,
   tooltipSizeFormatter: NumberFormatter,
 ) {
-  const title = params.data[4]
-    ? `${params.data[4]} (${params.data[3]})`
-    : params.data[3];
+  const [, , , entityValue, seriesValue] = params.data ?? [];
+  const title =
+    seriesValue != null
+      ? `${formatBubbleValue(seriesValue)} (${formatBubbleValue(entityValue)})`
+      : formatBubbleValue(entityValue);
 
   return tooltipHtml(
     [
@@ -96,10 +109,24 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
-    chartProps;
+  const {
+    height,
+    width,
+    hooks,
+    queriesData,
+    formData,
+    inContextMenu,
+    theme,
+    filterState,
+    emitCrossFilters,
+    legendState,
+    legendIndex,
+  } = chartProps;
 
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
+  const coltypeMapping = getColtypesMapping(queryData);
+  const selectedKeys = getSelectedBubbleKeys(filterState?.selectedValues);
   const {
     x,
     y,
@@ -126,6 +153,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     tooltipSizeFormat,
     opacity,
     showLegend,
+    showSelectorLegend,
     legendOrientation,
     legendMargin,
     legendType,
@@ -140,13 +168,25 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const xAxisLabel: string = getMetricLabel(x);
   const yAxisLabel: string = getMetricLabel(y);
   const sizeLabel: string = getMetricLabel(size);
+  const entityLabel: string = getColumnLabel(entity);
+  const seriesLabel: string | undefined = bubbleSeries
+    ? getColumnLabel(bubbleSeries)
+    : undefined;
 
   const refs: Refs = {};
 
   data.forEach(datum => {
-    const dataName = bubbleSeries ? datum[bubbleSeries] : datum[entity];
-    const name = dataName ? String(dataName) : NULL_STRING;
-    const bubbleSeriesValue = bubbleSeries ? datum[bubbleSeries] : null;
+    const dataName = seriesLabel ? datum[seriesLabel] : datum[entityLabel];
+    const name = formatBubbleValue(dataName);
+    const bubbleSeriesValue = seriesLabel ? datum[seriesLabel] : null;
+
+    const filterKey = getBubbleCrossFilterKey(
+      datum[entityLabel],
+      bubbleSeriesValue,
+      Boolean(seriesLabel),
+    );
+    const isDimmed =
+      selectedKeys.length > 0 && !selectedKeys.includes(filterKey);
 
     series.push({
       name,
@@ -155,14 +195,15 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           datum[xAxisLabel],
           datum[yAxisLabel],
           datum[sizeLabel],
-          datum[entity],
+          datum[entityLabel],
           bubbleSeriesValue as any,
         ],
       ],
       type: 'scatter',
+      cursor: emitCrossFilters ? 'pointer' : 'default',
       itemStyle: {
         color: colorFn(name, sliceId),
-        opacity,
+        opacity: isDimmed ? opacity * OpacityEnum.SemiTransparent : opacity,
       },
     });
     legends.add(name);
@@ -184,6 +225,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -207,13 +249,16 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
-      axisLabel: { formatter: xAxisFormatter, rotate: xAxisLabelRotation },
+      axisLabel: {
+        formatter: xAxisFormatter,
+        rotate: xAxisLabelRotation,
+        interval: xAxisLabelInterval,
+      },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      interval: xAxisLabelInterval,
       scale: true,
       name: bubbleXAxisTitle,
       nameLocation: 'middle',
@@ -248,7 +293,11 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     tooltip: {
@@ -268,7 +317,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     grid: { ...defaultGrid, ...padding },
   };
 
-  const { onContextMenu, setDataMask = () => {} } = hooks;
+  const {
+    onContextMenu,
+    setDataMask = () => {},
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
 
   return {
     refs,
@@ -277,6 +331,11 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     echartOptions,
     onContextMenu,
     setDataMask,
+    onLegendStateChanged,
+    onLegendScroll,
     formData,
+    filterState,
+    emitCrossFilters,
+    coltypeMapping,
   };
 }

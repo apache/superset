@@ -18,7 +18,12 @@
  */
 
 import { type ReactNode } from 'react';
-import { render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import {
+  OSM_TILE_ATTRIBUTION,
+  OSM_TILE_STYLE_URL,
+} from '@superset-ui/core/utils/mapStyles';
 
 // Capture the most recent viewport props passed to the Map component
 let lastMapProps: Record<string, unknown> = {};
@@ -65,6 +70,23 @@ jest.mock('@apache-superset/core/theme', () => ({
 jest.mock('maplibre-gl/dist/maplibre-gl.css', () => ({}));
 jest.mock('../src/MapLibre.css', () => ({}));
 
+// maplibre-gl 6 is an ESM-only package with no "require"/"default" export
+// condition, so jest's (CJS-based) resolver can't locate the real module to
+// mock over it by name; { virtual: true } skips that resolution step.
+//
+// The mock jest.fn() is created inline (not hoisted out to a `const`)
+// because MapLibre.tsx calls maplibregl.setWorkerUrl() synchronously at
+// import time, and `import`/jest.mock() calls are themselves hoisted above
+// this file's plain `const` declarations — a `const` referenced here would
+// still be in its temporal dead zone when that import-time call fires.
+jest.mock(
+  'maplibre-gl',
+  () => ({ __esModule: true, setWorkerUrl: jest.fn() }),
+  { virtual: true },
+);
+
+// eslint-disable-next-line import/first
+import * as maplibregl from 'maplibre-gl';
 // eslint-disable-next-line import/first
 import MapLibre from '../src/MapLibre';
 
@@ -89,9 +111,30 @@ const defaultProps = {
   onViewportChange: jest.fn(),
 };
 
+// Captured before the first jest.clearAllMocks() below wipes the call the
+// module made at import time.
+const setWorkerUrlCallAtImport = [
+  ...jest.mocked(maplibregl.setWorkerUrl).mock.calls,
+];
+
+test('points maplibre-gl at the CopyPlugin-emitted worker asset before any map can mount', () => {
+  // maplibre-gl 6's ESM-only build derives its worker URL from
+  // `import.meta.url`, which webpack rewrites to a build-time path that
+  // doesn't match maplibre's `^https?:` check, so the worker silently
+  // fails to start unless setWorkerUrl() is called first (see MapLibre.tsx).
+  expect(setWorkerUrlCallAtImport).toEqual([
+    ['/static/assets/maplibre-gl-worker.mjs'],
+  ]);
+});
+
 beforeEach(() => {
   lastMapProps = {};
+  document.body.innerHTML = '';
   jest.clearAllMocks();
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Chrome',
+    configurable: true,
+  });
   mockFitBounds.mockImplementation(
     (
       bounds: [[number, number], [number, number]],
@@ -183,6 +226,92 @@ test('passes globalOpacity to ScatterPlotOverlay', () => {
   expect(overlay!.getAttribute('data-opacity')).toBe('0.5');
 });
 
+test('converts OSM raster tile templates into MapLibre style objects', () => {
+  render(<MapLibre {...defaultProps} mapStyle={OSM_TILE_STYLE_URL} />);
+
+  expect(lastMapProps.mapStyle).toEqual({
+    version: 8,
+    sources: {
+      'osm-raster-tiles': {
+        type: 'raster',
+        tiles: [OSM_TILE_STYLE_URL],
+        tileSize: 256,
+        attribution: OSM_TILE_ATTRIBUTION,
+      },
+    },
+    layers: [
+      {
+        id: 'osm-raster-layer',
+        type: 'raster',
+        source: 'osm-raster-tiles',
+        minzoom: 0,
+        maxzoom: 22,
+      },
+    ],
+  });
+});
+
+test('keeps the missing Mapbox key signal for saved Mapbox charts', () => {
+  render(
+    <MapLibre
+      {...defaultProps}
+      mapProvider="mapbox"
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+    />,
+  );
+
+  expect(
+    screen.getByText(
+      'Mapbox requires a MAPBOX_API_KEY to be configured on the server.',
+    ),
+  ).toBeInTheDocument();
+  expect(lastMapProps.mapStyle).toBeUndefined();
+});
+
+test('passes Mapbox styles through when a key exists', () => {
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.test' } },
+  })}'></div>`;
+
+  render(
+    <MapLibre
+      {...defaultProps}
+      mapProvider="mapbox"
+      mapStyle="mapbox://styles/mapbox/dark-v11"
+    />,
+  );
+
+  expect(lastMapProps.mapStyle).toBe('mapbox://styles/mapbox/dark-v11');
+  expect(lastMapProps.mapboxAccessToken).toBe('pk.test');
+});
+
+test('preserves the MapLibre canvas on Safari for image export', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+
+  render(<MapLibre {...defaultProps} />);
+
+  expect(lastMapProps.canvasContextAttributes).toEqual({
+    preserveDrawingBuffer: true,
+  });
+});
+
+test('preserves the Mapbox canvas on Safari for image export', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.test' } },
+  })}'></div>`;
+
+  render(<MapLibre {...defaultProps} mapProvider="mapbox" />);
+
+  expect(lastMapProps.preserveDrawingBuffer).toBe(true);
+});
+
 test('handles undefined bounds gracefully', () => {
   render(<MapLibre {...defaultProps} bounds={undefined} />);
   expect(lastMapProps.longitude).toBe(0);
@@ -259,4 +388,71 @@ test('falls back to default viewport when cleared with undefined bounds', () => 
   expect(lastMapProps.longitude).toBe(0);
   expect(lastMapProps.latitude).toBe(0);
   expect(lastMapProps.zoom).toBe(1);
+});
+
+test('refits to the bounds of a refreshed response', () => {
+  const { rerender } = render(<MapLibre {...defaultProps} />);
+  expect(lastMapProps.latitude).toBe(40.75);
+
+  // An auto-refresh keeps the chart mounted and passes the new bounds in.
+  rerender(
+    <MapLibre
+      {...defaultProps}
+      bounds={[
+        [-0.15, 51.45],
+        [-0.05, 51.55],
+      ]}
+    />,
+  );
+
+  expect(lastMapProps.longitude).toBe(-0.1);
+  expect(lastMapProps.latitude).toBe(51.5);
+});
+
+test('keeps the viewport overrides when refreshed bounds move', () => {
+  const overrides = {
+    viewportLongitude: -122.4,
+    viewportLatitude: 37.8,
+    viewportZoom: 5,
+  };
+  const { rerender } = render(<MapLibre {...defaultProps} {...overrides} />);
+
+  rerender(
+    <MapLibre
+      {...defaultProps}
+      {...overrides}
+      bounds={[
+        [-0.15, 51.45],
+        [-0.05, 51.55],
+      ]}
+    />,
+  );
+
+  expect(lastMapProps.longitude).toBe(-122.4);
+  expect(lastMapProps.latitude).toBe(37.8);
+  expect(lastMapProps.zoom).toBe(5);
+});
+
+test('keeps a panned map when refreshed bounds are unchanged', () => {
+  const { rerender } = render(<MapLibre {...defaultProps} />);
+
+  act(() => {
+    (lastMapProps.onMove as (evt: { viewState: object }) => void)({
+      viewState: { longitude: 10, latitude: 20, zoom: 3 },
+    });
+  });
+
+  rerender(
+    <MapLibre
+      {...defaultProps}
+      bounds={[
+        [-74.0, 40.7],
+        [-73.9, 40.8],
+      ]}
+    />,
+  );
+
+  expect(lastMapProps.longitude).toBe(10);
+  expect(lastMapProps.latitude).toBe(20);
+  expect(lastMapProps.zoom).toBe(3);
 });

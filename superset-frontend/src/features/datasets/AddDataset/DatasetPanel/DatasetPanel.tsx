@@ -18,14 +18,17 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
+import type { SupersetError } from '@superset-ui/core';
 import Table, {
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
+import { ErrorMessageWithStackTrace } from 'src/components';
+import { openInNewTab, stripAppRoot } from 'src/utils/navigationUtils';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -145,6 +148,10 @@ const TableScrollContainer = styled.div`
   right: 0;
 `;
 
+const ErrorContainer = styled.div`
+  padding: 0 ${({ theme }) => theme.sizeUnit * 6}px;
+`;
+
 const StyledAlert = styled(Alert)`
   ${({ theme }) => `
   border: 1px solid ${theme.colorInfoText};
@@ -166,6 +173,7 @@ const StyledAlert = styled(Alert)`
 
 export const REFRESHING = t('Refreshing columns');
 export const COLUMN_TITLE = t('Table columns');
+export const ERROR_TITLE = t('An Error Occurred');
 
 const pageSizeOptions = ['5', '10', '15', '25'];
 const DEFAULT_PAGE_SIZE = 25;
@@ -200,9 +208,13 @@ export interface IDatasetPanelProps {
    */
   columnList: ITableColumn[];
   /**
-   * Boolean indicating if there is an error state
+   * Error returned while loading the table metadata
    */
-  hasError: boolean;
+  error?: SupersetError;
+  /**
+   * Function used to retry loading the table metadata after error mitigation
+   */
+  errorMitigationFunction?: () => void;
   /**
    * Boolean indicating if the component is in a loading state
    */
@@ -224,20 +236,28 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
     description={
       <>
         {EXISTING_DATASET_DESCRIPTION}
-        <span
-          role="button"
+        <button
+          type="button"
           onClick={() => {
-            window.open(
-              dataset?.explore_url,
-              '_blank',
-              'noreferrer noopener popup=false',
-            );
+            if (dataset?.explore_url) {
+              // `explore_url` is router-relative from the backend (rooted under
+              // a subdirectory deployment); strip the root so openInNewTab's
+              // ensureAppRoot re-prefixes it once rather than doubling it.
+              openInNewTab(stripAppRoot(dataset.explore_url));
+            }
           }}
-          tabIndex={0}
           className="view-dataset-button"
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+          `}
         >
           {VIEW_DATASET}
-        </span>
+        </button>
       </>
     }
   />
@@ -247,11 +267,11 @@ const DatasetPanel = ({
   tableName,
   columnList,
   loading,
-  hasError,
+  error,
+  errorMitigationFunction,
   datasets,
 }: IDatasetPanelProps) => {
-  const hasColumns = Boolean(columnList?.length > 0);
-  const datasetNames = datasets?.map(dataset => dataset.table_name);
+  const hasColumns = columnList.length > 0;
   const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,
   );
@@ -269,7 +289,19 @@ const DatasetPanel = ({
     );
   }
   if (!loading) {
-    if (!loading && tableName && hasColumns && !hasError) {
+    if (error) {
+      component = (
+        <ErrorContainer>
+          <ErrorMessageWithStackTrace
+            error={error}
+            errorMitigationFunction={errorMitigationFunction}
+            source="crud"
+            subtitle={error.message}
+            title={ERROR_TITLE}
+          />
+        </ErrorContainer>
+      );
+    } else if (tableName && hasColumns) {
       component = (
         <>
           <StyledTitle title={COLUMN_TITLE}>{COLUMN_TITLE}</StyledTitle>
@@ -303,13 +335,7 @@ const DatasetPanel = ({
         </>
       );
     } else {
-      component = (
-        <MessageContent
-          hasColumns={hasColumns}
-          hasError={hasError}
-          tableName={tableName}
-        />
-      );
+      component = <MessageContent tableName={tableName} />;
     }
   }
 
@@ -317,11 +343,12 @@ const DatasetPanel = ({
     <>
       {tableName && (
         <>
-          {datasetNames?.includes(tableName) &&
-            renderExistingDatasetAlert(tableWithDataset)}
+          {tableWithDataset && renderExistingDatasetAlert(tableWithDataset)}
           <StyledHeader
             position={
-              !loading && hasColumns ? EPosition.RELATIVE : EPosition.ABSOLUTE
+              !loading && (hasColumns || error)
+                ? EPosition.RELATIVE
+                : EPosition.ABSOLUTE
             }
             title={tableName || ''}
           >

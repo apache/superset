@@ -17,27 +17,34 @@
 """Submit task command for GTF."""
 
 import logging
-import uuid
 from functools import partial
 from typing import Any, TYPE_CHECKING
+from uuid import UUID
 
-from flask import current_app
+from flask import current_app, g
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 from superset_core.tasks.types import TaskScope
 
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
     TaskCreateFailedError,
+    TaskCyclicDependencyError,
     TaskInvalidError,
 )
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.stats_logger import BaseStatsLogger
+from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
-from superset.tasks.utils import get_active_dedup_key
+from superset.tasks.registry import TaskRegistry
+from superset.tasks.subscription import get_request_tab_id, principal_channel
+from superset.tasks.utils import generate_random_task_key, get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:
+    from superset.daos.tasks import TaskDAO
     from superset.models.tasks import Task
 
 logger = logging.getLogger(__name__)
@@ -56,7 +63,6 @@ class SubmitTaskCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run(self) -> "Task":
         """
         Execute the command with distributed locking.
@@ -69,7 +75,6 @@ class SubmitTaskCommand(BaseCommand):
         task, _ = self.run_with_info()
         return task
 
-    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run_with_info(self) -> tuple["Task", bool]:
         """
         Execute the command and return (task, is_new) tuple.
@@ -78,17 +83,53 @@ class SubmitTaskCommand(BaseCommand):
         and joining an existing one. Useful for sync execution where the caller
         needs to wait for an existing task to complete rather than executing again.
 
+        The task lock is held across the **entire** create-or-join transaction —
+        including the commit performed by ``_create_or_join``'s ``@transaction`` —
+        so a concurrent submitter for the same ``dedup_key`` always observes the
+        winner's committed row and joins it. Releasing the lock before the commit
+        would let a waiter read-before-commit and insert a duplicate ``dedup_key``,
+        surfacing as a unique-constraint 500 instead of a clean join.
+
+        NOTE: ``SubmitTaskCommand`` must own its transaction for this guarantee to
+        hold. It must not be called within an outer ``@transaction`` — the
+        reentrancy guard would defer the real commit until after the lock is
+        released (see ``superset.utils.decorators.transaction``).
+
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
-        from superset.daos.tasks import TaskDAO
+        # Enforce the "must own its transaction" contract (see docstring). If a
+        # caller has already opened a transaction, ``_create_or_join``'s
+        # ``@transaction`` would be reentrant and defer its commit past the lock
+        # release (``transaction`` keys reentrancy off ``g.in_transaction``),
+        # silently reopening the dedup race. Fail loudly so the caller is forced
+        # to submit outside its transaction rather than reintroduce the bug.
+        if g.get("in_transaction", False):
+            raise RuntimeError(
+                "SubmitTaskCommand must own its transaction: the task lock is "
+                "held across commit to serialize concurrent dedup submits, which "
+                "requires the commit to happen before the lock is released. It "
+                "cannot run inside an outer @transaction. Submit outside the "
+                "surrounding transaction instead."
+            )
 
         self.validate()
 
-        # Extract and normalize parameters
+        # Extract and normalize parameters (no DB access — validate() has run and
+        # normalized ``scope``). Done before acquiring the lock so invalid input
+        # fails fast without taking a lock.
         task_type = self._properties["task_type"]
-        task_key = self._properties.get("task_key") or str(uuid.uuid4())
-        scope = self._properties.get("scope", TaskScope.PRIVATE.value)
+        task_key = self._properties.get("task_key") or generate_random_task_key()
+        self._properties["task_key"] = task_key  # reuse the generated key downstream
+        scope = self._properties["scope"]
         user_id = get_user_id()
+        # Embedded guests have no ab_user id; they subscribe by a token-derived
+        # key so TaskFilter can grant them visibility of their own tasks.
+        guest_key = get_guest_subscriber_key_for(user_id)
+        # Opaque per-client (e.g. browser-tab) id, when the caller advertised one.
+        # Passed to the task type's subscription policy so it can ref-count clients
+        # of a single principal (see superset.tasks.subscription); None for
+        # non-interactive callers, which keep principal-grain behavior.
+        tab_id = get_request_tab_id()
 
         # Build dedup_key for lock
         dedup_key = get_active_dedup_key(
@@ -98,55 +139,222 @@ class SubmitTaskCommand(BaseCommand):
             user_id=user_id,
         )
 
-        # Acquire lock to prevent race conditions during create/join
+        # Acquire the lock around the whole transaction (see docstring): it is
+        # released only after _create_or_join commits.
         with task_lock(dedup_key):
-            # Check for existing task (safe under lock)
-            existing = TaskDAO.find_by_task_key(task_type, task_key, scope, user_id)
+            return self._create_or_join(
+                task_type, task_key, scope, user_id, guest_key, tab_id
+            )
 
-            # Get stats logger
-            stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
+    def _create_or_join(
+        self,
+        task_type: str,
+        task_key: str,
+        scope: str,
+        user_id: int | None,
+        guest_key: str | None,
+        tab_id: str | None,
+    ) -> tuple["Task", bool]:
+        """Find an existing task for ``dedup_key`` and join it, or create a new one.
 
-            if existing:
-                # Join existing task - add subscriber if not already subscribed
-                if user_id and not existing.has_subscriber(user_id):
-                    TaskDAO.add_subscriber(existing.id, user_id)
-                    stats_logger.incr("gtf.task.subscribe")
-                    logger.info(
-                        "User %s joined existing task: %s",
-                        user_id,
-                        task_key,
-                    )
-                else:
-                    # Same user submitted the same task - deduplication hit
-                    stats_logger.incr("gtf.task.dedupe")
-                    logger.debug(
-                        "Deduplication hit for task: %s (user_id=%s)",
-                        task_key,
-                        user_id,
-                    )
-                return existing, False  # is_new=False: joined existing task
+        Runs as a single transaction (committed by ``@transaction`` on return)
+        while the caller holds the task lock, so the create-vs-join decision and
+        its commit are atomic with respect to other submitters. The create is
+        additionally guarded by a SAVEPOINT that joins the winner on a dedup_key
+        unique violation, so correctness holds even if the lock expires or fails
+        to serialize (see the create block below).
+        """
+        from superset.daos.tasks import TaskDAO
 
-            # Create new task (DAO is now a pure data operation)
-            try:
+        # Check for an existing task under the lock; join it if present.
+        if existing := TaskDAO.find_by_task_key(task_type, task_key, scope, user_id):
+            return (
+                self._join_existing(existing, user_id, guest_key, task_key, tab_id),
+                False,
+            )
+
+        # Create the new task. The task lock serializes concurrent submits for
+        # this dedup_key, but as a backstop — the lock has a fixed TTL and could
+        # expire mid-transaction, and a misconfigured backend could fail to
+        # serialize at all — the create runs inside a SAVEPOINT. On the dedup_key
+        # unique violation (a concurrent submitter won the create), roll the
+        # SAVEPOINT back and join the winner instead of surfacing a 500. The DB
+        # unique constraint, not the lock, is the ultimate arbiter.
+        try:
+            with db.session.begin_nested():
                 task = TaskDAO.create_task(
                     task_type=task_type,
                     task_key=task_key,
                     scope=scope,
                     task_name=self._properties.get("task_name"),
                     user_id=user_id,
+                    guest_key=guest_key,
                     payload=self._properties.get("payload", {}),
                     properties=self._properties.get("properties", {}),
                 )
-                stats_logger.incr("gtf.task.create")
-                return task, True  # is_new=True: created new task
-            except DAOCreateFailedError as ex:
-                raise TaskCreateFailedError() from ex
+                # Persist dependency edges (with cycle guard) for the new task.
+                # Joined/deduplicated tasks keep their original dependencies.
+                self._persist_dependencies(task, TaskDAO)
+        except IntegrityError:
+            # SAVEPOINT rolled back (session still usable). Re-read: the winner's
+            # row is committed by now, so join it. If nothing is found the
+            # violation was not the expected dedup race — re-raise.
+            existing = TaskDAO.find_by_task_key(task_type, task_key, scope, user_id)
+            if existing is None:
+                raise
+            current_app.config["STATS_LOGGER"].incr("gtf.task.create_race_joined")
+            return (
+                self._join_existing(existing, user_id, guest_key, task_key, tab_id),
+                False,
+            )
+        except DAOCreateFailedError as ex:
+            raise TaskCreateFailedError() from ex
+
+        # Record the creator as a client of the task for the subscription policy
+        # (the framework already added the creator's principal subscriber row).
+        self._apply_on_subscribe(task, task_type, user_id, guest_key, tab_id)
+        current_app.config["STATS_LOGGER"].incr("gtf.task.create")
+        return task, True  # is_new=True: created new task
+
+    def _join_existing(
+        self,
+        existing: "Task",
+        user_id: int | None,
+        guest_key: str | None,
+        task_key: str,
+        tab_id: str | None,
+    ) -> "Task":
+        """Join an existing task: bump its dedupe count and subscribe the caller.
+
+        Shared by the fast path (found before creating) and the create-race
+        backstop (found after a unique-constraint rollback).
+        """
+        from superset.daos.tasks import TaskDAO
+
+        stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+
+        # Finding an existing task is itself a dedupe (work reused, not
+        # re-created), whether the caller becomes a new subscriber or resubmits
+        # as an existing one. Count it on the task's properties.
+        existing.update_properties(
+            {"dedupe_count": existing.properties_dict.get("dedupe_count", 0) + 1}
+        )
+        if user_id and not existing.has_subscriber(user_id):
+            TaskDAO.add_subscriber(existing.id, user_id)
+            stats_logger.incr("gtf.task.subscribe")
+            logger.info("User %s joined existing task: %s", user_id, task_key)
+        elif guest_key and not existing.has_guest_subscriber(guest_key):
+            # Embedded guest joining a SHARED task an equivalent guest created;
+            # subscribe so this guest can also poll it.
+            TaskDAO.add_guest_subscriber(existing.id, guest_key)
+            stats_logger.incr("gtf.task.subscribe")
+        else:
+            # Same subscriber resubmitted the same task - deduplication hit
+            stats_logger.incr("gtf.task.dedupe")
+            logger.debug(
+                "Deduplication hit for task: %s (user_id=%s)", task_key, user_id
+            )
+        # Record this client under the caller's principal. The principal may
+        # already be subscribed (a second tab of the same user), which is exactly
+        # the case the policy ref-counts so a later cancel from one tab does not
+        # abort the shared task the other tab is still awaiting.
+        self._apply_on_subscribe(
+            existing, existing.task_type, user_id, guest_key, tab_id
+        )
+        return existing
+
+    def _apply_on_subscribe(
+        self,
+        task: "Task",
+        task_type: str,
+        user_id: int | None,
+        guest_key: str | None,
+        tab_id: str | None,
+    ) -> None:
+        """Invoke the task type's subscription policy, if any, for this subscribe.
+
+        The framework's principal-grain subscriber row is already written by the
+        caller; this lets the task type additionally record the calling client
+        (e.g. a browser tab). No-op for task types without a policy or for callers
+        with no resolvable principal. Runs inside the submit lock + transaction.
+        """
+        policy = TaskRegistry.get_subscription_policy(task_type)
+        if policy is None:
+            return
+        if (principal := principal_channel(user_id, guest_key)) is None:
+            return
+        policy.on_subscribe(task, principal=principal, client_ref=tab_id)
+
+    def _persist_dependencies(self, task: "Task", dao: type["TaskDAO"]) -> None:
+        """
+        Resolve the declared ``depends_on`` references and write dependency edges.
+
+        Runs inside the submit transaction and lock, after the task row is
+        flushed (so ``task.id``/``task.uuid`` are available), and only for a
+        freshly *created* task (never on a dedup join). Rejects self-dependencies
+        and unknown prerequisites. Prerequisite references are de-duplicated and
+        order-preserved.
+
+        No transitive cycle check is needed here: a brand-new task has no
+        incoming edges, so its new ``task -> prerequisite`` edges cannot close a
+        cycle (nothing points back to it). The only cycle a create can express is
+        a direct self-dependency, rejected in-memory below. A future API that
+        adds edges to *existing* tasks would need a transitive check.
+
+        This resolves all prerequisites in one query and inserts all edges in one
+        flush — 2 round-trips regardless of the number of dependencies.
+
+        :param task: The newly created dependent task
+        :param dao: TaskDAO (passed to avoid re-importing)
+        :raises TaskInvalidError: if a prerequisite reference is malformed/unknown
+        :raises TaskCyclicDependencyError: on a direct self-dependency
+        """
+        raw = self._properties.get("depends_on") or []
+        if not raw:
+            return
+
+        uuids: list[UUID] = []
+        seen: set[UUID] = set()
+        for item in raw:
+            # Accept a scheduled Task entity, a UUID, or a UUID string, and
+            # normalize to a UUID. Task entities are the natural output of
+            # .schedule(), so passing them straight through is the common case.
+            if isinstance(item, UUID):
+                dep_uuid = item
+            elif hasattr(item, "uuid"):
+                raw_uuid = item.uuid
+                dep_uuid = (
+                    raw_uuid if isinstance(raw_uuid, UUID) else UUID(str(raw_uuid))
+                )
+            else:
+                try:
+                    dep_uuid = UUID(str(item))
+                except (ValueError, AttributeError, TypeError) as ex:
+                    raise TaskInvalidError(
+                        f"Invalid prerequisite task reference: {item!r}"
+                    ) from ex
+            if dep_uuid == task.uuid:
+                raise TaskCyclicDependencyError(
+                    f"A task cannot depend on itself ({dep_uuid})."
+                )
+            if dep_uuid not in seen:
+                seen.add(dep_uuid)
+                uuids.append(dep_uuid)
+
+        prerequisites = {p.uuid: p for p in dao.find_by_uuids(uuids)}
+        missing = [str(u) for u in uuids if u not in prerequisites]
+        if missing:
+            raise TaskInvalidError(
+                f"Unknown prerequisite task(s): {', '.join(missing)}"
+            )
+
+        dao.add_dependencies(task.id, [prerequisites[u].id for u in uuids])
 
     def validate(self) -> None:
         """Validate command parameters."""
         exceptions: list[ValidationError] = []
 
-        # Require task_type
         if not self._properties.get("task_type"):
             exceptions.append(
                 ValidationError("task_type is required", field_name="task_type")

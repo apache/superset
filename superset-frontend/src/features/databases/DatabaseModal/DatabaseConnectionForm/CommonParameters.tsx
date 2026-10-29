@@ -48,6 +48,8 @@ export const hostField = ({
     errorMessage={validationErrors?.host}
     placeholder={t('e.g. 127.0.0.1')}
     className="form-group-w-50"
+    // i18n: hostname of the database server, as it appears in the user's own
+    // database tooling
     label={t('Host')}
     onChange={changeMethods.onParametersChange}
   />
@@ -243,6 +245,7 @@ export const accessTokenField = ({
   validationErrors,
   db,
   isEditMode,
+  isValidating,
   default_value,
   description,
 }: FieldPropTypes) => (
@@ -250,6 +253,7 @@ export const accessTokenField = ({
     id="access_token"
     name="access_token"
     required={required}
+    isValidating={isValidating}
     visibilityToggle={!isEditMode}
     value={db?.parameters?.access_token}
     validationMethods={{ onBlur: getValidation }}

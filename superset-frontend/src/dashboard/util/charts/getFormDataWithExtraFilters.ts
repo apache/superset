@@ -26,7 +26,10 @@ import {
   JsonObject,
   PartialFilters,
   ChartCustomization,
+  getSemanticSelectionSources,
   QueryFormColumn,
+  QueryFormData,
+  SemanticSelectionSource,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -34,8 +37,9 @@ import {
   ActiveFilters,
 } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { areObjectsEqual } from 'src/reduxUtils';
 import {
   isSingleColumnDimensionChart,
@@ -44,6 +48,55 @@ import {
 } from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
+
+/** Return provenance only for customizations that contribute member selections. */
+export function getCustomizationSelectionSources({
+  customization,
+  mask,
+  groupByApplied,
+}: {
+  customization?: ChartCustomization;
+  mask?: DataMask;
+  groupByApplied: boolean;
+}): SemanticSelectionSource[] {
+  if (
+    customization?.filterType === ChartCustomizationPlugins.DynamicGroupBy &&
+    !groupByApplied
+  )
+    return [];
+  const target = customization?.targets?.[0];
+  const memberOverrides = getSemanticSelectionSources({
+    ...mask?.extraFormData,
+    semantic_selection_sources: undefined,
+  });
+  if (
+    (customization?.filterType === ChartCustomizationPlugins.TimeGrain ||
+      customization?.filterType ===
+        ChartCustomizationPlugins.DeckglLayerVisibility) &&
+    memberOverrides.length === 0
+  )
+    return [];
+  if (
+    customization?.filterType !== ChartCustomizationPlugins.DynamicGroupBy &&
+    memberOverrides.length === 0 &&
+    mask?.filterState?.value == null
+  )
+    return [];
+  const sources = getSemanticSelectionSources(mask?.extraFormData);
+  return [
+    {
+      datasource: target?.datasetId
+        ? `${target.datasetId}__${target.datasourceType || 'table'}`
+        : '',
+      version: target?.semantic_selection_version ?? null,
+    },
+    ...(sources.length
+      ? sources
+      : mask?.filterState?.value != null
+        ? [{ datasource: '', version: null }]
+        : []),
+  ];
+}
 
 interface CachedFormData {
   extra_form_data?: JsonObject;
@@ -79,6 +132,14 @@ const cachedFormdataByChart: Record<
     dataMask: DataMask;
     extraControls: Record<string, string | boolean | null>;
     nativeFilters: PartialFilters;
+    chartSelectionInput: Partial<
+      Pick<
+        QueryFormData,
+        | 'datasource'
+        | 'semantic_selection_version'
+        | 'semantic_selection_sources'
+      >
+    >;
   }
 > = {};
 
@@ -278,14 +339,49 @@ function applyChartSpecificGroupBy(
   return groupByFormData;
 }
 
-function processGroupByCustomizations(
+function getMatchingGroupByCustomizations(
   chartCustomizationItems: ChartCustomization[],
   chart: ChartQueryPayload,
-  groupByState: Record<
-    string,
-    { selectedValues: string[]; hasInteracted: boolean }
-  >,
-): {
+): ChartCustomization[] {
+  const chartDataset = chart.form_data?.datasource;
+  if (!chartDataset) {
+    return [];
+  }
+
+  // ``form_data.datasource`` is encoded as ``<id>__<type>`` (e.g.
+  // ``7__table``, ``7__semantic_view``). Datasets and semantic views have
+  // independent ID spaces, so we have to compare both the numeric ID and the
+  // datasource type to avoid matching a semantic-view customization to a
+  // table chart that happens to share its numeric ID.
+  const chartDatasetParts = String(chartDataset).split('__');
+  const chartDatasetId = chartDatasetParts[0];
+  const chartDatasourceType = chartDatasetParts[1];
+
+  return chartCustomizationItems.filter(item => {
+    if (item.removed) return false;
+
+    const targetDataset = item.targets?.[0]?.datasetId;
+    if (!targetDataset) return false;
+
+    const targetDatasetId = String(targetDataset);
+    const targetDatasourceType = item.targets?.[0]?.datasourceType;
+    const datasetMatches = chartDatasetId === targetDatasetId;
+    // ``datasourceType`` is optional on targets persisted before semantic
+    // views shipped, so a missing value on either side is treated as a
+    // wildcard match — this preserves behavior for pre-existing
+    // customizations while still disambiguating new ones.
+    const datasourceTypeMatches =
+      !targetDatasourceType ||
+      !chartDatasourceType ||
+      targetDatasourceType === chartDatasourceType;
+    const chartMatches =
+      item.chartsInScope == null || item.chartsInScope.includes(chart.id);
+
+    return datasetMatches && datasourceTypeMatches && chartMatches;
+  });
+}
+
+type GroupByFormData = {
   groupby?: string[];
   x_axis?: string;
   series?: string;
@@ -294,36 +390,28 @@ function processGroupByCustomizations(
   source?: string;
   target?: string;
   groupbyColumns?: string[];
-} {
+};
+
+function processGroupByCustomizations(
+  chartCustomizationItems: ChartCustomization[],
+  chart: ChartQueryPayload,
+  groupByState: Record<
+    string,
+    { selectedValues: string[]; hasInteracted: boolean }
+  >,
+): { formData: GroupByFormData; appliedIds: Set<string> } {
   if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
-    return {};
+    return { formData: {}, appliedIds: new Set() };
   }
 
-  const chartDataset = chart.form_data?.datasource;
-  if (!chartDataset) {
-    return {};
-  }
-
-  const chartDatasetParts = String(chartDataset).split('__');
-  const chartDatasetId = chartDatasetParts[0];
-
-  const matchingCustomizations = chartCustomizationItems.filter(item => {
-    if (item.removed) return false;
-
-    const targetDataset = item.targets?.[0]?.datasetId;
-    if (!targetDataset) return false;
-
-    const targetDatasetId = String(targetDataset);
-    const datasetMatches = chartDatasetId === targetDatasetId;
-    const chartMatches =
-      item.chartsInScope == null || item.chartsInScope.includes(chart.id);
-
-    return datasetMatches && chartMatches;
-  });
+  const matchingCustomizations = getMatchingGroupByCustomizations(
+    chartCustomizationItems,
+    chart,
+  );
 
   const chartType = chart.form_data?.viz_type;
   if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
-    return {};
+    return { formData: {}, appliedIds: new Set() };
   }
 
   const existingColumns = buildExistingColumnsSet(chart);
@@ -332,6 +420,7 @@ function processGroupByCustomizations(
 
   const groupByColumns: string[] = [];
   let heatmapColumnAdded = false;
+  const contributions = new Map<string, string[]>();
 
   matchingCustomizations.forEach(item => {
     if (!item.targets?.[0]) return;
@@ -360,6 +449,7 @@ function processGroupByCustomizations(
       return;
     }
 
+    const previousLength = groupByColumns.length;
     if (isSingleColumnDimensionChart(chartType)) {
       if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
         const firstColumn = nonConflictingColumns[0];
@@ -378,16 +468,27 @@ function processGroupByCustomizations(
         }
       });
     }
+    contributions.set(item.id, groupByColumns.slice(previousLength));
   });
 
-  const groupByFormData = applyChartSpecificGroupBy(
+  const groupByFormData: GroupByFormData = applyChartSpecificGroupBy(
     chartType,
     groupByColumns,
     existingGroupBy,
     xAxisColumn,
   );
 
-  return groupByFormData;
+  const appliedColumns = new Set<string>(Object.values(groupByFormData).flat());
+  return {
+    formData: groupByFormData,
+    appliedIds: new Set(
+      [...contributions]
+        .filter(([, columns]) =>
+          columns.some(column => appliedColumns.has(column)),
+        )
+        .map(([id]) => id),
+    ),
+  };
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -412,6 +513,11 @@ export default function getFormDataWithExtraFilters({
   chartCustomization,
   activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
+  const chartSelectionInput = {
+    datasource: chart.form_data?.datasource,
+    semantic_selection_version: chart.form_data?.semantic_selection_version,
+    semantic_selection_sources: chart.form_data?.semantic_selection_sources,
+  };
   const cachedFormData = cachedFormdataByChart[sliceId];
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
     ignoreUndefined: true,
@@ -423,6 +529,7 @@ export default function getFormDataWithExtraFilters({
   );
   if (
     cachedFiltersByChart[sliceId] === filters &&
+    isEqual(cachedFormData?.chartSelectionInput, chartSelectionInput) &&
     areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
     areObjectsEqual(cachedFormData?.color_scheme, colorScheme) &&
     areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
@@ -458,9 +565,14 @@ export default function getFormDataWithExtraFilters({
     });
 
   let extraData: JsonObject = {};
+  // Cross-filter ids are chart ids, so plain key order would put them before
+  // native filter ids and let a native filter's override keys (e.g. a Time
+  // Range filter's time_range) replace the cross-filter's. Merge native
+  // filters first so a cross-filter selection takes precedence.
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
-    .map(([filterId]) => filterId);
+    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
+    .map(([filterId]) => filterId)
+    .sort((a, b) => Number(!nativeFilters?.[a]) - Number(!nativeFilters?.[b]));
 
   if (filterIdsAppliedOnChart.length) {
     const aggregatedFormData = getExtraFormData(
@@ -474,7 +586,7 @@ export default function getFormDataWithExtraFilters({
     const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
     const hasLayerScopeInActiveFilters =
       passedActiveFilters &&
-      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+      Object.values(passedActiveFilters).some(filter => filter?.layerScope);
 
     if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
       const filterDataMapping = createFilterDataMapping(
@@ -542,11 +654,8 @@ export default function getFormDataWithExtraFilters({
       item => item.filterType === 'chart_customization_dynamic_groupby',
     ) || [];
 
-  const groupByFormData = processGroupByCustomizations(
-    groupByCustomizations,
-    chart,
-    groupByState,
-  );
+  const { formData: groupByFormData, appliedIds: appliedGroupByIds } =
+    processGroupByCustomizations(groupByCustomizations, chart, groupByState);
 
   const customizationExtraFormData =
     customizationIds.length > 0
@@ -569,12 +678,28 @@ export default function getFormDataWithExtraFilters({
     ...groupByFormData,
     ...customizationExtraFormData,
     ...(chartCustomization && { chart_customization: chartCustomization }),
+    // Customizations can rewrite member fields outside extra_form_data.
+    ...(chart.form_data?.semantic_selection_version && {
+      semantic_selection_sources: [
+        ...(chart.form_data.semantic_selection_sources ?? []),
+        ...customizationIds.flatMap(id =>
+          getCustomizationSelectionSources({
+            customization: chartCustomizationItems?.find(
+              item => item.id === id,
+            ),
+            mask: dataMask[id],
+            groupByApplied: appliedGroupByIds.has(id),
+          }),
+        ),
+      ],
+    }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
 
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = {
     ...formData,
+    chartSelectionInput,
     dataMask,
     extraControls,
     nativeFilters,

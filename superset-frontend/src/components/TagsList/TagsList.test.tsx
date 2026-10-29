@@ -85,7 +85,7 @@ describe('Tag type filtering', () => {
     const mixedTypeTags = [
       { name: 'custom-tag', type: 1, id: 1 }, // Custom - should show
       { name: 'type:chart', type: 2, id: 2 }, // Type - should be filtered out
-      { name: 'owner:admin', type: 3, id: 3 }, // Owner - should be filtered out
+      { name: 'editor:admin', type: 3, id: 3 }, // Editor - should be filtered out
       { name: 'another-custom', type: 1, id: 4 }, // Custom - should show
     ];
 
@@ -154,7 +154,7 @@ describe('Tag type filtering', () => {
   test('should show empty list when all tags are filtered out', async () => {
     const nonCustomTags = [
       { name: 'type:chart', type: 2, id: 1 }, // Type tag
-      { name: 'owner:admin', type: 3, id: 2 }, // Owner tag
+      { name: 'editor:admin', type: 3, id: 2 }, // Editor tag
       { name: 'favoritedBy:user', type: 4, id: 3 }, // FavoritedBy tag
     ];
 

@@ -30,13 +30,13 @@
  *
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats', location: 'sqllab.panels' },
- *   () => <ResultStatsPanel />,
+ *   ResultStatsPanel,
  * );
  * ```
  */
 
-import { ReactElement } from 'react';
-import { Disposable } from '../common';
+import { ComponentType } from 'react';
+import { Disposable, Event } from '../common';
 
 /**
  * Represents a contributed view in the application.
@@ -58,7 +58,7 @@ export interface View {
  *
  * @param view The view descriptor (id and name).
  * @param location The location where this view should appear (e.g. "sqllab.panels").
- * @param provider A function that returns the React element to render.
+ * @param component The React component to render at that location.
  * @returns A Disposable that unregisters the view when disposed.
  *
  * @example
@@ -66,14 +66,14 @@ export interface View {
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats' },
  *   'sqllab.panels',
- *   () => <ResultStatsPanel />,
+ *   ResultStatsPanel,
  * );
  * ```
  */
 export declare function registerView(
   view: View,
   location: string,
-  provider: () => ReactElement,
+  component: ComponentType,
 ): Disposable;
 
 /**
@@ -88,3 +88,33 @@ export declare function registerView(
  * ```
  */
 export declare function getViews(location: string): View[] | undefined;
+
+/**
+ * Event fired when a view is registered.
+ */
+export interface ViewRegisteredEvent {
+  /** The descriptor of the view that was registered. */
+  view: View;
+  /** The location where the view was registered. */
+  location: string;
+}
+
+/**
+ * Event fired when a view is unregistered.
+ */
+export interface ViewUnregisteredEvent {
+  /** The descriptor of the view that was unregistered. */
+  view: View;
+  /** The location where the view was registered. */
+  location: string;
+}
+
+/**
+ * Event fired when a view is registered.
+ */
+export declare const onDidRegisterView: Event<ViewRegisteredEvent>;
+
+/**
+ * Event fired when a view is unregistered.
+ */
+export declare const onDidUnregisterView: Event<ViewUnregisteredEvent>;

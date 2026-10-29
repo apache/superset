@@ -16,6 +16,9 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Iterator
+from io import BytesIO
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -27,10 +30,14 @@ from superset.commands.dashboard.export_example import (
     _make_bytes_generator,
     _make_yaml_generator,
     export_chart,
+    export_dataset_data,
     export_dataset_yaml,
     ExportExampleCommand,
     sanitize_filename,
 )
+from superset.common.db_query_status import QueryStatus
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 
 
 def test_sanitize_filename_basic():
@@ -321,3 +328,98 @@ def test_export_example_command_no_data():
         assert "dataset.yaml" in files
         assert "data.parquet" not in files
         assert "dashboard.yaml" in files
+
+
+def _make_data_export_dataset(rows: list[dict[str, Any]]) -> MagicMock:
+    """A dataset mock whose query() returns ``rows`` as a DataFrame."""
+    import pandas as pd
+
+    dataset = MagicMock()
+    dataset.table_name = "private_table"
+    dataset.database = MagicMock()  # truthy
+    dataset.columns = [
+        MagicMock(column_name=name, expression=None) for name in ("uid", "data")
+    ]
+    result = MagicMock()
+    result.status = QueryStatus.SUCCESS
+    result.df = pd.DataFrame(rows)
+    dataset.query.return_value = result
+    return dataset
+
+
+@pytest.fixture
+def patched_db() -> Iterator[MagicMock]:
+    """Patch ``superset.db`` so merge() returns the dataset unchanged."""
+    with patch("superset.db") as mock_db:
+        mock_db.session.merge.side_effect = lambda d: d
+        yield mock_db
+
+
+def test_export_dataset_data_skips_when_access_denied(patched_db: MagicMock) -> None:
+    """
+    A requester without access to the dataset must get no data file, and the
+    underlying rows must never be fetched (no fallback raw read).
+    """
+    dataset = _make_data_export_dataset([{"uid": 1, "data": "secret"}])
+    dataset.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    assert export_dataset_data(dataset) is None
+
+    dataset.raise_for_access.assert_called_once()
+    dataset.query.assert_not_called()
+
+
+def test_export_dataset_data_fetches_through_query_path(patched_db: MagicMock) -> None:
+    """
+    Rows are fetched through the dataset's own query builder (which applies the
+    per-row filters), and exactly those rows are what gets written to Parquet.
+    """
+    import pandas as pd
+
+    own_rows = [{"uid": 6, "data": "row-for-user-6"}]
+    dataset = _make_data_export_dataset(own_rows)
+
+    payload = export_dataset_data(dataset)
+
+    assert payload is not None
+    dataset.raise_for_access.assert_called_once()
+    dataset.query.assert_called_once()
+
+    # The fetch goes through query() with a column projection, not a raw read.
+    query_obj = dataset.query.call_args.args[0]
+    assert query_obj["columns"] == ["uid", "data"]
+    assert query_obj["is_timeseries"] is False
+    assert "row_limit" in query_obj
+
+    # Only the rows query() returned are exported.
+    exported = pd.read_parquet(BytesIO(payload))
+    assert exported.to_dict("records") == own_rows
+
+
+def test_export_dataset_data_applies_row_limit_at_query_level(
+    patched_db: MagicMock,
+) -> None:
+    """sample_rows is passed as a SQL-level row_limit, not applied post-fetch."""
+    dataset = _make_data_export_dataset([{"uid": 1, "data": "a"}])
+
+    export_dataset_data(dataset, sample_rows=5)
+
+    query_obj = dataset.query.call_args.args[0]
+    assert query_obj["row_limit"] == 5
+
+
+def test_export_dataset_data_skips_on_failed_query(patched_db: MagicMock) -> None:
+    """
+    The query path signals failure via status rather than raising, so a failed
+    query must yield no data file instead of an empty/partial Parquet.
+    """
+    dataset = _make_data_export_dataset([{"uid": 1, "data": "a"}])
+    dataset.query.return_value.status = QueryStatus.FAILED
+
+    assert export_dataset_data(dataset) is None

@@ -35,7 +35,7 @@ test('format milliseconds in human readable format with default options', () => 
 });
 test('format seconds in human readable format with default options', () => {
   const formatter = createDurationFormatter({ multiplier: 1000 });
-  expect(formatter(-0.5)).toBe('-0s');
+  expect(formatter(-0.5)).toBe('0s');
   expect(formatter(0.5)).toBe('0s');
   expect(formatter(1)).toBe('1s');
   expect(formatter(30)).toBe('30s');

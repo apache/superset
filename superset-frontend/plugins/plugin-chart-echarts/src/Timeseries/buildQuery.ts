@@ -82,6 +82,11 @@ export default function buildQuery(formData: QueryFormData) {
       ? formData.time_compare
       : [];
 
+    // When comparing against prior periods, optionally keep each shifted series at
+    // its full time range instead of truncating it to the main series' range.
+    const time_compare_full_range =
+      time_offsets.length > 0 && Boolean(formData.time_compare_full_range);
+
     return [
       {
         ...baseQueryObject,
@@ -92,19 +97,23 @@ export default function buildQuery(formData: QueryFormData) {
         // todo: move `normalizeOrderBy to extractQueryFields`
         orderby: normalizeOrderBy(baseQueryObject).orderby,
         time_offsets,
+        time_compare_full_range,
         /* Note that:
           1. The resample, rolling, cum, timeCompare operators should be after pivot.
           2. Resample must come before rolling so that imputed values are
              included in the rolling window calculation.
-          3. the flatOperator makes multiIndex Dataframe into flat Dataframe
+          3. Contribution must come before rename because it relies on the
+             `__<time offset>` suffix to compute each time shift separately,
+             and rename strips that suffix.
+          4. the flatOperator makes multiIndex Dataframe into flat Dataframe
         */
         post_processing: [
           pivotOperatorInRuntime,
           resampleOperator(formData, baseQueryObject),
           rollingWindowOperator(formData, baseQueryObject),
           timeCompareOperator(formData, baseQueryObject),
-          renameOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject, time_offsets),
+          renameOperator(formData, baseQueryObject),
           sortOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten

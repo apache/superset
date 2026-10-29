@@ -39,13 +39,19 @@ from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.importers.v1.utils import (
     safe_insert_dashboard_chart_relationships,
 )
+from superset.commands.utils import update_chart_config_dataset
 from superset.daos.base import BaseDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.exceptions import QueryClauseValidationException
 from superset.models.core import Database
+from superset.semantic_layers.import_export import (
+    dashboard_targets,
+    SemanticReferenceError,
+)
 from superset.sql.parse import transpile_to_dialect
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.core import get_example_default_schema
 from superset.utils.decorators import transaction
 
@@ -68,7 +74,7 @@ def transpile_virtual_dataset_sql(config: dict[str, Any], database_id: int) -> N
     if not sql:
         return
 
-    database = db.session.query(Database).get(database_id)
+    database = db.session.get(Database, database_id)
     if not database:
         logger.warning("Database %s not found, skipping SQL transpilation", database_id)
         return
@@ -127,6 +133,8 @@ class ImportExamplesCommand(ImportModelsCommand):
                 self.overwrite,
                 self.force_data,
             )
+        except SemanticReferenceError:
+            raise
         except Exception as ex:
             raise self.import_error() from ex
 
@@ -147,6 +155,19 @@ class ImportExamplesCommand(ImportModelsCommand):
         contents: Optional[dict[str, Any]] = None,
         force_data: bool = False,
     ) -> None:
+        for path, config in configs.items():
+            if (path.startswith("charts/") and "datasource_ref" in config) or (
+                path.startswith("dashboards/")
+                and any(
+                    "datasourceRef" in target
+                    or target.get("datasourceType") == "semantic_view"
+                    for target in dashboard_targets(config.get("metadata") or {})
+                )
+            ):
+                raise SemanticReferenceError(
+                    "Semantic references are not supported by the examples loader; "
+                    "use the chart, dashboard or assets importer."
+                )
         # import databases
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
@@ -162,6 +183,14 @@ class ImportExamplesCommand(ImportModelsCommand):
         dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
+                # Some examples ship a dataset config for a table that another
+                # example already defines (same uuid, re-exported under a
+                # different folder). Import each uuid once per run --
+                # reimporting it just repeats the same column/metric sync
+                # against an identical config.
+                if config["uuid"] in dataset_info:
+                    continue
+
                 # find the ID of the corresponding database
                 if config["database_uuid"] not in database_ids:
                     raise Exception(  # pylint: disable=broad-exception-raised
@@ -199,6 +228,10 @@ class ImportExamplesCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
 
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
         # import charts
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
@@ -206,12 +239,16 @@ class ImportExamplesCommand(ImportModelsCommand):
                 file_name.startswith("charts/")
                 and config["dataset_uuid"] in dataset_info
             ):
-                # update datasource id, type, and name
-                config.update(dataset_info[config["dataset_uuid"]])
+                # update datasource id, type, and name, and the references to
+                # them kept in params and query_context
+                config = update_chart_config_dataset(
+                    config, dataset_info[config["dataset_uuid"]]
+                )
                 chart = import_chart(
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
+                    default_viewers=default_viewers,
                 )
                 chart_ids[str(chart.uuid)] = chart.id
 
@@ -228,6 +265,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
+                    default_viewers=default_viewers,
                 )
                 dashboard.published = True
 

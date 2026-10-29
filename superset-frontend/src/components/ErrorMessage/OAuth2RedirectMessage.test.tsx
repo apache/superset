@@ -19,13 +19,30 @@
 
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
-import { createStore } from 'redux';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { createStore, Store } from 'redux';
+import { act, render, waitFor } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import { UNSAVED_CHART_ID } from 'src/explore/constants';
+import { api } from 'src/hooks/apiResources/queryApi';
 import { OAuth2RedirectMessage } from '.';
+
+jest.mock('src/hooks/apiResources/queryApi', () => ({
+  api: {
+    util: {
+      invalidateTags: jest
+        .fn()
+        .mockReturnValue({ type: 'mock/invalidateTags' }),
+    },
+    reducerPath: 'queryApi',
+    reducer: (state = {}) => state,
+    middleware:
+      () => (next: (action: unknown) => unknown) => (action: unknown) =>
+        next(action),
+  },
+}));
 
 // Mock the Redux store
 const mockStore = createStore(() => ({
@@ -39,6 +56,19 @@ const mockStore = createStore(() => ({
   },
   charts: { '1': {}, '2': {} },
   dashboardInfo: { id: 'dashboard-id' },
+}));
+
+const mockStoreUnsavedChart = createStore(() => ({
+  sqlLab: {
+    queries: {},
+    queryEditors: [],
+    tabHistory: [],
+  },
+  explore: {
+    slice: null,
+  },
+  charts: {},
+  dashboardInfo: {},
 }));
 
 // Mock actions
@@ -101,8 +131,8 @@ const defaultProps = {
   source: 'sqllab' as ErrorSource,
 };
 
-const setup = (overrides = {}) => (
-  <Provider store={mockStore}>
+const setup = (overrides = {}, store: Store = mockStore) => (
+  <Provider store={store}>
     <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
   </Provider>
 );
@@ -114,6 +144,17 @@ describe('OAuth2RedirectMessage Component', () => {
 
     expect(getByText(/Authorization needed/i)).toBeInTheDocument();
     expect(getByText(/provide authorization/i)).toBeInTheDocument();
+  });
+
+  test('renders the prose body without preformatted/monospace styling so it wraps within the popover', () => {
+    const { container } = render(setup());
+
+    // The OAuth2 body is prose, not a stack trace, so it must not be styled as
+    // preformatted (monospace + pre-wrap). Otherwise it renders as a single
+    // unwrapped line that balloons the SQL Lab popover width.
+    const description = container.querySelector('[data-testid="description"]');
+    expect(description).not.toBeNull();
+    expect(description).not.toHaveStyle({ whiteSpace: 'pre-wrap' });
   });
 
   test('renders the authorization link pointing at the OAuth2 URL', () => {
@@ -136,15 +177,55 @@ describe('OAuth2RedirectMessage Component', () => {
     render(setup());
 
     simulateBroadcastMessage({ tabId: 'tabId' });
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+    expect(reRunQuery).toHaveBeenCalledTimes(1);
+  });
+
+  test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
+    render(setup());
+
+    simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
       expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
     });
   });
 
-  test('dispatches reRunQuery action when storage event has matching tab ID', async () => {
-    render(setup());
+  test('waits for the SQL Lab query before consuming the completion', async () => {
+    const initialState = {
+      sqlLab: {
+        queries: {},
+        queryEditors: [{ id: 'editor-id', latestQueryId: 'query-id' }],
+        tabHistory: ['editor-id'],
+      },
+      explore: { slice: null },
+      charts: {},
+      dashboardInfo: {},
+    };
+    const delayedQueryStore = createStore(
+      (state: typeof initialState = initialState, action) =>
+        action.type === 'load-query'
+          ? {
+              ...state,
+              sqlLab: {
+                ...state.sqlLab,
+                queries: { 'query-id': { sql: 'SELECT * FROM table' } },
+              },
+            }
+          : state,
+    );
+    render(setup({}, delayedQueryStore));
 
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    expect(reRunQuery).not.toHaveBeenCalled();
+
+    act(() => {
+      delayedQueryStore.dispatch({ type: 'load-query' });
+    });
     simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
@@ -179,5 +260,48 @@ describe('OAuth2RedirectMessage Component', () => {
     simulateBroadcastMessage({ tabId: 'someOtherTab' });
 
     expect(reRunQuery).not.toHaveBeenCalled();
+  });
+
+  test('dispatches triggerQuery with UNSAVED_CHART_ID for explore source when no saved chart exists', async () => {
+    render(setup({ source: 'explore' as ErrorSource }, mockStoreUnsavedChart));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(triggerQuery).toHaveBeenCalledWith(true, UNSAVED_CHART_ID);
+    });
+  });
+
+  test('dispatches invalidateTags for Schemas when source is crud', async () => {
+    render(setup({ source: 'crud' as ErrorSource }));
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(api.util.invalidateTags).toHaveBeenCalledWith([
+        { type: 'Schemas', id: 'LIST' },
+        { type: 'Catalogs', id: 'LIST' },
+        'Tables',
+        'TableMetadatas',
+      ]);
+    });
+  });
+
+  test('runs scoped mitigation once instead of CRUD invalidation', async () => {
+    const errorMitigationFunction = jest.fn();
+    render(
+      setup({
+        source: 'crud' as ErrorSource,
+        errorMitigationFunction,
+      }),
+    );
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(errorMitigationFunction).toHaveBeenCalledTimes(1);
+    });
+    expect(api.util.invalidateTags).not.toHaveBeenCalled();
   });
 });

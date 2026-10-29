@@ -34,39 +34,34 @@ import {
 import { FoldersEditorItemType } from '../types';
 
 // Mock react-virtualized-auto-sizer to provide dimensions in tests
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({
-      children,
-    }: {
-      children: (params: { height: number; width: number }) => ReactChild;
-    }) =>
-      children({ height: 500, width: 400 }),
-);
-
-// Mock react-window VariableSizeList to render all items for testing
-jest.mock('react-window', () => ({
-  VariableSizeList: ({
-    children: Row,
-    itemCount,
-    itemData,
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
   }: {
-    children: React.ComponentType<{
-      index: number;
-      style: React.CSSProperties;
-      data: unknown;
-    }>;
-    itemCount: number;
-    itemData: unknown;
+    renderProp: (params: { height: number; width: number }) => ReactChild;
+  }) => renderProp({ height: 500, width: 400 }),
+}));
+
+// Mock react-window List to render all items for testing
+jest.mock('react-window', () => ({
+  List: ({
+    rowComponent: Row,
+    rowCount,
+    rowProps,
+  }: {
+    rowComponent: React.ComponentType<
+      { index: number; style: React.CSSProperties } & Record<string, unknown>
+    >;
+    rowCount: number;
+    rowProps: Record<string, unknown>;
   }) => (
     <div data-testid="virtualized-list">
-      {Array.from({ length: itemCount }, (_, index) => (
+      {Array.from({ length: rowCount }, (_, index) => (
         <Row
           key={index}
           index={index}
           style={{ height: 'auto', position: 'relative' }}
-          data={itemData}
+          {...rowProps}
         />
       ))}
     </div>

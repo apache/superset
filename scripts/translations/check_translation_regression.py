@@ -20,20 +20,31 @@ Check that source-code changes don't cause translation regressions.
 
 What counts as a regression
 ---------------------------
-A regression is an *existing translation that a source change invalidated* —
-i.e. a string was renamed/reworded so its committed translation no longer
-applies. ``babel_update.sh`` (``pybabel update --ignore-obsolete``) surfaces
-exactly these as **newly fuzzy** entries: the old translation is fuzzy-matched
-onto the new ``msgid`` and flagged ``#, fuzzy``.
+A regression is an *existing translation that a source change invalidated*:
+a message that was a **confirmed, non-fuzzy translation** in the baseline and
+is **fuzzy** after the PR. The check keys on this per-``msgid`` transition
+rather than on the aggregate count of fuzzy entries, because a bare count
+cannot tell apart two changes that move the fuzzy total by the same amount:
 
-Crucially, *deleting* a translatable string is **not** a regression. With
-``--ignore-obsolete`` a removed string is dropped from the catalogs entirely;
-no fuzzy entry is created. So a PR that intentionally removes a string (e.g. a
-security fix that stops rendering a value) legitimately lowers the translated
-count without introducing any fuzzies, and must not be flagged. We therefore
-key the check on the **increase in fuzzy entries**, not on a drop in the
-translated count (a drop happens identically for a benign deletion and a real
-rename, so it cannot distinguish the two).
+* ``translated -> fuzzy`` — a reworded source string stranded a real
+  translation. **This is the regression.**
+* ``untranslated -> fuzzy`` — an empty ``msgstr`` was filled with a fuzzy
+  (unconfirmed) guess, e.g. an AI backfill committed as ``#, fuzzy``. No
+  existing translation was lost, so this is **not** a regression and must
+  pass.
+
+Keying on the per-entry transition lets a backfill PR commit fuzzy guesses for
+previously-untranslated strings (the ja/fi catalog backfills) without tripping
+the check, while still catching a genuine invalidation even when the same PR
+also adds new strings (which a count-delta heuristic would let mask it).
+
+Note ``babel_update.sh`` runs ``pybabel update`` with ``--no-fuzzy-matching``,
+so *adding* (or renaming) a source string does **not** auto-generate a fuzzy
+guess against an unrelated existing translation — new strings land as cleanly
+untranslated (empty ``msgstr``). The fuzzies this check sees therefore arrive
+another way — typically a committed ``.po`` edit. *Deleting* a string is still
+not a regression: with ``--ignore-obsolete`` it is simply dropped and no fuzzy
+is created.
 
 Usage
 -----
@@ -126,28 +137,72 @@ def count_stats(po_file: Path) -> dict[str, int]:
     }
 
 
+def entry_keys(po_file: Path) -> dict[str, list[str]]:
+    """Return per-``msgid`` key sets for a .po file.
+
+    ``translated_keys`` lists the non-fuzzy, non-obsolete entries with a
+    populated ``msgstr`` — confirmed translations a source reword could strand.
+    ``fuzzy_keys`` lists the non-obsolete entries carrying the ``fuzzy`` flag
+    (however they arrived — a committed backfill guess or a real invalidation).
+
+    A key combines ``msgctxt`` and ``msgid`` (gettext's own identity rule) so
+    context-disambiguated entries stay distinct. The header entry (empty
+    ``msgid``) is ignored. The regression check compares the baseline's
+    ``translated_keys`` against the PR's ``fuzzy_keys``: their intersection is
+    exactly the set of confirmed translations the PR turned fuzzy.
+
+    Raises:
+        OSError: if ``polib`` cannot read or parse the file. As with a msgfmt
+            failure, a catalog we cannot parse is surfaced rather than silently
+            counted as empty.
+    """
+    import polib  # type: ignore[import-untyped]  # noqa: PLC0415
+
+    translated_keys: list[str] = []
+    fuzzy_keys: list[str] = []
+    for entry in polib.pofile(str(po_file)):
+        if entry.obsolete or not entry.msgid:
+            continue
+        key = f"{entry.msgctxt}\x04{entry.msgid}" if entry.msgctxt else entry.msgid
+        if "fuzzy" in entry.flags:
+            fuzzy_keys.append(key)
+        elif (
+            all(entry.msgstr_plural.values())
+            if entry.msgid_plural
+            else bool(entry.msgstr)
+        ):
+            translated_keys.append(key)
+    return {"translated_keys": translated_keys, "fuzzy_keys": fuzzy_keys}
+
+
 def get_counts(
     translations_dir: Path,
     failures: Optional[set[str]] = None,
-) -> dict[str, dict[str, int]]:
+) -> dict[str, dict[str, object]]:
     """Count translated/fuzzy entries for every ``.po`` file in a directory.
 
+    Each language maps to ``{"translated", "fuzzy", "translated_keys",
+    "fuzzy_keys"}`` — aggregate counts (for the human-readable summary) plus the
+    per-``msgid`` key sets the regression check actually keys on.
+
     If ``failures`` is provided, the name of each language whose ``.po`` file
-    is present on disk but could not be counted (msgfmt non-zero exit, or
-    unparseable output) is added to it. Such a language is deliberately absent
-    from the returned mapping — but, unlike a language whose catalog was simply
-    deleted, it must not be mistaken for an intentional removal: a caller that
-    cares about the distinction (see :func:`cmd_compare`) can inspect
-    ``failures`` and treat it as a hard error.
+    is present on disk but could not be counted (msgfmt non-zero exit,
+    unparseable output, or a polib parse error) is added to it. Such a language
+    is deliberately absent from the returned mapping — but, unlike a language
+    whose catalog was simply deleted, it must not be mistaken for an intentional
+    removal: a caller that cares about the distinction (see :func:`cmd_compare`)
+    can inspect ``failures`` and treat it as a hard error.
     """
-    counts: dict[str, dict[str, int]] = {}
+    counts: dict[str, dict[str, object]] = {}
     for po_file in sorted(translations_dir.glob("*/LC_MESSAGES/messages.po")):
         lang = po_file.parent.parent.name
         if lang in SKIP_LANGS:
             continue
         try:
-            counts[lang] = count_stats(po_file)
-        except (subprocess.CalledProcessError, RuntimeError) as exc:
+            stats: dict[str, object] = dict(count_stats(po_file))
+            stats.update(entry_keys(po_file))
+            counts[lang] = stats
+        except (subprocess.CalledProcessError, RuntimeError, OSError) as exc:
             # A malformed .po file (msgfmt non-zero exit, or stderr we
             # can't parse) is a real problem worth seeing, but it shouldn't
             # take the whole regression check down with it — that would
@@ -163,42 +218,73 @@ def get_counts(
     return counts
 
 
-def _normalize(entry: object) -> dict[str, int]:
-    """Coerce a baseline entry into ``{"translated", "fuzzy"}``.
+def _normalize(entry: object) -> dict[str, object]:
+    """Coerce a baseline entry into ``{"translated", "fuzzy", *_keys}``.
 
-    Tolerates the legacy baseline format where each language mapped directly to
-    an integer translated count (no fuzzy data); such entries contribute a
-    fuzzy baseline of 0.
+    ``translated_keys``/``fuzzy_keys`` are the per-``msgid`` sets the check
+    keys on. They are ``None`` (not ``[]``) when the baseline predates the
+    per-entry format — an absent set means "unknown", which routes
+    :func:`cmd_compare` to the coarse aggregate fallback, whereas an empty list
+    is a known-empty set. Legacy formats — a ``{"translated", "fuzzy"}`` dict
+    with no key sets, or a bare integer translated count — are both tolerated.
     """
     if isinstance(entry, dict):
         return {
             "translated": int(entry.get("translated", 0)),
             "fuzzy": int(entry.get("fuzzy", 0)),
+            "translated_keys": (
+                list(entry["translated_keys"]) if "translated_keys" in entry else None
+            ),
+            "fuzzy_keys": (
+                list(entry["fuzzy_keys"]) if "fuzzy_keys" in entry else None
+            ),
         }
     if isinstance(entry, int):
-        return {"translated": entry, "fuzzy": 0}
+        return {
+            "translated": entry,
+            "fuzzy": 0,
+            "translated_keys": None,
+            "fuzzy_keys": None,
+        }
     raise TypeError(f"Unsupported baseline entry: {entry!r}")
 
 
-def build_regression_report(regressions: list[tuple[str, int, int]]) -> str:
+def _key_list(stats: dict[str, object], field: str) -> Optional[list[str]]:
+    """Return ``stats[field]`` as a list of keys, or ``None`` if unavailable.
+
+    A missing or non-list value reads as "unknown" so the caller can fall back
+    to the aggregate comparison instead of treating it as an empty key set.
+    """
+    value = stats.get(field)
+    return list(value) if isinstance(value, list) else None
+
+
+def _count(stats: dict[str, object], field: str) -> int:
+    """Return ``stats[field]`` as an int count, defaulting to 0."""
+    value = stats.get(field, 0)
+    return value if isinstance(value, int) else 0
+
+
+def build_regression_report(regressions: list[tuple[str, int, int, int]]) -> str:
     """Build a markdown report for posting as a PR comment.
 
-    Each regression tuple is ``(lang, before_fuzzy, after_fuzzy)``.
+    Each regression tuple is ``(lang, before_fuzzy, after_fuzzy, invalidated)``
+    where ``invalidated`` is the number of confirmed translations the PR turned
+    fuzzy.
     """
-    rows = "\n".join(
-        f"| `{lang}` | {b} | {a} | +{a - b} |" for lang, b, a in regressions
-    )
-    affected = ", ".join(f"`{lang}`" for lang, _, _ in regressions)
+    rows = "\n".join(f"| `{lang}` | {n} |" for lang, _b, _a, n in regressions)
+    affected = ", ".join(f"`{lang}`" for lang, *_ in regressions)
     return (
         "## ⚠️ Translation Regression Detected\n\n"
         f"A source change in this PR renamed or reworded strings, invalidating "
         f"existing translations (they are now `#, fuzzy`) in {affected}. Please "
         f"resolve the affected `.po` files before merging.\n\n"
-        "_Note: intentionally **deleting** a translatable string is not a "
-        "regression and is not flagged here — only translations invalidated by "
-        "a renamed/reworded source string are._\n\n"
-        "| Language | Fuzzy before | Fuzzy after | New |\n"
-        "|----------|-------------:|------------:|----:|\n"
+        "_Note: neither intentionally **deleting** a translatable string nor "
+        "filling a previously-**untranslated** entry with a fuzzy guess (e.g. an "
+        "AI backfill) is a regression — only a confirmed translation that a "
+        "renamed/reworded source string turned fuzzy is flagged here._\n\n"
+        "| Language | Invalidated translations |\n"
+        "|----------|-------------------------:|\n"
         f"{rows}\n\n"
         "### How to fix\n\n"
         "**1. Install dependencies** (if not already set up):\n\n"
@@ -230,6 +316,41 @@ def cmd_count(translations_dir: Path) -> None:
     print(json.dumps(counts, indent=2))
 
 
+def _detect_regressions(
+    before: dict[str, dict[str, object]],
+    after: dict[str, dict[str, object]],
+) -> list[tuple[str, int, int, int]]:
+    """Return ``(lang, before_fuzzy, after_fuzzy, invalidated)`` per regressed lang.
+
+    A regression is a key in the baseline's ``translated_keys`` that is fuzzy
+    after the PR — a confirmed translation a source reword stranded. Filling a
+    previously-untranslated entry with a fuzzy guess (backfill) is therefore not
+    flagged (its key was absent from the baseline's translated set), and neither
+    is deleting a string (with ``--ignore-obsolete`` it drops, creating no
+    fuzzy). When per-entry key data is unavailable (a legacy baseline, or a
+    catalog whose key set could not be read), fall back to the coarse rule: any
+    net increase in the aggregate fuzzy count.
+    """
+    regressions: list[tuple[str, int, int, int]] = []
+    for lang, before_stats in sorted(before.items()):
+        after_stats = after.get(lang)
+        if after_stats is None:
+            # Catalog absent from `after`: an intentional deletion (a
+            # present-but-uncountable catalog was already caught by the caller).
+            continue
+        b_fuzzy = _count(before_stats, "fuzzy")
+        a_fuzzy = _count(after_stats, "fuzzy")
+        before_translated = before_stats.get("translated_keys")
+        after_fuzzy = _key_list(after_stats, "fuzzy_keys")
+        if isinstance(before_translated, list) and after_fuzzy is not None:
+            invalidated = set(after_fuzzy) & set(before_translated)
+            if invalidated:
+                regressions.append((lang, b_fuzzy, a_fuzzy, len(invalidated)))
+        elif a_fuzzy > b_fuzzy:
+            regressions.append((lang, b_fuzzy, a_fuzzy, a_fuzzy - b_fuzzy))
+    return regressions
+
+
 def cmd_compare(
     before_path: str,
     translations_dir: Path,
@@ -258,23 +379,12 @@ def cmd_compare(
         )
         sys.exit(1)
 
-    # A regression is an *increase* in fuzzy entries: the PR's source diff
-    # renamed/reworded strings, leaving their committed translations stranded.
-    # A plain drop in the translated count is NOT used — deleting a string
-    # lowers it identically to a rename but is a legitimate change, and with
-    # `pybabel update --ignore-obsolete` a deletion creates no fuzzy entry.
-    regressions: list[tuple[str, int, int]] = []
-    for lang, before_stats in sorted(before.items()):
-        after_stats = after.get(lang, {"translated": 0, "fuzzy": 0})
-        if after_stats["fuzzy"] > before_stats["fuzzy"]:
-            regressions.append((lang, before_stats["fuzzy"], after_stats["fuzzy"]))
-
-    if regressions:
+    if regressions := _detect_regressions(before, after):
         print("Translation regression detected!\n")
-        for lang, b, a in regressions:
+        for lang, _b, _a, n in regressions:
             print(
-                f"  {lang}: {a - b} translation(s) invalidated "
-                f"(fuzzy {b} -> {a}) by a renamed/reworded source string"
+                f"  {lang}: {n} confirmed translation(s) invalidated "
+                f"(now fuzzy) by a renamed/reworded source string"
             )
         print(
             "\nResolve the newly-fuzzy entries in the affected .po files "
@@ -289,14 +399,16 @@ def cmd_compare(
     # All good — print a summary so it's easy to read in CI logs.
     print("No translation regressions.\n")
     for lang in sorted(after):
-        before_stats = before.get(lang, {"translated": 0, "fuzzy": 0})
+        before_stats: dict[str, object] = before.get(lang, {})
         after_stats = after[lang]
-        t_delta = after_stats["translated"] - before_stats["translated"]
-        f_delta = after_stats["fuzzy"] - before_stats["fuzzy"]
+        b_translated = _count(before_stats, "translated")
+        a_translated = _count(after_stats, "translated")
+        b_fuzzy = _count(before_stats, "fuzzy")
+        a_fuzzy = _count(after_stats, "fuzzy")
         print(
-            f"  {lang}: translated {before_stats['translated']} -> "
-            f"{after_stats['translated']} ({t_delta:+d}), fuzzy "
-            f"{before_stats['fuzzy']} -> {after_stats['fuzzy']} ({f_delta:+d})"
+            f"  {lang}: translated {b_translated} -> {a_translated} "
+            f"({a_translated - b_translated:+d}), fuzzy "
+            f"{b_fuzzy} -> {a_fuzzy} ({a_fuzzy - b_fuzzy:+d})"
         )
 
 
