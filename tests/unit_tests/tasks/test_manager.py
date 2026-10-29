@@ -498,7 +498,7 @@ class TestTaskManagerListenForAbort:
 
 
 class TestAbortCheckSessionCleanup:
-    """A failed poll must not leave the scoped session dirty."""
+    """Every poll must release the scoped session, success or failure."""
 
     @patch("superset.db")
     @patch("superset.tasks.manager.TaskManager._check_abort_status")
@@ -518,7 +518,7 @@ class TestAbortCheckSessionCleanup:
     @patch("superset.db")
     @patch("superset.tasks.manager.TaskManager._check_abort_status")
     @patch("superset.coordination.base.CoordinationService.listen_for_signal")
-    def test_successful_poll_leaves_session_alone(
+    def test_successful_poll_releases_session(
         self, mock_listen, mock_check, mock_db
     ):
         mock_check.return_value = False
@@ -526,8 +526,8 @@ class TestAbortCheckSessionCleanup:
 
         assert mock_listen.call_args.kwargs["check"]() is False
 
-        mock_db.session.rollback.assert_not_called()
-        mock_db.session.remove.assert_not_called()
+        mock_db.session.rollback.assert_called_once()
+        mock_db.session.remove.assert_called_once()
 
 
 class TestTaskManagerWaitForCompletion:

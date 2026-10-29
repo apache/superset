@@ -58,29 +58,30 @@ def _in_app_context(app: "Flask | None", fn: Callable[[], T]) -> Callable[[], T]
     return wrapped
 
 
-def _release_session_on_error(fn: Callable[[], T]) -> Callable[[], T]:
-    """Wrap ``fn`` so a failure rolls back and discards the scoped DB session.
+def _release_session_after_poll(fn: Callable[[], T]) -> Callable[[], T]:
+    """Wrap ``fn`` so the scoped DB session is discarded after every poll.
 
     When the listener thread is wrapped in a long-lived context (see
     ``BACKGROUND_THREAD_CONTEXT_FACTORY``), no per-poll app context is pushed, so
-    the usual teardown never runs. Without this, a failed query could leave the
-    session in a failed transaction and every later poll would fail too.
+    the usual teardown never runs. Without this, a successful poll would leave the
+    listener holding an idle open transaction (and its metastore connection) for
+    the task's whole life, and a failed poll would leave the session in a failed
+    transaction so every later poll would fail too.
     """
 
     def wrapped() -> T:
         try:
             return fn()
-        except Exception:
+        finally:
             from superset import db
 
             try:
-                # Not a unit of work: this only discards a failed read poll's
-                # session, so @transaction (which commits on success) doesn't fit.
+                # Not a unit of work: this only discards a read poll's session,
+                # so @transaction (which commits on success) doesn't fit.
                 db.session.rollback()  # pylint: disable=consider-using-transaction
                 db.session.remove()
             except Exception:  # pylint: disable=broad-except
-                logger.debug("Session cleanup after failed poll failed", exc_info=True)
-            raise
+                logger.debug("Session cleanup after poll failed", exc_info=True)
 
     return wrapped
 
@@ -520,7 +521,7 @@ class TaskManager:
 
         return CoordinationService.listen_for_signal(
             cls.get_abort_channel(task_uuid),
-            check=_release_session_on_error(
+            check=_release_session_after_poll(
                 _in_app_context(app, lambda: cls._check_abort_status(task_uuid))
             ),
             on_signal=_in_app_context(app, callback),
