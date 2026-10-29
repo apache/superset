@@ -1025,6 +1025,16 @@ def test_warning_estimate_does_not_change_manual_postgres_response() -> None:
     cursor.execute.assert_called_once_with("EXPLAIN SELECT * FROM test")
 
 
+@pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
+def test_warning_estimate_unsupported_script_does_not_run_explain(
+    mocker: MockerFixture, sql: str
+) -> None:
+    """Warning estimates do not plan unsupported scripts or CTAS statements."""
+    database = mocker.MagicMock()
+    assert spec.estimate_query_cost_for_warning(database, None, "", sql).value is None
+    database.get_raw_connection.assert_not_called()
+
+
 def test_warning_estimate_unverified_postgres_subclass_is_unsupported() -> None:
     """Postgres-like connectors must explicitly verify their own planner semantics."""
 

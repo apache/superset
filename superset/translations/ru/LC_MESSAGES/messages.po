@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 13:22-0400\n"
+"POT-Creation-Date: 2026-10-29 13:24-0400\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1279,6 +1279,9 @@ msgstr "Отменяется"
 msgid "About"
 msgstr "О программе"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Доступ"
 
@@ -1710,6 +1713,9 @@ msgstr "Агрегация"
 
 msgid "Aggregation Method"
 msgstr "Метод агрегации"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3557,6 +3563,12 @@ msgstr "Изменять этот слой аннотаций запрещено
 msgid "Changing this semantic view is forbidden"
 msgstr "Изменять это представление аннотаций запрещено"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "Изменять эту задачу запрещено"
 
@@ -4058,6 +4070,9 @@ msgstr "Закрыть редактор цветовых порогов"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Закрыть вкладку"
 
@@ -4196,6 +4211,10 @@ msgstr "Цвет целевого местоположения"
 
 msgid "Color scheme"
 msgstr "Цветовая схема"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4797,6 +4816,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "Количество"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Страна"
@@ -7517,6 +7548,10 @@ msgstr "Ошибка"
 msgid "Failed at retrieving results"
 msgstr "Невозможно выполнить запрос"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Не удалось применить тему из-за некорректного JSON"
 
@@ -7933,9 +7968,6 @@ msgid "Fit data"
 msgstr "Подогнать данные"
 
 msgid "Fix the Extra JSON to edit certification"
-msgstr ""
-
-msgid "Fix the query cost warning settings before saving."
 msgstr ""
 
 msgid "Fix the query cost warning settings in Advanced."
@@ -8420,10 +8452,10 @@ msgstr "Скрывает линию для временного ряда"
 msgid "Hierarchy"
 msgstr "Иерархия"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8928,6 +8960,11 @@ msgstr "Недопустимые долгота/широта"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Некорректная мера: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Недопустимая numpy функция: %(operator)s"
@@ -9275,6 +9312,9 @@ msgstr "Последний год"
 msgid "Lat"
 msgstr "Широта"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Широта"
 
@@ -9548,6 +9588,9 @@ msgstr "Список групп"
 msgid "List Roles"
 msgstr "Список ролей"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Список пользователей"
 
@@ -9680,10 +9723,10 @@ msgstr "Долгота и широта"
 msgid "Longitude of default viewport"
 msgstr "Долгота для области просмотра"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -9927,6 +9970,9 @@ msgstr "Среднее значений за указанный период"
 msgid "Mean values"
 msgstr "Средние значения"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10163,6 +10209,9 @@ msgstr "Минимум"
 msgid "Minimum Font Size"
 msgstr "Минимальный размер шрифта"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Минимальный радиус"
 
@@ -10171,6 +10220,16 @@ msgid "Minimum Width"
 msgstr "Минимальная ширина"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -10748,6 +10807,9 @@ msgstr ""
 "Не найден валидатор с именем %(validator_name)s (сконфигурированный для "
 "драйвера %(engine_spec)s)"
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "Расположение меток"
 
@@ -11143,9 +11205,6 @@ msgstr "Непрозрачность пузырьков, где 0 - прозра
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Непрозрачность, принимаются значения от 0 до 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Открыть вкладку источника данных"
 
@@ -11175,6 +11234,9 @@ msgstr "Открыть в SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Открыть в SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Открыть в SQL Lab"
@@ -13361,6 +13423,13 @@ msgstr "Прокрутите вниз до конца для активации 
 msgid "Search"
 msgstr "Поиск"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Поиск %s записи"
+msgstr[1] "Поиск %s записи"
+msgstr[2] "Поиск %s записей"
+
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"
 
@@ -13414,9 +13483,6 @@ msgstr "Поиск в фильтрах"
 
 msgid "Search metrics by key or label"
 msgstr "Поиск мер по ключу или имени"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Поиск тегов"
@@ -14001,6 +14067,11 @@ msgstr "Параметры представления аннотаций нек�
 msgid "Semantic view updated"
 msgstr "Представление аннотаций обновлено"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 msgid "Semantic views"
 msgstr "Представления аннотаций"
 
@@ -14335,11 +14406,11 @@ msgstr "Показывать метки времени запросов диаг
 msgid "Show column headers"
 msgstr "Показывать заголовки столбцов"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показать подытоги по столбцам"
-
-msgid "Show columns total"
-msgstr "Показать итог по столбцам"
 
 msgid "Show empty columns"
 msgstr "Показывать пустые столбцы"
@@ -14419,11 +14490,11 @@ msgstr "Показать идентификаторы запросов"
 msgid "Show row labels"
 msgstr "Показывать подписи строк"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показать подытоги по строкам"
-
-msgid "Show rows total"
-msgstr "Показать общий итог по строкам"
 
 msgid "Show series values on the chart"
 msgstr "Показать значения категорий на диаграмме"
@@ -14656,6 +14727,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Некоторые обязательные фильтры на других вкладках имеют значения и не "
 "будут очищены"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -15132,6 +15206,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сумма"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сумма значений за обозначенный период"
@@ -17165,6 +17248,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17495,6 +17581,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -17908,6 +18001,12 @@ msgid ""
 msgstr ""
 "Запрошено слишком много срезов. Максимально допустимое количество: "
 "%(max)s, но запрошено %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Панель инструментов"
@@ -18619,6 +18718,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Отформатировать как дату, даже если мера представлена другим типом данных"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -18626,6 +18732,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "Использовать градиент"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Использовать меры как группы верхнего уровня для столбцов или строк"
@@ -18928,6 +19037,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Область просмотра"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Виртуальный"
@@ -19610,6 +19722,9 @@ msgstr "Метка оси X"
 msgid "X Axis Label Interval"
 msgstr "Интервал меток оси X"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Числовой формат оси X"
 
@@ -19656,6 +19771,9 @@ msgstr "Формат Оси Y"
 
 msgid "Y Axis Label"
 msgstr "Метка оси Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Название оси Y"
@@ -20191,6 +20309,11 @@ msgstr "Ваш запрос был сохранен"
 
 msgid "Your report could not be deleted"
 msgstr "Не удается удалить рассылку"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 msgid "Your session has ended. Please sign in again."
 msgstr "Ваша сессия завершена. Пожалуйста, войдите в систему снова."

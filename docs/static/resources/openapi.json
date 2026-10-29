@@ -11789,6 +11789,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "SubjectResponse": {
@@ -34765,6 +34768,7 @@
               "schema": {
                 "properties": {
                   "views": {
+                    "description": "At most SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS views. Views not validated within SEMANTIC_VIEW_BULK_CREATE_TIMEOUT seconds are reported with error_type TIMEOUT.",
                     "items": {
                       "properties": {
                         "cache_timeout": {

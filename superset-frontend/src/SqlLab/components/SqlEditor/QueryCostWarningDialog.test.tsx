@@ -54,6 +54,21 @@ test('displays server detail strings exactly with explicit actions', () => {
   expect(onContinue).toHaveBeenCalledTimes(1);
 });
 
+test('upper-bound detail strings retain the server accuracy wording', () => {
+  const { getByText, queryByText } = render(
+    <QueryCostWarningDialog
+      estimate={{
+        ...estimate,
+        details: [{ label: 'Estimated usage', value: 'Up to 1,001 bytes' }],
+      }}
+      onCancel={() => {}}
+      onContinue={() => {}}
+    />,
+  );
+  expect(getByText('Up to 1,001 bytes')).toBeInTheDocument();
+  expect(queryByText(/At least/)).not.toBeInTheDocument();
+});
+
 test('unavailable assessments show their message without requiring numeric details', () => {
   const { getByText, getByRole } = render(
     <QueryCostWarningDialog

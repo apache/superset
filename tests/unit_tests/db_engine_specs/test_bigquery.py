@@ -553,6 +553,76 @@ def test_get_time_partition_column_uses_catalog_in_table_reference(
     client.get_table.assert_called_once_with("other_project.my_dataset.my_table")
 
 
+def test_get_extra_table_metadata_table_not_found(mocker: MockerFixture) -> None:
+    """
+    Test that a missing table yields empty extra metadata instead of raising.
+    """
+    from google.api_core.exceptions import NotFound
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_time_partition_column",
+        side_effect=NotFound("table gone"),
+    )
+
+    result = BigQueryEngineSpec.get_extra_table_metadata(
+        mock.Mock(), Table("my_table", "my_dataset", "my_project")
+    )
+
+    assert result == {}
+
+
+def test_get_extra_table_metadata_other_errors_propagate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that errors other than NotFound (e.g. 403) are not swallowed.
+    """
+    from google.api_core.exceptions import Forbidden
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_time_partition_column",
+        side_effect=Forbidden("denied"),
+    )
+
+    with pytest.raises(Forbidden):
+        BigQueryEngineSpec.get_extra_table_metadata(
+            mock.Mock(), Table("my_table", "my_dataset", "my_project")
+        )
+
+
+def test_get_extra_table_metadata_partitioned(mocker: MockerFixture) -> None:
+    """
+    Test that partitioned tables still return partition metadata.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_time_partition_column", return_value="ds"
+    )
+    mocker.patch.object(
+        BigQueryEngineSpec, "get_max_partition_id", return_value="20240101"
+    )
+    mocker.patch.object(BigQueryEngineSpec, "select_star", return_value="SELECT 1")
+    mocker.patch.object(BigQueryEngineSpec, "get_engine")
+
+    result = BigQueryEngineSpec.get_extra_table_metadata(
+        mock.Mock(), Table("my_table", "my_dataset", "my_project")
+    )
+
+    assert result["partitions"] == {
+        "cols": ["ds"],
+        "latest": {"ds": "20240101"},
+        "partitionQuery": "SELECT 1",
+    }
+    assert result["indexes"][0]["cols"] == ["ds"]
+
+
 def test_adjust_engine_params_catalog_as_host() -> None:
     """
     Test passing a custom catalog.
@@ -1571,6 +1641,7 @@ def test_expand_nested_columns_keeps_user_alias() -> None:
         ("1.5", "PRECISE", False, None),
         (True, "PRECISE", False, None),
         (-1, "PRECISE", False, None),
+        pytest.param("9" * 5000, "PRECISE", False, None, id="exceeds-int-digit-limit"),
     ],
 )
 def test_warning_dry_run_uses_execution_client_and_raw_statistics(
@@ -1779,6 +1850,21 @@ def test_warning_dry_run_malformed_metadata_is_unavailable(statistics: object) -
     assert estimate.value is None or estimate.accuracy is None
 
 
+def test_warning_dry_run_non_mapping_job_resource_is_unavailable(
+    mocker: MockerFixture,
+) -> None:
+    """A job without a resource mapping cannot prove a bound."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    job = QueryJob("dry-run", "SELECT 1", client)
+    mocker.patch.object(job, "_properties", None)
+    assert BigQueryEngineSpec._query_cost_warning_estimate(job).value is None
+
+
 @pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
 def test_warning_dry_run_unsupported_script_does_not_contact_bigquery(
     mocker: MockerFixture, sql: str
@@ -1794,3 +1880,31 @@ def test_warning_dry_run_unsupported_script_does_not_contact_bigquery(
         is None
     )
     database.get_raw_connection.assert_not_called()
+
+
+@pytest.mark.parametrize("bigquery_driver", [False, True])
+def test_warning_dry_run_without_driver_client_does_not_contact_bigquery(
+    mocker: MockerFixture, bigquery_driver: bool
+) -> None:
+    """Only the BigQuery DB-API connection's own SDK client may run the dry run."""
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    driver_connection = (
+        mocker.MagicMock(spec=Connection, _client=object())
+        if bigquery_driver
+        else object()
+    )
+    database = mocker.MagicMock()
+    database.get_raw_connection.return_value.__enter__.return_value = SimpleNamespace(
+        driver_connection=driver_connection
+    )
+    assert (
+        BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, "project", "dataset", "SELECT 1"
+        ).value
+        is None
+    )
+    database.get_raw_connection.assert_called_once()
+    database.mutate_sql_based_on_config.assert_not_called()

@@ -41,6 +41,7 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { clearQueryEditors } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
+import { detectOS } from 'src/utils/common';
 import SqlEditor from '.';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 
@@ -48,16 +49,13 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({
-      children,
-    }: {
-      children: (size: { height: number }) => React.ReactNode;
-    }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (size: { height: number }) => React.ReactNode;
+  }) => renderProp({ height: 500 }),
+}));
 jest.mock('src/SqlLab/components/ResultSet', () => () => <div />);
 jest.mock('src/components/DatabaseSelector', () => ({
   DatabaseSelector: () => <div />,
@@ -519,6 +517,32 @@ test.each(['button', 'shortcut'])(
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   },
 );
+
+test('the stop shortcut cancels a pending check and ignores its late result', async () => {
+  let finish: (body: object) => void = () => {};
+  const pending = new Promise<object>(resolve => {
+    finish = resolve;
+  });
+  fetchMock.modifyRoute('check', { response: () => pending });
+  setup('SELECT 1');
+  const editor = screen.getByRole('textbox', { name: 'SQL editor' });
+  fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+  expect(await screen.findByRole('button', { name: /Stop$/ })).toBeEnabled();
+  fireEvent.keyDown(editor, {
+    key: detectOS() === 'MacOS' ? 'x' : 'e',
+    ctrlKey: true,
+  });
+  expect(
+    screen.queryByRole('button', { name: /Stop$/ }),
+  ).not.toBeInTheDocument();
+  await act(async () => {
+    finish({ result: { action: 'proceed' } });
+    await fetchMock.callHistory.flush(true);
+  });
+  expect(estimates()).toHaveLength(1);
+  expect(executions()).toHaveLength(0);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
 
 test('ordinary autorun retains its existing direct execution path', async () => {
   setup('SELECT 1', 'automatic');

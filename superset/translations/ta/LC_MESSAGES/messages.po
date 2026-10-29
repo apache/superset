@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 13:22-0400\n"
+"POT-Creation-Date: 2026-10-29 13:24-0400\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1255,6 +1255,9 @@ msgstr "வடிவமைத்தல்"
 msgid "About"
 msgstr "பற்றி"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "வெற்றி"
@@ -1703,6 +1706,9 @@ msgstr "திரட்டுதல் (Aggregation)"
 
 msgid "Aggregation Method"
 msgstr "திரட்டுதல் முறை"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3560,6 +3566,12 @@ msgstr "இந்தத் தரவுத்தொகுப்பை மாற�
 msgid "Changing this semantic view is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
@@ -4080,6 +4092,9 @@ msgstr "வண்ண பிரேக்பாயிண்ட் எடிட்�
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "தாவலை மூடு"
 
@@ -4213,6 +4228,10 @@ msgstr "இலக்கு இடத்தின் வண்ணம்"
 
 msgid "Color scheme"
 msgstr "வண்ணத் திட்டம்"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4830,6 +4849,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "நாடு"
@@ -7563,6 +7594,10 @@ msgstr "தோல்வியுற்றது"
 msgid "Failed at retrieving results"
 msgstr "முடிவுகளைப் பெறுவதில் தோல்வி"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "தீமைப் பயன்படுத்துவதில் தோல்வி: தவறான JSON"
 
@@ -7988,9 +8023,6 @@ msgid "Fit data"
 msgstr "தரவுத்தொகுப்பைத் திருத்து"
 
 msgid "Fix the Extra JSON to edit certification"
-msgstr ""
-
-msgid "Fix the query cost warning settings before saving."
 msgstr ""
 
 msgid "Fix the query cost warning settings in Advanced."
@@ -8471,10 +8503,10 @@ msgstr "காலத் தொடருக்கான கோட்டை மற
 msgid "Hierarchy"
 msgstr "படிநிலை (Hierarchy)"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8976,6 +9008,11 @@ msgstr "தவறான தீர்க்கரேகை/அட்சரேக�
 msgid "Invalid metric object: %(metric)s"
 msgstr "தவறான அளவீட்டு பொருள்: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "தவறான numpy சார்பு: %(operator)s"
@@ -9318,6 +9355,9 @@ msgstr "கடந்த ஆண்டு"
 msgid "Lat"
 msgstr "அட்ச"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "அட்சரேகை (Latitude)"
 
@@ -9590,6 +9630,9 @@ msgstr "குழுக்களைப் பட்டியலிடு"
 msgid "List Roles"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "பயனர்களைப் பட்டியலிடு"
 
@@ -9723,10 +9766,10 @@ msgstr "தீர்க்கரேகை மற்றும் அட்சர�
 msgid "Longitude of default viewport"
 msgstr "இயல்புநிலை வியூபோர்ட்டின் தீர்க்கரேகை"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -9958,6 +10001,9 @@ msgstr "குறிப்பிட்ட காலத்தில் மதி�
 msgid "Mean values"
 msgstr "சராசரி மதிப்புகள்"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10181,6 +10227,9 @@ msgstr "குறைந்தபட்சம்"
 msgid "Minimum Font Size"
 msgstr "குறைந்தபட்ச எழுத்துரு அளவு"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "குறைந்தபட்ச ஆரம்"
 
@@ -10189,6 +10238,16 @@ msgid "Minimum Width"
 msgstr "குறைந்தபட்ச அகலம்"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -10754,6 +10813,9 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr ""
 
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "நோட் லேபிள் நிலை"
 
@@ -11135,9 +11197,6 @@ msgstr "குமிழ்களின் ஒளிப்புகாமை (0 -
 msgid "Opacity, expects values between 0 and 100"
 msgstr "ஒளிப்புகாமை, 0 முதல் 100 வரையிலான மதிப்புகளை எதிர்பார்க்கிறது"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "தரவு ஆதாரம் (Datasource) தாவலைத் திற"
 
@@ -11169,6 +11228,9 @@ msgstr "SQL லேப்பில் திற"
 
 msgid "Open in SQL lab"
 msgstr "SQL லேப்பில் திற"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "வினவலை SQL லேப்பில் திற"
@@ -13309,6 +13371,12 @@ msgstr "மாற்றங்களை மேலெழுத கீழே ஸ்
 msgid "Search"
 msgstr "தேடு"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "தேடு / வடிகட்டு"
 
@@ -13368,9 +13436,6 @@ msgstr "வடிகட்டிகளில் தேடு"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "அளவீடுகள் & நெடுவரிசைகளைத் தேடு"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "குறிச்சொற்களைத் (tags) தேடு"
@@ -13962,6 +14027,11 @@ msgstr "தரவுத்தொகுப்பு அளவுருக்க�
 msgid "Semantic view updated"
 msgstr ""
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 msgid "Semantic views"
 msgstr ""
 
@@ -14302,11 +14372,11 @@ msgstr "சார்ட் வினவல் நேர முத்திரை
 msgid "Show column headers"
 msgstr "நெடுவரிசை தலைப்புகளைக் காண்பி"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "நெடுவரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show columns total"
-msgstr "நெடுவரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show empty columns"
 msgstr "வெற்று நெடுவரிசைகளைக் காண்பி"
@@ -14385,11 +14455,11 @@ msgstr "வினவல் அடையாளங்காட்டிகளை�
 msgid "Show row labels"
 msgstr "வரிசை லேபிள்களைக் காண்பி"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "வரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show rows total"
-msgstr "வரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show series values on the chart"
 msgstr "சார்ட்டில் தொடர் மதிப்புகளைக் காண்பி"
@@ -14608,6 +14678,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 #, fuzzy
@@ -15094,6 +15167,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "கூட்டுத்தொகை"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "குறிப்பிட்ட காலப்பகுதியில் மதிப்புகளின் கூட்டுத்தொகை"
@@ -17002,6 +17084,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17314,6 +17399,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -17712,6 +17804,12 @@ msgstr ""
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
 msgstr ""
 
 msgid "Tool Panel"
@@ -18397,6 +18495,13 @@ msgstr ""
 "பயன்படுத்தவும்"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -18404,6 +18509,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "கிரேடியண்ட் (Gradient) பயன்படுத்தவும்"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -18700,6 +18808,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "வ்யூ-போர்ட் (Viewport)"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "மெய்நிகர் (Virtual)"
@@ -19383,6 +19494,9 @@ msgstr "X-அச்சு லேபிள்"
 msgid "X Axis Label Interval"
 msgstr "X-அச்சு லேபிள் இடைவெளி"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X-அச்சு எண் வடிவம்"
 
@@ -19428,6 +19542,9 @@ msgstr "Y-அச்சு வடிவம்"
 
 msgid "Y Axis Label"
 msgstr "Y-அச்சு லேபிள்"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y-அச்சு தலைப்பு"
@@ -19953,6 +20070,11 @@ msgstr "உங்கள் வினவல் புதுப்பிக்க�
 
 msgid "Your report could not be deleted"
 msgstr "உங்கள் அறிக்கையை நீக்க முடியவில்லை"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 msgid "Your session has ended. Please sign in again."
 msgstr ""

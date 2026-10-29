@@ -693,6 +693,19 @@ def test_warning_resolves_execution_default_catalog(mocker: MockerFixture) -> No
     assert _estimator(command).call_args.args[1:3] == ("default_catalog", "")
 
 
+def test_warning_limit_query_is_detached_from_the_session(
+    mocker: MockerFixture,
+) -> None:
+    """A limit-only Query that reaches the session is expunged before it can flush."""
+    command = _make_command(mocker)
+    session = mocker.patch("superset.commands.sql_lab.estimate.db").session
+    session.__contains__.return_value = True
+    result = _run_warning(command)
+    session.expunge.assert_called_once()
+    assert isinstance(session.expunge.call_args.args[0], Query)
+    assert result == {"action": "proceed"}
+
+
 def test_warning_estimates_rls_constrained_sql(mocker: MockerFixture) -> None:
     """Security controls and RLS injection run before the final execution limit."""
     command = _make_command(mocker)

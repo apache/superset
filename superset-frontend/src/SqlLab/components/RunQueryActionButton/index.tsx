@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC, ReactElement, type ReactNode } from 'react';
+import {
+  useMemo,
+  FC,
+  ReactElement,
+  type SyntheticEvent,
+  type ReactNode,
+} from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme, SupersetTheme } from '@apache-superset/core/theme';
@@ -26,6 +32,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import useRunStopButton from 'src/hooks/useRunStopButton';
 import {
   LOG_ACTIONS_SQLLAB_RUN_QUERY,
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
@@ -78,6 +85,12 @@ const onClick = (
   runQuery();
 };
 
+/** Only the main split button changes action; caret gestures open a menu. */
+const isMainButtonGesture = (event: SyntheticEvent<HTMLSpanElement>) =>
+  event.target instanceof Element &&
+  event.target.closest('button') ===
+    event.currentTarget.querySelector('button');
+
 const StyledButton = styled.span`
   button {
     line-height: 13px;
@@ -111,6 +124,14 @@ const RunQueryActionButton = ({
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
+  const {
+    onPointerDownCapture,
+    onKeyDownCapture,
+    onBlurCapture,
+    onClick: handleClick,
+  } = useRunStopButton(shouldShowStopBtn, () =>
+    onClick(shouldShowStopBtn, runQuery, stopQuery, logAction),
+  );
 
   const showMenu = overlayCreateAsMenu && !awaitingConfirmation;
   const ButtonComponent: FC<QueryButtonProps> = showMenu
@@ -139,12 +160,18 @@ const RunQueryActionButton = ({
   );
 
   return (
-    <StyledButton>
+    <StyledButton
+      onBlurCapture={onBlurCapture}
+      onPointerDownCapture={event => {
+        if (isMainButtonGesture(event)) onPointerDownCapture(event);
+      }}
+      onKeyDownCapture={event => {
+        if (isMainButtonGesture(event)) onKeyDownCapture(event);
+      }}
+    >
       <ButtonComponent
         data-test="run-query-action"
-        onClick={() =>
-          onClick(shouldShowStopBtn, runQuery, stopQuery, logAction)
-        }
+        onClick={handleClick}
         disabled={isDisabled}
         tooltip={
           (!isDisabled &&

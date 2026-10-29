@@ -135,45 +135,49 @@ export const ComparisonRangeLabel = ({
             startDate) ||
           ensureIsArray(customOrInheritShifts).includes('inherit')
         ) {
-          return fetchTimeRange(filter.comparator, filter.subject).then(res => {
-            const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
-            const [parsedStartDate, parsedEndDate] = dates ?? [];
-            if (parsedStartDate) {
-              const parsedDateDayjs = extendedDayjs(
-                parseDttmToDate(parsedStartDate),
-              );
-              const startDateDayjs = extendedDayjs(parseDttmToDate(startDate));
-              if (
-                startDateDayjs.isBefore(parsedDateDayjs) ||
-                startDateDayjs.isSame(parsedDateDayjs) ||
-                !startDate
-              ) {
-                const postProcessedShifts = getTimeOffset({
-                  timeRangeFilter: {
-                    ...filter,
-                    comparator: `${parsedStartDate} : ${parsedEndDate}`,
-                  },
-                  shifts: customOrInheritShifts,
-                  startDate: useStartDate,
-                  includeFutureOffsets: false, // So we don't trigger requests for future dates
-                });
-                return fetchTimeRange(
-                  filter.comparator,
-                  filter.subject,
-                  ensureIsArray(
-                    postProcessedShifts.concat(nonCustomNorInheritShifts),
-                  ),
+          return fetchTimeRange(filter.comparator, filter.subject).then(
+            async res => {
+              const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
+              const [parsedStartDate, parsedEndDate] = dates ?? [];
+              if (parsedStartDate) {
+                const parsedDateDayjs = extendedDayjs(
+                  parseDttmToDate(parsedStartDate),
                 );
+                const startDateDayjs = extendedDayjs(
+                  parseDttmToDate(startDate),
+                );
+                if (
+                  startDateDayjs.isBefore(parsedDateDayjs) ||
+                  startDateDayjs.isSame(parsedDateDayjs) ||
+                  !startDate
+                ) {
+                  const postProcessedShifts = getTimeOffset({
+                    timeRangeFilter: {
+                      ...filter,
+                      comparator: `${parsedStartDate} : ${parsedEndDate}`,
+                    },
+                    shifts: customOrInheritShifts,
+                    startDate: useStartDate,
+                    includeFutureOffsets: false, // So we don't trigger requests for future dates
+                  });
+                  return fetchTimeRange(
+                    filter.comparator,
+                    filter.subject,
+                    ensureIsArray(
+                      postProcessedShifts.concat(nonCustomNorInheritShifts),
+                    ),
+                  );
+                }
               }
-            }
-            return Promise.resolve({ value: '' });
-          });
+              return Promise.resolve({ value: '' });
+            },
+          );
         }
         return Promise.resolve({ value: '' });
       });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state
-        setLabels(res.map(r => r.value ?? ''));
+        setLabels(res.map(r => r.value ?? '').filter(Boolean));
       });
     }
   }, [currentTimeRangeFilters, shifts, startDate]);
@@ -181,18 +185,16 @@ export const ComparisonRangeLabel = ({
   return labels.length ? (
     <>
       <ControlHeader label={t('Actual range for comparison')} />
-      {labels.flat().map(label => (
-        <>
-          <div
-            css={theme => css`
-              font-size: ${theme.fontSize}px;
-              color: ${theme.colorText};
-            `}
-            key={label}
-          >
-            {label}
-          </div>
-        </>
+      {labels.flat().map((label, index) => (
+        <div
+          css={theme => css`
+            font-size: ${theme.fontSize}px;
+            color: ${theme.colorText};
+          `}
+          key={`${index}-${label}`}
+        >
+          {label}
+        </div>
       ))}
     </>
   ) : null;

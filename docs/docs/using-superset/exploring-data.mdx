@@ -419,6 +419,14 @@ previously.
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial Dashboard.
 
+:::note API post-processing
+
+For chart-data API requests using `compare` post-processing, percentage and ratio
+comparisons handle zero baselines consistently for raw SQL `DECIMAL` columns and
+floating-point inputs. Absolute-difference comparisons retain the input arithmetic.
+
+:::
+
 ### Resampling the data
 
 In this section, we’ll resample the data so that rather than having daily data we have weekly data.
@@ -566,7 +574,20 @@ return the same `proceed` or `confirm` contract, with display details as plain t
 Subclasses must explicitly opt in; inheriting an engine's manual estimator alone
 does not establish warning support.
 
+### Stopping chart queries
+
+In Explore, a mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not
+update the chart if the query finishes while the button is held, including when
+the browser delivers the release click without pointer metadata. With multiple touch
+presses, these clicks follow the order in which the pointers were released. Release and press
+**Create chart** or **Update chart** again to intentionally run another query.
+Escape cancels a held Space activation, including its release. Holding Enter
+starts at most one query until you release it and press again. Cancelling a press
+does not block a later independent assistive-technology activation.
+
 ### SQL Lab Tips
+
+**Run/Stop button**: A mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not run the SQL if the query finishes while the button is held. Release and press **Run** again to start another execution. Escape cancels a held Space activation, including its eventual release; moving focus away also cancels keyboard activation. Holding Enter starts at most one execution, even if it finishes before you release the key. Releasing a pointer outside the button cancels that press. An independent assistive-technology or programmatic click still performs the action displayed on the button. This also applies to the CTAS/CVAS main button.
 
 **Stopping queries**: An accepted Stop shows “Query was stopped.” even if engine cancellation fails. A finished query refreshes its completed outcome without a stop-failure toast. A Stop rejected after the target commit, while result preparation is still running, shows the “Failed to stop query.” toast. See [Stopping a SQL Lab query](#stopping-a-sql-lab-query) for transaction guarantees and metadata-database limitations.
 
@@ -590,6 +611,27 @@ The **Custom** time range picker accepts natural language expressions alongside 
 - **Offsets**: `30 days ago`, `1 year ago`, `next week`
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
+
+### Sunburst cross-filtering
+
+Sunburst cross-filters use the underlying hierarchy values, not the formatted
+segment labels. For time-grained temporal levels, selecting a segment filters the
+entire bucket. Adaptive date formatting includes the year in month and quarter
+labels to distinguish buckets across years; other grains keep their compact labels.
+For supported bucket ranges, the selection replaces the target chart's Time Range
+and also applies to its other temporal range filters, even on another time column.
+Drill to detail matches the selected bucket, including a dataset Hours offset, unless
+the chart also has a Time Range filter on the grained Time Column. Drill by matches the
+bucket only when the chart has no Time Range filter. Otherwise the query rebuilds its
+time bounds from the chart or dashboard Time Range, so the drill returns every row in
+that range. An engine-specific grain without a fixed length matches only the start of
+the bucket.
+
+On engines without SQL temporal shifts, grained comparisons (Drill to detail, grained
+`IN` / `NOT IN` cross-filters and other bucket comparisons) use the displayed bucket's
+original, unshifted grouping boundaries, undoing the display-only Hours offset for each
+selected value. A temporal level without a time grain is compared with the stored
+timestamp, so with an Hours offset its Drill to detail does not match the displayed value.
 
 ### Downloading Drill to Detail and Drill By Results
 

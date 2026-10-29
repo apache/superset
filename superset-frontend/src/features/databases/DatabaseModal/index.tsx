@@ -958,11 +958,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   });
 
   const onSave = async () => {
-    if (queryCostWarningHasError) {
-      setTabKey(TABS_KEYS.ADVANCED);
-      addDangerToast(t('Fix the query cost warning settings before saving.'));
-      return;
-    }
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
     setHasValidated(false);

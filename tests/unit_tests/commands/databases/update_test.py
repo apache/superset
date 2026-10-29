@@ -1390,6 +1390,28 @@ def test_warning_update_validates_retained_rule_against_new_engine(
     assert "extra" not in command._properties
 
 
+@pytest.mark.parametrize("submitted", [True, False])
+def test_warning_update_rejects_unparseable_extra(
+    mocker: MockerFixture, submitted: bool
+) -> None:
+    """Unparseable extra that mentions warning settings fails before saving."""
+    invalid = '{"query_cost_warning": {"enabled": true}'
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra="{}" if submitted else invalid,
+    )
+    properties = {"extra": invalid} if submitted else {}
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    rebind = mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    with pytest.raises(DatabaseInvalidError) as excinfo:
+        command.validate()
+    assert isinstance(excinfo.value.__cause__, json.JSONDecodeError)
+    rebind.assert_not_called()
+    assert command._properties == properties
+
+
 @pytest.mark.parametrize(
     "enabled,new_uri",
     [(False, None), (True, None), (False, "postgresql://"), (True, "bigquery://other")],

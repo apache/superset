@@ -210,7 +210,6 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json
 from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
@@ -237,6 +236,7 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -3185,28 +3185,14 @@ class DashboardRestApi(
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
 
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDashboardsCommand(
@@ -3449,6 +3435,8 @@ class DashboardRestApi(
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        # Read before the copy: its rollback expires ``original_dash``.
+        source_id: int = original_dash.id
         try:
             dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
@@ -3456,6 +3444,7 @@ class DashboardRestApi(
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCopyError:
+            logger.error("Error copying dashboard %s", source_id, exc_info=True)
             return self.response_400()
 
         return self.response(

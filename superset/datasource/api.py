@@ -37,6 +37,7 @@ from superset.common.tabular_query import (
     validate_query_names,
 )
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.schemas import DatasourceQuerySchema
@@ -148,8 +149,15 @@ def get_cached_column_values(
             "q": search,
         },
     )
+    timeout: int = datasource.cache_timeout or app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
     cached: list[Any] | None
-    if not force and (cached := cache_manager.data_cache.get(cache_key)) is not None:
+    if (
+        timeout != CACHE_DISABLED_TIMEOUT
+        and not force
+        and (cached := cache_manager.data_cache.get(cache_key)) is not None
+    ):
         logger.debug(
             "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
         )
@@ -177,13 +185,11 @@ def get_cached_column_values(
             warn_threshold,
         )
 
-    timeout: int = datasource.cache_timeout or app.config.get(
-        "CACHE_DEFAULT_TIMEOUT", 300
-    )
     # Bound each distinct search term's lifetime instead of retaining one
     # entry per keystroke for the full default timeout.
     timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
-    cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+    if timeout != CACHE_DISABLED_TIMEOUT:
+        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
     logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
     return payload, False
 
@@ -721,6 +727,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 json.dumps(
                     {
                         "uid": datasource_uid,
+                        "changed_on": str(getattr(datasource, "changed_on", "")),
                         "metadata_version": metadata_version,
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
@@ -730,7 +737,14 @@ class DatasourceRestApi(BaseSupersetApi):
             ).hexdigest()
         )
 
-        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+        timeout: int = datasource.cache_timeout or app.config.get(
+            "CACHE_DEFAULT_TIMEOUT", 300
+        )
+        cached: dict[str, list[str]] | None
+        if (
+            timeout != CACHE_DISABLED_TIMEOUT
+            and (cached := cache_manager.data_cache.get(cache_key)) is not None
+        ):
             return self.response(200, result=cached)
 
         try:
@@ -745,10 +759,8 @@ class DatasourceRestApi(BaseSupersetApi):
         except AmbiguousDimensionError as ex:
             return self.response(400, message=str(ex))
 
-        timeout = datasource.cache_timeout or app.config.get(
-            "CACHE_DEFAULT_TIMEOUT", 300
-        )
-        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        if timeout != CACHE_DISABLED_TIMEOUT:
+            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)
 
