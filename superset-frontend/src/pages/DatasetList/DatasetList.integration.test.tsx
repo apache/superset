@@ -392,7 +392,7 @@ test('bulk delete confirm never claims a semantic view has no dependents', async
 
   expect(
     await within(modal).findByText(
-      /charts built on the selected semantic view/i,
+      /deletion is blocked while any assets depend on the selected semantic views/i,
     ),
   ).toBeInTheDocument();
   expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
@@ -548,3 +548,38 @@ test('semantic-view classification holds without the optional source_type', asyn
     kind: 'semantic_view',
   });
 });
+
+test.each([0, 2])(
+  'dataset archive warning reflects %s linked charts',
+  async count => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = { SOFT_DELETE: true } as never;
+    try {
+      const dataset = mockDatasets[0];
+      mockDatasetListEndpoints({ result: [dataset], count: 1 });
+      fetchMock.get(API_ENDPOINTS.DATASET_RELATED_OBJECTS, {
+        charts: { count, result: [] },
+        dashboards: { count: count ? 1 : 0, result: [] },
+      });
+      renderDatasetList(mockAdminUser);
+      const table = await screen.findByTestId('listview-table');
+      await userEvent.click(await within(table).findByTestId('delete'));
+      const modal = await screen.findByRole('dialog');
+      expect(modal).not.toHaveTextContent('Deleting');
+      if (count) {
+        expect(modal).toHaveTextContent('2 charts on 1 dashboard');
+        expect(modal).toHaveTextContent(
+          'Archiving it will make dependent charts unavailable until it is recovered.',
+        );
+      } else {
+        expect(modal).not.toHaveTextContent('linked to');
+        expect(modal).not.toHaveTextContent('0 charts');
+        expect(modal).toHaveTextContent(
+          'No charts or dashboards depend on the selected dataset.',
+        );
+      }
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

@@ -67,3 +67,14 @@ the submitted configuration before saving it. If lookup fails or returns no view
 the API reports that the view may not exist or the semantic layer may be
 unreachable, and does not add it. Other valid views in the same request can still
 be added. This check does not guarantee that later queries will succeed.
+
+One request can add at most `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (100 by
+default); larger requests are refused before any lookup. Lookups for one request
+share a time budget, `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` (30 seconds by default).
+The budget is checked before each lookup, so a lookup already running is limited
+only by the semantic layer's own timeouts; keep the budget well below the web
+server and proxy timeouts so the response arrives. Views not checked in time are reported
+with the `TIMEOUT` error type and can be retried in another request; views added
+before the budget ran out stay added. Views that already exist are refused before
+their lookup, so resending the whole request spends the budget only on the views
+that are still missing.
