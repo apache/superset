@@ -3288,7 +3288,10 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
 
 
 def _warehouse_table(
-    tmp_path: Path, *, source_partition_column: str | None
+    tmp_path: Path,
+    *,
+    source_partition_column: str | None,
+    partition_expression: str | None = None,
 ) -> SqlaTable:
     """
     A dataset over a real SQLite table, mapped ``event_time`` -> ``dt_key``.
@@ -3297,6 +3300,9 @@ def _warehouse_table(
     is what the physical table actually has. ``None`` is a column dropped at the
     source, a different name is one renamed there -- in both cases Superset's
     metadata is stale until someone runs "Sync columns from source".
+
+    ``partition_expression`` makes ``dt_key`` a calculated column, in which case
+    ``source_partition_column`` is the physical column the expression reads.
     """
     path = tmp_path / "warehouse.db"
     source_columns = [
@@ -3331,7 +3337,9 @@ def _warehouse_table(
                 partition_transform_is_monotonic=True,
             ),
             TableColumn(column_name="country", type="TEXT"),
-            TableColumn(column_name="dt_key", type="INTEGER"),
+            TableColumn(
+                column_name="dt_key", type="INTEGER", expression=partition_expression
+            ),
         ],
     )
     table.partition_column = "dt_key"
@@ -3389,4 +3397,45 @@ def test_a_partition_column_missing_at_the_source_leaves_charts_unpruned(
 
     assert result.status == QueryStatus.SUCCESS, result.error_message
     assert "dt_key" not in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+def test_a_calculated_partition_column_prunes_while_its_source_column_exists(
+    app: Flask, tmp_path: Path
+) -> None:
+    """Control: a calculated partition key is inlined into the mirror."""
+    table = _warehouse_table(
+        tmp_path,
+        source_partition_column="source_key",
+        partition_expression="source_key + 0",
+    )
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "(source_key + 0) >= 20260101" in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+def test_a_calculated_partition_column_whose_source_column_is_gone_stays_unpruned(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    The mirror inlines a calculated column's expression, so the warehouse's
+    complaint is about a column the expression reads and never names the
+    partition column itself. Recovery therefore cannot hinge on the error
+    mentioning ``dt_key``.
+    """
+    table = _warehouse_table(
+        tmp_path,
+        source_partition_column=None,
+        partition_expression="source_key + 0",
+    )
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "source_key" not in result.query
     assert result.df["country"].tolist() == ["US"]
