@@ -225,6 +225,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     engine = "bigquery"
     engine_name = "Google BigQuery"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     max_column_name_length = 128
     disable_ssh_tunneling = True
 
@@ -639,8 +642,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        payload = {}
-        partition_column = cls.get_time_partition_column(database, table)
+        from google.api_core.exceptions import NotFound
+
+        payload: dict[str, Any] = {}
+        try:
+            partition_column = cls.get_time_partition_column(database, table)
+        except NotFound:
+            # The table was dropped/renamed (or is otherwise not resolvable);
+            # partition metadata is optional enrichment, so degrade gracefully.
+            logger.warning(
+                "BigQuery table %s not found while fetching extra metadata",
+                table,
+            )
+            return payload
         with cls.get_engine(
             database, catalog=table.catalog, schema=table.schema
         ) as engine:
