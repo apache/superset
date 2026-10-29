@@ -22,14 +22,17 @@ Revises: f72b6e9c104a
 
 Only the URI prefix is rewritten. Credentials live in the separate encrypted
 password column, which this migration never reads or writes. The extra marker
-limits rollback to connections converted by this revision.
+and a migration-owned fingerprint table limit rollback to unchanged converted rows.
 """
 
+from datetime import datetime
+from hashlib import sha256
 from typing import Any
 
 import sqlalchemy as sa
 from alembic import op
 
+from superset.migrations.shared.utils import create_table, drop_table, has_table
 from superset.utils import json
 
 revision = "b8f3a2c91d64"
@@ -46,65 +49,128 @@ databases = sa.table(
     sa.column("id", sa.Integer),
     sa.column("sqlalchemy_uri", sa.String(1024)),
     sa.column("extra", sa.Text),
+    sa.column("changed_on", sa.DateTime),
 )
 
 
-def _load_extra(value: str | None, database_id: int) -> dict[str, Any]:
-    """Read extra without silently discarding malformed connection settings."""
+# Fingerprints avoid copying connection settings or credentials into a backup table.
+records = sa.table(
+    "databricks_uri_migration",
+    sa.column("id", sa.Integer),
+    sa.column("fingerprint", sa.String(64)),
+    sa.column("extra_marked", sa.Boolean),
+)
+
+
+def _load_extra(value: str | None) -> dict[str, Any] | None:
+    """Return no object for malformed settings, without replacing their text."""
     try:
-        extra = json.loads(value) if value else {}
-    except ValueError as ex:
-        raise ValueError(f"Invalid extra for database {database_id}") from ex
-    if not isinstance(extra, dict):
-        raise ValueError(f"Invalid extra for database {database_id}")
-    return extra
+        extra = json.loads(value) if value is not None else None
+    except (ValueError, RecursionError):
+        return None
+    return extra if isinstance(extra, dict) else None
+
+
+def _fingerprint(uri: str, extra: str | None, changed_on: datetime | None) -> str:
+    """Recognize the migrated state, including edits to other database fields."""
+    state = json.dumps([uri, extra, str(changed_on)])
+    return sha256(state.encode("utf-8")).hexdigest()
+
+
+def _query(upgrading: bool, tracked: bool, last_id: int) -> sa.sql.Select:
+    """Find source URIs or rollback candidates, including exported markers."""
+    query = sa.select(databases).where(databases.c.id > last_id)
+    if upgrading:
+        query = query.where(databases.c.sqlalchemy_uri.like(f"{LEGACY_PREFIX}%"))
+    elif tracked:
+        query = (
+            query.add_columns(records.c.fingerprint, records.c.extra_marked)
+            .select_from(databases.outerjoin(records, databases.c.id == records.c.id))
+            .where(
+                sa.or_(records.c.id.isnot(None), databases.c.extra.like(f"%{MARKER}%"))
+            )
+        )
+    else:
+        query = query.add_columns(
+            sa.literal(None).label("fingerprint"),
+            sa.literal(None).label("extra_marked"),
+        ).where(databases.c.extra.like(f"%{MARKER}%"))
+    return query
 
 
 def _migrate(upgrading: bool) -> None:
     """Use keyset batches so rewriting the filter cannot skip later rows."""
     bind = op.get_bind()
+    tracked = has_table(records.name)
     last_id = -1
     while True:
-        query = sa.select(databases).where(databases.c.id > last_id)
-        if upgrading:
-            query = query.where(databases.c.sqlalchemy_uri.like(f"{LEGACY_PREFIX}%"))
-        else:
-            query = query.where(databases.c.extra.like(f"%{MARKER}%"))
+        query = _query(upgrading, tracked, last_id)
         rows = bind.execute(query.order_by(databases.c.id).limit(BATCH_SIZE)).fetchall()
         if not rows:
             break
         for row in rows:
             last_id = row.id
-            extra = _load_extra(row.extra, row.id)
+            extra = _load_extra(row.extra)
             uri = row.sqlalchemy_uri
+            extra_text = row.extra
             if upgrading:
                 # LIKE can be case-insensitive on some metadata databases.
                 if not uri.startswith(LEGACY_PREFIX):
                     continue
-                if MARKER in extra:
-                    raise ValueError(
-                        f"Migration marker already set for database {row.id}"
-                    )
                 uri = NATIVE_PREFIX + uri[len(LEGACY_PREFIX) :]
-                extra[MARKER] = True
+                extra_marked = extra is not None and (
+                    MARKER not in extra or extra[MARKER] is True
+                )
+                if extra is not None and extra_marked:
+                    extra[MARKER] = True
+                    extra_text = json.dumps(extra)
+                # Preserve conflicting user settings instead of aborting the upgrade.
+                bind.execute(records.delete().where(records.c.id == row.id))
+                bind.execute(
+                    records.insert().values(
+                        id=row.id,
+                        fingerprint=_fingerprint(uri, extra_text, row.changed_on),
+                        extra_marked=extra_marked,
+                    )
+                )
             else:
-                if extra.get(MARKER) is not True:
-                    continue
-                if uri.startswith(NATIVE_PREFIX):
+                unchanged = row.fingerprint == _fingerprint(
+                    uri, extra_text, row.changed_on
+                )
+                imported = (
+                    row.fingerprint is None
+                    and uri.startswith(NATIVE_PREFIX)
+                    and extra is not None
+                    and extra.get(MARKER) is True
+                )
+                if (unchanged or imported) and uri.startswith(NATIVE_PREFIX):
                     uri = LEGACY_PREFIX + uri[len(NATIVE_PREFIX) :]
-                del extra[MARKER]
+                if (
+                    (row.extra_marked or imported)
+                    and extra is not None
+                    and extra.get(MARKER) is True
+                ):
+                    del extra[MARKER]
+                    extra_text = json.dumps(extra)
             bind.execute(
                 databases.update()
                 .where(databases.c.id == row.id)
-                .values(sqlalchemy_uri=uri, extra=json.dumps(extra))
+                .values(sqlalchemy_uri=uri, extra=extra_text)
             )
 
 
 def upgrade() -> None:
-    """Convert legacy URIs without parsing or re-encoding their contents."""
+    """Convert legacy schemes and track the resulting rows for safe rollback."""
+    create_table(
+        records.name,
+        sa.Column("id", sa.Integer, primary_key=True, autoincrement=False),
+        sa.Column("fingerprint", sa.String(64), nullable=False),
+        sa.Column("extra_marked", sa.Boolean, nullable=False),
+    )
     _migrate(upgrading=True)
 
 
 def downgrade() -> None:
-    """Restore only converted URIs, leaving natively created connections alone."""
+    """Restore unchanged converted URIs, then remove migration bookkeeping."""
     _migrate(upgrading=False)
+    drop_table(records.name)

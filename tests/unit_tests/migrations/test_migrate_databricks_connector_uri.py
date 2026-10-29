@@ -50,6 +50,7 @@ def engine() -> Iterator[Engine]:
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("sqlalchemy_uri", sa.String(1024)),
         sa.Column("extra", sa.Text),
+        sa.Column("changed_on", sa.DateTime),
         sa.Column("password", Database.__table__.c.password.type),
         sa.Column("encrypted_extra", Database.__table__.c.encrypted_extra.type),
     )
@@ -156,7 +157,11 @@ def test_upgrade_batches_and_downgrade_only_converted_rows(engine: Engine) -> No
     with engine.connect() as conn:
         assert [
             dict(row._mapping)
-            for row in conn.execute(sa.select(table).order_by(table.c.id))
+            for row in conn.execute(
+                sa.select(table.c.id, table.c.sqlalchemy_uri, table.c.extra).order_by(
+                    table.c.id
+                )
+            )
         ] == originals
 
 
@@ -187,24 +192,79 @@ def test_downgrade_does_not_rewrite_a_subsequently_changed_engine(
         assert json.loads(row.extra) == {}
 
 
-@pytest.mark.parametrize("extra", ["not json", "[]", "null"])
-def test_upgrade_rejects_invalid_extra_without_losing_settings(
-    engine: Engine, extra: str
+@pytest.mark.parametrize(
+    "extra",
+    [
+        "not json",
+        "",
+        None,
+        "[]",
+        "null",
+        '{"' + migration.MARKER,
+        '{"' + migration.MARKER + '":false}',
+        json.dumps({migration.MARKER: True}),
+        "[" * 1100,
+    ],
+)
+def test_upgrade_preserves_invalid_extra_and_downgrades_only_unchanged_rows(
+    engine: Engine, extra: str | None
 ) -> None:
-    """Invalid extra must not be overwritten to make room for the marker."""
-    table = migration.databases
+    """A bad row must not block later batches or lose its original text."""
+    from datetime import datetime
+
+    table = sa.Table("dbs", sa.MetaData(), autoload_with=engine)
+    originals = [
+        {"id": i, "sqlalchemy_uri": LEGACY + MASKED_SUFFIX, "extra": extra}
+        for i in range(1, 7)
+    ] + [
+        {"id": 7, "sqlalchemy_uri": NATIVE + MASKED_SUFFIX, "extra": "not json"},
+        {"id": 8, "sqlalchemy_uri": LEGACY + MASKED_SUFFIX, "extra": "{}"},
+    ]
     with engine.begin() as conn:
+        conn.execute(table.insert(), originals)
+    _run(engine, True)
+    _run(engine, True)
+    with engine.begin() as conn:
+        rows = conn.execute(sa.select(table).order_by(table.c.id)).all()
+        assert all(row.sqlalchemy_uri == NATIVE + MASKED_SUFFIX for row in rows)
+        assert [row.extra for row in rows[:6]] == [extra] * 6
+        assert rows[6].extra == "not json"
+        assert json.loads(rows[7].extra)[migration.MARKER] is True
+        conn.execute(table.update().where(table.c.id == 2).values(extra="{}"))
         conn.execute(
-            table.insert().values(
-                id=1, sqlalchemy_uri=LEGACY + MASKED_SUFFIX, extra=extra
-            )
+            table.update()
+            .where(table.c.id == 3)
+            .values(sqlalchemy_uri=NATIVE + MASKED_SUFFIX + "?catalog=edited")
         )
-    with pytest.raises(ValueError, match="Invalid extra for database 1"):
-        _run(engine, True)
+        conn.execute(
+            table.update()
+            .where(table.c.id == 4)
+            .values(sqlalchemy_uri="postgresql://localhost/db")
+        )
+        conn.execute(
+            table.update()
+            .where(table.c.id == 5)
+            .values(changed_on=datetime(2026, 1, 1))
+        )
+        conn.execute(table.delete().where(table.c.id == 6))
+    _run(engine, False)
+    _run(engine, False)
     with engine.connect() as conn:
-        row = conn.execute(sa.select(table)).one()
-        assert row.sqlalchemy_uri == LEGACY + MASKED_SUFFIX
-        assert row.extra == extra
+        rows = {row.id: row for row in conn.execute(sa.select(table))}
+        assert rows[1].sqlalchemy_uri == LEGACY + MASKED_SUFFIX
+        if extra == json.dumps({migration.MARKER: True}):
+            assert json.loads(rows[1].extra) == {}
+        else:
+            assert rows[1].extra == extra
+        assert rows[2].sqlalchemy_uri == NATIVE + MASKED_SUFFIX
+        assert rows[2].extra == "{}"
+        assert rows[3].sqlalchemy_uri == NATIVE + MASKED_SUFFIX + "?catalog=edited"
+        assert rows[4].sqlalchemy_uri == "postgresql://localhost/db"
+        assert rows[5].sqlalchemy_uri == NATIVE + MASKED_SUFFIX
+        assert rows[7].sqlalchemy_uri == NATIVE + MASKED_SUFFIX
+        assert rows[7].extra == "not json"
+        assert rows[8].sqlalchemy_uri == LEGACY + MASKED_SUFFIX
+        assert json.loads(rows[8].extra) == {}
 
 
 def test_converted_connection_extra_can_be_imported(engine: Engine) -> None:
@@ -228,3 +288,75 @@ def test_converted_connection_extra_can_be_imported(engine: Engine) -> None:
         **original_extra,
         migration.MARKER: True,
     }
+
+
+@pytest.mark.parametrize("edit", ["uri", "extra", "changed_on", "malformed_extra"])
+def test_downgrade_preserves_edits_to_converted_native_connection(
+    engine: Engine, edit: str
+) -> None:
+    """An edited Databricks row must not be reverted merely due to its marker."""
+    from datetime import datetime
+
+    table = sa.Table("dbs", sa.MetaData(), autoload_with=engine)
+    with engine.begin() as conn:
+        conn.execute(
+            table.insert().values(
+                id=1, sqlalchemy_uri=LEGACY + MASKED_SUFFIX, extra="{}"
+            )
+        )
+    _run(engine, True)
+    with engine.begin() as conn:
+        changes = {
+            "uri": {"sqlalchemy_uri": NATIVE + MASKED_SUFFIX + "?catalog=edited"},
+            "extra": {"extra": json.dumps({migration.MARKER: True, "edited": True})},
+            "changed_on": {"changed_on": datetime(2026, 1, 1)},
+            "malformed_extra": {"extra": "not json"},
+        }
+        conn.execute(table.update().values(**changes[edit]))
+        expected_uri = conn.execute(sa.select(table.c.sqlalchemy_uri)).scalar_one()
+    _run(engine, False)
+    with engine.connect() as conn:
+        row = conn.execute(sa.select(table)).one()
+        assert row.sqlalchemy_uri == expected_uri
+        if edit == "malformed_extra":
+            assert row.extra == "not json"
+            return
+        assert migration.MARKER not in json.loads(row.extra)
+        if edit == "extra":
+            assert json.loads(row.extra)["edited"] is True
+
+
+def test_downgrade_imported_marker_and_unmarked_native_rows(engine: Engine) -> None:
+    """Imported markers retain their meaning, unlike unmarked native rows."""
+    table = migration.databases
+    _run(engine, True)
+    rows = [
+        {
+            "id": 1,
+            "sqlalchemy_uri": NATIVE + MASKED_SUFFIX,
+            "extra": json.dumps({migration.MARKER: True}),
+        },
+        {"id": 2, "sqlalchemy_uri": NATIVE + MASKED_SUFFIX, "extra": "{}"},
+        {"id": 3, "sqlalchemy_uri": NATIVE + MASKED_SUFFIX, "extra": "not json"},
+    ]
+    with engine.begin() as conn:
+        conn.execute(table.insert(), rows)
+    _run(engine, False)
+    _run(engine, False)
+    with engine.connect() as conn:
+        converted, native, malformed = conn.execute(
+            sa.select(table).order_by(table.c.id)
+        )
+        assert converted.sqlalchemy_uri == LEGACY + MASKED_SUFFIX
+        assert json.loads(converted.extra) == {}
+        assert native.sqlalchemy_uri == NATIVE + MASKED_SUFFIX
+        assert native.extra == "{}"
+        assert malformed.sqlalchemy_uri == NATIVE + MASKED_SUFFIX
+        assert malformed.extra == "not json"
+    assert not sa.inspect(engine).has_table("databricks_uri_migration")
+    _run(engine, True)
+    with engine.connect() as conn:
+        assert all(
+            row.sqlalchemy_uri == NATIVE + MASKED_SUFFIX
+            for row in conn.execute(sa.select(table))
+        )

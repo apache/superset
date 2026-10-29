@@ -140,7 +140,12 @@ masked access token, or enter a replacement token. When creating a connection
 with a SQLAlchemy URI, **Connect this database using the dynamic form instead**
 opens the field-based form.
 
-Downgrading restores the old scheme only on connections converted by this
-migration. Connections created natively with `databricks://` are not reverted.
+Downgrading restores the old scheme on locally converted connections only when
+their URI, settings, and modification timestamp still match the migrated state.
+Imported connections carrying the conversion marker are also eligible for rollback. Connections created natively with `databricks://` are not reverted. Malformed
+`extra` settings do not block the upgrade: their text is preserved, and only the URI
+scheme changes. The migration keeps fingerprints in a bookkeeping table so these
+connections can also be safely downgraded without parsing their settings. Invalid
+settings may still need correction before the connection can execute queries.
 
 ![Editing a migrated Databricks connection with the field-based form](/img/databricks-uri-migration/after.png)
