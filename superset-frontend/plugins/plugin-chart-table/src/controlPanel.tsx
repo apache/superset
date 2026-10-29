@@ -39,8 +39,11 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  isServerPaginationUnsupported,
+  hasMatchingDatasourceMetadata,
   getHeaderGroupsControlProps,
   getTimeComparisonColumnKeys,
+  getKnownColumnConfigKeys,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -48,6 +51,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
+  DatasourceType,
   isAdhocColumn,
   isPhysicalColumn,
   validateInteger,
@@ -128,6 +132,7 @@ const allColumnsControl: typeof sharedControls.groupby = {
   }),
   visibility: isRawMode,
   resetOnHide: false,
+  rerender: ['order_by_cols'],
 };
 
 const percentMetricsControl: typeof sharedControls.metrics = {
@@ -295,7 +300,26 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          {
+            name: 'temporal_columns_lookup',
+            config: {
+              ...sharedControls.temporal_columns_lookup,
+              // A missing entry is unknown, not evidence of a non-temporal
+              // column when classifying a dormant semantic grain.
+              initialValue: (
+                control: ControlState,
+                state: ControlPanelState | null,
+              ) =>
+                Object.fromEntries(
+                  (state?.datasource?.columns ?? [])
+                    .filter(column => typeof column.is_dttm === 'boolean')
+                    .map(column => [
+                      column.column_name ?? column.name,
+                      column.is_dttm,
+                    ]),
+                ),
+            },
+          },
         ],
         [
           {
@@ -352,11 +376,36 @@ const config: ControlPanelConfig = {
               description: t('Order results by selected columns'),
               multi: true,
               default: [],
-              mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.hasOwnProperty('order_by_choices')
-                  ? (datasource as Dataset)?.order_by_choices
-                  : datasource?.columns || [],
-              }),
+              mapStateToProps: ({ datasource, controls }) => {
+                if (datasource?.type === DatasourceType.SemanticView) {
+                  const selectedColumns = [
+                    ...new Set(
+                      ensureIsArray(
+                        controls?.all_columns?.value as
+                          | QueryFormColumn[]
+                          | undefined,
+                      ).filter(isPhysicalColumn),
+                    ),
+                  ];
+                  return {
+                    choices: selectedColumns.flatMap(column => [
+                      [
+                        JSON.stringify([column, true]),
+                        `${column} ${t('[asc]')}`,
+                      ],
+                      [
+                        JSON.stringify([column, false]),
+                        `${column} ${t('[desc]')}`,
+                      ],
+                    ]),
+                  };
+                }
+                return {
+                  choices: datasource?.hasOwnProperty('order_by_choices')
+                    ? (datasource as Dataset)?.order_by_choices
+                    : datasource?.columns || [],
+                };
+              },
               visibility: isRawMode,
               resetOnHide: false,
             },
@@ -392,6 +441,16 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+                disabledReason: hasMatchingDatasourceMetadata(state)
+                  ? t('This semantic view does not support server pagination.')
+                  : undefined,
+                resetLabel: hasMatchingDatasourceMetadata(state)
+                  ? t('Turn off server pagination')
+                  : undefined,
+              }),
             },
           },
         ],
@@ -404,6 +463,10 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+              }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
@@ -419,7 +482,17 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
+                paginationUnsupported: isServerPaginationUnsupported(state),
+                choices: formatSelectOptions(
+                  ROW_LIMIT_OPTIONS_TABLE.filter(
+                    value =>
+                      !isServerPaginationUnsupported(state) ||
+                      value <=
+                        (state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+                  ),
+                ),
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
@@ -433,12 +506,24 @@ const config: ControlPanelConfig = {
                     state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
                 (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
+                  state?.paginationUnsupported && !state?.server_pagination
+                    ? validateMaxValue(
+                        v,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      ) &&
+                      t(
+                        'Lower the row limit to SQL_MAX_ROW (%s) or less.',
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      )
+                    : validateServerPagination(
+                        v,
+                        state?.server_pagination,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                        state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                      ),
               ],
               // Re run the validations when this control value
               validationDependencies: ['server_pagination'],
@@ -701,6 +786,10 @@ const config: ControlPanelConfig = {
                     coltypes,
                     childColumnMap,
                     timeComparisonColumnMap,
+                    knownKeys: getKnownColumnConfigKeys(
+                      _colnames || [],
+                      explore.datasource,
+                    ),
                   },
                 };
               },

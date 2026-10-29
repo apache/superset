@@ -259,6 +259,7 @@ def _stub_validate_deps(mocker: MockerFixture) -> None:
         return_value=True,
     )
     mocker.patch("superset.commands.report.create.populate_subjects")
+    mocker.patch.object(CreateReportScheduleCommand, "_validate_executors")
 
 
 def test_validate_alert_missing_database_key(mocker: MockerFixture) -> None:
