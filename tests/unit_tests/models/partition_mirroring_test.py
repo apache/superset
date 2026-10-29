@@ -3375,15 +3375,17 @@ def test_a_raw_instant_transform_is_declined_onto_hourly_keys(
 ) -> None:
     """
     Any spelling of a raw-instant transform, on a timestamp or a text timestamp
-    column, would drop rows from hour-bucketed keys; the canaries decline it.
+    column, would drop rows from hour-bucketed Hive keys; the canaries decline it.
     """
     import math
     import sqlite3
     from datetime import timezone
+    from unittest.mock import PropertyMock
 
     from superset.connectors.sqla.partition_mapping import (
         preview_partition_mapping,
     )
+    from superset.db_engine_specs.hive import HiveEngineSpec
 
     connection = sqlite3.connect(":memory:")
     connection.create_function("floor", 1, math.floor)
@@ -3424,13 +3426,21 @@ def test_a_raw_instant_transform_is_declined_onto_hourly_keys(
             side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
         ),
     ):
-        mirrored_sql = _query(table, **arguments)
-        preview = preview_partition_mapping(
-            table,
-            mapped_column="event_time",
-            value_transform=transform,
-            sample_values=["2026-10-01 10:33:20"],
-        )
+        # Elsewhere a raw epoch column is an ordinary index, so it still mirrors.
+        assert "dt_epoch" in _query(table, **arguments)
+        with patch.object(
+            Database,
+            "db_engine_spec",
+            new_callable=PropertyMock,
+            return_value=HiveEngineSpec,
+        ):
+            mirrored_sql = _query(table, **arguments)
+            preview = preview_partition_mapping(
+                table,
+                mapped_column="event_time",
+                value_transform=transform,
+                sample_values=["2026-10-01 10:33:20"],
+            )
         table.partition_column = None
         unmirrored_sql = _query(table, **arguments)
     assert "dt_epoch" not in mirrored_sql

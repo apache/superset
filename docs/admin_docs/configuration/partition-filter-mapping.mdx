@@ -92,7 +92,7 @@ Bare `unix_timestamp(:value)` is not suggested or mirrored for temporal-to-numer
 mappings on Hive/Impala and their engine-spec subclasses. It produces an instant,
 not an hour/day boundary, and can silently exclude matching rows. Existing expressions
 remain editable; replace them with the pipeline's actual partition expression.
-On any engine, a transform from a timestamp column (or a text column flagged as a
+On the same engines, a transform from a timestamp column (or a text column flagged as a
 datetime) onto a numeric key is also evaluated at two instants 2,843 seconds apart within
 one hour. If its answers are exactly that far apart (or 2,843,000, for milliseconds), it
 returns raw instants, however it is spelled: `CAST(unix_timestamp(:value) AS BIGINT)`,

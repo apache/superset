@@ -1177,8 +1177,8 @@ def _unbucketed_epoch_message() -> str:
 #: raw epoch seconds (or milliseconds), not an hour or day key, whatever its
 #: spelling -- `CAST(unix_timestamp(:value) AS BIGINT)`, `+ 0`,
 #: `floor(unix_timestamp(:value))`. Mirroring raw instants onto bucketed keys
-#: drops rows; a partition per second is not a layout a warehouse survives, so
-#: declining costs pruning, never correctness.
+#: drops rows; a Hive/Impala partition per second is not a layout a metastore
+#: survives, so declining costs pruning, never correctness.
 _EPOCH_CANARIES = (datetime(2001, 1, 1, 10, 0, 0), datetime(2001, 1, 1, 10, 47, 23))
 _RAW_INSTANT_STEPS = {2843, 2843000}
 
@@ -1189,6 +1189,12 @@ def _epoch_canaries(
     partition_column: TableColumn,
 ) -> list[Any]:
     """The canary inputs for this mapping, empty when the check does not apply."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+
+    # Elsewhere a raw epoch column is an ordinary index to prune on.
+    if not issubclass(datasource.db_engine_spec, (HiveEngineSpec, ImpalaEngineSpec)):
+        return []
     source = next(
         (col for col in datasource.columns if col.column_name == mapped_column),
         None,
@@ -1242,6 +1248,8 @@ def _canary_answers(
             mapping.value_transform,
             canaries,
         )
+        # A failure is not cached: a transient blip must not switch the check
+        # off for the whole cache timeout.
         if answers is not None:
             _cache_set(key, answers)
     return answers
