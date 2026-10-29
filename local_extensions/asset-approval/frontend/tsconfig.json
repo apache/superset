@@ -10,11 +10,17 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
+      // Relative, so the same config resolves in the container (the repo
+      // is mounted at /app, where this lands on the identical file) and in
+      // a plain checkout. Hardcoded as `/app/...` it resolved nowhere on a
+      // host, `styled` degraded to `any`, and every `({ theme })` block
+      // reported TS7031 -- which reads as a missing Emotion augmentation
+      // and is not one.
       "@apache-superset/core": [
-        "/app/superset-frontend/packages/superset-core/lib/index.d.ts"
+        "../../../superset-frontend/packages/superset-core/lib/index.d.ts"
       ],
       "@apache-superset/core/*": [
-        "/app/superset-frontend/packages/superset-core/lib/*"
+        "../../../superset-frontend/packages/superset-core/lib/*"
       ]
     }
   },
