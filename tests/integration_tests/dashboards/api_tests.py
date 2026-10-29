@@ -60,7 +60,7 @@ from superset.exceptions import (
     ReleaseDistributedLockFailedException,
 )
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
@@ -2990,6 +2990,104 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         db.session.delete(model)
         db.session.commit()
+
+    @staticmethod
+    def _expunge_dashboards_and_charts() -> None:
+        """Drop dashboards and charts from the session so the next request
+        loads them through a query, as a fresh request would."""
+        for obj in list(db.session):
+            if isinstance(obj, (Dashboard, Slice)):
+                db.session.expunge(obj)
+
+    def test_update_dashboard_keeps_archived_chart_slot(self) -> None:
+        """PUT: saving back the layout of a dashboard that holds an archived
+        chart succeeds, and the chart keeps its slot and its membership, so
+        recovering it puts it back in place."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user("admin")
+        dataset_id: int = db.session.query(SqlaTable.id).first()[0]
+        live: Slice = self.insert_chart("archived-slot-live", [admin.id], dataset_id)
+        archived: Slice = self.insert_chart(
+            "archived-slot-archived", [admin.id], dataset_id
+        )
+        live_id: int = live.id
+        archived_id: int = archived.id
+        archived_uuid: str = str(archived.uuid)
+        positions: dict[str, Any] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["CHART-live", "CHART-archived"],
+                "parents": ["ROOT_ID"],
+            },
+        }
+        for slot, chart_id in (
+            ("CHART-live", live_id),
+            ("CHART-archived", archived_id),
+        ):
+            positions[slot] = {
+                "id": slot,
+                "type": "CHART",
+                "children": [],
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+        dashboard: Dashboard = self.insert_dashboard(
+            "archived-slot",
+            None,
+            [admin.id],
+            slices=[live, archived],
+            position_json=json.dumps(positions),
+        )
+        dashboard_id: int = dashboard.id
+        self.login(ADMIN_USERNAME)
+        rv: TestResponse = self.client.delete(f"api/v1/chart/{archived_id}")
+        assert rv.status_code == 200, rv.data
+        try:
+            # Load the dashboard and its chart list fresh, as a real request
+            # does: through a query that hides archived charts, not from the
+            # identity map this test populated.
+            self._expunge_dashboards_and_charts()
+            rv = self.client.get(f"api/v1/dashboard/{dashboard_id}")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            rv = self.client.put(
+                f"api/v1/dashboard/{dashboard_id}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 200, rv.data
+
+            self._expunge_dashboards_and_charts()
+            model: Dashboard = db.session.get(Dashboard, dashboard_id)
+            stored: dict[str, Any] = json.loads(model.position_json)
+            assert stored["CHART-archived"]["type"] == "CHART"
+            assert stored["CHART-archived"]["meta"]["chartId"] == archived_id
+            member_ids: set[int] = {
+                row[0]
+                for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                    dashboard_slices.c.dashboard_id == dashboard_id
+                )
+            }
+            assert member_ids == {live_id, archived_id}
+
+            rv = self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            model = db.session.get(Dashboard, dashboard_id)
+            assert {s.id for s in model.slices} == {live_id, archived_id}
+        finally:
+            db.session.rollback()
+            self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            self._expunge_dashboards_and_charts()
+            with skip_visibility_filter(db.session, Slice):
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+                for chart_id in (live_id, archived_id):
+                    db.session.delete(db.session.get(Slice, chart_id))
+            db.session.commit()
 
     def test_update_dashboard_reconciles_dangling_position_json(self) -> None:
         """PUT: a raw ``position_json`` layout node referencing a chart absent
@@ -6023,6 +6121,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             if keep_first
             else {}
         )
+        chart_count: int = db.session.query(Slice).count()
+        orphan_count: int = (
+            db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+        )
         self.login(ADMIN_USERNAME)
         copied_id: int | None = None
         try:
@@ -6041,6 +6143,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             expected: set[str] = {"copy-subset-first"} if keep_first else set()
             assert {chart.slice_name for chart in copied.slices} == expected
             assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count + (
+                len(expected) if duplicate_slices else 0
+            )
+            assert (
+                db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+                == orphan_count
+            )
         finally:
             db.session.rollback()
             if copied_id is not None:
@@ -6052,6 +6161,83 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 Slice.slice_name.in_(["copy-subset-first", "copy-subset-second"])
             ):
                 db.session.delete(chart)
+            db.session.commit()
+
+    @parameterized.expand([("default", None), ("merge", False), ("replace", True)])
+    def test_copy_dashboard_metadata_comes_from_snapshot(
+        self, case: str, replace_metadata: bool | None
+    ) -> None:
+        """Only an explicit replacement opts out of source metadata inheritance."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("snapshot-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("snapshot-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "snapshot-source", None, [admin.id], slices=[first, second]
+        )
+        dashboard.json_metadata = json.dumps(
+            {"live_only": "absent from snapshot", "refresh_frequency": 900}
+        )
+        db.session.commit()
+        source_metadata: str = dashboard.json_metadata
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "snapshot-copy",
+                    **(
+                        {"replace_metadata": replace_metadata}
+                        if replace_metadata is not None
+                        else {}
+                    ),
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": {
+                                "CHART-first": {
+                                    "type": "CHART",
+                                    "meta": {"chartId": first.id},
+                                }
+                            },
+                            "color_scheme": "supersetColors",
+                            "expanded_slices": {
+                                str(first.id): True,
+                                str(second.id): True,
+                            },
+                            "timed_refresh_immune_slices": [first.id, second.id],
+                            "chart_configuration": {
+                                str(first.id): {"id": first.id},
+                                str(second.id): {"id": second.id},
+                            },
+                        }
+                    ),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            metadata: dict[str, Any] = copied.params_dict
+            assert ("live_only" not in metadata) is bool(replace_metadata)
+            assert metadata["refresh_frequency"] == (0 if replace_metadata else 900)
+            assert metadata["color_scheme"] == "supersetColors"
+            assert metadata["expanded_slices"] == {str(first.id): True}
+            assert metadata["timed_refresh_immune_slices"] == [first.id]
+            assert metadata["chart_configuration"] == {str(first.id): {"id": first.id}}
+            assert {chart.id for chart in copied.slices} == {first.id}
+            assert dashboard.json_metadata == source_metadata
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            db.session.delete(first)
+            db.session.delete(second)
             db.session.commit()
 
     def test_copy_dashboard_logs_database_error(self) -> None:
