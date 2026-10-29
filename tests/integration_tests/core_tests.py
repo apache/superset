@@ -63,6 +63,9 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,  # noqa: F401
     load_energy_table_with_slice,  # noqa: F401
 )
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma_scoped,  # noqa: F401
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -951,6 +954,7 @@ class TestCore(SupersetTestCase):
         parsed = parse_qs(urlsplit(location).query)
         assert parsed["native_filters"] == [native_filters_value]
 
+    @pytest.mark.usefixtures("public_role_like_gamma_scoped")
     @mock.patch(
         "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
     )
@@ -967,6 +971,7 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 302
         assert resp.headers["Location"] == expected_url
 
+    @pytest.mark.usefixtures("public_role_like_gamma_scoped")
     @mock.patch(
         "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
     )

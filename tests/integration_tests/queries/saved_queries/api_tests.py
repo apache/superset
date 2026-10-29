@@ -540,7 +540,7 @@ class TestSavedQueryApi(SupersetTestCase):
         SavedQuery API: Test related databases
         """
         self.login(ADMIN_USERNAME)
-        databases = db.session.query(Database).all()
+        databases = db.session.query(Database).order_by(Database.id).all()
         expected_result = {
             "count": len(databases),
             "result": [
@@ -553,6 +553,8 @@ class TestSavedQueryApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
+        # Neither side is ordered by the endpoint, so compare by database id.
+        data["result"].sort(key=lambda item: item["value"])
         assert data == expected_result
 
     def test_related_saved_query_not_found(self):
