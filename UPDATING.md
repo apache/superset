@@ -123,13 +123,20 @@ assists people when migrating to a new version.
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
   cancel invalidated the handle the worker was still polling, so the run failed
-  instead of ending as stopped. When no worker is polling, the query is marked
-  stopped but Impala keeps running it and holds its admission slot until it
-  finishes or Impala closes it: for example when the worker has died or
-  restarted, or when the stop arrives while results are being fetched.
-  Operators who relied on the HTTP cancel to free admission slots in those cases
-  should rely on Impala's own query and session timeouts. Chart and MCP
-  cancellation still use the HTTP cancel.
+  instead of ending as stopped. The worker also checks for a stop between result
+  RPCs while it fetches, so a stop still reaches a query that Impala already
+  reports as finished, which a streaming `SELECT` does almost at once. The
+  worker checks between result RPCs, at most once per `DB_POLL_INTERVAL_SECONDS`
+  (5 seconds for Impala by default), and Impala returns each RPC within
+  `FETCH_ROWS_TIMEOUT_MS` (10 seconds by default), so such a stop takes effect
+  within about the sum of the two.
+  When no worker is polling or fetching, for example because it has died or
+  restarted, the query is marked stopped but Impala keeps running it and holds
+  its admission slot until it finishes or Impala closes it. Impala checks for
+  cancellation between row batches, so a batch whose rows are slow to compute
+  runs to its end first. Operators who relied on the HTTP cancel to free
+  admission slots in those cases should rely on Impala's own query and session
+  timeouts. Chart and MCP cancellation still use the HTTP cancel.
 - `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
   has already finished or its worker has committed the target transaction.
   The response contains `message: "Could not cancel query"` and the recorded

@@ -28,7 +28,7 @@ from superset.constants import (
     QUERY_DISPATCHED_KEY,
     QUERY_EARLY_CANCEL_KEY,
 )
-from superset.db_engine_specs.impala import ImpalaEngineSpec
+from superset.db_engine_specs.impala import _STOP_WATCHED_OPERATIONS, ImpalaEngineSpec
 from superset.sql.execution.executor import SQLExecutor
 from superset.sql_lab import cancel_query, execute_query, SqlLabQueryStoppedException
 from superset.utils.core import QueryStatus
@@ -218,8 +218,9 @@ def test_non_progress_logs_keep_polling(log: str) -> None:
         ImpalaEngineSpec.handle_cursor(cursor, query)
     assert cursor.status.call_count == 2
     assert query.progress == 0
-    # Only the poll's transaction boundary commits; no progress is written.
-    db.session.commit.assert_called_once_with()
+    # Only the stop checks commit, in the poll and before the fetch; no
+    # progress is written.
+    assert db.session.commit.call_count == 2
 
 
 def test_failed_cancel_still_releases_the_operation() -> None:
@@ -306,7 +307,8 @@ def test_pending_operation_polls_with_backoff() -> None:
     ):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     assert [call.args[0] for call in sleep.call_args_list] == [0.1, 0.2, 0.3, 0.3]
-    assert db.session.refresh.call_count == 4
+    # One stop check per poll, and one more once the operation has finished.
+    assert db.session.refresh.call_count == 5
     db.session.query.assert_not_called()
 
 
@@ -401,3 +403,51 @@ def test_pending_refresh_observes_stop() -> None:
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
+
+
+def test_stop_during_last_poll_interval_cancels_before_fetch() -> None:
+    """A stop committed while the last poll slept is caught before the fetch."""
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 0}
+    query: Mock = Mock(id=1, extra={}, progress=0, status=QueryStatus.RUNNING)
+    cursor: Mock = Mock()
+    cursor.status.side_effect = ["RUNNING_STATE", "FINISHED_STATE"]
+    cursor.get_log.return_value = ""
+    refreshes: list[Mock] = []
+
+    def refresh(refreshed: Mock) -> None:
+        """The stop is committed after the last poll's check."""
+        refreshes.append(refreshed)
+        if len(refreshes) == 2:
+            refreshed.status = QueryStatus.STOPPED
+
+    with app.app_context(), patch("superset.db_engine_specs.impala.db") as db:
+        db.session.refresh.side_effect = refresh
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+    assert cursor._last_operation not in _STOP_WATCHED_OPERATIONS
+
+
+def test_stop_before_an_operation_finished_at_first_poll() -> None:
+    """An operation that is finished at its first poll still sees an early stop."""
+    query: Mock = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
+    cursor: Mock = Mock()
+    cursor.status.return_value = "FINISHED_STATE"
+    with patch("superset.db_engine_specs.impala.db"):
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.get_log.assert_not_called()
+
+
+def test_finished_operation_is_watched_by_the_fetch() -> None:
+    """The fetch that follows a finished poll is told which query to watch."""
+    query: Mock = Mock(id=1, extra={}, progress=0, status=QueryStatus.RUNNING)
+    cursor: Mock = Mock()
+    cursor.status.return_value = "FINISHED_STATE"
+    with patch("superset.db_engine_specs.impala.db"):
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+    assert _STOP_WATCHED_OPERATIONS[cursor._last_operation] is query
+    cursor.cancel_operation.assert_not_called()

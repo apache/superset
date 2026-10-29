@@ -15,16 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from contextlib import nullcontext
 from datetime import datetime
-from typing import Optional
-from unittest.mock import Mock, patch
+from typing import Any, Optional
+from unittest.mock import MagicMock, Mock, patch, PropertyMock
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 
-from superset.db_engine_specs.impala import ImpalaEngineSpec as spec  # noqa: N813
+from superset.constants import QUERY_CANCEL_KEY
+from superset.db_engine_specs.impala import (
+    ImpalaEngineSpec as spec,  # noqa: N813
+    ImpalaFetchStoppedError,
+)
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.execution.executor import _LimitedCursor
+from superset.sql_lab import execute_query, SqlLabQueryStoppedException
+from superset.utils.core import QueryStatus
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -284,6 +293,333 @@ def test_fetch_data_async_result_set(app_context: None, impala_errors: None) -> 
     cursor.fetchall.return_value = [(1,)]
     assert spec.fetch_data(cursor) == [(1,)]
     cursor.cancel_operation.assert_not_called()
+
+
+class _Batch:
+    """A driver result batch: its rows, and whether more rows may follow."""
+
+    def __init__(self, rows: list[tuple[int]], expect_more_rows: bool) -> None:
+        """Hold the rows one result RPC returned."""
+        self.rows: list[tuple[int]] = list(rows)
+        self.expect_more_rows: bool = expect_more_rows
+
+    def __len__(self) -> int:
+        """Count the rows left in the batch."""
+        return len(self.rows)
+
+    def pop(self) -> tuple[int]:
+        """Hand out the rows in order."""
+        return self.rows.pop(0)
+
+
+class _Operation:
+    """A driver operation that answers one result RPC at a time."""
+
+    def __init__(self, batches: list[_Batch]) -> None:
+        """Script the batches the result RPCs return."""
+        self.batches: list[_Batch] = batches
+        self.fetches: int = 0
+
+    def fetch(self, *args: Any, **kwargs: Any) -> _Batch:
+        """Return the next result RPC's batch, then empty ones at the end."""
+        self.fetches += 1
+        return self.batches.pop(0) if self.batches else _Batch([], False)
+
+
+class _StreamingCursor:
+    """
+    A finished impyla SELECT whose rows are read through one result RPC at a
+    time, retrying batches that come back empty while more rows are expected.
+    """
+
+    description = [("x", "INT", None, None, None, None, True)]
+    buffersize = 1024
+
+    def __init__(self, operation: _Operation) -> None:
+        """Start reading the operation's results."""
+        self._last_operation: _Operation = operation
+        self._buffer: _Batch = _Batch([], True)
+        self._exhausted: bool = False
+        self.arraysize: int = 1
+        self.calls: list[str] = []
+
+    def execute_async(self, query: str) -> None:
+        """Expose the asynchronous execution capability."""
+
+    def status(self) -> str:
+        """Report the finished state of a streaming SELECT."""
+        return "FINISHED_STATE"
+
+    def is_executing(self) -> bool:
+        """Report the operation as no longer executing."""
+        return False
+
+    def execution_failed(self) -> bool:
+        """Report a successful operation."""
+        return False
+
+    def _next_row(self) -> Optional[tuple[int]]:
+        """Read the next row, issuing result RPCs as the driver does."""
+        while not self._exhausted and not len(self._buffer):
+            self._buffer = self._last_operation.fetch(self.description, self.buffersize)
+            if not len(self._buffer) and not self._buffer.expect_more_rows:
+                self._exhausted = True
+        return None if self._exhausted else self._buffer.pop()
+
+    def fetchmany(self, size: Optional[int] = None) -> list[tuple[int]]:
+        """Read up to ``size`` rows."""
+        rows: list[tuple[int]] = []
+        while len(rows) < (size or self.arraysize):
+            if (row := self._next_row()) is None:
+                break
+            rows.append(row)
+        return rows
+
+    def fetchall(self) -> list[tuple[int]]:
+        """Read every remaining row."""
+        rows: list[tuple[int]] = []
+        while (row := self._next_row()) is not None:
+            rows.append(row)
+        return rows
+
+    def cancel_operation(self) -> None:
+        """Record the cancel RPC."""
+        self.calls.append("cancel_operation")
+
+    def close_operation(self) -> None:
+        """Record the close RPC."""
+        self.calls.append("close_operation")
+
+    def close(self) -> None:
+        """Record closing the cursor."""
+        self.calls.append("close")
+
+
+def _streaming_batches() -> list[_Batch]:
+    """Rows, then two empty result RPCs, then the last rows."""
+    return [
+        _Batch([(1,)], True),
+        _Batch([], True),
+        _Batch([], True),
+        _Batch([(2,)], False),
+    ]
+
+
+def test_stop_while_fetching_cancels_between_result_rpcs(
+    app_context: None, impala_errors: None
+) -> None:
+    """A stop committed while a SQL Lab query streams results ends its fetch."""
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+    query = Mock(id=1, extra={}, status=QueryStatus.RUNNING)
+
+    def refresh(refreshed: Mock) -> None:
+        """Another request commits the stop once the first rows have arrived."""
+        if operation.fetches:
+            refreshed.status = QueryStatus.STOPPED
+
+    with (
+        patch.dict(current_app.config, DB_POLL_INTERVAL_SECONDS={"impala": 0}),
+        patch("superset.db_engine_specs.impala.db") as db,
+    ):
+        db.session.refresh.side_effect = refresh
+        spec.handle_cursor(cursor, query)
+        with pytest.raises(ImpalaFetchStoppedError):
+            spec.fetch_data(cursor)
+
+    assert operation.fetches == 1
+    assert cursor.calls == ["cancel_operation", "close_operation", "close"]
+    assert "fetch" not in vars(operation)
+
+
+def test_watched_fetch_without_stop_reads_every_row(
+    app_context: None, impala_errors: None
+) -> None:
+    """A watched fetch nobody stops returns every row, checking once per interval."""
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+    query = Mock(id=1, extra={}, status=QueryStatus.RUNNING)
+
+    with patch("superset.db_engine_specs.impala.db") as db:
+        spec.handle_cursor(cursor, query)
+        assert spec.fetch_data(cursor) == [(1,), (2,)]
+
+    # One check once polling ends and one before the first result RPC; the
+    # default poll interval spaces out the rest.
+    assert db.session.refresh.call_count == 2
+    # The driver confirms the end of the results with one more result RPC.
+    assert operation.fetches == 5
+    assert cursor.calls == []
+    assert "fetch" not in vars(operation)
+
+
+def test_unwatched_fetch_reads_without_stop_checks(
+    app_context: None, impala_errors: None
+) -> None:
+    """Fetches that handle_cursor never polled, as for charts, are unchanged."""
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+
+    with patch("superset.db_engine_specs.impala.db") as db:
+        assert spec.fetch_data(cursor) == [(1,), (2,)]
+
+    db.session.commit.assert_not_called()
+    db.session.refresh.assert_not_called()
+
+
+def test_watched_fetch_keeps_the_executor_row_budget(
+    app_context: None, impala_errors: None
+) -> None:
+    """A fetch through SQLExecutor's row budget is watched and still bounded."""
+    operation = _Operation([_Batch([(1,), (2,), (3,)], True)])
+    cursor = _StreamingCursor(operation)
+    query = Mock(id=1, extra={}, status=QueryStatus.RUNNING)
+
+    with patch("superset.db_engine_specs.impala.db") as db:
+        spec.handle_cursor(cursor, query)
+        assert spec.fetch_data(_LimitedCursor(cursor, 2)) == [(1,), (2,)]
+
+    assert operation.fetches == 1
+    # The check before the first result RPC ran through the wrapper.
+    assert db.session.refresh.call_count == 2
+
+
+def test_failed_stop_check_does_not_fail_the_fetch(
+    app_context: None, impala_errors: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A metadata error while checking for a stop leaves the results intact."""
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+    query = Mock(id=1, extra={}, status=QueryStatus.RUNNING)
+
+    with (
+        patch.dict(current_app.config, DB_POLL_INTERVAL_SECONDS={"impala": 0}),
+        patch("superset.db_engine_specs.impala.db") as db,
+    ):
+        spec.handle_cursor(cursor, query)
+        db.session.commit.side_effect = RuntimeError("metadata unavailable")
+        assert spec.fetch_data(cursor) == [(1,), (2,)]
+
+    # The failed check is not retried before every remaining result RPC.
+    assert db.session.commit.call_count == 2
+    assert "stop check failed while fetching" in caplog.text
+    assert cursor.calls == []
+
+
+def test_failed_stop_check_keeps_the_rows_of_an_expired_query(
+    app_context: None, impala_errors: None
+) -> None:
+    """A stop check that fails in a broken transaction does not fail the fetch.
+
+    The check's commit expires the ORM query. When the refresh that follows
+    fails, reading the expired query again raises until the session is rolled
+    back, so the check must not read it.
+    """
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+    query = Mock(extra={}, status=QueryStatus.RUNNING)
+    session_broken = False
+
+    def read_id() -> int:
+        """Loading the expired query fails inside the broken transaction."""
+        if session_broken:
+            raise RuntimeError("current transaction is aborted")
+        return 1
+
+    type(query).id = PropertyMock(side_effect=read_id)
+
+    def failing_refresh(refreshed: Mock) -> None:
+        """The metadata database fails the check's refresh."""
+        nonlocal session_broken
+        session_broken = True
+        raise RuntimeError("canceling statement due to statement timeout")
+
+    def rollback() -> None:
+        nonlocal session_broken
+        session_broken = False
+
+    with (
+        patch.dict(current_app.config, DB_POLL_INTERVAL_SECONDS={"impala": 0}),
+        patch("superset.db_engine_specs.impala.db") as db,
+    ):
+        spec.handle_cursor(cursor, query)
+        db.session.refresh.side_effect = failing_refresh
+        db.session.rollback.side_effect = rollback
+        assert spec.fetch_data(cursor) == [(1,), (2,)]
+
+    db.session.rollback.assert_called_once_with()
+    assert cursor.calls == []
+
+
+def test_timeout_during_a_stop_check_is_not_swallowed(
+    app_context: None, impala_errors: None
+) -> None:
+    """SQL Lab's timeout raised while a stop check runs still ends the query."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+    query = Mock(id=1, extra={}, status=QueryStatus.RUNNING)
+    timeout = SupersetTimeoutException(
+        error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+        message="timed out",
+        level=ErrorLevel.ERROR,
+    )
+
+    with (
+        patch.dict(current_app.config, DB_POLL_INTERVAL_SECONDS={"impala": 0}),
+        patch("superset.db_engine_specs.impala.db") as db,
+    ):
+        spec.handle_cursor(cursor, query)
+        db.session.refresh.side_effect = timeout
+        with pytest.raises(SupersetTimeoutException):
+            spec.fetch_data(cursor)
+
+    assert operation.fetches == 0
+
+
+def test_sql_lab_stop_while_fetching_ends_stopped(
+    mocker: MockerFixture, app_context: None, impala_errors: None
+) -> None:
+    """SQL Lab reports a query stopped during its fetch as stopped, not failed."""
+    operation = _Operation(_streaming_batches())
+    cursor = _StreamingCursor(operation)
+    query = MagicMock(
+        id=1,
+        status=QueryStatus.RUNNING,
+        progress=0,
+        executed_sql="SELECT x FROM t",
+        extra={},
+        limit=None,
+    )
+    query.database.db_engine_spec = spec
+    query.set_extra_json_key.side_effect = lambda key, value: query.extra.update(
+        {key: value}
+    )
+    session = mocker.patch("superset.db.session")
+
+    def refresh(refreshed: MagicMock, **kwargs: Any) -> None:
+        """The stop request commits STOPPED once the first rows have arrived."""
+        if operation.fetches:
+            refreshed.status = QueryStatus.STOPPED
+
+    session.refresh.side_effect = refresh
+    mocker.patch.object(
+        spec, "get_cancel_query_id", return_value="0123456789abcdef:fedcba9876543210"
+    )
+    mocker.patch("superset.sql_lab.warm_and_release_connection")
+    mocker.patch(
+        "superset.sql_lab.event_logger.log_context", return_value=nullcontext()
+    )
+    mocker.patch.dict(current_app.config, DB_POLL_INTERVAL_SECONDS={"impala": 0})
+
+    with pytest.raises(SqlLabQueryStoppedException):
+        execute_query(query, cursor)
+
+    assert query.extra[QUERY_CANCEL_KEY] == "0123456789abcdef:fedcba9876543210"
+    assert operation.fetches == 1
+    assert cursor.calls == ["cancel_operation", "close_operation", "close"]
 
 
 def test_the_partition_transform_default_is_impala_syntax() -> None:

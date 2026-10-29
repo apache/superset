@@ -661,6 +661,14 @@ def _execute_sql_statements(
                     level=ErrorLevel.ERROR,
                 )
             ) from ex
+        except Exception:
+            # An engine that ends a stopped query while its results are read,
+            # such as Impala, fails the fetch; report the stop, not an error.
+            # Read only the status, so a failure keeps its pending metadata,
+            # such as the statement it was executing.
+            if not _make_check_stopped_fn(query, preserve_pending=True)():
+                raise
+            execution_results = []
 
         # Re-read stop intent even on autocommit connections: completed engine
         # effects cannot be undone, but an accepted Stop still discards results.
