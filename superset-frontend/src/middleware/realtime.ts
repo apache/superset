@@ -306,9 +306,17 @@ interface Ticket {
   expiresInMs: number;
 }
 
-/** Fetch a fresh connection ticket for the current session. */
+/**
+ * Fetch a fresh connection ticket for the current session. A 401 must not run
+ * the client's unauthorized handler (a login redirect, or the embedded guest
+ * handler): the realtime transport is optional, and the rejection is handled by
+ * `isUnauthorizedError`.
+ */
 const fetchTicket = async (): Promise<Ticket> => {
-  const { json } = await SupersetClient.get({ endpoint: TICKET_ENDPOINT });
+  const { json } = await SupersetClient.get({
+    endpoint: TICKET_ENDPOINT,
+    ignoreUnauthorized: true,
+  });
   const { token, expires_in: expiresIn } = (json ?? {}) as {
     token?: unknown;
     expires_in?: unknown;

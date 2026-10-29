@@ -222,6 +222,28 @@ test('a refresh naming another principal closes the socket with 4403', async () 
   expect(await closed).toEqual({ code: 4403, reason: 'principal mismatch' });
 });
 
+test('a refresh ack over the send buffer cap terminates the socket', async () => {
+  const { ws, frames } = await open();
+  ws.send(authFrame(signTicket()));
+  await vi.waitFor(() => expect(frames).toHaveLength(1));
+  const [socketId] = Object.keys(server.sockets);
+  const serverWs = server.sockets[socketId].ws;
+  vi.spyOn(serverWs, 'bufferedAmount', 'get').mockReturnValue(2048);
+  const sendSpy = vi.spyOn(serverWs, 'send');
+  const terminateSpy = vi.spyOn(serverWs, 'terminate');
+  server.opts.maxSocketBufferBytes = 1024;
+
+  try {
+    ws.send(authFrame(signTicket()));
+
+    await vi.waitFor(() => expect(terminateSpy).toHaveBeenCalled());
+    expect(sendSpy).not.toHaveBeenCalled();
+    expect(server.sockets).toEqual({});
+  } finally {
+    server.opts.maxSocketBufferBytes = 0;
+  }
+});
+
 test.each([
   [
     'signed with an unknown secret',

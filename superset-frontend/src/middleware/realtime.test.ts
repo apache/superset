@@ -240,7 +240,11 @@ test('fetches a ticket, keeps it out of the URL, and authenticates in-band', asy
   connectRealtime(ENABLED);
   await flush();
 
-  expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/realtime/token/' });
+  // A refused ticket must not trigger the client's login redirect.
+  expect(getSpy).toHaveBeenCalledWith({
+    endpoint: '/api/v1/realtime/token/',
+    ignoreUnauthorized: true,
+  });
   const ws = lastSocket();
   expect(ws.url).toBe(ENABLED.WEBSOCKET_URL);
 
@@ -405,6 +409,21 @@ test('an unauthorized ticket request is terminal: no socket, no retries', async 
   expect(states).toEqual(['connecting', 'unauthorized']);
   expect(FakeWebSocket.instances).toHaveLength(0);
   expect(getSpy).toHaveBeenCalledTimes(1);
+});
+
+test('connecting again after an unauthorized ticket starts a new attempt', async () => {
+  rejectTickets(401);
+  connectRealtime(ENABLED);
+  await flush();
+  expect(getRealtimeState()).toBe('unauthorized');
+
+  // e.g. an embedded page once its guest token has been configured
+  serveTickets();
+  connectRealtime(ENABLED);
+  await flush();
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(getSpy).toHaveBeenCalledTimes(2);
 });
 
 test('a forbidden ticket request is terminal too', async () => {

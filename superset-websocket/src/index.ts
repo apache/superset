@@ -776,7 +776,9 @@ const parseAuthFrame = (raw: WebSocket.RawData): AuthFrame | null => {
   };
 };
 
-const sendAuthOk = (ws: WebSocket, identity: SocketIdentity): void => {
+// Sent through the bounded send path: a client replaying auth frames without
+// reading replies hits the same buffer cap as any other outbound message.
+const sendAuthOk = (socketId: string, identity: SocketIdentity): void => {
   const message: OutboundMessage = {
     topic: AUTH_REPLY_TOPIC,
     payload: {
@@ -787,7 +789,7 @@ const sendAuthOk = (ws: WebSocket, identity: SocketIdentity): void => {
       ),
     },
   };
-  ws.send(JSON.stringify(message));
+  sendToSocket(socketId, JSON.stringify(message));
 };
 
 /**
@@ -915,7 +917,7 @@ export const wsConnection = (ws: WebSocket) => {
           ? ` (tab channel ${socketInstance.tabChannel})`
           : ''),
     );
-    sendAuthOk(ws, identity);
+    sendAuthOk(socketId, identity);
   };
 
   const refresh = (
@@ -936,7 +938,7 @@ export const wsConnection = (ws: WebSocket) => {
     if (frame.tabId !== undefined) {
       bindTabChannel(id, socketInstance, frame.tabId);
     }
-    sendAuthOk(ws, identity);
+    sendAuthOk(id, identity);
   };
 
   ws.on('message', (raw: WebSocket.RawData) => {
