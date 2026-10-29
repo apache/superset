@@ -321,6 +321,22 @@ jobs:
               echo "::error::preset '$preset' overrides the release Dockerfile's Chromium default (full command: $command)"
               exit 1
             fi
+            # The release build has no platform argument and compiles both
+            # platforms in one job, so it reads the unsuffixed and the
+            # `-arm64` registry cache refs; an explicit linux/amd64 build
+            # must not read the arm64 one.
+            local refs arm_refs amd_flags
+            refs="$(grep -oE -- '--cache-from=type=registry,ref=[^[:space:]]+' <<<"$extra_flags" | cut -d= -f4)"
+            arm_refs="$(grep -E -- '-arm64$' <<<"$refs" || true)"
+            if [ -z "$arm_refs" ] || ! grep -Fxq -- "${arm_refs%-arm64}" <<<"$refs"; then
+              echo "::error::preset '$preset' release flags must read both the unsuffixed and -arm64 cache refs (flags: $extra_flags)"
+              exit 1
+            fi
+            amd_flags="$(scripts/docker-build-extra-flags.sh "$preset" "" release linux/amd64)"
+            if grep -Fq -- "-arm64" <<<"$amd_flags"; then
+              echo "::error::preset '$preset' linux/amd64 release flags must not read the -arm64 cache ref (flags: $amd_flags)"
+              exit 1
+            fi
           }
           # tag-release.yml snapshots this helper from master, then checks out
           # the release ref before running it, so the helper has to read the
