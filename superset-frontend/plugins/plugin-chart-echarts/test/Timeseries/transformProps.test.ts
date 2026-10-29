@@ -1853,6 +1853,7 @@ test('custom legend items describe a line series as a solid line with its symbol
       lineWidth: 2,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
     {
       shape: 'line',
@@ -1860,6 +1861,7 @@ test('custom legend items describe a line series as a solid line with its symbol
       lineWidth: 2,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ]);
 });
@@ -1904,6 +1906,7 @@ test('custom legend items keep the dash style of a formula annotation line', () 
     lineWidth: 2,
     opacity: 1,
     symbol: 'emptyCircle',
+    symbolOpacity: 1,
   });
 });
 
@@ -1937,6 +1940,7 @@ test('custom legend items carry the dash pattern and symbol of a time-shifted se
     lineWidth: 2,
     opacity: 0.7,
     symbol: 'triangle',
+    symbolOpacity: 0.7,
   });
 });
 
@@ -1957,6 +1961,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 2,
       opacity: 0.7,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ],
   [
@@ -1968,6 +1973,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 2,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ],
   [
@@ -1984,6 +1990,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 2,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ],
   [
@@ -1995,6 +2002,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 2,
       opacity: 1,
       symbol: 'circle',
+      symbolOpacity: 1,
     },
   ],
   [
@@ -2006,6 +2014,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 0,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ],
   [
@@ -2017,6 +2026,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 2,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ],
   [
@@ -2028,6 +2038,7 @@ test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
       lineWidth: 2,
       opacity: 1,
       symbol: 'emptyCircle',
+      symbolOpacity: 1,
     },
   ],
   [

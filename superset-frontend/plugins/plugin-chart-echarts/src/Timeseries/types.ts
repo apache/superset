@@ -148,6 +148,8 @@ export type TimeseriesLegendIcon = { opacity: number } & (
       lineType: TimeseriesLegendLineType;
       lineWidth: number;
       symbol: string;
+      /** The symbol's own opacity (ECharts uses itemStyle.opacity); 0 hides it. */
+      symbolOpacity: number;
     }
 );
 

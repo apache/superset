@@ -48,6 +48,7 @@ function lineIcon(
     lineWidth: 2,
     opacity: 1,
     symbol: 'emptyCircle',
+    symbolOpacity: 1,
     ...overrides,
   };
 }
@@ -162,6 +163,12 @@ test('draws the pin symbol as a teardrop with its tip on the line and its head a
   expect(d).toMatch(/^M9\.46,2\.04 /);
   // The head pokes above the 14px box, so the svg must not clip it.
   expect(container.querySelector('svg')).toHaveStyle({ overflow: 'visible' });
+});
+
+test('fades the symbol separately from the line', () => {
+  const container = renderIcon(lineIcon({ symbolOpacity: 0.5 }));
+
+  expect(container.querySelector('circle')).toHaveAttribute('opacity', '0.5');
 });
 
 test('applies the series opacity to the whole icon', () => {

@@ -48,17 +48,20 @@ function getDashArray(
 
 type PaintProps = {
   fill: string;
+  opacity?: number;
   stroke?: string;
   strokeWidth?: number;
 };
 
-function Symbol({
+function LegendSymbol({
   hollowFill,
+  opacity = 1,
   paint,
   size,
   symbol,
 }: {
   hollowFill: string;
+  opacity?: number;
   paint: string;
   size: number;
   symbol: string;
@@ -70,6 +73,9 @@ function Symbol({
   const paintProps: PaintProps = hollow
     ? { fill: hollowFill, stroke: paint, strokeWidth: HOLLOW_STROKE_WIDTH }
     : { fill: paint };
+  if (opacity < 1) {
+    paintProps.opacity = opacity;
+  }
   const cx = WIDTH / 2;
   const cy = HEIGHT / 2;
   const half = size / 2;
@@ -175,7 +181,7 @@ export default function TimeseriesLegendIcon({
         <rect width={WIDTH} height={HEIGHT} rx={HEIGHT / 4} fill={paint} />
       )}
       {icon.shape === 'symbol' && (
-        <Symbol
+        <LegendSymbol
           hollowFill={hollowFill}
           paint={paint}
           size={HEIGHT}
@@ -195,12 +201,15 @@ export default function TimeseriesLegendIcon({
               strokeDasharray={getDashArray(icon.lineType, icon.lineWidth)}
             />
           )}
-          <Symbol
-            hollowFill={hollowFill}
-            paint={paint}
-            size={LINE_SYMBOL_SIZE}
-            symbol={icon.symbol}
-          />
+          {icon.symbolOpacity > 0 && (
+            <LegendSymbol
+              hollowFill={hollowFill}
+              opacity={icon.symbolOpacity}
+              paint={paint}
+              size={LINE_SYMBOL_SIZE}
+              symbol={icon.symbol}
+            />
+          )}
         </>
       )}
     </Icon>

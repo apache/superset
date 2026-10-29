@@ -176,6 +176,14 @@ function normalizeLegendOpacity(opacity: unknown): number {
     : 1;
 }
 
+// The symbol on a line icon takes itemStyle.opacity, as in ECharts. transformSeries
+// sets it to 0 when rich tooltip and markers are both off, which hides the symbol.
+function normalizeLegendSymbolOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity >= 0 && opacity <= 1
+    ? opacity
+    : 1;
+}
+
 /**
  * The icon the ECharts legend would draw for a series: its line in the series'
  * dash style with its symbol, the symbol alone for scatter, a box otherwise.
@@ -214,6 +222,7 @@ export function getLegendSeriesIcon(
     lineWidth: width === 0 ? 0 : 2,
     opacity: normalizeLegendOpacity(opacity),
     symbol: normalizeLegendSymbol(visual.symbol, 'emptyCircle'),
+    symbolOpacity: normalizeLegendSymbolOpacity(visual.itemStyle?.opacity),
   };
 }
 
