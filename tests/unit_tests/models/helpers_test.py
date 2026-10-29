@@ -5000,10 +5000,10 @@ def test_resolve_denylist_schema_memoizes_across_expressions(
 def test_resolve_denylist_schema_explicit_schema_skips_probe(
     mocker: MockerFixture, database: Database
 ) -> None:
-    """An explicit datasource schema is returned directly, with no probe Query
-    and no inspector round-trip."""
+    """A dynamic datasource schema needs no probe Query or inspector round-trip."""
     from superset.connectors.sqla.models import SqlaTable
 
+    mocker.patch.object(database.db_engine_spec, "supports_dynamic_schema", True)
     query_aware = mocker.patch.object(database, "get_default_schema_for_query")
     table = SqlaTable(database=database, schema="analytics", table_name="t")
 
@@ -6650,3 +6650,174 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+def _run_state_filter(database: Database, op: FilterOperator, val: Any) -> set[Any]:
+    """
+    Build a query through ``get_sqla_query`` for a single filter on a ``state``
+    column that holds a NULL row, execute it, and return the distinct values.
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine, engine.begin() as connection:
+        connection.execute(text("CREATE TABLE states (state TEXT)"))
+        for state in ("CA", "NY", "TX", None):
+            connection.execute(text("INSERT INTO states VALUES (:s)"), {"s": state})
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="states",
+        columns=[TableColumn(column_name="state", type="TEXT")],
+    )
+    query = table.get_sqla_query(
+        columns=["state"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "state", "op": op, "val": val}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        return {row[0] for row in connection.execute(text(sql))}
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["CA"], {"NY", "TX", None}),
+        (["CA", "NY"], {"TX", None}),
+    ],
+)
+def test_not_in_filter_keeps_null_rows(
+    database: Database,
+    selected: list[str],
+    expected: set[Any],
+) -> None:
+    """
+    A ``NOT IN`` list without NULL only excludes the listed values, so rows whose
+    value is NULL must still be returned (SQL three-valued logic would otherwise
+    drop them, since ``NULL NOT IN (...)`` is not true).
+    """
+    assert _run_state_filter(database, FilterOperator.NOT_IN, selected) == expected
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["CA", None], {"NY", "TX"}),
+        ([None], {"CA", "NY", "TX"}),
+        # the NULL placeholder is coerced to NULL before the condition is built
+        (["CA", "<NULL>"], {"NY", "TX"}),
+    ],
+)
+def test_not_in_filter_with_null_operand_excludes_null_rows(
+    database: Database,
+    selected: list[str | None],
+    expected: set[Any],
+) -> None:
+    """
+    A ``NOT IN`` list that contains NULL explicitly excludes the NULL rows.
+    """
+    assert _run_state_filter(database, FilterOperator.NOT_IN, selected) == expected
+
+
+def test_not_in_filter_excludes_selected_values(database: Database) -> None:
+    """
+    Values named in a ``NOT IN`` list are never returned.
+    """
+    result = _run_state_filter(database, FilterOperator.NOT_IN, ["CA", "NY"])
+
+    assert "CA" not in result
+    assert "NY" not in result
+    assert "TX" in result
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["1"], {2, 3, None}),
+        ([1, 2], {3, None}),
+        ([1, None], {2, 3}),
+    ],
+)
+def test_not_in_filter_on_numeric_column_keeps_null_rows(
+    database: Database,
+    selected: list[Any],
+    expected: set[Any],
+) -> None:
+    """
+    The NULL handling of ``NOT IN`` also applies to numeric columns, where the
+    selected values are coerced before the condition is built.
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine, engine.begin() as connection:
+        connection.execute(text("CREATE TABLE nums (n INTEGER)"))
+        for number in (1, 2, 3, None):
+            connection.execute(text("INSERT INTO nums VALUES (:n)"), {"n": number})
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="nums",
+        columns=[TableColumn(column_name="n", type="INTEGER")],
+    )
+    query = table.get_sqla_query(
+        columns=["n"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "n", "op": FilterOperator.NOT_IN, "val": selected}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        assert {row[0] for row in connection.execute(text(sql))} == expected
+
+
+def test_not_in_filter_null_check_uses_the_engine_spec_hook(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """
+    The NULL check that keeps NULL rows for ``NOT IN`` is built by the engine
+    spec, so KQL gets ``isnull(col)`` rather than a SQL-style ``IS NULL``.
+    """
+    from unittest.mock import PropertyMock
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+
+    def compile_not_in() -> str:
+        table = SqlaTable(
+            database=database,
+            schema=None,
+            table_name="states",
+            columns=[TableColumn(column_name="state", type="TEXT")],
+        )
+        query = table.get_sqla_query(
+            columns=["state"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "state", "op": FilterOperator.NOT_IN, "val": ["CA"]}],
+            granularity=None,
+            is_timeseries=False,
+        )
+        return str(query.sqla_query.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "state IS NULL" in compile_not_in()
+
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new_callable=PropertyMock,
+        return_value=KustoKqlEngineSpec,
+    )
+    kql = compile_not_in()
+    assert "isnull(state)" in kql
+    assert "IS NULL" not in kql
