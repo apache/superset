@@ -68,12 +68,13 @@ from superset.versioning.diff import (
     fold_dashboard_layout_with_chart_changes,
 )
 from superset.versioning.metrics import emit_capture_timing, incr_capture_error
+from superset.versioning.snapshot import reconcile_parent_snapshots
+from superset.versioning.unit_of_work import capture_for_write, INITIAL_STATES_KEY
 
 logger = logging.getLogger(__name__)
 
 
 # Keys for transaction-scoped state stored on ``session.info``.
-_INITIAL_STATES_KEY = "_version_changes_initial_states"
 _FINALIZING_KEY = "_version_changes_finalizing"
 
 # Key on ``session.info`` that commands set to declare the high-level
@@ -106,6 +107,19 @@ ACTION_KIND_CLONE = "clone"
 ACTION_KINDS: frozenset[str] = frozenset(
     {ACTION_KIND_RESTORE, ACTION_KIND_IMPORT, ACTION_KIND_CLONE}
 )
+
+# Stamped by the BASELINE WRITER (superset.versioning.baseline.insertion)
+# directly onto the version_transaction row it mints for a retroactive
+# op=0 baseline — never set by commands through ``session.info``, which
+# is why it is not a member of ``ACTION_KINDS`` above. Consumers use it
+# to tell a pre-tracking baseline ("Original version") from a
+# tracking-on creation INSERT ("Created"): both are operation_type=0
+# shadow rows, and only the transaction's provenance distinguishes them
+# (sc-120488).
+ACTION_KIND_BASELINE: str = "baseline"
+
+# Internal provenance for a tracked INSERT, not a public activity action.
+ACTION_KIND_CREATE: str = "create"
 
 # Key on ``session.info`` carrying a synthetic "headline" change record
 # for the current transaction — the ``__meta__`` record convention. Set
@@ -215,7 +229,7 @@ def _reset_transaction_state(session: Session) -> None:
     """Discard versioning intent and retained state after a terminal event."""
     session.info.pop(ACTION_KIND_KEY, None)
     session.info.pop(ACTION_META_KEY, None)
-    session.info.pop(_INITIAL_STATES_KEY, None)
+    session.info.pop(INITIAL_STATES_KEY, None)
     session.info.pop(_FINALIZING_KEY, None)
     session.info.pop(NORMALIZATION_CONTEXT_KEY, None)
 
@@ -314,12 +328,15 @@ def _write_action_kind(
     )
 
 
-def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
+def _stamp_action_kind_on_transaction(
+    session: Session, tx_id: int, creation_tables: tuple[sa.Table, ...] | None = None
+) -> None:
     """Pop the per-tx action_kind from ``session.info`` and stamp it
     onto the ``version_transaction`` row identified by *tx_id*.
 
-    No-op when no command set the action_kind (the default for
-    ordinary saves). Emits via ``sa.update()`` against Continuum's
+    Command provenance takes precedence. Otherwise a surviving INSERT shadow
+    in this transaction establishes tracked creation; ordinary updates remain
+    unstamped. Emits via ``sa.update()`` against Continuum's
     transaction Table so the identifier is auto-quoted per dialect
     (MySQL would otherwise reject the unquoted column name if it ever
     collided with a reserved word) and the dialect-portable column
@@ -336,12 +353,39 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
 
-    action_kind = session.info.pop(ACTION_KIND_KEY, None)
-    if action_kind is None:
-        return
-    tx_tbl = versioning_manager.transaction_cls.__table__
+    action_kind: str | None = session.info.pop(ACTION_KIND_KEY, None)
+    tx_tbl: sa.Table = versioning_manager.transaction_cls.__table__
     try:
         with session.connection().begin_nested():
+            if action_kind is None:
+                if creation_tables is None:
+                    from sqlalchemy_continuum import version_class
+
+                    from superset.connectors.sqla.models import SqlaTable
+                    from superset.models.dashboard import Dashboard
+                    from superset.models.slice import Slice
+
+                    creation_tables = tuple(
+                        version_class(model).__table__
+                        for model in (Dashboard, Slice, SqlaTable)
+                    )
+                if (
+                    not creation_tables
+                    or session.connection().scalar(
+                        sa.union_all(
+                            *(
+                                sa.select(sa.literal(1)).where(
+                                    table.c.transaction_id == tx_id,
+                                    table.c.operation_type == 0,
+                                )
+                                for table in creation_tables
+                            )
+                        ).limit(1)
+                    )
+                    is None
+                ):
+                    return
+                action_kind = ACTION_KIND_CREATE
             _write_action_kind(session, tx_tbl, tx_id, action_kind)
     except Exception:  # pylint: disable=broad-except
         logger.exception(
@@ -404,22 +448,22 @@ def finalize_change_records(session: Session) -> None:
     """
     if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
         return
+    if not capture_for_write(session):
+        return
 
     session.info[_FINALIZING_KEY] = True
     # Measures the FINALIZE stage only: the timer starts after the flush,
     # which excludes the transaction's own write cost but also excludes
     # capture_initial_states' per-entity pre-state SELECTs (those are timed
     # as their own ``capture_initial_states`` stage in before_flush) — and
-    # runs through every capture step and early return. Every commit on the
-    # session emits a sample, including commits touching no versioned
-    # entity, because the whole-listener overhead is exactly what the
-    # kill-switch removes; a flush that raises emits nothing.
+    # runs through every capture step and early return for allowed versioned
+    # work. Unrelated commits and a flush that raises emit nothing.
     start: float | None = None
     try:
         session.flush()
         start = perf_counter()
         initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-            session.info.get(_INITIAL_STATES_KEY, {})
+            session.info.get(INITIAL_STATES_KEY, {})
         )
         buffer: dict[tuple[str, int], list[ChangeRecord]] = _build_scalar_buffer(
             initial_states
@@ -440,6 +484,7 @@ def finalize_change_records(session: Session) -> None:
 
         if buffer:
             _persist_buffered_records(session, tx_id, buffer)
+        reconcile_parent_snapshots(session, tx_id)
     finally:
         session.info.pop(_FINALIZING_KEY, None)
         if start is not None:
@@ -463,7 +508,7 @@ def _capture_initial_states(
     unit-testable without ``db.session``.
     """
     initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-        session.info.setdefault(_INITIAL_STATES_KEY, {})
+        session.info.setdefault(INITIAL_STATES_KEY, {})
     )
     start: float = perf_counter()
     attempted: bool = False
@@ -534,6 +579,8 @@ def register_change_record_listener() -> None:
     def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
+        if not capture_for_write(session):
+            return
         _capture_initial_states(session, versioned_classes)
 
     event.listen(db.session, "before_flush", capture_initial_states)

@@ -131,7 +131,7 @@ async def update_dataset_metric(  # noqa: C901
         "dataset_id": 123,
         "metric": "sum_revenue",
         "expression": "SUM(net_revenue)",
-        "d3format": "$,.2f"
+        "d3format": ",.2f"
     }
     ```
     """
@@ -148,6 +148,7 @@ async def update_dataset_metric(  # noqa: C901
             DatasetForbiddenError,
             DatasetInvalidError,
             DatasetNotFoundError,
+            DatasetSoftDeletedTwinExistsError,
             DatasetUpdateFailedError,
         )
         from superset.commands.dataset.update import UpdateDatasetCommand
@@ -254,6 +255,10 @@ async def update_dataset_metric(  # noqa: C901
             error="You must be an owner of this dataset (or an Admin) "
             "to update its metrics.",
         )
+    except DatasetSoftDeletedTwinExistsError as exc:
+        collision_message: str = str(exc)
+        await ctx.warning("Dataset metric validation failed: %s" % (collision_message,))
+        return UpdateDatasetMetricResponse(error=collision_message)
     except DatasetInvalidError as exc:
         messages = exc.normalized_messages()
         await ctx.warning("Dataset metric validation failed: %s" % (messages,))

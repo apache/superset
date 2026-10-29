@@ -24,6 +24,59 @@ The following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
+### Stopping a SQL Lab query
+
+SQL Lab records Stop before attempting engine cancellation. Once recorded, the
+Stop API returns HTTP 200, the UI shows the query as stopped, and an async query
+handle's `cancel()` returns `True`. Cancellation-related failures, later worker
+timeouts, and failures to save cancellation metadata do not replace that outcome.
+Repeated Stop requests preserve the original stop time and do not retry engine
+cancellation.
+
+Engine cancellation is best-effort: if the engine is unreachable, provides no
+cancellation handle, or rejects cancellation, its statement may run to completion,
+but SQL Lab discards its results. The UI still shows “Query was stopped.”, not a
+stop-failure toast. Stopping cannot undo changes the engine commits during
+execution, including autocommit mutations, implicit-commit DDL, or explicit SQL
+commits.
+
+With PostgreSQL or MySQL metadata databases, Stop and the worker's final target
+transaction commit are serialized using a query-row lock. If Stop wins, the
+worker does not commit its transactional changes. If the worker wins, Stop is
+rejected with HTTP 422 (`cancel()` returns `False`), even while SQL Lab is still
+preparing the results. The response contains the recorded query, which can still
+be running at that point. A query that already finished likewise keeps its
+success, failure, or timeout outcome. SQL Lab refreshes a finished query's outcome
+without a stop-failure toast. If the target commit wins while the query is still
+running, SQL Lab shows “Failed to stop query.” instead: the changes have committed,
+but result preparation has not finished.
+
+SQLite metadata databases do not support this row lock: a Stop accepted between
+the worker's final stop check and its target commit can still leave transactional
+changes committed. Target and metadata commits cannot be atomic across databases;
+if recording the target-committed marker fails after the target commit, changes
+can also persist without that marker. A stopped state is therefore not a general
+promise that database changes were rolled back.
+
+### Semantic Table time grains
+
+For a Table chart backed by a semantic view, Time Grain applies when grouping by
+a temporal dimension. Removing the last temporal dimension leaves the saved
+choice intact, but the frontend omits a recognized dormant grain from aggregate
+requests whose selected columns are known to be non-temporal (including no
+grouping columns). Adding the temporal dimension again reuses the saved choice.
+Unknown columns or grain values are not silently normalized. Ordinary dataset
+charts and raw-record queries are unchanged.
+
+This applies to requests rebuilt by the updated frontend in Explore and
+dashboards; it does not rewrite saved charts. Direct API requests and saved
+chart-data GET paths that bypass rebuilding remain subject to strict validation,
+so old stored query contexts can still fail. Updated frontend assets are required.
+Dashboards reuse each chart's saved `temporal_columns_lookup` rather than
+recomputing it. A grouped chart saved before this change may lack the
+non-temporal column metadata needed to omit a dormant grain, so its dashboard
+requests can keep sending that grain until the chart is re-saved in Explore.
+
 ### Enabling Data Upload Functionality
 
 You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
@@ -89,6 +142,18 @@ Finally, select **Run Query** to see the results of the table.
 
 <img src={useBaseUrl('/img/tutorial/tutorial_table.png')} />
 
+Charts can be saved from datasets or accessible semantic views. Saving a new
+chart requires access to its datasource; overwriting an existing chart also
+requires chart edit permission. SQL Lab queries must first be saved as datasets
+before they can be used as persistent chart datasources.
+
+For a semantic view, Pivot Table hides **Series limit** because it has no series
+columns to limit. Existing Pivot Table charts with a saved Series limit still
+run without applying that limit. Programmatic semantic-view queries with a
+positive `series_limit` and no series columns run without a series limit.
+Timeseries queries with metrics and at least one `columns` value infer series
+columns from `columns` and keep the limit.
+
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**
@@ -96,6 +161,10 @@ To save the visualization, click on **Save** in the top left of the screen. In t
   **Charts** screen, accessible in the top menu).
 - Select **Add To Dashboard** and enter
   Tutorial Dashboard. Finally, select **Save & Go To Dashboard**.
+
+For an existing chart, chart editors (including extra editors and administrators)
+with Chart write permission can edit its title in Explore and save the change.
+Externally managed charts and version previews keep the title read-only.
 
 <img src={useBaseUrl('/img/tutorial/save_tutorial_table.png')} />
 
@@ -165,6 +234,20 @@ control can override a simple metric's own aggregation (to Sum or Average) for t
 only — metrics built from custom SQL keep their own aggregation regardless.
 :::
 
+In the **Options** panel, the **Show values as** control displays each cell as a percentage of its
+row total, column total, or grand total instead of its actual value:
+
+:::note
+Totals and subtotals are still computed correctly first, as described above; **Show values as**
+only changes how the already-correct cell, row-total, column-total, and grand-total values are
+displayed, not how they're calculated. Switching it requires rerunning the query, though: for
+non-additive metrics, a percentage option can pull in an additional rollup level for its
+denominator even when the matching Total row/column isn't shown, so select **Run Query** after
+changing this control to see the correct percentages. Because the result is always a percentage, a
+per-metric custom formatter (currency, decimal precision, etc.) doesn't apply while a fraction
+option is selected.
+:::
+
 ### Line Chart
 
 In this section, we are going to create a line chart to understand the average price of a ticket by
@@ -201,6 +284,9 @@ the chart; drag it to any other point to re-index all series against that new ba
 re-running the query.
 
 Once you’re done, publish the chart in your Tutorial Dashboard.
+
+Graph charts display SQL `NULL` categories as `<NULL>` and the literal string `<NULL>` as
+`"<NULL>"`, with independently selectable legend entries.
 
 ### Markup
 
@@ -333,6 +419,14 @@ previously.
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial Dashboard.
 
+:::note API post-processing
+
+For chart-data API requests using `compare` post-processing, percentage and ratio
+comparisons handle zero baselines consistently for raw SQL `DECIMAL` columns and
+floating-point inputs. Absolute-difference comparisons retain the input arithmetic.
+
+:::
+
 ### Resampling the data
 
 In this section, we’ll resample the data so that rather than having daily data we have weekly data.
@@ -357,13 +451,30 @@ to be drawn as zero across the entire day rather than only around the hours that
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
+### Stopping chart queries
+
+In Explore, a mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not
+update the chart if the query finishes while the button is held, including when
+the browser delivers the release click without pointer metadata. With multiple touch
+presses, these clicks follow the order in which the pointers were released. Release and press
+**Create chart** or **Update chart** again to intentionally run another query.
+Escape cancels a held Space activation, including its release. Holding Enter
+starts at most one query until you release it and press again. Cancelling a press
+does not block a later independent assistive-technology activation.
+
 ### SQL Lab Tips
+
+**Run/Stop button**: A mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not run the SQL if the query finishes while the button is held. Release and press **Run** again to start another execution. Escape cancels a held Space activation, including its eventual release; moving focus away also cancels keyboard activation. Holding Enter starts at most one execution, even if it finishes before you release the key. Releasing a pointer outside the button cancels that press. An independent assistive-technology or programmatic click still performs the action displayed on the button. This also applies to the CTAS/CVAS main button.
+
+**Stopping queries**: An accepted Stop shows “Query was stopped.” even if engine cancellation fails. A finished query refreshes its completed outcome without a stop-failure toast. A Stop rejected after the target commit, while result preparation is still running, shows the “Failed to stop query.” toast. See [Stopping a SQL Lab query](#stopping-a-sql-lab-query) for transaction guarantees and metadata-database limitations.
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
 
 **Find in editor**: Press **Ctrl+F** (or **Cmd+F** on Mac) to open the Monaco find/replace widget inside the SQL editor without leaving the editor.
 
 **Resizable panels**: The dividers between the SQL editor, schema browser, and results pane are draggable. Adjust them to match your workflow and screen size.
+
+**Code folding**: In the built-in Ace editor, use the arrows beside the line numbers to collapse or expand multiline parenthesized queries and block comments. Folding hides those lines without changing the SQL.
 
 **Dialect-aware Format SQL**: The **Format SQL** button applies the SQL dialect of the currently selected database — Trino, Presto, MySQL, PostgreSQL, etc. — rather than a generic formatter. Switch to a different database in the toolbar and re-format to get dialect-specific output. Jinja template syntax (`{{ }}`, `{% %}`) is preserved during formatting and will not cause format errors.
 
@@ -378,12 +489,58 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+### Sunburst cross-filtering
+
+Sunburst cross-filters use the underlying hierarchy values, not the formatted
+segment labels. For time-grained temporal levels, selecting a segment filters the
+entire bucket. Adaptive date formatting includes the year in month and quarter
+labels to distinguish buckets across years; other grains keep their compact labels.
+For supported bucket ranges, the selection replaces the target chart's Time Range
+and also applies to its other temporal range filters, even on another time column.
+Drill to detail and Drill by match the selected bucket, including a dataset Hours
+offset. Their grained equality filters survive chart or dashboard Time Range
+overrides, including engine-specific grains without frontend bucket arithmetic.
+
+On engines without SQL temporal shifts, grained comparisons (Drill to detail, grained
+`IN` / `NOT IN` cross-filters and other bucket comparisons) use the displayed bucket's
+original, unshifted grouping boundaries, undoing the display-only Hours offset for each
+selected value. A temporal level without a time grain is compared with the stored
+timestamp, so with an Hours offset its Drill to detail does not match the displayed value.
+
 ### Downloading Drill to Detail and Drill By Results
 
 The **Drill to detail** and **Drill by** modals, available from a chart's context menu, show the row-level
 data behind a chart (or behind a specific data point, when one is selected). Use the **Download** button in
 the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) without leaving the modal —
 the export isn't limited to the page currently visible in the table.
+
+For Sunburst charts, drilling into a time-grained temporal segment filters the entire
+bucket rather than a single timestamp. Drill to detail and Drill by compare the
+raw bucket value against the grained time column, including the dataset's Hours offset.
+The bucket filter remains on the drilled hierarchy level even when a saved or dashboard
+Time Column selects a different temporal column.
+Sunburst applies its selected time grain to all physical hierarchy levels marked
+as temporal by Explore's dataset lookup. A legacy Time Column can also identify
+a temporal level when no lookup is saved; it does not disable grains on other
+lookup-marked levels. Sunburst does not retain a hidden Time Column control in
+Explore. An MCP-saved chart without a lookup can therefore grain only its legacy
+Time Column, while opening it in Explore can grain additional temporal levels.
+Older semantic-view Sunbursts without a saved temporal lookup retain dashboard
+Time Grain overrides: the semantic view infers the single temporal hierarchy level.
+
+Time-range overrides replace the default temporal-range filter, not independent
+equality or membership filters on the same Time Column. When a Time Column
+override replaces a different temporal column, Sunburst retains independent
+equality and membership filters on the replaced column because its hierarchy
+levels are independent of the Time Column. Dashboard cross-filters on the replaced
+column are discarded because they may carry values from a swapped time axis.
+Other chart types, including Table
+and time-series charts, discard filters on the replaced column, including drill
+predicates that may carry the new column's bucket.
+
+Drill-generated filters display their ISO time grain in brackets (for example, `[P1M]`).
+Editing the filter's column, operator, value, or expression type clears the bucket grain;
+unchanged duplicates retain it.
 
 :::resources
 
@@ -394,3 +551,11 @@ the export isn't limited to the page currently visible in the table.
 - [Blog: From Drill Down to Drill By](https://preset.io/blog/drill-down-and-drill-by/)
 - [Blog: Cross-Filtering in Apache Superset](https://preset.io/blog/cross-filtering-in-Superset-and-Preset/)
   :::
+
+### DynamoDB time filters
+
+DynamoDB timestamp strings used in time filters must use the ISO 8601 `T`
+separator, for example `2019-01-02T04:15:00`. Superset renders bounds in this
+format and preserves fractional seconds. Normalize space-separated timestamps
+before applying time ranges; mixing separators can shift even whole-day results.
+Use consistent timezone and precision conventions for stored timestamps and bounds.

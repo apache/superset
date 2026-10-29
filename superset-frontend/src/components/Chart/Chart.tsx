@@ -22,6 +22,7 @@ import { logging } from '@apache-superset/core/utils';
 import {
   ensureIsArray,
   FeatureFlag,
+  getChartMetadataRegistry,
   isFeatureEnabled,
   QueryFormData,
   SqlaFormData,
@@ -44,7 +45,7 @@ import type { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
-import ChartRenderer from './ChartRenderer';
+import ChartRenderer, { hasValidPreviousData } from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
@@ -221,6 +222,42 @@ function Chart({
   // Update on each render to accurately track render duration
   renderStartTimeRef.current = Logger.getTimestamp();
 
+  // The form data the response in the store was queried with. A filter change
+  // updates formData as soon as the new query starts, so a chart kept on screen
+  // draws the previous response with its own form data until the new one
+  // lands. This lives here rather than in ChartRenderer, which unmounts while a
+  // virtualized chart is out of view. A chart mounted while its query is
+  // already in flight can't tell which form data that response belongs to.
+  // A response that failed to render keeps no form data either: drawn again
+  // while the retry is in flight, it would fail the same way.
+  //
+  // The store records the form data of the request that produced the response
+  // as latestQueryFormData. That can lag behind formData: with deferred data,
+  // a filter change moves formData on while the chart is off screen, and the
+  // response of the request already in flight lands against the newer form
+  // data. Charts rendered outside the store have no latestQueryFormData.
+  const queriedFormData =
+    latestQueryFormData && Object.keys(latestQueryFormData).length > 0
+      ? (latestQueryFormData as QueryFormData)
+      : formData;
+  const responseFormDataRef = useRef<{
+    queriesResponse: typeof queriesResponse;
+    formData: QueryFormData | undefined;
+  }>({
+    queriesResponse,
+    formData: chartStatus === 'loading' ? undefined : queriedFormData,
+  });
+  if (responseFormDataRef.current.queriesResponse !== queriesResponse) {
+    responseFormDataRef.current = {
+      queriesResponse,
+      formData: queriedFormData,
+    };
+  }
+  if (chartStatus === 'failed') {
+    responseFormDataRef.current.formData = undefined;
+  }
+  const responseFormData = responseFormDataRef.current.formData;
+
   const shouldRenderChart = useCallback(
     () =>
       isInView ||
@@ -287,13 +324,14 @@ function Chart({
   const renderErrorMessage = useCallback(
     (queryResponse: ChartErrorType) => {
       const error = queryResponse?.errors?.[0];
-      const message = chartAlert || queryResponse?.message;
+      const message = queryResponse?.message || chartAlert;
 
       // if datasource is still loading, don't render JS errors
-      // but always show backend API errors (which have an errors array)
+      // but always show backend API errors (structured or message-only)
       // so users can see real issues like auth failures
       if (
         !error &&
+        !queryResponse?.message &&
         chartAlert !== undefined &&
         chartAlert !== NONEXISTENT_DATASET &&
         datasource === PLACEHOLDER_DATASOURCE &&
@@ -374,6 +412,7 @@ function Chart({
             chartAlert={chartAlert}
             chartStatus={chartStatus}
             queriesResponse={queriesResponse}
+            responseFormData={responseFormData}
             triggerQuery={triggerQuery}
             chartIsStale={chartIsStale}
             addFilter={addFilter}
@@ -417,6 +456,7 @@ function Chart({
       ownState,
       postTransformProps,
       queriesResponse,
+      responseFormData,
       setControlValue,
       shouldRenderChart,
       suppressLoadingSpinner,
@@ -432,8 +472,40 @@ function Chart({
     (datasource?.database?.name as string | undefined);
 
   const isLoading = chartStatus === 'loading';
-  // Suppress spinner during auto-refresh to avoid visual flicker
-  const showSpinner = isLoading && !suppressLoadingSpinner;
+  const canDrawPreviousResponse =
+    responseFormData !== undefined &&
+    hasValidPreviousData(
+      queriesResponse,
+      responseFormData,
+      formData.viz_type || vizType,
+    );
+  // Suppress spinner during auto-refresh to avoid visual flicker. A chart that
+  // can't draw its previous response (a Matrixify grid, or one that failed to
+  // render) would leave an empty box until the new one lands, so it keeps it.
+  const showSpinner =
+    isLoading && (!suppressLoadingSpinner || !canDrawPreviousResponse);
+  // A dashboard chart with a previous response stays on screen while it
+  // refreshes, and the spinner is drawn over it instead of replacing it.
+  // A chart that fetches its own data (deck.gl Multiple Layers) only starts
+  // reloading it once its own query lands and the spinner is gone, so kept on
+  // screen it would show the previous data with no sign of the reload. It gets
+  // the regular spinner and loads its data again when it mounts.
+  const chartFetchesOwnData =
+    getChartMetadataRegistry().get(formData.viz_type || vizType)
+      ?.enableNoResults === false;
+  const keepChartOnScreen =
+    isLoading &&
+    !!dashboardId &&
+    !chartFetchesOwnData &&
+    canDrawPreviousResponse;
+
+  if (datasource?.metadata_error) {
+    return (
+      <ErrorContainer height={height}>
+        {renderErrorMessage({ message: datasource.metadata_error })}
+      </ErrorContainer>
+    );
+  }
 
   if (chartStatus === 'failed') {
     return (
@@ -534,7 +606,10 @@ function Chart({
         height={height}
         width={width}
       >
-        {showSpinner ? renderSpinner(databaseName) : renderChartContainer()}
+        {showSpinner && !keepChartOnScreen
+          ? renderSpinner(databaseName)
+          : renderChartContainer()}
+        {showSpinner && keepChartOnScreen && <Loading size="s" muted />}
       </Styles>
     </ErrorBoundary>
   );

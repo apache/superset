@@ -18,12 +18,13 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response
+from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
@@ -63,7 +64,10 @@ from superset.commands.deletion_retention.purge_impact import (
 )
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import (
     collect_dataset_impact,
     PurgeArchivedCommand,
@@ -71,6 +75,7 @@ from superset.commands.purge import (
     SoftDeleteBinding,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import preview_partition_mapping
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
@@ -98,17 +103,25 @@ from superset.datasets.schemas import (
     get_related_objects_ids_schema,
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
+    PartitionMappingPreviewSchema,
 )
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetSecurityException,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
     SupersetTimeoutException,
 )
+from superset.extensions import cache_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    FilterOperator,
+    get_user_id,
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
@@ -130,10 +143,12 @@ from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
@@ -153,8 +168,81 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
 )
 
 
+#: How long one preview budget lasts, in seconds.
+PREVIEW_RATE_LIMIT_WINDOW = 60
+
+
+def _consume_preview_rate_limit(dataset_id: int) -> bool:
+    """
+    Fixed-window per-user, per-dataset throttle on the preview endpoint.
+
+    Debouncing on the client is a courtesy, not a guard: a held keydown, or a
+    handful of owners with the editor open, becomes sustained load on a
+    production cluster. Returns False once the window's budget is spent.
+
+    Counting is `add` then `inc` rather than read-then-write so it is atomic
+    where it matters: on Redis those are `SETNX` and `INCR`, so concurrent
+    previews cannot each read the same sub-limit value and all be let through.
+
+    The window comes from the *key*, not from the entry's lifetime. Each
+    `PREVIEW_RATE_LIMIT_WINDOW`-second bucket gets its own key, so a counter
+    that outlives its bucket is simply never read again, and the next request
+    starts from zero. Keying it this way is what makes "fixed window" true
+    rather than aspirational, because the TTL alone cannot carry that promise on
+    either supported backend:
+
+    - cachelib's generic `inc` is a read-modify-write whose `set` restamps
+      `CACHE_DEFAULT_TIMEOUT` -- a day, by default. On SimpleCache or
+      FileSystemCache, retrying after the budget was spent kept renewing a
+      day-long lockout.
+    - on Redis `INCR` leaves the TTL alone, but if the key expires between a
+      losing `add` and the `inc`, `INCR` recreates it with *no* TTL at all. That
+      counter never resets, so past the limit the owner was 429'd permanently.
+
+    The entry still carries a lifetime, now twice the window, purely so spent
+    buckets are evicted rather than accumulating.
+
+    Both calls go to the cachelib backend rather than the Flask-Caching wrapper
+    around it, which proxies `add` but not `inc`.
+    """
+    limit = app.config.get("PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT", 30)
+    if not limit:
+        return True
+
+    user_id = get_user_id() or 0
+    bucket = int(time.time()) // PREVIEW_RATE_LIMIT_WINDOW
+    key = f"partition_mapping_preview:{user_id}:{dataset_id}:{bucket}"
+    backend = cache_manager.cache.cache
+    try:
+        if backend.add(key, 1, timeout=PREVIEW_RATE_LIMIT_WINDOW * 2):
+            # First request in this bucket.
+            return True
+        used = backend.inc(key)
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        # A cache outage must not take the editor down with it.
+        return True
+    # `inc` reports None when the backend could not count -- a null cache, or a
+    # write that failed. Unenforceable is not the same as spent.
+    return used is None or used <= limit
+
+
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
+
+    restore_command_cls: ClassVar[type[RestoreDatasetCommand]] = RestoreDatasetCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetLogicalDuplicateError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"
@@ -173,6 +261,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "restore_version": "write",
         "purge": "write",
         "purge_impact": "write",
+        # Preview reads a mapping the caller is entitled to *save*, so it is
+        # authorized the same way the PUT behind it is: ``can_write`` plus
+        # ``raise_for_editorship``. Without this entry a custom role holding
+        # ``can_write`` on Dataset -- enough to store the mapping -- is denied
+        # the preview of it unless an operator grants a second permission.
+        "partition_mapping_preview": "write",
     }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -190,6 +284,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "partition_mapping_preview",
         "list_versions",
         "get_version",
         "activity",
@@ -247,6 +342,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "description",
         "main_dttm_col",
         "currency_code_column",
+        "partition_column",
+        "partition_mapped_column",
         "normalize_columns",
         "always_filter_main_dttm",
         "offset",
@@ -270,6 +367,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "columns.is_active",
         "columns.extra",
         "columns.is_dttm",
+        # Without these the editor reopens a saved mapping as if it had no
+        # transform, and the next save writes that emptiness back.
+        "columns.partition_value_transform",
+        "columns.partition_transform_is_monotonic",
         "columns.python_date_format",
         "columns.type",
         "columns.uuid",
@@ -303,6 +404,17 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
+        # Engine-supplied pre-fill for the editor's value transform input.
+        "partition_value_transform_default",
+        # The resolved mapping summary, which is what Explore's pruning
+        # indicator reads. Saving a dataset from Explore reloads this endpoint
+        # and replaces the chart's datasource with the response wholesale -- it
+        # is a replacement, not a merge -- so anything the summary carries and
+        # this payload does not is lost on an unrelated save and the glyphs
+        # vanish until the page is reloaded. Recomputing it client-side from
+        # `columns` is not an option: `data_for_slices` prunes the partition
+        # column on dashboards, which is why the summary is self-contained.
+        "partition_filter_mapping",
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
@@ -318,6 +430,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "metrics.certified_by",
         "metrics.is_certified",
         "metrics.warning_markdown",
+        # Listed here as well as in `show_select_columns` -- the latter drives
+        # the query, this drives what is actually serialized for a related
+        # model. `columns.advanced_data_type` above is in both for the same
+        # reason. Without it the editor reopens a saved mapping as if it had no
+        # transform, and the next save writes that emptiness back.
+        "columns.partition_value_transform",
+        "columns.partition_transform_is_monotonic",
         "is_managed_externally",
         "uid",
         "uuid",
@@ -339,6 +458,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "table_name",
         "sql",
         "editors",
+        # `DatasetPostSchema` accepts these, so POST does persist a mapping;
+        # listing them keeps `/_info` and the generated spec honest about it.
+        "partition_column",
+        "partition_mapped_column",
     ]
     edit_columns = [
         "table_name",
@@ -350,6 +473,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "description",
         "main_dttm_col",
         "currency_code_column",
+        "partition_column",
+        "partition_mapped_column",
         "normalize_columns",
         "always_filter_main_dttm",
         "offset",
@@ -426,6 +551,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         DatasetPurgeRequestSchema,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        PartitionMappingPreviewSchema,
         VersionListItemSchema,
     )
 
@@ -863,6 +989,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
+        except DatasetSoftDeletedTwinExistsError as ex:
+            response = self.response_422(message=str(ex))
         except DatasetRefreshFailedError as ex:
             logger.exception(
                 "Error refreshing dataset during update %s: %s",
@@ -881,11 +1009,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # handler above: the token is not proven stale.
             if conditional and is_lock_contention_error(ex.__cause__):
                 return self._lock_contention_response()
-            logger.error(
+            logger.exception(
                 "Error updating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
-                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -1002,8 +1129,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -1465,32 +1593,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreDatasetCommand(uuid).run()
-            return self.response(200, message="OK")
-        except DatasetNotFoundError:
-            return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
-        except DatasetLogicalDuplicateError as ex:
-            return self.response_422(message=str(ex))
-        except DatasetRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge-impact", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.purge_impact"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge_impact",
         log_to_statsd=False,
     )
     def purge_impact(self, uuid: str) -> Response:
@@ -1736,7 +1846,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
@@ -1745,28 +1855,14 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         sync_columns = request.form.get("sync_columns") == "true"
         sync_metrics = request.form.get("sync_metrics") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDatasetsCommand(
@@ -2069,6 +2165,134 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             entity_concurrency_token(SqlaTable, table.id, table.uuid),
         )
 
+    @expose("/<int:pk>/partition_mapping/preview/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.partition_mapping_preview"
+        ),
+        log_to_statsd=False,
+    )
+    def partition_mapping_preview(self, pk: int) -> Response:
+        """Preview the predicate a partition value transform would emit.
+        ---
+        post:
+          summary: Preview a partition filter mapping
+          description: >-
+            Evaluate a partition value transform at sample values and return
+            the predicate that would be appended to queries. The predicate is
+            built by the same code the query path uses, so the preview cannot
+            drift from what a chart emits. Parse and denylist checks run
+            before anything reaches the engine, so an unparseable transform
+            costs no query.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset ID
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PartitionMappingPreviewSchema'
+          responses:
+            200:
+              description: Preview result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                          reason:
+                            type: string
+                            description: >-
+                              Why the mapping is not valid. Absent when it is.
+                              The editor branches on this to decide how to
+                              present the failure.
+                            enum:
+                            - unconfigured
+                            - validation
+                            - parse
+                            - operator
+                            - resolution
+                            - offset
+                            - escaping
+                            - transform_escaping
+                            - engine
+                            - type
+                          sample_input:
+                            type: string
+                          emitted_predicate:
+                            type: string
+                          error:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              description: Too many preview requests for this dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+            return self.response_404()
+
+        dataset = DatasetDAO.find_by_id(pk)
+        if not dataset:
+            return self.response_404()
+        try:
+            security_manager.raise_for_editorship(dataset)
+        except SupersetSecurityException:
+            return self.response_403()
+
+        try:
+            payload = PartitionMappingPreviewSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        if not _consume_preview_rate_limit(pk):
+            return self.response(
+                429,
+                message=_(
+                    "Too many preview requests for this dataset. "
+                    "Wait a moment and try again."
+                ),
+            )
+
+        return self.response(
+            200,
+            result=preview_partition_mapping(
+                dataset,
+                mapped_column=payload["mapped_column"],
+                value_transform=payload["value_transform"],
+                sample_values=payload["sample_values"],
+                operator=FilterOperator(payload["operator"]),
+                is_monotonic=payload["is_monotonic"],
+                partition_column=payload["partition_column"],
+            ),
+        )
+
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()
     @parse_rison(get_drill_info_schema)
@@ -2218,6 +2442,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -2266,6 +2491,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -2325,6 +2551,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @permission_name("get")
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -2412,6 +2639,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

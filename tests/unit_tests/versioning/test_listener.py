@@ -17,17 +17,165 @@
 """Tests for version-change listener transaction lifecycle behavior."""
 
 from collections.abc import Iterator
+from contextvars import Context
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
+from flask import has_app_context
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy_continuum.unit_of_work import UnitOfWork
 
 from superset.versioning.changes import listener
 from superset.versioning.diff import ChangeRecord
+from superset.versioning.unit_of_work import CaptureUnitOfWork
+
+
+def test_shared_connection_capture_decision_survives_helper_session() -> None:
+    """A helper flush cannot discard operations captured by the host session."""
+    from sqlalchemy_continuum import versioning_manager
+
+    host: MagicMock = MagicMock(spec=Session)
+    helper: MagicMock = MagicMock(spec=Session)
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    unit.pending_statements.append(MagicMock())
+    gate: MagicMock
+    before: MagicMock
+    after: MagicMock
+    with (
+        patch(
+            "superset.versioning.unit_of_work.capture_enabled", return_value=True
+        ) as gate,
+        patch.object(UnitOfWork, "process_before_flush") as before,
+        patch.object(UnitOfWork, "process_after_flush") as after,
+    ):
+        unit.process_before_flush(host)
+        unit.process_after_flush(helper)
+    gate.assert_called_once_with(host)
+    before.assert_called_once_with(host)
+    after.assert_called_once_with(helper)
+    assert len(unit.pending_statements) == 1
+    unit.reset()
+    assert unit._capture_allowed is None
+
+
+def test_shared_connection_denial_cannot_be_reenabled_by_helper_session() -> None:
+    """A helper flush cannot turn a denied transaction into captured history."""
+    from sqlalchemy_continuum import versioning_manager
+
+    host: MagicMock = MagicMock(spec=Session)
+    helper: MagicMock = MagicMock(spec=Session)
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    unit.pending_statements.append(MagicMock())
+    gate: MagicMock
+    before: MagicMock
+    after: MagicMock
+    with (
+        patch(
+            "superset.versioning.unit_of_work.capture_enabled", return_value=False
+        ) as gate,
+        patch.object(UnitOfWork, "process_before_flush") as before,
+        patch.object(UnitOfWork, "process_after_flush") as after,
+    ):
+        unit.process_before_flush(host)
+        unit.process_after_flush(helper)
+    gate.assert_called_once_with(host)
+    before.assert_not_called()
+    after.assert_not_called()
+    assert unit.pending_statements == []
+
+
+@pytest.mark.parametrize(
+    "operation, declared, expected",
+    [
+        (0, None, "create"),
+        (1, None, None),
+        (2, None, None),
+        (0, "import", "import"),
+        (0, "clone", "clone"),
+        (0, "restore", "restore"),
+    ],
+)
+def test_transaction_provenance_uses_actual_insert_shadows(
+    lifecycle_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    operation: int,
+    declared: str | None,
+    expected: str | None,
+) -> None:
+    """Only real inserts get a fallback stamp; command provenance wins."""
+    from types import SimpleNamespace
+
+    from sqlalchemy_continuum import versioning_manager
+
+    metadata: sa.MetaData = sa.MetaData()
+    transactions: sa.Table = sa.Table(
+        "provenance_transactions",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("action_kind", sa.String(32)),
+    )
+    shadows: sa.Table = sa.Table(
+        "provenance_shadows",
+        metadata,
+        sa.Column("transaction_id", sa.Integer),
+        sa.Column("operation_type", sa.Integer),
+    )
+    metadata.create_all(lifecycle_session.connection())
+    lifecycle_session.execute(transactions.insert().values(id=1))
+    lifecycle_session.execute(
+        shadows.insert().values(transaction_id=1, operation_type=operation)
+    )
+    monkeypatch.setattr(
+        versioning_manager, "transaction_cls", SimpleNamespace(__table__=transactions)
+    )
+    if declared is not None:
+        lifecycle_session.info[listener.ACTION_KIND_KEY] = declared
+    listener._stamp_action_kind_on_transaction(lifecycle_session, 1, (shadows,))
+    assert lifecycle_session.scalar(sa.select(transactions.c.action_kind)) == expected
+    assert listener.ACTION_KIND_KEY not in lifecycle_session.info
+
 
 Base: Any = sa.orm.declarative_base()
+
+
+def test_provenance_lookup_failure_preserves_the_user_transaction(
+    lifecycle_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed provenance SELECT rolls back its savepoint, not the save."""
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from sqlalchemy_continuum import versioning_manager
+
+    metadata: sa.MetaData = sa.MetaData()
+    transactions: sa.Table = sa.Table(
+        "provenance_failure_transactions",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("action_kind", sa.String(32)),
+    )
+    transactions.create(lifecycle_session.connection())
+    lifecycle_session.execute(transactions.insert().values(id=1))
+    missing: sa.Table = sa.Table(
+        "missing_provenance_shadow",
+        metadata,
+        sa.Column("transaction_id", sa.Integer),
+        sa.Column("operation_type", sa.Integer),
+    )
+    monkeypatch.setattr(
+        versioning_manager, "transaction_cls", SimpleNamespace(__table__=transactions)
+    )
+    metric: Mock = Mock()
+    monkeypatch.setattr(listener, "incr_capture_error", metric)
+    listener._stamp_action_kind_on_transaction(lifecycle_session, 1, (missing,))
+    metric.assert_called_once_with("action_kind_stamp")
+    assert lifecycle_session.scalar(sa.select(transactions.c.action_kind)) is None
+    lifecycle_session.add(LifecycleRow(value="save survives"))
+    lifecycle_session.commit()
+    assert lifecycle_session.scalar(sa.select(LifecycleRow.value)) == "save survives"
 
 
 class LifecycleRow(Base):
@@ -50,6 +198,30 @@ def lifecycle_session() -> Iterator[Session]:
     finally:
         session.close()
         engine.dispose()
+
+
+def test_unrelated_session_flush_without_app_context_skips_capture(
+    lifecycle_session: Session,
+) -> None:
+    """A broker session must not depend on a Flask application context."""
+    from sqlalchemy_continuum import versioning_manager
+
+    unit_of_work: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+
+    def before_flush(
+        session: Session, _flush_context: object, _instances: object
+    ) -> None:
+        unit_of_work.process_before_flush(session)
+
+    sa.event.listen(lifecycle_session, "before_flush", before_flush)
+
+    def commit_without_app_context() -> None:
+        assert not has_app_context()
+        lifecycle_session.add(LifecycleRow(value="broker queue"))
+        lifecycle_session.commit()
+
+    Context().run(commit_without_app_context)
+    assert lifecycle_session.scalar(sa.select(LifecycleRow.value)) == "broker queue"
 
 
 def test_before_commit_can_force_final_flush_without_reentry(
@@ -150,7 +322,7 @@ def test_capture_retains_the_first_pre_flush_state(
     listener._capture_initial_states(lifecycle_session, (Slice,))
     listener._capture_initial_states(lifecycle_session, (Slice,))
 
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 7): (entity, initial)
     }
     assert captures == [entity]
@@ -192,7 +364,7 @@ def test_terminal_event_clears_transaction_state(
         {
             listener.ACTION_KIND_KEY: "restore",
             listener.ACTION_META_KEY: {"headline": "restored"},
-            listener._INITIAL_STATES_KEY: {("chart", 7): object()},
+            listener.INITIAL_STATES_KEY: {("chart", 7): object()},
             listener._FINALIZING_KEY: True,
             listener.NORMALIZATION_CONTEXT_KEY: {"pending": True},
             "unrelated": "preserved",
@@ -258,15 +430,10 @@ def test_transient_persist_failure_is_logged_and_counted(
     metric_spy.assert_called_once_with("bulk_insert")
 
 
-def test_capture_latency_metric_fires_on_commit(
+def test_capture_latency_metric_skips_nonversioned_commit(
     lifecycle_session: Session, mocker: Any
 ) -> None:
-    """The finalizer emits the write-path latency series on every save-path
-    commit — the kill-switch's own decision signal, measuring capture
-    overhead only (the timer starts after the transaction's own flush).
-    Driven through the real module-level finalizer on an isolated session
-    (no versioning tables needed: the tx-id early return still passes the
-    timing's ``finally``)."""
+    """Unrelated commits do not dilute the version-capture latency series."""
     sa.event.listen(
         lifecycle_session, "before_commit", listener.finalize_change_records
     )
@@ -280,10 +447,7 @@ def test_capture_latency_metric_fires_on_commit(
         for call in manager.instance.timing.call_args_list
         if call.args[0] == "superset.versioning.capture.finalize.latency"
     ]
-    assert len(calls) == 1
-    duration_ms: float = calls[0].args[1]
-    assert isinstance(duration_ms, float)
-    assert duration_ms >= 0
+    assert calls == []
 
 
 def test_capture_latency_metric_skips_reentrant_finalize(
@@ -321,6 +485,7 @@ def test_capture_latency_metric_emits_nothing_when_flush_fails(
     """A flush that raises is the user's own failing write, not capture
     cost: the exception propagates and no sample lands in the series."""
     manager: MagicMock = MagicMock()
+    mocker.patch.object(listener, "capture_for_write", return_value=True)
     mocker.patch("superset.extensions.stats_logger_manager", manager)
     session: MagicMock = MagicMock()
     session.info = {}
@@ -393,8 +558,11 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
         "_persist_buffered_records",
         lambda session, tx, buf: persisted.append((tx, dict(buf))),
     )
+    reconciliation: MagicMock = mocker.patch.object(
+        listener, "reconcile_parent_snapshots"
+    )
     # A retained pre-flush state for one versioned entity -> non-empty buffer.
-    lifecycle_session.info[listener._INITIAL_STATES_KEY] = {
+    lifecycle_session.info[listener.INITIAL_STATES_KEY] = {
         ("chart", 7): (object(), {"slice_name": "initial"})
     }
 
@@ -403,6 +571,7 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
 
     # The real path ran: records reached persistence for tx 42.
     assert persisted == [(42, {("chart", 7): [record]})]
+    reconciliation.assert_called_once_with(lifecycle_session, 42)
     calls: list[Any] = [
         call
         for call in manager.instance.timing.call_args_list
@@ -426,6 +595,7 @@ def test_transaction_lookup_failure_does_not_break_the_commit(
         lifecycle_session, "before_commit", listener.finalize_change_records
     )
     mocker.patch("superset.extensions.stats_logger_manager", MagicMock())
+    mocker.patch.object(listener, "capture_for_write", return_value=True)
     error_spy: MagicMock = mocker.patch.object(listener, "incr_capture_error")
 
     def explode(session: Session) -> int:
@@ -479,7 +649,7 @@ def test_capture_initial_states_stage_is_timed_only_when_a_read_is_attempted(
     listener._capture_initial_states(lifecycle_session, (Slice,))
     assert len(timing_calls()) == 1
     assert timing_calls()[0].args[1] >= 0
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 7): (entity, {"slice_name": "x"})
     }
 
@@ -529,7 +699,7 @@ def test_initial_state_identity_failure_does_not_skip_later_entities(
     listener._capture_initial_states(lifecycle_session, (Slice,))
 
     assert attempts == [1, 3]
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 1): (entities[0], {"slice_name": "1"}),
         ("chart", 3): (entities[2], {"slice_name": "3"}),
     }
@@ -571,7 +741,7 @@ def test_initial_state_capture_isolates_each_entity(
     listener._capture_initial_states(lifecycle_session, (Slice,))
 
     assert attempts == [1, 2, 3]
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 1): (entities[0], {"slice_name": "1"}),
         ("chart", 3): (entities[2], {"slice_name": "3"}),
     }
@@ -626,11 +796,11 @@ def test_initial_state_read_attempts_emit_one_timing_sample(
         "superset.versioning.capture.capture_initial_states.latency", 125.0
     )
     if outcome == "mixed":
-        assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+        assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
             ("chart", 1): (entities[0], {"slice_name": "first"})
         }
     else:
-        assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {}
+        assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {}
 
 
 def test_initial_state_ineligible_entities_emit_no_timing(
@@ -710,4 +880,4 @@ def test_initial_state_capture_failure_does_not_break_the_flush(
     listener._capture_initial_states(lifecycle_session, (Slice,))  # must not raise
 
     error_spy.assert_called_once_with("capture_initial_states")
-    assert lifecycle_session.info.get(listener._INITIAL_STATES_KEY, {}) == {}
+    assert lifecycle_session.info.get(listener.INITIAL_STATES_KEY, {}) == {}

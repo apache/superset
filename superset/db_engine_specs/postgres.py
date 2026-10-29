@@ -36,7 +36,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
-from superset.constants import TimeGrain
+from superset.constants import EPOCH_FORMATS, TimeGrain
 from superset.db_engine_specs.base import (
     AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
@@ -178,6 +178,9 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_multivalues_insert = True
 
     # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
@@ -289,12 +292,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        if not cursor.description:
-            return []
-        return super().fetch_data(cursor, limit)
-
-    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
@@ -322,11 +319,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
-        if (
-            time_grain
-            and isinstance(col_type, String)
-            and pdf not in ("epoch_s", "epoch_ms")
-        ):
+        if time_grain and isinstance(col_type, String) and pdf not in EPOCH_FORMATS:
             expr = TimestampExpression(
                 expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
                 col,
@@ -380,10 +373,32 @@ class PostgresParametersSchema(BasicParametersSchema):
         return data
 
 
+#: The text forms PostgreSQL's date/time input reads, which `RedshiftEngineSpec`
+#: shares. Both the ISO spellings and the unseparated ones --
+#: ``'20260115'::date`` is 2026-01-15 -- so a ``YYYYMMDD`` bucketing key
+#: mirrors on either.
+#:
+#: Declared on the concrete specs rather than on `PostgresBaseEngineSpec`,
+#: which Snowflake, Vertica, HANA, Netezza and Hologres also inherit.
+#: Snowflake's AUTO date input does not take ``YYYYMMDD`` and reads an
+#: all-digit string as epoch seconds, so inheriting this misread the mirror.
+POSTGRES_TEMPORAL_LITERAL_FORMATS = (
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%dT%H:%M:%S.%f",
+    "%Y%m%d",
+    "%Y%m%d%H%M%S",
+)
+
+
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
+
+    temporal_literal_formats = POSTGRES_TEMPORAL_LITERAL_FORMATS
 
     supports_dynamic_schema = True
     supports_catalog = True
@@ -635,6 +650,41 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
                 "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+            },
+            {
+                "name": "ClickHouse Managed Postgres",
+                "description": "Managed PostgreSQL from ClickHouse.",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
+                "homepage_url": "https://clickhouse.com/cloud/postgres",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql+psycopg2://{username}:{password}"
+                    "@{host}:{port}/{database}?sslmode=verify-full"
+                    "&sslrootcert={ca_certificate_path}"
+                ),
+                "parameters": {
+                    "username": "Database user",
+                    "password": "URL-encoded database password",
+                    "host": "Direct PostgreSQL hostname from the Connect dialog",
+                    "port": "Port from the Connect dialog (default: 5432)",
+                    "database": "Database name",
+                    "ca_certificate_path": (
+                        "URL-encoded absolute path to the instance CA certificate "
+                        "on the Superset server"
+                    ),
+                },
+                "notes": (
+                    "In ClickHouse Cloud, open the Connect menu and use the "
+                    "Directly option. Download the instance-specific CA certificate "
+                    "from Settings and make it available to each Superset process "
+                    "that connects to the database. Use verify-full to verify "
+                    "the certificate and hostname."
+                ),
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/managed-postgres/connection"
+                ),
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
             },
         ],
     }

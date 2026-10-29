@@ -55,7 +55,10 @@ import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import {
+  dashboardInfoChanged,
+  dashboardSaveSucceeded,
+} from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
@@ -99,7 +102,6 @@ type DashboardInfo = {
   certifiedBy: string;
   certificationDetails: string;
   isManagedExternally: boolean;
-  metadata: Record<string, any>;
   common?: {
     conf?: {
       SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT?: number;
@@ -210,7 +212,13 @@ const PropertiesModal = ({
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
         css: css || '',
-        metadata,
+        // `metadata` is deliberately left out: this object feeds the form
+        // store, which deep-merges every value it is given, and no form field
+        // reads metadata. On dashboards with many charts it holds a
+        // chart_configuration whose chartsInScope lists grow with the square
+        // of the chart count, which made the merge block the main thread.
+        // The raw metadata is kept in `jsonMetadata` and
+        // `originalDashboardMetadata` instead.
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -477,6 +485,7 @@ const PropertiesModal = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saveData),
       }).then(() => {
+        dispatch(dashboardSaveSucceeded(dashboardId));
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('The dashboard has been saved'));
@@ -505,16 +514,11 @@ const PropertiesModal = ({
         setIsLoading(false);
       }
 
-      // Fetch themes (excluding system themes)
+      // Fetch all assignable themes, including the system default/dark
+      // themes (THEME_DEFAULT/THEME_DARK), so they can be pinned to a
+      // dashboard like any custom theme.
       const themeQuery = rison.encode({
         columns: ['id', 'theme_name', 'is_system', 'json_data'],
-        filters: [
-          {
-            col: 'is_system',
-            opr: 'eq',
-            value: false,
-          },
-        ],
       });
       SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
         .then(({ json }) => {
@@ -836,10 +840,12 @@ const PropertiesModal = ({
                   customCss={customCss}
                   hasCustomLabelsColor={hasCustomLabelsColor}
                   showChartTimestamps={showChartTimestamps}
+                  jsonMetadata={jsonMetadata}
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
                   onCustomCssChange={handleCustomCssChange}
                   onShowChartTimestampsChange={setShowChartTimestamps}
+                  onJsonMetadataChange={setJsonMetadata}
                   addDangerToast={addDangerToast}
                 />
               ),
