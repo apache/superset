@@ -17065,7 +17065,7 @@
         "description": "Takes a query context constructed in the client and returns payload data response for the given query.",
         "parameters": [
           {
-            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the event log.",
             "in": "query",
             "name": "download_reason",
             "schema": {
@@ -17772,7 +17772,7 @@
             }
           },
           {
-            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the event log.",
             "in": "query",
             "name": "download_reason",
             "schema": {
@@ -20855,7 +20855,7 @@
             }
           },
           {
-            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the event log.",
             "in": "query",
             "name": "download_reason",
             "schema": {
@@ -36210,7 +36210,7 @@
             }
           },
           {
-            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the event log.",
             "in": "query",
             "name": "download_reason",
             "schema": {
@@ -36263,7 +36263,7 @@
       "post": {
         "parameters": [
           {
-            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the event log.",
+            "description": "Why the data is being downloaded. Required when the REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the event log.",
             "in": "query",
             "name": "download_reason",
             "schema": {

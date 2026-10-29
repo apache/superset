@@ -16,7 +16,7 @@
 # under the License.
 """Optional "download reason" capture for data exports.
 
-When the ``REQUIRE_DOWNLOAD_REASON`` feature flag is on, the frontend asks the
+When the ``REQUIRE_DOWNLOAD_REASON`` config setting is on, the frontend asks the
 user for a reason before exporting data (CSV/XLSX from SQL Lab, Explore and
 dashboards) and sends it as the ``download_reason`` request parameter. Export
 endpoints reject requests without one. Nothing else is needed to persist it:
@@ -27,22 +27,21 @@ up in Security → Action Log without any new table.
 
 from __future__ import annotations
 
-from flask import request
+from flask import current_app, request
 from flask_babel import gettext as _
 
-from superset import is_feature_enabled
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 
 DOWNLOAD_REASON_PARAM = "download_reason"
-DOWNLOAD_REASON_FEATURE_FLAG = "REQUIRE_DOWNLOAD_REASON"
+DOWNLOAD_REASON_CONFIG_KEY = "REQUIRE_DOWNLOAD_REASON"
 # Keep audit payloads (and GET export URLs) bounded; the frontend enforces the
 # same limit on input.
 DOWNLOAD_REASON_MAX_LENGTH = 255
 
 
 class DownloadReasonRequiredError(SupersetErrorException):
-    """Raised when the flag is on and an export request carries no reason."""
+    """Raised when the setting is on and an export request carries no reason."""
 
     status = 400
 
@@ -65,13 +64,22 @@ def get_download_reason() -> str | None:
     return None
 
 
+def is_download_reason_required() -> bool:
+    """Whether ``REQUIRE_DOWNLOAD_REASON`` is on for this deployment.
+
+    A plain config setting (not a feature flag): it is a long-lived deployment
+    policy, not a rollout toggle. Every consumer reads it through this helper.
+    """
+    return bool(current_app.config.get(DOWNLOAD_REASON_CONFIG_KEY, False))
+
+
 def check_download_reason() -> str | None:
     """Enforce ``REQUIRE_DOWNLOAD_REASON``.
 
     Returns the reason (or ``None``). Raises :class:`DownloadReasonRequiredError`
-    when the flag is on and the request carries no reason.
+    when the setting is on and the request carries no reason.
     """
     reason = get_download_reason()
-    if reason is None and is_feature_enabled(DOWNLOAD_REASON_FEATURE_FLAG):
+    if reason is None and is_download_reason_required():
         raise DownloadReasonRequiredError()
     return reason

@@ -25,9 +25,9 @@ import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
 
+from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from tests.unit_tests.conftest import with_feature_flags
 
 
 def _disposition_filename(form_filename: str | None) -> str:
@@ -143,13 +143,14 @@ def _export_result() -> dict[str, Any]:
     return {"query": query, "data": "a,b\n1,2\n", "count": 1}
 
 
-@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
 def test_export_csv_requires_download_reason(
+    app: SupersetApp,
     mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
-    """With the flag on the GET export is refused (400) until a reason is sent."""
+    """With the setting on the GET export is refused (400) until a reason is sent."""
+    mocker.patch.dict(app.config, {"REQUIRE_DOWNLOAD_REASON": True})
     command_cls = mocker.patch("superset.sqllab.api.SqlResultExportCommand")
     command_cls.return_value.run.return_value = _export_result()
 
@@ -163,12 +164,13 @@ def test_export_csv_requires_download_reason(
     command_cls.assert_called_once_with(client_id="abc")
 
 
-@with_feature_flags(REQUIRE_DOWNLOAD_REASON=False)
-def test_export_csv_without_reason_when_flag_off(
+def test_export_csv_without_reason_when_setting_off(
+    app: SupersetApp,
     mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
+    mocker.patch.dict(app.config, {"REQUIRE_DOWNLOAD_REASON": False})
     command_cls = mocker.patch("superset.sqllab.api.SqlResultExportCommand")
     command_cls.return_value.run.return_value = _export_result()
 
@@ -177,13 +179,14 @@ def test_export_csv_without_reason_when_flag_off(
     command_cls.assert_called_once_with(client_id="abc")
 
 
-@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
 def test_export_streaming_requires_download_reason(
+    app: SupersetApp,
     mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
     """The POST streaming export accepts the reason as a form field."""
+    mocker.patch.dict(app.config, {"REQUIRE_DOWNLOAD_REASON": True})
     command_cls = mocker.patch("superset.sqllab.api.StreamingSqlResultExportCommand")
     command_cls.return_value.run.return_value = lambda: iter([b"a,b\n"])
 

@@ -146,7 +146,7 @@ class ChartDataRestApi(ChartRestApi):
             name: download_reason
             description: >-
               Why the data is being downloaded. Required when the
-              REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the
+              REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the
               event log.
             schema:
               type: string
@@ -304,7 +304,7 @@ class ChartDataRestApi(ChartRestApi):
             name: download_reason
             description: >-
               Why the data is being downloaded. Required when the
-              REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the
+              REQUIRE_DOWNLOAD_REASON setting is enabled; recorded in the
               event log.
             schema:
               type: string

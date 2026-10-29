@@ -18,12 +18,12 @@
  */
 import { createRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Input, Modal, Typography } from '@superset-ui/core/components';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 export const DOWNLOAD_REASON_PARAM = 'download_reason';
 
-/** Result formats the backend gates behind REQUIRE_DOWNLOAD_REASON. */
+/** Result formats the backend gates behind the REQUIRE_DOWNLOAD_REASON setting. */
 export const DOWNLOAD_REASON_FORMATS = ['csv', 'xlsx'];
 
 /** Mirrors DOWNLOAD_REASON_MAX_LENGTH on the backend (also bounds GET export URLs). */
@@ -62,19 +62,24 @@ const ReasonInput = forwardRef<ReasonInputHandle, ReasonInputProps>(
   },
 );
 
-/** Whether REQUIRE_DOWNLOAD_REASON is enabled for this deployment. */
+/**
+ * Whether the REQUIRE_DOWNLOAD_REASON setting is on for this deployment.
+ *
+ * A config setting rather than a feature flag (it is a long-lived deployment
+ * policy); the backend ships it to the browser in the bootstrap `common.conf`.
+ */
 export function isDownloadReasonRequired(): boolean {
-  return isFeatureEnabled(FeatureFlag.RequireDownloadReason);
+  return Boolean(getBootstrapData().common?.conf?.REQUIRE_DOWNLOAD_REASON);
 }
 
 /**
  * Ask the user why they are downloading data (REQUIRE_DOWNLOAD_REASON).
  *
- * Resolves with the trimmed reason; with '' when the feature flag is off
+ * Resolves with the trimmed reason; with '' when the setting is off
  * (nothing is asked); or with null when the user cancels the dialog.
  *
  * Callers on hot paths should guard with `isDownloadReasonRequired()` so the
- * flag-off behaviour stays fully synchronous (no extra microtask).
+ * setting-off behaviour stays fully synchronous (no extra microtask).
  */
 export function requestDownloadReason(): Promise<string | null> {
   if (!isDownloadReasonRequired()) {

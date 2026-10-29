@@ -2291,11 +2291,12 @@ def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
     )
 
 
-@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
 def test_get_url_for_xlsx_report_sends_download_reason(
+    app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
     """With REQUIRE_DOWNLOAD_REASON on, scheduled exports carry a reason."""
+    mocker.patch.dict(app.config, {"REQUIRE_DOWNLOAD_REASON": True})
     report_schedule = create_report_schedule(mocker)
     report_schedule.chart_id = 1
     report_schedule.id = 7

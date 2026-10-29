@@ -32,7 +32,10 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import { requestDownloadReason } from 'src/utils/downloadReason';
+import {
+  isDownloadReasonRequired,
+  requestDownloadReason,
+} from 'src/utils/downloadReason';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { useDownloadMenuItems } from '.';
@@ -69,6 +72,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 
 jest.mock('src/utils/downloadReason', () => ({
   ...jest.requireActual('src/utils/downloadReason'),
+  isDownloadReasonRequired: jest.fn().mockReturnValue(false),
   requestDownloadReason: jest.fn(),
 }));
 
@@ -163,6 +167,7 @@ beforeEach(() => {
   // Reset the implementation each test: clearAllMocks resets call history but
   // not mockReturnValue, so an override in one test would otherwise leak.
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+  (isDownloadReasonRequired as jest.Mock).mockReturnValue(false);
   // @ts-ignore
   delete window.location;
   window.location = { href: '' } as string & Location;
@@ -176,11 +181,9 @@ const enableWebDriverScreenshot = () =>
       flag === FeatureFlag.EnableDashboardDownloadWebDriverScreenshot,
   );
 
-// REQUIRE_DOWNLOAD_REASON: the dialog is stubbed, the flag check is real.
+// REQUIRE_DOWNLOAD_REASON is a config setting: switch it on and stub the dialog.
 const requireDownloadReason = () =>
-  (isFeatureEnabled as jest.Mock).mockImplementation(
-    (flag: FeatureFlag) => flag === FeatureFlag.RequireDownloadReason,
-  );
+  (isDownloadReasonRequired as jest.Mock).mockReturnValue(true);
 
 afterEach(() => {
   fetchMock.removeRoutes();

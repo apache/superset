@@ -61,7 +61,6 @@ export enum FeatureFlag {
   Matrixify = 'MATRIXIFY',
   MobileConsumptionMode = 'MOBILE_CONSUMPTION_MODE',
   PartitionFilterMapping = 'PARTITION_FILTER_MAPPING',
-  RequireDownloadReason = 'REQUIRE_DOWNLOAD_REASON',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   SemanticLayers = 'SEMANTIC_LAYERS',
   SoftDelete = 'SOFT_DELETE',

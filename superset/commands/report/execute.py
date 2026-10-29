@@ -128,7 +128,7 @@ from superset.utils.decorators import (
     logs_context,
     transaction,
 )
-from superset.utils.download_reason import DOWNLOAD_REASON_FEATURE_FLAG
+from superset.utils.download_reason import is_download_reason_required
 from superset.utils.file import sanitize_title
 from superset.utils.filters import is_excluded_by_extra_access
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -715,9 +715,9 @@ class BaseReportState:
         Reports fetch chart data through the same export endpoints as users, so
         when ``REQUIRE_DOWNLOAD_REASON`` is on they must supply a reason too;
         this also makes report-driven downloads identifiable in the Action Log.
-        Empty when the flag is off so the generated URLs are unchanged.
+        Empty when the setting is off so the generated URLs are unchanged.
         """
-        if not feature_flag_manager.is_feature_enabled(DOWNLOAD_REASON_FEATURE_FLAG):
+        if not is_download_reason_required():
             return {}
         return {
             "download_reason": (
