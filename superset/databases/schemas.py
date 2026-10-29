@@ -452,31 +452,48 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     def validate_embedded_credentials(
         self, data: dict[str, Any], **kwargs: Any
     ) -> None:
-        """Validate authored credentials with the effective connection's engine."""
-        value = data.get("masked_encrypted_extra")
-        if not value or not (
+        """
+        Hold embedded guest credentials to the rules under which they apply.
+
+        The connection is judged as the save would leave it: the payload applied
+        over the stored row. A payload that carries Secure Extra replaces the stored
+        one, credential included; one that changes impersonation without it keeps
+        the stored credential attached, so that credential is held to the same
+        OAuth2-and-impersonation rule as an authored one.
+        """
+        if not (
             is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
             and is_feature_enabled("EMBEDDED_SUPERSET")
         ):
             return
 
-        encrypted_extra = json.loads(value)
-        if EMBEDDED_CREDENTIALS_KEY not in encrypted_extra:
-            return
-
-        engine_spec = BaseEngineSpec
         stored = (
             db.session.get(Database, self.database_id)
             if self.database_id is not None
             else None
         )
+        if "masked_encrypted_extra" in data:
+            encrypted_extra = _json_object(data["masked_encrypted_extra"])
+            from_stored = False
+        elif stored is not None and "impersonate_user" in data:
+            encrypted_extra = _json_object(stored.encrypted_extra)
+            from_stored = True
+        else:
+            return
+
+        if EMBEDDED_CREDENTIALS_KEY not in encrypted_extra:
+            return
+
+        engine_spec = BaseEngineSpec
         if sqlalchemy_uri := data.get("sqlalchemy_uri"):
             engine_spec = Database(sqlalchemy_uri=sqlalchemy_uri).db_engine_spec
         elif stored:
             engine_spec = stored.db_engine_spec
 
         credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
-        if embedded_credentials_incomplete(
+        # A stored credential was validated when it was saved; only the edit that
+        # would strand it is in question here.
+        if not from_stored and embedded_credentials_incomplete(
             credentials,
             engine_spec.validate_embedded_credentials,
         ):
@@ -489,34 +506,77 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 field_name="masked_encrypted_extra",
             )
 
-        # A credential only applies to a per-user OAuth2 connection with
-        # impersonation on (`Database.embedded_fallback_applies`). Anywhere else
-        # it would save and silently do nothing -- or, with impersonation off,
-        # leave every viewer on the connection's own account while the setting
-        # reads as configured -- so refuse it rather than store it.
-        if (
-            engine_spec.supports_embedded_credential_fallback
-            and engine_spec.validate_embedded_credentials(credentials) is not None
+        impersonate_user = data.get(
+            "impersonate_user", stored.impersonate_user if stored else False
+        )
+        if not _embedded_credentials_stranded(
+            engine_spec, encrypted_extra, impersonate_user
         ):
-            impersonate_user = data.get(
-                "impersonate_user", stored.impersonate_user if stored else False
+            return
+        if from_stored:
+            raise ValidationError(
+                _(
+                    "This connection stores embedded guest credentials, "
+                    'which only apply with "Impersonate logged in user" '
+                    "turned on. Clear the embedded credentials before "
+                    "turning impersonation off."
+                ),
+                field_name="impersonate_user",
             )
-            client_info = encrypted_extra.get("oauth2_client_info")
-            has_oauth2_client = bool(isinstance(client_info, dict) and client_info) or (
-                engine_spec.supports_oauth2
-                and engine_spec.engine_name
-                in current_app.config["DATABASE_OAUTH2_CLIENTS"]
-            )
-            if not (impersonate_user and has_oauth2_client):
-                raise ValidationError(
-                    _(
-                        "Embedded guest credentials only apply to connections that "
-                        'use OAuth2 with "Impersonate logged in user" turned on. '
-                        "Configure OAuth2 client information and turn on "
-                        "impersonation, or clear the embedded credentials."
-                    ),
-                    field_name="masked_encrypted_extra",
-                )
+        raise ValidationError(
+            _(
+                "Embedded guest credentials only apply to connections that "
+                'use OAuth2 with "Impersonate logged in user" turned on. '
+                "Configure OAuth2 client information and turn on "
+                "impersonation, or clear the embedded credentials."
+            ),
+            field_name="masked_encrypted_extra",
+        )
+
+
+def _embedded_credentials_stranded(
+    engine_spec: type[BaseEngineSpec],
+    encrypted_extra: dict[str, Any],
+    impersonate_user: bool,
+) -> bool:
+    """
+    Would a credential sit on a connection where it can never apply?
+
+    A credential only applies to a per-user OAuth2 connection with impersonation
+    on (`Database.embedded_fallback_applies`). Anywhere else it would save and
+    silently do nothing -- or, with impersonation off, leave every viewer on the
+    connection's own account while the setting reads as configured -- so it is
+    refused rather than stored. Engines without the fallback, and cleared
+    credentials, are inert and never stranded.
+    """
+    if not engine_spec.supports_embedded_credential_fallback:
+        return False
+    credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
+    if engine_spec.validate_embedded_credentials(credentials) is None:
+        return False
+
+    client_info = encrypted_extra.get("oauth2_client_info")
+    has_oauth2_client = bool(isinstance(client_info, dict) and client_info) or (
+        engine_spec.supports_oauth2
+        and engine_spec.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+    )
+    return not (impersonate_user and has_oauth2_client)
+
+
+def _json_object(value: str | None) -> dict[str, Any]:
+    """
+    Parse a stored or submitted ``encrypted_extra``; anything else is empty.
+
+    Valid JSON that is not an object (``null``, ``[1]``) carries no credential, and
+    the field validator reports malformed submissions on its own.
+    """
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def rename_encrypted_extra(
