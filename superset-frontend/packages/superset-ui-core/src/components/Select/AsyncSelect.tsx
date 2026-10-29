@@ -185,6 +185,14 @@ const AsyncSelect = forwardRef(
 
     const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
     const fullSelectOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
+    // Every option any fetch has returned, keyed by value. A selection only
+    // stores { label, value }, so when a selected value is missing from the
+    // loaded options (e.g. it was picked or pasted from search results that
+    // have since been replaced) the option rebuilt for it is completed from
+    // here and keeps its aria-label, title and filter props.
+    const seenOptionsRef = useRef(
+      new Map<ReturnType<typeof getValue>, SelectOptionsType[number]>(),
+    );
 
     const quoteAwareTokenSeparators = useMemo(() => {
       const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
@@ -255,13 +263,14 @@ const AsyncSelect = forwardRef(
     const [selectOptions, setSelectOptions] =
       useState<SelectOptionsType>(EMPTY_OPTIONS);
 
-    // add selected values to options list if they are not in it
+    // add selected values to options list if they are not in it, keeping any
+    // extra option props (aria-label, title, filter props) a labeled value has
     const fullSelectOptions = useMemo(() => {
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
           isLabeledValue(opt)
-            ? { value: opt.value, label: opt.label }
+            ? { ...seenOptionsRef.current.get(opt.value), ...opt }
             : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
@@ -404,6 +413,20 @@ const AsyncSelect = forwardRef(
       [sortComparatorForNoSearch],
     );
 
+    // All fetches go through here so every option returned is remembered.
+    const fetchAndRememberOptions = useCallback(
+      (search: string, page: number, size: number) =>
+        (options as SelectOptionsPagePromise)(search, page, size).then(
+          (result: SelectOptionsTypePage) => {
+            result.data.forEach(opt =>
+              seenOptionsRef.current.set(opt.value, opt),
+            );
+            return result;
+          },
+        ),
+      [options],
+    );
+
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
         setPage(page);
@@ -424,9 +447,8 @@ const AsyncSelect = forwardRef(
         }
         setIsLoading(true);
 
-        const fetchOptions = options as SelectOptionsPagePromise;
         inFlightFetchesRef.current += 1;
-        fetchOptions(search, page, pageSize)
+        fetchAndRememberOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
             // Drop responses whose search arg no longer matches the user's
             // current input — otherwise a slow base fetch can land after a
@@ -524,7 +546,7 @@ const AsyncSelect = forwardRef(
         fetchOnlyOnSearch,
         mergeData,
         internalOnError,
-        options,
+        fetchAndRememberOptions,
         pageSize,
         sortComparatorForNoSearch,
       ],
@@ -796,12 +818,20 @@ const AsyncSelect = forwardRef(
 
     const getPastedTextValue = useCallback(
       async (text: string) => {
-        let option = getOption(text, fullSelectOptions, true);
+        // An option with a React label has no text to compare the paste
+        // against, so match the plain text its caller put in `title`.
+        const findByText = (data: SelectOptionsType) =>
+          data.find(
+            item =>
+              (typeof item.label === 'string' ? item.label : item.title) ===
+              text,
+          );
+        let option =
+          getOption(text, fullSelectOptions, true) ??
+          findByText(fullSelectOptions);
         if (!option && !allValuesLoaded) {
-          const fetchOptions = options as SelectOptionsPagePromise;
-          option = await fetchOptions(text, 0, pageSize).then(
-            ({ data }: SelectOptionsTypePage) =>
-              data.find(item => item.label === text),
+          option = await fetchAndRememberOptions(text, 0, pageSize).then(
+            ({ data }: SelectOptionsTypePage) => findByText(data),
           );
         }
         if (!option && !allowNewOptions) {
@@ -817,7 +847,13 @@ const AsyncSelect = forwardRef(
         }
         return value;
       },
-      [allValuesLoaded, allowNewOptions, fullSelectOptions, options, pageSize],
+      [
+        allValuesLoaded,
+        allowNewOptions,
+        fetchAndRememberOptions,
+        fullSelectOptions,
+        pageSize,
+      ],
     );
 
     const onPaste = async (e: ClipboardEvent<HTMLInputElement>) => {
@@ -911,6 +947,11 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
+          // Filtering goes through `filterOption`, so antd only reads this to
+          // match a typed token such as `Jane Smith,` to an option. Like the
+          // paste path, that lets an option with a React label match on the
+          // plain text its caller put in `title`.
+          optionFilterProp="title"
           optionRender={option => option.label || option.value}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
