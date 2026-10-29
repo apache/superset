@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterator
 from datetime import date, datetime, timezone
 from itertools import permutations
 from pathlib import Path
@@ -30,6 +30,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask import Flask
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from sqlalchemy import inspect, select
@@ -69,6 +70,19 @@ from superset.utils.core import GenericDataType
 # =============================================================================
 # get_column_type tests
 # =============================================================================
+
+
+@pytest.fixture
+def explicit_model_namespace(app: Flask, mocker: MockerFixture) -> Iterator[None]:
+    """Give transient model tests an identity without a metadata-store fixture."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "model-unit-tests"}
+    )
+    durable_lookup: MagicMock = mocker.patch(
+        "superset.semantic_layers.models.metadata_namespace"
+    )
+    yield
+    durable_lookup.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -359,7 +373,9 @@ def test_semantic_layer_implementation_is_scoped_to_owning_session(
         assert factory.call_count == 2
 
 
-def test_semantic_layer_implementation(mocker: MockerFixture) -> None:
+def test_semantic_layer_implementation(
+    mocker: MockerFixture, explicit_model_namespace: None
+) -> None:
     """Test that implementation returns a configured semantic layer."""
     from superset.semantic_layers.execution import current_host_execution_context
 
@@ -608,7 +624,9 @@ def test_semantic_view_query_endpoint_returns_error(
 
 
 @pytest.mark.parametrize("version", [None, "producer-v1", "producer-v2"])
-def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
+def test_semantic_view_get_extra_cache_keys(
+    version: str | None, explicit_model_namespace: None
+) -> None:
     """Keep NULL normalization and producer guarantees in the result identity."""
     from superset.common.query_object import QueryObject
 
@@ -1447,7 +1465,9 @@ def test_semantic_view_explore_url() -> None:
     )
 
 
-def test_semantic_view_implementation(mocker: MockerFixture) -> None:
+def test_semantic_view_implementation(
+    mocker: MockerFixture, explicit_model_namespace: None
+) -> None:
     """Views share the layer binding and canonicalize equivalent configuration."""
     from superset.semantic_layers.execution import SemanticBindingMemo
 
@@ -2885,6 +2905,7 @@ def test_values_search_translates_provider_completeness_error(
 @pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
 def test_result_generation_reads_class_without_provider_construction(
     version: str | None,
+    explicit_model_namespace: None,
 ) -> None:
     provider: MagicMock = MagicMock()
     provider.result_cache_version = version

@@ -346,6 +346,9 @@ class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    async def warning(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
 
 @pytest.fixture
 def mcp_server():
