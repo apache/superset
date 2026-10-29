@@ -69,7 +69,15 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
+from sqlalchemy import (
+    and_,
+    false,
+    func as sa_func,
+    inspect,
+    or_,
+    select,
+    Table as SQLATable,
+)
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -503,6 +511,46 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
 
+class UserSearchFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    ILIKE search across the columns a user can be recognized by.
+
+    The frontend labels user options with the full name, falling back to the
+    username, so a free-text search has to match either one. The full name is
+    matched as a whole so that a search such as "Jane Sm" still finds the user
+    labelled "Jane Smith". Email is included because single sign-on usernames
+    are frequently opaque identifiers.
+    """
+
+    name = _("All Text")
+    arg_name = "user_all_text"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.base import _escape_like
+
+        # Mirror the DAO LIKE operators: ``x ILIKE NULL`` matches no rows, so
+        # a ``None`` value must never degrade into a match-everything pattern.
+        if value is None:
+            return query.filter(false())
+        # Surrounding whitespace is never meaningful in a name search, and the
+        # ListView filter path sends the raw input, so trim it here. LIKE
+        # metacharacters (percent, underscore, backslash) are escaped so they
+        # match literally instead of acting as wildcards.
+        ilike_value = f"%{_escape_like(str(value).strip())}%"
+        return query.filter(
+            or_(
+                User.username.ilike(ilike_value, escape="\\"),
+                User.first_name.ilike(ilike_value, escape="\\"),
+                User.last_name.ilike(ilike_value, escape="\\"),
+                (User.first_name + " " + User.last_name).ilike(
+                    ilike_value, escape="\\"
+                ),
+                User.email.ilike(ilike_value, escape="\\"),
+            )
+        )
+
+
 class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to sync Subject rows, filter excluded users,
@@ -530,6 +578,7 @@ class SupersetUserApi(UserApi):
         "created_on",
         "changed_on",
     ]
+    search_filters = {"username": [UserSearchFilter]}
 
     def pre_add(self, item: Model) -> None:
         """Hash the password (FAB's own ``pre_add``), then sync the user's
@@ -2190,6 +2239,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "can_manage_oauth2_tokens",
         "update_roles_users",
         "list_roles",
         "can_update_role",
