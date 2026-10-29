@@ -211,6 +211,23 @@ def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
     return {"username": username, "password": password}
 
 
+def embedded_credentials_present(value: Any) -> bool:
+    """
+    Does a stored or submitted value configure an embedded credential at all?
+
+    Absent, empty and entirely blank values mean "no credential configured";
+    ``auth_method`` alone does not count, since the dialog writes it as soon as the
+    selector renders. Anything else counts, complete or not.
+    """
+    if value is None or value == "":
+        return False
+    if isinstance(value, dict):
+        return any(
+            _is_present(field) for key, field in value.items() if key != "auth_method"
+        )
+    return True
+
+
 def embedded_credentials_incomplete(
     value: Any,
     validate_credentials: Callable[[Any], dict[str, str] | None],
