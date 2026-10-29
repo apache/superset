@@ -192,24 +192,24 @@ msgid " to add calculated columns"
 msgstr " lai pievienotu aprēķinātās kolonnas"
 
 msgid " to add metrics"
-msgstr " lai pievienotu metrikas"
+msgstr ", lai pievienotu metrikas"
 
 msgid " to check for details."
-msgstr " lai pārbaudītu sīkāku informāciju."
+msgstr ", lai pārbaudītu sīkāku informāciju."
 
 msgid " to edit or add columns and metrics."
-msgstr " lai rediģētu vai pievienotu kolonnas un metrikas."
+msgstr ", lai rediģētu vai pievienotu kolonnas un metrikas."
 
 msgid " to mark a column as a time column"
 msgstr " lai atzīmētu kolonnu kā laika kolonnu"
 
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
-" lai atvērtu SQL laboratoriju. No turienes varat saglabāt vaicājumu kā "
+", lai atvērtu SQL laboratoriju. No turienes varat saglabāt vaicājumu kā "
 "datu kopu."
 
 msgid " to see details."
-msgstr " lai redzētu sīkāku informāciju."
+msgstr ", lai redzētu sīkāku informāciju."
 
 msgid "!= (Is not equal)"
 msgstr "!= (Nav vienāds)"
@@ -696,9 +696,9 @@ msgstr "%s saglabāta(-as) metrika(-as)"
 #, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "%s sekunde"
-msgstr[1] "%s sekundes"
-msgstr[2] "%s sekunžu"
+msgstr[0] "%s sekundes"
+msgstr[1] "%s sekundēm"
+msgstr[2] "%s sekundēm"
 
 # sr_Latn]
 #, python-format
@@ -1580,7 +1580,7 @@ msgid "Aborting"
 msgstr "Tiek pārtraukts"
 
 msgid "About"
-msgstr "Par"
+msgstr "Par lietotni"
 
 msgid "Accept"
 msgstr "Pieņemt"
@@ -1989,7 +1989,7 @@ msgid "Affected semantic views"
 msgstr "Ietekmētie semantiskie skati"
 
 msgid "After"
-msgstr "Pēc"
+msgstr "Pēc tam"
 
 msgid ""
 "After making the changes, copy the query and paste in the virtual dataset"
@@ -3149,7 +3149,7 @@ msgid "BCC recipients"
 msgstr "Slēptās kopijas saņēmēji"
 
 msgid "BOOLEAN"
-msgstr "LOĢISKAIS"
+msgstr "LOĢISKS"
 
 msgid "Back"
 msgstr "Atpakaļ"
@@ -3169,7 +3169,7 @@ msgid "Background Color"
 msgstr "Fona krāsa"
 
 msgid "Backward values"
-msgstr "Atpakaļejošās vērtības"
+msgstr "Nākamās vērtības"
 
 msgid "Bad formula."
 msgstr "Nederīga formula."
@@ -3187,7 +3187,7 @@ msgid "Bar orientation"
 msgstr "Joslu orientācija"
 
 msgid "Base"
-msgstr "Bāze"
+msgstr "Bāzes"
 
 msgid "Base exponent"
 msgstr "Bāzes eksponents"
@@ -3238,7 +3238,7 @@ msgid "Be careful."
 msgstr "Esiet uzmanīgi."
 
 msgid "Before"
-msgstr "Pirms"
+msgstr "Iepriekš"
 
 msgid "Big Number"
 msgstr "Lielais skaitlis"
@@ -3253,7 +3253,7 @@ msgid "Bins"
 msgstr "Intervāli"
 
 msgid "Blanks"
-msgstr "Tukši"
+msgstr "Tukšās vērtības"
 
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
@@ -3598,7 +3598,7 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Atcelšana nav pieejama, jo trūkst pārtraukšanas apstrādātāja"
 
 msgid "Candlestick"
-msgstr "Sveču diagramma"
+msgstr "Sveces"
 
 msgid "Candlestick Chart"
 msgstr "Sveču diagramma"
@@ -3711,7 +3711,7 @@ msgid "Category, Value and Percentage"
 msgstr "Kategorija, vērtība un procenti"
 
 msgid "Cell Padding"
-msgstr "Šūnas atkāpe"
+msgstr "Šūnu atstarpe"
 
 msgid "Cell Radius"
 msgstr "Šūnas rādiuss"
@@ -3732,7 +3732,7 @@ msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
 
 msgid "Center"
-msgstr "Centrs"
+msgstr "Centrā"
 
 msgid "Center value"
 msgstr "Centra vērtība"
@@ -4861,7 +4861,7 @@ msgid "Confirm"
 msgstr "Apstiprināt"
 
 msgid "Confirm Password"
-msgstr "Apstiprināt paroli"
+msgstr "Apstipriniet paroli"
 
 msgid "Confirm new password"
 msgstr "Apstipriniet jauno paroli"
@@ -4870,7 +4870,7 @@ msgid "Confirm overwrite"
 msgstr "Apstiprināt pārrakstīšanu"
 
 msgid "Confirm password"
-msgstr "Apstiprināt paroli"
+msgstr "Apstipriniet paroli"
 
 msgid "Confirm save"
 msgstr "Apstiprināt saglabāšanu"
@@ -5428,7 +5428,7 @@ msgid "Customizations out of scope (%d)"
 msgstr "Pielāgojumi ārpus tvēruma (%d)"
 
 msgid "Customize"
-msgstr "Pielāgot"
+msgstr "Pielāgošana"
 
 msgid "Customize Metrics"
 msgstr "Pielāgot metrikas"
@@ -5658,7 +5658,7 @@ msgid "Dashboard updated: %s"
 msgstr "Infopanelis atjaunināts: %s"
 
 msgid "Dashboard usage"
-msgstr "Infopaneļa lietojums"
+msgstr "Lietojums infopaneļos"
 
 msgid "Dashboards"
 msgstr "Infopaneļi"
@@ -6155,7 +6155,7 @@ msgstr "Dzēst"
 
 #, python-format
 msgid "Delete %s"
-msgstr "Dzēst %s"
+msgstr "Dzēst: %s"
 
 #, python-format
 msgid ""
@@ -6176,7 +6176,7 @@ msgstr[2] ""
 
 #, python-format
 msgid "Delete %s?"
-msgstr "Dzēst %s?"
+msgstr "Dzēst: %s?"
 
 msgid "Delete Annotation?"
 msgstr "Dzēst anotāciju?"
@@ -6287,7 +6287,7 @@ msgid "Delete role"
 msgstr "Dzēst lomu"
 
 msgid "Delete selected"
-msgstr "Dzēst atlasīto"
+msgstr "Dzēst atlasītos"
 
 msgid "Delete template"
 msgstr "Dzēst veidni"
@@ -6520,7 +6520,7 @@ msgid "Deselect all"
 msgstr "Noņemt atlasi visiem"
 
 msgid "Design with"
-msgstr "Izveidojiet dizainu ar"
+msgstr "Izveidojiet dizainu, izmantojot rīku"
 
 msgid "Detach or delete them first."
 msgstr "Vispirms atsaistiet vai dzēsiet tos."
@@ -7086,7 +7086,7 @@ msgstr "Rediģēt"
 
 #, python-format
 msgid "Edit %s"
-msgstr "Rediģēt %s"
+msgstr "Rediģēt: %s"
 
 #, python-format
 msgid "Edit %s in modal"
@@ -7232,7 +7232,7 @@ msgid "Either the username or the password is wrong."
 msgstr "Lietotājvārds vai parole ir nepareiza."
 
 msgid "Elapsed"
-msgstr "Pagājis"
+msgstr "Pagājušais laiks"
 
 msgid "Elevation"
 msgstr "Augstums"
@@ -7283,7 +7283,7 @@ msgid "Emitted predicate"
 msgstr "Ģenerētais predikāts"
 
 msgid "Emphasis"
-msgstr "Uzsvērums"
+msgstr "Izcelšana"
 
 msgid "Empty circle"
 msgstr "Tukšs aplis"
@@ -7677,7 +7677,7 @@ msgid "Evolution"
 msgstr "Evolūcija"
 
 msgid "Exact"
-msgstr "Precīzs"
+msgstr "Precīza vērtība"
 
 # sr_Latn]
 msgid "Exact match (IN)"
@@ -7948,7 +7948,7 @@ msgid "Extensions are not enabled on this server"
 msgstr "Šajā serverī paplašinājumi nav iespējoti"
 
 msgid "Extent"
-msgstr "Apjoms"
+msgstr "Aptvērums"
 
 # sr_Latn]
 msgid "External link warning"
@@ -8201,7 +8201,7 @@ msgid "Falling back to CSV; Excel export library not available."
 msgstr "Atgriešanās pie CSV; Excel eksporta bibliotēka nav pieejama."
 
 msgid "False"
-msgstr "Nepatiesi"
+msgstr "Nepatiess"
 
 msgid "Favorite"
 msgstr "Izlase"
@@ -8579,7 +8579,7 @@ msgid "Force enabled"
 msgstr "Piespiedu kārtā iespējots"
 
 msgid "Force refresh"
-msgstr "Piespiedu atsvaidzināšana"
+msgstr "Atsvaidzināt piespiedu kārtā"
 
 msgid "Force refresh Slack channels list"
 msgstr "Piespiedu kārtā atsvaidzināt Slack kanālu sarakstu"
@@ -8681,7 +8681,7 @@ msgid "Formula"
 msgstr "Formula"
 
 msgid "Forward values"
-msgstr "Uz priekšu ejošās vērtības"
+msgstr "Iepriekšējās vērtības"
 
 msgid "Found invalid orderby options"
 msgstr "Atrasti nederīgi kārtošanas parametri"
@@ -8705,7 +8705,7 @@ msgid "From date cannot be larger than to date"
 msgstr "Sākuma datums nevar būt lielāks par beigu datumu"
 
 msgid "Full name"
-msgstr "Vārds un uzvārds"
+msgstr "Pilns nosaukums"
 
 msgid "Fullscreen is not supported in this browser."
 msgstr "Šī pārlūkprogramma neatbalsta pilnekrāna režīmu."
@@ -8865,7 +8865,7 @@ msgid "Group by"
 msgstr "Grupēt pēc"
 
 msgid "Group columns"
-msgstr "Grupēt kolonnas"
+msgstr "Grupas kolonnas"
 
 msgid "Group name"
 msgstr "Grupas nosaukums"
@@ -9152,7 +9152,7 @@ msgstr "Importēt"
 
 #, python-format
 msgid "Import %s"
-msgstr "Importēt %s"
+msgstr "Importēt: %s"
 
 msgid "Import Error"
 msgstr "Importēšanas kļūda"
@@ -9294,7 +9294,7 @@ msgid "Insert Layer URL"
 msgstr "Ievietot slāņa URL"
 
 msgid "Insert Layer title"
-msgstr "Ievietot slāņa nosaukumu"
+msgstr "Ievietot slāņa virsrakstu"
 
 msgid "Inside"
 msgstr "Iekšpusē"
@@ -9345,7 +9345,7 @@ msgid "Intensity is the value multiplied by the weight to obtain the final weigh
 msgstr "Intensitāte ir vērtība, kas reizināta ar svaru, lai iegūtu galīgo svaru"
 
 msgid "Internal"
-msgstr "Iekšējais"
+msgstr "Iekšējie dati"
 
 msgid "Interval"
 msgstr "Intervāls"
@@ -9656,7 +9656,7 @@ msgid "January"
 msgstr "Janvāris"
 
 msgid "Jinja templating"
-msgstr "Jinja veidnes"
+msgstr "Jinja veidņu"
 
 msgid ""
 "Jinja templating is not supported in a partition value transform. The "
@@ -9806,7 +9806,7 @@ msgid "Last available value seen on %s"
 msgstr "Pēdējā pieejamā vērtība redzēta %s"
 
 msgid "Last day"
-msgstr "Vakardiena"
+msgstr "Pēdējā diena"
 
 msgid "Last login"
 msgstr "Pēdējā pieteikšanās"
@@ -9815,7 +9815,7 @@ msgid "Last modified"
 msgstr "Pēdējās izmaiņas"
 
 msgid "Last month"
-msgstr "Pagājušais mēnesis"
+msgstr "Pēdējais mēnesis"
 
 msgid "Last name"
 msgstr "Uzvārds"
@@ -9824,7 +9824,7 @@ msgid "Last name is required"
 msgstr "Uzvārds ir obligāts"
 
 msgid "Last quarter"
-msgstr "Pagājušais ceturksnis"
+msgstr "Pēdējais ceturksnis"
 
 msgid "Last queried at"
 msgstr "Pēdējā vaicājuma laiks"
@@ -9837,13 +9837,13 @@ msgid "Last updated %s ago"
 msgstr "Pēdējo reizi atjaunināts pirms %s"
 
 msgid "Last week"
-msgstr "Pagājušā nedēļa"
+msgstr "Pēdējā nedēļa"
 
 msgid "Last year"
-msgstr "Pagājušais gads"
+msgstr "Pēdējais gads"
 
 msgid "Lat"
-msgstr "Plat"
+msgstr "Plat."
 
 msgid "Latest save"
 msgstr "Pēdējā saglabāšana"
@@ -9867,7 +9867,7 @@ msgid "Layer configuration"
 msgstr "Slāņa konfigurācija"
 
 msgid "Layer title"
-msgstr "Slāņa nosaukums"
+msgstr "Slāņa virsraksts"
 
 msgid "Layer type"
 msgstr "Slāņa tips"
@@ -10253,7 +10253,7 @@ msgid "Logs"
 msgstr "Žurnāli"
 
 msgid "Lon"
-msgstr "Gar"
+msgstr "Gar."
 
 msgid "Long dashed"
 msgstr "Gari svītrots"
@@ -10724,7 +10724,7 @@ msgid "Metrics to show in the tooltip."
 msgstr "Metrikas, kas jāparāda rīka padomā."
 
 msgid "Mid color"
-msgstr "Vidējā krāsa"
+msgstr "Centra vērtības krāsa"
 
 msgid "Middle"
 msgstr "Vidus"
@@ -10739,10 +10739,10 @@ msgid "Min"
 msgstr "Min"
 
 msgid "Min Periods"
-msgstr "Min periodi"
+msgstr "Min. periodi"
 
 msgid "Min Width"
-msgstr "Min platums"
+msgstr "Min. platums"
 
 msgid "Min bound"
 msgstr "Minimālā robeža"
@@ -10754,7 +10754,7 @@ msgid "Min bound should be smaller than target value"
 msgstr "Minimālajai robežai jābūt mazākai par mērķa vērtību"
 
 msgid "Min periods"
-msgstr "Min periodi"
+msgstr "Min. periodi"
 
 msgid "Min value"
 msgstr "Minimālā vērtība"
@@ -11163,7 +11163,7 @@ msgstr "Nē"
 
 #, python-format
 msgid "No %s yet"
-msgstr "Pagaidām nav %s"
+msgstr "Pagaidām nav vienumu (%s)"
 
 msgid "No Data"
 msgstr "Nav datu"
@@ -11585,7 +11585,7 @@ msgid "Null Values"
 msgstr "Tukšās vērtības"
 
 msgid "Null imputation"
-msgstr "Tukšo vērtību aizpildīšana"
+msgstr "Aizpildīšana ar tukšām vērtībām"
 
 msgid "Null or Empty"
 msgstr "NULL vai tukšs"
@@ -12032,7 +12032,7 @@ msgid "Other color palettes"
 msgstr "Citas krāsu paletes"
 
 msgid "Outdoors"
-msgstr "Āra"
+msgstr "Brīvdaba"
 
 msgid "Outer Radius"
 msgstr "Ārējais rādiuss"
@@ -12258,7 +12258,7 @@ msgid "Path Size"
 msgstr "Ceļa izmērs"
 
 msgid "Pattern"
-msgstr "Šablons"
+msgstr "Likumsakarības"
 
 # sr_Latn]
 msgid "Pause auto refresh if tab is inactive"
@@ -12289,7 +12289,7 @@ msgid "Percent of total"
 msgstr "Procenti no kopējā"
 
 msgid "Percentage"
-msgstr "Procentuāli"
+msgstr "Procenti"
 
 msgid "Percentage change"
 msgstr "Procentuālās izmaiņas"
@@ -12388,7 +12388,7 @@ msgid "Piecewise"
 msgstr "Pa daļām"
 
 msgid "Pin"
-msgstr "Piespraust"
+msgstr "Piespraude"
 
 msgid "Pin Column"
 msgstr "Piespraust kolonnu"
@@ -12706,7 +12706,7 @@ msgstr ""
 " sadaļā \"Izpēte\"."
 
 msgid "Preview"
-msgstr "Priekšskatījums"
+msgstr "Priekšskatīt"
 
 msgid "Preview this version"
 msgstr "Priekšskatīt šo versiju"
@@ -12726,10 +12726,10 @@ msgid "Previous"
 msgstr "Iepriekšējais"
 
 msgid "Previous Line"
-msgstr "Iepriekšējā līnija"
+msgstr "Iepriekšējā rinda"
 
 msgid "Primary"
-msgstr "Primārs"
+msgstr "Primārā"
 
 msgid "Primary Metric"
 msgstr "Primārā metrika"
@@ -12814,7 +12814,7 @@ msgid "Put your code here"
 msgstr "Ievietojiet savu kodu šeit"
 
 msgid "Python datetime string pattern"
-msgstr "Python datetime virknes šablons"
+msgstr "Python datetime virknes šablona"
 
 msgid "Quarter"
 msgstr "Ceturksnis"
@@ -13424,7 +13424,7 @@ msgid "Resample"
 msgstr "Pārdiskretizēšana"
 
 msgid "Resample method should be in "
-msgstr "Pārdiskretizēšanas metodei jābūt "
+msgstr "Pārdiskretizēšanas metodei jābūt vienai no šīm: "
 
 msgid "Resample operation requires DatetimeIndex"
 msgstr "Pārdiskretizēšanas operācijai nepieciešams DatetimeIndex"
@@ -13562,7 +13562,7 @@ msgid "Reverse Lat & Long"
 msgstr "Apgriezt platumu un garumu"
 
 msgid "Reverse lat/long "
-msgstr "Apgriezt platumu/garumu "
+msgstr "Samainīt platumu/garumu "
 
 msgid "Revoke"
 msgstr "Atsaukt"
@@ -13596,7 +13596,7 @@ msgid "Right axis metric"
 msgstr "Labās ass metrika"
 
 msgid "Right color"
-msgstr "Labā krāsa"
+msgstr "Labās puses krāsa"
 
 msgid "Right label"
 msgstr "Labais apzīmējums"
@@ -13941,7 +13941,7 @@ msgid "Satellite"
 msgstr "Satelīts"
 
 msgid "Satellite Streets"
-msgstr "Satelīta ielas"
+msgstr "Satelīts ar ielām"
 
 msgid "Saturday"
 msgstr "Sestdiena"
@@ -14152,7 +14152,7 @@ msgid "Screenshot width must be between %(min)spx and %(max)spx"
 msgstr "Ekrānuzņēmuma platumam jābūt starp %(min)spx un %(max)spx"
 
 msgid "Scroll"
-msgstr "Ritināt"
+msgstr "Ritināma"
 
 msgid "Scroll down to the bottom to enable overwriting changes. "
 msgstr "Ritiniet uz leju, lai iespējotu izmaiņu pārrakstīšanu. "
@@ -14243,7 +14243,7 @@ msgid "Second"
 msgstr "Sekunde"
 
 msgid "Secondary"
-msgstr "Sekundārais"
+msgstr "Sekundārā"
 
 msgid "Secondary Metric"
 msgstr "Sekundārā metrika"
@@ -14511,7 +14511,7 @@ msgid "Select file"
 msgstr "Atlasīt failu"
 
 msgid "Select filter"
-msgstr "Atlasīt filtru"
+msgstr "Atlases filtrs"
 
 msgid "Select filter plugin using AntD"
 msgstr "Atlasīt filtra spraudni, izmantojot AntD"
@@ -14750,7 +14750,7 @@ msgid "Selection method"
 msgstr "Atlases metode"
 
 msgid "Semantic"
-msgstr "Semantiskais"
+msgstr "Semantisks"
 
 msgid "Semantic Layer"
 msgstr "Semantiskais slānis"
@@ -15643,7 +15643,7 @@ msgstr "Kārtot pēc"
 
 #, python-format
 msgid "Sort by %s"
-msgstr "Kārtot pēc %s"
+msgstr "Kārtot pēc: %s"
 
 msgid "Sort by data"
 msgstr "Kārtot pēc datiem"
@@ -15720,7 +15720,7 @@ msgid "Sparkline"
 msgstr "Dzirkstlīnija"
 
 msgid "Spatial"
-msgstr "Telpiskais"
+msgstr "Telpiskie dati"
 
 msgid "Specific Date/Time"
 msgstr "Konkrēts datums/laiks"
@@ -15757,7 +15757,7 @@ msgid "Square miles"
 msgstr "Kvadrātjūdzes"
 
 msgid "Stack"
-msgstr "Sakraut"
+msgstr "Sakrauts"
 
 msgid "Stack in groups, where each group corresponds to a dimension"
 msgstr "Sakraut grupās, kur katra grupa atbilst dimensijai"
@@ -15844,7 +15844,7 @@ msgstr ""
 "vērtības datos."
 
 msgid "Started"
-msgstr "Sākts"
+msgstr "Sākuma laiks"
 
 msgid "Starting version"
 msgstr "Sākuma versija"
@@ -16037,7 +16037,7 @@ msgid "Sum of values over specified period"
 msgstr "Vērtību summa norādītajā periodā"
 
 msgid "Sum values"
-msgstr "Summēt vērtības"
+msgstr "Summētās vērtības"
 
 msgid "Summary"
 msgstr "Kopsavilkums"
@@ -16074,7 +16074,7 @@ msgstr "Atbalstītās datubāzes"
 
 #, python-format
 msgid "Swap %s"
-msgstr "Apmainīt %s"
+msgstr "Apmainīt: %s"
 
 msgid "Swap rows and columns"
 msgstr "Apmainīt rindas un kolonnas"
@@ -16272,7 +16272,7 @@ msgstr "Birka atjaunināta"
 
 #, python-format
 msgid "Tagged %s %ss"
-msgstr "Birkas pievienotas: %s %ss"
+msgstr "Birkas pievienotas %s vienumiem (%s)"
 
 msgid "Tagged Object could not be deleted."
 msgstr "Objektu ar birku nevarēja dzēst."
@@ -19262,7 +19262,7 @@ msgid "Trigger now"
 msgstr "Palaist tagad"
 
 msgid "True"
-msgstr "Patiesi"
+msgstr "Patiess"
 
 msgid "Truncate Axis"
 msgstr "Saīsināt asi"
@@ -19326,7 +19326,7 @@ msgid "Tuesday"
 msgstr "Otrdiena"
 
 msgid "Tukey"
-msgstr "Tūkija"
+msgstr "Tūkija metode"
 
 msgid "Turn off server pagination"
 msgstr "Izslēgt servera lapošanu"
@@ -19607,7 +19607,7 @@ msgid "Unexpected time range: %(error)s"
 msgstr "Neparedzēts laika diapazons: %(error)s"
 
 msgid "Ungroup By"
-msgstr "Noņemt grupēšanu"
+msgstr "Noņemt grupēšanu pēc"
 
 msgid "Unhide"
 msgstr "Parādīt"
@@ -21019,7 +21019,7 @@ msgstr "Jā, pārrakstīt izmaiņas"
 
 #, python-format
 msgid "You are adding tags to %s %ss"
-msgstr "Jūs pievienojat birkas %s vienumiem (%ss)"
+msgstr "Jūs pievienojat birkas %s vienumiem (%s)"
 
 msgid "You are editing a query from the virtual dataset "
 msgstr "Jūs rediģējat vaicājumu no virtuālās datu kopas "
@@ -21639,10 +21639,10 @@ msgid "a dataset"
 msgstr "datu kopa"
 
 msgid "a few seconds"
-msgstr "dažas sekundes"
+msgstr "dažām sekundēm"
 
 msgid "aggregate"
-msgstr "apkopot"
+msgstr "apkopojums"
 
 msgid "alert condition"
 msgstr "brīdinājuma nosacījums"
@@ -21663,7 +21663,7 @@ msgid "annotation"
 msgstr "anotācija"
 
 msgid "annotation_layer"
-msgstr "anotācijas_slānis"
+msgstr "anotāciju slānis"
 
 msgid "apple"
 msgstr "ābols"
@@ -21707,7 +21707,7 @@ msgid "bolt"
 msgstr "zibens"
 
 msgid "boolean"
-msgstr "loģiskā"
+msgstr "loģisks"
 
 msgid "boolean type icon"
 msgstr "loģiskā veida ikona"
@@ -21772,7 +21772,7 @@ msgstr "kolonna"
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
-msgstr "pieslēdzas %(dbModelName)s"
+msgstr "savienojuma izveidi ar %(dbModelName)s"
 
 msgid "containing"
 msgstr "kas satur"
@@ -21790,7 +21790,7 @@ msgid "create a new chart"
 msgstr "izveidot jaunu diagrammu"
 
 msgid "create dataset from SQL query"
-msgstr "izveidot datu kopu no SQL vaicājuma"
+msgstr "izveidojiet datu kopu no SQL vaicājuma"
 
 #. do-not-translate
 msgid "crontab"
@@ -21800,7 +21800,7 @@ msgid "css"
 msgstr "css"
 
 msgid "css_template"
-msgstr "css_veidne"
+msgstr "CSS veidne"
 
 msgid "cumsum"
 msgstr "kumul. summa"
@@ -21909,7 +21909,7 @@ msgid "divider"
 msgstr "atdalītājs"
 
 msgid "documentation"
-msgstr "dokumentācija"
+msgstr "dokumentāciju"
 
 #. do-not-translate
 msgid "dttm"
@@ -21971,7 +21971,7 @@ msgid "entire row"
 msgstr "visa rinda"
 
 msgid "entries"
-msgstr "ieraksti"
+msgstr "ierakstus"
 
 #. do-not-translate
 msgid "error_message"
@@ -22027,7 +22027,7 @@ msgid "ffill"
 msgstr "ffill"
 
 msgid "flat"
-msgstr "plakans"
+msgstr "horizontāli"
 
 msgid "for a list of available helpers."
 msgstr "ar pieejamo palīgfunkciju sarakstu."
@@ -22205,7 +22205,7 @@ msgid "multi-value type icon"
 msgstr "vairāku vērtību veida ikona"
 
 msgid "must have a value"
-msgstr "jābūt ar vērtību"
+msgstr "jānorāda vērtība"
 
 msgid "name"
 msgstr "nosaukums"
@@ -22351,7 +22351,7 @@ msgid "reboot"
 msgstr "pārstartēt"
 
 msgid "recent"
-msgstr "nesen"
+msgstr "izmaiņu laiks"
 
 #, python-format
 msgid "recipient %s is not allowed"
@@ -22379,7 +22379,7 @@ msgid "row"
 msgstr "rinda"
 
 msgid "rowlevelsecurity"
-msgstr "rindu_līmeņa_drošība"
+msgstr "rindu līmeņa drošība"
 
 msgid "run as"
 msgstr "izpildīt kā"
@@ -22442,7 +22442,7 @@ msgid "sql"
 msgstr "sql"
 
 msgid "square"
-msgstr "kvadrāts"
+msgstr "taisnā leņķī"
 
 msgid "stack"
 msgstr "sakraut"
@@ -22480,7 +22480,7 @@ msgid "syntax error at position %(position)d."
 msgstr "sintakses kļūda pozīcijā %(position)d."
 
 msgid "syntax."
-msgstr "sintakse."
+msgstr "sintaksi."
 
 msgid "tab"
 msgstr "cilne"
@@ -22505,7 +22505,7 @@ msgstr "teksta lauks"
 
 # sr_Latn]
 msgid "the Handlebars chart documentation"
-msgstr "Handlebars diagrammas dokumentācija"
+msgstr "Handlebars diagrammas dokumentāciju"
 
 msgid "theme"
 msgstr "motīvs"
@@ -22594,7 +22594,7 @@ msgstr "gads"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "Jūsu-projekts-1234-a1"
+msgstr "your-project-1234-a1"
 
 msgid "zoom area"
 msgstr "tālummaiņas zona"
