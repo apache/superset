@@ -1132,6 +1132,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1151,6 +1152,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         true,
       ),
     ).toEqual({
@@ -1174,6 +1176,7 @@ describe('getLegendProps', () => {
       true,
       theme,
       true,
+      true,
     );
     const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
     const SAFETY_MARGIN = 15;
@@ -1184,7 +1187,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with left orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Left,
+        true,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: true,
       left: 0,
@@ -1201,6 +1210,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Right,
         false,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1221,6 +1231,7 @@ describe('getLegendProps', () => {
         false,
         theme,
         true,
+        true,
       ),
     ).toEqual({
       show: false,
@@ -1234,7 +1245,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with bottom orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Bottom,
+        false,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: false,
       bottom: 0,
@@ -1256,6 +1273,17 @@ describe('getLegendProps', () => {
       type: 'plain',
       ...expectedThemeProps,
     });
+  });
+
+  test('omits All and Inv buttons when showSelectorLegend is false', () => {
+    const legend = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+    );
+    expect(legend.selector).toBe(false);
   });
 });
 

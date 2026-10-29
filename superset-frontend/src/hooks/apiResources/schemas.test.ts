@@ -84,9 +84,9 @@ describe('useSchemas hook', () => {
     expect(result.current.data).toEqual(expectedResult);
     expect(
       fetchMock.callHistory.calls(
-        `end:/api/v1/database/${expectDbId}/schemas/?q=${rison.encode({
-          force: forceRefresh,
-        })}`,
+        `end:/api/v1/database/${expectDbId}/schemas/?q=${encodeURIComponent(
+          rison.encode({ force: forceRefresh }),
+        )}`,
       ).length,
     ).toBe(1);
     expect(onSuccess).toHaveBeenCalledTimes(1);
@@ -98,9 +98,9 @@ describe('useSchemas hook', () => {
     );
     expect(
       fetchMock.callHistory.calls(
-        `end:/api/v1/database/${expectDbId}/schemas/?q=${rison.encode({
-          force: true,
-        })}`,
+        `end:/api/v1/database/${expectDbId}/schemas/?q=${encodeURIComponent(
+          rison.encode({ force: true }),
+        )}`,
       ).length,
     ).toBe(1);
     expect(onSuccess).toHaveBeenCalledTimes(2);
@@ -330,13 +330,14 @@ describe('useSchemas hook', () => {
 
   test('returns correct schema list by a catalog', async () => {
     const dbId = '1';
-    const expectCatalog = 'catalog3';
+    const expectCatalog = 'demo%2Emetrics with space:tag';
     const schemaApiRoute = `glob:*/api/v1/database/*/schemas/*`;
-    fetchMock.get(schemaApiRoute, ({ url }) =>
-      url.includes(`catalog:${expectCatalog}`)
-        ? fakeApiResult3
-        : fakeApiResult2,
-    );
+    fetchMock.get(schemaApiRoute, ({ url }) => {
+      const query = rison.decode(new URL(url).searchParams.get('q') ?? '') as {
+        catalog?: string;
+      };
+      return query.catalog === expectCatalog ? fakeApiResult3 : fakeApiResult2;
+    });
     const onSuccess = jest.fn();
     const { result, rerender } = renderHook(
       ({ dbId, catalog }) =>

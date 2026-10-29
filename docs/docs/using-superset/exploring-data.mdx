@@ -419,6 +419,14 @@ previously.
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial Dashboard.
 
+:::note API post-processing
+
+For chart-data API requests using `compare` post-processing, percentage and ratio
+comparisons handle zero baselines consistently for raw SQL `DECIMAL` columns and
+floating-point inputs. Absolute-difference comparisons retain the input arithmetic.
+
+:::
+
 ### Resampling the data
 
 In this section, we’ll resample the data so that rather than having daily data we have weekly data.
@@ -481,12 +489,58 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+### Sunburst cross-filtering
+
+Sunburst cross-filters use the underlying hierarchy values, not the formatted
+segment labels. For time-grained temporal levels, selecting a segment filters the
+entire bucket. Adaptive date formatting includes the year in month and quarter
+labels to distinguish buckets across years; other grains keep their compact labels.
+For supported bucket ranges, the selection replaces the target chart's Time Range
+and also applies to its other temporal range filters, even on another time column.
+Drill to detail and Drill by match the selected bucket, including a dataset Hours
+offset. Their grained equality filters survive chart or dashboard Time Range
+overrides, including engine-specific grains without frontend bucket arithmetic.
+
+On engines without SQL temporal shifts, grained comparisons (Drill to detail, grained
+`IN` / `NOT IN` cross-filters and other bucket comparisons) use the displayed bucket's
+original, unshifted grouping boundaries, undoing the display-only Hours offset for each
+selected value. A temporal level without a time grain is compared with the stored
+timestamp, so with an Hours offset its Drill to detail does not match the displayed value.
+
 ### Downloading Drill to Detail and Drill By Results
 
 The **Drill to detail** and **Drill by** modals, available from a chart's context menu, show the row-level
 data behind a chart (or behind a specific data point, when one is selected). Use the **Download** button in
 the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) without leaving the modal —
 the export isn't limited to the page currently visible in the table.
+
+For Sunburst charts, drilling into a time-grained temporal segment filters the entire
+bucket rather than a single timestamp. Drill to detail and Drill by compare the
+raw bucket value against the grained time column, including the dataset's Hours offset.
+The bucket filter remains on the drilled hierarchy level even when a saved or dashboard
+Time Column selects a different temporal column.
+Sunburst applies its selected time grain to all physical hierarchy levels marked
+as temporal by Explore's dataset lookup. A legacy Time Column can also identify
+a temporal level when no lookup is saved; it does not disable grains on other
+lookup-marked levels. Sunburst does not retain a hidden Time Column control in
+Explore. An MCP-saved chart without a lookup can therefore grain only its legacy
+Time Column, while opening it in Explore can grain additional temporal levels.
+Older semantic-view Sunbursts without a saved temporal lookup retain dashboard
+Time Grain overrides: the semantic view infers the single temporal hierarchy level.
+
+Time-range overrides replace the default temporal-range filter, not independent
+equality or membership filters on the same Time Column. When a Time Column
+override replaces a different temporal column, Sunburst retains independent
+equality and membership filters on the replaced column because its hierarchy
+levels are independent of the Time Column. Dashboard cross-filters on the replaced
+column are discarded because they may carry values from a swapped time axis.
+Other chart types, including Table
+and time-series charts, discard filters on the replaced column, including drill
+predicates that may carry the new column's bucket.
+
+Drill-generated filters display their ISO time grain in brackets (for example, `[P1M]`).
+Editing the filter's column, operator, value, or expression type clears the bucket grain;
+unchanged duplicates retain it.
 
 :::resources
 
