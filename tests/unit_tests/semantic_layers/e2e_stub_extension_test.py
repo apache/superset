@@ -17,11 +17,8 @@
 
 """The Playwright semantic stub loads as an extension and serves host queries."""
 
-import sys
 from collections.abc import Callable, Iterator
-from pathlib import Path
-from typing import Any
-from unittest.mock import PropertyMock
+from typing import Any, TypeVar
 from uuid import uuid4
 
 import pytest
@@ -37,6 +34,7 @@ from superset_core.semantic_layers.types import (
     Filter,
     Metric,
     Operator,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticResult,
@@ -44,58 +42,10 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 from werkzeug.test import TestResponse
 
-from superset.app import SupersetApp
-from superset.initialization import SupersetAppInitializer
 from superset.semantic_layers.models import (
     SemanticLayer as SemanticLayerModel,
-    SemanticView,
 )
-from superset.semantic_layers.registry import registry
-
-STUB_PATH: Path = (
-    Path(__file__).resolve().parents[2] / "e2e_extensions" / "semantic_stub"
-)
-STUB_TYPE: str = "extensions.superset-e2e.semantic-stub.stub"
-
-
-@pytest.fixture
-def stub_layer(app: SupersetApp, mocker: MockerFixture) -> Iterator[type[Any]]:
-    """Load the bundle through the same path ``LOCAL_EXTENSIONS`` uses at startup."""
-    mocker.patch.dict(app.config, {"LOCAL_EXTENSIONS": [str(STUB_PATH)]})
-    # Startup imports the entrypoint once per process; undo the import and its
-    # in-memory finder so each test re-runs the real registration.
-    mocker.patch.dict(sys.modules)
-    mocker.patch.object(sys, "meta_path", list(sys.meta_path))
-    try:
-        with app.app_context():
-            SupersetAppInitializer(app).init_extensions()
-        yield registry[STUB_TYPE]
-    finally:
-        registry.pop(STUB_TYPE, None)
-
-
-@pytest.fixture
-def stub_view(
-    stub_layer: type[SemanticLayer[Any, Any]], mocker: MockerFixture
-) -> SemanticViewABC:
-    """Serve chart-data requests for a semantic view backed by the stub."""
-    view: SemanticViewABC = stub_layer.from_configuration({}).get_semantic_view(
-        "orders", {}
-    )
-    model: SemanticView = SemanticView(
-        id=91,
-        name="orders",
-        cache_timeout=-1,
-        semantic_layer=SemanticLayerModel(type=STUB_TYPE),
-    )
-    mocker.patch.object(
-        SemanticView, "implementation", new_callable=PropertyMock, return_value=view
-    )
-    mocker.patch(
-        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=model
-    )
-    mocker.patch.object(SemanticView, "raise_for_access")
-    return view
+from tests.unit_tests.semantic_layers.conftest import make_execution_context, STUB_TYPE
 
 
 def _chart_data(client: FlaskClient, filters: list[dict[str, Any]]) -> TestResponse:
@@ -118,12 +68,17 @@ def _chart_data(client: FlaskClient, filters: list[dict[str, Any]]) -> TestRespo
 
 
 def test_stub_registers_through_the_extension_loader(
-    stub_layer: type[SemanticLayer[Any, Any]],
+    stub_layer: type[Any],
 ) -> None:
     """The stub carries the extension-prefixed type that seeding code uses."""
     assert stub_layer.name == "E2E Semantic Stub"
     assert {
-        view.name for view in stub_layer.from_configuration({}).get_semantic_views({})
+        view.name
+        for view in stub_layer.from_configuration(
+            {},
+            cache_token="test",  # noqa: S106
+            context=make_execution_context(),
+        ).get_semantic_views({})
     } == {"orders"}
 
 
@@ -131,10 +86,19 @@ def test_stub_rejects_configuration_and_unknown_views(
     stub_layer: type[SemanticLayer[Any, Any]],
 ) -> None:
     """Typos in seeding fail at creation instead of producing an empty view."""
+    context = make_execution_context()
     with pytest.raises(ValueError, match="Extra inputs are not permitted"):
-        stub_layer.from_configuration({"account": "unexpected"})
+        stub_layer.from_configuration(
+            {"account": "unexpected"},
+            cache_token="test",  # noqa: S106
+            context=context,
+        )
     with pytest.raises(ValueError, match="no semantic view"):
-        stub_layer.from_configuration({}).get_semantic_view("missing", {})
+        stub_layer.from_configuration(
+            {},
+            cache_token="test",  # noqa: S106
+            context=context,
+        ).get_semantic_view("missing", {})
 
 
 @pytest.mark.parametrize(
@@ -197,14 +161,17 @@ def test_unsupported_operator_fails_loudly(
     assert "does not support" in str(response.json)
 
 
-class _OrderedFilters(set[Filter]):
+_FilterT = TypeVar("_FilterT")
+
+
+class _OrderedFilters(set[_FilterT]):
     """Exercise both legal set iteration orders without depending on hash seeds."""
 
-    def __init__(self, filters: tuple[Filter, ...]) -> None:
+    def __init__(self, filters: tuple[_FilterT, ...]) -> None:
         super().__init__(filters)
-        self._ordered: tuple[Filter, ...] = filters
+        self._ordered: tuple[_FilterT, ...] = filters
 
-    def __iter__(self) -> Iterator[Filter]:
+    def __iter__(self) -> Iterator[_FilterT]:
         return iter(self._ordered)
 
 
@@ -229,11 +196,14 @@ def test_unsupported_filter_is_rejected_even_when_other_filter_matches_no_rows(
         Operator.LIKE if invalid_kind == "operator" else Operator.EQUALS,
         "B%",
     )
-    filters: set[Filter] = _OrderedFilters(
+    ordered: tuple[Filter, ...] = (
         (invalid, empty) if invalid_first else (empty, invalid)
     )
+    filters: set[Filter] = _OrderedFilters(ordered)
     query: SemanticQuery = SemanticQuery(
-        metrics=[metric], dimensions=[dimensions["category"]], filters=filters
+        metrics=[metric],
+        dimensions=[dimensions["category"]],
+        filters=_OrderedFilters(ordered),
     )
     execute: Callable[[], SemanticResult] = {
         "values": lambda: stub_view.get_values(dimensions["category"], filters),
@@ -255,3 +225,22 @@ def test_supported_filter_can_return_an_empty_result(
     assert response.status_code == 200, response.json
     assert response.json is not None
     assert response.json["result"][0]["data"] == []
+
+
+def test_or_filter_group_is_rejected(stub_view: SemanticViewABC) -> None:
+    """The stub cannot evaluate OR groups, so it refuses instead of crashing."""
+    region: Dimension = next(d for d in stub_view.get_dimensions() if d.id == "region")
+    group: OrFilter = OrFilter(
+        frozenset(
+            {
+                Filter(PredicateType.WHERE, region, Operator.EQUALS, "East"),
+                Filter(PredicateType.WHERE, region, Operator.EQUALS, "West"),
+            }
+        )
+    )
+    query: SemanticQuery = SemanticQuery(
+        metrics=list(stub_view.get_metrics()), dimensions=[region], filters={group}
+    )
+    with pytest.raises(SemanticQueryRejectedError) as excinfo:
+        stub_view.get_table(query)
+    assert excinfo.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY

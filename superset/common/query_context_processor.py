@@ -40,6 +40,7 @@ from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
@@ -50,16 +51,19 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.dataframe import df_to_records
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     QueryObjectValidationMessage,
     SemanticResultCompletenessError,
     SupersetException,
+    SupersetSecurityException,
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.models.sql_lab import Query
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
@@ -484,9 +488,13 @@ class QueryContextProcessor:
         Annotation payloads are fetched per requesting user and stored on the
         same cache entry as the dataframe, so the key also binds the requesting
         user and, for chart-backed layers, the RLS clauses of the referenced
-        chart's datasource.
+        chart's datasource, including those injected into the tables its SQL
+        reads. The user id cannot tell embedded guests apart, so for them the
+        RLS is the only thing that does.
         """
         source_rls: dict[str, list[str] | None] = {}
+        source_inner_rls: dict[str, list[str]] = {}
+        source_rendered_rls: dict[str, list[str]] = {}
         source_versions: dict[str, tuple[str, str]] = {}
         metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
@@ -496,29 +504,9 @@ class QueryContextProcessor:
             ):
                 continue
             layer_value = layer.get("value")
-            chart = (
-                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
-            )
             annotation_datasource: Datasource | None = (
-                chart.resolved_datasource if chart else None
+                self._annotation_source_datasource(layer_value)
             )
-            if chart and isinstance(chart.query_context, str):
-                try:
-                    source: dict[str, Any] = json.loads(chart.query_context)[
-                        "datasource"
-                    ]
-                    annotation_datasource = DatasourceDAO.get_datasource(
-                        source["type"], source["id"]
-                    )
-                except (
-                    ValueError,
-                    TypeError,
-                    KeyError,
-                    DatasourceNotFound,
-                    DatasourceTypeNotSupportedError,
-                    DatasourceValueIsIncorrect,
-                ):
-                    annotation_datasource = None
             if isinstance(annotation_datasource, SemanticView):
                 metadata_versions[str(layer_value)] = (
                     annotation_datasource.metadata_generation
@@ -528,6 +516,14 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
+            if isinstance(annotation_datasource, SqlaTable) and (
+                rendered_rls := annotation_datasource.get_rendered_rls_cache_key()
+            ):
+                source_rendered_rls[str(layer_value)] = rendered_rls
+            if isinstance(annotation_datasource, (SqlaTable, Query)) and (
+                inner_rls := annotation_datasource.get_inner_rls_cache_key()
+            ):
+                source_inner_rls[str(layer_value)] = inner_rls
             if isinstance(annotation_datasource, SemanticView):
                 discriminator: tuple[str, str] | None = (
                     annotation_datasource.result_cache_discriminator
@@ -540,9 +536,40 @@ class QueryContextProcessor:
             "semantic_filter_protocol": "semantic-null-filters-v1",
             "source_versions": metadata_versions,
         }
-        if source_versions:
-            context["semantic_result_versions"] = source_versions
+        # Omit optional components when empty to preserve unaffected key bytes.
+        for key, component in (
+            ("semantic_result_versions", source_versions),
+            ("source_rendered_rls", source_rendered_rls),
+            ("source_inner_rls", source_inner_rls),
+        ):
+            if component:
+                context[key] = component
         return context
+
+    @staticmethod
+    def _annotation_source_datasource(layer_value: Any) -> Datasource | None:
+        """
+        The datasource a chart-backed annotation layer's data comes from: the
+        one in the referenced chart's saved query context when it has one, else
+        the chart's own datasource. ``None`` when it cannot be resolved.
+        """
+        chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+        if not chart:
+            return None
+        if not isinstance(chart.query_context, str):
+            return chart.resolved_datasource
+        try:
+            source: dict[str, Any] = json.loads(chart.query_context)["datasource"]
+            return DatasourceDAO.get_datasource(source["type"], source["id"])
+        except (
+            ValueError,
+            TypeError,
+            KeyError,
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        ):
+            return None
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
@@ -1018,6 +1045,13 @@ class QueryContextProcessor:
             SemanticResultCompletenessError,
         ):
             raise
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 

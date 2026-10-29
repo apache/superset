@@ -18,11 +18,13 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
 import pandas as pd
 import pytest
+from flask import Flask
+from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
@@ -35,6 +37,14 @@ from superset.exceptions import QueryObjectValidationError
 from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
+
+
+@pytest.fixture
+def semantic_cache_namespace(app: Flask, mocker: MockerFixture) -> None:
+    """Isolate transient semantic datasource cache tests from metadata storage."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "query-context-tests"}
+    )
 
 
 @pytest.fixture
@@ -2448,6 +2458,56 @@ def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
     assert len(result.df) == 2
 
 
+def test_grouping_sets_fallback_mixed_levels_exact() -> None:
+    """
+    Concatenating the per-level results must keep an exact large integer exact:
+    one level carries the nullable-integer dimension as an object column, another
+    has no such column, a third carries it as float64. ``object`` + ``float64``
+    stays an exact ``object`` column (a nullable ``Int64`` would be widened to
+    ``Float64`` and round the value again).
+    """
+    from datetime import timedelta
+
+    import numpy as np
+
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import QueryResult
+
+    large = 2**62 + 1
+    levels = {
+        2: pd.DataFrame(
+            {
+                "state": ["CA", "NY"],
+                "big": pd.Series([large, None], dtype=object),
+                "value": [1, 2],
+            }
+        ),
+        1: pd.DataFrame({"state": ["CA", "NY"], "value": [3, 4]}),
+        0: pd.DataFrame(
+            {"big": pd.Series([7.0, np.nan], dtype="float64"), "value": [5, 6]}
+        ),
+    }
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state", "big"],
+        grouping_sets=[["state", "big"], ["state"], []],
+    )
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+    mock_datasource.get_query_result.side_effect = lambda sub_query: QueryResult(
+        df=levels[len(sub_query.columns)],
+        query="SELECT 1",
+        duration=timedelta(seconds=0),
+    )
+
+    result = processor._grouping_sets_fallback(query_obj)
+
+    assert result.df["big"].dtype == object
+    assert result.df["big"].iloc[0] == large
+    assert type(result.df["big"].iloc[0]) is int
+
+
 def test_relative_offset_preserves_inner_bounds(
     processor: QueryContextProcessor,
 ) -> None:
@@ -2932,6 +2992,7 @@ def test_completeness_error_escapes_failed_payload_conversion(
 
 def test_semantic_annotation_generation_versions_sql_parent(
     processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
 ) -> None:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
@@ -2996,6 +3057,7 @@ def test_completeness_annotation_failure_preserves_subtype(app_context: Any) -> 
 
 def test_data_generation_separates_late_legacy_writer_and_task_keys(
     processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
 ) -> None:
     from unittest.mock import PropertyMock
 
@@ -3070,6 +3132,8 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 
 def test_semantic_annotation_null_protocol_versions_parent_cache(
     app_context: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    semantic_cache_namespace: None,
 ) -> None:
     """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
     from superset.common.query_context import QueryContext
@@ -3083,7 +3147,9 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     provider: MagicMock = MagicMock()
     provider.result_cache_version = None
     provider.get_dimensions.return_value = []
-    view.__dict__["implementation"] = provider
+    monkeypatch.setattr(
+        SemanticView, "implementation", PropertyMock(return_value=provider)
+    )
     chart: Slice = Slice(
         id=7,
         datasource_id=17,

@@ -31,11 +31,16 @@ rather than rendering plausible but unfiltered data.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from operator import itemgetter
 from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
@@ -50,6 +55,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     Operator,
     OrderDirection,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticRequest,
@@ -119,11 +125,13 @@ def _matches(row: dict[str, Any], filter_: Filter) -> bool:
     return actual not in values
 
 
-def _filtered_rows(filters: set[Filter] | None) -> list[dict[str, Any]]:
-    predicates: set[Filter] = filters or set()
-    filter_: Filter
-    for filter_ in predicates:
+def _filtered_rows(filters: Iterable[Filter | OrFilter] | None) -> list[dict[str, Any]]:
+    predicates: list[Filter] = []
+    for filter_ in filters or ():
+        if isinstance(filter_, OrFilter):
+            raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
         _validate_filter(filter_)
+        predicates.append(filter_)
     return [row for row in ROWS if all(_matches(row, f) for f in predicates)]
 
 
@@ -230,14 +238,30 @@ class StubOrdersView(SemanticView):
 )
 class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
     configuration_class: type[StubConfiguration] = StubConfiguration
+    cache_token: str
+    context: SemanticExecutionContext
+    credentials: SemanticCredentials | None
 
     def __init__(self, configuration: StubConfiguration) -> None:
         """Keep validated configuration available to host schema requests."""
         self.configuration: StubConfiguration = configuration
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:
-        return cls(StubConfiguration.model_validate(configuration))
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> StubSemanticLayer:
+        instance: StubSemanticLayer = cls(
+            StubConfiguration.model_validate(configuration)
+        )
+        instance.cache_token = cache_token
+        instance.context = context
+        instance.credentials = credentials
+        return instance
 
     @classmethod
     def get_configuration_schema(

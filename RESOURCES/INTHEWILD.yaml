@@ -614,6 +614,11 @@ categories:
       url: https://medic.org
       contributors: ["@1yuv"]
 
+    - name: Plum
+      url: https://www.plumhq.com/
+      logo: plum.svg
+      contributors: ["@shubhpy", "@ankush-plum", "@PranavParimi"]
+
     - name: REDCap Cloud
       url: https://www.redcapcloud.com/
 
