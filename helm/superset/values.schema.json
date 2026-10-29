@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "database": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "uri": {
+          "type": ["string", "null"]
+        },
+        "driver": {
+          "type": ["string", "null"]
+        },
+        "host": {
+          "type": ["string", "null"]
+        },
+        "port": {
+          "type": ["integer", "string", "null"]
+        },
+        "user": {
+          "type": ["string", "null"]
+        },
+        "password": {
+          "type": ["string", "null"]
+        },
+        "name": {
+          "type": ["string", "null"]
+        },
+        "ssl": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "mode": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "driver": {
+          "type": "string"
+        },
+        "host": {
+          "type": ["string", "null"]
+        },
+        "port": {
+          "type": ["integer", "string", "null"]
+        },
+        "cacheDb": {
+          "type": ["integer", "string", "null"]
+        },
+        "celeryDb": {
+          "type": ["integer", "string", "null"]
+        },
+        "ssl": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "databaseServiceName": {
+          "type": ["string", "null"]
+        },
+        "redisServiceName": {
+          "type": ["string", "null"]
+        },
+        "websocketServiceName": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "featureFlags": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "globalPodAnnotations": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": ["string", "null"]
+        },
+        "pullPolicy": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -30,16 +30,16 @@ Extensions can replace Superset's default text editors with custom implementatio
 
 Superset uses text editors in various places throughout the application:
 
-| Language | Locations |
-|----------|-----------|
-| `sql` | SQL Lab, Metric/Filter Popovers |
-| `json` | Dashboard Properties, Annotation Modal, Theme Modal |
-| `css` | Dashboard Properties, CSS Template Modal |
-| `markdown` | Dashboard Markdown component |
-| `yaml` | Template Params Editor |
-| `javascript` | Custom JavaScript editor contexts |
-| `python` | Custom Python editor contexts |
-| `text` | Plain text editor contexts |
+| Language     | Locations                                           |
+| ------------ | --------------------------------------------------- |
+| `sql`        | SQL Lab, Metric/Filter Popovers                     |
+| `json`       | Dashboard Properties, Annotation Modal, Theme Modal |
+| `css`        | Dashboard Properties, CSS Template Modal            |
+| `markdown`   | Dashboard Markdown component                        |
+| `yaml`       | Template Params Editor                              |
+| `javascript` | Custom JavaScript editor contexts                   |
+| `python`     | Custom Python editor contexts                       |
+| `text`       | Plain text editor contexts                          |
 
 By registering an editor for a language, your extension replaces the default Ace editor in **all** locations that use that language.
 
@@ -170,7 +170,7 @@ Superset passes keyboard shortcuts via the `hotkeys` prop. Each hotkey includes 
 ```typescript
 interface EditorHotkey {
   name: string;
-  key: string;  // e.g., "Ctrl-Enter", "Alt-Shift-F"
+  key: string; // e.g., "Ctrl-Enter", "Alt-Shift-F"
   description?: string;
   exec: (handle: EditorHandle) => void;
 }
@@ -185,9 +185,9 @@ Superset passes static autocomplete suggestions via the `keywords` prop. These i
 ```typescript
 interface EditorKeyword {
   name: string;
-  value?: string;  // Text to insert (defaults to name)
-  meta?: string;   // Category like "table", "column", "function"
-  score?: number;  // Sorting priority
+  value?: string; // Text to insert (defaults to name)
+  meta?: string; // Category like "table", "column", "function"
+  score?: number; // Sorting priority
 }
 ```
 

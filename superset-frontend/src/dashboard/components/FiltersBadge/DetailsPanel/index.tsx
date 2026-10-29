@@ -35,17 +35,19 @@ import { RootState } from 'src/dashboard/types';
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
   appliedIndicators: Indicator[];
+  incompatibleIndicators?: Indicator[];
   onHighlightFilterSource: (path: string[]) => void;
   children: JSX.Element;
   popoverVisible: boolean;
   popoverContentRef: RefObject<HTMLDivElement>;
-  popoverTriggerRef: RefObject<HTMLDivElement>;
+  popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
 
 const DetailsPanelPopover = ({
   appliedCrossFilterIndicators = [],
   appliedIndicators = [],
+  incompatibleIndicators = [],
   onHighlightFilterSource,
   children,
   popoverVisible,
@@ -172,6 +174,26 @@ const DetailsPanelPopover = ({
                   </List.Item>
                 )}
               />
+            </FiltersContainer>
+          </div>
+        ) : null}
+        {incompatibleIndicators.length ? (
+          <div>
+            {appliedCrossFilterIndicators.length || appliedIndicators.length ? (
+              <Separator />
+            ) : null}
+            <SectionName>
+              {t('Incompatible filters (%d)', incompatibleIndicators.length)}
+            </SectionName>
+            <FiltersContainer>
+              {incompatibleIndicators.map(indicator => (
+                <FilterIndicator
+                  ref={el => indicatorRefs.current.push(el)}
+                  key={indicatorKey(indicator)}
+                  indicator={indicator}
+                  onClick={onHighlightFilterSource}
+                />
+              ))}
             </FiltersContainer>
           </div>
         ) : null}

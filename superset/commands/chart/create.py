@@ -17,7 +17,7 @@
 import logging
 from datetime import datetime
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask import current_app, g
 from flask_appbuilder.models.sqla import Model
@@ -32,7 +32,12 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
-from superset.commands.utils import get_datasource_by_id
+from superset.commands.chart.utils import (
+    touch_dashboards,
+    validate_chart_datasource_type,
+    validate_query_context_datasource,
+)
+from superset.commands.utils import get_datasource_by_id, populate_subjects
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
@@ -59,6 +64,9 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         self._properties["last_saved_at"] = datetime.now()
         self._properties["last_saved_by"] = g.user
         chart = ChartDAO.create(attributes=self._properties)
+        # Touch attached dashboards to bump changed_on/changed_by (resolves #44305).
+        # Ensures adding a chart updates the dashboard's last modified state.
+        touch_dashboards(self._properties.get("dashboards"))
         if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
             after_create(chart, "chart")
         return chart
@@ -68,10 +76,10 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         datasource_type = self._properties["datasource_type"]
         datasource_id = self._properties["datasource_id"]
         dashboard_ids = self._properties.get("dashboards", [])
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/Populate datasource
         try:
+            validate_chart_datasource_type(datasource_type)
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
             security_manager.raise_for_access(datasource=datasource)
@@ -80,19 +88,23 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
 
+        validate_query_context_datasource(
+            self._properties.get("query_context"),
+            datasource_id,
+            datasource_type,
+            exceptions,
+        )
+
         # Validate/Populate dashboards
         dashboards = DashboardDAO.find_by_ids(dashboard_ids)
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         for dash in dashboards:
-            if not security_manager.is_owner(dash):
+            if dash.is_managed_externally or not security_manager.is_editor(dash):
                 raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        populate_subjects(self._properties, exceptions)
+
         if exceptions:
             raise ChartInvalidError(exceptions=exceptions)

@@ -19,10 +19,12 @@
 from typing import Any
 from unittest import mock
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
-import pytest  # noqa: F401
+import pytest
 from pandas.api.types import is_datetime64_any_dtype
+from pytest_mock import MockerFixture
 
 from superset.utils import csv, json
 from superset.utils.core import GenericDataType
@@ -66,6 +68,9 @@ def test_escape_value():
 
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
+
+    result = csv.escape_value('  ""=10+2')
+    assert result == '\'  ""=10+2'
 
     # A leading tab or carriage return followed by a dangerous char was already
     # handled by \s{1,} in the pre-existing regex. The cases below test the
@@ -249,6 +254,19 @@ def test_df_to_escaped_csv_preserves_numeric_columns():
     # Safe string is untouched; numeric values (including negatives) are not
     # escaped or quoted.
     assert rows[2] == ["safe", "-20"]
+
+
+@pytest.mark.parametrize("scalar", [int, np.int64], ids=["python-int", "numpy-int64"])
+def test_df_to_escaped_csv_object_big_integers(scalar: type) -> None:
+    """Nullable big integers keep every digit; null and NaN rows are blank."""
+    values = [scalar(2**53 + 1), None, scalar(7), float("nan"), scalar(-(2**63))]
+    df = pd.DataFrame(
+        {"value": pd.Series(values, dtype=object), "label": list("abcde")}
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=False) == (
+        "value,label\n9007199254740993,a\n,b\n7,c\n,d\n-9223372036854775808,e\n"
+    )
 
 
 def test_df_to_escaped_csv_non_default_index():
@@ -447,3 +465,27 @@ def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(csv, "get_chart_csv_data", fake)
     get_chart_dataframe("http://dummy-url", timeout=99)
     assert captured["timeout"] == 99
+
+
+@pytest.mark.parametrize("fail_read", [False, True])
+def test_get_chart_csv_data_closes_response(
+    mocker: MockerFixture, fail_read: bool
+) -> None:
+    """Release the legacy export connection on success and before retrying a read."""
+    from superset.utils.csv import get_chart_csv_data
+
+    response = mocker.patch(
+        "urllib.request.build_opener"
+    ).return_value.open.return_value
+    response.getcode.return_value = 200
+    response.read.return_value = b"csv"
+    if fail_read:
+        response.read.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            get_chart_csv_data("https://localhost/chart", {"session": "cookie"}, 10)
+    else:
+        assert (
+            get_chart_csv_data("https://localhost/chart", {"session": "cookie"}, 10)
+            == b"csv"
+        )
+    response.close.assert_called_once()

@@ -22,7 +22,7 @@ import { DashboardInfo } from 'src/dashboard/types';
 import MetadataBar, {
   MetadataType,
 } from '@superset-ui/core/components/MetadataBar';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 
 export const useDashboardMetadataBar = (dashboardInfo: DashboardInfo) => {
   const items = useMemo(
@@ -30,15 +30,14 @@ export const useDashboardMetadataBar = (dashboardInfo: DashboardInfo) => {
       {
         type: MetadataType.LastModified as const,
         value: dashboardInfo.changed_on_delta_humanized,
-        modifiedBy:
-          getOwnerName(dashboardInfo.changed_by) || t('Not available'),
+        modifiedBy: getUserName(dashboardInfo.changed_by) || t('Not available'),
       },
       {
-        type: MetadataType.Owner as const,
-        createdBy: getOwnerName(dashboardInfo.created_by) || t('Not available'),
-        owners:
-          dashboardInfo.owners.length > 0
-            ? dashboardInfo.owners.map(getOwnerName)
+        type: MetadataType.Editor as const,
+        createdBy: getUserName(dashboardInfo.created_by) || t('Not available'),
+        editors:
+          dashboardInfo.editors.length > 0
+            ? dashboardInfo.editors.map(getUserName)
             : t('None'),
         createdOn: dashboardInfo.created_on_delta_humanized,
       },
@@ -48,7 +47,7 @@ export const useDashboardMetadataBar = (dashboardInfo: DashboardInfo) => {
       dashboardInfo.changed_on_delta_humanized,
       dashboardInfo.created_by,
       dashboardInfo.created_on_delta_humanized,
-      dashboardInfo.owners,
+      dashboardInfo.editors,
     ],
   );
 

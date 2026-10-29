@@ -21,7 +21,7 @@ from flask import g
 from sqlalchemy.exc import NoResultFound
 
 from superset.commands.tag.exceptions import TagNotFoundError
-from superset.commands.tag.utils import to_object_type
+from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.base import BaseDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
@@ -190,7 +190,7 @@ class TagDAO(BaseDAO[Tag]):
                         "created_by": obj.created_by_fk,
                         "creator": obj.creator(),
                         "tags": obj.tags,
-                        "owners": obj.owners,
+                        "editors": obj.editors,
                     }
                     for obj in DashboardDAO.find_by_ids(tagged_dashboards)
                 )
@@ -213,7 +213,7 @@ class TagDAO(BaseDAO[Tag]):
                         "created_by": obj.created_by_fk,
                         "creator": obj.creator(),
                         "tags": obj.tags,
-                        "owners": obj.owners,
+                        "editors": obj.editors,
                     }
                     for obj in ChartDAO.find_by_ids(tagged_charts)
                 )
@@ -236,7 +236,7 @@ class TagDAO(BaseDAO[Tag]):
                         "created_by": obj.created_by_fk,
                         "creator": obj.creator(),
                         "tags": obj.tags,
-                        "owners": [obj.creator()],
+                        "editors": [],
                     }
                     for obj in SavedQueryDAO.find_by_ids(tagged_queries)
                 )
@@ -345,6 +345,10 @@ class TagDAO(BaseDAO[Tag]):
         Returns:
             None.
         """
+        # Imported lazily: superset.commands.utils itself imports TagDAO from
+        # this module, so a top-level import here would be circular.
+        from superset.commands.utils import current_user_can_modify_object
+
         tagged_objects = []
         if not tag:
             raise TagNotFoundError()
@@ -372,6 +376,18 @@ class TagDAO(BaseDAO[Tag]):
         if not bulk_create:
             # delete relationships that aren't retained from single tag create
             for object_type, object_id in tagged_objects_to_delete:
+                # Only remove associations from objects the current user may
+                # modify, mirroring the per-object check applied to additions.
+                # Look the object up bypassing the access base filter so an
+                # inaccessible object reaches the check instead of resolving
+                # to None and having its association deleted unchecked.
+                model = to_object_model(
+                    object_type,  # type: ignore
+                    object_id,
+                    skip_base_filter=True,
+                )
+                if model and not current_user_can_modify_object(model):
+                    continue
                 # delete objects that were removed
                 TagDAO.delete_tagged_object(
                     object_type,  # type: ignore

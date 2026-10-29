@@ -18,6 +18,7 @@
 
 import datetime
 import logging
+from decimal import Decimal
 from typing import Any, Optional
 
 import numpy as np
@@ -48,10 +49,17 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
     """
     new_l: list[str] = []
     seen: dict[str, int] = {}
+    reserved = {item if case_sensitive else item.lower() for item in l}
+    fixed_case_suffix = suffix if case_sensitive else suffix.lower()
     for item in l:
         s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
             seen[s_fixed_case] += 1
+            while (
+                s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]) in reserved
+            ):
+                seen[s_fixed_case] += 1
+            reserved.add(s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]))
             item += suffix + str(seen[s_fixed_case])
         else:
             seen[s_fixed_case] = 0
@@ -60,7 +68,11 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json.dumps(obj, default=json.json_iso_dttm_ser)
+    # ensure_ascii=False so non-ASCII characters in array/struct/JSON column
+    # values (e.g. Cyrillic or CJK text from array_agg) render verbatim in the
+    # result grid instead of as \uXXXX escape sequences. This only affects the
+    # query result payload, not metadata persisted to the database.
+    return json.dumps(obj, default=json.json_iso_dttm_ser, ensure_ascii=False)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
@@ -84,6 +96,11 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                             # Non-JSON-serializable value (e.g. bytes, custom
                             # objects): fall back to str() to avoid crashing.
                             obj[...] = str(val)
+                    elif isinstance(val, Decimal):
+                        # str() switches to scientific notation for small or
+                        # large exponents (-1.0E-7), which CSV export would
+                        # formula-escape. NaN and Infinity have no exact value.
+                        obj[...] = format(val, "f") if val.is_finite() else None
                     else:
                         # for simple string conversions
                         # this handles odd character types better
@@ -175,7 +192,10 @@ class SupersetResultSet:
         data: DbapiResult,
         cursor_description: DbapiDescription,
         db_engine_spec: type[BaseEngineSpec],
+        *,
+        truncated: bool = False,
     ):
+        self.truncated = truncated
         self.db_engine_spec = db_engine_spec
         data = data or []
         column_names: list[str] = []
@@ -226,6 +246,8 @@ class SupersetResultSet:
                 ValueError,
                 TypeError,  # this is super hackey,
                 # https://issues.apache.org/jira/browse/ARROW-7855
+                # Integers outside int64, e.g. BIGINT UNSIGNED above 2**63 - 1.
+                OverflowError,
             ):
                 # Check if original data has nested types (lists/dicts)
                 # before stringifying, since stringification removes
@@ -353,6 +375,11 @@ class SupersetResultSet:
             assert column in df.columns
             df[column] = values
         return df
+
+    @property
+    def nested_columns(self) -> dict[str, list[Any]]:
+        """Original nested values restored by the synchronous DataFrame path."""
+        return self._nested_columns
 
     @property
     def pa_table(self) -> pa.Table:

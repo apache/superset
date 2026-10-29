@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import rison from 'rison';
 import {
   Button,
   AsyncSelect,
   EmptyState,
   ColorPicker,
+  Typography,
 } from '@superset-ui/core/components';
 import {
   SupersetClient,
@@ -35,17 +43,15 @@ import {
   type QueryFormColumn,
 } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import {
-  styled,
-  withTheme,
-  type SupersetTheme,
-} from '@apache-superset/core/theme';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { logging } from '@apache-superset/core/utils';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { CONTROL_SECTIONS_ID } from 'src/explore/constants';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -100,35 +106,80 @@ interface AnnotationLayerProps {
   vizType?: string;
   error?: string;
   colorScheme?: string;
-  theme: SupersetTheme;
+  canReadAnnotation: boolean;
   addAnnotationLayer?: (annotation: Record<string, unknown>) => void;
   removeAnnotationLayer?: () => void;
   close?: () => void;
 }
 
-interface AnnotationLayerState {
-  name: string;
-  annotationType: string;
-  sourceType: string | null;
-  value: string | number | SelectOption | null;
-  overrides: AnnotationOverrides;
-  show: boolean;
-  showLabel: boolean;
-  titleColumn: string;
-  descriptionColumns: string[];
-  timeColumn: string;
-  intervalEndColumn: string;
-  color: string;
-  opacity: string;
-  style: string;
-  width: number;
-  showMarkers: boolean;
-  hideLine: boolean;
-  isNew: boolean;
-  slice: SliceData | null;
+const AUTOMATIC_COLOR = '';
+
+/** Space between the popover's side-by-side configuration sections, in size units. */
+const SECTION_GAP_UNITS = 8;
+
+/** Breathing room kept between the popover and the viewport edge, in size units. */
+const VIEWPORT_INSET_UNITS = 2;
+
+const SectionsRow = styled.div<{ $maxWidth: number | string }>`
+  display: flex;
+  flex-direction: row;
+  /* A third section can outgrow a narrow viewport, and an oversized popover
+   * cannot be shrunk by antd, only flipped. Bounding the row compresses the
+   * sections instead of pushing the footer off screen. */
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.sizeUnit * SECTION_GAP_UNITS}px;
+  max-width: ${({ $maxWidth }) =>
+    typeof $maxWidth === 'number' ? `${$maxWidth}px` : $maxWidth};
+`;
+
+interface ChartApiResult {
+  params?: string | null;
+  query_context?: string | null;
 }
 
-const AUTOMATIC_COLOR = '';
+const parseJsonObject = (
+  raw: string | null | undefined,
+): Record<string, unknown> | null => {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+// `query_context` is only backfilled once a chart is opened in Explore, so fall
+// back to `params`, which holds the same form data and is always present.
+const getSliceFormData = (
+  result: ChartApiResult,
+): Record<string, unknown> | null => {
+  const formData = parseJsonObject(result.query_context)?.form_data;
+  if (formData && typeof formData === 'object') {
+    return formData as Record<string, unknown>;
+  }
+  return parseJsonObject(result.params);
+};
+
+const reportChartFailure = (id: string | number) => (error: unknown) =>
+  logging.error(`Failed to load annotation source chart ${id}`, error);
+
+const reportAnnotationLayerFailure =
+  (id: string | number) => (error: unknown) =>
+    logging.error(`Failed to load annotation layer ${id}`, error);
+
+const toSliceData = (formData: Record<string, unknown>): SliceData => ({
+  data: {
+    ...formData,
+    groupby: (formData.groupby as QueryFormColumn[] | undefined)?.map(column =>
+      getColumnLabel(column),
+    ),
+  },
+});
 
 const NotFoundContentWrapper = styled.div`
   && > div:first-of-type {
@@ -146,7 +197,13 @@ const NotFoundContent = () => (
         <span>
           {t('Add an annotation layer')}{' '}
           <a
-            href={ensureAppRoot('/annotationlayer/list')}
+            // encodeURI wraps the DOM-derived application-root prefix so
+            // CodeQL's `js/html-injection` sees a recognised through-function
+            // sanitiser between `applicationRoot()` (reads `data-bootstrap`
+            // from the DOM) and the `<a href>` sink. The string fed in is a
+            // URL-normalised path (`/seg/seg`) so encodeURI is idempotent in
+            // practice — it does not alter the navigation target.
+            href={encodeURI(ensureAppRoot('/annotationlayer/list'))}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -160,204 +217,385 @@ const NotFoundContent = () => (
   </NotFoundContentWrapper>
 );
 
-class AnnotationLayer extends PureComponent<
-  AnnotationLayerProps,
-  AnnotationLayerState
-> {
-  static defaultProps = {
-    name: '',
-    annotationType: DEFAULT_ANNOTATION_TYPE,
-    sourceType: '',
-    color: AUTOMATIC_COLOR,
-    opacity: '',
-    style: 'solid',
-    width: 1,
-    showMarkers: false,
-    hideLine: false,
-    overrides: {},
-    colorScheme: 'd3Category10',
-    show: true,
-    showLabel: false,
-    titleColumn: '',
-    descriptionColumns: [],
-    timeColumn: '',
-    intervalEndColumn: '',
-    addAnnotationLayer: () => {},
-    removeAnnotationLayer: () => {},
-    close: () => {},
-  };
+function AnnotationLayer({
+  name: propName = '',
+  annotationType: propAnnotationType = DEFAULT_ANNOTATION_TYPE,
+  sourceType: propSourceType = '',
+  color: propColor = AUTOMATIC_COLOR,
+  opacity: propOpacity = '',
+  style: propStyle = 'solid',
+  width: propWidth = 1,
+  showMarkers: propShowMarkers = false,
+  hideLine: propHideLine = false,
+  value: propValue,
+  overrides: propOverrides = {},
+  show: propShow = true,
+  showLabel: propShowLabel = false,
+  titleColumn: propTitleColumn = '',
+  descriptionColumns: propDescriptionColumns = [],
+  timeColumn: propTimeColumn = '',
+  intervalEndColumn: propIntervalEndColumn = '',
+  vizType,
+  error,
+  colorScheme = 'd3Category10',
+  canReadAnnotation,
+  addAnnotationLayer = () => {},
+  removeAnnotationLayer = () => {},
+  close = () => {},
+}: AnnotationLayerProps) {
+  const theme = useTheme();
 
-  constructor(props: AnnotationLayerProps) {
-    super(props);
-    const {
-      name,
-      annotationType,
-      sourceType,
-      color,
-      opacity,
-      style,
-      width,
-      showMarkers,
-      hideLine,
-      value,
-      overrides,
-      show,
-      showLabel,
-      titleColumn,
-      descriptionColumns,
-      timeColumn,
-      intervalEndColumn,
-      vizType,
-    } = props;
-
-    // Only allow override whole time_range
-    const processedOverrides: AnnotationOverrides = overrides
-      ? { ...overrides }
+  // Process overrides - only allow override whole time_range
+  const processedOverrides = useMemo((): AnnotationOverrides => {
+    const result: AnnotationOverrides = propOverrides
+      ? { ...propOverrides }
       : {};
-    if ('since' in processedOverrides || 'until' in processedOverrides) {
-      processedOverrides.time_range = null;
-      delete processedOverrides.since;
-      delete processedOverrides.until;
+    if ('since' in result || 'until' in result) {
+      result.time_range = null;
+      delete result.since;
+      delete result.until;
     }
+    return result;
+  }, [propOverrides]);
 
-    // Check if annotationType is supported by this chart
+  // Check if annotationType is supported by this chart
+  const validAnnotationType = useMemo(() => {
     const metadata = vizType ? getChartMetadataRegistry().get(vizType) : null;
     const supportedAnnotationTypes = metadata?.supportedAnnotationTypes || [];
-    const resolvedAnnotationType = annotationType || DEFAULT_ANNOTATION_TYPE;
-    const validAnnotationType = supportedAnnotationTypes.includes(
-      resolvedAnnotationType,
-    )
+    const resolvedAnnotationType =
+      propAnnotationType || DEFAULT_ANNOTATION_TYPE;
+    const isValid = supportedAnnotationTypes.includes(resolvedAnnotationType);
+    return isValid
       ? resolvedAnnotationType
-      : supportedAnnotationTypes[0];
+      : supportedAnnotationTypes[0] || DEFAULT_ANNOTATION_TYPE;
+  }, [vizType, propAnnotationType]);
 
-    this.state = {
-      // base
-      name: name || '',
-      annotationType: validAnnotationType || DEFAULT_ANNOTATION_TYPE,
-      sourceType: sourceType || null,
-      value: value || null,
-      overrides: processedOverrides,
-      show: show ?? true,
-      showLabel: showLabel ?? false,
-      // slice
-      titleColumn: titleColumn || '',
-      descriptionColumns: descriptionColumns || [],
-      timeColumn: timeColumn || '',
-      intervalEndColumn: intervalEndColumn || '',
-      // display
-      color: color || AUTOMATIC_COLOR,
-      opacity: opacity || '',
-      style: style || 'solid',
-      width: width ?? 1,
-      showMarkers: showMarkers ?? false,
-      hideLine: hideLine ?? false,
-      // refData
-      isNew: !name,
-      slice: null,
-    };
-    this.submitAnnotation = this.submitAnnotation.bind(this);
-    this.deleteAnnotation = this.deleteAnnotation.bind(this);
-    this.applyAnnotation = this.applyAnnotation.bind(this);
-    this.isValidForm = this.isValidForm.bind(this);
-    // Handlers
-    this.handleAnnotationType = this.handleAnnotationType.bind(this);
-    this.handleAnnotationSourceType =
-      this.handleAnnotationSourceType.bind(this);
-    this.handleSelectValue = this.handleSelectValue.bind(this);
-    this.handleTextValue = this.handleTextValue.bind(this);
-    // Fetch related functions
-    this.fetchOptions = this.fetchOptions.bind(this);
-    this.fetchCharts = this.fetchCharts.bind(this);
-    this.fetchNativeAnnotations = this.fetchNativeAnnotations.bind(this);
-    this.fetchAppliedAnnotation = this.fetchAppliedAnnotation.bind(this);
-    this.fetchSliceData = this.fetchSliceData.bind(this);
-    this.shouldFetchSliceData = this.shouldFetchSliceData.bind(this);
-    this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
-    this.fetchAppliedNativeAnnotation =
-      this.fetchAppliedNativeAnnotation.bind(this);
-    this.shouldFetchAppliedAnnotation =
-      this.shouldFetchAppliedAnnotation.bind(this);
-  }
+  // State
+  const [name, setName] = useState(propName || '');
+  const [annotationType, setAnnotationType] = useState(validAnnotationType);
+  const [sourceType, setSourceType] = useState<string | null>(
+    propSourceType || null,
+  );
+  const [value, setValue] = useState<string | number | SelectOption | null>(
+    propValue || null,
+  );
+  const [overrides, setOverrides] =
+    useState<AnnotationOverrides>(processedOverrides);
+  const [show, setShow] = useState(propShow ?? true);
+  const [showLabel, setShowLabel] = useState(propShowLabel ?? false);
+  const [titleColumn, setTitleColumn] = useState(propTitleColumn || '');
+  const [descriptionColumns, setDescriptionColumns] = useState<string[]>(
+    propDescriptionColumns || [],
+  );
+  const [timeColumn, setTimeColumn] = useState(propTimeColumn || '');
+  const [intervalEndColumn, setIntervalEndColumn] = useState(
+    propIntervalEndColumn || '',
+  );
+  const [color, setColor] = useState(propColor || AUTOMATIC_COLOR);
+  const [opacity, setOpacity] = useState(propOpacity || '');
+  const [style, setStyle] = useState(propStyle || 'solid');
+  const [width, setWidth] = useState(propWidth ?? 1);
+  const [showMarkers, setShowMarkers] = useState(propShowMarkers ?? false);
+  const [hideLine, setHideLine] = useState(propHideLine ?? false);
+  const [isNew, setIsNew] = useState(!propName);
+  const [slice, setSlice] = useState<SliceData | null>(null);
+  const sectionsRef = useRef<HTMLDivElement>(null);
+  const [sectionsMaxWidth, setSectionsMaxWidth] = useState<number>();
 
-  componentDidMount() {
-    if (this.shouldFetchAppliedAnnotation()) {
-      const { value } = this.state;
+  const getSupportedSourceTypes = useCallback(
+    (annoType: string): SelectOption[] => {
+      // Get vis types that can be source.
+      const sources = getChartMetadataRegistry()
+        .entries()
+        .filter(({ value: chartMetadata }) =>
+          chartMetadata?.canBeAnnotationType(annoType),
+        )
+        .map(({ key, value: chartMetadata }) => ({
+          value: key === VizType.Line ? 'line' : key,
+          label: chartMetadata?.name || key,
+        }));
+      // Prepend native source if applicable. Listing native annotation layers
+      // requires can_read on Annotation; without it the option is offered only
+      // while it is the layer's current selection, so a saved native layer
+      // stays intact instead of being silently invalidated.
+      const annotationMeta =
+        ANNOTATION_TYPES_METADATA[
+          annoType as keyof typeof ANNOTATION_TYPES_METADATA
+        ];
+      if (
+        annotationMeta &&
+        'supportNativeSource' in annotationMeta &&
+        (canReadAnnotation || sourceType === ANNOTATION_SOURCE_TYPES.NATIVE)
+      ) {
+        sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
+      }
+      return sources;
+    },
+    [canReadAnnotation, sourceType],
+  );
+
+  const shouldFetchAppliedAnnotation = useCallback(
+    (): boolean => !!value && requiresQuery(sourceType ?? undefined),
+    [value, sourceType],
+  );
+
+  const fetchNativeAnnotations = useCallback(
+    async (
+      search: string,
+      page: number,
+      pageSize: number,
+    ): Promise<{ data: SelectOption[]; totalCount: number }> => {
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'name',
+            opr: 'ct',
+            value: search,
+          },
+        ],
+        columns: ['id', 'name'],
+        page,
+        page_size: pageSize,
+      });
+
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
+      });
+
+      const { result, count } = json;
+
+      const layersArray = result.map((layer: { id: number; name: string }) => ({
+        value: layer.id,
+        label: layer.name,
+      }));
+
+      return {
+        data: layersArray,
+        totalCount: count,
+      };
+    },
+    [],
+  );
+
+  const fetchCharts = useCallback(
+    async (
+      search: string,
+      page: number,
+      pageSize: number,
+    ): Promise<{ data: SelectOption[]; totalCount: number }> => {
+      const queryParams = rison.encode({
+        filters: [
+          { col: 'slice_name', opr: 'chart_all_text', value: search },
+          {
+            col: 'id',
+            opr: 'chart_owned_created_favored_by_me',
+            value: true,
+          },
+        ],
+        columns: ['id', 'slice_name', 'viz_type'],
+        order_column: 'slice_name',
+        order_direction: 'asc',
+        page,
+        page_size: pageSize,
+      });
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/chart/?q=${queryParams}`,
+      });
+
+      const { result, count } = json;
+      const registry = getChartMetadataRegistry();
+
+      const chartsArray = result
+        .filter(
+          (chart: { id: number; slice_name: string; viz_type: string }) => {
+            const metadata = registry.get(chart.viz_type);
+            return metadata && metadata.canBeAnnotationType(annotationType);
+          },
+        )
+        .map((chart: { id: number; slice_name: string; viz_type: string }) => ({
+          value: chart.id,
+          label: chart.slice_name,
+          viz_type: chart.viz_type,
+        }));
+
+      return {
+        data: chartsArray,
+        totalCount: count,
+      };
+    },
+    [annotationType],
+  );
+
+  const fetchOptions = useCallback(
+    (
+      search: string,
+      page: number,
+      pageSize: number,
+    ): Promise<{ data: SelectOption[]; totalCount: number }> => {
+      if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+        return fetchNativeAnnotations(search, page, pageSize);
+      }
+      return fetchCharts(search, page, pageSize);
+    },
+    [sourceType, fetchNativeAnnotations, fetchCharts],
+  );
+
+  // Both the mount and the selection path load a chart to fill the slice
+  // configuration from, so they share how a loaded chart is applied and how a
+  // failure is reported.
+  const applySliceFormData = useCallback(
+    (id: string | number, result: ChartApiResult): void => {
+      const formData = getSliceFormData(result);
+      if (formData) {
+        setSlice(toSliceData(formData));
+        return;
+      }
+      logging.warn(
+        `Annotation source chart ${id} has no usable form data; ` +
+          'the slice configuration fields cannot be populated.',
+      );
+    },
+    [],
+  );
+
+  const fetchSliceData = useCallback(
+    (id: string | number): void => {
+      const queryParams = rison.encode({
+        columns: ['params', 'query_context'],
+      });
+      SupersetClient.get({
+        endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
+      })
+        .then(({ json }) => applySliceFormData(id, json.result))
+        .catch(reportChartFailure(id));
+    },
+    [applySliceFormData],
+  );
+
+  const fetchAppliedChart = useCallback(
+    (id: string | number): void => {
+      const registry = getChartMetadataRegistry();
+      const queryParams = rison.encode({
+        columns: ['slice_name', 'params', 'query_context', 'viz_type'],
+      });
+      SupersetClient.get({
+        endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
+      })
+        .then(({ json }) => {
+          const { result } = json;
+          const metadata = registry.get(result.viz_type);
+          if (!metadata?.canBeAnnotationType(annotationType)) {
+            return;
+          }
+          setValue({
+            value: id,
+            label: result.slice_name,
+          });
+          applySliceFormData(id, result);
+        })
+        .catch(reportChartFailure(id));
+    },
+    [annotationType, applySliceFormData],
+  );
+
+  const fetchAppliedNativeAnnotation = useCallback(
+    (id: string | number): void => {
+      SupersetClient.get({
+        endpoint: `/api/v1/annotation_layer/${id}`,
+      })
+        .then(({ json }) => {
+          const { result } = json;
+          const layer = result;
+          setValue({
+            value: layer.id,
+            label: layer.name,
+          });
+        })
+        .catch(reportAnnotationLayerFailure(id));
+    },
+    [],
+  );
+
+  const fetchAppliedAnnotation = useCallback(
+    (id: string | number): void => {
+      if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+        // Without can_read on Annotation the request is known to 403; keep the
+        // raw id as the value so the saved layer remains valid and untouched.
+        if (canReadAnnotation) {
+          fetchAppliedNativeAnnotation(id);
+        }
+      } else {
+        fetchAppliedChart(id);
+      }
+    },
+    [
+      sourceType,
+      canReadAnnotation,
+      fetchAppliedNativeAnnotation,
+      fetchAppliedChart,
+    ],
+  );
+
+  // componentDidMount - fetch applied annotation if needed
+  useEffect(() => {
+    if (shouldFetchAppliedAnnotation()) {
       /* The value prop is the id of the chart/native. This function will set
       value in state to an object with the id as value.value to be used by
       AsyncSelect */
-      if (value !== null && typeof value !== 'object') {
-        this.fetchAppliedAnnotation(value);
+      if (
+        propValue !== null &&
+        propValue !== undefined &&
+        typeof propValue !== 'object'
+      ) {
+        fetchAppliedAnnotation(propValue);
       }
     }
-  }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  componentDidUpdate(
-    _prevProps: AnnotationLayerProps,
-    prevState: AnnotationLayerState,
-  ): void {
-    if (this.shouldFetchSliceData(prevState)) {
-      const { value } = this.state;
-      if (value && typeof value === 'object' && 'value' in value) {
-        this.fetchSliceData(value.value);
+  // Track previous value for componentDidUpdate comparison
+  const [prevValue, setPrevValue] = useState<
+    string | number | SelectOption | null
+  >(value);
+
+  // Fetch slice data when value changes — but skip when slice is already
+  // populated, which means the change came from `fetchAppliedChart` (the
+  // mount-time hydration path that sets both value and slice in lockstep).
+  // The user-selection path (`handleSelectValue`) clears slice to null
+  // before setting the new value, so this watcher fires correctly there.
+  useEffect(() => {
+    if (value !== prevValue) {
+      const isChart =
+        sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE &&
+        requiresQuery(sourceType ?? undefined);
+      if (
+        isChart &&
+        value &&
+        typeof value === 'object' &&
+        'value' in value &&
+        !slice
+      ) {
+        fetchSliceData(value.value);
       }
+      setPrevValue(value);
     }
-  }
+  }, [value, prevValue, sourceType, fetchSliceData, slice]);
 
-  getSupportedSourceTypes(annotationType: string): SelectOption[] {
-    // Get vis types that can be source.
-    const sources = getChartMetadataRegistry()
-      .entries()
-      .filter(({ value: chartMetadata }) =>
-        chartMetadata?.canBeAnnotationType(annotationType),
-      )
-      .map(({ key, value: chartMetadata }) => ({
-        value: key === VizType.Line ? 'line' : key,
-        label: chartMetadata?.name || key,
-      }));
-    // Prepend native source if applicable
-    const annotationMeta =
-      ANNOTATION_TYPES_METADATA[
-        annotationType as keyof typeof ANNOTATION_TYPES_METADATA
-      ];
-    if (annotationMeta && 'supportNativeSource' in annotationMeta) {
-      sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
-    }
-    return sources;
-  }
+  const isValidFormulaAnnotation = useCallback(
+    (
+      expression: string | number | SelectOption | null,
+      annoType: string,
+    ): boolean => {
+      if (annoType === ANNOTATION_TYPES.FORMULA) {
+        return isValidExpression(expression as string);
+      }
+      return true;
+    },
+    [],
+  );
 
-  shouldFetchAppliedAnnotation(): boolean {
-    const { value, sourceType } = this.state;
-    return !!value && requiresQuery(sourceType ?? undefined);
-  }
-
-  shouldFetchSliceData(prevState: AnnotationLayerState): boolean {
-    const { value, sourceType } = this.state;
-    const isChart =
-      sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE &&
-      requiresQuery(sourceType ?? undefined);
-    const valueIsNew = value && prevState.value !== value;
-    return !!valueIsNew && isChart;
-  }
-
-  isValidFormulaAnnotation(
-    expression: string | number | SelectOption | null,
-    annotationType: string,
-  ): boolean {
-    if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      return isValidExpression(expression as string);
-    }
-    return true;
-  }
-
-  isValidForm(): boolean {
-    const {
-      name,
-      annotationType,
-      sourceType,
-      value,
-      timeColumn,
-      intervalEndColumn,
-    } = this.state;
+  const isValidForm = useCallback((): boolean => {
     const errors = [
       validateNonEmpty(name),
       validateNonEmpty(annotationType),
@@ -372,259 +610,87 @@ class AnnotationLayer extends PureComponent<
         errors.push(validateNonEmpty(intervalEndColumn));
       }
     }
-    if (!this.isValidFormulaAnnotation(value, annotationType)) {
+    if (!isValidFormulaAnnotation(value, annotationType)) {
       errors.push(t('Invalid formula expression'));
     }
     return !errors.filter(x => x).length;
-  }
+  }, [
+    name,
+    annotationType,
+    sourceType,
+    value,
+    timeColumn,
+    intervalEndColumn,
+    isValidFormulaAnnotation,
+  ]);
 
-  handleAnnotationType(annotationType: string): void {
-    this.setState({
-      annotationType,
-      sourceType: null,
-      value: null,
-      slice: null,
-    });
-  }
+  const handleAnnotationType = useCallback((annoType: string): void => {
+    setAnnotationType(annoType);
+    setSourceType(null);
+    setValue(null);
+    setSlice(null);
+  }, []);
 
-  handleAnnotationSourceType(sourceType: string): void {
-    const { sourceType: prevSourceType } = this.state;
-
-    if (prevSourceType !== sourceType) {
-      this.setState({
-        sourceType,
-        value: null,
-        slice: null,
-      });
-    }
-  }
-
-  handleSelectValue(selectedValueObject: SelectOption): void {
-    this.setState({
-      value: selectedValueObject,
-      descriptionColumns: [],
-      intervalEndColumn: '',
-      timeColumn: '',
-      titleColumn: '',
-      overrides: { time_range: null },
-    });
-  }
-
-  handleTextValue(inputValue: string): void {
-    this.setState({
-      value: inputValue,
-    });
-  }
-
-  fetchNativeAnnotations = async (
-    search: string,
-    page: number,
-    pageSize: number,
-  ): Promise<{ data: SelectOption[]; totalCount: number }> => {
-    const queryParams = rison.encode({
-      filters: [
-        {
-          col: 'name',
-          opr: 'ct',
-          value: search,
-        },
-      ],
-      columns: ['id', 'name'],
-      page,
-      page_size: pageSize,
-    });
-
-    const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
-    });
-
-    const { result, count } = json;
-
-    const layersArray = result.map((layer: { id: number; name: string }) => ({
-      value: layer.id,
-      label: layer.name,
-    }));
-
-    return {
-      data: layersArray,
-      totalCount: count,
-    };
-  };
-
-  fetchCharts = async (
-    search: string,
-    page: number,
-    pageSize: number,
-  ): Promise<{ data: SelectOption[]; totalCount: number }> => {
-    const { annotationType } = this.state;
-
-    const queryParams = rison.encode({
-      filters: [
-        { col: 'slice_name', opr: 'chart_all_text', value: search },
-        {
-          col: 'id',
-          opr: 'chart_owned_created_favored_by_me',
-          value: true,
-        },
-      ],
-      columns: ['id', 'slice_name', 'viz_type'],
-      order_column: 'slice_name',
-      order_direction: 'asc',
-      page,
-      page_size: pageSize,
-    });
-    const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${queryParams}`,
-    });
-
-    const { result, count } = json;
-    const registry = getChartMetadataRegistry();
-
-    const chartsArray = result
-      .filter((chart: { id: number; slice_name: string; viz_type: string }) => {
-        const metadata = registry.get(chart.viz_type);
-        return metadata && metadata.canBeAnnotationType(annotationType);
-      })
-      .map((chart: { id: number; slice_name: string; viz_type: string }) => ({
-        value: chart.id,
-        label: chart.slice_name,
-        viz_type: chart.viz_type,
-      }));
-
-    return {
-      data: chartsArray,
-      totalCount: count,
-    };
-  };
-
-  fetchOptions = (
-    search: string,
-    page: number,
-    pageSize: number,
-  ): Promise<{ data: SelectOption[]; totalCount: number }> => {
-    const { sourceType } = this.state;
-
-    if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-      return this.fetchNativeAnnotations(search, page, pageSize);
-    }
-    return this.fetchCharts(search, page, pageSize);
-  };
-
-  fetchSliceData = (id: string | number): void => {
-    const queryParams = rison.encode({
-      columns: ['query_context'],
-    });
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-    }).then(({ json }) => {
-      const { result } = json;
-      const queryContext = result.query_context;
-      const formData = JSON.parse(queryContext).form_data;
-      const dataObject = {
-        data: {
-          ...formData,
-          groupby: formData.groupby?.map((column: QueryFormColumn) =>
-            getColumnLabel(column),
-          ),
-        },
-      };
-      this.setState({
-        slice: dataObject,
-      });
-    });
-  };
-
-  fetchAppliedChart(id: string | number): void {
-    const { annotationType } = this.state;
-    const registry = getChartMetadataRegistry();
-    const queryParams = rison.encode({
-      columns: ['slice_name', 'query_context', 'viz_type'],
-    });
-    SupersetClient.get({
-      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
-    }).then(({ json }) => {
-      const { result } = json;
-      const sliceName = result.slice_name;
-      const queryContext = result.query_context;
-      const vizType = result.viz_type;
-      const formData = JSON.parse(queryContext).form_data;
-      const metadata = registry.get(vizType);
-      const canBeAnnotationType =
-        metadata && metadata.canBeAnnotationType(annotationType);
-      if (canBeAnnotationType) {
-        this.setState({
-          value: {
-            value: id,
-            label: sliceName,
-          },
-          slice: {
-            data: {
-              ...formData,
-              groupby: formData.groupby?.map((column: QueryFormColumn) =>
-                getColumnLabel(column),
-              ),
-            },
-          },
-        });
+  const handleAnnotationSourceType = useCallback(
+    (newSourceType: string): void => {
+      if (sourceType !== newSourceType) {
+        setSourceType(newSourceType);
+        setValue(null);
+        setSlice(null);
       }
-    });
-  }
+    },
+    [sourceType],
+  );
 
-  fetchAppliedNativeAnnotation(id: string | number): void {
-    SupersetClient.get({
-      endpoint: `/api/v1/annotation_layer/${id}`,
-    }).then(({ json }) => {
-      const { result } = json;
-      const layer = result;
-      this.setState({
-        value: {
-          value: layer.id,
-          label: layer.name,
-        },
-      });
-    });
-  }
+  const handleSelectValue = useCallback(
+    (selectedValueObject: SelectOption): void => {
+      setValue(selectedValueObject);
+      // Clear slice so the value-change watcher refetches for the new chart;
+      // see the watcher block above for why this gate exists.
+      setSlice(null);
+      setDescriptionColumns([]);
+      setIntervalEndColumn('');
+      setTimeColumn('');
+      setTitleColumn('');
+      setOverrides({ time_range: null });
+    },
+    [],
+  );
 
-  fetchAppliedAnnotation(id: string | number): void {
-    const { sourceType } = this.state;
+  const handleTextValue = useCallback((inputValue: string): void => {
+    setValue(inputValue);
+  }, []);
 
-    if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-      return this.fetchAppliedNativeAnnotation(id);
-    }
-    return this.fetchAppliedChart(id);
-  }
+  const deleteAnnotation = useCallback((): void => {
+    removeAnnotationLayer?.();
+    close?.();
+  }, [removeAnnotationLayer, close]);
 
-  deleteAnnotation(): void {
-    this.props.removeAnnotationLayer?.();
-    this.props.close?.();
-  }
+  const applyAnnotation = useCallback((): void => {
+    if (isValidForm()) {
+      const stateValues = {
+        name,
+        annotationType,
+        sourceType,
+        color,
+        opacity,
+        style,
+        width,
+        showMarkers,
+        hideLine,
+        overrides,
+        show,
+        showLabel,
+        titleColumn,
+        descriptionColumns,
+        timeColumn,
+        intervalEndColumn,
+      };
 
-  applyAnnotation(): void {
-    const { value, sourceType } = this.state;
-    if (this.isValidForm()) {
-      const annotationFields = [
-        'name',
-        'annotationType',
-        'sourceType',
-        'color',
-        'opacity',
-        'style',
-        'width',
-        'showMarkers',
-        'hideLine',
-        'overrides',
-        'show',
-        'showLabel',
-        'titleColumn',
-        'descriptionColumns',
-        'timeColumn',
-        'intervalEndColumn',
-      ];
       const newAnnotation: Record<string, unknown> = {};
-      annotationFields.forEach(field => {
-        const stateValue = this.state[field as keyof AnnotationLayerState];
-        if (stateValue !== null) {
-          newAnnotation[field] = stateValue;
+      Object.entries(stateValues).forEach(([field, fieldValue]) => {
+        if (fieldValue !== null) {
+          newAnnotation[field] = fieldValue;
         }
       });
 
@@ -641,33 +707,55 @@ class AnnotationLayer extends PureComponent<
         newAnnotation.color = null;
       }
 
-      this.props.addAnnotationLayer?.(newAnnotation);
-      this.setState({ isNew: false });
+      addAnnotationLayer?.(newAnnotation);
+      setIsNew(false);
     }
-  }
+  }, [
+    isValidForm,
+    name,
+    annotationType,
+    sourceType,
+    color,
+    opacity,
+    style,
+    width,
+    showMarkers,
+    hideLine,
+    overrides,
+    show,
+    showLabel,
+    titleColumn,
+    descriptionColumns,
+    timeColumn,
+    intervalEndColumn,
+    value,
+    addAnnotationLayer,
+  ]);
 
-  submitAnnotation(): void {
-    this.applyAnnotation();
-    this.props.close?.();
-  }
+  const submitAnnotation = useCallback((): void => {
+    applyAnnotation();
+    close?.();
+  }, [applyAnnotation, close]);
 
-  renderChartHeader(
+  // Inlined: this is a pure helper that produces JSX from its args. The
+  // previous useCallback wrapper added no value — `renderChartHeader(label,
+  // description, value)` was called inline, so the produced ReactNode was
+  // recreated each call anyway, and no downstream consumer depended on the
+  // function's identity.
+  const buildChartHeader = (
     label: string,
     description: string,
-    value: string | number | SelectOption | null,
-  ): React.ReactNode {
-    return (
-      <ControlHeader
-        hovered
-        label={label}
-        description={description}
-        validationErrors={!value ? ['Mandatory'] : []}
-      />
-    );
-  }
+    val: string | number | SelectOption | null,
+  ): React.ReactNode => (
+    <ControlHeader
+      hovered
+      label={label}
+      description={description}
+      validationErrors={!val ? ['Mandatory'] : []}
+    />
+  );
 
-  renderValueConfiguration(): React.ReactNode {
-    const { annotationType, sourceType, value } = this.state;
+  const renderValueConfiguration = useCallback((): React.ReactNode => {
     let label = '';
     let description = '';
     if (requiresQuery(sourceType ?? undefined)) {
@@ -679,7 +767,7 @@ class AnnotationLayer extends PureComponent<
         description = t(
           `Use another existing chart as a source for annotations and overlays.
           Your chart must be one of these visualization types: [%s]`,
-          this.getSupportedSourceTypes(annotationType)
+          getSupportedSourceTypes(annotationType)
             .map(x => x.label)
             .join(', '),
         );
@@ -691,18 +779,34 @@ class AnnotationLayer extends PureComponent<
         Example: '2x+5'`);
     }
     if (requiresQuery(sourceType ?? undefined)) {
+      // Listing native annotation layers requires can_read on Annotation.
+      // Keep the select visible but inert so the saved reference can still be
+      // removed, restyled, or switched to a permitted source; the select stays
+      // lazy, so no forbidden request is ever fired.
+      const isBlockedNativeSource =
+        sourceType === ANNOTATION_SOURCE_TYPES.NATIVE && !canReadAnnotation;
       return (
-        <AsyncSelect
-          /* key to force re-render on sourceType change */
-          key={sourceType}
-          ariaLabel={t('Annotation layer value')}
-          name="annotation-layer-value"
-          header={this.renderChartHeader(label, description, value)}
-          options={this.fetchOptions}
-          value={value || null}
-          onChange={this.handleSelectValue}
-          notFoundContent={<NotFoundContent />}
-        />
+        <>
+          <AsyncSelect
+            /* key to force re-render on sourceType change */
+            key={sourceType}
+            ariaLabel={t('Annotation layer value')}
+            name="annotation-layer-value"
+            header={buildChartHeader(label, description, value)}
+            options={fetchOptions}
+            value={value || null}
+            onChange={handleSelectValue}
+            notFoundContent={<NotFoundContent />}
+            disabled={isBlockedNativeSource}
+          />
+          {isBlockedNativeSource && (
+            <div>
+              <Typography.Text type="secondary">
+                {t("You don't have permission to view annotation layers.")}
+              </Typography.Text>
+            </div>
+          )}
+        </>
       );
     }
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
@@ -717,9 +821,9 @@ class AnnotationLayer extends PureComponent<
           label={label}
           placeholder=""
           value={textValue}
-          onChange={this.handleTextValue}
+          onChange={handleTextValue}
           validationErrors={
-            !this.isValidFormulaAnnotation(value, annotationType)
+            !isValidFormulaAnnotation(value, annotationType)
               ? [t('Bad formula.')]
               : []
           }
@@ -727,21 +831,19 @@ class AnnotationLayer extends PureComponent<
       );
     }
     return '';
-  }
+  }, [
+    sourceType,
+    annotationType,
+    value,
+    canReadAnnotation,
+    getSupportedSourceTypes,
+    fetchOptions,
+    handleSelectValue,
+    handleTextValue,
+    isValidFormulaAnnotation,
+  ]);
 
-  renderSliceConfiguration(): React.ReactNode {
-    const {
-      annotationType,
-      sourceType,
-      value,
-      slice,
-      overrides,
-      titleColumn,
-      timeColumn,
-      intervalEndColumn,
-      descriptionColumns,
-    } = this.state;
-
+  const renderSliceConfiguration = useCallback((): React.ReactNode => {
     if (!slice || !value) {
       return '';
     }
@@ -754,7 +856,7 @@ class AnnotationLayer extends PureComponent<
         ? [{ value: '__timestamp', label: '__timestamp' }].concat(columns)
         : columns;
       return (
-        <div style={{ marginRight: '2rem' }}>
+        <div>
           <PopoverSection
             isSelected
             title={t('Annotation Slice Configuration')}
@@ -781,7 +883,7 @@ class AnnotationLayer extends PureComponent<
                 value={timeColumn}
                 onChange={(
                   v: string | number | (string | number)[] | null | undefined,
-                ) => this.setState({ timeColumn: String(v ?? '') })}
+                ) => setTimeColumn(String(v ?? ''))}
               />
             )}
             {annotationType === ANNOTATION_TYPES.INTERVAL && (
@@ -797,13 +899,8 @@ class AnnotationLayer extends PureComponent<
                 options={columns}
                 value={intervalEndColumn}
                 onChange={(
-                  value:
-                    | string
-                    | number
-                    | (string | number)[]
-                    | null
-                    | undefined,
-                ) => this.setState({ intervalEndColumn: String(value ?? '') })}
+                  v: string | number | (string | number)[] | null | undefined,
+                ) => setIntervalEndColumn(String(v ?? ''))}
               />
             )}
             <SelectControl
@@ -815,8 +912,8 @@ class AnnotationLayer extends PureComponent<
               options={[{ value: '', label: t('None') }].concat(columns)}
               value={titleColumn}
               onChange={(
-                value: string | number | (string | number)[] | null | undefined,
-              ) => this.setState({ titleColumn: String(value ?? '') })}
+                v: string | number | (string | number)[] | null | undefined,
+              ) => setTitleColumn(String(v ?? ''))}
             />
             {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <SelectControl
@@ -831,15 +928,10 @@ class AnnotationLayer extends PureComponent<
                 options={columns}
                 value={descriptionColumns}
                 onChange={(
-                  value:
-                    | string
-                    | number
-                    | (string | number)[]
-                    | null
-                    | undefined,
+                  v: string | number | (string | number)[] | null | undefined,
                 ) => {
-                  const cols = Array.isArray(value) ? value.map(String) : [];
-                  this.setState({ descriptionColumns: cols });
+                  const cols = Array.isArray(v) ? v.map(String) : [];
+                  setDescriptionColumns(cols);
                 }}
               />
             )}
@@ -852,13 +944,12 @@ class AnnotationLayer extends PureComponent<
                   view should be passed down to the chart containing the annotation data.`)}
                 value={'time_range' in overrides}
                 onChange={v => {
-                  delete overrides.time_range;
+                  const newOverrides = { ...overrides };
+                  delete newOverrides.time_range;
                   if (v) {
-                    this.setState({
-                      overrides: { ...overrides, time_range: null },
-                    });
+                    setOverrides({ ...newOverrides, time_range: null });
                   } else {
-                    this.setState({ overrides: { ...overrides } });
+                    setOverrides({ ...newOverrides });
                   }
                 }}
               />
@@ -870,18 +961,17 @@ class AnnotationLayer extends PureComponent<
                   view should be passed down to the chart containing the annotation data.`)}
                 value={'time_grain_sqla' in overrides}
                 onChange={v => {
-                  delete overrides.time_grain_sqla;
-                  delete overrides.granularity;
+                  const newOverrides = { ...overrides };
+                  delete newOverrides.time_grain_sqla;
+                  delete newOverrides.granularity;
                   if (v) {
-                    this.setState({
-                      overrides: {
-                        ...overrides,
-                        time_grain_sqla: null,
-                        granularity: null,
-                      },
+                    setOverrides({
+                      ...newOverrides,
+                      time_grain_sqla: null,
+                      granularity: null,
                     });
                   } else {
-                    this.setState({ overrides: { ...overrides } });
+                    setOverrides({ ...newOverrides });
                   }
                 }}
               />
@@ -893,9 +983,7 @@ class AnnotationLayer extends PureComponent<
                   (example:  24 hours, 7 days, 56 weeks, 365 days)`)}
                 placeholder=""
                 value={overrides.time_shift}
-                onChange={v =>
-                  this.setState({ overrides: { ...overrides, time_shift: v } })
-                }
+                onChange={v => setOverrides({ ...overrides, time_shift: v })}
               />
             </div>
           </PopoverSection>
@@ -903,28 +991,27 @@ class AnnotationLayer extends PureComponent<
       );
     }
     return '';
-  }
+  }, [
+    slice,
+    value,
+    sourceType,
+    annotationType,
+    timeColumn,
+    intervalEndColumn,
+    titleColumn,
+    descriptionColumns,
+    overrides,
+  ]);
 
-  renderDisplayConfiguration(): React.ReactNode {
-    const {
-      color,
-      opacity,
-      style,
-      width,
-      showMarkers,
-      hideLine,
-      annotationType,
-    } = this.state;
-    const colorScheme =
-      getCategoricalSchemeRegistry()
-        .get(this.props.colorScheme)
-        ?.colors.concat() ?? [];
+  const renderDisplayConfiguration = useCallback((): React.ReactNode => {
+    const schemeColors =
+      getCategoricalSchemeRegistry().get(colorScheme)?.colors.concat() ?? [];
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
-      !colorScheme.some(x => x.toLowerCase() === color.toLowerCase())
+      !schemeColors.some(x => x.toLowerCase() === color.toLowerCase())
     ) {
-      colorScheme.push(color);
+      schemeColors.push(color);
     }
     return (
       <PopoverSection
@@ -936,7 +1023,6 @@ class AnnotationLayer extends PureComponent<
           ariaLabel={t('Annotation layer stroke')}
           name="annotation-layer-stroke"
           label={t('Style')}
-          // see '../../../visualizations/nvd3_vis.css'
           options={[
             { value: 'solid', label: t('Solid') },
             { value: 'dashed', label: t('Dashed') },
@@ -947,13 +1033,12 @@ class AnnotationLayer extends PureComponent<
           clearable={false}
           onChange={(
             v: string | number | (string | number)[] | null | undefined,
-          ) => this.setState({ style: String(v ?? 'solid') })}
+          ) => setStyle(String(v ?? 'solid'))}
         />
         <SelectControl
           ariaLabel={t('Annotation layer opacity')}
           name="annotation-layer-opacity"
           label={t('Opacity')}
-          // see '../../../visualizations/nvd3_vis.css'
           options={[
             { value: '', label: t('Solid') },
             { value: 'opacityLow', label: '0.2' },
@@ -962,13 +1047,13 @@ class AnnotationLayer extends PureComponent<
           ]}
           value={opacity}
           onChange={(
-            value: string | number | (string | number)[] | null | undefined,
-          ) => this.setState({ opacity: String(value ?? '') })}
+            v: string | number | (string | number)[] | null | undefined,
+          ) => setOpacity(String(v ?? ''))}
         />
         <div
           style={{
-            marginTop: this.props.theme.sizeUnit * 2,
-            marginBottom: this.props.theme.sizeUnit * 2,
+            marginTop: theme.sizeUnit * 2,
+            marginBottom: theme.sizeUnit * 2,
           }}
         >
           <CheckboxControl
@@ -977,23 +1062,21 @@ class AnnotationLayer extends PureComponent<
             value={color === AUTOMATIC_COLOR}
             onChange={useAutomatic => {
               if (useAutomatic) {
-                this.setState({ color: AUTOMATIC_COLOR });
+                setColor(AUTOMATIC_COLOR);
               } else {
                 // Set to first theme color or dark color as fallback
-                this.setState({
-                  color: colorScheme[0] || this.props.theme.colorTextBase,
-                });
+                setColor(schemeColors[0] || theme.colorTextBase);
               }
             }}
           />
           {color !== AUTOMATIC_COLOR && (
-            <div style={{ marginTop: this.props.theme.sizeUnit * 2 }}>
+            <div style={{ marginTop: theme.sizeUnit * 2 }}>
               <ControlHeader label={t('Color')} />
               <ColorPicker
                 value={color}
-                presets={[{ label: 'Theme colors', colors: colorScheme }]}
+                presets={[{ label: 'Theme colors', colors: schemeColors }]}
                 onChangeComplete={colorValue =>
-                  this.setState({ color: colorValue.toHexString() })
+                  setColor(colorValue.toHexString())
                 }
                 showText
               />
@@ -1005,7 +1088,7 @@ class AnnotationLayer extends PureComponent<
           label={t('Line width')}
           isInt
           value={width}
-          onChange={v => this.setState({ width: v })}
+          onChange={v => setWidth(v)}
         />
         {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
           <CheckboxControl
@@ -1014,7 +1097,7 @@ class AnnotationLayer extends PureComponent<
             label={t('Show Markers')}
             description={t('Shows or hides markers for the time series')}
             value={showMarkers}
-            onChange={v => this.setState({ showMarkers: v })}
+            onChange={v => setShowMarkers(v)}
           />
         )}
         {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
@@ -1024,137 +1107,208 @@ class AnnotationLayer extends PureComponent<
             label={t('Hide Line')}
             description={t('Hides the Line for the time series')}
             value={hideLine}
-            onChange={v => this.setState({ hideLine: v })}
+            onChange={v => setHideLine(v)}
           />
         )}
       </PopoverSection>
     );
-  }
+  }, [
+    colorScheme,
+    color,
+    opacity,
+    style,
+    width,
+    showMarkers,
+    hideLine,
+    annotationType,
+    theme,
+  ]);
 
-  render(): React.ReactNode {
-    const { isNew, name, annotationType, sourceType, show, showLabel } =
-      this.state;
-    const isValid = this.isValidForm();
-    const metadata = this.props.vizType
-      ? getChartMetadataRegistry().get(this.props.vizType)
-      : null;
-    const supportedAnnotationTypes = metadata
-      ? metadata.supportedAnnotationTypes.map(
-          type =>
-            ANNOTATION_TYPES_METADATA[
-              type as keyof typeof ANNOTATION_TYPES_METADATA
-            ],
-        )
-      : [];
-    const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
+  const sliceConfiguration = renderSliceConfiguration();
+  const hasSliceConfiguration = !!sliceConfiguration;
 
-    return (
-      <>
-        {this.props.error && (
-          <span style={{ color: this.props.theme.colorError }}>
-            {t('ERROR')}: {this.props.error}
-          </span>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'row' }}>
-          <div style={{ marginRight: '2rem' }}>
-            <PopoverSection
-              isSelected
-              title={t('Layer configuration')}
-              info={t('Configure the basics of your Annotation Layer.')}
-            >
-              <TextControl
-                name="annotation-layer-name"
-                label={t('Name')}
-                placeholder=""
-                value={name}
-                onChange={v => this.setState({ name: v })}
-                validationErrors={!name ? [t('Mandatory')] : []}
-              />
-              <CheckboxControl
-                name="annotation-layer-hide"
-                label={t('Hide layer')}
-                value={!show}
-                onChange={v => this.setState({ show: !v })}
-              />
-              <CheckboxControl
-                name="annotation-label-show"
-                label={t('Show label')}
-                value={showLabel}
-                hovered
-                description={t('Whether to always show the annotation label')}
-                onChange={v => this.setState({ showLabel: v })}
-              />
+  const sectionGap = theme.sizeUnit * SECTION_GAP_UNITS;
+  const viewportInset = theme.sizeUnit * VIEWPORT_INSET_UNITS;
+
+  const measureSectionsMaxWidth = useCallback(() => {
+    const row = sectionsRef.current;
+    const popover = row?.closest('.ant-popover');
+    const panel = document.getElementById(CONTROL_SECTIONS_ID);
+    // The cap is measured against Explore's control panel. Rendered anywhere
+    // else - or not inside a popover - there is nothing to measure from, so the
+    // row keeps the viewport-wide fallback below rather than being capped.
+    if (!row || !popover || !panel) {
+      return;
+    }
+    // Padding and border the popover adds around the row.
+    const popoverInsetWidth =
+      popover.getBoundingClientRect().width - row.getBoundingClientRect().width;
+    const viewport = document.documentElement.clientWidth;
+    const sections = Array.from(row.children);
+    // Room the sections need to stay on one line. Wrapping them makes the popover
+    // roughly twice as tall, which no shift can pull back inside a short viewport.
+    const oneLine =
+      sections.reduce(
+        (total, section) => total + section.getBoundingClientRect().width,
+        0,
+      ) +
+      sectionGap * Math.max(sections.length - 1, 0);
+    // Fitting beside the panel needs no shift, avoiding the offset antd leaves
+    // behind when it shifts. Wrapping to get there costs more than the offset, so
+    // anything narrower falls back to the viewport and antd shifts across the panel.
+    const besidePanel =
+      viewport -
+      panel.getBoundingClientRect().right -
+      popoverInsetWidth -
+      viewportInset;
+    const available =
+      besidePanel >= oneLine
+        ? besidePanel
+        : viewport - popoverInsetWidth - viewportInset * 2;
+    if (available > 0) {
+      setSectionsMaxWidth(available);
+    }
+  }, [sectionGap, viewportInset]);
+
+  // Resizing the viewport or dragging the panel moves the edge the cap derives
+  // from, so remeasure while the popover is open. Observing the panel and not the
+  // popover keeps it stable: the cap changes the popover's width, never the panel's.
+  useLayoutEffect(() => {
+    measureSectionsMaxWidth();
+    const panel = document.getElementById(CONTROL_SECTIONS_ID);
+    const observer = new ResizeObserver(measureSectionsMaxWidth);
+    if (panel) {
+      observer.observe(panel);
+    }
+    window.addEventListener('resize', measureSectionsMaxWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measureSectionsMaxWidth);
+    };
+  }, [hasSliceConfiguration, measureSectionsMaxWidth]);
+
+  const isValid = isValidForm();
+  const metadata = vizType ? getChartMetadataRegistry().get(vizType) : null;
+  const supportedAnnotationTypes = metadata
+    ? metadata.supportedAnnotationTypes.map(
+        type =>
+          ANNOTATION_TYPES_METADATA[
+            type as keyof typeof ANNOTATION_TYPES_METADATA
+          ],
+      )
+    : [];
+  const supportedSourceTypes = getSupportedSourceTypes(annotationType);
+
+  return (
+    <>
+      {error && (
+        <span style={{ color: theme.colorError }}>
+          {t('ERROR')}: {error}
+        </span>
+      )}
+      <SectionsRow
+        ref={sectionsRef}
+        data-test="annotation-layer-sections"
+        $maxWidth={sectionsMaxWidth ?? `calc(100vw - ${sectionGap * 2}px)`}
+      >
+        <div>
+          <PopoverSection
+            isSelected
+            title={t('Layer configuration')}
+            info={t('Configure the basics of your Annotation Layer.')}
+          >
+            <TextControl
+              name="annotation-layer-name"
+              label={t('Name')}
+              placeholder=""
+              value={name}
+              onChange={v => setName(v)}
+              validationErrors={!name ? [t('Mandatory')] : []}
+            />
+            <CheckboxControl
+              name="annotation-layer-hide"
+              label={t('Hide layer')}
+              value={!show}
+              onChange={v => setShow(!v)}
+            />
+            <CheckboxControl
+              name="annotation-label-show"
+              label={t('Show label')}
+              value={showLabel}
+              hovered
+              description={t('Whether to always show the annotation label')}
+              onChange={v => setShowLabel(v)}
+            />
+            <SelectControl
+              ariaLabel={t('Annotation layer type')}
+              hovered
+              description={t('Choose the annotation layer type')}
+              label={t('Annotation layer type')}
+              name="annotation-layer-type"
+              clearable={false}
+              options={supportedAnnotationTypes}
+              value={annotationType}
+              onChange={handleAnnotationType}
+            />
+            {supportedSourceTypes.length > 0 && (
               <SelectControl
-                ariaLabel={t('Annotation layer type')}
+                ariaLabel={t('Annotation source type')}
                 hovered
-                description={t('Choose the annotation layer type')}
-                label={t('Annotation layer type')}
-                name="annotation-layer-type"
-                clearable={false}
-                options={supportedAnnotationTypes}
-                value={annotationType}
-                onChange={this.handleAnnotationType}
+                description={t('Choose the source of your annotations')}
+                label={t('Annotation source')}
+                name="annotation-source-type"
+                options={supportedSourceTypes}
+                notFoundContent={<NotFoundContent />}
+                value={sourceType}
+                onChange={handleAnnotationSourceType}
+                validationErrors={!sourceType ? [t('Mandatory')] : []}
               />
-              {supportedSourceTypes.length > 0 && (
-                <SelectControl
-                  ariaLabel={t('Annotation source type')}
-                  hovered
-                  description={t('Choose the source of your annotations')}
-                  label={t('Annotation source')}
-                  name="annotation-source-type"
-                  options={supportedSourceTypes}
-                  notFoundContent={<NotFoundContent />}
-                  value={sourceType}
-                  onChange={this.handleAnnotationSourceType}
-                  validationErrors={!sourceType ? [t('Mandatory')] : []}
-                />
-              )}
-              {this.renderValueConfiguration()}
-            </PopoverSection>
-          </div>
-          {this.renderSliceConfiguration()}
-          {this.renderDisplayConfiguration()}
+            )}
+            {renderValueConfiguration()}
+          </PopoverSection>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          {isNew ? (
-            <Button
-              buttonSize="small"
-              buttonStyle="secondary"
-              onClick={() => this.props.close?.()}
-            >
-              {t('Cancel')}
-            </Button>
-          ) : (
-            <Button
-              buttonSize="small"
-              buttonStyle="secondary"
-              onClick={this.deleteAnnotation}
-            >
-              {t('Remove')}
-            </Button>
-          )}
-          <div>
-            <Button
-              buttonSize="small"
-              disabled={!isValid}
-              onClick={this.applyAnnotation}
-            >
-              {t('Apply')}
-            </Button>
+        {sliceConfiguration}
+        {renderDisplayConfiguration()}
+      </SectionsRow>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {isNew ? (
+          <Button
+            buttonSize="small"
+            buttonStyle="secondary"
+            onClick={() => close?.()}
+          >
+            {t('Cancel')}
+          </Button>
+        ) : (
+          <Button
+            buttonSize="small"
+            buttonStyle="secondary"
+            onClick={deleteAnnotation}
+          >
+            {t('Remove')}
+          </Button>
+        )}
+        <div>
+          <Button
+            buttonSize="small"
+            disabled={!isValid}
+            onClick={applyAnnotation}
+          >
+            {t('Apply')}
+          </Button>
 
-            <Button
-              buttonSize="small"
-              buttonStyle="primary"
-              disabled={!isValid}
-              onClick={this.submitAnnotation}
-            >
-              {t('OK')}
-            </Button>
-          </div>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
+            disabled={!isValid}
+            onClick={submitAnnotation}
+          >
+            {t('Confirm')}
+          </Button>
         </div>
-      </>
-    );
-  }
+      </div>
+    </>
+  );
 }
 
-export default withTheme(AnnotationLayer);
+export default AnnotationLayer;

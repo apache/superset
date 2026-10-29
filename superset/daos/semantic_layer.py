@@ -53,8 +53,10 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
             return None
 
     @classmethod
-    def find_all(cls, skip_base_filter: bool = False) -> list[SemanticLayer]:
-        query = db.session.query(SemanticLayer)
+    def find_all(
+        cls, skip_base_filter: bool = False, *, force_fetch: bool | None = None
+    ) -> list[SemanticLayer]:
+        query = cls._query(force_fetch)
         query = cls._apply_base_filter(query, skip_base_filter)
         if not security_manager.can_access_all_datasources():
             perms = security_manager.user_view_menu_names("datasource_access")
@@ -200,6 +202,40 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
             cls._as_configuration_dict(c.configuration) == configuration
             for c in candidates
         )
+
+    @classmethod
+    def find_accessible(cls) -> list[SemanticView]:
+        """Return all views the current user can access, filtered at SQL level.
+
+        Mirrors the permission filter in ``DatasourceDAO.build_semantic_view_query``
+        to avoid per-row Python-level access checks when listing all views.
+
+        Eager-loads ``SemanticView.semantic_layer`` since callers commonly call
+        ``view.raise_for_access()`` per row, which reads ``view.semantic_layer.perm``
+        and would otherwise trigger a lazy-load query per view (N+1).
+        """
+        from sqlalchemy import or_
+        from sqlalchemy.orm import contains_eager, joinedload
+
+        query = db.session.query(SemanticView)
+        if not security_manager.can_access_all_datasources():
+            perms = security_manager.user_view_menu_names("datasource_access")
+            query = (
+                query.join(
+                    SemanticLayer,
+                    SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
+                )
+                .options(contains_eager(SemanticView.semantic_layer))
+                .filter(
+                    or_(
+                        SemanticView.perm.in_(perms),
+                        SemanticLayer.perm.in_(perms),
+                    )
+                )
+            )
+        else:
+            query = query.options(joinedload(SemanticView.semantic_layer))
+        return query.all()
 
     @classmethod
     def find_by_name(cls, name: str, layer_uuid: str) -> SemanticView | None:

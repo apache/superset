@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import re
 import urllib.request
+from contextlib import closing
+from decimal import Decimal
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -27,18 +28,37 @@ from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
-negative_number_re = re.compile(r"^-[0-9.]+$")
+PROBLEMATIC_CSV_PREFIXES: str = "-@+|=%"
 
-# This regex will match if the string starts with:
-#
-#     1. one of -, @, +, |, =, %, a tab, or a carriage return
-#     2. two double quotes immediately followed by one of -, @, +, |, =, %
-#     3. one or more spaces immediately followed by one of -, @, +, |, =, %
-#
-# A leading tab or carriage return is treated as dangerous on its own because
-# some spreadsheet software trims that leading whitespace and then evaluates
-# the remaining cell content as a formula.
-problematic_chars_re = re.compile(r'^(?:"{2}|\s{1,})(?=[\-@+|=%])|^[\-@+|=%\t\r]')
+
+def _starts_with_formula_prefix(value: str) -> bool:
+    first = value[0]
+    if first in PROBLEMATIC_CSV_PREFIXES:
+        return True
+    if first == '"' and len(value) > 2:
+        return value[1] == '"' and value[2] in PROBLEMATIC_CSV_PREFIXES
+    return False
+
+
+def _starts_like_spreadsheet_formula(value: str) -> bool:
+    # A leading tab or carriage return is treated as dangerous on its own
+    # because some spreadsheet software trims that leading whitespace and
+    # then evaluates the remaining cell content as a formula.
+    first = value[0]
+    if first in ("\t", "\r"):
+        return True
+    if first.isspace():
+        stripped = value.lstrip()
+        return bool(stripped) and _starts_with_formula_prefix(stripped)
+    return _starts_with_formula_prefix(value)
+
+
+def _is_negative_number(value: str) -> bool:
+    return (
+        len(value) > 1
+        and value[0] == "-"
+        and all("0" <= character <= "9" or character == "." for character in value[1:])
+    )
 
 
 def escape_value(value: str) -> str:
@@ -47,10 +67,10 @@ def escape_value(value: str) -> str:
 
     http://georgemauer.net/2017/10/07/csv-injection.html
     """
-    needs_escaping = problematic_chars_re.match(value) is not None
-    is_negative_number = negative_number_re.match(value) is not None
+    if not value:
+        return value
 
-    if needs_escaping and not is_negative_number:
+    if _starts_like_spreadsheet_formula(value) and not _is_negative_number(value):
         # Escape pipe to be extra safe as this
         # can lead to remote code execution
         value = value.replace("|", "\\|")
@@ -64,6 +84,15 @@ def escape_value(value: str) -> str:
         value = "'" + value
 
     return value
+
+
+def format_decimal(value: Any) -> Any:
+    """Return finite decimals as exact fixed-point text; preserve other values."""
+    return (
+        format(value, "f")
+        if isinstance(value, Decimal) and value.is_finite()
+        else value
+    )
 
 
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
@@ -101,10 +130,10 @@ def get_chart_csv_data(
         opener.addheaders.append(("Cookie", cookie_str))
         # A missing timeout means the socket blocks forever when the Superset
         # webserver is unreachable, wedging the report schedule in WORKING.
-        response = opener.open(chart_url, timeout=timeout)
-        content = response.read()
-        if response.getcode() != 200:
-            raise URLError(response.getcode())
+        with closing(opener.open(chart_url, timeout=timeout)) as response:
+            content = response.read()
+            if response.getcode() != 200:
+                raise URLError(response.getcode())
     if content:
         return content
     return None
@@ -115,20 +144,26 @@ def get_chart_dataframe(
     auth_cookies: Optional[dict[str, str]] = None,
     timeout: Optional[float] = None,
 ) -> Optional[pd.DataFrame]:
-    # Disable all the unnecessary-lambda violations in this function
+    """Fetch chart JSON over GET and convert it to a notification table."""
+    return chart_data_to_dataframe(get_chart_csv_data(chart_url, auth_cookies, timeout))
+
+
+def chart_data_to_dataframe(content: bytes | None) -> pd.DataFrame | None:
+    """Convert chart-data JSON into the existing notification table representation."""
     # pylint: disable=unnecessary-lambda
-    content = get_chart_csv_data(chart_url, auth_cookies, timeout)
     if content is None:
         return None
 
-    result = json.loads(content.decode("utf-8"))
+    result: dict[str, Any] = json.loads(content.decode("utf-8"))
     # need to convert float value to string to show full long number
     pd.set_option("display.float_format", lambda x: str(x))
-    df = pd.DataFrame.from_dict(result["result"][0]["data"])
+    df: pd.DataFrame = pd.DataFrame.from_dict(result["result"][0]["data"])
 
     if df.empty:
         return None
 
+    i: int
+    err: BaseException
     try:
         # if any column type is equal to 2, need to convert data into
         # datetime timestamp for that column.

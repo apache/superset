@@ -20,6 +20,9 @@
 export {
   RefreshFrequencySelect,
   REFRESH_FREQUENCY_OPTIONS,
+  CUSTOM_REFRESH_FREQUENCY,
+  getRefreshFrequencyOptions,
   validateRefreshFrequency,
   getRefreshWarningMessage,
 } from './RefreshFrequencySelect';
+export type { RefreshFrequencyOption } from './RefreshFrequencySelect';

@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import copy
 import functools
 import logging
@@ -35,13 +36,14 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
+from flask_appbuilder.const import AUTH_LDAP, AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 from wtforms.fields.core import Field, UnboundField
 
@@ -52,31 +54,39 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.commands.deletion_retention.window import resolve_retention_window
+from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
+from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
+from superset.security import password_recovery
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
+    enforce_theme_algorithm,
     is_valid_theme,
 )
+from superset.translations.utils import get_language_pack_version
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
-from superset.utils.version import get_version_metadata
+from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
+from superset.websocket.permissions import can_access_realtime_notifications
 
 from .utils import bootstrap_user_data, get_config_value
 
 FRONTEND_CONF_KEYS = (
+    "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
-    "ENABLE_JAVASCRIPT_CONTROLS",
+    "SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -84,12 +94,16 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
-    "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT",
+    "GLOBAL_ASYNC_QUERIES_DEFAULT",
+    "WEBSOCKET_ENABLE",
+    "WEBSOCKET_URL",
+    "WEBSOCKET_JWT_EXPIRATION_SECONDS",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
-    "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
@@ -109,6 +123,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "ALERT_REPORTS_RUN_AS_TOOLTIP",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
     "SUPERSET_CLIENT_RETRY_ATTEMPTS",
     "SUPERSET_CLIENT_RETRY_DELAY",
@@ -123,7 +138,10 @@ FRONTEND_CONF_KEYS = (
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
+    "DECK_MULTI_MAX_SLICES",
     "CSV_STREAMING_ROW_THRESHOLD",
+    "EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE",
+    "SCARF_ANALYTICS",
 )
 
 logger = logging.getLogger(__name__)
@@ -171,20 +189,25 @@ def deprecated(
     """
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        _warned = False
+
         def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
-            message = (
-                "%s.%s "
-                "This API endpoint is deprecated and will be removed in version %s"
-            )
-            logger_args = [
-                self.__class__.__name__,
-                f.__name__,
-                eol_version,
-            ]
-            if new_target:
-                message += " . Use the following API endpoint instead: %s"
-                logger_args.append(new_target)
-            logger.warning(message, *logger_args)
+            nonlocal _warned
+            if not _warned:
+                _warned = True
+                message = (
+                    "%s.%s "
+                    "This API endpoint is deprecated and will be removed in version %s"
+                )
+                logger_args = [
+                    self.__class__.__name__,
+                    f.__name__,
+                    eol_version,
+                ]
+                if new_target:
+                    message += ". Use the following API endpoint instead: %s"
+                    logger_args.append(new_target)
+                logger.warning(message, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -271,6 +294,9 @@ def get_environment_tag() -> dict[str, Any]:
 
 
 def menu_data(user: User) -> dict[str, Any]:
+    # The archived view inherits BaseSupersetView from this module.
+    from superset.views.archived_assets import can_access_recently_archived
+
     languages = {
         lang: {**appbuilder.languages[lang], "url": appbuilder.get_url_for_locale(lang)}
         for lang in appbuilder.languages
@@ -279,8 +305,16 @@ def menu_data(user: User) -> dict[str, Any]:
     if callable(brand_text := app.config["LOGO_RIGHT_TEXT"]):
         brand_text = brand_text()
 
-    # Get centralized version metadata
-    version_metadata = get_version_metadata()
+    # Get centralized version metadata. Precise build details (git SHA and
+    # build number) let a viewer map the deployment to a specific commit/build,
+    # so expose them only to admins unless the deployment opts in via
+    # EXPOSE_BUILD_DETAILS_TO_USERS. The release version string is always shown.
+    expose_build_details = (
+        app.config["EXPOSE_BUILD_DETAILS_TO_USERS"] or security_manager.is_admin()
+    )
+    version_metadata = visible_version_metadata(
+        get_version_metadata(), expose_build_details
+    )
 
     return {
         "menu": appbuilder.menu.get_data(),
@@ -290,9 +324,11 @@ def menu_data(user: User) -> dict[str, Any]:
             "alt": appbuilder.app_name,
             "tooltip": app.config["LOGO_TOOLTIP"],
             "text": brand_text,
+            "hide_logo": app.config.get("HIDE_NAVBAR_LOGO", False),
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
+            "can_access_recently_archived": can_access_recently_archived(),
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": app.config["BUG_REPORT_URL"],
@@ -375,9 +411,18 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Check if UI theme administration is enabled
     enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
-    # Get config themes to use as fallback
+    # Get config themes, deep-merging partial user overrides with built-in defaults
+    # so that unspecified token fields fall back gracefully.
     config_theme_default = get_config_value("THEME_DEFAULT")
+    if config_theme_default:
+        config_theme_default = _merge_theme_dicts(
+            dict(_THEME_DEFAULT_BASE), dict(config_theme_default)
+        )
     config_theme_dark = get_config_value("THEME_DARK")
+    if config_theme_dark:
+        config_theme_dark = _merge_theme_dicts(
+            dict(_THEME_DARK_BASE), dict(config_theme_dark)
+        )
 
     if enable_ui_admin:
         # Try to load themes from database
@@ -400,10 +445,16 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     default_theme = _process_theme(default_theme, ThemeMode.DEFAULT)
     dark_theme = _process_theme(dark_theme, ThemeMode.DARK)
 
+    # Force each theme to carry the algorithm of the slot it fills, so a light
+    # theme assigned to the dark slot (or vice versa) still renders consistently
+    default_theme = enforce_theme_algorithm(default_theme, ThemeMode.DEFAULT)
+    dark_theme = enforce_theme_algorithm(dark_theme, ThemeMode.DARK)
+
     return {
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
+            "defaultMode": app.config["THEME_DEFAULT_MODE"],
             "enableUiThemeAdministration": enable_ui_admin,
         }
     }
@@ -433,12 +484,73 @@ def get_default_spinner_svg() -> str | None:
         return None
 
 
+def _get_user_subjects(user_id: int | None) -> list[int]:
+    """Return subject IDs for the current user, or empty list."""
+    if user_id is None:
+        return []
+    try:
+        from superset.subjects.utils import get_user_subject_ids
+
+        return get_user_subject_ids(user_id)
+    except Exception:
+        logger.warning("Could not load current user subject IDs", exc_info=True)
+        return []
+
+
+def _get_user_subject_id(user_id: int | None) -> int | None:
+    """Return the USER-type subject ID for the current user."""
+    if user_id is None:
+        return None
+    try:
+        from superset.subjects.utils import get_user_subject
+
+        subject = get_user_subject(user_id)
+        return subject.id if subject else None
+    except Exception:
+        logger.warning("Could not load current user subject ID", exc_info=True)
+        return None
+
+
 def _get_frontend_config_value(key: str) -> Any:
     """Get frontend config value, converting sets to lists for JSON compatibility."""
     val = app.config.get(key)
     if isinstance(val, set):
         return list(val)
     return val
+
+
+def _soft_delete_conf() -> dict[str, Any]:
+    """Return the retention window to advertise to the client, if any.
+
+    Resolved rather than read from config: an operator can change the window at
+    runtime with ``superset deletion-retention set_window``, which persists to
+    a shared key taking precedence over the config seed unless an authoritative
+    host policy is installed. Passing the config
+    value through would tell users they have longer to recover an object than
+    the purge task will actually allow.
+
+    An empty mapping means "say nothing about a window" — either the feature is
+    off, so no deployment pays for a lookup it cannot use, or the lookup failed.
+    A display detail must never be the reason a page fails to bootstrap.
+    """
+    if not is_feature_enabled("SOFT_DELETE"):
+        return {}
+    try:
+        return {"SOFT_DELETE_RETENTION_DAYS": resolve_retention_window()}
+    except Exception:  # pylint: disable=broad-except
+        # resolve_retention_window() issues a real key_value SELECT, so a
+        # failure can leave the request's session in a failed-transaction
+        # state. Swallowing the error without rolling back would make the
+        # *next* unrelated query in this request fail with
+        # PendingRollbackError, attributing the fault to whatever ran after
+        # rather than to this lookup.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.warning(
+            "Could not resolve the soft-delete retention window for the client "
+            "bootstrap; the delete modal will omit the recovery window.",
+            exc_info=True,
+        )
+        return {}
 
 
 @cache_manager.cache.memoize(timeout=60)
@@ -453,6 +565,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = (
+        is_background_export_available()
+    )
+
+    frontend_config.update(_soft_delete_conf())
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -490,17 +607,19 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
     should_show_recaptcha = auth_user_registration and (
-        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+        auth_type not in (AUTH_LDAP, AUTH_OAUTH, AUTH_SAML)
     )
 
     if auth_user_registration:
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
             "AUTH_USER_REGISTRATION_ROLE"
         ]
-    if should_show_recaptcha:
-        frontend_config["RECAPTCHA_PUBLIC_KEY"] = app.config["RECAPTCHA_PUBLIC_KEY"]
+    recaptcha_public_key = app.config.get("RECAPTCHA_PUBLIC_KEY")
+    if should_show_recaptcha and recaptcha_public_key:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
+    frontend_config["PASSWORD_RECOVERY_ENABLED"] = password_recovery.is_enabled()
     if auth_type == AUTH_OAUTH:
         oauth_providers = []
         for provider in appbuilder.sm.oauth_providers:
@@ -536,8 +655,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "extra_categorical_color_schemes": app.config[
             "EXTRA_CATEGORICAL_COLOR_SCHEMES"
         ],
+        "extra_theme_tokens": app.config["EXTRA_THEME_TOKENS"],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "user_subject_id": _get_user_subject_id(user_id),
+        "user_subjects": _get_user_subjects(user_id),
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
@@ -550,7 +672,59 @@ def common_bootstrap_payload() -> dict[str, Any]:
     locale = get_locale()
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
-    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
+    payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    frontend_config = payload.get("conf")
+    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
+        payload["conf"] = {
+            **frontend_config,
+            "WEBSOCKET_ENABLE": can_access_realtime_notifications(),
+        }
+    # The language pack itself is NOT embedded in the payload: spa.html loads
+    # it through the content-addressed /language_pack/<lang>/<version>/script.js
+    # tag before the entry bundle, keeping HTML small while still configuring
+    # the translator synchronously (upstream issue #35330). A pack provided via
+    # COMMON_BOOTSTRAP_OVERRIDES_FUNC (the historical workaround) is respected
+    # and takes precedence over the script tag.
+    payload.setdefault("language_pack", None)
+    return payload
+
+
+def get_language_pack_template_context(common: dict[str, Any]) -> dict[str, Any]:
+    """Template vars controlling how spa.html delivers the language pack.
+
+    ``common`` is the already-built common bootstrap payload for the request
+    (passed in rather than re-derived, so callers that assembled or mocked
+    their own payload stay consistent with what the template sees).
+
+    Three mutually exclusive outcomes:
+    - English (or no locale): no script tag, nothing to stash.
+    - Operator supplied a pack via COMMON_BOOTSTRAP_OVERRIDES_FUNC: no script
+      tag; spa.html stashes the bootstrap pack on window instead.
+    - Otherwise: emit the content-addressed script URL so the browser can
+      cache the pack as immutable and cache-bust on translation changes.
+    """
+    language = common.get("locale")
+    if not language or language == "en":
+        return {"language_pack_src": None, "language_pack_inline": False}
+    # Truthiness (not `is not None`) is intentional: an empty `{}` override
+    # is not a usable pack (the JS-side stash treats `{}` as truthy and would
+    # crash the translator), so it falls through to the versioned script tag
+    # like "no override" would.
+    if common.get("language_pack"):
+        return {"language_pack_src": None, "language_pack_inline": True}
+    version = get_language_pack_version(language)
+    return {
+        "language_pack_src": (
+            url_for(
+                "Superset.language_pack_script",
+                lang=language,
+                version=version,
+            )
+            if version
+            else None
+        ),
+        "language_pack_inline": False,
+    }
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -570,6 +744,41 @@ def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
         **(extra_data or {}),
     }
     return payload
+
+
+def _ensure_static_assets_prefix(url_or_path: str) -> str:
+    """Add the configured static asset prefix to root-relative asset paths."""
+    static_assets_prefix = app.config.get("STATIC_ASSETS_PREFIX", "")
+
+    if (
+        url_or_path.startswith("//")
+        or not url_or_path.startswith("/")
+        or not static_assets_prefix
+    ):
+        return url_or_path
+
+    normalized_prefix = static_assets_prefix.rstrip("/")
+    if normalized_prefix and (
+        url_or_path == normalized_prefix
+        or url_or_path.startswith(f"{normalized_prefix}/")
+    ):
+        return url_or_path
+
+    return f"{normalized_prefix}{url_or_path}"
+
+
+def _svg_to_data_uri(svg: str | None) -> str | None:
+    """Encode SVG markup as a base64 data URI, or ``None`` if no SVG is given.
+
+    A malformed theme (hand-edited config or a stale database row) could
+    supply a truthy non-string value here; treat that as absent rather than
+    raising, since raising would 500 every SPA render.
+    """
+    if not isinstance(svg, str) or not svg:
+        return None
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
+        "ascii"
+    )
 
 
 def get_spa_template_context(
@@ -617,6 +826,12 @@ def get_spa_template_context(
                 # User has customized APP_NAME, use it as brandAppName
                 theme_tokens["brandAppName"] = app_name_from_config
 
+        brand_spinner_url = theme_tokens.get("brandSpinnerUrl")
+        if isinstance(brand_spinner_url, str) and brand_spinner_url:
+            theme_tokens["brandSpinnerUrl"] = _ensure_static_assets_prefix(
+                brand_spinner_url
+            )
+
     # Write the modified theme data back to payload
     if "common" not in payload:
         payload["common"] = {}
@@ -635,6 +850,10 @@ def get_spa_template_context(
         # No custom URL either, use default SVG
         spinner_svg = get_default_spinner_svg()
 
+    # Serve the spinner as an <img> data URI (see spa.html). SVG loaded via <img>
+    # can't execute scripts, so rendering doesn't depend on sanitize_svg_content.
+    spinner_svg_data_uri = _svg_to_data_uri(spinner_svg)
+
     # Determine default title using the (potentially updated) brandAppName
     default_title = theme_tokens.get("brandAppName", "Superset")
 
@@ -649,8 +868,9 @@ def get_spa_template_context(
         ),
         "theme_tokens": theme_tokens,
         "dark_theme_bg": dark_theme_bg,
-        "spinner_svg": spinner_svg,
+        "spinner_svg_data_uri": spinner_svg_data_uri,
         "default_title": default_title,
+        **get_language_pack_template_context(payload.get("common") or {}),
         **template_kwargs,
     }
 
@@ -725,7 +945,29 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database,
             models.Database.id == self.model.database_id,
         )
-        return query.filter(get_dataset_access_filters(self.model))
+        access_filter = get_dataset_access_filters(self.model)
+        # Editors keep sight of their own soft-deleted rows regardless of
+        # datasource grants: ``raise_for_access`` counts editorship as
+        # datasource access, and the restore audience is editors/admins.
+        # The leg is inert for live rows (``deleted_at IS NULL`` fails it)
+        # and only ever matters when a deleted-state rison filter has opted
+        # the request in to seeing soft-deleted rows — without that session
+        # bypass, no soft-deleted row reaches this query at all.
+        deleted_at = getattr(self.model, "deleted_at", None)
+        editors = getattr(self.model, "editors", None)
+        user_id = utils.get_user_id()
+        if deleted_at is not None and editors is not None and user_id:
+            from superset.subjects.models import Subject  # noqa: PLC0415
+            from superset.subjects.utils import (  # noqa: PLC0415
+                get_user_subject_ids_subquery,
+            )
+
+            editable_trash = and_(
+                deleted_at.is_not(None),
+                editors.any(Subject.id.in_(get_user_subject_ids_subquery(user_id))),
+            )
+            return query.filter(or_(access_filter, editable_trash))
+        return query.filter(access_filter)
 
 
 class CsvResponse(Response):

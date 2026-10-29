@@ -21,7 +21,11 @@ import type { ButtonGroupProps } from './types';
 export function ButtonGroup(props: ButtonGroupProps) {
   const { className, children } = props;
   return (
+    // role="group" is the correct ARIA pattern for a generic button toolbar;
+    // the suggested native tags (fieldset, etc.) carry unrelated form
+    // semantics and unwanted default browser styling.
     <div
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="group"
       className={className}
       css={{

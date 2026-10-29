@@ -24,6 +24,12 @@ describe('createSmartNumberFormatter(options)', () => {
     const formatter = createSmartNumberFormatter();
     expect(formatter).toBeInstanceOf(NumberFormatter);
   });
+  test('uses the supplied formatter id regardless of signed option', () => {
+    expect(createSmartNumberFormatter({ id: 'custom' }).id).toBe('custom');
+    expect(
+      createSmartNumberFormatter({ id: 'custom-signed', signed: true }).id,
+    ).toBe('custom-signed');
+  });
   describe('using default options', () => {
     const formatter = createSmartNumberFormatter();
     test('formats 0 correctly', () => {
@@ -148,6 +154,20 @@ describe('createSmartNumberFormatter(options)', () => {
       test('formats numbers that are less than 0.000001 as SI format with precision 3', () => {
         expect(formatter(0.0000001)).toBe('+100n');
       });
+    });
+  });
+  describe('with a locale', () => {
+    const formatter = createSmartNumberFormatter({
+      locale: { decimal: ',', thousands: '\u202F' },
+    });
+    test('uses its decimal separator', () => {
+      expect(formatter(10.23432)).toBe('10,23');
+      expect(formatter(0.0023)).toBe('0,0023');
+      expect(formatter(4560000000)).toBe('4,56B');
+      expect(formatter(10100)).toBe('10,1k');
+    });
+    test('keeps the ASCII hyphen-minus of the default locale', () => {
+      expect(formatter(-10.5)).toBe('-10,5');
     });
   });
 });

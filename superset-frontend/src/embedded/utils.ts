@@ -23,7 +23,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual } from 'lodash-es';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import {
   hasChartStateConverter,

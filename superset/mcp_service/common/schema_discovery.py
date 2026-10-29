@@ -160,6 +160,11 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "filter_select_enabled": "Whether filter select is enabled",
     "normalize_columns": "Whether to normalize column names",
     "always_filter_main_dttm": "Whether to always filter on the main datetime column",
+    "partition_column": "Physical column the engine partitions on",
+    "partition_mapped_column": (
+        "Column whose filters are mirrored onto the partition column; "
+        "defaults to the main datetime column"
+    ),
     "fetch_values_predicate": "SQL predicate for fetching filter values",
     "default_endpoint": "Default endpoint URL",
     "offset": "Row offset for queries",
@@ -257,13 +262,14 @@ CHART_SORTABLE_COLUMNS = [
     "viz_type",
     "description",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 CHART_SEARCH_COLUMNS = ["slice_name", "description"]
 CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "datasource_name": ColumnMetadata(
         name="datasource_name",
-        description="Data source name",
+        description="Current name of the chart's dataset or semantic view",
         type="str",
         is_default=False,
     ),
@@ -333,8 +339,8 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Chart tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Chart owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Chart editors", type="list", is_default=False
     ),
 }
 
@@ -354,9 +360,15 @@ DATASET_SORTABLE_COLUMNS = [
     "table_name",
     "schema",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
-DATASET_SEARCH_COLUMNS = ["table_name", "description"]
+# Single source of truth for what ``list_datasets`` searches, so ``get_schema``
+# and the schema resource cannot drift from the tool's actual behavior. ``uuid``
+# is deliberately absent from the generic substring search because its storage
+# representation varies by database. ``list_datasets`` recognizes a complete
+# UUID search separately and converts it to an exact ``uuid`` filter.
+DATASET_SEARCH_COLUMNS = ["table_name", "description", "schema", "sql"]
 DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "database_name": ColumnMetadata(
         name="database_name",
@@ -427,8 +439,8 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Dataset tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Dataset owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Dataset editors", type="list", is_default=False
     ),
 }
 
@@ -450,6 +462,7 @@ DASHBOARD_SORTABLE_COLUMNS = [
     "slug",
     "published",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 DASHBOARD_SEARCH_COLUMNS = ["dashboard_title", "slug"]
@@ -496,8 +509,8 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Dashboard tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Dashboard owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Dashboard editors", type="list", is_default=False
     ),
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False

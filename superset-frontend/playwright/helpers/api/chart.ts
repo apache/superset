@@ -18,6 +18,7 @@
  */
 
 import { Page, APIResponse } from '@playwright/test';
+import rison from 'rison';
 import {
   apiGet,
   apiPost,
@@ -101,4 +102,47 @@ export async function apiPutChart(
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
   return apiPut(page, `${ENDPOINTS.CHART}${chartId}`, data, options);
+}
+
+/**
+ * TypeScript interface for a chart search result.
+ */
+export interface ChartResult {
+  id: number;
+  slice_name: string;
+}
+
+/**
+ * Result of {@link getChartsByName}: the total count and matching rows,
+ * mirroring the API's own `{count, result}` envelope for exact-count
+ * assertions (e.g. "exactly one chart named X exists").
+ */
+export interface ChartsByNameResult {
+  count: number;
+  result: ChartResult[];
+}
+
+/**
+ * Get every chart with an exact `slice_name` match.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param name - The slice_name to search for
+ * @returns The matching charts and their total count
+ */
+export async function getChartsByName(
+  page: Page,
+  name: string,
+): Promise<ChartsByNameResult> {
+  const queryParam = rison.encode({
+    filters: [{ col: 'slice_name', opr: 'eq', value: name }],
+  });
+  const response = await apiGet(page, `${ENDPOINTS.CHART}?q=${queryParam}`, {
+    failOnStatusCode: false,
+  });
+
+  if (!response.ok()) {
+    return { count: 0, result: [] };
+  }
+
+  const body = await response.json();
+  return { count: body.count ?? 0, result: body.result ?? [] };
 }

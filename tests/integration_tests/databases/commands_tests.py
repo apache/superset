@@ -178,6 +178,20 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"]())
         metadata.pop("uuid")
 
+        # Datasets in a database bundle are exported with ``export_uuids=True``,
+        # so every column/metric carries a ``uuid`` so that custom folder
+        # references survive the round trip. They are assigned dynamically, so
+        # build lookups by name.
+        birth_names = next(
+            table for table in example_db.tables if table.table_name == "birth_names"
+        )
+        column_uuid_map = {
+            column.column_name: str(column.uuid) for column in birth_names.columns
+        }
+        metric_uuid_map = {
+            metric.metric_name: str(metric.uuid) for metric in birth_names.metrics
+        }
+
         metadata["columns"].sort(key=lambda x: x["column_name"])
         expected_metadata = {
             "cache_timeout": None,
@@ -194,6 +208,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": ds_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["ds"],
                 },
                 {
                     "column_name": "gender",
@@ -207,6 +222,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(16)",
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["gender"],
                 },
                 {
                     "column_name": "name",
@@ -222,6 +238,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     ),
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["name"],
                 },
                 {
                     "column_name": "num",
@@ -235,6 +252,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num"],
                 },
                 {
                     "column_name": "num_california",
@@ -248,6 +266,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": None,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_california"],
                 },
                 {
                     "column_name": "state",
@@ -261,6 +280,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(10)",
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["state"],
                 },
                 {
                     "column_name": "num_boys",
@@ -274,6 +294,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_boys"],
                 },
                 {
                     "column_name": "num_girls",
@@ -287,6 +308,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_girls"],
                 },
             ],
             "database_uuid": str(db_uuid),
@@ -306,6 +328,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_type": "count",
                     "verbose_name": "COUNT(*)",
                     "warning_text": None,
+                    "uuid": metric_uuid_map["count"],
                 },
                 {
                     "d3format": None,
@@ -316,6 +339,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_type": None,
                     "verbose_name": None,
                     "warning_text": None,
+                    "uuid": metric_uuid_map["sum__num"],
                 },
             ],
             "offset": 0,
@@ -1114,6 +1138,10 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
+
+    ``port`` is explicitly ``None`` in the payload -- not required for
+    Postgres, since a blank/null port falls back to the default 5432 -- and
+    is correctly absent from the expected "missing" list below.
     """
     is_hostname_valid.return_value = False
 
@@ -1133,11 +1161,11 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
         command.run()
     assert excinfo.value.errors == [
         SupersetError(
-            message="One or more parameters are missing: database, port, username",
+            message="One or more parameters are missing: database, username",
             error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "missing": ["database", "port", "username"],
+                "missing": ["database", "username"],
                 "issue_codes": [
                     {
                         "code": 1018,
@@ -1187,7 +1215,10 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = SupersetException("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, None, "main", False)
+        schema_name: str | None = self.default_schema_backend_map.get(database.backend)
+        if schema_name is None:
+            self.skipTest(f"No default schema mapped for {database.backend}")
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
             command.run()
             assert str(excinfo.value) == "Test Error"
@@ -1203,7 +1234,10 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, None, "main", False)
+        schema_name: str | None = self.default_schema_backend_map.get(database.backend)
+        if schema_name is None:
+            self.skipTest(f"No default schema mapped for {database.backend}")
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
             command.run()
             assert (
@@ -1249,6 +1283,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
                 database, "get_default_catalog", return_value="default_catalog"
             ),
             patch.object(
+                database, "get_all_schema_names", return_value={"schema_name"}
+            ) as mock_get_all_schema_names,
+            patch.object(
                 database, "get_all_table_names_in_schema", return_value=[]
             ) as mock_get_all_table_names,
             patch.object(
@@ -1262,6 +1299,12 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             command.run()
 
             # Assert that the default catalog is used instead of None
+            mock_get_all_schema_names.assert_called_once_with(
+                catalog="default_catalog",
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout or None,
+                force=False,
+            )
             mock_get_all_table_names.assert_called_once_with(
                 catalog="default_catalog",
                 schema="schema_name",

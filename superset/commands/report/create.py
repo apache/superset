@@ -16,11 +16,12 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask import g
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import CreateMixin
 from superset.commands.report.base import BaseReportScheduleCommand
 from superset.commands.report.exceptions import (
@@ -30,8 +31,10 @@ from superset.commands.report.exceptions import (
     ReportScheduleCreationMethodUniquenessValidationError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
+    ReportScheduleRunAlertQueryAsNotAllowedError,
     ReportScheduleUserEmailNotFoundError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.reports.models import (
@@ -84,6 +87,51 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 exceptions.append(ReportScheduleUserEmailNotFoundError())
         # For creation from alerts_reports view, keep the recipients as provided
 
+    def _populate_subjects(self, exceptions: list[ValidationError]) -> None:
+        populate_subjects(
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
+    def _validate_executors(
+        self, report_type: str, exceptions: list[ValidationError]
+    ) -> None:
+        """
+        Resolve the "Run As" fields (SIP-209).
+
+        The ids are always removed from the payload; when the dynamic executor
+        feature is disabled nothing is stored and the legacy resolution applies.
+        When enabled, an omitted ``run_as`` defaults to the current user; an
+        admin can explicitly set null to use the legacy application setting.
+        An alert's omitted ``run_alert_query_as`` inherits its ``run_as``
+        identity at execution.
+        """
+        has_run_as = "run_as" in self._properties or "run_as_type" in self._properties
+        run_as_id = self._properties.pop("run_as", None)
+        run_alert_query_as_id = self._properties.pop("run_alert_query_as", None)
+        if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
+            self._properties.pop("run_as_type", None)
+            self._properties.pop("run_alert_query_as_type", None)
+            return
+
+        self.validate_run_as(
+            "run_as", run_as_id, exceptions, default_to_current_user=not has_run_as
+        )
+        if report_type == ReportScheduleType.REPORT:
+            if (
+                run_alert_query_as_id is not None
+                or self._properties.get("run_alert_query_as_type") is not None
+            ):
+                exceptions.append(ReportScheduleRunAlertQueryAsNotAllowedError())
+            return
+        self.validate_run_as(
+            "run_alert_query_as",
+            run_alert_query_as_id,
+            exceptions,
+            default_to_current_user=True,
+        )
+
     def validate(self) -> None:
         """
         Validates the properties of a report schedule configuration, including uniqueness
@@ -101,7 +149,6 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         chart_id = self._properties.get("chart")
         creation_method = self._properties.get("creation_method")
         dashboard_id = self._properties.get("dashboard")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
 
@@ -122,6 +169,8 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 database_id = self._properties["database"]
                 if database := DatabaseDAO.find_by_id(database_id):
                     self._properties["database"] = database
+                    if sql := self._properties.get("sql"):
+                        self.validate_alert_query(database, sql, exceptions)
                 else:
                     exceptions.append(DatabaseNotFoundValidationError())
             except KeyError:
@@ -145,7 +194,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         if (
             creation_method != ReportCreationMethod.ALERTS_REPORTS
             and not ReportScheduleDAO.validate_unique_creation_method(
-                dashboard_id, chart_id
+                dashboard_id, chart_id, creation_method
             )
         ):
             raise ReportScheduleCreationMethodUniquenessValidationError()
@@ -155,10 +204,13 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 self._properties["validator_config_json"]
             )
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        self._populate_subjects(exceptions)
+
+        self.validate_report_format(
+            report_type, self._properties.get("report_format"), exceptions
+        )
+        self.validate_recipients_policy(exceptions)
+        self._validate_executors(report_type, exceptions)
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

@@ -1,5 +1,5 @@
 import { Currency, type DatasourceType } from '@superset-ui/core';
-import { Owner } from '@superset-ui/chart-controls';
+import Subject from 'src/types/Subject';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -37,6 +37,10 @@ export type ColumnObject = {
   certification_details?: string;
   warning_markdown?: string;
   advanced_data_type?: string;
+  // Partition filter mapping: filters on this column are mirrored onto the
+  // dataset's `partition_column` with the value passed through this transform.
+  partition_value_transform?: string | null;
+  partition_transform_is_monotonic?: boolean;
 };
 
 type MetricObject = {
@@ -71,13 +75,18 @@ export type DatasetObject = {
   cache_timeout?: number;
   is_sqllab_view?: boolean;
   template_params?: string;
-  owners: Owner[];
+  editors: Subject[];
   columns: ColumnObject[];
   metrics: MetricObject[];
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  dataset_certification_changed?: boolean;
   is_managed_externally: boolean;
   normalize_columns: boolean;
   always_filter_main_dttm: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
   type: DatasourceType;
   column_formats: Record<string, string>;
   datasource_name: string | null;

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ReactNode, FC, memo } from 'react';
+import { css } from '@apache-superset/core/theme';
 
 import { getFilterBarTestId } from '../utils';
 
@@ -29,14 +30,20 @@ export const FilterConfigurationLink: FC<FCBProps> = ({
   onClick,
   children,
 }) => (
-  <div
+  <button
+    type="button"
+    css={css`
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      font: inherit;
+    `}
     {...getFilterBarTestId('create-filter')}
     onClick={onClick}
-    role="button"
-    tabIndex={0}
   >
     {children}
-  </div>
+  </button>
 );
 
 export default memo(FilterConfigurationLink);
