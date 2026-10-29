@@ -161,6 +161,44 @@ test('prefers the semantic API error over a stale alert after datasource metadat
   ).not.toBeInTheDocument();
 });
 
+test('shows a dataset metadata error and clears it after datasource replacement', () => {
+  const message =
+    "Semantic dimension 'event_time' has ambiguous variants for grain 'P1M'. Use one ID per name and grain.";
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      datasource={{
+        ...PLACEHOLDER_DATASOURCE,
+        id: 2,
+        uid: '2__semantic_view',
+        type: DatasourceType.SemanticView,
+        metadata_error: message,
+      }}
+      datasetsStatus={ResourceStatus.Complete}
+    />,
+  );
+  expect(screen.getByText(message)).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  rerender(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      datasource={{
+        ...PLACEHOLDER_DATASOURCE,
+        id: 1,
+        uid: '1__semantic_view',
+        type: DatasourceType.SemanticView,
+      }}
+      datasetsStatus={ResourceStatus.Complete}
+    />,
+  );
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
+  expect(screen.getByRole('status')).toBeInTheDocument();
+});
+
 test('shows the semantic-layer disabled response while dashboard metadata is unavailable', () => {
   render(
     <Chart
@@ -185,4 +223,129 @@ test('shows the semantic-layer disabled response while dashboard metadata is una
   expect(
     screen.getByText('Semantic layers are not enabled.'),
   ).toBeInTheDocument();
+});
+
+const previousResponse = [{ data: [{ value: 1 }] }] as Parameters<
+  typeof Chart
+>[0]['queriesResponse'];
+
+test('keeps a dashboard chart on screen under the spinner while it refreshes', () => {
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  rerender(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(screen.queryByText('Waiting on database...')).not.toBeInTheDocument();
+});
+
+test('shows no spinner over a dashboard chart during an auto-refresh', () => {
+  // Rendered first, so the chart is kept on screen and only the suppressed
+  // spinner keeps the overlay away.
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  rerender(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+      suppressLoadingSpinner
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+test.each([
+  ['a manual refresh', false],
+  ['an auto-refresh', true],
+])(
+  'replaces a Matrixify dashboard chart with the spinner during %s',
+  (_, suppressLoadingSpinner) => {
+    // Its cells fetch their own data when they mount, so it can't stay on
+    // screen with the previous response, and without the spinner the box would
+    // stay empty until the new response lands.
+    const formData = {
+      ...baseProps.formData,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
+      matrixify_rows: [{ label: 'count' }],
+    };
+    const { rerender } = render(
+      <Chart
+        {...baseProps}
+        formData={formData}
+        dashboardId={17}
+        chartStatus="rendered"
+        queriesResponse={previousResponse}
+      />,
+    );
+    expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+    rerender(
+      <Chart
+        {...baseProps}
+        formData={formData}
+        dashboardId={17}
+        chartStatus="loading"
+        queriesResponse={previousResponse}
+        suppressLoadingSpinner={suppressLoadingSpinner}
+      />,
+    );
+    expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
+    expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
+  },
+);
+
+test('shows only the spinner for a dashboard chart that has no previous data', () => {
+  render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={null}
+    />,
+  );
+  expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
+});
+
+test('replaces an Explore chart with the spinner while it refreshes', () => {
+  // Rendered first, so the response's form data is known and only the
+  // missing dashboard sends the chart back to the regular spinner.
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  rerender(
+    <Chart
+      {...baseProps}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
 });

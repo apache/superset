@@ -37,6 +37,7 @@ from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import (
+    apply_extra_access_exclusions,
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
     semantic_layer_grant_clause,
@@ -122,6 +123,13 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         # and an empty token scope denies all charts (a deny-all clause).
         if (guest_dashboards := guest_embedded_dashboard_filter()) is not None:
             return query.filter(self.model.dashboards.any(guest_dashboards))
+
+        # Applied before the short-circuit below: an exclusion has to hold for
+        # principals who can reach every dataset, since those are exactly the
+        # ones the role paths stop narrowing. Guests are excepted above --
+        # their token already scopes them, and withholding here would strip
+        # charts from a dashboard they were legitimately granted.
+        query = apply_extra_access_exclusions(query, "charts", Slice.id)
 
         if security_manager.can_access_all_datasources():
             return query
