@@ -752,6 +752,7 @@ def test_legacy_cache_without_column_metadata_preserves_values(
     )
     assert result.status == QueryStatus.SUCCESS, result.error_message
     assert result.is_cached
+    assert result.statements[0].data is not None
     assert result.statements[0].data["id"].tolist() == [value, None]
     pd.testing.assert_frame_equal(
         result.statements[0].data,
@@ -891,6 +892,7 @@ def test_corrupt_cache_is_a_miss(
         result = executor.execute(sql)
         assert result.status == QueryStatus.SUCCESS, result.error_message
         assert not result.is_cached
+        assert result.statements[0].data is not None
         assert result.statements[0].data["value"].tolist() == [1]
 
 
@@ -1326,12 +1328,19 @@ def test_deep_nested_sidecar_falls_back_to_arrow(
     for _ in range(550):
         value = [value]
     result_set = _result_set(["value"], [(value,)])
+    # The depth at which encoding exceeds the recursion limit varies with the
+    # interpreter (Python 3.12 inlines comprehensions), so raise it explicitly.
+    encode = mocker.patch(
+        "superset.sql.execution.serialization._encode_nested_value",
+        side_effect=RecursionError,
+    )
     result = _store_and_read(
         mocker,
         "SELECT value",
         [("SELECT value", result_set, 1.0, 1)],
         write_msgpack=use_msgpack,
     )
+    encode.assert_called_once()
     assert result.status == QueryStatus.SUCCESS, result.error_message
     pd.testing.assert_frame_equal(
         result.statements[0].data,

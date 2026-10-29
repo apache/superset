@@ -46,12 +46,9 @@ const StyledRow = styled(Row)`
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const isIsoband = (contour: ContourType) => {
-  if (Object.keys(contour).length < 4) {
-    return false;
-  }
-  return contour.upperThreshold && contour.lowerThreshold;
-};
+const isIsoband = (contour: ContourType) =>
+  (contour.upperThreshold || contour.upperThreshold === 0) &&
+  (contour.lowerThreshold || contour.lowerThreshold === 0);
 
 const getTabKey = (contour: ContourType | undefined) =>
   contour && isIsoband(contour) ? ContourTypes.Isoband : ContourTypes.Isoline;
@@ -80,8 +77,8 @@ const determineErrorMap = (tab: string, contour: ContourType) => {
     if (
       !upperThresholdError &&
       !lowerThresholdError &&
-      contour.upperThreshold &&
-      contour.lowerThreshold
+      contour.upperThreshold != null &&
+      contour.lowerThreshold != null
     ) {
       const lower = parseFloat(contour.lowerThreshold);
       const upper = parseFloat(contour.upperThreshold);
@@ -288,7 +285,7 @@ const ContourPopoverControl = ({
                 hovered
               />
               <TextControl
-                value={contour.lowerThreshold || ''}
+                value={contour.lowerThreshold ?? ''}
                 onChange={updateLowerThreshold}
               />
             </Col>
@@ -303,7 +300,7 @@ const ContourPopoverControl = ({
                 hovered
               />
               <TextControl
-                value={contour.upperThreshold || ''}
+                value={contour.upperThreshold ?? ''}
                 onChange={updateUpperThreshold}
               />
             </Col>

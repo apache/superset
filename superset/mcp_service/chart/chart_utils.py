@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.semantic_layers.models import SemanticView
 
-from superset.constants import NO_TIME_RANGE
+from superset.constants import NO_TIME_RANGE, TimeGrain
 from superset.daos.exceptions import DatasourceNotFound, DatasourceValueIsIncorrect
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
@@ -1510,7 +1510,7 @@ def add_xy_sort_config(
 def configure_temporal_handling(
     form_data: Dict[str, Any],
     x_is_temporal: bool,
-    time_grain: str | None,
+    time_grain: TimeGrain | str | None,
 ) -> None:
     """Configure form_data based on whether x-axis column is temporal.
 
@@ -1523,7 +1523,9 @@ def configure_temporal_handling(
     if x_is_temporal:
         form_data["granularity_sqla"] = form_data.get("x_axis")
         if time_grain:
-            form_data["time_grain_sqla"] = time_grain
+            form_data["time_grain_sqla"] = (
+                time_grain.value if isinstance(time_grain, TimeGrain) else time_grain
+            )
     else:
         # Non-temporal column - disable temporal handling to prevent DATE_TRUNC
         form_data["x_axis_sort_series_type"] = "name"
@@ -2051,7 +2053,7 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
     if config.temporal_column is not None:
         form_data["granularity_sqla"] = config.temporal_column
     if config.time_grain is not None:
-        form_data["time_grain_sqla"] = config.time_grain
+        form_data["time_grain_sqla"] = config.time_grain.value
 
     _copy_sunburst_native_envelope(form_data, config)
 
@@ -2688,7 +2690,7 @@ def finalize_sunburst_update_form_data(  # noqa: C901
         merged["granularity_sqla"] = config.temporal_column
 
     if grain_set and config.time_grain is not None:
-        merged["time_grain_sqla"] = config.time_grain
+        merged["time_grain_sqla"] = config.time_grain.value
 
     if "time_range" in fields_set and config.time_range is not None:
         merged["time_range"] = config.time_range
@@ -2909,7 +2911,7 @@ def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
     # `x_axis || granularity_sqla`. Providing time_grain signals temporal
     # intent; Superset ignores both for a non-temporal column.
     if config.time_grain:
-        form_data["time_grain_sqla"] = config.time_grain
+        form_data["time_grain_sqla"] = config.time_grain.value
         form_data["granularity_sqla"] = config.x_axis.name
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
@@ -3034,7 +3036,7 @@ def map_big_number_config(
         form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
 
         if config.time_grain:
-            form_data["time_grain_sqla"] = config.time_grain
+            form_data["time_grain_sqla"] = config.time_grain.value
 
         if config.compare_lag is not None:
             form_data["compare_lag"] = config.compare_lag

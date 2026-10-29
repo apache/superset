@@ -25,6 +25,7 @@ import 'dayjs/locale/fr';
 import 'dayjs/locale/es';
 import 'dayjs/locale/it';
 import 'dayjs/locale/zh-cn';
+import 'dayjs/locale/zh-tw';
 import 'dayjs/locale/ja';
 import 'dayjs/locale/de';
 import 'dayjs/locale/pt';
@@ -45,6 +46,7 @@ export const LOCALE_MAPPING = {
   es: () => import('antd/locale/es_ES'),
   it: () => import('antd/locale/it_IT'),
   zh: () => import('antd/locale/zh_CN'),
+  zh_TW: () => import('antd/locale/zh_TW'),
   ja: () => import('antd/locale/ja_JP'),
   de: () => import('antd/locale/de_DE'),
   pt: () => import('antd/locale/pt_PT'),
@@ -57,6 +59,13 @@ export const LOCALE_MAPPING = {
   nl: () => import('antd/locale/nl_NL'),
 };
 /* eslint-enable no-restricted-imports */
+
+// Maps Superset/Flask-Babel locale codes (underscore, mixed-case) to dayjs locale names (lowercase, hyphen)
+export const DAYJS_LOCALE_MAPPING: Record<string, string> = {
+  zh: 'zh-cn',
+  zh_TW: 'zh-tw',
+  pt_BR: 'pt-br',
+};
 
 export const useLocale = (): Locale | undefined | null => {
   const [datePickerLocale, setDatePickerLocale] = useState<
@@ -77,7 +86,9 @@ export const useLocale = (): Locale | undefined | null => {
         LOCALE_MAPPING[localFromFlaskBabel as keyof typeof LOCALE_MAPPING]()
           .then((locale: { default: Locale }) => {
             setDatePickerLocale(locale.default);
-            dayjs.locale(localFromFlaskBabel);
+            dayjs.locale(
+              DAYJS_LOCALE_MAPPING[localFromFlaskBabel] ?? localFromFlaskBabel,
+            );
           })
           .catch(() => setDatePickerLocale(undefined));
       } else {
