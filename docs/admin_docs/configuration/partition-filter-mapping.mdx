@@ -277,9 +277,9 @@ because it reads every partition. The unpruned result is cached like any other.
 This applies to chart queries run through the normal chart path, and the cost depends on the
 query:
 
-- A simple query makes two attempts: the rejected one and the unpruned run.
-- A chart with a series limit that runs its ranking as a separate query can make more attempts
-  (up to three times as many statements in the worst case), and a time comparison repeats the
+- A simple query that is rejected makes two attempts: the rejected one and the unpruned run.
+- A chart with a series limit that runs its ranking as a separate query can make more
+  attempts, for example six statements instead of two, and a time comparison repeats the
   rejected attempt and the retry for each comparison period.
 - Streaming exports and the cursor-paginated Samples pages do not use this recovery.
 
@@ -292,14 +292,14 @@ Limits:
   column, such as a driver timeout that repeats the SQL, can also trigger the unpruned run.
   Errors raised by Superset itself, such as its own timeouts, permission checks, and
   cancellations, are never retried.
-- A query that selects the missing column itself cannot be rescued: both attempts fail and
-  the warehouse's error is shown. This includes Samples and Drill to detail, which select every
+- Removing the mirror cannot rescue a query that itself selects the missing column; the
+  warehouse's error is shown. This includes Samples and Drill to detail, which select every
   column of the dataset, and any chart or table that uses the column.
 - The pruning indicator in the dataset editor and on filters stays on, because it reads the
   stored column list rather than the warehouse.
 
 Run **Sync columns from source** on the dataset to fix this properly. The sync clears the
-mapping when its partition column no longer exists, and says so.
+mapping when its partition column no longer exists, and the dataset editor says so.
 
 ## How the transform is evaluated
 

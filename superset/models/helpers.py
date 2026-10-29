@@ -2783,6 +2783,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Run the statement in ``executed[-1]``, once more without its partition
         filter mirror if the warehouse rejected the mirror.
 
+        Used for every statement except system-authored sampling of a physical
+        table (the Samples tab), which has its own retry and does not get this
+        one.
+
         The unmirrored statement is appended to ``executed`` before it runs, so
         a caller sees what was last sent even when that attempt fails too. A
         failure that is not attributed to the mirror is re-raised unchanged; if
@@ -2815,7 +2819,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         its partition filter mirror, or ``None`` when the failure is not that.
 
         A mirror is an optimisation the original predicates already cover, so
-        dropping it returns the same rows, only slower. The resolver reads the
+        dropping it returns the same rows (given the invariant the mapping
+        assumes), only slower. The resolver reads the
         dataset's cached columns, which still list a partition column that was
         dropped or renamed at the source, so the warehouse can reject a
         statement for a column the chart never selects.
