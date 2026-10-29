@@ -17,7 +17,7 @@
 
 from datetime import date
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -63,7 +63,9 @@ def date_view(mocker: MockerFixture) -> MagicMock:
         requests=[],
     )
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
-    view.__dict__["implementation"] = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=view,

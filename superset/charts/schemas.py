@@ -40,7 +40,7 @@ from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.constants import SemanticCacheStatus
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.semantic_layers.bundle_schemas import SemanticViewReferenceSchema
-from superset.subjects.schemas import SubjectResponseSchema
+from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -201,10 +201,10 @@ slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
 editors_description = (
-    "A list of subject IDs (users, roles, or groups) that can alter the chart."
+    "Subject IDs or explicit principal references that can alter the chart."
 )
 viewers_description = (
-    "A list of subject IDs (users, roles, or groups) that can view the chart."
+    "Subject IDs or explicit principal references that can view the chart."
 )
 params_description = (
     "Parameters are generated dynamically when clicking the save "
@@ -311,8 +311,12 @@ class ChartPostSchema(Schema):
         },
         validate=Length(0, 250),
     )
-    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
-    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    editors = fields.List(
+        SubjectReferenceField(metadata={"description": editors_description})
+    )
+    viewers = fields.List(
+        SubjectReferenceField(metadata={"description": viewers_description})
+    )
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -321,7 +325,7 @@ class ChartPostSchema(Schema):
     query_context = fields.String(
         metadata={"description": query_context_description},
         allow_none=True,
-        validate=utils.validate_json,
+        validate=utils.validate_query_context_metadata,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
@@ -375,8 +379,12 @@ class ChartPutSchema(utils.DiscardIsManagedExternallyMixin, Schema):
         allow_none=True,
         validate=Length(0, 250),
     )
-    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
-    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    editors = fields.List(
+        SubjectReferenceField(metadata={"description": editors_description})
+    )
+    viewers = fields.List(
+        SubjectReferenceField(metadata={"description": viewers_description})
+    )
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -385,7 +393,7 @@ class ChartPutSchema(utils.DiscardIsManagedExternallyMixin, Schema):
     query_context = fields.String(
         metadata={"description": query_context_description},
         allow_none=True,
-        validate=utils.validate_json,
+        validate=utils.validate_query_context_metadata,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
