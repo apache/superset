@@ -87,8 +87,13 @@ def test_non_numeric_and_null_cells_left_intact() -> None:
         df, [GenericDataType.STRING, GenericDataType.NUMERIC], form_data, None
     )
 
-    # Non-numeric column is untouched.
-    assert result["label"].tolist() == ["a", None, "c"]
+    # Non-numeric column is untouched: non-null cells keep their value and the
+    # null stays null. Its null is not pinned to None vs NaN, since the dtype
+    # pandas infers for a string column (and thus its null marker) depends on
+    # the ``future.infer_string`` option rather than on this helper.
+    label = result["label"].tolist()
+    assert [label[0], label[2]] == ["a", "c"]
+    assert pd.isna(label[1])
     # Null numeric cell is not turned into a raw float string.
     assert result["amount"].tolist()[0] == "1.0"
     assert result["amount"].tolist()[2] == "3.0"
