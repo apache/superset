@@ -28,6 +28,7 @@ import {
 
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
+import { logging } from '@apache-superset/core/utils';
 import {
   ChartDataResponseResult,
   Behavior,
@@ -60,6 +61,7 @@ import {
   unsetHoveredChartCustomization,
 } from 'src/dashboard/actions/nativeFilters';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -155,11 +157,18 @@ const FilterValue: FC<FilterValueProps> = ({
   const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
   });
   const [ownState, setOwnState] = useState<JsonObject>({});
-  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
+  const isRequiredFirst =
+    'requiredFirst' in filter &&
+    filter.requiredFirst === true &&
+    filter.filterType !== 'filter_time';
+  const [inViewFirstTime, setInViewFirstTime] = useState(
+    inView || isRequiredFirst,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets || [];
   const {
@@ -194,10 +203,10 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [hasDeps]);
 
   useEffect(() => {
-    if (!inViewFirstTime && inView) {
+    if (!inViewFirstTime && (inView || isRequiredFirst)) {
       setInViewFirstTime(true);
     }
-  }, [inView, inViewFirstTime, setInViewFirstTime]);
+  }, [inView, inViewFirstTime, setInViewFirstTime, isRequiredFirst]);
 
   useEffect(() => {
     if (!inViewFirstTime) {
@@ -284,12 +293,15 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      requestChartDataResolved({
-        formData: newFormData,
-        force: shouldRefresh,
-        ownState: filterOwnState,
-        requestParams: { async_mode_override: asyncModeOverride },
-      })
+      const query = isSemanticRange(newFormData)
+        ? Promise.resolve(queriesDataPlaceholder)
+        : requestChartDataResolved({
+            formData: newFormData,
+            force: shouldRefresh,
+            ownState: filterOwnState,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
         .then(queriesResponse => {
           setState(queriesResponse as ChartDataResponseResult[]);
           setError(undefined);
@@ -297,6 +309,15 @@ const FilterValue: FC<FilterValueProps> = ({
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
+            // Raw error details stay in devtools; they are not rendered.
+            logging.warn('Failed to load filter values', clientErrorObject);
+            // `fetch` rejects with a TypeError (in every browser) only when no
+            // response was received; anything else was reported by the server.
+            setIsNetworkError(
+              error instanceof TypeError &&
+                !clientErrorObject.status &&
+                !clientErrorObject.errors?.length,
+            );
             setError(clientErrorObject);
             handleFilterLoadFinish();
           });
@@ -469,14 +490,22 @@ const FilterValue: FC<FilterValueProps> = ({
   }
 
   if (error) {
+    // Errors without a registered `error_type` are rendered by the fallback.
+    // Server error text can expose database internals, so it is not shown.
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
         compact
         fallback={
           <ErrorAlert
-            errorType={t('Network error')}
-            message={t('Network error while attempting to fetch resource')}
+            errorType={
+              isNetworkError ? t('Network error') : t('Cannot load filter')
+            }
+            message={
+              isNetworkError
+                ? t('Network error while attempting to fetch resource')
+                : t('Sorry, something went wrong. Try again later.')
+            }
             type="error"
             compact
           />

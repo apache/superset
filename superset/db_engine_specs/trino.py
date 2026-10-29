@@ -57,6 +57,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
+from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -457,11 +458,7 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
                 QueryStatus.STOPPED,
                 QueryStatus.TIMED_OUT,
             ]:
-                cls.cancel_query(
-                    cursor=cursor,
-                    query=query,
-                    cancel_query_id=cancel_query_id,
-                )
+                cls._cancel_requested_query(cursor, query, cancel_query_id)
                 break
 
             needs_commit = False
@@ -486,6 +483,32 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
             time.sleep(poll_interval)
+
+    @classmethod
+    def _cancel_requested_query(
+        cls, cursor: Cursor, query: Query, cancel_query_id: str
+    ) -> None:
+        """
+        Kill a query whose stop or timeout ``handle_cursor`` observed.
+
+        A stop requested before the query ID was published only left the
+        early-cancel flag, and this kill is what carries it out. STOPPED is
+        recorded before the killed statement raises, so the error handler keeps
+        it instead of writing FAILED. Nothing is recorded if the kill failed.
+        """
+        cancelled = cls.cancel_query(
+            cursor=cursor,
+            query=query,
+            cancel_query_id=cancel_query_id,
+        )
+        if cancelled and query.status not in (
+            QueryStatus.STOPPED,
+            QueryStatus.TIMED_OUT,
+        ):
+            query.status = QueryStatus.STOPPED
+            if not query.end_time:
+                query.end_time = now_as_float()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def execute_with_cursor(
@@ -584,9 +607,9 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
 
     @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
+        """Stage early-cancel intent for the caller's guarded stop transaction."""
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:

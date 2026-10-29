@@ -15,10 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 
+from superset.common.chart_data import ChartDataResultType
+from superset.common.query_object import QueryObject
 from superset.common.utils import dataframe_utils
 
 
@@ -73,3 +77,52 @@ def test_df_metrics_to_num_converts_string_numerics():
     assert df["text_col"].dtype == object, "text_col should remain object"
     # dim_col: not in metric_names -> should NOT be touched
     assert df["dim_col"].dtype == object, "dim_col should not be touched"
+
+
+@pytest.mark.parametrize(
+    "fields, expected",
+    [
+        pytest.param({}, True, id="plain"),
+        pytest.param({"result_type": ChartDataResultType.FULL}, True, id="full"),
+        pytest.param({"result_type": ChartDataResultType.RESULTS}, True, id="results"),
+        pytest.param({"result_type": ChartDataResultType.SAMPLES}, True, id="samples"),
+        pytest.param(
+            {"result_type": ChartDataResultType.DRILL_DETAIL}, True, id="drill-detail"
+        ),
+        pytest.param({"result_type": None}, True, id="no-result-type"),
+        pytest.param({"grouping_sets": [["a"], []]}, True, id="grouping-sets"),
+        pytest.param(
+            {"post_processing": [{"operation": "cum", "options": {}}]},
+            False,
+            id="post-processing",
+        ),
+        pytest.param({"time_offsets": ["1 week ago"]}, False, id="time-offsets"),
+        pytest.param(
+            {"result_type": ChartDataResultType.POST_PROCESSED},
+            False,
+            id="post-processed",
+        ),
+    ],
+)
+def test_can_keep_exact_integers(fields: dict[str, Any], expected: bool) -> None:
+    query_object = QueryObject(datasource=MagicMock(), columns=["a"], **fields)
+
+    assert dataframe_utils.can_keep_exact_integers(query_object) is expected
+
+
+def test_lossy_integer_columns_lists_only_selected_dimensions() -> None:
+    large = 2**60 + 1
+    lossy = pd.Series([large, None], dtype=object)
+    query_object = QueryObject(
+        datasource=MagicMock(), columns=["dim", "small"], metrics=["metric"]
+    )
+    df = pd.DataFrame(
+        {
+            "dim": lossy,
+            "small": pd.Series([7, None], dtype=object),
+            "metric": lossy.copy(),
+            "unselected": lossy.copy(),
+        }
+    )
+
+    assert dataframe_utils.lossy_integer_columns(df, query_object) == ["dim"]

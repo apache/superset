@@ -118,11 +118,16 @@ test('renders metrics and columns through the real (unmocked) AutoSizer + react-
     { useDnd: true, useRedux: true },
   );
 
+  // AutoSizer measures its parent on a deferred tick after the ResizeObserver
+  // callback, and react-window overscans the first rows even at height 0, so
+  // the first metric can show up before the list is sized. Only the column
+  // further down proves the measured height reached the List, so both
+  // lookups wait together.
   await waitFor(
     () => {
       expect(screen.getByText(metrics[0].metric_name)).toBeInTheDocument();
+      expect(screen.getByText(columns[0].column_name)).toBeInTheDocument();
     },
     { timeout: 3000 },
   );
-  expect(screen.getByText(columns[0].column_name)).toBeInTheDocument();
 });

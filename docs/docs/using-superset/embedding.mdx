@@ -59,6 +59,42 @@ embedDashboard({
 
 `fetchGuestToken` must return a **guest token** obtained from your server by calling Superset's `/api/v1/security/guest_token/` endpoint with a service account. Do not call this endpoint from client-side code.
 
+## Chart display names
+
+Dashboard charts and cross-filter chips use configured column and metric display
+names even when a viewer cannot access the underlying SQL dataset directly. This
+also applies to embedded guests. Set a column or saved metric's verbose name in
+the dataset editor, or supply a custom label in the chart editor. Fields without
+a configured display name keep their original names.
+
+For viewers without dataset access, the dashboard datasets API supplies these
+names in `chart_display_labels`, keyed by chart ID and then by field or metric
+identifier. Viewers with dataset access use the existing `verbose_map`; the API
+omits `chart_display_labels` and skips the per-chart checks needed to generate it.
+Each entry contains labels from recognized saved display controls on an accessible
+chart on that dashboard. Filter-only fields, sort-only fields, expression
+internals, and dataset fields absent from those controls are excluded. A background
+query-context refresh cannot add labels for other fields. Table, AG Grid, and
+Handlebars charts exclude controls hidden by their saved query mode; Handlebars
+does not use percentage metrics. Other visualizations use the shared list of
+recognized control names without checking whether their plugin renders each
+control. Legacy, API-created, or imported charts can therefore retain labels for
+unused saved controls, such as `all_columns` left over on a pie chart. Generated
+identifiers such as `__timestamp` keep their existing fallback labels.
+Guest tokens must authorize the dashboard and, when a `datasets`
+allowlist is present, the SQL dataset. Semantic views do not supply this map.
+
+Custom security managers can specialize
+`can_access_dashboard_chart_labels(dashboard, chart, *, guest_dashboard_access=None, datasource_access=None)`
+to restrict label access for callers without datasource access. The hook is skipped
+for callers with datasource access, who receive the existing `verbose_map`; an
+override of this hook cannot restrict that map. The default implementation also
+honors existing `can_access_chart` and `raise_for_access` overrides and the
+`EXTRA_RAISE_FOR_ACCESS_BYPASS` configuration. For the built-in security manager,
+guest checks reuse the dashboard grant. Non-guest checks reuse the request's denied
+datasource decision and prefetched chart editors and viewers without repeating
+datasource permission queries for every chart.
+
 ---
 
 ## Callbacks
@@ -163,6 +199,7 @@ One caveat when the host page lives on a different site than Superset: the defau
 ## Security Notes
 
 - **Guest tokens expire** — their lifetime is controlled by the `GUEST_TOKEN_JWT_EXP_SECONDS` config (default: 5 minutes). Refresh tokens before they expire using a token refresh mechanism in your host app.
+- **Datasource scope** — chart and native-filter access is bound to both the datasource type and its identifier. Legacy native-filter targets without a type refer to SQL datasets. When the optional guest-token `datasets` allowlist is present, only the listed SQL datasets are reachable and semantic views are denied.
 - **Row-level security** — pass `rls` rules in the guest token request to restrict which rows are visible to the embedded user. Semantic views cannot enforce guest-token SQL clauses, so queries and cached-result reads are rejected when a global rule or a rule scoped to the semantic view applies. For hosts, a global guest rule deliberately refuses every semantic view, and a dataset-scoped rule can also refuse a semantic view even when the rule was intended for a SQL dataset. Read permissions do not override these restrictions. Semantic views remain accessible when no guest rule applies; SQL datasets continue to enforce their applicable rules.
 - **Allowed domains** — restrict which host origins can embed a dashboard by setting **Allowed Domains** per-dashboard in the _Embed_ settings modal. Superset checks the request's `Referer` header against this list before serving the embedded view; an empty list allows any origin, so configure this explicitly for production.
 - **Redacted errors** — API responses to a guest token report a generic `An error occurred while fetching the data.` instead of the underlying error, since engine errors quote catalog, schema, table and column names. Errors Superset raises itself — access denials, timeouts, payload validation — keep their message, and the full error is always available in the server logs.

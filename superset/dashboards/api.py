@@ -61,6 +61,7 @@ from werkzeug.wsgi import ClosingIterator, FileWrapper
 
 from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
+from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import (
@@ -100,12 +101,17 @@ from superset.commands.dashboard.update import (
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import SoftDeleteBinding
+from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.excel_export.download_link import (
@@ -183,6 +189,10 @@ from superset.security.manager import (
     attach_extra_editors,
     attach_extra_editors_to_rows,
 )
+from superset.semantic_layers.access import (
+    is_semantic_image_unavailable,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
@@ -201,7 +211,6 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json
 from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
@@ -228,6 +237,7 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -362,7 +372,10 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 # connection, and query construction. The identifying fields the dashboard
 # needs to render its charts are kept. This is a stricter version of the
 # narrowing DashboardDatasetSchema.post_dump already applies to guest users.
+# ``chart_display_labels`` is deliberately absent: it is authorized per member
+# chart when built and carries label strings only, never the dataset's schema.
 DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "metadata_error",
     "sql",
     "select_star",
     "fetch_values_predicate",
@@ -382,6 +395,14 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "main_dttm_col",
     "granularity_sqla",
     "time_grain_sqla",
+    # The partition filter mapping names two of the dataset's columns and
+    # carries the raw value transform in `evaluated_transform`, so it is the
+    # same class of disclosure as `columns` and `main_dttm_col` above. Only the
+    # dataset editor and Explore's pruning indicator read it; nothing in the
+    # dashboard does, so dropping it costs a caller in this branch nothing.
+    "partition_column",
+    "partition_mapped_column",
+    "partition_filter_mapping",
 )
 
 
@@ -851,9 +872,17 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
-            datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
+            # Reuse the same permission decision for labels and metadata narrowing.
+            can_access_datasource = functools.cache(
+                security_manager.can_access_datasource
+            )
+            datasets = DashboardDAO.get_datasets_for_dashboard(
+                id_or_slug, can_access_datasource=can_access_datasource
+            )
             result = [
-                self._serialize_dashboard_dataset(datasource, payload)
+                self._serialize_dashboard_dataset(
+                    datasource, payload, can_access_datasource=can_access_datasource
+                )
                 for datasource, payload in datasets
             ]
             return self.response(200, result=result)
@@ -861,7 +890,12 @@ class DashboardRestApi(
             raise DatasetValidationError(err) from err
 
     def _serialize_dashboard_dataset(
-        self, datasource: Any, payload: dict[str, Any]
+        self,
+        datasource: BaseDatasource | SemanticView,
+        payload: dict[str, Any],
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
     ) -> dict[str, Any]:
         """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
@@ -869,7 +903,8 @@ class DashboardRestApi(
             # Redux keys dashboard datasets by Slice.form_data["datasource"],
             # whereas SemanticView.uid is the provider's independent identity.
             serialized["uid"] = f"{datasource.id}__{datasource.type}"
-        if not security_manager.can_access_datasource(datasource):
+        access_check = can_access_datasource or security_manager.can_access_datasource
+        if not access_check(datasource):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
         return serialized
@@ -1727,7 +1762,9 @@ class DashboardRestApi(
                     write_zip_entry(
                         bundle, f"{root}/{file_name}", file_content().encode()
                     )
-            except DashboardNotFoundError:
+            except (DashboardNotFoundError, ChartNotFoundError, DatasetNotFoundError):
+                # The nested chart and dataset exports hide rows the caller
+                # cannot access, so mirror their bare 404 without naming them.
                 return self.response_404()
             except SemanticReferenceError as ex:
                 return self.response(ex.status, message=ex.message)
@@ -2366,6 +2403,8 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
+        if is_semantic_image_unavailable(dashboard):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         window_size = (
             kwargs["rison"].get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
@@ -2737,6 +2776,8 @@ class DashboardRestApi(
         # Making sure the dashboard still exists
         if not dashboard:
             return self.response_404()
+        if is_semantic_image_unavailable(dashboard):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         download_format = request.args.get("download_format", "png")
 
@@ -2842,6 +2883,8 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
+        if is_semantic_image_unavailable(dashboard):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         dashboard_url = get_url_path(
@@ -3158,7 +3201,7 @@ class DashboardRestApi(
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
@@ -3167,28 +3210,14 @@ class DashboardRestApi(
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
 
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDashboardsCommand(
@@ -3389,6 +3418,10 @@ class DashboardRestApi(
         ---
         post:
           summary: Create a copy of an existing dashboard
+          description: >-
+            Settings merge with the source by default. Set replace_metadata to true
+            to use json_metadata as complete settings, as for a version fork.
+            Chart-specific settings are pruned and remapped in both modes.
           parameters:
           - in: path
             schema:
@@ -3421,6 +3454,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -3429,11 +3464,16 @@ class DashboardRestApi(
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        # Read before the copy: its rollback expires ``original_dash``.
+        source_id: int = original_dash.id
         try:
             dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
             return self.response_403()
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except DashboardCopyError:
+            logger.error("Error copying dashboard %s", source_id, exc_info=True)
             return self.response_400()
 
         return self.response(
@@ -3685,6 +3725,18 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                A chart the restore was linking or unlinking was permanently
+                deleted while the restore ran. Nothing was changed; retry the
+                same request.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
         """

@@ -504,6 +504,61 @@ class TestExtractNativeFilters:
         assert _extract_native_filters("123") == []
         assert _extract_native_filters('"just a string"') == []
 
+    @pytest.mark.parametrize(
+        "divider_id,divider_type",
+        [
+            ("NATIVE_FILTER_DIVIDER-abc123", "DIVIDER"),
+            ("NATIVE_FILTER_DIVIDER-abc123", None),
+            ("legacy-divider", "DIVIDER"),
+        ],
+    )
+    def test_divider_uses_title_as_name_and_divider_as_filter_type(
+        self, divider_id: str, divider_type: str | None
+    ) -> None:
+        """A divider stores its text under "title" and has no "filterType";
+        both must be normalized rather than surfaced as None/None."""
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": divider_id,
+                        **({"type": divider_type} if divider_type else {}),
+                        "title": "Geography",
+                        "description": "Location filters",
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert len(result) == 1
+        assert result[0].id == divider_id
+        assert result[0].name == "Geography"
+        assert result[0].filter_type == "divider"
+        assert result[0].targets == []
+
+    def test_divider_alongside_regular_filter(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER_DIVIDER-abc123",
+                        "type": "DIVIDER",
+                        "title": "Geography",
+                    },
+                    {
+                        "id": "f1",
+                        "name": "Region",
+                        "filterType": "filter_select",
+                    },
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert [(r.id, r.name, r.filter_type) for r in result] == [
+            ("NATIVE_FILTER_DIVIDER-abc123", "Geography", "divider"),
+            ("f1", "Region", "filter_select"),
+        ]
+
 
 class TestExtractCrossFiltersEnabled:
     """Tests for _extract_cross_filters_enabled helper."""
@@ -673,6 +728,19 @@ class TestGenerateDashboardRequestTitleSanitization:
         assert len(req.sanitization_warnings) == 1
         assert "dashboard_title" in req.sanitization_warnings[0]
         assert "injected" not in req.sanitization_warnings[0]
+
+
+@pytest.mark.parametrize("title_field", ["dashboard_title", "title", "name"])
+@pytest.mark.parametrize("blank_title", ["", " ", "\t\n", None])
+def test_generate_dashboard_blank_title_uses_auto_title(
+    title_field: str, blank_title: str | None
+) -> None:
+    """All blank title aliases request an auto-generated title without warnings."""
+    req = GenerateDashboardRequest.model_validate(
+        {"chart_ids": [1], title_field: blank_title}
+    )
+    assert req.dashboard_title is None
+    assert req.sanitization_warnings == []
 
 
 class TestGenerateDashboardRequestLayoutTheme:
@@ -1372,3 +1440,42 @@ def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> N
         ApplyFilterValueSpec.model_validate(
             {"filter_name_or_id": "Cost", "range": bounds}
         )
+
+
+@pytest.mark.parametrize("field", ["owned_by_me", "created_by_my", "page_szie"])
+def test_list_dashboards_rejects_unknown_arguments(field: str) -> None:
+    with pytest.raises(ValidationError, match=f"Unknown field '{field}'"):
+        ListDashboardsRequest.model_validate({field: True})
+
+
+@pytest.mark.parametrize(
+    ("field", "suggestion"),
+    [("owned_by_me", "edited_by_me"), ("page_szie", "page_size")],
+)
+def test_list_dashboards_unknown_arguments_suggest_supported_fields(
+    field: str, suggestion: str
+) -> None:
+    """Validation teaches the supported spelling without loosening the schema."""
+    with pytest.raises(ValidationError, match=f"did you mean '{suggestion}'"):
+        ListDashboardsRequest.model_validate({field: True})
+    assert ListDashboardsRequest.model_json_schema()["additionalProperties"] is False
+
+
+def test_list_dashboards_preserves_supported_filters_and_aliases() -> None:
+    request = ListDashboardsRequest.model_validate(
+        {"created_by_me": True, "edited_by_me": True, "columns": ["id"], "page_size": 5}
+    )
+    assert request.created_by_me
+    assert request.edited_by_me
+    assert request.select_columns == ["id"]
+    assert request.page_size == 5
+    assert ListDashboardsRequest.model_json_schema()["additionalProperties"] is False
+
+
+def test_dashboard_self_ownership_schema_describes_direct_membership() -> None:
+    schema = ListDashboardsRequest.model_json_schema()
+    description = schema["properties"]["edited_by_me"]["description"]
+    assert "USER editor" in description
+    assert "roles or groups" in description
+    assert "OR" in description
+    assert ListDashboardsRequest(edited_by_me=True).edited_by_me is True
