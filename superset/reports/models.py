@@ -86,11 +86,36 @@ class ReportDataFormat(StrEnum):
     CSV = "CSV"
     XLSX = "XLSX"
     TEXT = "TEXT"
+    # (Alerts only) Deliver the notification without any attachment
+    NONE = "NONE"
 
     @classmethod
     def tabular(cls: type["ReportDataFormat"]) -> set["ReportDataFormat"]:
         """Formats produced from tabular chart data via the chart export path."""
         return {cls.CSV, cls.XLSX}
+
+
+class ReportConfigKey(StrEnum):
+    """
+    Keys of the global Alerts & Reports configuration stored in ``key_value``.
+
+    A missing key in the stored settings document means "not configured",
+    in which case the effective value falls back to the application config or
+    feature flag (see ``ReportConfigDAO.get_effective_config``).
+    """
+
+    # Migrated from the ``ALERTS_ATTACH_REPORTS`` FF.
+    ALERTS_ATTACH_REPORTS = "alerts_attach_reports"
+    # Migrated from the ``DATE_FORMAT_IN_EMAIL_SUBJECT`` FF.
+    DATE_FORMAT_IN_EMAIL_SUBJECT = "date_format_in_email_subject"
+    # Migrated from ``ALERT_MINIMUM_INTERVAL`` (seconds).
+    ALERT_MINIMUM_INTERVAL = "alert_minimum_interval"
+    # Migrated from ``REPORT_MINIMUM_INTERVAL`` (seconds).
+    REPORT_MINIMUM_INTERVAL = "report_minimum_interval"
+    # Only e-mail addresses belonging to existing users are accepted as recipients.
+    LIMIT_RECIPIENTS_TO_USERS = "limit_recipients_to_users"
+    # Allow-list of e-mail domains accepted as recipients (empty = any domain).
+    ALLOWED_EMAIL_DOMAINS = "allowed_email_domains"
 
 
 class ReportCreationMethod(StrEnum):
@@ -142,6 +167,26 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         passive_deletes=True,
     )
 
+    # (Alerts/Reports) User whose credentials (RBAC, database OAuth2 tokens) are
+    # used when rendering the content. When both the type and user are NULL,
+    # the legacy ``ALERT_REPORTS_EXECUTORS`` resolution is used. Only honored when the
+    # ``ALERT_REPORT_DYNAMIC_EXECUTOR`` feature flag is enabled.
+    # The type survives user deletion, so a deleted fixed user cannot become
+    # an unset legacy executor.
+    run_as_type = Column(String(50), nullable=True)
+    run_as_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
+    run_as = relationship("User", foreign_keys=[run_as_fk])
+
+    # (Alerts) User whose credentials are used when running the alert condition
+    # SQL query. NULL falls back to ``run_as`` and then to the legacy resolution.
+    run_alert_query_as_type = Column(String(50), nullable=True)
+    run_alert_query_as_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
+    run_alert_query_as = relationship("User", foreign_keys=[run_alert_query_as_fk])
+
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
     last_state = Column(String(50), default=ReportState.NOOP)
@@ -183,6 +228,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     # Retry state — written by the execution engine, not user-configurable
     retry_attempt = Column(Integer, default=0, nullable=False, server_default="0")
     retry_scheduled_dttm = Column(DateTime, nullable=True)
+    execution_owner = Column(String(36), nullable=True)
+    execution_window = Column(DateTime, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
 

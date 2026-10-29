@@ -49,6 +49,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import isImageOnlyExportViz from 'src/utils/isImageOnlyExportViz';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
@@ -78,6 +79,14 @@ import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
 
+// Hoisted out of the `return` in escapeCsvValue below rather than inlined:
+// the pybabel JavaScript lexer that builds superset/translations/messages.pot
+// reads a `/` following a `return` as division, so an inline regex literal
+// containing a double quote opens a phantom string that swallows the rest of
+// the file — silently dropping every translatable string in this module from
+// the extraction template. See scripts/translations/check_pot_drift.py.
+const CSV_NEEDS_QUOTING = /[",\r\n]/;
+
 /**
  * Escape a single CSV cell value.
  *
@@ -106,7 +115,7 @@ export const escapeCsvValue = (v: unknown): string => {
       s = `'${s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')}`;
     }
   }
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return CSV_NEEDS_QUOTING.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
 const MENU_KEYS = {
@@ -148,6 +157,19 @@ const MENU_KEYS = {
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
+// Data and PDF exports, dropped from the menu of image-only charts (see isImageOnlyExportViz).
+const DATA_AND_PDF_EXPORT_KEYS: string[] = [
+  MENU_KEYS.EXPORT_TO_CSV,
+  MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
+  MENU_KEYS.EXPORT_TO_JSON,
+  MENU_KEYS.EXPORT_TO_XLSX,
+  MENU_KEYS.EXPORT_ALL_PDF,
+  MENU_KEYS.EXPORT_CURRENT_TO_CSV,
+  MENU_KEYS.EXPORT_CURRENT_TO_JSON,
+  MENU_KEYS.EXPORT_CURRENT_XLSX,
+  MENU_KEYS.EXPORT_CURRENT_PDF,
+];
+
 const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
 
 export function getExportScreenshotMenuItems({
@@ -161,6 +183,7 @@ export function getExportScreenshotMenuItems({
   transparentKey,
   solidKey,
   pdfKey,
+  addWarningToast,
 }: {
   chartSelector: string;
   sliceName: string;
@@ -172,6 +195,7 @@ export function getExportScreenshotMenuItems({
   transparentKey: string;
   solidKey: string;
   pdfKey: string;
+  addWarningToast?: (message: string) => void;
 }) {
   return [
     {
@@ -186,10 +210,14 @@ export function getExportScreenshotMenuItems({
           onClick: (e: {
             domEvent: React.MouseEvent | React.KeyboardEvent;
           }) => {
-            downloadAsImage(chartSelector, sliceName, true, theme, {
-              format: 'png',
-              backgroundType: 'transparent',
-            })(e.domEvent);
+            downloadAsImage(
+              chartSelector,
+              sliceName,
+              true,
+              theme,
+              { format: 'png', backgroundType: 'transparent' },
+              addWarningToast,
+            )(e.domEvent);
             setIsDropdownVisible(false);
             dispatch(
               logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
@@ -206,10 +234,14 @@ export function getExportScreenshotMenuItems({
           onClick: (e: {
             domEvent: React.MouseEvent | React.KeyboardEvent;
           }) => {
-            downloadAsImage(chartSelector, sliceName, true, theme, {
-              format: 'png',
-              backgroundType: 'solid',
-            })(e.domEvent);
+            downloadAsImage(
+              chartSelector,
+              sliceName,
+              true,
+              theme,
+              { format: 'png', backgroundType: 'solid' },
+              addWarningToast,
+            )(e.domEvent);
             setIsDropdownVisible(false);
             dispatch(
               logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
@@ -227,7 +259,12 @@ export function getExportScreenshotMenuItems({
       label: t('Export as PDF'),
       icon: <Icons.FileOutlined />,
       onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
-        downloadAsPdf(chartSelector, sliceName, true)(e.domEvent);
+        downloadAsPdf(
+          chartSelector,
+          sliceName,
+          true,
+          addWarningToast,
+        )(e.domEvent);
         setIsDropdownVisible(false);
         dispatch(
           logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
@@ -345,7 +382,7 @@ export const useExploreAdditionalActionsMenu = (
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addWarningToast } = useToasts();
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
@@ -452,6 +489,7 @@ export const useExploreAdditionalActionsMenu = (
 
   const showDashboardSearch = (dashboards?.length ?? 0) > SEARCH_THRESHOLD;
   const vizType = latestQueryFormData?.viz_type;
+  const imageOnlyExport = isImageOnlyExportViz(vizType);
   const meta = vizType ? getChartMetadataRegistry().get(vizType) : undefined;
 
   // Detect if the chart plugin exposes the export-current-view behavior
@@ -761,6 +799,7 @@ export const useExploreAdditionalActionsMenu = (
             exportPivotExcel(
               `${sliceSelector} .pvtTable`,
               slice?.slice_name ?? t('pivoted_xlsx'),
+              addWarningToast,
             );
             setIsDropdownVisible(false);
             dispatch(
@@ -819,6 +858,8 @@ export const useExploreAdditionalActionsMenu = (
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
+            undefined,
+            addWarningToast,
           )(e.domEvent);
           setIsDropdownVisible(false);
           dispatch(
@@ -840,6 +881,7 @@ export const useExploreAdditionalActionsMenu = (
         transparentKey: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
         solidKey: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
         pdfKey: MENU_KEYS.EXPORT_ALL_PDF,
+        addWarningToast,
       }),
       {
         key: MENU_KEYS.EXPORT_TO_XLSX,
@@ -940,6 +982,8 @@ export const useExploreAdditionalActionsMenu = (
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
+            undefined,
+            addWarningToast,
           )(e.domEvent);
           setIsDropdownVisible(false);
           dispatch(
@@ -961,6 +1005,7 @@ export const useExploreAdditionalActionsMenu = (
         transparentKey: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
         solidKey: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
         pdfKey: MENU_KEYS.EXPORT_CURRENT_PDF,
+        addWarningToast,
       }),
       {
         key: MENU_KEYS.EXPORT_CURRENT_XLSX,
@@ -1004,7 +1049,11 @@ export const useExploreAdditionalActionsMenu = (
           key: MENU_KEYS.EXPORT_ALL_DATA_GROUP,
           type: 'submenu' as const,
           label: t('Export All Data'),
-          children: allDataChildren,
+          children: imageOnlyExport
+            ? allDataChildren.filter(
+                item => !DATA_AND_PDF_EXPORT_KEYS.includes(item.key),
+              )
+            : allDataChildren,
         },
         ...(hasExportCurrentView
           ? [
@@ -1012,7 +1061,11 @@ export const useExploreAdditionalActionsMenu = (
                 key: MENU_KEYS.EXPORT_CURRENT_VIEW_GROUP,
                 type: 'submenu' as const,
                 label: t('Export Current View'),
-                children: currentViewChildren,
+                children: imageOnlyExport
+                  ? currentViewChildren.filter(
+                      item => !DATA_AND_PDF_EXPORT_KEYS.includes(item.key),
+                    )
+                  : currentViewChildren,
               },
             ]
           : []),
@@ -1108,6 +1161,7 @@ export const useExploreAdditionalActionsMenu = (
           modalTitle={t('View query')}
           modalBody={
             <ViewQueryModal
+              chartId={slice?.slice_id}
               latestQueryFormData={latestQueryFormData as QueryFormData}
               ownState={ownState}
             />

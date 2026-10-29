@@ -68,9 +68,9 @@ describe('useCatalogs hook', () => {
     expect(result.current.data).toEqual(expectedResult);
     expect(
       fetchMock.callHistory.calls(
-        `end:/api/v1/database/${expectDbId}/catalogs/?q=${rison.encode({
-          force: forceRefresh,
-        })}`,
+        `end:/api/v1/database/${expectDbId}/catalogs/?q=${encodeURIComponent(
+          rison.encode({ force: forceRefresh }),
+        )}`,
       ).length,
     ).toBe(1);
     expect(onSuccess).toHaveBeenCalledTimes(1);
@@ -82,9 +82,9 @@ describe('useCatalogs hook', () => {
     );
     expect(
       fetchMock.callHistory.calls(
-        `end:/api/v1/database/${expectDbId}/catalogs/?q=${rison.encode({
-          force: true,
-        })}`,
+        `end:/api/v1/database/${expectDbId}/catalogs/?q=${encodeURIComponent(
+          rison.encode({ force: true }),
+        )}`,
       ).length,
     ).toBe(1);
     expect(onSuccess).toHaveBeenCalledTimes(2);

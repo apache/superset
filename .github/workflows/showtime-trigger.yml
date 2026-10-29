@@ -189,7 +189,7 @@ jobs:
 
       - name: Setup Docker Environment (only if build needed)
         if: steps.auth.outputs.authorized == 'true' && steps.check.outputs.build_needed == 'true'
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
