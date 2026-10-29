@@ -173,9 +173,7 @@ def get_datasource_post() -> dict[str, Any]:
 
 @pytest.fixture
 def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
-    engine = create_engine(
-        app.config["SQLALCHEMY_DATABASE_URI"], echo=True, future=True
-    )
+    engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
     meta = MetaData()
 
     students = Table(

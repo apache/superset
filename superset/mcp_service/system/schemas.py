@@ -24,13 +24,21 @@ system-level info.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Annotated, Any, List
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
 from superset.subjects.types import SubjectType
+
+# Shape-only check, not RFC validation: just enough to catch "local@domain.tld"
+# so an email-shaped query can be rejected before it reaches the username
+# column, since usernames are frequently email addresses under OAuth
+# provisioning.
+_EMAIL_SHAPE_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class HealthCheckResponse(BaseModel):
@@ -144,8 +152,9 @@ class UserInfo(BaseModel):
     roles: list[str] = Field(
         default_factory=list,
         description=(
-            "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
-            "Use this to determine what actions the user can perform."
+            "Role names the user holds, whether assigned directly or through a "
+            "group (e.g., Admin, Alpha, Gamma, Viewer). Use this to determine "
+            "what actions the user can perform."
         ),
     )
 
@@ -155,12 +164,7 @@ def serialize_user_object(user: Any) -> UserInfo | None:
     if not user:
         return None
 
-    user_roles: list[str] = []
-    if (raw_roles := getattr(user, "roles", None)) is not None:
-        try:
-            user_roles = [role.name for role in raw_roles if hasattr(role, "name")]
-        except TypeError:
-            user_roles = []
+    user_roles = get_user_role_names(user)
 
     return UserInfo(
         id=getattr(user, "id", None),
@@ -176,7 +180,7 @@ def serialize_user_object(user: Any) -> UserInfo | None:
 class FindUsersRequest(BaseModel):
     """Request schema for find_users tool.
 
-    Resolves a person's name (or partial name, username, or email) to user IDs
+    Resolves a person's name (or partial name or username) to user IDs
     so they can be passed to listing tools as filter values for created_by_fk
     or changed_by_fk. This is the only sanctioned path for "show me what
     <person> is working on" queries.
@@ -191,8 +195,9 @@ class FindUsersRequest(BaseModel):
             max_length=200,
             description=(
                 "Substring to match (case-insensitive) against username, "
-                "first_name, last_name, and email. Required and non-empty: "
-                "this tool does not enumerate the full user directory."
+                "first_name, and last_name (never email; email-shaped "
+                "queries are rejected). Required and non-empty: this tool "
+                "does not enumerate the full user directory."
             ),
         ),
     ]
@@ -216,6 +221,20 @@ class FindUsersRequest(BaseModel):
         if not stripped:
             raise ValueError("query must contain at least one non-whitespace character")
         return stripped
+
+    @field_validator("query")
+    @classmethod
+    def _reject_email_shaped_query(cls, value: str) -> str:
+        # Email isn't a searchable column here, but usernames are commonly
+        # email addresses under OAuth provisioning, so an email-shaped query
+        # would still confirm an account's existence via the username column.
+        # Reject the shape outright rather than relying on the column
+        # exclusion alone.
+        if _EMAIL_SHAPE_RE.match(value):
+            raise ValueError(
+                "query must not be an email address; search by name or username instead"
+            )
+        return value
 
 
 class UserMatch(BaseModel):

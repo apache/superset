@@ -21,6 +21,7 @@ import Mustache from 'mustache';
 import { Typography } from '@superset-ui/core/components';
 import { MetricOption } from '@superset-ui/chart-controls';
 import type { Row, ColumnRow, MetricRow } from '../../types';
+import { toSafeHref } from 'src/utils/urlUtils';
 
 interface LeftCellProps {
   row: Row;
@@ -35,7 +36,7 @@ const LeftCell = ({ row, rowType, url }: LeftCellProps): ReactElement => {
   const fullUrl = useMemo(() => {
     if (!url) return undefined;
     const context = { metric: row };
-    return Mustache.render(url, context);
+    return toSafeHref(Mustache.render(url, context));
   }, [url, row]);
 
   if (rowType === 'column') {

@@ -23,6 +23,7 @@ import {
   formatVersionDateTimeShort,
   formatVersionMonthDay,
   groupHeadline,
+  selectHighlightedTransactionId,
   relatedHeadline,
 } from './display';
 import type { ActivityRecord, SaveGroup } from './types';
@@ -373,6 +374,53 @@ test('relatedHeadline falls back when the server summary is empty', () => {
   ).toBe('Item updated: Trend');
 });
 
+test('relatedHeadline is neutral when the row spans several kinds of change', () => {
+  const description = record({
+    source: 'related',
+    entity_kind: 'dataset',
+    entity_name: 'my_virtual_ds',
+    kind: 'field',
+    summary: 'Dataset updated: my_virtual_ds',
+  });
+  const column = { ...description, kind: 'column' };
+  const metric = {
+    ...description,
+    kind: 'metric',
+    summary: 'Dataset metric changed: my_virtual_ds',
+  };
+
+  // Records arrive newest-sequence first, so the metric record leads.
+  expect(relatedHeadline(metric, [metric, column, description])).toBe(
+    'Dataset updated: my_virtual_ds',
+  );
+  expect(
+    relatedHeadline({ ...metric, entity_kind: 'chart' }, [
+      { ...metric, entity_kind: 'chart' },
+      { ...column, entity_kind: 'chart' },
+    ]),
+  ).toBe('Chart updated: my_virtual_ds');
+  // One kind keeps the server's specific summary.
+  expect(relatedHeadline(metric, [metric, { ...metric }])).toBe(
+    'Dataset metric changed: my_virtual_ds',
+  );
+  expect(relatedHeadline(metric)).toBe('Dataset metric changed: my_virtual_ds');
+});
+
+test('relatedHeadline keeps the redacted summary for a deleted related entity', () => {
+  const tombstone = record({
+    source: 'related',
+    entity_kind: 'dataset',
+    entity_name: '',
+    entity_deleted: true,
+    kind: 'metric',
+    summary: '(deleted) Dataset',
+  });
+
+  expect(
+    relatedHeadline(tombstone, [tombstone, { ...tombstone, kind: 'column' }]),
+  ).toBe('(deleted) Dataset');
+});
+
 test('formatAuthor handles system, named, and nameless users', () => {
   expect(formatAuthor(null)).toBe('System');
   expect(
@@ -419,3 +467,57 @@ test('an unlabelled related record does not assemble its sentence from fragments
     ),
   ).toBe('Item updated: Revenue');
 });
+
+test('groupHeadline renders the starting-version label per creation kind', () => {
+  expect(groupHeadline(group({ creationKind: 'unknown' }))).toBe(
+    'Starting version',
+  );
+  expect(groupHeadline(group({ creationKind: 'pre_tracking' }))).toBe(
+    'Original version',
+  );
+  expect(groupHeadline(group({ creationKind: 'created' }))).toBe('Created');
+  expect(groupHeadline(group({ creationKind: 'imported' }))).toBe('Imported');
+});
+
+test('the creation label wins over every other headline rule', () => {
+  // A synthetic starting-version group has zero records and could
+  // otherwise fall into the empty-group fallbacks; creationKind decides
+  // first, ahead of firstTrackedSave and actionKind.
+  expect(
+    groupHeadline(
+      group({
+        creationKind: 'imported',
+        firstTrackedSave: true,
+        actionKind: 'import',
+        records: [],
+      }),
+    ),
+  ).toBe('Imported');
+});
+
+test.each([
+  // [previewed, current, currentShownInSection, expected]
+  [7, 20, false, 7],
+  [7, 20, true, 7],
+  [null, 20, false, 20],
+  [null, 20, true, null],
+  [20, 20, false, 20],
+  [20, 20, true, null],
+  [null, null, false, null],
+])(
+  'highlights previewed=%s current=%s (section shown: %s) -> %s',
+  (
+    previewedTransactionId,
+    currentTransactionId,
+    currentShownInSection,
+    expected,
+  ) => {
+    expect(
+      selectHighlightedTransactionId({
+        previewedTransactionId,
+        currentTransactionId,
+        currentShownInSection,
+      }),
+    ).toBe(expected);
+  },
+);

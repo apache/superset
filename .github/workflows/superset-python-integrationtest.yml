@@ -27,6 +27,7 @@ jobs:
       pull-requests: read
     outputs:
       python: ${{ steps.check.outputs.python }}
+      semantic-layers: ${{ steps.check.outputs.semantic-layers }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,9 +35,58 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  test-semantic-cache-coordination:
+    needs: changes
+    if: needs.changes.outputs.semantic-layers == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SEMANTIC_CACHE_REDIS_PORT: 16379
+      SEMANTIC_CACHE_SENTINEL_PORT: 26379
+    services:
+      redis:
+        image: redis:7.4.10-alpine3.21
+        ports:
+          - 16379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=2s
+          --health-timeout=2s
+          --health-retries=20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: $/.github/actions/setup-backend/
+      - name: Start pinned Redis Sentinel
+        run: |
+          docker run --detach --name semantic-cache-sentinel \
+            --publish 26379:26379 \
+            --add-host host.docker.internal:host-gateway \
+            redis:7.4.10-alpine3.21 sh -c \
+            'printf "port 26379\nsentinel resolve-hostnames yes\nsentinel monitor mymaster host.docker.internal 16379 1\nsentinel down-after-milliseconds mymaster 5000\nsentinel failover-timeout mymaster 10000\n" > /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel'
+          for attempt in $(seq 1 30); do
+            if docker exec semantic-cache-sentinel redis-cli -p 26379 ping; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - name: Run semantic-cache Redis coordination tests
+        timeout-minutes: 5
+        run: |
+          pytest -q tests/integration_tests/semantic_layers/cache_coordination_tests.py
+      - name: Stop Redis Sentinel
+        if: always()
+        run: docker rm --force semantic-cache-sentinel || true
 
   test-mysql:
     needs: changes
@@ -53,9 +103,7 @@ jobs:
         mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:
       mysql:
-        image: mysql:8.0
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
+        image: ghcr.io/apache/superset/ci/mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -66,7 +114,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         options: --entrypoint redis-server
         ports:
           - 16379:6379
@@ -77,20 +125,32 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup MySQL
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-mysql
       - name: Start Celery worker
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: celery-worker
       - name: Python integration tests (MySQL)
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: python,mysql
           verbose: true
@@ -119,7 +179,7 @@ jobs:
               print(f'Generated diagnostics for {len(docs)} databases')
           "
       - name: Upload database diagnostics artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: database-diagnostics
           path: databases-diagnostics.json
@@ -143,7 +203,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -152,7 +212,7 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -162,23 +222,35 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
       - name: Setup Postgres
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: |
             setup-postgres
       - name: Start Celery worker
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: celery-worker
       - name: Python integration tests (PostgreSQL)
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: python,postgres
           verbose: true
@@ -202,7 +274,7 @@ jobs:
         sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
     services:
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -212,22 +284,34 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Install dependencies
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: |
             # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
       - name: Start Celery worker
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: celery-worker
       - name: Python integration tests (SQLite)
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: python,sqlite
           verbose: true
@@ -259,7 +343,7 @@ jobs:
   actions-timeline:
     needs: [test-mysql, test-postgres, test-sqlite, test-postgres-required]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

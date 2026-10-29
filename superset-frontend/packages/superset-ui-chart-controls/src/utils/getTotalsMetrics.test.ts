@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryFormMetric } from '@superset-ui/core';
-import { getTotalsMetrics } from './getTotalsMetrics';
+import { getTotalsMetrics, toTotalsAggregate } from './getTotalsMetrics';
 
 const simpleMetric = (aggregate: string): QueryFormMetric =>
   ({
@@ -76,4 +76,31 @@ describe('getTotalsMetrics', () => {
   test('returns an empty array when given no metrics', () => {
     expect(getTotalsMetrics([], 'AVG')).toEqual([]);
   });
+
+  test("ORIGINAL keeps each metric's own aggregate", () => {
+    const metrics = [
+      simpleMetric('COUNT_DISTINCT'),
+      sqlMetric(),
+      savedMetric(),
+    ];
+    const result = getTotalsMetrics(metrics, 'ORIGINAL');
+
+    expect(result).toBe(metrics);
+    expect(result[0]).toEqual(
+      expect.objectContaining({ aggregate: 'COUNT_DISTINCT' }),
+    );
+  });
+});
+
+describe('toTotalsAggregate', () => {
+  test.each(['SUM', 'AVG'] as const)('passes %s through', value => {
+    expect(toTotalsAggregate(value)).toBe(value);
+  });
+
+  test.each([undefined, null, '', 'MEDIAN', 'sum'])(
+    'falls back to ORIGINAL for %p',
+    value => {
+      expect(toTotalsAggregate(value)).toBe('ORIGINAL');
+    },
+  );
 });

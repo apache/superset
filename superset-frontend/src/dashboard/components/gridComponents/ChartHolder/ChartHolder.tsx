@@ -337,13 +337,17 @@ const ChartHolder = ({
           )}
         >
           <AntdThemeProvider
-            getPopupContainer={(triggerNode: HTMLElement) =>
-              document.fullscreenElement
-                ? (triggerNode?.closest?.(
-                    '[data-test="dashboard-component-chart-holder"]',
-                  ) as HTMLElement) || document.body
-                : document.body
-            }
+            getPopupContainer={(triggerNode?: HTMLElement) => {
+              // Only the fullscreen element's subtree is painted, so popups
+              // have to be portaled into it rather than to document.body.
+              // Resolve it directly instead of matching a selector: the
+              // production build strips data-test attributes.
+              const fullscreenElement =
+                document.fullscreenElement as HTMLElement | null;
+              return triggerNode && fullscreenElement?.contains(triggerNode)
+                ? fullscreenElement
+                : document.body;
+            }}
           >
             {!editMode && (
               <AnchorLink

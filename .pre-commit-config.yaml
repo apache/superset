@@ -25,7 +25,10 @@ repos:
       - id: mypy
         name: mypy (main)
         args: [--check-untyped-defs]
-        exclude: ^superset-extensions-cli/
+        # tests/mypy_fixtures/ holds sole-input regression guards (see the
+        # "mypy (sole-input fixtures)" hook below); checking them alongside
+        # the rest of the tree would hide exactly what they guard against.
+        exclude: ^superset-extensions-cli/|^tests/mypy_fixtures/
         additional_dependencies: [
             types-cachetools,
             types-simplejson,
@@ -46,6 +49,40 @@ repos:
         name: mypy (superset-extensions-cli)
         args: [--check-untyped-defs]
         files: ^superset-extensions-cli/
+      - id: mypy
+        alias: mypy-sole-input-fixtures
+        name: mypy (sole-input fixtures)
+        # Regression guards that only mean something when mypy checks the
+        # fixture as its ONLY input: a type that resolves one way with the
+        # whole tree loaded and another way in a scoped per-PR run (e.g.
+        # UUIDMixin.uuid, see tests/mypy_fixtures/uuid_mixin_nullable.py).
+        # Manual stage, so neither a local `pre-commit run --all-files` nor
+        # the per-PR / nightly runs of the main hook pick it up; CI invokes
+        # it explicitly, one fixture at a time, in
+        # .github/workflows/pre-commit.yml. --no-incremental keeps it from
+        # reusing full-tree types the main hook may already have cached.
+        # --follow-imports=silent reports errors only for the fixture itself,
+        # not for the superset/ modules it imports.
+        args: [--check-untyped-defs, --no-incremental, --follow-imports=silent]
+        files: ^tests/mypy_fixtures/
+        exclude: ^tests/mypy_fixtures/__init__\.py$
+        stages: [manual]
+        # Keep in sync with "mypy (main)" above, plus SQLAlchemy: without it
+        # `Mapped` / `declared_attr` resolve to `Any` in the isolated hook
+        # environment and the guard cannot tell the fix from a revert.
+        additional_dependencies: [
+            sqlalchemy==2.0.52,
+            types-cachetools,
+            types-simplejson,
+            types-python-dateutil,
+            types-requests,
+            types-pytz,
+            types-croniter,
+            types-PyYAML,
+            types-setuptools,
+            types-paramiko,
+            types-Markdown,
+          ]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -64,10 +101,19 @@ repos:
     hooks:
       - id: oxfmt-frontend
         name: oxfmt (frontend)
-        entry: bash -c 'cd superset-frontend && files=(); for f in "$@"; do files+=("${f#superset-frontend/}"); done; npx oxfmt --write --no-error-on-unmatched-pattern -- "${files[@]}"' --
+        entry: ./scripts/oxfmt.sh superset-frontend
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+      - id: oxfmt-websocket
+        name: oxfmt (websocket)
+        entry: ./scripts/oxfmt.sh superset-websocket
+        language: system
+        pass_filenames: true
+        # JSON is excluded: superset-websocket/.oxfmtrc.json ignores *.json, so
+        # passing them here would only ever be a no-op (notably for the tracked
+        # package-lock.json).
+        files: ^superset-websocket/.*\.(js|ts)$
   - repo: local
     hooks:
       - id: oxlint-frontend
@@ -88,18 +134,17 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
-      - id: eslint-docs
-        name: eslint (docs)
-        entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn eslint --fix --quiet $FILES'
+      - id: oxlint-docs
+        name: oxlint (docs)
+        entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn lint --fix --quiet $FILES'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
       - id: type-checking-frontend
         name: Type-Checking (Frontend)
-        entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
+        entry: ./scripts/check-type.js package=superset-frontend
         language: system
         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
-        exclude: ^superset-frontend/cypress-base\/
         require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
@@ -169,7 +214,7 @@ repos:
         name: zizmor (GHA security audit)
         entry: zizmor
         language: python
-        additional_dependencies: [zizmor==1.25.2]
+        additional_dependencies: [zizmor==1.30.0]
         files: ^\.github/
         types: [yaml]
         pass_filenames: false

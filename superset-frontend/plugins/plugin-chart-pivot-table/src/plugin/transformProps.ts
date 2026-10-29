@@ -36,9 +36,10 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
+import { getResultAggregation } from './resultAggregation';
 import buildGroupbyCombinations, {
   additiveReducerFor,
-  allMetricsAdditive,
+  allMetricsClientAggregatable,
   RollupReducer,
   splitGroupingSetsResult,
   synthesizeAdditiveLevels,
@@ -102,12 +103,39 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     emitCrossFilters,
     theme,
   } = chartProps;
-  const groupbyCombinations = buildGroupbyCombinations(
-    formData as PivotTableQueryFormData,
-  );
+  const pivotFormData = formData as PivotTableQueryFormData;
+  const groupbyCombinations = buildGroupbyCombinations(pivotFormData);
   const metricsArr = ensureIsArray(formData.metrics);
   let data: QueryData[];
-  if (allMetricsAdditive(metricsArr)) {
+  // The rows that conditional formatting derives its color scale from. Only the
+  // leaf (detail) cells belong in that domain: the totals are aggregates of the
+  // very cells being shaded, so letting them in makes the grand total the max
+  // and leaves every detail cell nearly unshaded.
+  let colorScaleRows: DataRecord[];
+  const resultAggregation = getResultAggregation(
+    pivotFormData.aggregateFunction,
+  );
+  if (resultAggregation) {
+    // Result aggregation (see resultAggregation.ts): the query is always
+    // full-detail, and every scope -- cell, subtotal, grand total -- reduces
+    // its own original contributing leaf records inside PivotData
+    // (`processResultRecord`), not a level synthesized here. Pass the leaf
+    // rows through as a single, display-oriented groupby; PivotData derives
+    // every rollup depth from `rows`/`cols` itself.
+    const [rows, columns] = pivotFormData.transposePivot
+      ? [pivotFormData.groupbyColumns, pivotFormData.groupbyRows]
+      : [pivotFormData.groupbyRows, pivotFormData.groupbyColumns];
+    colorScaleRows = queriesData[0].data;
+    data = [
+      {
+        data: colorScaleRows,
+        groupby: {
+          rows: ensureIsArray(rows),
+          columns: ensureIsArray(columns),
+        },
+      },
+    ];
+  } else if (allMetricsClientAggregatable(metricsArr)) {
     // Additive fast-path: a single full-detail query was issued; synthesize
     // each rollup level by reducing the leaf rows on the client (see SIP.md).
     const leafRows = queriesData[0].data;
@@ -128,6 +156,11 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       data: synthesized[i] as DataRecord[],
       groupby: combination,
     }));
+    // The query returned the leaf rows and nothing else, so no totals can leak
+    // into the domain. Use those raw rows rather than the synthesized leaf
+    // level, whose reduction coerces values through `Number` and drops
+    // non-numeric ones -- that would shift the domain for additive metrics.
+    colorScaleRows = leafRows;
   } else {
     // Non-additive: a single GROUPING SETS query returned all rollup levels
     // tagged with GROUPING() markers; split the combined result back into one
@@ -145,6 +178,13 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       data: splitRows[i] as DataRecord[],
       groupby: combination,
     }));
+    // This result *does* carry the rollup levels, so pick out the leaf level --
+    // the one grouping every dimension, same definition the splitter uses.
+    const leafIndex = levelLabels.findIndex(labels => {
+      const grouped = new Set(labels);
+      return allGroupbyLabels.every(label => grouped.has(label));
+    });
+    colorScaleRows = (splitRows[leafIndex] as DataRecord[]) ?? [];
   }
   // The full-granularity query has the most colnames -- use it for column/type
   // metadata and formatters.
@@ -167,15 +207,17 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     colSubTotals,
     rowTotals,
     rowSubTotals,
+    collapseRows,
     valueFormat,
     dateFormat,
     metricsLayout,
     showValuesAs,
+    aggregateFunction,
     conditionalFormatting,
     timeGrainSqla,
     currencyFormat,
     allowRenderHtml,
-  } = formData;
+  } = pivotFormData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
 
@@ -221,7 +263,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   );
   const metricColorFormatters = getColorFormatters(
     pivotConditionalFormatting,
-    mainQuery.data,
+    colorScaleRows,
     theme,
   );
 
@@ -245,6 +287,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     colSubTotals,
     rowTotals,
     rowSubTotals,
+    collapseRows: Boolean(collapseRows),
     valueFormat,
     currencyFormat,
     currencyCodeColumn,
@@ -257,6 +300,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     currencyFormats,
     metricsLayout,
     showValuesAs,
+    aggregateFunction,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,

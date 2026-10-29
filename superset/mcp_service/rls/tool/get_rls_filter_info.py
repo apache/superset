@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
         title="Get RLS filter info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_rls_filter_info(

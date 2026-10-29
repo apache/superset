@@ -32,7 +32,7 @@ import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
@@ -40,6 +40,7 @@ import {
   getExtensionsRegistry,
   QueryResponse,
   Query,
+  QueryState,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -57,8 +58,8 @@ import {
   EmptyState,
   Input,
   Modal,
+  Splitter,
 } from '@superset-ui/core/components';
-import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
@@ -283,7 +284,7 @@ const SqlEditor: FC<Props> = ({
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
-    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, true),
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
@@ -294,6 +295,9 @@ const SqlEditor: FC<Props> = ({
   );
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
+
+  const successful = latestQuery?.state === QueryState.Success;
+  const resultColumns = latestQuery?.results?.columns || [];
 
   const startQuery = useCallback(
     (
@@ -712,7 +716,6 @@ const SqlEditor: FC<Props> = ({
 
   const getSecondaryMenuItems = () => {
     const qe = queryEditor;
-    const successful = latestQuery?.state === 'success';
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
@@ -858,7 +861,7 @@ const SqlEditor: FC<Props> = ({
           )}
         <SaveQuery
           queryEditorId={queryEditor.id}
-          columns={latestQuery?.results?.columns || []}
+          columns={resultColumns}
           onSave={onSaveQuery}
           onUpdate={(query, remoteId) =>
             dispatch(updateSavedQuery(query, remoteId))
@@ -987,8 +990,8 @@ const SqlEditor: FC<Props> = ({
           )}
           {queryEditor.isDataset && renderDatasetWarning()}
           <div className="sql-container">
-            <AutoSizer disableWidth>
-              {({ height }) =>
+            <AutoSizer
+              renderProp={({ height }) =>
                 isActive && (
                   <EditorWrapper
                     autocomplete={autocompleteEnabled}
@@ -996,12 +999,12 @@ const SqlEditor: FC<Props> = ({
                     onChange={onSqlChanged}
                     queryEditorId={queryEditor.id}
                     onCursorPositionChange={handleCursorPositionChange}
-                    height={`${height}px`}
+                    height={`${height ?? 0}px`}
                     hotkeys={hotkeys}
                   />
                 )
               }
-            </AutoSizer>
+            />
           </div>
           {SqlFormExtension && (
             <SqlFormExtension

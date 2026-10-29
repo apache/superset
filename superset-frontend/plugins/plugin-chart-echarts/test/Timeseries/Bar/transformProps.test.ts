@@ -29,6 +29,7 @@ import type {
   GridComponentOption,
   LegendComponentOption,
 } from 'echarts/components';
+import type { BarSeriesOption } from 'echarts/charts';
 import {
   EchartsTimeseriesChartProps,
   LegendOrientation,
@@ -37,20 +38,18 @@ import {
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesFormData,
   OrientationType,
   EchartsTimeseriesSeriesType,
 } from '../../../src/Timeseries/types';
-import { getPadding } from '../../../src/Timeseries/transformers';
-import {
-  getHorizontalLegendAvailableWidth,
-  getLegendLayoutResult,
-} from '../../../src/utils/series';
 import { createEchartsTimeseriesTestChartProps } from '../../helpers';
 
 function createTestQueryData(
   data: DataRecord[],
-  overrides?: Partial<ChartDataResponseResult>,
+  overrides?: Partial<ChartDataResponseResult> & {
+    label_map?: Record<string, string[]>;
+  },
 ): ChartDataResponseResult {
   return {
     annotation_data: null,
@@ -73,6 +72,106 @@ function createTestQueryData(
     ...overrides,
   };
 }
+
+test('manual Bar value label position flows through transformProps', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(typeof series.labelLayout).toBe('function');
+  expect(echartOptions.darkMode).toBeUndefined();
+});
+
+test('Auto Bar labels enable theme-aware ECharts contrast', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.Auto,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(typeof series.labelLayout).toBe('function');
+  expect(echartOptions.darkMode).toBe(false);
+});
+
+test('legacy Bar labels without a saved position keep their pre-existing Outside End placement', () => {
+  const legacyFormData: Partial<EchartsTimeseriesFormData> = {
+    ...DEFAULT_FORM_DATA,
+  };
+  delete legacyFormData.valueLabelPosition;
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: legacyFormData as EchartsTimeseriesFormData,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  expect(chartProps.formData).not.toHaveProperty('valueLabelPosition');
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(typeof series.labelLayout).toBe('function');
+
+  Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
+  const undefinedPositionOptions = transformProps(chartProps).echartOptions;
+  const [undefinedPositionSeries] =
+    undefinedPositionOptions.series as BarSeriesOption[];
+
+  expect(undefinedPositionSeries.label).toMatchObject({ position: 'top' });
+  expect(typeof undefinedPositionSeries.labelLayout).toBe('function');
+});
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
@@ -544,6 +643,41 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legend.selector).toBe(false);
     });
 
+    test('marks custom Plain legend items non-interactive when color by x-axis is enabled', () => {
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData: {
+          ...baseFormData,
+          colorByPrimaryAxis: true,
+          groupby: [],
+          legendOrientation: LegendOrientation.Top,
+          legendType: LegendType.Plain,
+          metric: 'value',
+          showLegend: true,
+          x_axis: 'category',
+        },
+        queriesData: categoricalData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const { customLegend } = transformedProps as unknown as {
+        customLegend?: {
+          items: { interactive: boolean; name: string }[];
+          showSelectors: boolean;
+        };
+      };
+
+      expect(customLegend?.showSelectors).toBe(false);
+      expect(customLegend?.items.map(item => item.name)).toEqual([
+        'A',
+        'B',
+        'C',
+      ]);
+      expect(customLegend?.items.every(item => !item.interactive)).toBe(true);
+    });
+
     test('should work without stacking enabled', () => {
       const formData = {
         ...baseFormData,
@@ -820,39 +954,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Legend layout regressions', () => {
-    const getBottomLegendLayout = (
-      chartWidth: number,
-      legendItems: string[],
-      legendMargin?: string | number | null,
-    ) =>
-      getLegendLayoutResult({
-        availableWidth: getHorizontalLegendAvailableWidth({
-          chartWidth,
-          orientation: LegendOrientation.Bottom,
-          padding: getPadding(
-            true,
-            LegendOrientation.Bottom,
-            false,
-            false,
-            legendMargin,
-            false,
-            undefined,
-            undefined,
-            undefined,
-            true,
-          ),
-        }),
-        chartHeight: baseChartPropsConfig.height,
-        chartWidth,
-        legendItems,
-        legendMargin,
-        orientation: LegendOrientation.Bottom,
-        show: true,
-        theme: supersetTheme,
-        type: LegendType.Plain,
-      });
-
-    test('honors an explicit List selection for horizontal bottom legends and reserves margin', () => {
+    test('honors an explicit List selection with a custom horizontal bottom legend', () => {
       const legendLabels = [
         'This is a long sales legend',
         'This is a long marketing legend',
@@ -917,58 +1019,26 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const legend = transformedProps.echartOptions
         .legend as LegendComponentOption;
       const grid = transformedProps.echartOptions.grid as GridComponentOption;
-      const legendItems = (legend.data as Array<string | { name: string }>).map(
-        item => (typeof item === 'string' ? item : item.name),
-      );
-
-      const layout = getBottomLegendLayout(chartWidth, legendItems, null);
-      const basePadding = getPadding(
-        true,
-        LegendOrientation.Bottom,
-        false,
-        false,
-        null,
-        false,
-        undefined,
-        undefined,
-        undefined,
-        true,
-      );
-      [basePadding.bottom, basePadding.left] = [
-        basePadding.left,
-        basePadding.bottom,
-      ];
+      const { customLegend } = transformedProps as unknown as {
+        customLegend?: {
+          items: { name: string }[];
+          orientation: LegendOrientation;
+        };
+      };
+      const resolvedLegendItems = (
+        legend.data as Array<string | { name: string }>
+      ).map(item => (typeof item === 'string' ? item : item.name));
 
       // The explicit List selection is honored end-to-end (never flips).
       expect(legend.type).toBe(LegendType.Plain);
-      expect(layout.effectiveType).toBe(LegendType.Plain);
-
-      // #38675's margin reservation is retained: the wrapped rows reserve a
-      // finite margin beyond the single-row baseline, so the grid shrinks to
-      // reduce clipping instead of the legend flipping to scroll.
-      expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-
-      const reservedPadding = getPadding(
-        true,
-        LegendOrientation.Bottom,
-        false,
-        false,
-        layout.effectiveMargin,
-        false,
-        undefined,
-        undefined,
-        undefined,
-        true,
+      expect(legend.show).toBe(false);
+      expect(customLegend?.orientation).toBe(LegendOrientation.Bottom);
+      expect(customLegend?.items.map(item => item.name)).toEqual(
+        resolvedLegendItems,
       );
-      [reservedPadding.bottom, reservedPadding.left] = [
-        reservedPadding.left,
-        reservedPadding.bottom,
-      ];
-
-      expect(grid.bottom).toBe(reservedPadding.bottom);
-      expect(grid.bottom as number).toBeGreaterThan(
-        basePadding.bottom as number,
-      );
+      // The plot canvas no longer reserves native legend rows; the independently
+      // scrolling HTML legend consumes space outside the ECharts grid.
+      expect(grid.bottom).toBe(20);
     });
   });
 
@@ -1059,6 +1129,103 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(renderedYAxis.type).toBe('category');
       expect(renderedYAxis.name).toBe('My X Axis');
       expect(renderedXAxis.name).toBe('My Y Axis');
+    });
+  });
+
+  describe('Regression test for Issue #33882 — stackDimension label grouping', () => {
+    // Two metrics (count, sum), two groupby columns (region, size).
+    // stackDimension = 'size' (the SECOND groupby), so the correct label-map
+    // tuple index is 1 (metric prefix) + 1 (indexOf 'size') = 2.
+    // Before the fix, idxSelectedDimension was hard-coded to 1 for multi-metric
+    // charts, which always picked 'region' (the first groupby) as the stack
+    // discriminator and caused all Only-Total labels to render on a single bar.
+    const stackDimensionData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          {
+            __timestamp: 1609459200000,
+            'count, East, Large': 10,
+            'revenue, East, Large': 100,
+            'count, East, Small': 5,
+            'revenue, East, Small': 50,
+            'count, West, Large': 8,
+            'revenue, West, Large': 80,
+            'count, West, Small': 4,
+            'revenue, West, Small': 40,
+          },
+        ],
+        {
+          colnames: [
+            '__timestamp',
+            'count, East, Large',
+            'revenue, East, Large',
+            'count, East, Small',
+            'revenue, East, Small',
+            'count, West, Large',
+            'revenue, West, Large',
+            'count, West, Small',
+            'revenue, West, Small',
+          ],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          label_map: {
+            'count, East, Large': ['count', 'East', 'Large'],
+            'revenue, East, Large': ['revenue', 'East', 'Large'],
+            'count, East, Small': ['count', 'East', 'Small'],
+            'revenue, East, Small': ['revenue', 'East', 'Small'],
+            'count, West, Large': ['count', 'West', 'Large'],
+            'revenue, West, Large': ['revenue', 'West', 'Large'],
+            'count, West, Small': ['count', 'West', 'Small'],
+            'revenue, West, Small': ['revenue', 'West', 'Small'],
+          },
+        },
+      ),
+    ];
+
+    const stackDimensionFormData: EchartsTimeseriesFormData = {
+      ...(baseFormData as EchartsTimeseriesFormData),
+      x_axis: 'region',
+      metric: ['count', 'revenue'],
+      metrics: ['count', 'revenue'],
+      groupby: ['region', 'size'],
+      stack: StackControlsValue.Stack,
+      stackDimension: 'size',
+      showValue: true,
+      onlyTotal: true,
+    };
+
+    test('each size stack group gets its own Only-Total label', () => {
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: stackDimensionFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackDimensionData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const series = echartOptions.series as any[];
+
+      const stackedSeries = series.filter(s => s.stack !== undefined);
+      expect(stackedSeries.length).toBeGreaterThan(0);
+
+      const stackKeys = new Set(stackedSeries.map((s: any) => s.stack));
+      expect(stackKeys.has('Large')).toBe(true);
+      expect(stackKeys.has('Small')).toBe(true);
+
+      // There must be at least two distinct stack groups — one per size value —
+      // so that Only-Total can render a separate label on each.
+      expect(stackKeys.size).toBeGreaterThanOrEqual(2);
     });
   });
 });

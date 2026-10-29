@@ -26,23 +26,38 @@ function formatMemory(
   transfer?: boolean,
 ): NumberFormatFunction {
   return value => {
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are parsed
+    // as native BigInt (see .../connection/callApi/parseResponse.ts).
+    // Normalize to Number before the Math operations below so BigInt metric
+    // values format without throwing (see #44007).
+    const numericValue = typeof value === 'bigint' ? Number(value) : value;
     let formatted = '';
-    if (value === 0) {
+    if (numericValue === 0) {
       formatted = '0B';
     } else {
-      const sign = value > 0 ? '' : '-';
-      const absValue = Math.abs(value);
+      const sign = numericValue > 0 ? '' : '-';
+      const absValue = Math.abs(numericValue);
 
       const suffixes = binary
         ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
         : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB'];
       const base = binary ? 1024 : 1000;
 
-      const i = Math.min(
-        suffixes.length - 1,
-        Math.floor(Math.log(absValue) / Math.log(base)),
+      let i = Math.max(
+        0,
+        Math.min(
+          suffixes.length - 1,
+          Math.floor(Math.log(absValue) / Math.log(base)),
+        ),
       );
-      formatted = `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
+      let scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
+
+      if (scaled >= base && i < suffixes.length - 1) {
+        i += 1;
+        scaled = parseFloat((absValue / Math.pow(base, i)).toFixed(decimals));
+      }
+
+      formatted = `${sign}${scaled}${suffixes[i]}`;
     }
 
     if (transfer) {
