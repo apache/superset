@@ -212,6 +212,27 @@ test('should drop a pending edit when the value is reset externally', () => {
   }
 });
 
+test('should not flush a stale edit on blur after an external reset', () => {
+  jest.useFakeTimers();
+  try {
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <TextControl {...mockedProps} value="1" onChange={onChange} />,
+    );
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '12' } });
+    rerender(<TextControl {...mockedProps} value="9" onChange={onChange} />);
+    fireEvent.blur(input);
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
+    });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('9')).toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 test('should drop a pending edit on unmount', () => {
   jest.useFakeTimers();
   try {

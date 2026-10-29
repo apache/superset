@@ -148,9 +148,13 @@ function TextControl<T extends InputValueType = InputValueType>({
   );
 
   const onBlurFlush = useCallback(() => {
-    if (latestTypedRef.current !== null) {
-      debouncedEmitRef.current(latestTypedRef.current);
+    // An external reset clears latestTypedRef; drop a stale queued emit
+    // rather than flushing it over the reset value.
+    if (latestTypedRef.current === null) {
+      debouncedEmitRef.current.cancel();
+      return;
     }
+    debouncedEmitRef.current(latestTypedRef.current);
     debouncedEmitRef.current.flush();
   }, []);
 
