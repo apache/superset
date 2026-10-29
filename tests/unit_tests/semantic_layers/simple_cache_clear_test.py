@@ -19,13 +19,15 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from typing import Any
-from unittest.mock import call, Mock, patch, PropertyMock
+from unittest.mock import ANY, call, Mock, patch, PropertyMock
 from uuid import uuid4
 
 import pytest
 from flask import Flask
 from sqlalchemy import select
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from superset_core.semantic_layers.context import ExecutionMethod
 
 from superset.commands.semantic_layer.exceptions import SemanticLayerUpdateFailedError
 from superset.commands.semantic_layer.update import UpdateSemanticLayerCommand
@@ -37,7 +39,9 @@ pytestmark: pytest.MarkDecorator = pytest.mark.parametrize(
 
 
 @pytest.fixture
-def layer(session: Session, monkeypatch: pytest.MonkeyPatch) -> SemanticLayer:
+def layer(
+    app: Flask, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> SemanticLayer:
     """Persist a layer without involving a provider or permission event callbacks."""
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
 
@@ -54,6 +58,11 @@ def layer(session: Session, monkeypatch: pytest.MonkeyPatch) -> SemanticLayer:
         )
     )
     session.commit()
+    from superset.semantic_layers.execution import bootstrap_semantic_namespace
+
+    monkeypatch.setitem(app.extensions, "semantic_execution_namespace", None)
+    del app.extensions["semantic_execution_namespace"]
+    bootstrap_semantic_namespace()
     return session.scalars(select(SemanticLayer)).one()
 
 
@@ -133,23 +142,28 @@ def test_generation_binding_precedes_provider_construction(
     session: Session,
     layer: SemanticLayer,
 ) -> None:
-    """The optional factory hook receives identity before eager discovery can run."""
-    factory: Mock = Mock(result_cache_version=None)
+    """The single factory receives identity before eager discovery can run."""
+    factory: Mock = Mock(
+        result_cache_version=None,
+        supported_execution_methods={ExecutionMethod.CONNECTION},
+    )
     with (
         app.app_context(),
         patch.dict("superset.semantic_layers.models.registry", {"test": factory}),
     ):
-        assert (
-            layer.implementation
-            is factory.from_configuration_with_cache_token.return_value
-        )
-        factory.from_configuration_with_cache_token.assert_called_once_with(
+        assert layer.implementation is factory.from_configuration.return_value
+        factory.from_configuration.assert_called_once_with(
             {},
             cache_token=layer.metadata_generation,
+            context=ANY,
+            credentials=None,
         )
         view: SemanticView = SemanticView(name="view", semantic_layer=layer)
         assert view.metadata_generation == layer.metadata_generation
-        assert view.get_extra_cache_keys({}) == [layer.metadata_generation]
+        assert view.get_extra_cache_keys({}) == [
+            layer.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
 
 
 def test_host_generation_is_named_apart_from_provider_token(
@@ -160,13 +174,13 @@ def test_host_generation_is_named_apart_from_provider_token(
     """Host keys use the metadata generation, never the provider's echoed token."""
     with app.app_context():
         view: SemanticView = SemanticView(name="view", semantic_layer=layer)
-        view.__dict__["implementation"] = Mock(
-            metadata_cache_token="provider-echo"  # noqa: S106
-        )
         assert view.metadata_generation == layer.metadata_generation
         # Containment (#42760) still reads the host generation by its older name.
         assert view.metadata_cache_token == view.metadata_generation
-        assert view.get_extra_cache_keys({}) == [layer.metadata_generation]
+        assert view.get_extra_cache_keys({}) == [
+            layer.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
 
 
 @pytest.mark.parametrize(
@@ -265,6 +279,8 @@ def test_suggestion_cache_rotates_with_metadata_generation(
     view.metadata_generation = "generation-zero"
     view.result_cache_discriminator = None
     view.implementation.selection_identity_version = None
+    view.metrics = [Mock(metric_name="metric")]
+    view.columns = [Mock(column_name="dimension")]
     view.get_compatible_metrics.return_value = []
     view.get_compatible_dimensions.return_value = []
     view.values_for_column.return_value = ["one"]
@@ -286,7 +302,13 @@ def test_suggestion_cache_rotates_with_metadata_generation(
 
         def request() -> Any:
             return (
-                client.post(endpoint, json={})
+                client.post(
+                    endpoint,
+                    json={
+                        "selected_metrics": ["metric"],
+                        "selected_dimensions": ["dimension"],
+                    },
+                )
                 if route == "compatible"
                 else client.get(endpoint)
             )
@@ -361,13 +383,17 @@ def test_clear_discards_reused_implementation_objects(
     view: SemanticView = SemanticView(name="view", semantic_layer=layer)
     session.add(view)
     session.commit()
-    layer.__dict__["implementation"] = Mock()
-    view.__dict__["implementation"] = Mock()
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
+
+    with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
+        previous_layer: Any = layer.implementation
+        previous_view: Any = view.implementation
     previous: str = view.metadata_generation
     layer.clear_metadata_cache()
     session.commit()
-    assert "implementation" not in layer.__dict__
-    assert "implementation" not in view.__dict__
+    with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
+        assert layer.implementation is not previous_layer
+        assert view.implementation is not previous_view
     assert view.metadata_generation != previous
 
 
@@ -378,7 +404,7 @@ def test_migration_backfills_existing_layers_and_downgrades() -> None:
     from alembic.migration import MigrationContext
     from alembic.operations import Operations
     from sqlalchemy import create_engine, text
-    from sqlalchemy.engine import Connection, Engine
+    from sqlalchemy.engine import Connection
 
     migration: Any = import_module(
         "superset.migrations.versions.2026-10-08_00-00_c179af013f48_add_semantic_layer_cache_version"
@@ -517,15 +543,18 @@ def test_web_and_task_share_metadata_keys_despite_local_credentials(
     from sqlalchemy.engine import make_url
 
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", namespace)
-    bind: Mock = Mock()
-    bind.engine.url = make_url(
-        "postgresql+psycopg2://web:old@metadata:5432/superset?application_name=web"
-    )
+    bind: Engine = session.get_bind().engine
     view: SemanticView = SemanticView(semantic_layer=layer)
-    with patch.object(session, "get_bind", return_value=bind):
+    with patch.object(
+        bind,
+        "url",
+        make_url(
+            "postgresql+psycopg2://web:old@metadata:5432/superset?application_name=web"
+        ),
+    ):
         web_key: list[Hashable] = view.get_extra_cache_keys({})
         session.info.clear()
-        bind.engine.url = make_url(
+        bind.url = make_url(
             "postgresql://worker:new@metadata:5432/superset?application_name=celery"
         )
         monkeypatch.setitem(app.config, "SECRET_KEY", "rotated-for-task")
@@ -533,14 +562,16 @@ def test_web_and_task_share_metadata_keys_despite_local_credentials(
         assert task_view.get_extra_cache_keys({}) == web_key
 
 
+@pytest.mark.parametrize("invalid", [17, "   "])
 def test_namespace_is_validated_and_captured_once(
     app: Flask,
     session: Session,
     layer: SemanticLayer,
     monkeypatch: pytest.MonkeyPatch,
+    invalid: Any,
 ) -> None:
     """Reject misconfigured identity and evaluate a tenant resolver only once."""
-    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", 17)
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", invalid)
     with pytest.raises(TypeError, match="must resolve to a string"):
         assert layer.metadata_generation
     namespace: Mock = Mock(return_value="workspace")
@@ -555,7 +586,7 @@ def test_legacy_provider_keeps_host_invalidation(
     layer: SemanticLayer,
 ) -> None:
     """A None SDK token never opts a legacy provider out of host cache rotation."""
-    from tests.unit_tests.semantic_layers.metadata_contract_test import LegacyLayer
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
     view: SemanticView = SemanticView(name="legacy", semantic_layer=layer)
     session.add(view)
@@ -589,11 +620,13 @@ def test_clear_preserves_loaded_views_of_other_layers(
     session.add(view)
     session.commit()
     assert view.semantic_layer_uuid == other.uuid
-    implementation: Mock = Mock()
-    view.__dict__["implementation"] = implementation
-    before: str = view.metadata_generation
-    layer.clear_metadata_cache()
-    assert view.implementation is implementation
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
+
+    with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
+        implementation: Any = view.implementation
+        before: str = view.metadata_generation
+        layer.clear_metadata_cache()
+        assert view.implementation is implementation
     assert view.metadata_generation == before
 
 
@@ -634,6 +667,7 @@ def test_cache_keys_compose_metadata_and_producer_versions(
         first_annotation: dict[str, Any] = processor._annotation_cache_context(query)
         assert first_result == [
             first_generation,
+            "semantic-null-filters-v1",
             ("semantic-result-version", "test", "v1"),
         ]
         assert first_annotation["source_versions"] == {"7": first_generation}
@@ -648,3 +682,38 @@ def test_cache_keys_compose_metadata_and_producer_versions(
         assert _column_values_cache_key(view, {"col": "category"}) != first_values
         assert processor._annotation_cache_context(query) != first_annotation
         provider.assert_not_called()
+
+
+def test_clear_does_not_load_expired_view_relationships(
+    session: Session, layer: SemanticLayer
+) -> None:
+    """The invalidation sweep resets captured tokens without loading relationships."""
+    from sqlalchemy import event
+    from sqlalchemy.engine import Connection
+
+    view: SemanticView = SemanticView(name="expired", semantic_layer=layer)
+    session.add(view)
+    session.commit()
+    # Load the layer before observing the sweep, but leave the view expired.
+    assert layer.uuid
+    statements: list[str] = []
+
+    def record_statement(
+        connection: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Record SQL without changing transaction behavior."""
+        statements.append(statement)
+
+    event.listen(session.get_bind(), "before_cursor_execute", record_statement)
+    try:
+        layer.clear_metadata_cache()
+    finally:
+        event.remove(session.get_bind(), "before_cursor_execute", record_statement)
+    assert not any(
+        statement.lstrip().upper().startswith("SELECT") for statement in statements
+    )

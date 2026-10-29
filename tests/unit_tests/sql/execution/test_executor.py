@@ -978,8 +978,7 @@ def test_async_handle_cancel(
     from superset.models.sql_lab import Query
     from superset.sql.execution.executor import SQLExecutor
 
-    mock_query = MagicMock(spec=Query)
-    mock_query.status = "running"
+    mock_query = Query(status="running")
     mock_query.database = database
     filter_mock = mock_db_session.query.return_value.filter_by.return_value
     filter_mock.one_or_none.return_value = mock_query
@@ -2565,6 +2564,7 @@ def test_cancel_query_early_cancel_flag(
     from superset.constants import QUERY_EARLY_CANCEL_KEY
     from superset.sql.execution.executor import SQLExecutor
 
+    session = mocker.patch("superset.sql.execution.executor.db.session")
     mock_query = MagicMock()
     mock_query.extra = {QUERY_EARLY_CANCEL_KEY: True}
 
@@ -2579,6 +2579,44 @@ def test_cancel_query_early_cancel_flag(
 
     assert result is True
     prepare_cancel_mock.assert_called_with(mock_query)
+    session.commit.assert_not_called()
+
+
+@pytest.mark.parametrize("finished_status", ["success", "failed", "timed_out"])
+def test_cancel_query_finished_while_preparing(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    finished_status: str,
+) -> None:
+    """A query that finished while the stop was prepared is not cancelled."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query = MagicMock()
+    mock_query.status = QueryStatus.RUNNING
+    mock_query.extra = {QUERY_CANCEL_KEY: "0123456789abcdef:0123456789abcdef"}
+
+    def finish(query: MagicMock) -> None:
+        query.status = QueryStatus(finished_status)
+
+    mocker.patch.object(
+        database.db_engine_spec, "has_implicit_cancel", return_value=False
+    )
+    mocker.patch.object(
+        database.db_engine_spec, "prepare_cancel_query", side_effect=finish
+    )
+    cancel_mock = mocker.patch.object(
+        database.db_engine_spec, "cancel_query", return_value=True
+    )
+    get_engine = mocker.patch.object(database, "get_sqla_engine")
+
+    result = SQLExecutor._cancel_query(database, mock_query)
+
+    assert result is False
+    cancel_mock.assert_not_called()
+    get_engine.assert_not_called()
 
 
 def test_cancel_query_no_cancel_id(

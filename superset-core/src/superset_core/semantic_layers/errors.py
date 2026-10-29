@@ -14,13 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Errors semantic-layer providers raise to signal result guarantees to the host."""
+"""Provider signals for query validation and result guarantees."""
 
 from __future__ import annotations
 
+import logging
+from enum import Enum
 from typing import get_args, Literal, TypeAlias
 
 SemanticResultCompletenessReason: TypeAlias = Literal["incomplete", "unverified"]
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SemanticResultCompletenessError(Exception):
@@ -40,3 +44,33 @@ class SemanticResultCompletenessError(Exception):
             raise ValueError("Unknown completeness reason")
         super().__init__(reason)
         self.reason: SemanticResultCompletenessReason = reason
+
+
+class SemanticQueryErrorCode(str, Enum):
+    """Finite validation categories; presentation belongs to the consuming host."""
+
+    UNSUPPORTED_QUERY = "UNSUPPORTED_QUERY"
+    UNSUPPORTED_OFFSET = "UNSUPPORTED_OFFSET"
+    INVALID_FILTER = "INVALID_FILTER"
+    INVALID_QUERY = "INVALID_QUERY"
+
+
+class SemanticQueryRejectedError(Exception):
+    """Reject query input without exporting provider diagnostics to consumers."""
+
+    def __init__(
+        self, code: SemanticQueryErrorCode | str = SemanticQueryErrorCode.INVALID_QUERY
+    ) -> None:
+        self.code: SemanticQueryErrorCode
+        try:
+            self.code = SemanticQueryErrorCode(code)
+        except ValueError:
+            logger.warning(
+                "Unknown semantic query error code %.64r; using INVALID_QUERY", code
+            )
+            self.code = SemanticQueryErrorCode.INVALID_QUERY
+        super().__init__(self.code.value)
+
+    def __str__(self) -> str:
+        """Return a stable explanation without arbitrary provider text."""
+        return "Semantic query rejected."
