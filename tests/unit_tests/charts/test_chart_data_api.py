@@ -986,6 +986,28 @@ def test_run_async_projects_opt_in_timing_for_a_cached_result(
     assert "timing" not in query_payload
 
 
+def test_run_async_answers_400_when_cached_read_back_fails(
+    app: SupersetApp,
+) -> None:
+    """A warm dataframe whose annotation layer the viewer cannot read fails
+    the ``force_cached`` read-back as a query failure, not a cache miss: that
+    is a 400 like the synchronous path, and no task is submitted."""
+    command = MagicMock()
+    command.execute.side_effect = ChartDataQueryFailedError("source chart hidden")
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data", method="POST"),
+        patch("superset.charts.data.api.submit_chart_data_query_tasks") as submit,
+    ):
+        response = api._run_async({"force": False}, command)
+
+    assert response.status_code == 400
+    assert "message" in json.loads(response.get_data(as_text=True))
+    command.execute.assert_called_once_with(force_cached=True)
+    submit.assert_not_called()
+
+
 def test_send_chart_response_projects_timing_after_client_processing(
     app: SupersetApp,
 ) -> None:
