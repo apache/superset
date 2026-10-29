@@ -695,6 +695,53 @@ def test_impersonate_user_email_prefix_uses_username_directly(
     find_user.assert_not_called()
 
 
+def test_impersonate_user_without_email_prefix_uses_full_email(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    With IMPERSONATE_WITH_EMAIL_PREFIX disabled, connect as the full email.
+
+    ``Database._get_sqla_engine()`` performs no substitution when the flag is
+    off, so the username passed in is still the login and the address has to be
+    resolved here. It comes from the database rather than a lookup of that
+    login, so the one guarded metadata-DB read serves both branches.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database: Database = Database(sqlalchemy_uri="snowflake://abc")
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.SnowflakeEngineSpec.is_oauth2_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.is_feature_enabled",
+        return_value=False,
+    )
+    mocker.patch.object(
+        Database,
+        "get_impersonation_email",
+        return_value="jdoe@example.org",
+    )
+
+    with app.test_request_context("/some/place/"):
+        result = SnowflakeEngineSpec.impersonate_user(
+            database=database,
+            username="jdoe123",
+            user_token="test_token",  # noqa: S106
+            url=make_url("snowflake://user:pass@account/database_name/default"),
+            engine_kwargs={},
+        )
+
+    assert result == (
+        make_url(
+            "snowflake://jdoe%40example.org:pass@account/database_name/default?authenticator=oauth&token=test_token"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
+    )
+
+
 def test_impersonate_user_outside_request_context(mocker: MockerFixture) -> None:
     """
     Background executions (alerts/reports) have no per-user token, so OAuth
@@ -807,3 +854,28 @@ def test_snowflake_oauth2_exception_catches_refresh_token_error() -> None:
             "OAuth2TokenRefreshError must be caught by "
             "SnowflakeEngineSpec.oauth2_exception"
         )
+
+
+def test_extended_aggregation_func_median_uses_native_snowflake_syntax() -> None:
+    """
+    Snowflake documents a native `MEDIAN(x)` function, so MEDIAN is
+    overridden rather than inherited from `PostgresBaseEngineSpec` (which
+    compiles to `percentile_cont(0.5) WITHIN GROUP (ORDER BY col)`, since
+    Postgres has no native MEDIAN). STDDEV_SAMP/VAR_SAMP are plain function
+    calls with the same spelling on both engines, so those are inherited.
+    """
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    col = column("sales")
+
+    median_func = SnowflakeEngineSpec.get_extended_aggregation_func("MEDIAN")
+    assert median_func is not None
+    assert (
+        str(median_func(col).compile(compile_kwargs={"literal_binds": True}))
+        == "median(sales)"
+    )
+
+    for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
+        assert SnowflakeEngineSpec.get_extended_aggregation_func(aggregate) is not None

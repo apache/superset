@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -134,19 +134,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"辞書順(文字列順)が時系列順と一致することを保証するための標準規格です。\n"
-"                      タイムスタンプ形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための式と型を定義する必要があります。\n"
-"                      注：現時点ではタイムゾーンはサポートされていません。時間がエポック形式(UNIX時間)で\n"
-"                      保存されている場合は、`epoch_s` または `epoch_ms` を指定してください。パターンが"
-"\n"
-"                      指定されていない場合は、追加パラメータを介してデータベース/列レベルの既定値が適用されます。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -217,12 +210,24 @@ msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
 msgstr "%(alertType)s 「%(alertName)s」が正常に実行されました"
 
 #, python-format
+msgid ""
+"%(column)s is an array column, which cannot be compared against the "
+"single value a transform returns. Mirrored filters on this mapping would "
+"fail at the database. Map a scalar partition column instead."
+msgstr ""
+
+#, python-format
 msgid "%(count)s %(label)s"
 msgstr ""
 
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -234,6 +239,24 @@ msgstr "%(label)s ファイル"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -348,6 +371,10 @@ msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SSHトンネル 秘密鍵パスワード"
 
 #, python-format
+msgid "%s Select"
+msgstr ""
+
+#, python-format
 msgid "%s Selected"
 msgstr "%s 個選択済み"
 
@@ -395,6 +422,11 @@ msgid "%s aggregates(s)"
 msgstr "%s 個の集計"
 
 #, python-format
+msgid "%s chart"
+msgid_plural "%s charts"
+msgstr[0] ""
+
+#, python-format
 msgid "%s chart updated"
 msgid_plural "%s charts updated"
 msgstr[0] ""
@@ -407,6 +439,11 @@ msgstr[0] "%s 個の列"
 #, python-format
 msgid "%s column(s)"
 msgstr "%s 個の列"
+
+#, python-format
+msgid "%s dashboard"
+msgid_plural "%s dashboards"
+msgstr[0] ""
 
 #, python-format
 msgid "%s dashboard updated"
@@ -451,6 +488,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "選択したすべてのオブジェクトに対する編集権限がないため、%s 個の項目にタグを付けられませんでした。"
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, python-format
 msgid "%s metric"
@@ -918,6 +960,25 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter on this text column is not mirrored: the database "
+"may treat strings that differ in case or trailing spaces as equal, and "
+"the mirrored predicate could then drop rows the filter keeps."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "ビッグナンバー"
 
@@ -932,6 +993,17 @@ msgstr ""
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
+
+msgid "A SQL expression using :value"
+msgstr ""
+
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -940,11 +1012,31 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr "ローソク足チャートは、各期間の始値、終値、高値、安値を示します。金融やその他の時系列レンジ分析によく使われます。"
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
+msgstr ""
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "日付として解析する列のリスト(カンマ区切り)"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "ファイルのアップロードを許可するスキーマのリスト(カンマ区切り)"
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "SSHトンネル経由で接続する場合、データベースポートは必須です。"
@@ -966,6 +1058,20 @@ msgid ""
 msgstr ""
 "既定値を変更する必要がある場合に、列名とそのデータ型を定義したディクショナリ。例: "
 "{\"user_id\":\"int\"}。サポートされているデータ型についてはPythonのPandasライブラリを確認してください。"
+
+msgid ""
+"A filter value carrying a UTC offset is not mirrored: a transform is "
+"evaluated in the database's own time frame, so the mirrored predicate "
+"could ask for a partition the matching rows are not in. Write the bound "
+"without an offset to mirror this filter."
+msgstr ""
+
+msgid ""
+"A filter value containing a quote or a backslash is not mirrored on this "
+"database: the driver and the database do not agree on how to write it "
+"into a query, so the transform would be evaluated at a value the filter "
+"does not compare. Filters whose values carry neither still mirror."
+msgstr ""
 
 msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
@@ -1020,6 +1126,58 @@ msgstr "新しいチャートが作成されます。"
 msgid "A new dashboard will be created."
 msgstr "新しいダッシュボードが作成されます。"
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot change data. It is evaluated against "
+"the database to check that it mirrors, so it has to be a read."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot contain a MySQL executable comment, "
+"which the database executes and every validator reads as a comment."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot name anything through a U&\"...\" "
+"escape sequence, which the database decodes and every validator reads "
+"literally."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot read a sequence. NEXTVAL advances the "
+"sequence every time it is evaluated, and the transform is evaluated on a "
+"cache schedule."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1041,6 +1199,16 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "再利用可能なデータセットがチャートと共に保存されます。"
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1084,6 +1252,30 @@ msgstr "スクリーンショットの撮影中にタイムアウトが発生し
 
 msgid "A valid color scheme is required"
 msgstr "有効な配色が必要です"
+
+msgid ""
+"A value transform cannot contain a MySQL executable comment (/*! ... */ "
+"or /*M! ... */). Those are comments to every validator and statement text"
+" to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid ""
+"A value transform cannot name anything through a U&\"...\" escape "
+"sequence. The database decodes it and every validator reads it literally,"
+" so what would run is not what was checked."
+msgstr ""
+
+#, python-format
+msgid ""
+"A value transform is required on %(name)s, which is not a temporal "
+"column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
+msgstr ""
 
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
@@ -1139,6 +1331,9 @@ msgstr "中止中"
 
 msgid "About"
 msgstr "概要"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "アクセス"
@@ -1251,6 +1446,11 @@ msgstr "アラートを追加"
 msgid "Add an annotation layer"
 msgstr "注釈レイヤーを追加"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "項目を追加"
 
@@ -1330,6 +1530,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "フォルダーを追加"
 
+msgid "Add group"
+msgstr "グループを追加"
+
 msgid "Add item"
 msgstr "項目を追加"
 
@@ -1338,6 +1541,9 @@ msgstr "メトリックを追加"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "「データソースの編集」モーダルでメトリックをデータセットに追加"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "新しいカラー形式を追加"
@@ -1368,6 +1574,9 @@ msgstr "サービスの認証情報を追加する"
 
 msgid "Add sheet"
 msgstr "シートを追加"
+
+msgid "Add subgroup"
+msgstr "サブグループを追加"
 
 msgid "Add tag to entities"
 msgstr "エンティティにタグを追加"
@@ -1401,10 +1610,10 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "仮想データセットに %s 個の新しい列を追加しました"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "データセットに %s 個の新しい列を追加しました"
 
 #, python-format
 msgid "Added a %s"
@@ -1502,6 +1711,9 @@ msgstr "影響を受けるチャート"
 msgid "Affected Dashboards"
 msgstr "影響を受けるダッシュボード"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1537,6 +1749,9 @@ msgstr "集計"
 
 msgid "Aggregation Method"
 msgstr "集計方法"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -1574,6 +1789,9 @@ msgstr "クエリの実行中にアラートがエラーを検出しました。
 msgid "Alert is active"
 msgstr "アラート有効"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "アラート名"
 
@@ -1587,6 +1805,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -1621,6 +1843,18 @@ msgstr "アラート"
 msgid "Alerts & Reports"
 msgstr "アラートとレポート"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "アラートとレポート"
 
@@ -1629,6 +1863,9 @@ msgstr "+/- を揃える"
 
 msgid "Align +/- for all columns"
 msgstr "すべての列で +/- を揃える"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "すべて"
@@ -1654,6 +1891,9 @@ msgstr "すべてのディメンション"
 
 msgid "All filters"
 msgstr "すべてのフィルター"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "すべてのパネル"
@@ -1727,6 +1967,9 @@ msgstr "ユーザーによる複数値の選択を許可"
 msgid "Allowed Domains (comma separated)"
 msgstr "許可されたドメイン(カンマ区切り)"
 
+msgid "Allowed e-mail domains"
+msgstr ""
+
 msgid "Alphabetical"
 msgstr "アルファベット順"
 
@@ -1751,6 +1994,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "常にメインの日時列をフィルタリングする"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "エラーが発生しました"
@@ -2001,9 +2250,6 @@ msgstr "キーの解析中にエラーが発生しました。"
 msgid "An error occurred while pruning logs "
 msgstr "ログの削除(プルーニング)中にエラーが発生しました "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "構成スキーマの更新中にエラーが発生しました"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2018,6 +2264,9 @@ msgstr "テーブルスキーマの削除中にエラーが発生しました。
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "視覚化(ビジュアライゼーション)のレンダリング中にエラーが発生しました: %s"
+
+msgid "An error occurred while saving the configuration"
+msgstr ""
 
 msgid "An error occurred while saving the semantic view"
 msgstr "セマンティックビューの保存中にエラーが発生しました"
@@ -2213,6 +2462,9 @@ msgid ""
 "Learn about how to connect a database driver "
 msgstr "SQL Alchemy URI経由の接続を許可するデータベースを追加できます。データベースドライバーの接続方法についての詳細 "
 
+msgid "Application default"
+msgstr ""
+
 #, python-format
 msgid "Applied '%s' metric"
 msgstr ""
@@ -2332,6 +2584,10 @@ msgstr "削除してもよろしいですか"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "本当に %s を削除しますか？"
+
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -2553,6 +2809,11 @@ msgstr "戻る"
 msgid "Back to all"
 msgstr "すべてに戻る"
 
+msgid "Back to sign in"
+msgstr ""
+
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "バックエンド"
 
@@ -2756,6 +3017,9 @@ msgstr "バブルのサイズ"
 msgid "Bubble size number format"
 msgstr "バブルサイズの数値形式"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "バケットの境界点"
 
@@ -2877,6 +3141,9 @@ msgstr "CVAS (CREATE VIEW AS SELECT) クエリがSELECTステートメントで�
 msgid "Cache Timeout (seconds)"
 msgstr "キャッシュの有効期限 (秒)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -2927,6 +3194,9 @@ msgstr "トップレベルのタブを入れ子になったタブの中に移動
 msgid "Can select multiple values"
 msgstr "複数値の選択が可能"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -2938,6 +3208,17 @@ msgstr "ウィンドウのアンロード時にクエリをキャンセル"
 
 msgid "Cancellation not available due to missing abort handler"
 msgstr "中止ハンドラーが存在しないため、キャンセルは使用できません"
+
+msgid "Candlestick"
+msgstr "ローソク足"
+
+msgid "Candlestick Chart"
+msgstr "ローソク足チャート"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr "ローソク足は始値と終値の間に塗りつぶした実体を描きます。OHLCは高値安値の軸に始値と終値のティックを描きます。"
 
 msgid "Cannot access the query"
 msgstr "クエリにアクセスできません"
@@ -3049,6 +3330,9 @@ msgstr "セルの上限数"
 
 msgid "Cell title template"
 msgstr "セルのタイトルテンプレート"
+
+msgid "Center"
+msgstr "中央"
 
 msgid "Center value"
 msgstr ""
@@ -3184,6 +3468,12 @@ msgstr "このセマンティックレイヤーの変更は禁止されていま
 
 msgid "Changing this semantic view is forbidden"
 msgstr "このセマンティックビューの変更は禁止されています"
+
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
 
 msgid "Changing this task is forbidden"
 msgstr "このタスクの変更は禁止されています"
@@ -3327,23 +3617,25 @@ msgstr "チャートタイトル"
 msgid "Chart type"
 msgstr "チャート種類"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "チャートは保存されましたが、選択したタブに追加できませんでした。"
 
 msgid "Chart width"
 msgstr "チャートの幅"
 
-msgid "Charts"
-msgstr "チャート"
-
 #, python-format
 msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
+msgid "Charts"
+msgstr "チャート"
 
 msgid "Charts could not be deleted."
 msgstr "チャートを削除できませんでした。"
@@ -3370,6 +3662,9 @@ msgstr "このダッシュボードを確認: "
 
 msgid "Check to force date partitions to have the same height"
 msgstr "日付パーティションを強制的に同じ高さにする場合はチェックを入れます"
+
+msgid "Check your email"
+msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
@@ -3399,6 +3694,9 @@ msgstr "区切り文字を選択"
 msgid "Choose a metric for right axis"
 msgstr "右軸に使用するメトリックを選択"
 
+msgid "Choose a new password"
+msgstr ""
+
 msgid "Choose a number format"
 msgstr "数値形式を選択"
 
@@ -3419,6 +3717,12 @@ msgstr "日付として解析する列を選択"
 
 msgid "Choose columns to read"
 msgstr "読み込む列を選択"
+
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
 
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
@@ -3637,11 +3941,17 @@ msgstr "カラー境界エディターを閉じる"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr "終値"
+
 msgid "Close tab"
 msgstr "タブを閉じる"
 
 msgid "Close version history"
 msgstr ""
+
+msgid "Closing value for each period."
+msgstr "各期間の終値。"
 
 msgid "Cluster label aggregator"
 msgstr "クラスターラベル集計"
@@ -3658,10 +3968,17 @@ msgstr "コードをコピーしました！"
 msgid "Collapse"
 msgstr "折りたたむ"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "すべて折りたたむ"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -3672,6 +3989,12 @@ msgstr "データパネルを閉じる"
 
 msgid "Collapse row"
 msgstr "行を折りたたむ"
+
+msgid "Collapse rows by default"
+msgstr ""
+
+msgid "Collapse settings"
+msgstr "設定を折りたたむ"
 
 msgid "Collapse tab content"
 msgstr "タブの内容を折りたたむ"
@@ -3721,8 +4044,15 @@ msgstr "色の境界点"
 msgid "Color by"
 msgstr "色分けの基準"
 
+msgid "Color by direction"
+msgstr "方向で色分け"
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "カラーフィールドは16進数カラー（#rrggbb）または 'rgb(r, g, b)' である必要があります"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -3744,6 +4074,18 @@ msgstr "ターゲット地点の色"
 
 msgid "Color scheme"
 msgstr "配色"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "終値が始値以上のときに使う色。"
+
+msgid "Color used when the close value is less than the open value."
+msgstr "終値が始値より小さいときに使う色。"
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -3785,6 +4127,9 @@ msgstr "経度データを含む列"
 msgid "Column data types"
 msgstr "列のデータ型"
 
+msgid "Column groups"
+msgstr "列グループ"
+
 msgid "Column header tooltip"
 msgstr "列ヘッダーのツールチップ"
 
@@ -3824,6 +4169,11 @@ msgstr "データフレームのインデックスとして使用する列。未
 
 msgid "Column type"
 msgstr "列種類"
+
+msgid ""
+"Column used for partition pruning on this table. Its Is filterable and Is"
+" dimension settings decide whether Explore offers it."
+msgstr ""
 
 msgid "Columnar upload"
 msgstr "列アップロード"
@@ -3880,6 +4230,9 @@ msgstr "読み込む列"
 
 msgid "Columns to show in the tooltip."
 msgstr "ツールチップに表示する列"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "メトリックを結合"
@@ -4034,6 +4387,9 @@ msgstr "確認"
 msgid "Confirm Password"
 msgstr "パスワード(確認)"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "上書きの確認"
 
@@ -4042,6 +4398,9 @@ msgstr "パスワード(確認)"
 
 msgid "Confirm save"
 msgstr "保存の確認"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "ユーザーのパスワードを再入力してください"
@@ -4098,6 +4457,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "テキストを含む (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "コンテンツ形式"
 
@@ -4138,6 +4503,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -4225,12 +4593,22 @@ msgstr ""
 #, python-format
 msgid ""
 "Could not check which charts and dashboards depend on the selected %s. "
+"Archiving them may make charts unavailable."
+msgstr ""
+
+#, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
 "Deleting them may break charts and dashboards."
 msgstr ""
 
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "データベース「%(database)s」に接続できませんでした"
+
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "保存済みチャートをすべて取得できませんでした"
@@ -4259,9 +4637,20 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
+
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
 
 msgid "Could not validate the user in the current session."
 msgstr "現在のセッションのユーザーを検証できませんでした。"
@@ -4271,11 +4660,34 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "カウント (件数)"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "国"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "国別の配色"
@@ -4415,6 +4827,9 @@ msgstr "当日"
 msgid "Current month"
 msgstr "当月"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "当四半期"
 
@@ -4448,6 +4863,9 @@ msgstr "このデータセットではカスタムSQLアドホックメトリッ
 
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "カスタムSQLフィールドは単一のSQLステートメントとして解析できません。"
+
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "カスタムSQLフィールドに集合演算を含めることはできません。"
@@ -4533,6 +4951,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -4642,6 +5063,9 @@ msgstr "ダッシュボードを復元できませんでした。"
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "ダッシュボードが存在しません"
 
@@ -4650,6 +5074,9 @@ msgstr "ダッシュボードの構成をエクスポートしました"
 
 msgid "Dashboard exported successfully"
 msgstr "ダッシュボードのエクスポートが完了しました"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "ダッシュボードをインポートしました"
@@ -4697,6 +5124,10 @@ msgstr "ダッシュボードタイトル"
 #, python-format
 msgid "Dashboard updated %s"
 msgstr "ダッシュボードが更新されました %s"
+
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
 
 msgid "Dashboard usage"
 msgstr "ダッシュボードの利用状況"
@@ -4921,6 +5352,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "データセットスキーマが無効です。原因: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -5150,6 +5585,15 @@ msgid "Delete %s"
 msgstr "%s を削除"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "%s を削除しますか？"
 
@@ -5161,6 +5605,13 @@ msgstr "グループを削除しますか？"
 
 msgid "Delete Layer?"
 msgstr "レイヤーを削除しますか？"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "クエリを削除しますか？"
@@ -5186,8 +5637,22 @@ msgstr "テーマを削除しますか？"
 msgid "Delete User?"
 msgstr "ユーザーを削除しますか？"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+
 msgid "Delete all Really?"
 msgstr "本当にすべて削除しますか？"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "注釈を削除"
@@ -5207,6 +5672,11 @@ msgstr "グループを削除"
 msgid "Delete item"
 msgstr "項目を削除"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -5219,6 +5689,9 @@ msgstr "クエリを削除"
 
 msgid "Delete role"
 msgstr "ロールを削除"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "テンプレートを削除"
@@ -5342,14 +5815,33 @@ msgid ""
 msgstr "タブを削除するとタブ内のすべての内容が失われ、関連するアラートやレポートが無効化されます。この操作は以下の方法で元に戻せます"
 
 msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
+
+msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
 "will remain, but they may no longer work."
 msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -6089,6 +6581,9 @@ msgstr "埋め込みダッシュボードを削除できませんでした。"
 msgid "Embedding deactivated."
 msgstr "埋め込みを無効にしました。"
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "強調表示"
 
@@ -6117,6 +6612,9 @@ msgid "Enable Matrixify"
 msgstr "マトリックス化を有効にする"
 
 msgid "Enable Retries"
+msgstr ""
+
+msgid "Enable attachments for alerts"
 msgstr ""
 
 msgid "Enable automatic retries on report failure"
@@ -6228,6 +6726,9 @@ msgstr "メインの認証情報を入力"
 msgid "Enter a name for this sheet"
 msgstr "シート名を入力してください"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "オブジェクト名の一部を入力"
 
@@ -6240,11 +6741,19 @@ msgstr "所要時間を秒単位で入力"
 msgid "Enter fullscreen"
 msgstr "全画面表示"
 
+msgid "Enter group name"
+msgstr "グループ名を入力"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "範囲フィルターの最小値と最大値を入力してください"
 
 msgid "Enter report name"
 msgstr "レポート名を入力"
+
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
 
 msgid "Enter the group's description"
 msgstr "グループの説明を入力"
@@ -6280,6 +6789,12 @@ msgstr "ユーザーのユーザー名を入力"
 msgid "Enter theme name"
 msgstr "テーマ名を入力"
 
+msgid "Enter values"
+msgstr ""
+
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "以下にユーザー名とパスワードを入力してください:"
 
@@ -6294,6 +6809,13 @@ msgstr "日付サイズを均等にする"
 
 msgid "Equal to (=)"
 msgstr "等しい (＝)"
+
+#, python-format
+msgid ""
+"Equality and list filters on %(mapped)s will automatically apply an "
+"equivalent filter to %(partition)s. Time ranges and other range filters "
+"are not mirrored until \"Transform preserves ordering\" is on."
+msgstr ""
 
 msgid "Equals"
 msgstr "等しい (＝)"
@@ -6452,6 +6974,9 @@ msgstr "完全一致 (IN)"
 msgid "Example"
 msgstr "例"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "サンプル"
 
@@ -6460,9 +6985,6 @@ msgstr "Excelエクスポート"
 
 msgid "Excel XML Export"
 msgstr "Excel XMLエクスポート"
-
-msgid "Excel export is not configured on this server."
-msgstr ""
 
 msgid "Excel file format cannot be determined"
 msgstr "Excelファイルの形式を特定できません"
@@ -6475,6 +6997,9 @@ msgstr "選択した値を除外"
 
 msgid "Excluded subjects"
 msgstr "除外されたサブジェクト"
+
+msgid "Execute using my permissions"
+msgstr ""
 
 msgid "Executed SQL"
 msgstr "実行されたSQL"
@@ -6491,6 +7016,10 @@ msgstr "実行ログ"
 msgid "Existing dataset"
 msgstr "既存のデータセット"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -6500,8 +7029,15 @@ msgstr "全画面表示を終了"
 msgid "Expand"
 msgstr "展開"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "すべて展開"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "すべて展開"
@@ -6514,6 +7050,12 @@ msgstr "行を展開"
 
 msgid "Expand row to edit"
 msgstr "行を展開して編集"
+
+msgid "Expand settings"
+msgstr "設定を展開"
+
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -6529,6 +7071,15 @@ msgstr "試験的"
 
 msgid "Expired"
 msgstr "期限切れ"
+
+msgid "Expires on"
+msgstr ""
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "探索"
@@ -6626,6 +7177,11 @@ msgstr "基データCSVとしてエクスポート"
 msgid "Export to pivoted .CSV"
 msgstr "ピボット済みCSVとしてエクスポート"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -6657,6 +7213,9 @@ msgstr ""
 
 msgid "Extensions"
 msgstr "拡張機能"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 msgid "Extent"
 msgstr "範囲"
@@ -6718,6 +7277,10 @@ msgstr "失敗"
 msgid "Failed at retrieving results"
 msgstr "結果の取得に失敗しました"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "テーマの適用失敗: JSONが無効です"
 
@@ -6747,6 +7310,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -6770,6 +7336,9 @@ msgstr "チャート編集用URLの生成に失敗しました"
 msgid "Failed to generate download: %s"
 msgstr "ダウンロードの生成に失敗しました: %s"
 
+msgid "Failed to load OAuth2 tokens."
+msgstr ""
+
 msgid "Failed to load chart data"
 msgstr "チャートデータの読み込みに失敗しました"
 
@@ -6779,6 +7348,9 @@ msgstr "チャートデータの読み込みに失敗しました。"
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s の列情報の読み込みに失敗しました"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -6992,6 +7564,18 @@ msgstr ""
 msgid "Filter charts"
 msgstr "チャートをフィルター"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "フィルターに既定値あり"
 
@@ -7019,6 +7603,10 @@ msgstr "フィルター値 (大文字小文字を区別)"
 msgid "Filter value is required"
 msgstr "フィルター値は必須です"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "フィルター値リストを空にすることはできません"
 
@@ -7030,6 +7618,10 @@ msgstr "チャートを絞り込む"
 
 msgid "Filters"
 msgstr "フィルター"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "フィルターとコントロール"
@@ -7056,8 +7648,28 @@ msgid "Filters for values less than or equal."
 msgstr "指定値以下のものをフィルターします。"
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "スコープ外のフィルター (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -7071,6 +7683,9 @@ msgid ""
 msgstr ""
 "同じグループキーを持つフィルターはグループ内で「OR(いずれか)」として結合され、異なるグループ間は「AND(すべて一致)」で結合されます。グループキーが未定義のものはそれぞれ固有のグループとして扱われます。例えば、部署(department)キーを持つ「財務」と「マーケティング」のフィルター、および地域(region)キーを持つ「欧州」のフィルターがある場合、結果は「(財務"
 " OR マーケティング) AND 欧州」となります。"
+
+msgid "Financial"
+msgstr ""
 
 msgid "Find"
 msgstr "検索"
@@ -7221,6 +7836,12 @@ msgstr "外部キー"
 msgid "Forest Green"
 msgstr "フォレスト・グリーン"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "キャッシュ内にフォームデータが見つかりません。チャートのメタデータを使用します。"
 
@@ -7247,6 +7868,9 @@ msgid ""
 msgstr ""
 "データラベルの形式。変数 {name}, {value}, {percent} が利用可能です。\\n は改行を表します。\n"
 "ECharts互換変数:{a} (系列), {b} (名前), {c} (値), {d} (パーセンテージ)"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
@@ -7354,6 +7978,13 @@ msgstr "GeoJSON列"
 msgid "GeoJson Settings"
 msgstr "GeoJSON設定"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "ジオハッシュ (Geohash)"
 
@@ -7363,11 +7994,16 @@ msgstr "ジオメトリ列"
 msgid "Get the last date by the date unit."
 msgstr "日付単位に基づいて最後の日付を取得します。"
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "指定された休日の日付を取得します"
 
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "単一のデータベース接続で複数のカタログへのアクセスを許可します。"
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -7423,6 +8059,10 @@ msgstr ""
 msgid "Group"
 msgstr "グループ"
 
+#, python-format
+msgid "Group %s"
+msgstr "グループ %s"
+
 msgid "Group By"
 msgstr "グループ化"
 
@@ -7435,8 +8075,17 @@ msgstr "グループキー"
 msgid "Group by"
 msgstr "グループ化"
 
+msgid "Group columns"
+msgstr "列をグループ化"
+
+msgid "Group name"
+msgstr "グループ名"
+
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "グループ化"
@@ -7518,6 +8167,12 @@ msgstr "階層"
 msgid "High color"
 msgstr ""
 
+msgid "High price"
+msgstr "高値"
+
+msgid "Highest value for each period."
+msgstr "各期間の高値。"
+
 msgid "Histogram"
 msgstr "ヒストグラム"
 
@@ -7536,6 +8191,11 @@ msgstr "水平 (上)"
 msgid "Horizontal alignment"
 msgstr "水平方向の配置"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "ホスト"
 
@@ -7573,11 +8233,17 @@ msgstr "タイムシフト(時間差比較)の表示方法: 個別の線とし�
 msgid "Huge"
 msgstr "巨大"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2コード"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "アイコンURL"
@@ -7610,6 +8276,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "メトリックを指定した場合、その値に基づいて並べ替えされます"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr "有効にすると結果を降順で並べ替えし、無効にすると昇順で並べ替えします。"
@@ -7623,6 +8298,11 @@ msgid "If table already exists"
 msgstr "テーブルが既に存在する場合"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -7660,6 +8340,9 @@ msgstr "%s をインポート"
 
 msgid "Import Error"
 msgstr "インポートエラー"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "不明な理由でチャートのインポートに失敗しました"
@@ -7726,15 +8409,25 @@ msgstr "レポートと一緒に送信する説明文を含める"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "%s と一緒に送信する説明文を含める"
+
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
 
 msgid "Include series name as an axis"
 msgstr "系列名を軸として含める"
 
 msgid "Include time"
 msgstr "時間を含める"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "増加"
@@ -7868,6 +8561,11 @@ msgstr "無効なJSON設定"
 msgid "Invalid JSON metadata"
 msgstr "無効なJSONメタデータ"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "無効なSQL: %(error)s"
@@ -7919,6 +8617,14 @@ msgstr "保存済みメトリックに無効な通貨コードが含まれてい
 msgid "Invalid date/timestamp format"
 msgstr "日付/タイムスタンプ形式が無効です"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "無効な実行形式です"
 
@@ -7951,6 +8657,11 @@ msgstr "緯度または経度が無効です"
 msgid "Invalid metric object: %(metric)s"
 msgstr "無効なメトリックオブジェクト: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "無効なNumPy関数: %(operator)s"
@@ -7978,6 +8689,9 @@ msgstr "結果種類が無効です: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "無効なローリング種類: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 msgid "Invalid state."
 msgstr "無効な状態です。"
 
@@ -7988,9 +8702,6 @@ msgstr "無効なタブID: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "ユーザー名またはパスワードが正しくありません"
 
 msgid "Inverse"
 msgstr ""
@@ -8082,6 +8793,9 @@ msgstr "JSON設定"
 msgid "JSON Metadata"
 msgstr "JSONメタデータ"
 
+msgid "JSON in cell"
+msgstr ""
+
 msgid "JSON metadata"
 msgstr "JSONメタデータ"
 
@@ -8111,6 +8825,12 @@ msgstr "1月"
 
 msgid "Jinja templating"
 msgstr "Jinjaテンプレート"
+
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
 
 msgid "July"
 msgstr "7月"
@@ -8144,6 +8864,9 @@ msgstr "キロメートル"
 
 msgid "Label"
 msgstr "ラベル"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "ラベルの内容"
@@ -8195,6 +8918,12 @@ msgstr "ラベルサイズの単位"
 
 msgid "Label threshold"
 msgstr "ラベルのしきい値"
+
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "ツールチップで陰線に使うラベル。"
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "ツールチップで陽線に使うラベル。"
 
 msgid "Labelling"
 msgstr "ラベリング"
@@ -8278,6 +9007,9 @@ msgstr "昨年"
 msgid "Lat"
 msgstr "緯度"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "緯度"
 
@@ -8320,6 +9052,17 @@ msgstr "ツリーのレイアウト形式"
 msgid "Least recently modified"
 msgstr "更新日が古い順"
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
+msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
@@ -8354,6 +9097,9 @@ msgstr "左の値"
 
 msgid "Legacy"
 msgstr "レガシー"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "凡例"
@@ -8432,6 +9178,9 @@ msgstr "部分一致 (大文字小文字を区別しない)"
 
 msgid "Limit"
 msgstr "上限"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "制限種類"
@@ -8526,6 +9275,9 @@ msgstr "グループ一覧"
 msgid "List Roles"
 msgstr "ロール一覧"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "ユーザー一覧"
 
@@ -8560,6 +9312,9 @@ msgstr "読み込まれたデータがキャッシュされました"
 
 msgid "Loaded from cache"
 msgstr "キャッシュから読み込みました"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 msgid "Loading"
 msgstr "読み込み中..."
@@ -8656,6 +9411,9 @@ msgstr "既定ビューポートの経度"
 msgid "Low color"
 msgstr ""
 
+msgid "Low price"
+msgstr "安値"
+
 msgid "Lower Threshold"
 msgstr "下限しきい値"
 
@@ -8664,8 +9422,15 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
+
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "下限しきい値は上限しきい値より小さい必要があります"
+
+msgid "Lowest value for each period."
+msgstr "各期間の安値。"
 
 msgid "MAR"
 msgstr "3月"
@@ -8701,6 +9466,13 @@ msgstr "リクエスト形式が不正です。slice_id、または table_name �
 msgid "Manage"
 msgstr "管理"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "ダッシュボード編集者とアクセス権限を管理"
 
@@ -8733,6 +9505,15 @@ msgstr "マップレンダラー"
 msgid "Map Style"
 msgstr "地図スタイル"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (オープンソース)"
 
@@ -8748,6 +9529,13 @@ msgstr "Mapbox (APIキー必須)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox を使用するには、サーバーに MAPBOX_API_KEY を設定する必要があります。"
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
+msgstr ""
 
 msgid "March"
 msgstr "3月"
@@ -8778,6 +9566,11 @@ msgstr "マーカーのサイズ"
 
 msgid "Markers"
 msgstr "マーカー"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "マークアップの種類"
@@ -8864,6 +9657,9 @@ msgstr "指定期間内の平均値"
 
 msgid "Mean values"
 msgstr "平均値"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -9084,6 +9880,9 @@ msgstr "最小"
 msgid "Minimum Font Size"
 msgstr "最小フォントサイズ"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "最小半径"
 
@@ -9091,6 +9890,16 @@ msgid "Minimum Width"
 msgstr "最小幅"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -9145,6 +9954,9 @@ msgstr "URLパラメータがありません"
 msgid "Mixed Chart"
 msgstr "混合チャート"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "更新日"
 
@@ -9156,10 +9968,10 @@ msgstr ""
 msgid "Modified %s"
 msgstr "%s に更新しました"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "仮想データセット内の %s 個の列を更新しました"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "データセット内の %s 個の列を更新しました"
 
 msgid "Modified by"
 msgstr "更新者"
@@ -9174,6 +9986,14 @@ msgstr "テンプレート「%s」から変更されました"
 
 msgid "Monday"
 msgstr "月曜日"
+
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
+msgstr ""
 
 msgid "Month"
 msgstr "月"
@@ -9197,8 +10017,17 @@ msgstr "さらにフィルターを表示"
 msgid "MotherDuck token"
 msgstr "MotherDuckトークン"
 
+msgid "Move group left"
+msgstr "グループを左に移動"
+
+msgid "Move group right"
+msgstr "グループを右に移動"
+
 msgid "Move icon"
 msgstr "移動アイコン"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "移動のみ"
@@ -9214,6 +10043,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "指定された一連の日付を、指定した間隔だけ移動(シフト)させます。"
 
+msgid "Moving averages"
+msgstr "移動平均"
+
 msgid "Multi-Dimensions"
 msgstr "マルチディメンション"
 
@@ -9226,6 +10058,9 @@ msgstr "マルチレベル"
 msgid "Multi-Variables"
 msgstr "マルチ変数"
 
+msgid "Multi-level header"
+msgstr "多階層ヘッダー"
+
 msgid "Multiple"
 msgstr "複数"
 
@@ -9233,6 +10068,12 @@ msgid ""
 "Multiple formats accepted, look the geopy.points Python library for more "
 "details"
 msgstr "複数の形式に対応しています。詳細はPythonのgeopy.pointsライブラリを確認してください"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "乗数"
@@ -9313,6 +10154,11 @@ msgstr "ターゲットノードの名前"
 msgid "Name of your tag"
 msgstr "タグの名前"
 
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr "系列ディメンションが未設定のときに、凡例とツールチップで使うローソク足系列の名前。"
+
 msgid "Name your database"
 msgstr "データベースに名前を付けてください"
 
@@ -9366,6 +10212,9 @@ msgstr "新しいデータセット名"
 
 msgid "New header"
 msgstr "新しいヘッダー"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "新しいタブ"
@@ -9435,11 +10284,17 @@ msgstr "適用中のフィルターはありません"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "利用可能なフィルターはありません。"
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -9485,6 +10340,12 @@ msgstr "現在、このタグが割り当てられているエンティティは
 msgid "No filter"
 msgstr "フィルターなし"
 
+#, python-format
+msgid ""
+"No filter is mirrored onto %(partition)s — queries will scan every "
+"partition until a column is mapped."
+msgstr ""
+
 msgid "No filter is selected."
 msgstr "フィルターが選択されていません。"
 
@@ -9518,6 +10379,9 @@ msgstr ""
 msgid "No items"
 msgstr "項目なし"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "一致するレコードが見つかりません"
 
@@ -9526,6 +10390,12 @@ msgstr "一致する結果が見つかりません"
 
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
+
+msgid "No partition column is set."
+msgstr ""
+
+msgid "No provider query is available for this run."
+msgstr ""
 
 msgid "No records found"
 msgstr "レコードが見つかりません"
@@ -9568,7 +10438,13 @@ msgstr "保存済み数式が見つかりません"
 msgid "No saved metrics found"
 msgstr "保存済みメトリックが見つかりません"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -9604,6 +10480,20 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s エンジンに設定された「%(validator_name)s」という名前のバリデータが見つかりません"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
+msgid "No views provided"
+msgstr ""
+
 msgid "Node label position"
 msgstr "ノードラベルの位置"
 
@@ -9622,6 +10512,11 @@ msgstr "なし -> 矢印"
 msgid "None -> None"
 msgstr "なし -> なし"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "標準"
 
@@ -9637,6 +10532,9 @@ msgstr "列名を正規化する"
 msgid "Normalized"
 msgstr "正規化済み"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "含まない"
 
@@ -9645,6 +10543,15 @@ msgstr "等しくない (≠)"
 
 msgid "Not Time Series"
 msgstr "非時系列"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "有効なZIPファイルではありません"
@@ -9658,6 +10565,9 @@ msgstr "必須フィールドが未入力です。以下を入力してくださ
 msgid "Not available"
 msgstr "利用不可"
 
+msgid "Not currently mapped to the partition column."
+msgstr ""
+
 msgid "Not defined"
 msgstr "未定義"
 
@@ -9670,8 +10580,15 @@ msgstr "見つかりません"
 msgid "Not in"
 msgstr "次を含まない (Not in)"
 
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
+
 msgid "Not null"
 msgstr "NULLではない"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "未設定"
@@ -9802,8 +10719,19 @@ msgstr "数値範囲"
 msgid "OAuth2 client information"
 msgstr "OAuth2クライアント情報"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "10月"
+
+msgid "OHLC"
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "OK"
@@ -9850,8 +10778,14 @@ msgstr "列としてピボット表示する1つまたは複数のコントロ�
 msgid "One or many metrics to display"
 msgstr "表示する1つまたは複数のメトリック"
 
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
+
 msgid "One or more annotation layers failed loading."
 msgstr "1つ以上の注釈レイヤーの読み込みに失敗しました。"
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "1つ以上の列が既に存在します"
@@ -9890,11 +10824,17 @@ msgstr "合計のみ"
 msgid "Only `SELECT` statements are allowed"
 msgstr "SELECT文のみが許可されています"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "「ラベルの種類」がパーセンテージ以外の場合にのみ適用されます。"
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "「ラベルの種類」が「値を表示」に設定されている場合にのみ適用されます。"
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 msgid "Only exact match is available for non-string columns."
 msgstr "文字列以外の列では完全一致のみが使用できます。"
@@ -9915,6 +10855,12 @@ msgstr "この接続では既定のカタログのみがサポートされてい
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -9947,6 +10893,9 @@ msgstr "不透明度(0から100の間の値)"
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr "新しいタブでSQL Labを開く"
 
@@ -9971,8 +10920,14 @@ msgstr "SQL Labで開く"
 msgid "Open in SQL lab"
 msgstr "SQL Labで開く"
 
+msgid "Open price"
+msgstr "始値"
+
 msgid "Open query in SQL Lab"
 msgstr "クエリをSQL Labで開く"
+
+msgid "Opening value for each period."
+msgstr "各期間の始値。"
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -9998,6 +10953,11 @@ msgstr "任意のD3日付形式文字列"
 
 msgid "Optional d3 number format string"
 msgstr "任意のD3数値形式文字列"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "チャートを複数のローソク足系列に分割する任意のディメンション。"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10109,6 +11069,11 @@ msgid ""
 msgstr "相対的な期間の結果をオーバーレイ表示します。24時間、7日、52週間、365日などの自然言語形式で時間差を指定してください。「時間フィルターから範囲を継承」を使用すると、指定した時間範囲と同じ長さだけ比較期間をシフトさせます。「カスタム」で独自の比較範囲を設定することも可能です。"
 
 msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr "終値の単純移動平均（MA5、MA10、MA15 など）を重ねます。期間を入力すると追加できます。"
+
+msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
 "boundary of each cell."
 msgstr "地図上に六角形のグリッドを重ね合わせ、各セル内でデータを集計します。"
@@ -10155,8 +11120,14 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDFのダウンロードに失敗しました。更新して再試行してください。"
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "ページ"
@@ -10212,6 +11183,19 @@ msgstr "パーティション制限"
 
 msgid "Partition Threshold"
 msgstr "パーティションしきい値"
+
+msgid "Partition column"
+msgstr ""
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -10471,6 +11455,9 @@ msgstr "パスワードを再入力して確認してください"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "テスト用の SQLAlchemy URI を入力してください"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "有効なメールアドレスを入力してください"
 
@@ -10610,6 +11597,9 @@ msgstr "ホスト「%(hostname)s」のポート %(port)s への接続が拒否�
 msgid "Port out of range 0-65535"
 msgstr "ポートが 0 ～ 65535 の範囲外です"
 
+msgid "Position"
+msgstr "位置"
+
 msgid "Position JSON"
 msgstr "位置JSON"
 
@@ -10653,7 +11643,18 @@ msgid "Prefix or suffix"
 msgstr "接頭辞または接尾辞"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -10909,9 +11910,6 @@ msgstr ""
 msgid "Recently Archived"
 msgstr ""
 
-msgid "Recently archived"
-msgstr ""
-
 msgid "Recently modified"
 msgstr "更新日が新しい順"
 
@@ -10995,6 +11993,12 @@ msgstr "チャートを更新中"
 msgid "Refreshing columns"
 msgstr "列を更新中"
 
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
+
 msgid "Register"
 msgstr "登録"
 
@@ -11038,6 +12042,9 @@ msgstr "再読み込み"
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
 
+msgid "Reload metadata"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -11049,6 +12056,9 @@ msgstr "システムのダークテーマを解除"
 
 msgid "Remove System Default Theme"
 msgstr "システムの既定テーマを解除"
+
+msgid "Remove color mapping"
+msgstr ""
 
 msgid "Remove cross-filter"
 msgstr "クロスフィルターを削除"
@@ -11065,11 +12075,20 @@ msgstr "フィルターを削除"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "グループを削除"
+
 msgid "Remove item"
 msgstr "項目を削除"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr "通知方法を削除"
+
+msgid "Remove or repoint these assets before deleting the semantic source."
+msgstr ""
 
 msgid "Remove query from log"
 msgstr "ログからクエリを削除"
@@ -11089,10 +12108,10 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "仮想データセットから %s 個の列を削除しました"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "データセットから %s 個の列を削除しました"
 
 #, python-format
 msgid "Removed a %s"
@@ -11130,6 +12149,12 @@ msgstr "可能な場合に、テーブルのセルをHTMLとしてレンダリ�
 
 msgid "Replace"
 msgstr "置換"
+
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
 
 msgid "Report"
 msgstr "レポート"
@@ -11194,6 +12219,12 @@ msgstr "レポートスケジュールはまだ処理中のため、再計算を
 msgid "Report Schedule log prune failed."
 msgstr "レポートスケジュールログの整理に失敗しました。"
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "レポートスケジュールが見つかりません。"
 
@@ -11217,6 +12248,9 @@ msgstr "レポート作成失敗"
 
 msgid "Report is active"
 msgstr "レポートは有効です"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "レポート名"
@@ -11251,6 +12285,9 @@ msgstr "レポートを更新しました"
 msgid "Reports"
 msgstr "レポート"
 
+msgid "Reports require a content format"
+msgstr ""
+
 msgid "Repulsion"
 msgstr "反発力"
 
@@ -11259,6 +12296,12 @@ msgstr "ノード間の反発力"
 
 msgid "Request Access"
 msgstr "アクセスをリクエスト"
+
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
 
 msgid "Request access"
 msgstr ""
@@ -11292,6 +12335,15 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "必須の制御値が削除されました"
 
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required if your account already has a password"
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
 msgid "Resample"
 msgstr "リサンプリング"
 
@@ -11307,6 +12359,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "リセット"
 
@@ -11315,6 +12370,9 @@ msgstr "列をリセット"
 
 msgid "Reset all folders to default"
 msgstr "すべてのフォルダーを既定に戻す"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "列をリセット"
@@ -11330,6 +12388,10 @@ msgstr "状態をリセット"
 
 msgid "Reset to default folders?"
 msgstr "既定のフォルダーにリセットしますか？"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 msgid "Resize"
 msgstr "サイズ変更"
@@ -11596,6 +12658,18 @@ msgstr "クエリを実行してクエリ履歴を表示"
 msgid "Run a query to display results"
 msgstr "クエリを実行して結果を表示"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "現在のクエリを実行"
 
@@ -11670,6 +12744,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "SQLクエリ"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "SQL式"
 
@@ -11728,10 +12807,16 @@ msgstr "文字列"
 msgid "SUN"
 msgstr "日"
 
+msgid "Same as \"Run as\""
+msgstr ""
+
 msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -11825,6 +12910,11 @@ msgstr ""
 msgid "Save query"
 msgstr "クエリを保存"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "この API キーを安全に保管してください"
 
@@ -11857,6 +12947,14 @@ msgstr "保存済みクエリが見つかりません。"
 
 msgid "Saved query parameters are invalid."
 msgstr "保存済みクエリのパラメータが無効です。"
+
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
 
 msgid "Saving..."
 msgstr "保存中..."
@@ -11912,6 +13010,9 @@ msgstr "スキーマ"
 msgid "Schema cache timeout"
 msgstr "スキーマキャッシュのタイムアウト"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "ファイルのアップロードが許可されているスキーマ"
 
@@ -11943,6 +13044,11 @@ msgstr "変更の上書きを有効にするには、一番下までスクロー
 msgid "Search"
 msgstr "検索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "%s 件のレコードを検索"
+
 msgid "Search / Filter"
 msgstr "検索 / フィルター"
 
@@ -11951,6 +13057,9 @@ msgstr ""
 
 msgid "Search Metrics & Columns"
 msgstr "メトリックと列を検索"
+
+msgid "Search OAuth2 tokens"
+msgstr ""
 
 msgid "Search a channel by name, or paste a channel ID"
 msgstr "チャンネル名を検索するか、チャンネルIDを貼り付けてください"
@@ -11972,6 +13081,9 @@ msgstr "検索条件"
 
 msgid "Search by query text"
 msgstr "クエリテキストで検索"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 msgid "Search calculated columns by name"
 msgstr "計算列を名前で検索"
@@ -11996,9 +13108,6 @@ msgstr "フィルター内を検索"
 
 msgid "Search metrics by key or label"
 msgstr "メトリックをキーまたはラベルで検索"
-
-msgid "Search records"
-msgstr "記録を検索"
 
 msgid "Search tags"
 msgstr "タグを検索"
@@ -12215,6 +13324,9 @@ msgstr "列を選択"
 msgid "Select column name"
 msgstr "列名を選択"
 
+msgid "Select columns"
+msgstr "列を選択"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -12327,6 +13439,9 @@ msgstr "CCの受信者を選択するか、入力してください"
 msgid "Select or type a custom value..."
 msgstr "カスタム値を選択または入力..."
 
+msgid "Select or type a label"
+msgstr ""
+
 msgid "Select or type currency symbol"
 msgstr "通貨記号を選択または入力"
 
@@ -12430,12 +13545,16 @@ msgstr "各パスがどのカラーブレークポイント範囲に属するか
 msgid "Select the type of color scheme to use."
 msgstr "使用する配色の種類を選択してください。"
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "ユーザーを選択"
 
 msgid "Select values"
 msgstr "値を選択"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -12469,6 +13588,15 @@ msgstr "セマンティックビュー"
 msgid "Semantic Views"
 msgstr "セマンティックビュー"
 
+msgid "Semantic cache"
+msgstr ""
+
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "セマンティックレイヤー"
 
@@ -12496,6 +13624,15 @@ msgstr "セマンティックレイヤーの種類"
 msgid "Semantic layer updated"
 msgstr "セマンティックレイヤーを更新しました"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+
 msgid "Semantic view could not be created."
 msgstr "セマンティックビューを作成できませんでした。"
 
@@ -12514,8 +13651,16 @@ msgstr "セマンティックビューパラメータが無効です。"
 msgid "Semantic view updated"
 msgstr "セマンティックビューが更新されました"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 msgid "Semantic views"
 msgstr "セマンティックビュー"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -12535,7 +13680,13 @@ msgstr "PNGとして送信"
 msgid "Send as text"
 msgstr "テキストとして送信"
 
+msgid "Send reset link"
+msgstr ""
+
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -12559,6 +13710,9 @@ msgstr "系列のスタイル"
 msgid "Series chart type (line, bar etc)"
 msgstr "系列のチャート種類 (折れ線、棒など)"
 
+msgid "Series colors"
+msgstr "系列の色"
+
 msgid "Series decrease setting"
 msgstr "系列減少の設定"
 
@@ -12568,8 +13722,14 @@ msgstr "系列増加の設定"
 msgid "Series limit"
 msgstr "系列の制限"
 
+msgid "Series name"
+msgstr "系列名"
+
 msgid "Series settings"
 msgstr "系列の設定"
+
+msgid "Series style"
+msgstr "系列スタイル"
 
 msgid "Series total setting"
 msgstr "系列合計の設定"
@@ -12614,6 +13774,11 @@ msgstr "自動更新を設定"
 
 msgid "Set filter mapping"
 msgstr "フィルターマッピングを設定"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "テスト用のローカルテーマを設定"
@@ -12718,6 +13883,9 @@ msgid "Show %s more change"
 msgid_plural "Show %s more changes"
 msgstr[0] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr "バブルを表示"
 
@@ -12816,11 +13984,11 @@ msgstr "チャートクエリのタイムスタンプを表示"
 msgid "Show column headers"
 msgstr "列ヘッダーを表示"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "列の小計を表示"
-
-msgid "Show columns total"
-msgstr "列の合計を表示"
 
 msgid "Show empty columns"
 msgstr "空の列を表示"
@@ -12874,6 +14042,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -12895,11 +14066,11 @@ msgstr "クエリ識別子を表示"
 msgid "Show row labels"
 msgstr "行ラベルを表示"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "行の小計を表示"
-
-msgid "Show rows total"
-msgstr "行の合計を表示"
 
 msgid "Show series values on the chart"
 msgstr "チャート上に系列の値を表示"
@@ -12911,6 +14082,9 @@ msgid "Show summary"
 msgstr "合計を表示"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -12976,6 +14150,9 @@ msgstr "ログイン"
 msgid "Sign in with"
 msgstr "でログイン"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "有意水準"
 
@@ -13040,6 +14217,7 @@ msgstr "スライダー"
 msgid "Slider and range input"
 msgstr "スライダーと範囲入力"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "スラッグ"
 
@@ -13076,6 +14254,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -13096,6 +14279,9 @@ msgstr "一部の権限を解決できなかったため、IDとして表示さ�
 
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "他のタブの一部の必須フィルターには値が設定されており、クリアされません"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr "一部のテーブルは表示されていません。検索条件を絞り込んでください。"
@@ -13122,6 +14308,9 @@ msgstr "埋め込み認証で問題が発生しました。詳細は開発者コ
 
 msgid "Something went wrong."
 msgstr "問題が発生しました。"
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -13272,6 +14461,9 @@ msgstr "空間"
 msgid "Specific Date/Time"
 msgstr "特定の日付/時刻"
 
+msgid "Specific user"
+msgstr ""
+
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "CREATE TABLE AS を実行するスキーマ名を指定してください (既定: public)"
 
@@ -13345,6 +14537,26 @@ msgstr "開始日"
 
 msgid "Start date included in time range"
 msgstr "開始日を時間範囲に含める"
+
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
+msgstr ""
 
 msgid "Start y-axis at 0"
 msgstr "Y軸を0から開始"
@@ -13469,6 +14681,10 @@ msgstr "サブカテゴリ"
 msgid "Subdomain"
 msgstr "サブドメイン"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "サブグループ %s"
+
 msgid "Subject"
 msgstr "サブジェクト"
 
@@ -13512,11 +14728,26 @@ msgstr "接尾辞"
 msgid "Suffix to apply after the percentage display"
 msgstr "パーセンテージ表示の後に適用する接尾辞"
 
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
+
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
 msgid "Sum"
 msgstr "合計"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期間内の値の合計"
@@ -13694,6 +14925,9 @@ msgstr "テーブル名が未定義です"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "テーブルまたはビュー「%(table)s」は存在しません。"
 
+msgid "Table side"
+msgstr "テーブルの側"
+
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
 "statistical differences between groups."
@@ -13811,6 +15045,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "テンプレートパラメータ"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "テンプレート処理エラー: %(error)s"
@@ -13877,6 +15114,11 @@ msgstr "%s"
 msgid "The %s linked to this chart may have been deleted."
 msgstr "このチャートにリンクされている %s は削除された可能性があります。"
 
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
+
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s からの API レスポンスが IDatabaseTable インターフェースと一致しません。"
@@ -13902,6 +15144,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 msgid ""
@@ -13963,9 +15210,16 @@ msgid ""
 " filters list?"
 msgstr "X軸がフィルターリストに含まれていないため、ダッシュボードの時間範囲フィルターで使用できません。フィルターリストに追加しますか？"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 msgid "The annotation has been saved"
@@ -14058,6 +15312,16 @@ msgstr "エッジのターゲット(終点)として使用する列。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "データベース内で列が削除されたか、名前が変更されました。"
+
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "マップレイヤーの設定"
@@ -14226,6 +15490,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -14250,6 +15520,12 @@ msgid ""
 msgstr ""
 "以下のフィルターは「既定で最初のフィルター値を選択」が有効ですが読み込めなかったため、\n"
 "                    ダッシュボードのレンダリングが妨げられています: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "ポイントラベルのフォントサイズ"
@@ -14412,6 +15688,18 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "クエリ内のパラメータ %(parameters)s が定義されていません。"
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "ユーザー「%(username)s」のパスワードが正しくありません。"
 
@@ -14473,6 +15761,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "ピクセル半径"
 
@@ -14490,11 +15783,17 @@ msgstr "ポートが閉じています。"
 msgid "The port number is invalid."
 msgstr "ポート番号が無効です。"
 
+msgid "The preview could not be loaded."
+msgstr ""
+
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主要メトリックは、円セグメントのサイズを定義するために使用されます"
 
 msgid "The provided table was not found in the provided database"
 msgstr "指定されたデータベース内にテーブルが見つかりませんでした"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "結果に関連付けられたクエリが削除されました。"
@@ -14509,6 +15808,13 @@ msgstr "クエリに1つ以上の不正なテンプレートパラメータが�
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr "クエリのコンテキストのデータソースが、チャートのデータソースと一致しません"
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "クエリを読み込めませんでした"
@@ -14608,6 +15914,10 @@ msgid ""
 msgstr "スキーマ「%(schema)s」が存在しません。クエリを実行するには有効なスキーマを使用してください。"
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -14630,8 +15940,41 @@ msgstr "スクリーンショットを生成中です。このページから離
 
 #, python-format
 msgid ""
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"Archiving them will make dependent charts unavailable until they are "
+"recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"The selected %(type)s are used by %(charts)s. Archiving them will make "
+"dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -14663,6 +16006,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "テーブル「%(table)s」が存在しません。クエリを実行するには有効なテーブルを使用してください。"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -14720,6 +16067,51 @@ msgstr "各ブロックの時間単位。domain_granularity より小さく、�
 msgid "The time unit used for the grouping of blocks"
 msgstr "ブロックのグループ化に使用される時間単位"
 
+msgid ""
+"The transform answered with a value the driver and the database do not "
+"agree on how to write into a query, so the mirrored predicate would ask "
+"for a partition key no row holds. A transform whose result carries "
+"neither a quote nor a backslash still mirrors."
+msgstr ""
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform gives a different partition value for a timestamp "
+"(%(typed)s) than for the same instant written as text (%(text)s). A time "
+"range and a filter typed as text both reach it, so it cannot be right for"
+" both; filters on this mapping will not be mirrored. Write the transform "
+"so it reads :value the same way in either form."
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which this database "
+"cannot write into a query as a %(type)s value without changing it. "
+"Filters on this mapping will not be mirrored."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
 
@@ -14755,6 +16147,18 @@ msgstr "ユーザーを正常に更新しました。"
 msgid "The user was updated successfully"
 msgstr "ユーザーを正常に更新しました"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "ユーザー名とパスワードの組み合わせが無効です(パスワードが正しくありません)。"
 
@@ -14765,11 +16169,48 @@ msgstr "ユーザー名「%(username)s」は存在しません。"
 msgid "The username provided when connecting to a database is not valid."
 msgstr "データベース接続時に指定されたユーザー名が無効です。"
 
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform on %(mapped)s is not mirroring filters, so queries "
+"will scan every partition."
+msgstr ""
+
 msgid "The values overlap other breakpoint values"
 msgstr "この値は他のブレークポイント値と重複しています"
 
 msgid "The version of the service"
 msgstr "サービスのバージョン"
+
+msgid "The view configuration must be a JSON object."
+msgstr ""
 
 msgid "The visible title of the layer"
 msgstr "表示されるレイヤーのタイトル"
@@ -15084,17 +16525,23 @@ msgstr "選択したクエリのプレビュー中に問題が発生しました
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s day."
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s day."
 msgid_plural ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s days."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
 msgstr[0] ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
@@ -15102,20 +16549,49 @@ msgstr "このフィルターが適用されるデータセットです。"
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s day."
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"will make dependent charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is used by %(charts)s. Archiving it will make dependent "
+"charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s day."
 msgid_plural ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s days."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
 msgstr[0] ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -15155,6 +16631,12 @@ msgid "This action will permanently delete the user."
 msgstr "この操作により、ユーザーは完全に削除されます。"
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr "これは IP アドレス (例: 127.0.0.1) またはドメイン名 (例: mydatabase.com) です。"
@@ -15186,7 +16668,25 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, python-format
@@ -15227,6 +16727,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "このダッシュボードは存在しません"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "このダッシュボードは外部で管理されているため、Superset では編集できません"
@@ -15300,6 +16806,12 @@ msgstr ""
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr "このデータセットは外部で管理されているため、Superset では編集できません"
 
+msgid ""
+"This dataset is partitioned. Listing filter values without a time range "
+"reads every partition, so a time range is set by default. Clear it to "
+"list values from all time."
+msgstr ""
+
 msgid "This defines the element to be plotted on the chart"
 msgstr "チャートにプロットされる要素を定義します"
 
@@ -15312,6 +16824,14 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "このメールアドレスは既にアカウントに登録されています。別のものを選択してください。"
+
+#, python-format
+msgid ""
+"This engine compares less of a %(operator)s value on %(column)s than the "
+"filter carries, so there is no mirror a predicate on the partition column"
+" could stand in for. Map a column the engine compares in full to mirror "
+"this operator."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -15334,6 +16854,11 @@ msgstr "このフィールドは、メトリックをチャートに紐付ける
 
 msgid "This filter already exist on the report"
 msgstr "このフィルターは既にレポート内に存在します"
+
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -15394,6 +16919,10 @@ msgstr ""
 "この JSON "
 "オブジェクトは、ダッシュボード内のウィジェットの配置を記述します。ダッシュボード表示画面でドラッグ＆ドロップによりサイズや位置を調整すると自動生成されます"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "このリンクのアドレスは安全ではないため、アクセスできません。"
 
@@ -15449,6 +16978,29 @@ msgstr "このページは iframe 内への埋め込みを想定しています�
 msgid "This password is too common; please choose a less guessable one."
 msgstr "このパスワードはありふれています。推測されにくいものを選んでください。"
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
+msgstr ""
+
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -15462,7 +17014,22 @@ msgstr "このセクションには、クエリ結果の高度な分析後処理
 msgid "This section contains validation errors"
 msgstr "このセクションには検証エラーが含まれています"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -15502,9 +17069,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -15540,11 +17108,11 @@ msgstr "これにより、%s 人のすべてのサブスクライバーのタス
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 
 msgid ""
@@ -15665,6 +17233,9 @@ msgstr "時間の形式"
 msgid "Time grain"
 msgstr "時間粒度"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr "時間粒度チャートカスタマイズプラグイン"
 
@@ -15734,6 +17305,9 @@ msgstr "タイムアウトエラー"
 msgid "Timestamp format"
 msgstr "タイムスタンプ形式"
 
+msgid "Timestamps are shown in server time."
+msgstr ""
+
 msgid "Timezone"
 msgstr "タイムゾーン"
 
@@ -15783,14 +17357,29 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
+
 msgid "Token Request URI"
 msgstr "トークンリクエスト URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many requests. Please wait and try again."
+msgstr ""
 
 #, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr "要求されたサブスライスの数が多すぎます。許可される最大数は %(max)s ですが、%(count)s が要求されました。"
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "ツールパネル"
@@ -15859,6 +17448,9 @@ msgstr "合計: %s"
 
 msgid "Track job"
 msgstr "ジョブを追跡"
+
+msgid "Transform preserves ordering"
+msgstr ""
 
 msgid "Transformable"
 msgstr "変換可能"
@@ -15963,6 +17555,12 @@ msgstr "火曜日"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
+
 msgid "Type"
 msgstr "種類"
 
@@ -16049,6 +17647,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "指定された期間差を計算できません"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "カタログ「%(catalog_name)s」に接続できません。"
@@ -16091,6 +17692,12 @@ msgstr "値をデコードできません"
 msgid "Unable to encode value"
 msgstr "値をエンコードできません"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "セマンティックビューを取得できません。レイヤーの設定を確認してください。"
 
@@ -16121,6 +17728,9 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "ダッシュボードを読み込めませんでした"
+
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -16250,6 +17860,17 @@ msgstr "結果パネルのピン留めを解除"
 msgid "Unpin from top"
 msgstr "上部のピン留めを解除"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "Unsafe link blocked"
 msgstr "安全でないリンクがブロックされました"
 
@@ -16267,6 +17888,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "サポートされていない句タイプです: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr "サポートされていないファイル形式です。CSV, Excel, Columnar ファイルを使用してください。"
@@ -16390,6 +18014,12 @@ msgstr "使用状況"
 msgid "Use %s to open in a new tab."
 msgstr "新しいタブで開くには %s を使用してください。"
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "面積比率を使用"
 
@@ -16427,8 +18057,24 @@ msgstr "現在の表示範囲を使用"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "メトリック値がタイムスタンプでない場合も日付フォーマットを適用"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "グラデーションを使用"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "メトリックを列または行の最上位グループとして使用"
@@ -16470,6 +18116,9 @@ msgstr "ユーザー名"
 
 msgid "User Registrations"
 msgstr "ユーザー登録"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "ユーザーに適切な権限がありません。"
@@ -16528,6 +18177,9 @@ msgstr "円を用いてシステム内の異なるステージを通るデータ
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "ディメンションに値が25件以上ある場合、最初の25件の値を使用します。"
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "有効なSQL式"
 
@@ -16561,6 +18213,9 @@ msgstr "値の形式"
 
 msgid "Value and Percentage"
 msgstr "値とパーセンテージ"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "値の境界"
@@ -16597,6 +18252,9 @@ msgstr "値は 0 以上にする必要があります"
 msgid "Value must be greater than 0"
 msgstr "値は 0 より大きくする必要があります"
 
+msgid "Value transform"
+msgstr ""
+
 #, python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
@@ -16618,6 +18276,11 @@ msgstr "値"
 
 msgid "Values are dependent on other filters"
 msgstr "値が他のフィルターに依存しています"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "依存先の値"
@@ -16667,6 +18330,9 @@ msgstr "すべてのチャートを表示"
 msgid "View as table"
 msgstr "テーブルとして表示"
 
+msgid "View in Recently Archived →"
+msgstr ""
+
 msgid "View in SQL Lab"
 msgstr "SQL Lab で表示"
 
@@ -16700,6 +18366,9 @@ msgstr "閲覧者は、ダッシュボードを閲覧できるサブジェクト
 
 msgid "Viewport"
 msgstr "ビューポート"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "仮想"
@@ -16866,6 +18535,10 @@ msgid ""
 msgstr "%(location)s 行目の列「%(column_name)s」を解決できません。"
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "以下のキーがあります: %s"
 
@@ -16961,6 +18634,17 @@ msgstr "第2メトリックが提供されている場合、線形カラース�
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "有効にすると、クエリ実行のたびにデータがある範囲へマップがズームします"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr "有効にすると、陽線は上昇色、陰線は下降色を使います。オフにすると系列色は1つになり、上昇は実体塗り、下降は中空になります。"
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -17259,6 +18943,9 @@ msgstr "X軸ラベル"
 msgid "X Axis Label Interval"
 msgstr "X軸ラベルの間隔"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X軸の数値表示形式"
 
@@ -17304,6 +18991,9 @@ msgstr "Y軸の表示形式"
 
 msgid "Y Axis Label"
 msgstr "Y軸ラベル"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y軸のタイトル"
@@ -17458,6 +19148,19 @@ msgid ""
 "right"
 msgstr "右側のパネルから新しいチャートを作成するか、既存のものを選択できます"
 
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
+
 msgid "You can enter a value that is not listed."
 msgstr ""
 
@@ -17610,6 +19313,11 @@ msgid ""
 msgstr "編集するには %s の編集者である必要があります。変更または編集アクセスをリクエストするには、%s の編集者に連絡してください。"
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr "削除を行うには、チャート編集者である必要があります。変更依頼や編集権限の付与については、チャート編集者にお問い合わせください。"
@@ -17620,6 +19328,11 @@ msgid ""
 msgstr "編集を行うには、チャート編集者である必要があります。変更依頼や編集権限の付与については、チャート編集者にお問い合わせください。"
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr "削除を行うには、ダッシュボード編集者である必要があります。変更や編集権限の付与をご希望の場合は、ダッシュボード編集者にお問い合わせください。"
@@ -17628,6 +19341,11 @@ msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr "編集を行うには、ダッシュボード編集者である必要があります。変更依頼や編集権限の付与については、ダッシュボード編集者にお問い合わせください。"
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
 
 msgid ""
 "You must be a dataset editor in order to delete. Please reach out to a "
@@ -17712,7 +19430,18 @@ msgstr ""
 "です。ダッシュボードのサイズを縮小するか（たとえば複数のダッシュボードに分割するなど）SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 " 設定値を上げてください。"
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -17721,6 +19450,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -17748,6 +19486,11 @@ msgstr "クエリを更新しました"
 
 msgid "Your report could not be deleted"
 msgstr "レポートを削除できませんでした"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 msgid "Your session has ended. Please sign in again."
 msgstr "セッションが終了しました。再度ログインしてください。"
@@ -17939,6 +19682,11 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 
 msgid "by using"
 msgstr "以下を使用して"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "空にできません"
@@ -18206,6 +19954,9 @@ msgstr "毎分"
 msgid "every month"
 msgstr "毎月"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "展開"
 
@@ -18392,6 +20143,9 @@ msgstr "分"
 msgid "minute(s)"
 msgstr "分"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "月"
 
@@ -18544,6 +20298,10 @@ msgstr "再起動"
 msgid "recent"
 msgstr "更新日"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "受信者"
 
@@ -18568,11 +20326,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "行レベルセキュリティ"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "実行中"
 
 msgid "save"
 msgstr "保存"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
@@ -18647,6 +20412,10 @@ msgstr "合計"
 #. do-not-translate
 msgid "superset.example.com"
 msgstr "superset.example.com"
+
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
 
 msgid "syntax."
 msgstr "構文。"
@@ -18767,6 +20536,9 @@ msgstr "ズームエリア"
 
 msgid "© Layer attribution"
 msgstr "© レイヤー帰属情報"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

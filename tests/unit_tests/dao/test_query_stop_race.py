@@ -22,23 +22,12 @@ query.extra -- superset.sql_lab.cancel_query() would return False without
 recording anything, so stop_query() raised SupersetCancelQueryException and
 left query.status untouched.
 
-The fix distinguishes two cases that both look like "no cancel_query_id yet":
-
-1. Execution hasn't reached the engine at all (hasn't opened a DB connection
-   or called get_cancel_query_id()). Here, generalizing the
-   QUERY_EARLY_CANCEL_KEY mechanism Trino's own prepare_cancel_query() already
-   uses for its harder case is safe: record the early-cancel intent and
-   report success, so the stopped-check at the top of the statement-block
-   loop honors it before the statement is ever sent to the database.
-
-2. Execution HAS reached the engine (a connection is open and
-   get_cancel_query_id() has been called) and the engine spec still returned
-   no cancel ID -- this engine genuinely has no way to cancel a running
-   query. This must continue to fail honestly (raise
-   SupersetCancelQueryException, leave status alone) rather than fabricate a
-   stop the engine can't actually back; case 1's success path must not apply
-   here. A new QUERY_DISPATCHED_KEY, set unconditionally once execution opens
-   the connection, is what distinguishes the two cases.
+Stop intent is durable independently of engine cancellation support. Before
+execution reaches the engine, the early-cancel flag prevents dispatch. After
+execution has started, an engine without a cancel handle may finish its SQL,
+but the accepted Stop still discards its results and retains STOPPED. The
+QUERY_DISPATCHED_KEY distinguishes missing cancellation support from the
+pre-dispatch window; neither case may reject an already-durable Stop.
 
 Also covered: the success-path status finalizer at the end of
 execute_sql_statements() must not clobber a STOPPED status a concurrent stop
@@ -71,9 +60,16 @@ superset/sql_lab.py::cancel_query/execute_sql_statements/handle_query_error.
 import threading
 from typing import Any
 
-import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
+
+# Generous thread handshake/join timeouts: CI runs the full unit suite on
+# loaded shards, and both threads here share a single StaticPool sqlite
+# connection, so a momentarily-blocked main thread must not time out the
+# worker's pause. A healthy run finishes these handshakes in well under a
+# second; the timeouts exist only to fail loudly on a genuine deadlock.
+HANDSHAKE_TIMEOUT = 60
+JOIN_TIMEOUT = 120
 
 
 def test_stop_before_worker_starts_marks_stopped_without_dispatch(
@@ -256,7 +252,9 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
         # but well before the DB connection is opened -- squarely inside the
         # race window from the RCA.
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return real_apply_limit(query, parsed_statement)
 
     mocker.patch("superset.sql_lab.apply_limit", side_effect=paused_apply_limit)
@@ -269,7 +267,9 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -285,7 +285,7 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     # The statement itself was never sent to the database -- this is the
@@ -303,27 +303,20 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
     assert execution_result["payload"]["status"] == QueryStatus.STOPPED
 
 
-def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
+def test_stop_after_dispatch_with_no_cancel_support_discards_results(
     mocker: MockerFixture, app: Any
 ) -> None:
     """
-    Case 2, the finding-1 regression guard: once execute_sql_statements() has
-    opened the connection and asked the (sqlite) engine spec for a cancel
-    handle -- and gotten nothing back, since sqlite doesn't override
-    get_cancel_query_id() -- a stop request must fail honestly
-    (SupersetCancelQueryException, status left alone) instead of fabricating
-    a STOPPED status for a query that is, in fact, still running against the
-    real database.
+    Accept Stop after dispatch even when the engine cannot cancel its SQL.
 
-    get_cancel_query_id() is deliberately left unmocked: the real, permanent
-    "this engine has no cancel support" behavior is exactly the case that
-    must not be confused with the pre-dispatch race window.
+    The real SQLite execute_query still runs after the pause is released, but
+    its result must not be published and its completion cannot replace the
+    accepted Stop or its original timestamp.
     """
     from superset import sql_lab
     from superset.common.db_query_status import QueryStatus
     from superset.constants import QUERY_DISPATCHED_KEY
     from superset.daos.query import QueryDAO
-    from superset.exceptions import SupersetCancelQueryException
 
     harness = _RaceHarness(mocker)
     query_id, client_id = harness.make_query("post-dispatch-no-cancel-support")
@@ -339,7 +332,9 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
         # -- i.e. after QUERY_DISPATCHED_KEY is committed, right as the
         # statement is about to be (or already is being) sent to the engine.
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return real_execute_query(query, cursor, log_params)
 
     execute_query_spy = mocker.patch(
@@ -350,7 +345,9 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -360,33 +357,29 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
         )
         assert "cancel_query" not in query.extra
 
-        # Must raise now: the engine has already been asked for a cancel
-        # handle and had none to give, which is a real "can't cancel"
-        # failure, not the early race window.
-        with pytest.raises(SupersetCancelQueryException):
-            QueryDAO.stop_query(client_id)
-
-        # Nothing was fabricated: still RUNNING.
-        unstopped_query = harness.fresh_query(query_id)
-        assert unstopped_query.status == QueryStatus.RUNNING
+        stopped_query = QueryDAO.stop_query(client_id)
+        assert stopped_query.status == QueryStatus.STOPPED
+        stop_end_time = stopped_query.end_time
+        assert stop_end_time is not None
+        assert harness.fresh_query(query_id).status == QueryStatus.STOPPED
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     # The statement genuinely ran (real execute_query was called through).
     execute_query_spy.assert_called_once()
 
-    # Since the stop attempt failed, execution proceeds to real completion --
-    # this also confirms the success-path finalizer's new STOPPED-guard
-    # doesn't misfire and swallow a legitimate SUCCESS.
+    # Engine execution can finish, but an accepted Stop discards its output.
     final_query = harness.fresh_query(query_id)
-    assert final_query.status == QueryStatus.SUCCESS, (
-        f"expected the query to run to real completion since the stop "
-        f"attempt correctly failed, got status={final_query.status!r}"
-    )
-    assert execution_result["payload"]["status"] == QueryStatus.SUCCESS
+    assert final_query.status == QueryStatus.STOPPED
+    assert final_query.end_time == stop_end_time
+    assert final_query.results_key is None
+    assert execution_result["payload"] == {
+        "query_id": query_id,
+        "status": QueryStatus.STOPPED,
+    }
 
 
 def test_stop_with_existing_cancel_id_unaffected_by_dispatched_key(
@@ -619,7 +612,9 @@ def test_stop_racing_normal_completion_keeps_payload_and_results_write_consisten
         # payload/results-write built", which is what this test is about.
         result = real_execute_query(query, cursor, log_params)
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return result
 
     mocker.patch("superset.sql_lab.execute_query", side_effect=paused_execute_query)
@@ -628,7 +623,9 @@ def test_stop_racing_normal_completion_keeps_payload_and_results_write_consisten
     worker = harness.run_execution(app, query_id, execution_result, store_results=True)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -644,7 +641,7 @@ def test_stop_racing_normal_completion_keeps_payload_and_results_write_consisten
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     real_cancel_spy.assert_called_once()
@@ -689,7 +686,9 @@ def test_stop_racing_exception_path_keeps_stopped_not_failed(
 
     def paused_failing_execute_query(query: Any, cursor: Any, log_params: Any) -> Any:
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         raise RuntimeError("simulated unrelated failure")
 
     mocker.patch(
@@ -700,7 +699,9 @@ def test_stop_racing_exception_path_keeps_stopped_not_failed(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         QueryDAO.stop_query(client_id)
         stopped_query = harness.fresh_query(query_id)
@@ -708,7 +709,7 @@ def test_stop_racing_exception_path_keeps_stopped_not_failed(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     final_query = harness.fresh_query(query_id)
@@ -812,7 +813,9 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
         # statement has already finished executing), then reports failure --
         # the exact window the reviewer's repro targets.
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return False
 
     results_backend_mock.set.side_effect = paused_failing_set
@@ -842,7 +845,9 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
     worker.start()
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -853,7 +858,7 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     assert "error" not in execution_error, (
@@ -1049,7 +1054,9 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
 
     def paused_timed_out_execute_query(query: Any, cursor: Any, log_params: Any) -> Any:
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         # Mirrors execute_query()'s own `except SoftTimeLimitExceeded`
         # handler exactly: set status locally (uncommitted), then raise. Also
         # dirties an unrelated field the same way real code paths would
@@ -1075,7 +1082,9 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -1089,7 +1098,7 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     final_query = harness.fresh_query(query_id)
@@ -1214,4 +1223,99 @@ def test_handle_query_error_status_refresh_does_not_autoflush_other_state(
     ), (
         f"expected no write before the targeted status SELECT, but found "
         f"one: {preceding}"
+    )
+
+
+def test_execute_with_cursor_refresh_does_not_discard_pending_executed_sql(
+    app: Any, session: Session
+) -> None:
+    """
+    Round 9 review: `ClickHouseConnectEngineSpec.execute_with_cursor()`'s own
+    pre-dispatch STOPPED check does `db.session.refresh(query)` -- a *full*
+    refresh (every column, not the targeted single-attribute one
+    `handle_query_error()` uses), since nothing it does locally beforehand
+    needs protecting from an autoflush the way `handle_query_error()`'s
+    exception-handler callers do. But `refresh()` does NOT autoflush on its
+    own either: the async/Celery path's own `_make_execute_fn().
+    execute_with_stats()` (superset/sql/execution/celery_task.py) sets
+    `query.executed_sql = sql` immediately before calling
+    `execute_with_cursor()`, with no commit or flush in between. Without a
+    `flush()` first, that pending, uncommitted `executed_sql` would be
+    silently discarded and reloaded back to its previous committed value --
+    leaving the persisted Query row describing the wrong executed SQL,
+    verified here by actually reproducing the sequence and reading the
+    column back from a fresh query, not just asserting the in-memory
+    attribute.
+
+    Getting this reproduction right required care: a commit expires every
+    attribute by default (`expire_on_commit=True`), and accessing an
+    *expired* attribute (e.g. this method's own `query.id` in its first
+    debug-log line) triggers an incidental autoflush+reload as a side
+    effect of the lazy-load SELECT -- which would flush the pending
+    `executed_sql` "for free" and mask the bug entirely. The real call
+    sequence doesn't hit that accidental protection: `execute_sql_with_cursor`
+    (superset/sql/execution/executor.py) calls `check_stopped_fn()` --
+    which itself does a plain `db.session.refresh(query)` -- immediately
+    before `execute_fn()` in the *same* loop iteration, so every attribute
+    is already loaded (not expired) by the time `execute_with_cursor` sets
+    `executed_sql` and runs. This test replicates that ordering explicitly
+    (an explicit refresh to simulate `check_stopped_fn()`, then the dirty
+    write, then the call) rather than relying on a bare post-commit object,
+    which would accidentally dodge the bug it's meant to catch.
+    """
+    from unittest.mock import MagicMock
+
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    query_obj = Query(
+        client_id="pending-executed-sql",
+        database=database,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select * from bar",
+        select_sql="select * from bar",
+        executed_sql="select * from bar",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatus.RUNNING,
+    )
+    db.session.add(database)
+    db.session.add(query_obj)
+    db.session.commit()
+
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    # Simulates execute_sql_with_cursor()'s own check_stopped_fn() call,
+    # which always runs immediately before execute_fn() in the same loop
+    # iteration -- this is what leaves every attribute already loaded (not
+    # expired) by the time the dirty write below happens, matching the real
+    # sequence instead of a freshly-expired, accidentally-protected object.
+    db.session.refresh(query_obj)
+
+    new_sql = "select * from bar where id = 42"
+    # Mirrors celery_task.py's execute_with_stats(): set the attribute, then
+    # call execute_with_cursor() with no flush/commit in between.
+    query_obj.executed_sql = new_sql
+
+    cursor_mock = MagicMock()
+    ClickHouseConnectEngineSpec.execute_with_cursor(cursor_mock, new_sql, query_obj)
+
+    cursor_mock.execute.assert_called_once_with(new_sql, settings=None)
+
+    db.session.expire_all()
+    refreshed = (
+        db.session.query(Query).filter_by(client_id="pending-executed-sql").one()
+    )
+    assert refreshed.executed_sql == new_sql, (
+        f"expected the pending executed_sql set just before "
+        f"execute_with_cursor() to survive its internal refresh(), got "
+        f"{refreshed.executed_sql!r}"
     )

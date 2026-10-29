@@ -22,6 +22,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { isEqual } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   ContextMenuFilters,
@@ -50,6 +51,7 @@ import { commonLayerProps, getColorForBreakpoints } from '../common';
 import { PRIMARY_COLOR } from '../../utilities/controls';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
+import computeBoundsFromPoints from '../../utils/computeBoundsFromPoints';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
@@ -279,14 +281,34 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
 
   const [viewport, setViewport] = useState(getAdjustedViewport());
   const [stateFormData, setStateFormData] = useState(props.payload.form_data);
+  // The area autozoom last fitted. The transform builds a new features array
+  // on every run, including the one Explore triggers when it saves the
+  // viewer's pan, zoom or tilt, so a refit keys on these bounds by value.
+  const autozoomBoundsRef = useRef(
+    props.formData.autozoom
+      ? computeBoundsFromPoints(getPoints(props.payload.data.features || []))
+      : undefined,
+  );
 
   useEffect(() => {
     const { payload } = props;
+    const autozoomBounds = props.formData.autozoom
+      ? computeBoundsFromPoints(getPoints(payload.data.features || []))
+      : undefined;
 
     if (payload.form_data !== stateFormData) {
       setViewport(getAdjustedViewport());
       setStateFormData(payload.form_data);
+    } else if (
+      autozoomBounds &&
+      !isEqual(autozoomBounds, autozoomBoundsRef.current)
+    ) {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data without a new form_data, so autozoom refits the map here when
+      // the new rows cover another area.
+      setViewport(getAdjustedViewport());
     }
+    autozoomBoundsRef.current = autozoomBounds;
   }, [getAdjustedViewport, props, stateFormData, viewport]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {

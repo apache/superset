@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -169,9 +169,6 @@ msgstr " lisätietoja varten."
 msgid " near '%(highlight)s'"
 msgstr " lähellä '%(highlight)s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -182,26 +179,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standardi varmistaakseen, että leksikografinen järjestys\n"
-"                      vastaa kronologista järjestystä. Jos\n"
-"                      aikaleiman muoto ei noudata ISO 8601 -standardia,\n"
-"                      sinun täytyy määrittää lauseke ja tyyppi\n"
-"                      merkkijonon muuntamiseksi päiväksi tai "
-"aikaleimaaksi. Huomaa,\n"
-"                      että aikavyöhykkeitä ei tällä hetkellä tueta. Jos "
-"aika on tallennettu\n"
-"                      epoch-muodossa, kirjoita `epoch_s` tai `epoch_ms`. "
-"Jos mallia\n"
-"                      ei ole määritetty, käytetään valinnaisia "
-"oletusarvoja\n"
-"                      tietokanta-/sarakkeen nimitasolla lisäparametrin "
-"kautta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -306,12 +289,25 @@ msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 #, python-format
+msgid ""
+"%(column)s is an array column, which cannot be compared against the "
+"single value a transform returns. Mirrored filters on this mapping would "
+"fail at the database. Map a scalar partition column instead."
+msgstr ""
+
+#, python-format
 msgid "%(count)s %(label)s"
 msgstr ""
 
 #, python-format
 msgid "%(count)s additional restricted %(label)s"
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -327,6 +323,24 @@ msgstr "%(label)s-tiedosto"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -435,12 +449,9 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Lisäsuojaus"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -459,11 +470,9 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "%s SALASANA"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Fyysinen"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -483,6 +492,10 @@ msgstr "%s SSH-TUNNELIN YKSITYINEN AVAIN"
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SSH-TUNNELIN YKSITYISEN AVAIMEN SALASANA"
 
+#, python-format
+msgid "%s Select"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -490,12 +503,9 @@ msgstr "%s SSH-TUNNELIN YKSITYISEN AVAIMEN SALASANA"
 msgid "%s Selected"
 msgstr "%s Valittu"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "%s Selected (%s)"
-msgstr "%s Valittu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -521,11 +531,9 @@ msgstr "%s semantinen näkymä"
 msgid "%s URL"
 msgstr "%s URL"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Virtuaalinen"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -552,6 +560,12 @@ msgid "%s aggregates(s)"
 msgstr "%s aggregaattia"
 
 #, python-format
+msgid "%s chart"
+msgid_plural "%s charts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s chart updated"
 msgid_plural "%s charts updated"
 msgstr[0] ""
@@ -572,6 +586,12 @@ msgstr[1] ""
 #, fuzzy, python-format
 msgid "%s column(s)"
 msgstr "%s saraketta"
+
+#, python-format
+msgid "%s dashboard"
+msgid_plural "%s dashboards"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s dashboard updated"
@@ -607,11 +627,9 @@ msgid_plural "%s hr ago"
 msgstr[0] "%s rivi"
 msgstr[1] "%s riviä"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, ru, sk, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Tiedot tuotu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -636,6 +654,12 @@ msgid ""
 msgstr ""
 "%s kohdetta ei voitu merkitä, koska sinulla ei ole muokkausoikeuksia "
 "kaikkiin valittuihin objekteihin."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -685,28 +709,21 @@ msgstr[1] "%s vaihtoehtoa"
 msgid "%s option(s)"
 msgstr "%s vaihtoehto(a)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, ru, sk, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Sarakkeen automaattinen koko"
+msgstr[0] ""
 msgstr[1] ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Lajittelumittari"
+msgstr[0] ""
 msgstr[1] ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s välilehti valittu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -1435,6 +1452,25 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter on this text column is not mirrored: the database "
+"may treat strings that differ in case or trailing spaces as equal, and "
+"the mirrored predicate could then drop rows the filter keeps."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -1455,12 +1491,38 @@ msgstr ""
 "(esim. { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}). Lisätietoja: https://echarts.apache.org/en/option.html. "
 
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
+
+msgid "A SQL expression using :value"
+msgstr ""
+
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
+msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Kynttiläkaavio näyttää avaus-, päätös-, ylä- ja aliarvot kullekin "
+"jaksolle. Sitä käytetään yleisesti rahoitus- ja muuhun aikasarjojen "
+"vaihteluvälianalyysiin."
+
+msgid ""
+"A chart on this dashboard or in this version was permanently deleted "
+"while the dashboard was being restored, so nothing was changed. Please "
+"try again."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
@@ -1478,6 +1540,14 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Pilkuilla eroteltu luettelo skeemoista, joihin tiedostojen lataaminen on "
 "sallittua."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
@@ -1513,6 +1583,20 @@ msgstr ""
 "Sanakirja sarakkeiden nimistä ja niiden tietotyypeistä, jos haluat "
 "muuttaa oletusarvoja. Esimerkki: {\"user_id\":\"int\"}. Tarkista tuetut "
 "tietotyypit Python Pandas -kirjastosta."
+
+msgid ""
+"A filter value carrying a UTC offset is not mirrored: a transform is "
+"evaluated in the database's own time frame, so the mirrored predicate "
+"could ask for a partition the matching rows are not in. Write the bound "
+"without an offset to mirror this filter."
+msgstr ""
+
+msgid ""
+"A filter value containing a quote or a backslash is not mirrored on this "
+"database: the driver and the database do not agree on how to write it "
+"into a query, so the transform would be evaluated at a value the filter "
+"does not compare. Filters whose values carry neither still mirror."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -1626,6 +1710,58 @@ msgstr "Uusi kaavio luodaan."
 msgid "A new dashboard will be created."
 msgstr "Uusi koontinäyttö luodaan."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot change data. It is evaluated against "
+"the database to check that it mirrors, so it has to be a read."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot contain a MySQL executable comment, "
+"which the database executes and every validator reads as a comment."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot name anything through a U&\"...\" "
+"escape sequence, which the database decodes and every validator reads "
+"literally."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot read a sequence. NEXTVAL advances the "
+"sequence every time it is evaluated, and the transform is evaluated on a "
+"cache schedule."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1659,6 +1795,16 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Uudelleenkäytettävä tietojoukko tallennetaan kaaviosi kanssa."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -1726,6 +1872,30 @@ msgstr "Aikakatkaisu tapahtui kuvakaappauksen ottamisen aikana."
 #, fuzzy
 msgid "A valid color scheme is required"
 msgstr "Kelvollinen väriteema vaaditaan"
+
+msgid ""
+"A value transform cannot contain a MySQL executable comment (/*! ... */ "
+"or /*M! ... */). Those are comments to every validator and statement text"
+" to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid ""
+"A value transform cannot name anything through a U&\"...\" escape "
+"sequence. The database decodes it and every validator reads it literally,"
+" so what would run is not what was checked."
+msgstr ""
+
+#, python-format
+msgid ""
+"A value transform is required on %(name)s, which is not a temporal "
+"column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -1828,6 +1998,9 @@ msgstr "Käsitellään"
 #, fuzzy
 msgid "About"
 msgstr "Tietoja"
+
+msgid "Accept"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -2057,6 +2230,11 @@ msgstr "Lisää hälytys"
 msgid "Add an annotation layer"
 msgstr "Lisää merkintätaso"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -2209,6 +2387,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Lisää kansio"
 
+msgid "Add group"
+msgstr "Lisää ryhmä"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2228,6 +2409,9 @@ msgstr "Lisää mittari"
 #, fuzzy
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Lisää mittareita tietojoukkoon \"Muokkaa tietolähdettä\" -valintaikkunassa"
+
+msgid "Add more"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2286,6 +2470,9 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Lisää taulukko"
 
+msgid "Add subgroup"
+msgstr "Lisää aliryhmä"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -2343,10 +2530,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Virtuaaliseen tietoaineistoon lisättiin 1 uusi sarake"
-msgstr[1] "Virtuaaliseen tietoaineistoon lisättiin %s uutta saraketta"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Tietoaineistoon lisättiin 1 uusi sarake"
+msgstr[1] "Tietoaineistoon lisättiin %s uutta saraketta"
 
 #, python-format
 msgid "Added a %s"
@@ -2519,6 +2706,9 @@ msgstr "Vaikuttavat kaaviot"
 msgid "Affected Dashboards"
 msgstr "Vaikuttavat kojelaudat"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -2588,6 +2778,9 @@ msgstr "Aggregaatio"
 msgid "Aggregation Method"
 msgstr "Aggregaatiomenetelmä"
 
+msgid "Aggregation function"
+msgstr ""
+
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
 "own aggregation; Sum and Average override it for the summary row only. "
@@ -2652,6 +2845,9 @@ msgstr "Hälytys havaitsi virheen kyselyä suoritettaessa."
 msgid "Alert is active"
 msgstr "Hälytys on aktiivinen"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -2672,6 +2868,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -2740,6 +2940,18 @@ msgstr "Hälytykset"
 msgid "Alerts & Reports"
 msgstr "Hälytykset ja raportit"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -2758,6 +2970,9 @@ msgstr "Tasaa +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Näytä kaikki sarakkeet"
+
+msgid "Alignment"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -2805,6 +3020,9 @@ msgstr "Dimensiot"
 #, fuzzy
 msgid "All filters"
 msgstr "Kaikki suodattimet"
+
+msgid "All groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -2945,6 +3163,9 @@ msgstr "Salli käyttäjien valita useita arvoja"
 msgid "Allowed Domains (comma separated)"
 msgstr "Sallitut verkkotunnukset (pilkulla erotettu)"
 
+msgid "Allowed e-mail domains"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -2986,6 +3207,12 @@ msgstr ""
 #, fuzzy
 msgid "Always filter main datetime column"
 msgstr "Suodata aina ensisijainen päivämäärä- ja aikasarake"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -3139,11 +3366,9 @@ msgstr ""
 "Taulukon skeemaa laajennettaessa tapahtui virhe. Ota yhteyttä "
 "järjestelmänvalvojaasi."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s"
-msgstr "%ss:n hakemisessa tapahtui virhe: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3151,18 +3376,13 @@ msgstr "%ss:n hakemisessa tapahtui virhe: %s"
 msgid "An error occurred while fetching %s info: %s"
 msgstr "%s-tietojen hakemisessa tapahtui virhe: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Tietojoukkoon liittyvien tietojen hakemisessa tapahtui virhe"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Käyttäjäarvojen hakemisessa tapahtui virhe: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3309,11 +3529,8 @@ msgstr "Skeeman arvojen hakemisessa tapahtui virhe: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Käytettävissä olevien teemojen hakemisessa tapahtui virhe"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
-msgstr "Skeeman arvojen hakemisessa tapahtui virhe: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -3322,12 +3539,9 @@ msgstr "Skeeman arvojen hakemisessa tapahtui virhe: %s"
 msgid "An error occurred while fetching tab state"
 msgstr "Välilehden tilan hakemisessa tapahtui virhe"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Taulukon metatietojen hakemisessa tapahtui virhe"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -3437,12 +3651,6 @@ msgstr "Avaimen jäsennyksen aikana tapahtui virhe."
 msgid "An error occurred while pruning logs "
 msgstr "Lokien siistimisen aikana tapahtui virhe "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Visualisoinnin renderöinnin aikana tapahtui virhe: %s"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3471,6 +3679,9 @@ msgstr ""
 #, fuzzy, python-format
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Visualisoinnin renderöinnin aikana tapahtui virhe: %s"
+
+msgid "An error occurred while saving the configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -3852,6 +4063,9 @@ msgstr ""
 "Kaikki tietokannat, jotka sallivat yhteydet SQL Alchemy URI:ien kautta, "
 "voidaan lisätä. Lue lisää tietokanta-ajurin yhdistämisestä "
 
+msgid "Application default"
+msgstr ""
+
 #, python-format
 msgid "Applied '%s' metric"
 msgstr ""
@@ -4032,6 +4246,10 @@ msgstr "Haluatko varmasti poistaa"
 #, fuzzy, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "Haluatko varmasti poistaa %s?"
+
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -4453,8 +4671,13 @@ msgstr "Takaisin"
 msgid "Back to all"
 msgstr "Takaisin kaikkiin"
 
+msgid "Back to sign in"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 #, fuzzy
 msgid "Backend"
 msgstr "Tausta"
@@ -4519,11 +4742,8 @@ msgstr "Kantaluvun eksponentti"
 msgid "Base height"
 msgstr "Pohjan korkeus"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
-msgstr "Peruskerroksen karttatyyli. Katso Mapbox-dokumentaatio: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4853,6 +5073,9 @@ msgstr "Kuplan koko"
 msgid "Bubble size number format"
 msgstr "Kuplan koon lukumuoto"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -5091,6 +5314,9 @@ msgstr "CVAS (create view as select) -kysely ei ole SELECT-lause."
 msgid "Cache Timeout (seconds)"
 msgstr "Välimuistin aikakatkaisu (sekuntia)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -5189,6 +5415,9 @@ msgstr "Ylimmän tason välilehteä ei voi siirtää sisäkkäisiin välilehtiin
 msgid "Can select multiple values"
 msgstr "Voidaan valita useita arvoja"
 
+msgid "Can't parse transform"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -5214,6 +5443,19 @@ msgstr "Peruuta kysely ikkunan sulkemistapahtumassa"
 #, fuzzy
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Peruutus ei ole käytettävissä puuttuvan keskeyttämiskäsittelijän vuoksi"
+
+msgid "Candlestick"
+msgstr "Kynttiläkaavio"
+
+msgid "Candlestick Chart"
+msgstr "Kynttiläkaavio"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Kynttilä piirtää täytetyn rungon avauksen ja päätöksen väliin. OHLC "
+"piirtää avaus- ja päätösmerkit korkea–matala-varteen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5423,6 +5665,9 @@ msgstr "Soluraja"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Solun otsikkomalli"
+
+msgid "Center"
+msgstr "Keskitä"
 
 msgid "Center value"
 msgstr ""
@@ -5641,6 +5886,12 @@ msgstr "Tämän kaavion muuttaminen on kielletty"
 #, fuzzy
 msgid "Changing this semantic view is forbidden"
 msgstr "Tämän tietojoukon muuttaminen on kielletty"
+
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5898,6 +6149,10 @@ msgstr "Kaavion otsikko"
 msgid "Chart type"
 msgstr "Kaavion tyyppi"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -5910,22 +6165,19 @@ msgstr "Kaavio tallennettiin, mutta sitä ei voitu lisätä valittuun välilehte
 msgid "Chart width"
 msgstr "Kaavion leveys"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
 msgid "Charts"
 msgstr "Kaaviot"
-
-#, python-format
-msgid ""
-"Charts built on the selected semantic view are not checked and will break"
-" if it is deleted."
-msgid_plural ""
-"Charts built on the %s selected semantic views are not checked and will "
-"break if they are deleted."
-msgstr[0] ""
-msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -5981,6 +6233,9 @@ msgstr "Katso tätä kojelautaa: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Valitse pakottaaksesi päivämääräosiot samaan korkeuteen"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -5993,11 +6248,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Lapsi-tunnisteen sijainti"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Choose a %s"
-msgstr "Valitse lähde"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -6030,6 +6283,9 @@ msgstr "Valitse erottaja"
 #, fuzzy
 msgid "Choose a metric for right axis"
 msgstr "Valitse mittari oikealle akselille"
+
+msgid "Choose a new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6072,6 +6328,12 @@ msgstr "Valitse sarakkeet, jotka tulkitaan päivämäärinä"
 #, fuzzy
 msgid "Choose columns to read"
 msgstr "Valitse luettavat sarakkeet"
+
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -6255,11 +6517,9 @@ msgstr "Lauseke"
 msgid "Clear"
 msgstr "Tyhjennä"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Clear %s filter"
-msgstr "Tyhjennä kaikki suodattimet"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -6493,6 +6753,9 @@ msgstr "Sulje värikynnysarvon editori"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -6502,6 +6765,9 @@ msgstr "Sulje välilehti"
 
 msgid "Close version history"
 msgstr ""
+
+msgid "Closing value for each period."
+msgstr "Päätösarvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6533,6 +6799,10 @@ msgstr "Koodi kopioitu!"
 msgid "Collapse"
 msgstr "Supista rivi"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -6540,6 +6810,9 @@ msgid "Collapse All"
 msgstr "Supista kaikki"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6559,6 +6832,12 @@ msgstr "Supista datapaneeli"
 #, fuzzy
 msgid "Collapse row"
 msgstr "Supista rivi"
+
+msgid "Collapse rows by default"
+msgstr ""
+
+msgid "Collapse settings"
+msgstr "Supista asetukset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -6650,11 +6929,18 @@ msgstr "Värikynnysarvot"
 msgid "Color by"
 msgstr "Väri mukaan"
 
+msgid "Color by direction"
+msgstr "Väri suunnan mukaan"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Värikentän täytyy olla heksadesimaalinen väri (#rrggbb) tai 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -6692,6 +6978,18 @@ msgstr "Kohteen sijainnin väri"
 #, fuzzy
 msgid "Color scheme"
 msgstr "Värikaava"
+
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Väri, kun päätösarvo on avausarvoa suurempi tai yhtä suuri."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Väri, kun päätösarvo on avausarvoa pienempi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -6769,6 +7067,9 @@ msgstr "Pituusastetiedot sisältävä sarake"
 msgid "Column data types"
 msgstr "Sarakkeiden tietotyypit"
 
+msgid "Column groups"
+msgstr "Sarakeryhmät"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -6835,6 +7136,11 @@ msgstr ""
 #, fuzzy
 msgid "Column type"
 msgstr "Saraketyyppi"
+
+msgid ""
+"Column used for partition pruning on this table. Its Is filterable and Is"
+" dimension settings decide whether Explore offers it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -6944,6 +7250,9 @@ msgstr "Luettavat sarakkeet"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Työkaluvinkissä näytettävät sarakkeet."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -7116,11 +7425,9 @@ msgstr "Luottamusvälin on oltava välillä 0 ja 1 (ei sisällä rajoja)"
 msgid "Configuration"
 msgstr "Konfiguraatio"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Configure %s"
-msgstr "Vahvista tallennus"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -7215,6 +7522,9 @@ msgstr "Vahvista"
 msgid "Confirm Password"
 msgstr "Vahvista salasana"
 
+msgid "Confirm new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -7232,6 +7542,9 @@ msgstr "Vahvista salasana"
 #, fuzzy
 msgid "Confirm save"
 msgstr "Vahvista tallennus"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -7330,6 +7643,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Sisältää tekstiä (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -7400,6 +7719,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -7561,6 +7883,12 @@ msgstr ""
 #, python-format
 msgid ""
 "Could not check which charts and dashboards depend on the selected %s. "
+"Archiving them may make charts unavailable."
+msgstr ""
+
+#, python-format
+msgid ""
+"Could not check which charts and dashboards depend on the selected %s. "
 "Deleting them may break charts and dashboards."
 msgstr ""
 
@@ -7569,6 +7897,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Tietokantaan \"%(database)s\" ei voitu muodostaa yhteyttä"
+
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -7609,11 +7941,22 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Isäntänimeä \"%(host)s\" ei voitu ratkaista."
+
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -7626,17 +7969,40 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "Count"
 msgstr "Lukumäärä"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
 msgid "Country"
 msgstr "Maa"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -7774,12 +8140,9 @@ msgstr "Luonut"
 msgid "Created by me"
 msgstr "Minun luomani"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Created by: %s"
-msgstr "Luonut"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -7915,6 +8278,9 @@ msgstr "Kuluva päivä"
 msgid "Current month"
 msgstr "Kuluva kuukausi"
 
+msgid "Current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
@@ -7978,6 +8344,9 @@ msgstr "Mukautetut SQL-ad-hoc-mittarit eivät ole käytössä tässä tietojouko
 #, fuzzy
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Mukautettuja SQL-kenttiä ei voi jäsentää yhtenä SQL-lauseena."
+
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -8138,6 +8507,9 @@ msgstr ""
 msgid "Customize the label for the right series in tooltips and legend"
 msgstr ""
 
+msgid "Customize the value transform →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -8258,12 +8630,9 @@ msgstr "Tumma tila"
 msgid "Dashboard"
 msgstr "Kojelauta"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Kaaviota %(id)s ei löydy"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -8336,6 +8705,9 @@ msgstr "Koontinäyttöä ei voitu palauttaa."
 msgid "Dashboard could not be updated."
 msgstr "Kojelautaa ei voitu päivittää."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -8354,6 +8726,9 @@ msgstr "Kojelauta vietiin onnistuneesti esimerkkinä"
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Kojelauta vietiin onnistuneesti"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -8437,6 +8812,10 @@ msgstr "Kojelautan otsikko"
 #, fuzzy, python-format
 msgid "Dashboard updated %s"
 msgstr "Päivitetty viimeksi %s"
+
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -8890,6 +9269,10 @@ msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Tietojoukon rakenne on virheellinen, syy: %(error)s"
 
 #, python-format
+msgid "Dataset updated: %s"
+msgstr ""
+
+#, python-format
 msgid "Dataset used by %s chart updated: %s"
 msgid_plural "Dataset used by %s charts updated: %s"
 msgstr[0] ""
@@ -9338,6 +9721,16 @@ msgstr "Poista"
 msgid "Delete %s"
 msgstr "Poistettu %s"
 
+#, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -9364,6 +9757,13 @@ msgstr "Poistetaanko ryhmä?"
 #, fuzzy
 msgid "Delete Layer?"
 msgstr "Poistetaanko kerros?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -9417,12 +9817,27 @@ msgstr "Poistetaanko teema?"
 msgid "Delete User?"
 msgstr "Poistetaanko käyttäjä?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 #, fuzzy
 msgid "Delete all Really?"
 msgstr "Poistetaanko kaikki varmasti?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -9459,6 +9874,11 @@ msgstr "Poista ryhmä"
 msgid "Delete item"
 msgstr "Poista kohde"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -9474,6 +9894,9 @@ msgstr ""
 #, fuzzy
 msgid "Delete role"
 msgstr "Poista rooli"
+
+msgid "Delete selected"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -9612,11 +10035,9 @@ msgstr[1] "Poistettu %(num)d teemaa"
 msgid "Deleted %s"
 msgstr "Poistettu %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %s item(s)"
-msgstr "Poista kohde"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -9679,14 +10100,33 @@ msgstr ""
 "toiminnon käyttämällä"
 
 msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
+
+msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
 "will remain, but they may no longer work."
 msgstr ""
 
 msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
-"it contains, and charts built on those views will stop working. The "
-"affected views could not be listed."
+"it contains. This cannot be undone. The affected views could not be "
+"listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or "
+"repoint them before deleting."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic "
+"views, including archived assets. Remove or repoint them first. Use "
+"Recently Archived to restore and repoint archived assets, or delete them "
+"permanently, or ask an admin for help."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -9901,11 +10341,9 @@ msgstr "Dimension arvot"
 msgid "Dimensions"
 msgstr "Dimensiot"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensiot"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -10699,11 +11137,9 @@ msgstr "Kaaren leveys"
 msgid "Edit"
 msgstr "Muokkaa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# ja, lv, mi, ru, sk, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
-msgstr "Muokkaa käyttäjää"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -11069,6 +11505,9 @@ msgstr "Upotettua kojelautaa ei voitu poistaa."
 msgid "Embedding deactivated."
 msgstr "Upottaminen poistettu käytöstä."
 
+msgid "Emitted predicate"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -11127,6 +11566,9 @@ msgid "Enable Matrixify"
 msgstr "Ota Matrixify käyttöön"
 
 msgid "Enable Retries"
+msgstr ""
+
+msgid "Enable attachments for alerts"
 msgstr ""
 
 msgid "Enable automatic retries on report failure"
@@ -11336,6 +11778,9 @@ msgstr "Syötä ensisijaiset tunnistetiedot"
 msgid "Enter a name for this sheet"
 msgstr "Syötä tälle taulukolle nimi"
 
+msgid "Enter a new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -11360,6 +11805,9 @@ msgstr "Syötä kesto sekunneissa"
 msgid "Enter fullscreen"
 msgstr "Siirry koko näyttö -tilaan"
 
+msgid "Enter group name"
+msgstr "Syötä ryhmän nimi"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
 #, fuzzy
@@ -11371,6 +11819,11 @@ msgstr "Syötä aluesuodattimen minimi- ja maksimiarvot"
 #, fuzzy
 msgid "Enter report name"
 msgstr "Syötä raportin nimi"
+
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -11438,6 +11891,12 @@ msgstr "Syötä käyttäjän käyttäjänimi"
 msgid "Enter theme name"
 msgstr "Syötä teeman nimi"
 
+msgid "Enter values"
+msgstr ""
+
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -11464,6 +11923,13 @@ msgstr "Yhtäläiset päivämääräkoot"
 #, fuzzy
 msgid "Equal to (=)"
 msgstr "Yhtä suuri kuin (=)"
+
+#, python-format
+msgid ""
+"Equality and list filters on %(mapped)s will automatically apply an "
+"equivalent filter to %(partition)s. Time ranges and other range filters "
+"are not mirrored until \"Transform preserves ordering\" is on."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -11741,6 +12207,9 @@ msgstr "Tarkka vastaavuus (IN)"
 msgid "Example"
 msgstr "Esimerkki"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -11758,9 +12227,6 @@ msgstr "Excel-vienti"
 #, fuzzy
 msgid "Excel XML Export"
 msgstr "Excel XML -vienti"
-
-msgid "Excel export is not configured on this server."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -11785,6 +12251,9 @@ msgstr "Jätä pois valitut arvot"
 #, fuzzy
 msgid "Excluded subjects"
 msgstr "Valitse aihe"
+
+msgid "Execute using my permissions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11817,6 +12286,10 @@ msgstr "Suoritusloki"
 msgid "Existing dataset"
 msgstr "Olemassa oleva tietojoukko"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -11832,11 +12305,18 @@ msgstr "Poistu koko näytön tilasta"
 msgid "Expand"
 msgstr "Laajenna"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
 msgid "Expand All"
 msgstr "Laajenna kaikki"
+
+msgid "Expand JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11861,6 +12341,12 @@ msgstr "Laajenna rivi"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Laajenna rivi"
+
+msgid "Expand settings"
+msgstr "Laajenna asetukset"
+
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -11888,6 +12374,15 @@ msgstr "Kokeellinen"
 #, fuzzy
 msgid "Expired"
 msgstr "Tutki"
+
+msgid "Expires on"
+msgstr ""
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -12063,6 +12558,11 @@ msgstr "Vie alkuperäiseen .CSV-tiedostoon"
 msgid "Export to pivoted .CSV"
 msgstr "Vie pivot-muotoiseen .CSV-tiedostoon"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -12110,6 +12610,9 @@ msgstr ""
 #, fuzzy
 msgid "Extensions"
 msgstr "Laajennukset"
+
+msgid "Extensions are not enabled on this server"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -12223,6 +12726,10 @@ msgstr "Epäonnistui"
 msgid "Failed at retrieving results"
 msgstr "Tulosten hakeminen epäonnistui"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -12267,6 +12774,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -12294,11 +12804,12 @@ msgstr "Kohteiden merkitseminen tunnisteilla epäonnistui"
 msgid "Failed to generate chart edit URL"
 msgstr "Kaavion muokkaus-URL:n luominen epäonnistui"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to generate download: %s"
-msgstr "Kaavion muokkaus-URL:n luominen epäonnistui"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -12312,11 +12823,12 @@ msgstr "Kaavion tietojen lataaminen epäonnistui"
 msgid "Failed to load chart data."
 msgstr "Kaavion tietojen lataaminen epäonnistui."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Tietojoukon %s sarakkeiden lataaminen epäonnistui"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -12667,6 +13179,18 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Suodata kaavioita"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -12725,6 +13249,10 @@ msgstr "Suodatinarvo (kirjainkoko huomioidaan)"
 msgid "Filter value is required"
 msgstr "Suodatinarvo on pakollinen"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -12747,6 +13275,10 @@ msgstr "Suodata kaavioitasi"
 #, fuzzy
 msgid "Filters"
 msgstr "Suodattimet"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -12795,11 +13327,31 @@ msgstr "Suodattaa arvot, jotka ovat suurempia tai yhtä suuria."
 msgid "Filters for values less than or equal."
 msgstr "Suodattaa arvot, jotka ovat pienempiä tai yhtä suuria."
 
+#, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Suodattimet laajuuden ulkopuolella (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12823,6 +13375,9 @@ msgstr ""
 "(ryhmäavain = 'region'), suodatinlauseke soveltaisi suodatinta "
 "(department = 'Finance' OR department = 'Marketing') AND (region = "
 "'Europe')."
+
+msgid "Financial"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -13111,6 +13666,12 @@ msgstr "Vieras avain"
 msgid "Forest Green"
 msgstr "Metsänvihreä"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -13157,6 +13718,9 @@ msgstr ""
 "Muotoile datamerkinnät. Käytä muuttujia: {name}, {value}, {percent}. \\n "
 "edustaa uutta riviä. ECharts-yhteensopivuus:\n"
 "{a} (sarja), {b} (nimi), {c} (arvo), {d} (prosentti)"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -13365,6 +13929,13 @@ msgstr "GeoJson-sarake"
 msgid "GeoJson Settings"
 msgstr "GeoJson-asetukset"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13386,7 +13957,7 @@ msgstr "Hae viimeinen päivämäärä päiväyksikön mukaan."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Hae tietty päivämäärä loman päiväksi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -13394,6 +13965,11 @@ msgstr "Hae tietty päivämäärä loman päiväksi."
 #, fuzzy
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr "Anna pääsy useisiin luetteloihin yhdellä tietokantayhteydellä."
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete"
+" them permanently, or ask an admin for help."
+msgstr ""
 
 msgid "Go to Welcome Page"
 msgstr ""
@@ -13497,6 +14073,10 @@ msgstr ""
 msgid "Group"
 msgstr "Ryhmä"
 
+#, python-format
+msgid "Group %s"
+msgstr "Ryhmä %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13522,11 +14102,20 @@ msgstr "Ryhmäavain"
 msgid "Group by"
 msgstr "Ryhmittele"
 
+msgid "Group columns"
+msgstr "Ryhmittele sarakkeet"
+
+msgid "Group name"
+msgstr "Ryhmän nimi"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Ryhmittele loput \"Muut\"-ryhmäksi"
+
+msgid "Groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -13685,6 +14274,12 @@ msgstr "Hierarkia"
 msgid "High color"
 msgstr ""
 
+msgid "High price"
+msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Ylin arvo kullekin jaksolle."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -13722,8 +14317,13 @@ msgstr "Vaakasuuntainen (ylös)"
 msgid "Horizontal alignment"
 msgstr "Vaakasuuntainen tasaus"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 #, fuzzy
 msgid "Host"
 msgstr "Isäntä"
@@ -13795,6 +14395,9 @@ msgstr ""
 msgid "Huge"
 msgstr "Valtava"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13806,6 +14409,9 @@ msgstr "ISO 3166-2 -koodit"
 #, fuzzy
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -13855,6 +14461,15 @@ msgstr ""
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Jos mittari on määritetty, lajittelu tehdään mittarin arvon perusteella"
 
+msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -13882,6 +14497,11 @@ msgid "If table already exists"
 msgstr "Jos taulukko on jo olemassa"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -13947,6 +14567,9 @@ msgstr "Tuo %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Tuontivirhe"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14074,11 +14697,17 @@ msgstr "Lisää kuvaus, joka lähetetään raporttisi mukana"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
 msgstr "Lisää kuvaus lähetettäväksi kohteen %s mukana"
+
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14091,6 +14720,10 @@ msgstr "Sisällytä sarjan nimi akseliksi"
 #, fuzzy
 msgid "Include time"
 msgstr "Sisällytä aika"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -14345,6 +14978,11 @@ msgstr "Virheellinen lat/long-konfiguraatio."
 msgid "Invalid JSON metadata"
 msgstr "Virheelliset JSON-metatiedot"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy, python-format
@@ -14425,6 +15063,14 @@ msgstr "Virheellinen valuuttakoodi tallennetuissa mittareissa"
 msgid "Invalid date/timestamp format"
 msgstr "Virheellinen päivämäärä/aikaleima-muoto"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -14485,6 +15131,11 @@ msgstr "Virheellinen pituus-/leveysaste"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Virheellinen metriikkaobjekti: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -14525,27 +15176,22 @@ msgstr "Virheellinen tulostyyppi: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Virheellinen rolling_type: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "Invalid state."
 msgstr "Virheellinen tila."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, de,
-# es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Virheelliset välilehti-ID:t: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Virheellinen käyttäjätunnus tai salasana"
 
 msgid "Inverse"
 msgstr ""
@@ -14718,6 +15364,9 @@ msgstr "JSON-konfiguraatio"
 msgid "JSON Metadata"
 msgstr "JSON-metatiedot"
 
+msgid "JSON in cell"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -14774,6 +15423,12 @@ msgstr "Tammikuu"
 #, fuzzy
 msgid "Jinja templating"
 msgstr "Jinja-mallinnus"
+
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -14843,6 +15498,9 @@ msgstr "Kilometrit"
 #, fuzzy
 msgid "Label"
 msgstr "Merkintä"
+
+msgid "Label Colors"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -14939,6 +15597,12 @@ msgstr "Merkinnän koon yksikkö"
 #, fuzzy
 msgid "Label threshold"
 msgstr "Merkinnän kynnysarvo"
+
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Laskevien kynttilöiden nimiö työkaluvihjeessä."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Nousevien kynttilöiden nimiö työkaluvihjeessä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15088,6 +15752,9 @@ msgstr "Viime vuosi"
 msgid "Lat"
 msgstr "Lev."
 
+msgid "Latest save"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -15172,6 +15839,17 @@ msgstr "Puun asettelutyyppi"
 msgid "Least recently modified"
 msgstr "Vähiten äskettäin muokattu"
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
+msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
@@ -15226,6 +15904,9 @@ msgstr "Vasen arvo"
 #, fuzzy
 msgid "Legacy"
 msgstr "Vanhentunut"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15358,6 +16039,9 @@ msgstr "Kuten (ei erota kirjainkokoa)"
 #, fuzzy
 msgid "Limit"
 msgstr "Rajoitus"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -15526,6 +16210,9 @@ msgstr "Luettele ryhmät"
 msgid "List Roles"
 msgstr "Luettele roolit"
 
+msgid "List Unique Values"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -15589,6 +16276,9 @@ msgstr "Ladatut tiedot tallennettu välimuistiin"
 #, fuzzy
 msgid "Loaded from cache"
 msgstr "Ladattu välimuistista"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -15771,6 +16461,9 @@ msgstr "Oletusikkunan pituusaste"
 msgid "Low color"
 msgstr ""
 
+msgid "Low price"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -15782,11 +16475,18 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Alemman kynnysarvon on oltava pienempi kuin ylemmän kynnysarvon"
+
+msgid "Lowest value for each period."
+msgstr "Alin arvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -15854,6 +16554,13 @@ msgstr ""
 msgid "Manage"
 msgstr "Hallitse"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 msgid "Manage dashboard editors and access permissions"
@@ -15918,6 +16625,15 @@ msgstr "Reaaliaikainen renderöinti"
 msgid "Map Style"
 msgstr "Karttatyyli"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15945,6 +16661,13 @@ msgstr "Mapbox (API-avain vaaditaan)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox vaatii MAPBOX_API_KEY:n määrittämistä palvelimella."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -16010,6 +16733,11 @@ msgstr "Merkit"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Merkintätyyppi"
 
@@ -16163,6 +16891,9 @@ msgstr "Arvojen keskiarvo määritetyllä ajanjaksolla"
 #, fuzzy
 msgid "Mean values"
 msgstr "Keskiarvot"
+
+msgid "Median"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16446,12 +17177,9 @@ msgstr ""
 msgid "Metrics"
 msgstr "Mittarit"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "Mittarit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16577,6 +17305,9 @@ msgstr "Pienin kirjasinkoko"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Pienin säde"
 
@@ -16592,6 +17323,16 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "Minimin on oltava ehdottomasti pienempi kuin maksimi"
 
@@ -16660,11 +17401,9 @@ msgstr "Minuutti"
 msgid "Minutes %s"
 msgstr "Minuutit %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Missing %s"
-msgstr "Tietojoukko puuttuu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -16690,6 +17429,9 @@ msgstr "URL-parametrit puuttuvat"
 msgid "Mixed Chart"
 msgstr "Yhdistelmäkaavio"
 
+msgid "Mixed cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -16710,10 +17452,10 @@ msgstr "Muokattu %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Muokattu 1 sarake virtuaalisessa tietojoukossa"
-msgstr[1] "Muokattu %s saraketta virtuaalisessa tietojoukossa"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Muokattu 1 sarake tietojoukossa"
+msgstr[1] "Muokattu %s saraketta tietojoukossa"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -16739,6 +17481,14 @@ msgstr "Muokattu mallista \"%s\""
 #, fuzzy
 msgid "Monday"
 msgstr "Maanantai"
+
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -16780,11 +17530,20 @@ msgstr "Lisää suodattimia"
 msgid "MotherDuck token"
 msgstr "MotherDuck-tunnus"
 
+msgid "Move group left"
+msgstr "Siirrä ryhmä vasemmalle"
+
+msgid "Move group right"
+msgstr "Siirrä ryhmä oikealle"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Move icon"
 msgstr "Vain siirto"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16805,6 +17564,9 @@ msgstr ""
 #, fuzzy
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Siirtää annetun päivämääräjoukon määritetyn välin verran."
+
+msgid "Moving averages"
+msgstr "Liukuvat keskiarvot"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16830,6 +17592,9 @@ msgstr "Monitasoinen"
 msgid "Multi-Variables"
 msgstr "Monimuuttujinen"
 
+msgid "Multi-level header"
+msgstr "Monitasoinen otsikko"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16845,6 +17610,12 @@ msgid ""
 msgstr ""
 "Useita formaatteja hyväksytään, katso geopy.points Python-kirjastosta "
 "lisätietoja"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -16995,6 +17766,13 @@ msgstr "Kohdesolmujen nimi"
 msgid "Name of your tag"
 msgstr "Tunnisteesi nimi"
 
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Kynttiläsarjan nimi selitteessä ja työkaluvihjeessä, kun "
+"sarjaulottuvuutta ei ole asetettu."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -17097,6 +17875,9 @@ msgstr "Uuden tietojoukon nimi"
 #, fuzzy
 msgid "New header"
 msgstr "Uusi otsikko"
+
+msgid "New password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -17225,6 +18006,9 @@ msgstr "Ei käytettyjä suodattimia"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -17235,17 +18019,18 @@ msgstr "Ei käytettävissä olevia suodattimia."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "No columns found"
 msgstr "Sarakkeita ei löydy"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "No compatible %s found"
-msgstr "Yhteensopivaa skeemaa ei löydy"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -17320,6 +18105,12 @@ msgstr "Yhdellekään entiteetille ei ole tällä hetkellä määritetty tätä 
 msgid "No filter"
 msgstr "Ei suodatinta"
 
+#, python-format
+msgid ""
+"No filter is mirrored onto %(partition)s — queries will scan every "
+"partition until a column is mapped."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -17383,6 +18174,9 @@ msgstr ""
 msgid "No items"
 msgstr "Ei kohteita"
 
+msgid "No mapping"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -17400,6 +18194,12 @@ msgstr "Vastaavia tuloksia ei löydy"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Tähän kojetauluun ei ole tällä hetkellä lisätty suodattimia."
+
+msgid "No partition column is set."
+msgstr ""
+
+msgid "No provider query is available for this run."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -17457,17 +18257,13 @@ msgstr "Ei rooleja"
 msgid "No roles yet"
 msgstr "Ei vielä rooleja"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "No rows were returned for this %s"
-msgstr "Tälle tietojoukolle ei palautettu rivejä"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "No samples were returned for this %s"
-msgstr "Tälle tietojoukolle ei palautettu näytteitä"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -17481,7 +18277,13 @@ msgstr "Tallennettuja lausekkeita ei löydy"
 msgid "No saved metrics found"
 msgstr "Tallennettuja mittareita ei löydy"
 
+msgid "No saved version to preview"
+msgstr ""
+
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -17504,11 +18306,8 @@ msgstr ""
 msgid "No table columns"
 msgstr "Ei taulukon sarakkeita"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid "No tasks yet"
-msgstr "Ei vielä %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -17550,6 +18349,20 @@ msgstr ""
 "Nimeltä %(validator_name)s olevaa validaattoria ei löydy (määritetty "
 "%(engine_spec)s-moottorille)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
+msgid "No views provided"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -17586,6 +18399,11 @@ msgstr "Ei mitään -> Nuoli"
 msgid "None -> None"
 msgstr "Ei mitään -> Ei mitään"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -17616,6 +18434,9 @@ msgstr "Normalisoi sarakkeiden nimet"
 msgid "Normalized"
 msgstr "Normalisoitu"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -17633,6 +18454,15 @@ msgstr "Ei yhtä suuri"
 #, fuzzy
 msgid "Not Time Series"
 msgstr "Ei aikasarjaa"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -17658,6 +18488,9 @@ msgstr "Kaikkia pakollisia kenttiä ei ole täytetty. Anna seuraavat tiedot:"
 msgid "Not available"
 msgstr "Ei saatavilla"
 
+msgid "Not currently mapped to the partition column."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -17682,11 +18515,18 @@ msgstr "Kaaviota ei löydy"
 msgid "Not in"
 msgstr "Ei sisälly"
 
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Not null"
 msgstr "Ei null"
+
+msgid "Not previewed yet"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -17926,11 +18766,22 @@ msgstr "Numeerinen alue"
 msgid "OAuth2 client information"
 msgstr "OAuth2-asiakastiedot"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
 msgid "OCT"
 msgstr "LOKA"
+
+msgid "OHLC"
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18013,11 +18864,17 @@ msgstr "Yksi tai useampia ohjainelementtejä, jotka pivotoidaan sarakkeiksi"
 msgid "One or many metrics to display"
 msgstr "Yksi tai useampia näytettäviä mittareita"
 
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "Yhden tai useamman huomautustason lataaminen epäonnistui."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18095,6 +18952,9 @@ msgstr "Vain yhteensä"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Vain `SELECT`-lauseet ovat sallittuja"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -18106,6 +18966,9 @@ msgstr "Soveltuu vain, kun \"Otsikkotyyppi\" ei ole asetettu prosenttiin."
 #, fuzzy
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Soveltuu vain, kun \"Otsikkotyyppi\" on asetettu näyttämään arvot."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18143,6 +19006,12 @@ msgstr "Vain oletusluettelo on tuettu tälle yhteydelle"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -18202,6 +19071,9 @@ msgstr "Peittävyys, odottaa arvoja välillä 0 ja 100"
 msgid "Open Datasource tab"
 msgstr "Avaa tietolähde-välilehti"
 
+msgid "Open JSON"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -18240,12 +19112,18 @@ msgstr "Avaa SQL Labissa"
 msgid "Open in SQL lab"
 msgstr "Avaa SQL labissa"
 
+msgid "Open price"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
 msgid "Open query in SQL Lab"
 msgstr "Avaa kysely SQL Labissa"
+
+msgid "Opening value for each period."
+msgstr "Avausarvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18294,6 +19172,11 @@ msgstr "Valinnainen d3-päivämäärämuodon merkkijono"
 #, fuzzy
 msgid "Optional d3 number format string"
 msgstr "Valinnainen d3-lukumuodon merkkijono"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Valinnainen ulottuvuus, joka jakaa kaavion useiksi kynttiläsarjoiksi."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -18489,6 +19372,13 @@ msgstr ""
 " aikaväliäsi ja käytä \"Mukautettu\" asettaaksesi mukautetun "
 "vertailuvälin."
 
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Peitä päätöshinnan yksinkertaiset liukuvat keskiarvot (MA5, MA10, MA15, "
+"...). Lisää jakso kirjoittamalla mukautettu arvo."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -18566,11 +19456,17 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDF-lataus epäonnistui, päivitä sivu ja yritä uudelleen."
+
+msgid "PREVIEW"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -18681,6 +19577,19 @@ msgstr "Osioraja"
 #, fuzzy
 msgid "Partition Threshold"
 msgstr "Osiokynnysarvo"
+
+msgid "Partition column"
+msgstr ""
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19171,6 +20080,9 @@ msgstr "Vahvista salasanasi"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Syötä testattava SQLAlchemy URI"
 
+msgid "Please enter a new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -19271,11 +20183,9 @@ msgstr "Tallenna kojelauta ensin ja yritä sitten luoda uusi sähköpostiraportt
 msgid "Please select at least one role or group"
 msgstr "Valitse vähintään yksi rooli tai ryhmä"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Valitse sekä tietojoukko että kaaviotyyppi jatkaaksesi"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -19429,6 +20339,9 @@ msgstr "Portti %(port)s isäntäkoneella \"%(hostname)s\" kieltäytyi yhteydest�
 msgid "Port out of range 0-65535"
 msgstr "Portti alueen 0-65535 ulkopuolella"
 
+msgid "Position"
+msgstr "Sijainti"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -19512,7 +20425,18 @@ msgid "Prefix or suffix"
 msgstr "Etuliite tai jälkiliite"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -19988,9 +20912,6 @@ msgstr ""
 msgid "Recently Archived"
 msgstr ""
 
-msgid "Recently archived"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20146,6 +21067,12 @@ msgstr "Päivitetään kaavioita"
 msgid "Refreshing columns"
 msgstr "Päivitetään sarakkeita"
 
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -20221,6 +21148,9 @@ msgstr "Lataa uudelleen"
 msgid "Reload SQL Lab"
 msgstr "Lataa SQL Lab uudelleen"
 
+msgid "Reload metadata"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -20241,6 +21171,9 @@ msgstr "Poista järjestelmän tumma teema"
 #, fuzzy
 msgid "Remove System Default Theme"
 msgstr "Poista järjestelmän oletusteema"
+
+msgid "Remove color mapping"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -20266,13 +21199,22 @@ msgstr "Poista kohde"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Poista ryhmä"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Remove item"
 msgstr "Poista kohde"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
+msgstr ""
+
+msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -20300,10 +21242,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Poistettiin 1 sarake virtuaalisesta tietojoukosta"
-msgstr[1] "Poistettiin %s saraketta virtuaalisesta tietojoukosta"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Poistettiin 1 sarake tietojoukosta"
+msgstr[1] "Poistettiin %s saraketta tietojoukosta"
 
 #, python-format
 msgid "Removed a %s"
@@ -20358,6 +21300,12 @@ msgstr ""
 #, fuzzy
 msgid "Replace"
 msgstr "Korvaa"
+
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20460,6 +21408,12 @@ msgstr "Raporttiaikataulu on yhä käynnissä, uudelleenlaskenta hylätty."
 msgid "Report Schedule log prune failed."
 msgstr "Raporttiaikataulun lokin siivous epäonnistui."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20507,6 +21461,9 @@ msgstr "Raportti epäonnistui"
 #, fuzzy
 msgid "Report is active"
 msgstr "Raportti on aktiivinen"
+
+msgid "Report minimum interval"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -20570,6 +21527,9 @@ msgstr "Raportti päivitetty"
 msgid "Reports"
 msgstr "Raportit"
 
+msgid "Reports require a content format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20587,6 +21547,12 @@ msgstr "Solmujen välinen hylkimisvoima"
 #, fuzzy
 msgid "Request Access"
 msgstr "Pyydä käyttöoikeutta"
+
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
 
 msgid "Request access"
 msgstr ""
@@ -20637,6 +21603,15 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Pakolliset ohjausarvot on poistettu"
 
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required if your account already has a password"
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20661,6 +21636,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -20678,6 +21656,9 @@ msgstr "Nollaa sarakkeet"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "Palauta kaikki kansiot oletuksiin"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -20707,6 +21688,10 @@ msgstr "Nollaa tila"
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Palautetaanko oletuskansiot?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -21163,6 +22148,18 @@ msgstr "Suorita kysely näyttääksesi kyselyhistorian"
 msgid "Run a query to display results"
 msgstr "Suorita kysely näyttääksesi tulokset"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
@@ -21291,6 +22288,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "SQL-kysely"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -21407,10 +22409,16 @@ msgstr "MERKKIJONO"
 msgid "SUN"
 msgstr "SU"
 
+msgid "Same as \"Run as\""
+msgstr ""
+
 msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -21493,12 +22501,9 @@ msgstr "Tallenna (Korvaa)"
 msgid "Save as"
 msgstr "Tallenna nimellä"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "Save as %s"
-msgstr "Tallenna nimellä"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -21595,6 +22600,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Tallenna kysely"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -21662,6 +22672,14 @@ msgstr "Tallennettua kyselyä ei löydy."
 #, fuzzy
 msgid "Saved query parameters are invalid."
 msgstr "Tallennetun kyselyn parametrit ovat virheelliset."
+
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -21773,6 +22791,9 @@ msgstr "Skeema"
 msgid "Schema cache timeout"
 msgstr "Skeeman välimuistin aikakatkaisu"
 
+msgid "Schema not found."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -21828,6 +22849,12 @@ msgstr "Vieritä alas loppuun ottaaksesi muutosten ylikirjoituksen käyttöön. 
 msgid "Search"
 msgstr "Hae"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Hae %s tietue"
+msgstr[1] "Hae %s tietuetta"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -21843,6 +22870,9 @@ msgstr ""
 #, fuzzy
 msgid "Search Metrics & Columns"
 msgstr "Hae mittareita ja sarakkeita"
+
+msgid "Search OAuth2 tokens"
+msgstr ""
 
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
@@ -21879,6 +22909,9 @@ msgstr "Hakukenttä"
 #, fuzzy
 msgid "Search by query text"
 msgstr "Hae kyselytekstillä"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -21926,9 +22959,6 @@ msgstr "Hae suodattimista"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Hae mittareita ja sarakkeita"
-
-msgid "Search records"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -22055,11 +23085,9 @@ msgstr "Näytä kyselyn tiedot"
 msgid "Select"
 msgstr "Valitse"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Select %s or type to search %s"
-msgstr "Valitse skeema tai kirjoita hakusana skeemojen hakuun"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -22107,11 +23135,9 @@ msgstr "Valitse tagit"
 msgid "Select Value"
 msgstr "Valitse arvo"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Select a %s"
-msgstr "Valitse tagit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -22343,6 +23369,9 @@ msgstr "Valitse sarake"
 msgid "Select column name"
 msgstr "Valitse sarake"
 
+msgid "Select columns"
+msgstr "Valitse sarakkeet"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -22554,6 +23583,9 @@ msgstr ""
 msgid "Select or type a custom value..."
 msgstr "Valitse tai kirjoita mukautettu arvo..."
 
+msgid "Select or type a label"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
@@ -22759,6 +23791,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Valitse käytettävän värimallin tyyppi."
 
+msgid "Select user"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -22773,6 +23808,7 @@ msgstr "Valitse arvot"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, fuzzy, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -22837,6 +23873,15 @@ msgstr "Semanttinen näkymä"
 msgid "Semantic Views"
 msgstr "Semanttiset näkymät"
 
+msgid "Semantic cache"
+msgstr ""
+
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -22896,6 +23941,16 @@ msgstr "Huomautuskerroksen tyyppi"
 msgid "Semantic layer updated"
 msgstr "Huomautusmalli päivitetty"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -22935,11 +23990,19 @@ msgstr "Tietojoukon parametrit ovat virheelliset."
 msgid "Semantic view updated"
 msgstr "Semanttinen näkymä päivitetty"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
 msgid "Semantic views"
 msgstr "Semanttiset näkymät"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -22971,7 +24034,13 @@ msgstr "Lähetä PNG-tiedostona"
 msgid "Send as text"
 msgstr "Lähetä tekstinä"
 
+msgid "Send reset link"
+msgstr ""
+
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -23016,6 +24085,9 @@ msgstr "Sarjan tyyli"
 msgid "Series chart type (line, bar etc)"
 msgstr "Sarjan kaaviotyyppi (viiva, palkki jne.)"
 
+msgid "Series colors"
+msgstr "Sarjan värit"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -23034,11 +24106,17 @@ msgstr "Sarjan kasvuasetus"
 msgid "Series limit"
 msgstr "Sarjojen raja"
 
+msgid "Series name"
+msgstr "Sarjan nimi"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
 msgid "Series settings"
 msgstr "Sarjan asetukset"
+
+msgid "Series style"
+msgstr "Sarjan tyyli"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -23121,6 +24199,11 @@ msgstr "Aseta automaattinen päivitys"
 #, fuzzy
 msgid "Set filter mapping"
 msgstr "Aseta suodatinmääritys"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -23321,6 +24404,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -23499,17 +24585,14 @@ msgstr "Näytä kaaviokyselyjen aikaleimat"
 msgid "Show column headers"
 msgstr "Näytä sarakeotsikat"
 
+msgid "Show column summaries"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "Näytä sarakkeiden välisumma"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Show columns total"
-msgstr "Näytä sarakkeiden kokonaissumma"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -23598,6 +24681,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -23637,17 +24723,14 @@ msgstr "Näytä kyselytunnisteet"
 msgid "Show row labels"
 msgstr "Näytä rivietiketit"
 
+msgid "Show row summaries"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "Näytä rivien välisumma"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Show rows total"
-msgstr "Näytä rivien kokonaissumma"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23668,6 +24751,9 @@ msgid "Show summary"
 msgstr "Näytä yhteenveto"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
@@ -23789,6 +24875,9 @@ msgstr "Kirjaudu sisään"
 #, fuzzy
 msgid "Sign in with"
 msgstr "Kirjaudu sisään palvelulla"
+
+msgid "Sign in with your new password."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23913,6 +25002,7 @@ msgstr "Liukusäädin ja alueen syöttö"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
+#. i18n: the short identifier in a dashboard's URL, not the animal
 #, fuzzy
 msgid "Slug"
 msgstr "Slug"
@@ -23968,6 +25058,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -23999,6 +25094,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Joillakin muiden välilehtien pakollisilla suodattimilla on arvoja, eikä "
 "niitä tyhjennetä"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -24036,6 +25134,9 @@ msgstr ""
 #, fuzzy
 msgid "Something went wrong."
 msgstr "Jokin meni pieleen."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24329,6 +25430,9 @@ msgstr "Spatiaalinen"
 msgid "Specific Date/Time"
 msgstr "Tietty päivämäärä/aika"
 
+msgid "Specific user"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -24478,6 +25582,26 @@ msgstr "Alkamispäivä"
 #, fuzzy
 msgid "Start date included in time range"
 msgstr "Alkamispäivä sisältyy aikaväliin"
+
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24715,6 +25839,10 @@ msgstr "Alakategoriat"
 msgid "Subdomain"
 msgstr "Aliverkkotunnus"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Aliryhmä %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -24775,11 +25903,9 @@ msgstr "Onnistui"
 msgid "Success message"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Successfully changed %s!"
-msgstr "Tietojoukon vaihto onnistui!"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24793,6 +25919,12 @@ msgstr "Jälkiliite"
 msgid "Suffix to apply after the percentage display"
 msgstr "Jälkiliite prosenttinäytön jälkeen"
 
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
+
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
@@ -24801,6 +25933,15 @@ msgstr ""
 #, fuzzy
 msgid "Sum"
 msgstr "Summa"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24878,11 +26019,9 @@ msgstr "Superset kohtasi odottamattoman virheen."
 msgid "Supported databases"
 msgstr "Tuetut tietokannat"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
-msgstr "Vaihda tietojoukko"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25126,6 +26265,9 @@ msgstr "Taulukon nimi määrittelemätön"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Taulukkoa tai näkymää \"%(table)s\" ei ole olemassa."
 
+msgid "Table side"
+msgstr "Taulukon puoli"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -25266,11 +26408,9 @@ msgstr "Kohdearvo"
 msgid "Task"
 msgstr "tunnisteet"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy, python-format
+#, python-format
 msgid "Task cancelled: %s"
-msgstr "Vienti peruttu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -25345,6 +26485,9 @@ msgstr ""
 #, fuzzy
 msgid "Template parameters"
 msgstr "Malliparametrit"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -25441,11 +26584,14 @@ msgstr ""
 msgid "The %s"
 msgstr "Haettu %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Tähän kaavioon linkitetty tietojoukko on saattanut tulla poistetuksi."
+msgstr ""
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -25484,6 +26630,11 @@ msgid ""
 "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
 "combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
 "%(example)s."
+msgstr ""
+
+msgid ""
+"The ENABLE_EXTENSIONS feature flag must be on when the server starts. "
+"Enable it in the server configuration and restart."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -25575,9 +26726,16 @@ msgstr ""
 "X-akseli ei ole suodatinlistalla, joten sitä ei voi käyttää aikavälien "
 "suodattimissa koontinäytöissä. Haluatko lisätä sen suodatinlistalle?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -25739,6 +26897,16 @@ msgstr "Sarake, jota käytetään reunan kohteena."
 #, fuzzy
 msgid "The column was deleted or renamed in the database."
 msgstr "Sarake poistettiin tai nimettiin uudelleen tietokannassa."
+
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -26028,6 +27196,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -26066,6 +27240,12 @@ msgstr ""
 "                    -vaihtoehto, eikä niitä voitu ladata, mikä estää "
 "koontinäyttöä\n"
 "                    renderöimästä: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -26359,6 +27539,18 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametri %(parameters)s kyselyssäsi on määrittelemätön."
 msgstr[1] "Seuraavat parametrit kyselyssäsi ovat määrittelemättömiä: %(parameters)s."
 
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -26464,6 +27656,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -26494,6 +27691,9 @@ msgstr "Portti on suljettu."
 msgid "The port number is invalid."
 msgstr "Porttinumero on virheellinen."
 
+msgid "The preview could not be loaded."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -26505,6 +27705,9 @@ msgstr "Ensisijaista mittaria käytetään kaarisegmenttien kokojen määrittäm
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "Annettua taulua ei löytynyt annetusta tietokannasta"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26529,6 +27732,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Kysely sisältää yhden tai useamman virheellisen malliparametrin."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -26707,6 +27917,10 @@ msgstr ""
 "Skeemaa \"%(schema)s\" ei ole olemassa. Tämän kyselyn suorittamiseen "
 "tarvitaan kelvollinen skeema."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -26749,8 +27963,41 @@ msgstr "Kuvakaappausta luodaan. Älä poistu sivulta."
 
 #, python-format
 msgid ""
+"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"Archiving them will make dependent charts unavailable until they are "
+"recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"The selected %(type)s are used by %(charts)s. Archiving them will make "
+"dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
@@ -26810,6 +28057,10 @@ msgid ""
 msgstr ""
 "Taulukkoa \"%(table)s\" ei ole olemassa. Tämän kyselyn suorittamiseen "
 "tarvitaan kelvollinen taulukko."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26912,6 +28163,51 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Lohkojen ryhmittelyssä käytetty aikayksikkö"
 
+msgid ""
+"The transform answered with a value the driver and the database do not "
+"agree on how to write into a query, so the mirrored predicate would ask "
+"for a partition key no row holds. A transform whose result carries "
+"neither a quote nor a backslash still mirrors."
+msgstr ""
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform gives a different partition value for a timestamp "
+"(%(typed)s) than for the same instant written as text (%(text)s). A time "
+"range and a filter typed as text both reach it, so it cannot be right for"
+" both; filters on this mapping will not be mirrored. Write the transform "
+"so it reads :value the same way in either form."
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which this database "
+"cannot write into a query as a %(type)s value without changing it. "
+"Filters on this mapping will not be mirrored."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -26982,6 +28278,18 @@ msgstr "Käyttäjä on päivitetty onnistuneesti."
 msgid "The user was updated successfully"
 msgstr "Käyttäjä päivitettiin onnistuneesti"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -27002,6 +28310,40 @@ msgstr "Käyttäjätunnusta \"%(username)s\" ei ole olemassa."
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Tietokantaan yhdistettäessä annettu käyttäjätunnus ei ole kelvollinen."
 
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform on %(mapped)s is not mirroring filters, so queries "
+"will scan every partition."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -27013,6 +28355,9 @@ msgstr "Arvot menevät päällekkäin muiden raja-arvojen kanssa"
 #, fuzzy
 msgid "The version of the service"
 msgstr "Palvelun versio"
+
+msgid "The view configuration must be a JSON object."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -27351,11 +28696,9 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Kohteen %s poistamisessa ilmeni ongelma: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -27381,11 +28724,9 @@ msgstr "Käyttäjän rekisteröinnin poistamisessa ilmeni ongelma: %s"
 msgid "There was an issue deleting rules: %s"
 msgstr "Sääntöjen poistamisessa ilmeni ongelma: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Valittujen %s poistamisessa ilmeni ongelma: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27437,11 +28778,9 @@ msgstr "Valittujen teemojen poistamisessa ilmeni ongelma: %s"
 msgid "There was an issue deleting: %s"
 msgstr "Poistamisessa ilmeni ongelma: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Tietojoukon kopioinnissa ilmeni ongelma."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27449,17 +28788,13 @@ msgstr "Tietojoukon kopioinnissa ilmeni ongelma."
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Valittujen %s poistamisessa ilmeni ongelma: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Tietokannan viennissä ilmeni ongelma"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "Valittujen teemojen viennissä ilmeni ongelma"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -27538,18 +28873,24 @@ msgstr "Valitun kyselyn esikatselussa ilmeni ongelma. %s"
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s day."
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s day."
 msgid_plural ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there within %(days)s days."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover them there."
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27560,21 +28901,50 @@ msgstr "Nämä ovat tietojoukot, joihin tätä suodatinta sovelletaan."
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s day."
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"will make dependent charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is used by %(charts)s. Archiving it will make dependent "
+"charts unavailable until it is recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s day."
 msgid_plural ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there within %(days)s days."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived in the Settings menu. "
-"You can recover it there."
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27644,6 +29014,12 @@ msgstr "Tämä toiminto poistaa käyttäjärekisteröinnin pysyvästi."
 msgid "This action will permanently delete the user."
 msgstr "Tämä toiminto poistaa käyttäjän pysyvästi."
 
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -27700,14 +29076,30 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+msgid "This column holds the mapping instead of the default datetime column."
+msgstr ""
+
+#, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Tämä sarake saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -27767,6 +29159,12 @@ msgstr ""
 "annotaatiotietoja sisältävälle kaaviolle."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27896,6 +29294,12 @@ msgstr ""
 "Tätä tietojoukkoa hallinnoidaan ulkoisesti, eikä sitä voi muokata "
 "Supersetissä"
 
+msgid ""
+"This dataset is partitioned. Listing filter values without a time range "
+"reads every partition, so a time range is set by default. Clear it to "
+"list values from all time."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -27914,6 +29318,14 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "Tämä sähköpostiosoite on jo liitetty tiliin. Valitse toinen."
+
+#, python-format
+msgid ""
+"This engine compares less of a %(operator)s value on %(column)s than the "
+"filter carries, so there is no mirror a predicate on the partition column"
+" could stand in for. Map a column the engine compares in full to mirror "
+"this operator."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -27951,11 +29363,14 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Tämä suodatin on jo raportissa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
+
+#, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Tämä suodatin saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -28060,6 +29475,10 @@ msgstr ""
 "dynaamisesti, kun widgetien kokoa ja sijaintia muokataan vetämällä ja "
 "pudottamalla koontinäyttönäkymässä"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -28118,11 +29537,9 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Tämä mittari saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -28151,6 +29568,29 @@ msgstr ""
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Tämä salasana on liian yleinen; valitse vaikeammin arvattava."
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -28177,7 +29617,22 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Tämä osio sisältää validointivirheitä"
 
-msgid "This semantic layer has no dependent semantic views."
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be "
+"undone."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -28237,9 +29692,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
@@ -28297,11 +29753,11 @@ msgstr "Tämä keskeyttää (pysäyttää) tehtävän kaikille %s tilaajalle."
 
 #, python-format
 msgid ""
-"This will also permanently delete its %s semantic view. Charts built on "
-"that view will stop working."
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
 msgid_plural ""
-"This will also permanently delete its %s semantic views. Charts built on "
-"those views will stop working."
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -28534,6 +29990,9 @@ msgstr "Aikamuoto"
 msgid "Time grain"
 msgstr "Aikayksikkö"
 
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -28673,6 +30132,9 @@ msgstr "Aikakatkaisuvirhe"
 msgid "Timestamp format"
 msgstr "Aikaleiman muoto"
 
+msgid "Timestamps are shown in server time."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -28763,11 +30225,20 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
 msgid "Token Request URI"
 msgstr "Tunnuspyyntö-URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many requests. Please wait and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -28777,6 +30248,12 @@ msgid ""
 msgstr ""
 "Liian monta aliviipaletta pyydetty. Suurin sallittu määrä on %(max)s, "
 "mutta pyydettiin %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -28903,6 +30380,9 @@ msgstr "Yhteensä: %s"
 #, fuzzy
 msgid "Track job"
 msgstr "Seuraa tehtävää"
+
+msgid "Transform preserves ordering"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29085,6 +30565,12 @@ msgstr "Tiistai"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -29232,6 +30718,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Päivämääräeroa ei voida laskea"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -29300,6 +30789,12 @@ msgstr "Arvon purkaminen epäonnistui"
 msgid "Unable to encode value"
 msgstr "Arvon koodaaminen epäonnistui"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -29346,6 +30841,9 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "Koontinäytön lataaminen epäonnistui"
+
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29585,6 +31083,17 @@ msgstr "Kiinnitä tulosruutuun"
 msgid "Unpin from top"
 msgstr "Irrota yläreunasta"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -29610,6 +31119,9 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Ei-tuettu lausetyyppi: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -29824,6 +31336,12 @@ msgstr "Käyttö"
 msgid "Use %s to open in a new tab."
 msgstr "Käytä %s avataksesi uudessa välilehdessä."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
+msgid "Use :value for the filter bound."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29893,11 +31411,27 @@ msgstr "Käytä nykyistä laajuutta"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Käytä päivämäärämuotoilua, vaikka mittaarin arvo ei ole aikaleima"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
 msgid "Use gradient"
 msgstr "Käytä liukuväriä"
+
+msgid "Use metric definition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29978,6 +31512,9 @@ msgstr "Käyttäjänimi"
 #, fuzzy
 msgid "User Registrations"
 msgstr "Käyttäjärekisteröinnit"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30094,6 +31631,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Käyttää ensimmäisiä 25 arvoa, jos dimensiossa on enemmän."
 
+msgid "Valid"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -30161,6 +31701,9 @@ msgstr "Arvomuoto"
 msgid "Value and Percentage"
 msgstr "Arvo ja prosenttiosuus"
 
+msgid "Value axis labels"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30222,6 +31765,9 @@ msgstr "Arvon on oltava 0 tai suurempi"
 msgid "Value must be greater than 0"
 msgstr "Arvon on oltava suurempi kuin 0"
 
+msgid "Value transform"
+msgstr ""
+
 #, python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
@@ -30249,6 +31795,11 @@ msgstr "Arvot"
 #, fuzzy
 msgid "Values are dependent on other filters"
 msgstr "Arvot riippuvat muista suodattimista"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -30336,6 +31887,9 @@ msgstr "Näytä kaikki kaaviot"
 msgid "View as table"
 msgstr "Näytä taulukkona"
 
+msgid "View in Recently Archived →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -30398,6 +31952,9 @@ msgstr ""
 #, fuzzy
 msgid "Viewport"
 msgstr "Näkymäalue"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -30706,6 +32263,10 @@ msgstr ""
 "Saraketta \"%(column_name)s\" rivillä %(location)s ei näytä voivan "
 "ratkaista."
 
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -30888,6 +32449,20 @@ msgstr "Kun toissijainen mittari on annettu, käytetään lineaarista väriastei
 #, fuzzy
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Kun valittu, kartta zoomaa tietoihisi jokaisen kyselyn jälkeen"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Kun käytössä, nousevat kynttilät käyttävät nousuväriä ja laskevat "
+"laskuväriä. Poista käytöstä käyttääksesi yhtä sarjaväriä: täytetty runko "
+"nousussa ja ontto laskussa."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -31461,6 +33036,9 @@ msgstr "X-akselin nimikkeen väli"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X-akselin numeromuoto"
 
@@ -31546,6 +33124,9 @@ msgstr "Y-akselin nimike"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
+msgid "Y Axis Minimum Interval"
+msgstr ""
+
 msgid "Y Axis Title"
 msgstr "Y-akselin otsikko"
 
@@ -31823,6 +33404,19 @@ msgstr ""
 "Voit luoda uuden kaavion tai käyttää oikealla olevan paneelin olemassa "
 "olevia kaavioita"
 
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
+
 msgid "You can enter a value that is not listed."
 msgstr ""
 
@@ -32028,11 +33622,9 @@ msgstr "Sinulla ei ole oikeuksia luoda kaaviota"
 msgid "You don't have the rights to create a dashboard"
 msgstr "Sinulla ei ole oikeuksia luoda kojelautaa"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, python-format
 msgid "You have been removed from task: %s"
-msgstr "Olet poistanut tämän suodattimen."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -32074,6 +33666,11 @@ msgstr ""
 " tai muokkausoikeutta kohteen %s muokkaajalta."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -32084,6 +33681,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -32091,6 +33693,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -32217,7 +33824,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -32226,6 +33844,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -32284,6 +33911,11 @@ msgstr "Kyselysi päivitettiin"
 #, fuzzy
 msgid "Your report could not be deleted"
 msgstr "Raporttiasi ei voitu poistaa"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -32636,6 +34268,12 @@ msgstr "painike (cmd + z) kunnes tallennat muutoksesi."
 #, fuzzy
 msgid "by using"
 msgstr "käyttämällä"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -33168,6 +34806,9 @@ msgstr "joka minuutti"
 msgid "every month"
 msgstr "joka kuukausi"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -33504,6 +35145,9 @@ msgstr "minuutti"
 msgid "minute(s)"
 msgstr "minuutti(a)"
 
+msgid "minutes"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -33780,6 +35424,10 @@ msgstr "käynnistä uudelleen"
 msgid "recent"
 msgstr "viimeisimmät"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -33824,6 +35472,9 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "rivitasonsuojaus"
 
+msgid "run as"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -33835,6 +35486,10 @@ msgstr "käynnissä"
 #, fuzzy
 msgid "save"
 msgstr "tallenna"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
@@ -33950,6 +35605,10 @@ msgstr "summa"
 
 #. do-not-translate
 msgid "superset.example.com"
+msgstr ""
+
+#, python-format
+msgid "syntax error at position %(position)d."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -34183,6 +35842,9 @@ msgstr "zoomausalue"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© Kerroksen attribuutio"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"
