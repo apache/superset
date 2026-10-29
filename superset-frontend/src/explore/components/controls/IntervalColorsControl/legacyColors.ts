@@ -32,10 +32,9 @@ export const parseIntervalBounds = (intervals?: string): number[] =>
 /**
  * Resolves the legacy `interval_color_indices` control (comma-separated,
  * 1-indexed positions into the chosen categorical color scheme) into real
- * hex colors, one per interval band (`boundCount` entries). Shared by the
- * control panel (display-only fallback while a legacy chart is being edited)
- * and by `handleDeprecatedControls` (which, on request, migrates the value
- * into `interval_colors`).
+ * hex colors, one per interval band (`boundCount` entries). Used by the
+ * Gauge `IntervalColorsControl` as a display-only fallback while a legacy
+ * chart is being edited.
  */
 export const resolveLegacyIntervalColors = (
   boundCount: number,

@@ -3801,6 +3801,28 @@ def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, A
     return normalized
 
 
+def _normalize_band_thresholds(value: Any) -> list[float]:
+    """
+    Tokenize a Bullet ``ranges`` value the way Explore does, so equivalent
+    spellings (``"50, 100"``, ``"50.0,100,"``, ``[50, 100]``) compare equal.
+    Blank and non-finite tokens are dropped.
+    """
+    if value is None:
+        return []
+    tokens = value.split(",") if isinstance(value, str) else list(value)
+    numbers: list[float] = []
+    for token in tokens:
+        if isinstance(token, bool):
+            continue
+        try:
+            number = float(token.strip() if isinstance(token, str) else token)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(number):
+            numbers.append(number)
+    return numbers
+
+
 def merge_bullet_form_data(
     existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
 ) -> None:
@@ -3860,7 +3882,8 @@ def merge_bullet_form_data(
     if (
         "ranges" in new_form_data
         and "range_colors" not in new_form_data
-        and new_form_data["ranges"] != existing_form_data.get("ranges")
+        and _normalize_band_thresholds(new_form_data["ranges"])
+        != _normalize_band_thresholds(existing_form_data.get("ranges"))
     ):
         new_form_data["range_colors"] = []
 

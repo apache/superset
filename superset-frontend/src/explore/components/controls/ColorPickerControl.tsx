@@ -70,7 +70,13 @@ const normalizeColorToHex = (color: string): string => {
   if (!color) return '';
 
   if (color.startsWith('#')) {
-    return color.toLowerCase();
+    const lower = color.toLowerCase();
+    // Expand 3/4-digit shorthand so it compares equal to the six/eight-digit
+    // hex the picker emits.
+    if (/^#[0-9a-f]{3,4}$/.test(lower)) {
+      return `#${lower.slice(1).map(c => c + c).join('')}`;
+    }
+    return lower;
   }
 
   const div = document.createElement('div');
