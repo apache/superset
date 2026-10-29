@@ -23,6 +23,8 @@ import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterCon
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { Operators } from 'src/explore/constants';
+import { isMirroredFilter } from 'src/explore/components/PartitionPruningIndicator';
+import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import { useGetTimeRangeLabel } from '../utils';
 
 export interface AdhocFilterOptionProps {
@@ -32,6 +34,7 @@ export interface AdhocFilterOptionProps {
   options: OptionSortType[];
   sections?: string[];
   operators?: Operators[];
+  semanticSelectionVersion?: string;
   datasource?: Record<string, unknown>;
   partitionColumn?: string | null;
   onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
@@ -43,6 +46,7 @@ export default function AdhocFilterOption({
   adhocFilter,
   options,
   datasource,
+  semanticSelectionVersion,
   onFilterEdit,
   onRemoveFilter,
   partitionColumn,
@@ -54,6 +58,17 @@ export default function AdhocFilterOption({
 }: AdhocFilterOptionProps) {
   const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
 
+  // `partitionColumn` above is the unrelated Presto `latest_partition` feature.
+  // This is the dataset's partition filter mapping, which the datasource
+  // carries as a self-contained summary.
+  const partitionMapping = datasource?.partition_filter_mapping as
+    | PartitionFilterMapping
+    | null
+    | undefined;
+  // Naming the mapped column is not enough: the operator and the value decide
+  // whether the query actually carries a partition predicate.
+  const isMirrored = isMirroredFilter(partitionMapping, adhocFilter);
+
   return (
     <AdhocFilterPopoverTrigger
       sections={sections}
@@ -61,6 +76,7 @@ export default function AdhocFilterOption({
       adhocFilter={adhocFilter}
       options={options}
       datasource={(datasource as Record<string, unknown>) || {}}
+      semanticSelectionVersion={semanticSelectionVersion}
       onFilterEdit={onFilterEdit}
       partitionColumn={partitionColumn ?? undefined}
     >
@@ -78,6 +94,7 @@ export default function AdhocFilterOption({
         type={DndItemType.FilterOption}
         withCaret
         isExtra={adhocFilter.isExtra}
+        partitionMapping={isMirrored ? partitionMapping : undefined}
       />
     </AdhocFilterPopoverTrigger>
   );

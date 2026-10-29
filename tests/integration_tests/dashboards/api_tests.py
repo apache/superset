@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -31,17 +31,27 @@ from flask import current_app
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
+from typing import Any
+from parameterized import parameterized
+
+from flask_appbuilder.security.sqla.models import User
+
 import pytest
 import rison
 import yaml
 
 from flask import g
 from freezegun import freeze_time
-from sqlalchemy import and_
+from sqlalchemy import and_, event
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm.exc import StaleDataError
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.daos.dashboard import (
+    DashboardDAO,
+    EmbeddedDashboardDAO,
+    reconcile_position_json,
+)
 from superset.dashboards.excel_export.email import ERROR_UNBOUNDED
 from superset.dashboards.excel_export.sync_budget import InlineExportPlan
 from superset.exceptions import (
@@ -50,7 +60,7 @@ from superset.exceptions import (
     ReleaseDistributedLockFailedException,
 )
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
@@ -85,6 +95,9 @@ from tests.integration_tests.fixtures.importexport import (
     dashboard_export,
     dashboard_metadata_config,
     dataset_config,
+)
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma_scoped,  # noqa: F401
 )
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
@@ -390,6 +403,616 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 assert excluded_key not in dataset
             # The identifying fields the dashboard needs to render are kept.
             assert {"id", "uid", "table_name", "type"} <= set(dataset)
+
+    WORLD_HEALTH_LABELS = {"country_name": "Country", "sum__SP_POP_TOTL": "Population"}
+
+    @contextmanager
+    def _world_health_display_labels(self) -> Iterator[dict[str, int]]:
+        """Label one saved dimension and one saved metric of world_health.
+
+        Yields the shared dataset id under ``table_id`` and each chart id by
+        name. Every world_health chart is built on that one dataset.
+        """
+        from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+        dashboard = Dashboard.get("world_health")
+        ids = {slc.slice_name: slc.id for slc in dashboard.slices}
+        table = db.session.get(SqlaTable, dashboard.slices[0].datasource_id)
+        assert {slc.datasource_id for slc in dashboard.slices} == {table.id}
+        column = next(col for col in table.columns if col.column_name == "country_name")
+        metric = next(
+            (m for m in table.metrics if m.metric_name == "sum__SP_POP_TOTL"), None
+        )
+        added_metric = metric is None
+        if metric is None:
+            metric = SqlMetric(
+                metric_name="sum__SP_POP_TOTL", expression="SUM(SP_POP_TOTL)"
+            )
+            table.metrics.append(metric)
+        previous = (column.verbose_name, metric.verbose_name)
+        column.verbose_name = self.WORLD_HEALTH_LABELS["country_name"]
+        metric.verbose_name = self.WORLD_HEALTH_LABELS["sum__SP_POP_TOTL"]
+        db.session.commit()
+        column_id, metric_id = column.id, metric.id
+        try:
+            yield {"table_id": table.id, **ids}
+        finally:
+            db.session.get(TableColumn, column_id).verbose_name = previous[0]
+            metric = db.session.get(SqlMetric, metric_id)
+            if added_metric:
+                db.session.delete(metric)
+            else:
+                metric.verbose_name = previous[1]
+            db.session.commit()
+
+    def _world_health_dataset(self, response: Any, table_id: int) -> dict[str, Any]:
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        [dataset] = [item for item in data["result"] if item["id"] == table_id]
+        return dataset
+
+    def _assert_world_health_labels(
+        self, labels: dict[str, Any], ids: dict[str, int]
+    ) -> None:
+        """Check configured stored names and the example's authored adhoc label."""
+        for chart_name in ("Most Populated Countries", "Growth Rate"):
+            assert labels[str(ids[chart_name])] == self.WORLD_HEALTH_LABELS
+        for chart_id, chart_labels in labels.items():
+            assert chart_id in {str(chart_id) for chart_id in ids.values()}
+            allowed = dict(self.WORLD_HEALTH_LABELS)
+            if chart_id in {str(ids["% Rural"]), str(ids["Rural Breakdown"])}:
+                allowed["Rural Population"] = "Rural Population"
+            assert chart_labels.items() <= allowed.items()
+
+    @contextmanager
+    def _without_world_health_authored_labels(self) -> Iterator[None]:
+        """Temporarily remove the example's custom labels for the empty baseline."""
+        from superset.models.slice import Slice
+
+        def disable_custom_labels(value: Any) -> Any:
+            """Retain saved expressions while marking their labels as generated."""
+            if isinstance(value, dict):
+                return {
+                    key: False
+                    if key == "hasCustomLabel"
+                    else disable_custom_labels(item)
+                    for key, item in value.items()
+                }
+            if isinstance(value, list):
+                return [disable_custom_labels(item) for item in value]
+            return value
+
+        dashboard = Dashboard.get("world_health")
+        previous = {
+            chart.id: (chart.params, chart.query_context) for chart in dashboard.slices
+        }
+        for chart in dashboard.slices:
+            chart.params = json.dumps(disable_custom_labels(json.loads(chart.params)))
+            if chart.query_context:
+                chart.query_context = json.dumps(
+                    disable_custom_labels(json.loads(chart.query_context))
+                )
+        db.session.commit()
+        try:
+            yield
+        finally:
+            for chart_id, values in previous.items():
+                chart = db.session.get(Slice, chart_id)
+                chart.params, chart.query_context = values
+            db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("table", {"all_columns": ["country_name"]}, {"country_name": "Country"}),
+            (
+                "pivot_table_v2",
+                {"groupbyRows": ["country_name"], "metrics": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "echarts_timeseries_line",
+                {"x_axis": "country_name", "metrics": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "mixed_timeseries",
+                {"groupby_b": ["country_name"], "metrics_b": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "big_number_total",
+                {"metric": "sum__SP_POP_TOTL"},
+                {"sum__SP_POP_TOTL": "Population"},
+            ),
+            (
+                "pie",
+                {"groupby": ["country_name"], "metric": "sum__SP_POP_TOTL"},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "bubble",
+                {"entity": "country_name", "x": "sum__SP_POP_TOTL"},
+                WORLD_HEALTH_LABELS,
+            ),
+        ]
+    )
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_visualizations(
+        self, viz_type: str, controls: dict[str, Any], expected: dict[str, str]
+    ) -> None:
+        """A real embedded request labels each visualization's persisted controls."""
+        from superset.models.slice import Slice
+
+        with self._world_health_display_labels() as ids:
+            chart_id = ids["Most Populated Countries"]
+            chart = db.session.get(Slice, chart_id)
+            previous = chart.params, chart.query_context, chart.viz_type
+            chart.params = json.dumps({"viz_type": viz_type, **controls})
+            chart.query_context = None
+            chart.viz_type = viz_type
+            db.session.commit()
+            try:
+                response = self._get_world_health_datasets_as_guest()
+                dataset = self._world_health_dataset(response, ids["table_id"])
+                assert dataset["chart_display_labels"][str(chart_id)] == expected
+                assert "verbose_map" not in dataset
+                assert "columns" not in dataset
+                assert "metrics" not in dataset
+            finally:
+                chart = db.session.get(Slice, chart_id)
+                chart.params, chart.query_context, chart.viz_type = previous
+                db.session.commit()
+
+    @parameterized.expand([ADMIN_USERNAME, ALPHA_USERNAME])
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_full_access(
+        self, username: str
+    ) -> None:
+        """Datasource access supplies verbose_map without a redundant chart map."""
+        with self._world_health_display_labels() as ids:
+            dashboard = Dashboard.get("world_health")
+            dashboard.published = True
+            db.session.commit()
+            self.login(username)
+            response = self.get_assert_metric(
+                "api/v1/dashboard/world_health/datasets", "get_datasets"
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert "chart_display_labels" not in dataset
+        assert self.WORLD_HEALTH_LABELS.items() <= dataset["verbose_map"].items()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_chart_display_labels_without_datasource_access(
+        self, can_access_datasource_mock: MagicMock
+    ) -> None:
+        """Chart labels survive the narrowing that strips dataset metadata."""
+        can_access_datasource_mock.return_value = False
+        with self._world_health_display_labels() as ids:
+            self.login(ADMIN_USERNAME)
+            response = self.get_assert_metric(
+                "api/v1/dashboard/world_health/datasets", "get_datasets"
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_follow_chart_access(
+        self,
+    ) -> None:
+        """Only member charts that pass the chart access check contribute."""
+        with self._world_health_display_labels() as ids:
+            allowed_id = ids["Most Populated Countries"]
+            self.login(ADMIN_USERNAME)
+            with (
+                patch(
+                    "superset.models.dashboard.security_manager.can_access_chart",
+                    side_effect=lambda chart: chart.id == allowed_id,
+                ),
+                patch(
+                    "superset.models.dashboard.security_manager.can_access_datasource",
+                    return_value=False,
+                ),
+            ):
+                response = self.get_assert_metric(
+                    "api/v1/dashboard/world_health/datasets", "get_datasets"
+                )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert dataset["chart_display_labels"] == {
+            str(allowed_id): self.WORLD_HEALTH_LABELS
+        }
+
+    def _world_health_guest_request(
+        self,
+        datasets: list[int] | None = None,
+        dashboard_ref: str | None = None,
+    ) -> Callable[[], Any]:
+        """Return a world_health datasets request with a real guest token."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        token = security_manager.create_guest_access_token(
+            {"username": "labels_guest"},
+            [
+                {
+                    "type": GuestTokenResourceType.DASHBOARD,
+                    "id": dashboard_ref or str(embedded.uuid),
+                }
+            ],
+            [],
+            datasets=datasets,
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+        headers = {
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
+            if isinstance(token, bytes)
+            else token
+        }
+
+        def request() -> Any:
+            with self.client as client:
+                response = client.get(uri, headers=headers)
+                assert isinstance(g.user, GuestUser)
+            return response
+
+        return request
+
+    def _get_world_health_datasets_as_guest(
+        self,
+        datasets: list[int] | None = None,
+        dashboard_ref: str | None = None,
+    ) -> Any:
+        """Request world_health datasets with a real embedded guest token."""
+        return self._world_health_guest_request(datasets, dashboard_ref)()
+
+    @staticmethod
+    @contextmanager
+    def _count_metadata_queries() -> Iterator[list[str]]:
+        """Record every statement sent to the metadata database."""
+        statements: list[str] = []
+
+        def record(*args: Any) -> None:
+            statements.append(args[2])
+
+        event.listen(db.engine, "before_cursor_execute", record)
+        try:
+            yield statements
+        finally:
+            event.remove(db.engine, "before_cursor_execute", record)
+
+    def _datasets_query_counts(
+        self, request: Callable[[], Any]
+    ) -> tuple[int, int, dict[str, Any]]:
+        """Count queries without and with chart display labels.
+
+        Returns the count with the label step bypassed, the count with it, and
+        the labelled response body. A first request warms per-process caches.
+        """
+        assert request().status_code == 200
+        with patch.object(
+            Dashboard,
+            "_with_chart_display_labels",
+            lambda self, *args, **kwargs: args[2],
+        ):
+            with self._count_metadata_queries() as baseline:
+                assert request().status_code == 200
+        with self._count_metadata_queries() as statements:
+            response = request()
+        assert response.status_code == 200
+        return len(baseline), len(statements), json.loads(response.data)
+
+    @staticmethod
+    def _labelled_chart_count(data: dict[str, Any]) -> int:
+        return sum(
+            len(dataset.get("chart_display_labels", {})) for dataset in data["result"]
+        )
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_query_count(
+        self,
+    ) -> None:
+        """Labels add no metadata queries for an embedded guest, however many
+        charts carry them: the guest grant is decided once, not per chart."""
+        with self._world_health_display_labels():
+            request = self._world_health_guest_request()
+            baseline, labelled, data = self._datasets_query_counts(request)
+
+        assert self._labelled_chart_count(data) >= 2
+        assert labelled == baseline
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_query_count(self) -> None:
+        """Datasource access avoids label permission queries even with labels."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        dashboard.published = True
+        db.session.commit()
+        self.login(ALPHA_USERNAME)
+
+        def request() -> Any:
+            return self.client.get("api/v1/dashboard/world_health/datasets")
+
+        with (
+            self._without_world_health_authored_labels(),
+            patch.object(
+                DashboardDAO,
+                "prefetch_chart_access",
+                wraps=DashboardDAO.prefetch_chart_access,
+            ) as prefetch,
+        ):
+            baseline, unlabelled, data = self._datasets_query_counts(request)
+        assert self._labelled_chart_count(data) == 0
+        assert unlabelled == baseline
+        prefetch.assert_not_called()
+
+        with (
+            self._world_health_display_labels(),
+            patch.object(
+                DashboardDAO,
+                "prefetch_chart_access",
+                wraps=DashboardDAO.prefetch_chart_access,
+            ) as prefetch,
+        ):
+            baseline, labelled, data = self._datasets_query_counts(request)
+        assert self._labelled_chart_count(data) == 0
+        assert labelled == baseline
+        prefetch.assert_not_called()
+        assert any(
+            self.WORLD_HEALTH_LABELS.items() <= dataset["verbose_map"].items()
+            for dataset in data["result"]
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_dashboard_viewer(self) -> None:
+        """A dashboard viewer without dataset access gets labels only for the
+        member charts it may view. A chart restricted to another viewer and
+        charts that rely on dataset access contribute nothing, although they
+        share the same dataset. Authorization adds one relationship prefetch for
+        all candidate charts, including denied charts.
+        """
+        from superset.subjects.utils import get_or_create_user_subject
+
+        gamma_id = security_manager.find_user(GAMMA_USERNAME).id
+        admin_id = security_manager.find_user(ADMIN_USERNAME).id
+        with self._world_health_display_labels() as ids:
+            allowed_id = ids["Most Populated Countries"]
+            restricted_id = ids["Growth Rate"]
+            dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+            gamma_subject = get_or_create_user_subject(gamma_id)
+            admin_subject = get_or_create_user_subject(admin_id)
+            dashboard.published = True
+            dashboard.viewers = [gamma_subject]
+            db.session.get(Slice, allowed_id).viewers = [gamma_subject]
+            db.session.get(Slice, restricted_id).viewers = [admin_subject]
+            db.session.commit()
+            try:
+                self.login(GAMMA_USERNAME)
+                with (
+                    patch.object(
+                        DashboardDAO,
+                        "prefetch_chart_access",
+                        wraps=DashboardDAO.prefetch_chart_access,
+                    ) as prefetch,
+                    patch.object(
+                        security_manager,
+                        "can_access_dashboard_chart_labels",
+                        wraps=security_manager.can_access_dashboard_chart_labels,
+                    ) as chart_access,
+                    patch.object(
+                        security_manager,
+                        "can_access_datasource",
+                        wraps=security_manager.can_access_datasource,
+                    ) as datasource_access,
+                ):
+
+                    def request() -> Any:
+                        """Keep counters for the final measured request only."""
+                        prefetch.reset_mock()
+                        chart_access.reset_mock()
+                        datasource_access.reset_mock()
+                        return self.get_assert_metric(
+                            "api/v1/dashboard/world_health/datasets", "get_datasets"
+                        )
+
+                    baseline, labelled, data = self._datasets_query_counts(request)
+                    prefetch.assert_called_once()
+                    datasource_access.assert_called_once()
+                    checked_ids = {
+                        call.args[1].id for call in chart_access.call_args_list
+                    }
+                    assert {allowed_id, restricted_id} <= checked_ids
+                    assert len(checked_ids) >= 9
+                    # The chart rows plus their editors and viewers cost three
+                    # queries total; there is no per-candidate permission query.
+                    assert labelled <= baseline + 3
+                [dataset] = [
+                    item for item in data["result"] if item["id"] == ids["table_id"]
+                ]
+            finally:
+                for chart_id in (allowed_id, restricted_id):
+                    db.session.get(Slice, chart_id).viewers = []
+                db.session.query(Dashboard).filter_by(
+                    slug="world_health"
+                ).one().viewers = []
+                db.session.commit()
+
+        assert dataset["chart_display_labels"] == {
+            str(allowed_id): self.WORLD_HEALTH_LABELS
+        }
+        for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_labels_ignore_viewer_query_context_update(
+        self,
+    ) -> None:
+        """A viewer's permitted context refresh cannot expand display labels."""
+        from superset.subjects.utils import get_or_create_user_subject
+
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        gamma_subject = get_or_create_user_subject(gamma.id)
+        with self._world_health_display_labels() as ids:
+            chart_id = ids["Most Populated Countries"]
+            chart = db.session.get(Slice, chart_id)
+            dashboard = Dashboard.get("world_health")
+            previous_chart = (
+                chart.params,
+                chart.query_context,
+                chart.viz_type,
+                list(chart.viewers),
+            )
+            previous_dashboard = dashboard.published, list(dashboard.viewers)
+            params = json.dumps(
+                {
+                    "viz_type": "big_number_total",
+                    "metric": "sum__SP_POP_TOTL",
+                    "datasource": f"{ids['table_id']}__table",
+                }
+            )
+            chart.params = params
+            chart.query_context = None
+            chart.viz_type = "big_number_total"
+            chart.viewers = [gamma_subject]
+            dashboard.published = True
+            dashboard.viewers = [gamma_subject]
+            db.session.commit()
+            query_context = json.dumps(
+                {
+                    "datasource": {"id": ids["table_id"], "type": "table"},
+                    "queries": [
+                        {"columns": ["country_name"], "metrics": ["sum__SP_POP_TOTL"]}
+                    ],
+                }
+            )
+            try:
+                with override_user(gamma):
+                    assert not security_manager.is_editor(chart)
+                    assert not security_manager.can_access_datasource(chart.datasource)
+                self.login(GAMMA_USERNAME)
+                update = self.client.put(
+                    f"api/v1/chart/{chart_id}",
+                    json={
+                        "query_context": query_context,
+                        "query_context_generation": True,
+                    },
+                )
+                assert update.status_code == 200
+                chart = db.session.get(Slice, chart_id)
+                assert chart.query_context == query_context
+                assert chart.params == params
+
+                response = self.client.get("api/v1/dashboard/world_health/datasets")
+                dataset = self._world_health_dataset(response, ids["table_id"])
+                assert dataset["chart_display_labels"][str(chart_id)] == {
+                    "sum__SP_POP_TOTL": "Population"
+                }
+                for field in ("verbose_map", "columns", "column_names", "metrics"):
+                    assert field not in dataset
+
+                self.logout()
+                # Flask-Login caches the user on the test's shared app context.
+                with current_app.app_context():
+                    guest_response = self._get_world_health_datasets_as_guest()
+                guest_dataset = self._world_health_dataset(
+                    guest_response, ids["table_id"]
+                )
+                assert guest_dataset["chart_display_labels"][str(chart_id)] == {
+                    "sum__SP_POP_TOTL": "Population"
+                }
+            finally:
+                chart = db.session.get(Slice, chart_id)
+                (
+                    chart.params,
+                    chart.query_context,
+                    chart.viz_type,
+                    chart.viewers,
+                ) = previous_chart
+                dashboard = Dashboard.get("world_health")
+                dashboard.published, dashboard.viewers = previous_dashboard
+                db.session.commit()
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_as_guest(self) -> None:
+        """A real embedded guest gets the authorized labels and every redaction."""
+        with self._world_health_display_labels() as ids:
+            response = self._get_world_health_datasets_as_guest()
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        for excluded_key in (
+            "sql",
+            "select_star",
+            "fetch_values_predicate",
+            "template_params",
+            "params",
+            "perm",
+            "edit_url",
+            "database",
+            "parent",
+            "editors",
+            "columns",
+            "column_names",
+            "column_types",
+            "metrics",
+            "verbose_map",
+            "order_by_choices",
+            "main_dttm_col",
+            "granularity_sqla",
+            "time_grain_sqla",
+        ):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_dataset_allowlist(
+        self,
+    ) -> None:
+        """A guest whose dataset allowlist excludes the charts' dataset gets no
+        labels for them, while the dataset entry itself stays narrowed."""
+        with self._world_health_display_labels() as ids:
+            response = self._get_world_health_datasets_as_guest(
+                datasets=[ids["table_id"] + 100_000]
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert "chart_display_labels" not in dataset
+        assert "verbose_map" not in dataset
+        assert "Population" not in response.data.decode("utf-8")
+
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_wrong_dashboard(
+        self,
+    ) -> None:
+        """A guest token for another dashboard is refused before any payload."""
+        with self._world_health_display_labels():
+            response = self._get_world_health_datasets_as_guest(
+                dashboard_ref=str(uuid.uuid4())
+            )
+
+        # The guest dashboard filter hides it, as for any dashboard not granted.
+        assert response.status_code == 404
+        assert "Population" not in response.data.decode("utf-8")
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -2367,6 +2990,455 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         db.session.delete(model)
         db.session.commit()
+
+    @staticmethod
+    def _expunge_dashboards_and_charts() -> None:
+        """Drop dashboards and charts from the session so the next request
+        loads them through a query, as a fresh request would."""
+        for obj in list(db.session):
+            if isinstance(obj, (Dashboard, Slice)):
+                db.session.expunge(obj)
+
+    def test_update_dashboard_keeps_archived_chart_slot(self) -> None:
+        """PUT: saving back the layout of a dashboard that holds an archived
+        chart succeeds, and the chart keeps its slot and its membership, so
+        recovering it puts it back in place."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user("admin")
+        dataset_id: int = db.session.query(SqlaTable.id).first()[0]
+        live: Slice = self.insert_chart("archived-slot-live", [admin.id], dataset_id)
+        archived: Slice = self.insert_chart(
+            "archived-slot-archived", [admin.id], dataset_id
+        )
+        live_id: int = live.id
+        archived_id: int = archived.id
+        archived_uuid: str = str(archived.uuid)
+        positions: dict[str, Any] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["CHART-live", "CHART-archived"],
+                "parents": ["ROOT_ID"],
+            },
+        }
+        for slot, chart_id in (
+            ("CHART-live", live_id),
+            ("CHART-archived", archived_id),
+        ):
+            positions[slot] = {
+                "id": slot,
+                "type": "CHART",
+                "children": [],
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+        dashboard: Dashboard = self.insert_dashboard(
+            "archived-slot",
+            None,
+            [admin.id],
+            slices=[live, archived],
+            position_json=json.dumps(positions),
+        )
+        dashboard_id: int = dashboard.id
+        self.login(ADMIN_USERNAME)
+        rv: TestResponse = self.client.delete(f"api/v1/chart/{archived_id}")
+        assert rv.status_code == 200, rv.data
+        try:
+            # Load the dashboard and its chart list fresh, as a real request
+            # does: through a query that hides archived charts, not from the
+            # identity map this test populated.
+            self._expunge_dashboards_and_charts()
+            rv = self.client.get(f"api/v1/dashboard/{dashboard_id}")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            rv = self.client.put(
+                f"api/v1/dashboard/{dashboard_id}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == 200, rv.data
+
+            self._expunge_dashboards_and_charts()
+            model: Dashboard = db.session.get(Dashboard, dashboard_id)
+            stored: dict[str, Any] = json.loads(model.position_json)
+            assert stored["CHART-archived"]["type"] == "CHART"
+            assert stored["CHART-archived"]["meta"]["chartId"] == archived_id
+            member_ids: set[int] = {
+                row[0]
+                for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                    dashboard_slices.c.dashboard_id == dashboard_id
+                )
+            }
+            assert member_ids == {live_id, archived_id}
+
+            rv = self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            assert rv.status_code == 200, rv.data
+            self._expunge_dashboards_and_charts()
+            model = db.session.get(Dashboard, dashboard_id)
+            assert {s.id for s in model.slices} == {live_id, archived_id}
+        finally:
+            db.session.rollback()
+            self.client.post(f"api/v1/chart/{archived_uuid}/restore")
+            self._expunge_dashboards_and_charts()
+            with skip_visibility_filter(db.session, Slice):
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+                for chart_id in (live_id, archived_id):
+                    db.session.delete(db.session.get(Slice, chart_id))
+            db.session.commit()
+
+    def test_update_dashboard_reconciles_dangling_position_json(self) -> None:
+        """PUT: a raw ``position_json`` layout node referencing a chart absent
+        from every Slice row is persisted as a markdown placeholder (sc-115325).
+
+        Pins that ``UpdateDashboardCommand.run`` actually invokes
+        ``reconcile_position_json`` on the raw-``position_json`` path — the DAO
+        unit tests exercise the helper directly, so they would stay green if a
+        refactor dropped the ``run()`` call; only an end-to-end PUT proves the
+        wiring. No ``json_metadata`` is sent, so ``set_dash_metadata`` does not
+        run and this exercises the raw path in isolation.
+        """
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
+            "dangle-recon", "dangle-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id: int = 999_999_999  # resolves to no Slice row
+        positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-gone"]},
+            "CHART-gone": {
+                "id": "CHART-gone",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
+            uri, {"position_json": json.dumps(positions)}, "put"
+        )
+        assert rv.status_code == 200, rv.data
+
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        stored: dict[str, Any] = json.loads(model.position_json)
+        node: dict[str, Any] = stored["CHART-gone"]
+        # The dangling CHART node is now a markdown placeholder, node id,
+        # children, and geometry preserved, chart reference dropped.
+        assert node["type"] == "MARKDOWN", node
+        assert node["id"] == "CHART-gone"
+        assert node["children"] == []
+        assert node["meta"]["code"] == "This chart no longer exists."
+        assert node["meta"]["width"] == 4
+        assert node["meta"]["height"] == 50
+        assert "chartId" not in node["meta"]
+        # The slot id is unchanged, so its parent's children stay valid.
+        assert stored["ROOT_ID"]["children"] == ["CHART-gone"]
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_repairs_stored_empty_chart_slots(self) -> None:
+        """Editor saves accept legacy copies with null or missing chart IDs."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user("admin")
+        dataset_id: int = db.session.query(SqlaTable.id).first()[0]
+        self.login(ADMIN_USERNAME)
+        missing_id: bool
+        payload_field: str
+        for missing_id in (False, True):
+            for payload_field in ("json_metadata", "position_json"):
+                dashboard: Dashboard = self.insert_dashboard(
+                    "legacy-empty-slot", None, [admin.id]
+                )
+                chart: Slice = self.insert_chart(
+                    "legacy-empty-slot-member", [admin.id], dataset_id
+                )
+                empty_meta: dict[str, object] = {"width": 4, "height": 50}
+                if not missing_id:
+                    empty_meta["chartId"] = None
+                empty_node: dict[str, object] = {
+                    "id": "CHART-empty",
+                    "type": "CHART",
+                    "children": [],
+                    "parents": ["ROOT_ID", "GRID_ID", "ROW-a"],
+                    "meta": empty_meta,
+                }
+                positions: dict[str, object] = {
+                    "DASHBOARD_VERSION_KEY": "v2",
+                    "ROOT_ID": {
+                        "id": "ROOT_ID",
+                        "type": "ROOT",
+                        "children": ["GRID_ID"],
+                    },
+                    "GRID_ID": {
+                        "id": "GRID_ID",
+                        "type": "GRID",
+                        "children": ["ROW-a"],
+                        "parents": ["ROOT_ID"],
+                    },
+                    "ROW-a": {
+                        "id": "ROW-a",
+                        "type": "ROW",
+                        "children": ["CHART-ok", "CHART-empty"],
+                        "parents": ["ROOT_ID", "GRID_ID"],
+                        "meta": {},
+                    },
+                    "CHART-ok": {
+                        "id": "CHART-ok",
+                        "type": "CHART",
+                        "children": [],
+                        "parents": ["ROOT_ID", "GRID_ID", "ROW-a"],
+                        "meta": {"chartId": chart.id, "width": 4, "height": 50},
+                    },
+                    "CHART-empty": empty_node,
+                }
+                dashboard.slices = [chart]
+                dashboard.position_json = json.dumps(positions)
+                db.session.commit()
+                dashboard_id: int = dashboard.id
+                chart_id: int = chart.id
+                db.session.expire_all()
+                stored_before: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+                assert (
+                    json.loads(stored_before.position_json)["CHART-empty"] == empty_node
+                )
+                payload: dict[str, str] = {
+                    payload_field: json.dumps(
+                        {"positions": positions}
+                        if payload_field == "json_metadata"
+                        else positions
+                    )
+                }
+                try:
+                    response: TestResponse = self.put_assert_metric(
+                        f"api/v1/dashboard/{dashboard_id}", payload, "put"
+                    )
+                    assert response.status_code == 200, response.data
+                    db.session.expire_all()
+                    saved: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+                    layout: dict[str, object] = json.loads(saved.position_json)
+                    assert layout["CHART-empty"] == {
+                        **empty_node,
+                        "type": "MARKDOWN",
+                        "meta": {
+                            "width": 4,
+                            "height": 50,
+                            "code": "This chart no longer exists.",
+                        },
+                    }
+                    assert layout["ROW-a"] == positions["ROW-a"]
+                    assert {member.id for member in saved.slices} == {chart_id}
+                finally:
+                    db.session.rollback()
+                    db.session.delete(db.session.query(Dashboard).get(dashboard_id))
+                    db.session.delete(db.session.query(Slice).get(chart_id))
+                    db.session.commit()
+
+    def test_update_dashboard_json_metadata_positions_supersede_raw_position_json(
+        self,
+    ) -> None:
+        """PUT sending BOTH a raw ``position_json`` and ``json_metadata`` with
+        ``positions``: the metadata positions win (``set_dash_metadata``
+        reconciles and writes them), and the raw-field reconcile is skipped as
+        dead work rather than run and discarded (fitzee review on #44028). Pins
+        both the documented precedence and the skip.
+        """
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
+            "precedence-recon", "precedence-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id: int = 999_999_998  # resolves to no Slice row
+        raw_positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "HEADER_ID": {"type": "HEADER", "meta": {"text": "Chart 🚀"}},
+            "CHART-raw": {
+                "id": "CHART-raw",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        metadata_positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-meta"]},
+            "CHART-meta": {
+                "id": "CHART-meta",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        raw_reconcile: MagicMock
+        update: MagicMock
+        with (
+            patch(
+                "superset.commands.dashboard.update.reconcile_position_json",
+                wraps=reconcile_position_json,
+            ) as raw_reconcile,
+            patch.object(DashboardDAO, "update", wraps=DashboardDAO.update) as update,
+        ):
+            rv: TestResponse = self.put_assert_metric(
+                uri,
+                {
+                    "position_json": json.dumps(raw_positions, ensure_ascii=False),
+                    "json_metadata": json.dumps({"positions": metadata_positions}),
+                },
+                "put",
+            )
+        assert rv.status_code == 200, rv.data
+        # The raw-field reconcile did not run: metadata positions supersede it.
+        raw_reconcile.assert_not_called()
+        # The superseded raw layout is flushed before metadata replaces it.
+        # Its serialized value must still be safe for narrow MySQL charsets.
+        flushed_positions: str = update.call_args.args[1]["position_json"]
+        assert flushed_positions.isascii()
+        assert json.loads(flushed_positions) == raw_positions
+
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        stored: dict[str, Any] = json.loads(model.position_json)
+        # The stored layout is the METADATA one (reconciled by set_dash_metadata),
+        # not the raw field.
+        assert "CHART-meta" in stored, stored
+        assert "CHART-raw" not in stored, stored
+        assert stored["CHART-meta"]["type"] == "MARKDOWN"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_null_metadata_positions_reconciles_raw_field(
+        self,
+    ) -> None:
+        """PUT with ``json_metadata.positions: null`` alongside a raw
+        ``position_json``: ``set_dash_metadata`` skips a null ``positions``
+        entirely, so the precedence skip must NOT fire — the raw field is the
+        one being written and must be reconciled (codeant on #44028: a
+        presence-only test skipped it and persisted the dangling layout).
+        """
+        admin: User = self.get_user("admin")
+        dashboard_id: int = self.insert_dashboard(
+            "null-positions-recon", "null-positions-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id: int = 999_999_997
+        raw_positions: dict[str, Any] = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "CHART-raw": {
+                "id": "CHART-raw",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
+            uri,
+            {
+                "position_json": json.dumps(raw_positions),
+                "json_metadata": json.dumps({"positions": None}),
+            },
+            "put",
+        )
+        assert rv.status_code == 200, rv.data
+
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        stored: dict[str, Any] = json.loads(model.position_json)
+        assert stored["CHART-raw"]["type"] == "MARKDOWN", stored
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_rejects_a_malformed_chart_node_without_detaching(
+        self,
+    ) -> None:
+        """PUT whose ``json_metadata.positions`` carries a CHART node with no
+        usable ``chartId`` is refused with a 422 naming the slot, and the
+        dashboard's existing memberships are untouched — the wholesale
+        membership rebuild must not silently detach a chart because its node
+        was malformed (codeant on #44028).
+        """
+        admin: User = self.get_user("admin")
+        dashboard: Dashboard = self.insert_dashboard(
+            "malformed-node", "malformed-node", [admin.id]
+        )
+        from superset.connectors.sqla.models import SqlaTable
+
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        chart: Slice = self.insert_chart(
+            "malformed-node-member", [admin.id], dataset_id
+        )
+        dashboard.slices = [chart]
+        db.session.commit()
+        dashboard_id: int = dashboard.id
+        chart_id: int = chart.id
+        self.login(ADMIN_USERNAME)
+        positions: dict[str, Any] = {
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["CHART-ok", "CHART-bad"],
+            },
+            "CHART-ok": {
+                "id": "CHART-ok",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            },
+            "CHART-bad": {
+                "id": "CHART-bad",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": [1], "width": 4, "height": 50},
+            },
+        }
+        uri: str = f"api/v1/dashboard/{dashboard_id}"
+        rv: TestResponse = self.put_assert_metric(
+            uri, {"json_metadata": json.dumps({"positions": positions})}, "put"
+        )
+        assert rv.status_code == 422, rv.data
+        assert b"CHART-bad" in rv.data
+
+        db.session.expire_all()
+        model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+        assert model is not None
+        assert {s.id for s in model.slices} == {chart_id}
+
+        db.session.delete(model)
+        db.session.delete(db.session.query(Slice).get(chart_id))
+        db.session.commit()
+
+    def test_update_dashboard_position_json_non_object_is_left_intact(self) -> None:
+        """A raw ``position_json`` that is valid JSON but not an object
+        (``"[]"``, ``"null"``, a scalar) must survive the PUT unchanged, not
+        500 (sc-115325 python-review: the reconcile guard and the tab-diff
+        guard both tolerate a non-dict layout). Exercises the whole command,
+        where tab-diff processing runs before reconciliation."""
+        admin: User = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        payload: str
+        for payload in ("[]", "null", "5", '"just a string"'):
+            dashboard_id: int = self.insert_dashboard(
+                f"nonobj-{payload!r}", None, [admin.id]
+            ).id
+            rv: TestResponse = self.put_assert_metric(
+                f"api/v1/dashboard/{dashboard_id}",
+                {"position_json": payload},
+                "put",
+            )
+            assert rv.status_code == 200, (payload, rv.data)
+            model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
+            assert model is not None
+            assert json.loads(model.position_json) == json.loads(payload)
+            db.session.delete(model)
+            db.session.commit()
 
     def test_update_dashboard_preserves_unsent_json_metadata_fields(self):
         """
@@ -4943,6 +6015,262 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(dashboard)
         db.session.commit()
 
+    @parameterized.expand(
+        [
+            ("malformed", True),
+            ("malformed", False),
+            ("unicode_digit", True),
+            ("nonmember", True),
+        ]
+    )
+    def test_copy_dashboard_layout_error_returns_422_without_writes(
+        self, failure: str, duplicate_slices: bool
+    ) -> None:
+        """Refuse invalid copies accurately and roll back any cloned assets."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-error-source", None, [admin.id]
+        )
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        member: Slice = self.insert_chart("copy-error-member", [admin.id], dataset_id)
+        other: Slice = self.insert_chart("copy-error-other", [admin.id], dataset_id)
+        dashboard.slices = [member, other]
+        bad_id: int | str = other.id if failure == "nonmember" else "unreadable"
+        if failure == "unicode_digit":
+            bad_id = "²"
+        positions: dict[str, Any] = {
+            "CHART-member": {
+                "id": "CHART-member",
+                "type": "CHART",
+                "meta": {"chartId": member.id, "width": 4, "height": 50},
+            },
+            "CHART-bad": {
+                "id": "CHART-bad",
+                "type": "CHART",
+                "meta": {"chartId": bad_id, "width": 4, "height": 50},
+            },
+        }
+        dashboard.position_json = json.dumps(positions)
+        db.session.commit()
+        if failure == "nonmember":
+            # Chart Properties can remove membership without rewriting layout.
+            other.dashboards.remove(dashboard)
+            db.session.commit()
+        source_layout: str = dashboard.position_json
+        source_members: set[int] = {chart.id for chart in dashboard.slices}
+        chart_count: int = db.session.query(Slice).count()
+        dashboard_count: int = db.session.query(Dashboard).count()
+        self.login(ADMIN_USERNAME)
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "copy-error-result",
+                    "duplicate_slices": duplicate_slices,
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert response.status_code == 422, response.data
+            assert b"CHART-bad" in response.data
+            if failure == "nonmember":
+                assert b"outside the dashboard's membership" in response.data
+                assert b"without a usable chartId" not in response.data
+            else:
+                assert b"without a usable chartId" in response.data
+            db.session.expire_all()
+            assert dashboard.position_json == source_layout
+            assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count
+            assert db.session.query(Dashboard).count() == dashboard_count
+        finally:
+            db.session.rollback()
+            db.session.delete(dashboard)
+            db.session.delete(member)
+            db.session.delete(other)
+            db.session.commit()
+
+    @parameterized.expand([(True, False), (False, False), (True, True), (False, True)])
+    def test_copy_dashboard_layout_without_current_charts(
+        self, keep_first: bool, duplicate_slices: bool
+    ) -> None:
+        """Copy a layout that omits charts the source has, as a version fork does."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("copy-subset-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("copy-subset-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-subset-source", None, [admin.id], slices=[first, second]
+        )
+        source_members: set[int] = {first.id, second.id}
+        positions: dict[str, Any] = (
+            {
+                "CHART-first": {
+                    "id": "CHART-first",
+                    "type": "CHART",
+                    "meta": {"chartId": first.id, "width": 4, "height": 50},
+                }
+            }
+            if keep_first
+            else {}
+        )
+        chart_count: int = db.session.query(Slice).count()
+        orphan_count: int = (
+            db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+        )
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "copy-subset-result",
+                    "duplicate_slices": duplicate_slices,
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            expected: set[str] = {"copy-subset-first"} if keep_first else set()
+            assert {chart.slice_name for chart in copied.slices} == expected
+            assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count + (
+                len(expected) if duplicate_slices else 0
+            )
+            assert (
+                db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+                == orphan_count
+            )
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            # Clones carry the source names, including ones the layout left out.
+            chart: Slice
+            for chart in db.session.query(Slice).filter(
+                Slice.slice_name.in_(["copy-subset-first", "copy-subset-second"])
+            ):
+                db.session.delete(chart)
+            db.session.commit()
+
+    @parameterized.expand([("default", None), ("merge", False), ("replace", True)])
+    def test_copy_dashboard_metadata_comes_from_snapshot(
+        self, case: str, replace_metadata: bool | None
+    ) -> None:
+        """Only an explicit replacement opts out of source metadata inheritance."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("snapshot-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("snapshot-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "snapshot-source", None, [admin.id], slices=[first, second]
+        )
+        dashboard.json_metadata = json.dumps(
+            {"live_only": "absent from snapshot", "refresh_frequency": 900}
+        )
+        db.session.commit()
+        source_metadata: str = dashboard.json_metadata
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "snapshot-copy",
+                    **(
+                        {"replace_metadata": replace_metadata}
+                        if replace_metadata is not None
+                        else {}
+                    ),
+                    "json_metadata": json.dumps(
+                        {
+                            "positions": {
+                                "CHART-first": {
+                                    "type": "CHART",
+                                    "meta": {"chartId": first.id},
+                                }
+                            },
+                            "color_scheme": "supersetColors",
+                            "expanded_slices": {
+                                str(first.id): True,
+                                str(second.id): True,
+                            },
+                            "timed_refresh_immune_slices": [first.id, second.id],
+                            "chart_configuration": {
+                                str(first.id): {"id": first.id},
+                                str(second.id): {"id": second.id},
+                            },
+                        }
+                    ),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            metadata: dict[str, Any] = copied.params_dict
+            assert ("live_only" not in metadata) is bool(replace_metadata)
+            assert metadata["refresh_frequency"] == (0 if replace_metadata else 900)
+            assert metadata["color_scheme"] == "supersetColors"
+            assert metadata["expanded_slices"] == {str(first.id): True}
+            assert metadata["timed_refresh_immune_slices"] == [first.id]
+            assert metadata["chart_configuration"] == {str(first.id): {"id": first.id}}
+            assert {chart.id for chart in copied.slices} == {first.id}
+            assert dashboard.json_metadata == source_metadata
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            db.session.delete(first)
+            db.session.delete(second)
+            db.session.commit()
+
+    def test_copy_dashboard_logs_database_error(self) -> None:
+        """A database error behind the generic copy 400 is logged with its cause."""
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-log-source", None, [admin.id]
+        )
+        self.login(ADMIN_USERNAME)
+        logger: MagicMock
+        try:
+            with (
+                patch(
+                    "superset.commands.dashboard.copy.DashboardDAO.copy_dashboard",
+                    side_effect=StaleDataError("dashboard_slices row missing"),
+                ),
+                patch("superset.dashboards.api.logger") as logger,
+            ):
+                response: TestResponse = self.client.post(
+                    f"/api/v1/dashboard/{dashboard.id}/copy/",
+                    json={
+                        "dashboard_title": "copy-log-result",
+                        "json_metadata": json.dumps({"positions": {}}),
+                    },
+                )
+            assert response.status_code == 400
+            assert response.json == {"message": "Arguments are not correct"}
+            logger.error.assert_called_once()
+            assert logger.error.call_args.kwargs == {"exc_info": True}
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard(self):
         self.login(ADMIN_USERNAME)
@@ -6888,6 +8216,11 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
 
     Note: DASHBOARD_LIST_CUSTOM_TAGS_ONLY config is checked at app startup in
     DashboardRestApi.__init__(), so these tests verify the current runtime behavior.
+
+    ``editor:``/``type:`` tags are no longer auto-generated (see
+    superset/tags/models.py), so this test creates them manually to simulate
+    the legacy rows an upgraded deployment may still carry, and verifies the
+    custom_tags relationship/API path still filters them out.
     """
 
     def setUp(self) -> None:
@@ -6899,7 +8232,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         """Verify custom_tags filtering at model and API level.
 
         With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
-        1. dashboard.tags returns ALL tags (custom + editor + type)
+        1. dashboard.tags returns ALL tags (custom + legacy editor/type)
         2. dashboard.custom_tags returns ONLY custom tags
         3. API response returns ONLY custom tags in the "tags" property
         """
@@ -6912,15 +8245,21 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         db.session.flush()
 
         custom_tag = Tag(name="critical", type=TagType.custom)
-        db.session.add(custom_tag)
+        # Legacy implicit tags: no longer generated, but rows from before an
+        # upgrade may still exist and must keep being filtered out.
+        editor_tag = Tag(name="editor:admin", type=TagType.editor)
+        type_tag = Tag(name="type:dashboard", type=TagType.type)
+        db.session.add_all([custom_tag, editor_tag, type_tag])
         db.session.flush()
 
-        tagged_obj = TaggedObject(
-            tag_id=custom_tag.id,
-            object_id=dashboard.id,
-            object_type="dashboard",
+        db.session.add_all(
+            [
+                TaggedObject(
+                    tag_id=tag.id, object_id=dashboard.id, object_type="dashboard"
+                )
+                for tag in (custom_tag, editor_tag, type_tag)
+            ]
         )
-        db.session.add(tagged_obj)
         db.session.commit()
 
         try:
@@ -6983,5 +8322,6 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         finally:
             db.session.delete(dashboard)
             db.session.commit()
-            db.session.delete(custom_tag)
+            for tag in (custom_tag, editor_tag, type_tag):
+                db.session.delete(tag)
             db.session.commit()

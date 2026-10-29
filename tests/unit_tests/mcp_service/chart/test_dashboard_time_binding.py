@@ -25,16 +25,19 @@ import pytest
 
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
 from superset.mcp_service.chart.chart_utils import (
     _bind_dashboard_time_range_filter,
     adhoc_filters_to_query_filters,
     map_config_to_form_data,
+    merge_form_data_for_update,
 )
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     ChartConfig,
     ColumnRef,
+    FilterConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
@@ -53,6 +56,139 @@ from superset.utils.core import GenericDataType, merge_extra_form_data
 
 METRIC = ColumnRef(name="revenue", aggregate="SUM")
 CATEGORY = ColumnRef(name="region")
+SAVED_METRIC: ColumnRef = ColumnRef(name="revenue", saved_metric=True)
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1D"])
+def test_big_number_temporal_simple_filter_reaches_query(
+    monkeypatch: pytest.MonkeyPatch,
+    time_grain: str | None,
+) -> None:
+    """A neutral dashboard time binding must not erase a trendline predicate."""
+    from superset.common.chart_data import ChartDataResultType
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "sqlite",
+    )
+    config = BigNumberChartConfig(
+        chart_type="big_number",
+        metric=SAVED_METRIC,
+        show_trendline=True,
+        temporal_column="resolved",
+        time_grain=time_grain,
+        filters=[FilterConfig(column="resolved", op=">=", value="2026-01-01")],
+    )
+    form_data = map_config_to_form_data(config, temporal_columns={"resolved"})
+    assert any(
+        item.get("operator") == "TEMPORAL_RANGE"
+        and item.get("comparator") == "No filter"
+        for item in form_data["adhoc_filters"]
+    )
+    query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+    predicate = {"col": "resolved", "op": ">=", "val": "2026-01-01"}
+    assert predicate in query["filters"]
+    factory = QueryContextFactory()
+    query_object = factory._query_object_factory.create(
+        parent_result_type=ChartDataResultType.FULL, **query
+    )
+    datasource = SimpleNamespace(
+        columns=[SimpleNamespace(column_name="resolved", is_dttm=True)],
+        main_dttm_col="resolved",
+        currency_code_column=None,
+    )
+    processed = factory._process_query_object(datasource, form_data, query_object)
+
+    assert predicate in processed.filter
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        XYChartConfig(x=CATEGORY, y=[SAVED_METRIC]),
+        MixedTimeseriesChartConfig(
+            x=CATEGORY, y=[SAVED_METRIC], y_secondary=[SAVED_METRIC]
+        ),
+    ],
+)
+def test_semantic_categorical_axis_uses_published_temporality(
+    config: ChartConfig,
+) -> None:
+    form_data: dict[str, Any] = map_config_to_form_data(
+        config, temporal_columns={"metric_time"}
+    )
+
+    assert form_data["granularity_sqla"] is None
+    assert form_data["x_axis_sort_series_type"] == "name"
+    assert not any(
+        item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
+        for item in form_data.get("adhoc_filters", [])
+    )
+
+
+def test_semantic_temporal_axis_keeps_time_binding() -> None:
+    form_data: dict[str, Any] = map_config_to_form_data(
+        XYChartConfig(x=ColumnRef(name="metric_time"), y=[SAVED_METRIC]),
+        temporal_columns={"metric_time"},
+    )
+
+    assert form_data["granularity_sqla"] == "metric_time"
+    assert any(
+        item.get("subject") == "metric_time"
+        and item.get("operator") == "TEMPORAL_RANGE"
+        for item in form_data.get("adhoc_filters", [])
+    )
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=SAVED_METRIC,
+            show_trendline=True,
+            temporal_column="region",
+            time_grain="P1D",
+        ),
+        WaterfallChartConfig(
+            x_axis=CATEGORY,
+            metric=SAVED_METRIC,
+            time_grain="P1D",
+        ),
+    ],
+)
+def test_semantic_categorical_axis_rejects_temporal_chart_intent(
+    config: ChartConfig,
+) -> None:
+    with pytest.raises(ValueError, match="temporal"):
+        map_config_to_form_data(config, temporal_columns={"metric_time"})
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=SAVED_METRIC,
+            show_trendline=True,
+            temporal_column="metric_time",
+            time_grain="P1D",
+        ),
+        WaterfallChartConfig(
+            x_axis=ColumnRef(name="metric_time"),
+            metric=SAVED_METRIC,
+            time_grain="P1D",
+        ),
+    ],
+)
+def test_semantic_temporal_axis_keeps_chart_time_grain(
+    config: ChartConfig,
+) -> None:
+    form_data: dict[str, Any] = map_config_to_form_data(
+        config, temporal_columns={"metric_time"}
+    )
+    assert form_data["granularity_sqla"] == "metric_time"
+    assert form_data["time_grain_sqla"] == "P1D"
 
 
 def _chart_configs() -> list[ChartConfig]:
@@ -89,6 +225,107 @@ def test_every_chart_config_accepts_temporal_column(config: ChartConfig) -> None
     )
 
     assert updated.temporal_column == "created_at"
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        *_chart_configs(),
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=SAVED_METRIC,
+            show_trendline=True,
+            temporal_column="resolved",
+        ),
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="resolved"),
+            y=[SAVED_METRIC],
+            y_secondary=[SAVED_METRIC],
+        ),
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="resolved"),
+            y=[SAVED_METRIC],
+            y_secondary=[SAVED_METRIC],
+            time_grain="P1D",
+        ),
+        WaterfallChartConfig(
+            x_axis=ColumnRef(name="resolved"), metric=SAVED_METRIC, time_grain="P1D"
+        ),
+        PivotTableChartConfig(
+            rows=[ColumnRef(name="resolved")],
+            metrics=[SAVED_METRIC],
+            temporal_column="resolved",
+        ),
+        *[
+            XYChartConfig.model_validate(
+                {
+                    "kind": kind,
+                    "x": {"name": "resolved"},
+                    "y": [SAVED_METRIC],
+                    "time_grain": grain,
+                }
+            )
+            for kind in ("line", "bar", "area", "scatter")
+            for grain in (None, "P1D")
+        ],
+    ],
+)
+@pytest.mark.parametrize("generated_binding", [False, True])
+@pytest.mark.parametrize("path", ["generate", "update-replace", "update-preserve"])
+def test_chart_temporal_simple_filter_survives_query_processing(
+    monkeypatch: pytest.MonkeyPatch,
+    config: ChartConfig,
+    generated_binding: bool,
+    path: str,
+) -> None:
+    """All query builders retain predicates across generated and updated charts."""
+    from superset.common.chart_data import ChartDataResultType
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "sqlite",
+    )
+    config = type(config).model_validate(
+        {
+            **config.model_dump(exclude_unset=True),
+            "temporal_column": "resolved",
+            "filters": [{"column": "resolved", "op": ">=", "value": "2026-01-01"}],
+        }
+    )
+    form_data = map_config_to_form_data(config, temporal_columns={"resolved"})
+    if path != "generate":
+        update_values = config.model_dump(exclude_unset=True)
+        if path == "update-preserve":
+            update_values.pop("filters")
+        update = type(config).model_validate(update_values)
+        form_data = merge_form_data_for_update(
+            form_data,
+            map_config_to_form_data(update, temporal_columns={"resolved"}),
+            update,
+        )
+    if not generated_binding:
+        form_data["adhoc_filters"] = [
+            item
+            for item in form_data["adhoc_filters"]
+            if item.get("operator") != "TEMPORAL_RANGE"
+        ]
+        form_data.pop("_mcp_dashboard_time_filter_subject", None)
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+    factory = QueryContextFactory()
+    datasource = SimpleNamespace(
+        columns=[SimpleNamespace(column_name="resolved", is_dttm=True)],
+        main_dttm_col="resolved",
+        currency_code_column=None,
+    )
+    predicate = {"col": "resolved", "op": ">=", "val": "2026-01-01"}
+    for query in queries:
+        assert predicate in query["filters"]
+        query_object = factory._query_object_factory.create(
+            parent_result_type=ChartDataResultType.FULL, **query
+        )
+        processed = factory._process_query_object(datasource, form_data, query_object)
+        assert predicate in processed.filter
 
 
 @pytest.mark.parametrize(
@@ -138,11 +375,14 @@ def test_unbound_charts_get_dashboard_temporal_filter(
     expected_subject: str,
 ) -> None:
     mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
-    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: column in {
-        "created_at",
-        "event_time",
-        "order_date",
-    }
+    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: (
+        column
+        in {
+            "created_at",
+            "event_time",
+            "order_date",
+        }
+    )
 
     form_data = map_config_to_form_data(config, dataset_id=42)
 
@@ -291,8 +531,8 @@ def test_non_temporal_waterfall_granularity_falls_back_to_dataset_time_column(
     mock_find_dataset: MagicMock,
 ) -> None:
     mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
-    mock_is_temporal.side_effect = (
-        lambda column, dataset_id, dataset=None: column == "order_date"
+    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: (
+        column == "order_date"
     )
     config = WaterfallChartConfig(
         x_axis=CATEGORY,

@@ -109,7 +109,11 @@ export default function transformProps(chartProps: ChartProps) {
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
+  const originalLabel = getOriginalLabel(
+    metric,
+    metrics,
+    chartProps.datasource?.verboseMap,
+  );
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
 
   const dashboardTimeCompare = formData?.extraFormData?.time_compare;

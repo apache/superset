@@ -394,6 +394,218 @@ test('updateSlice handles failure', async () => {
   expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
+test('updateSlice awaits a delayed legacy-aggregation tag DELETE before dispatching success', async () => {
+  // LegacyAggregationAlert re-fetches tags off of SAVE_SLICE_SUCCESS (see
+  // LegacyAggregationAlert.tsx). A slow DELETE that resolves *after*
+  // dispatch would let that refetch race the deletion and find the tag
+  // still there -- delay the DELETE response and assert it has actually
+  // completed by the time SAVE_SLICE_SUCCESS dispatches, rather than just
+  // asserting the DELETE was eventually called at all.
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const deleteTagEndpoint =
+    'glob:*/api/v1/tag/2/*/legacy-pivot-aggregation-restored';
+  let deleteCompleted = false;
+  fetchMock.delete(
+    deleteTagEndpoint,
+    () =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          deleteCompleted = true;
+          resolve({});
+        }, 10);
+      }),
+    { name: deleteTagEndpoint },
+  );
+
+  const dispatchSpy = jest.fn((action: { type: string }) => {
+    if (action.type === SAVE_SLICE_SUCCESS) {
+      expect(deleteCompleted).toBe(true);
+    }
+  });
+  const dispatch = (action: any) => dispatchSpy(action);
+  // updateSlice reads the viz_type that decides whether to fire the tag
+  // DELETE from getState().explore.form_data, not from the `slice` argument
+  // below (that's the previously-saved payload, unrelated to what's live in
+  // the Explore store right now).
+  const getState = () => ({
+    ...mockExploreState,
+    explore: {
+      ...mockExploreState.explore,
+      form_data: { ...formData, viz_type: 'pivot_table_v2' },
+    },
+  });
+
+  await updateSlice(
+    {
+      slice_id: sliceId,
+      editors: editors as [],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
+      },
+    },
+    sliceName,
+    [],
+  )(dispatch as Dispatch<any>, getState);
+
+  expect(fetchMock.callHistory.calls(deleteTagEndpoint)).toHaveLength(1);
+  expect(deleteCompleted).toBe(true);
+  expect(
+    dispatchSpy.mock.calls.some(
+      ([action]) => action?.type === SAVE_SLICE_SUCCESS,
+    ),
+  ).toBe(true);
+});
+
+test('updateSlice falls back to the chart tag list when the legacy-aggregation tag DELETE is forbidden', async () => {
+  // A chart owner without `can_write` on Tag: the tag route 403s, so the
+  // save re-PUTs the chart's custom tag list minus the legacy tag (which
+  // `validate_tags` accepts via `can_tag` on Chart) and still succeeds.
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const deleteTagEndpoint =
+    'glob:*/api/v1/tag/2/*/legacy-pivot-aggregation-restored';
+  fetchMock.delete(
+    deleteTagEndpoint,
+    { status: 403, body: { message: 'Forbidden' } },
+    { name: deleteTagEndpoint },
+  );
+  fetchMock.get(updateSliceEndpoint, {
+    result: {
+      tags: [
+        { id: 3, name: 'keep-me', type: 1 },
+        { id: 7, name: 'legacy-pivot-aggregation-restored', type: 1 },
+      ],
+    },
+  });
+
+  const dispatchSpy = jest.fn();
+  const dispatch = (action: { type: string }) => dispatchSpy(action);
+  const getState = () => ({
+    ...mockExploreState,
+    explore: {
+      ...mockExploreState.explore,
+      form_data: { ...formData, viz_type: 'pivot_table_v2' },
+    },
+  });
+
+  const result = await updateSlice(
+    {
+      slice_id: sliceId,
+      editors: editors as [],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
+      },
+    },
+    sliceName,
+    [],
+  )(dispatch as Dispatch<any>, getState);
+
+  expect(result).toEqual(sliceResponsePayload);
+  const putCalls = fetchMock.callHistory.calls(updateSliceEndpoint, {
+    method: 'PUT',
+  });
+  expect(putCalls).toHaveLength(2);
+  expect(JSON.parse(putCalls[1].options.body as string)).toEqual({ tags: [3] });
+  expect(
+    dispatchSpy.mock.calls.filter(
+      ([action]) => action?.type === SAVE_SLICE_SUCCESS,
+    ),
+  ).toHaveLength(1);
+  expect(
+    dispatchSpy.mock.calls.some(
+      ([action]) => action?.type === SAVE_SLICE_FAILED,
+    ),
+  ).toBe(false);
+});
+
+test('updateSlice still resolves and dispatches success when the legacy-aggregation tag DELETE returns 422', async () => {
+  // Most pivot tables were never tagged, so a 422 from the tag DELETE is the
+  // common case and must not hang or fail an otherwise successful save.
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const deleteTagEndpoint =
+    'glob:*/api/v1/tag/2/*/legacy-pivot-aggregation-restored';
+  fetchMock.delete(
+    deleteTagEndpoint,
+    { status: 422, body: { message: 'Tag could not be removed' } },
+    { name: deleteTagEndpoint },
+  );
+
+  const dispatchSpy = jest.fn();
+  const dispatch = (action: any) => dispatchSpy(action);
+  const getState = () => ({
+    ...mockExploreState,
+    explore: {
+      ...mockExploreState.explore,
+      form_data: { ...formData, viz_type: 'pivot_table_v2' },
+    },
+  });
+
+  const result = await updateSlice(
+    {
+      slice_id: sliceId,
+      editors: editors as [],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
+      },
+    },
+    sliceName,
+    [],
+  )(dispatch as Dispatch<any>, getState);
+
+  expect(fetchMock.callHistory.calls(deleteTagEndpoint)).toHaveLength(1);
+  expect(result).toEqual(sliceResponsePayload);
+  const types = dispatchSpy.mock.calls.map(([action]) => action?.type);
+  expect(types.filter(type => type === SAVE_SLICE_SUCCESS)).toHaveLength(1);
+  expect(types).not.toContain(SAVE_SLICE_FAILED);
+});
+
 /**
  * Tests createSlice action
  */
