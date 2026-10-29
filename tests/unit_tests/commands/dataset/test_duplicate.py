@@ -20,6 +20,7 @@ Covers both the per-object access check and the virtual dataset
 duplication/validation behavior (including catalog handling).
 """
 
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -31,6 +32,7 @@ from superset.commands.dataset.exceptions import (
     DatasetExistsValidationError,
     DatasetInvalidError,
     DatasetNotFoundError,
+    TemplateParamsInvalidValidationError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -80,6 +82,8 @@ def test_duplicate_dataset_access_check_passes_through() -> None:
     mock_dataset = MagicMock()
     mock_dataset.id = 1
     mock_dataset.kind = "virtual"
+    mock_dataset.sql = "SELECT * FROM t;"
+    mock_dataset.template_params = '{"x": 1}'
 
     with patch(
         "superset.commands.dataset.duplicate.DatasetDAO.find_by_id",
@@ -105,7 +109,132 @@ def test_duplicate_dataset_access_check_passes_through() -> None:
                     )
                     command.validate()  # should not raise
                     # Confirm access check was called with the base dataset
-                    mock_access.assert_called_once_with(datasource=mock_dataset)
+                    mock_access.assert_any_call(datasource=mock_dataset)
+                    # ... and the copy's SQL, as ``run`` will store it, was
+                    # authorized without the editorship accept.
+                    mock_access.assert_any_call(
+                        database=mock_dataset.database,
+                        sql="SELECT * FROM t",
+                        catalog=mock_dataset.catalog,
+                        schema=mock_dataset.schema,
+                        template_params={"x": 1},
+                        allow_editorship=False,
+                    )
+                    assert mock_access.call_count == 2
+
+
+def test_duplicate_dataset_auth_check_drops_reserved_params() -> None:
+    """
+    The copy's SQL access check renders with the base's params minus the names
+    the template processor consumes structurally, matching execution.
+    """
+    mock_dataset = MagicMock()
+    mock_dataset.id = 1
+    mock_dataset.kind = "virtual"
+    mock_dataset.sql = "SELECT * FROM {{ t }}"
+    mock_dataset.template_params = '{"t": "a", "extra_cache_keys": [], "query": 1}'
+
+    with (
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.find_by_id",
+            return_value=mock_dataset,
+        ),
+        patch(
+            "superset.commands.dataset.duplicate.security_manager.raise_for_access"
+        ) as mock_access,
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch("superset.commands.utils.populate_subject_list", return_value=[]),
+    ):
+        DuplicateDatasetCommand(
+            {"base_model_id": 1, "table_name": "copy", "is_managed_externally": False}
+        ).validate()
+
+    sql_call = next(c for c in mock_access.call_args_list if c.kwargs.get("sql"))
+    assert sql_call.kwargs["template_params"] == {"t": "a"}
+
+
+def test_duplicate_dataset_copy_requires_data_access() -> None:
+    """
+    Editorship of the base dataset (which the ``datasource=`` check accepts)
+    is not enough to duplicate it: the copy is a new dataset the caller owns,
+    so its SQL needs real data access, as on the create path. Otherwise the
+    copy would outlive the caller's access to the base.
+    """
+    mock_dataset = MagicMock()
+    mock_dataset.id = 1
+    mock_dataset.kind = "virtual"
+    mock_dataset.sql = "SELECT * FROM t"
+    mock_dataset.template_params = None
+
+    def deny_sql(**kwargs: Any) -> None:
+        if kwargs.get("sql"):
+            raise _security_exception()
+
+    with (
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.find_by_id",
+            return_value=mock_dataset,
+        ),
+        patch(
+            "superset.commands.dataset.duplicate.security_manager.raise_for_access",
+            side_effect=deny_sql,
+        ),
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch("superset.commands.utils.populate_subject_list", return_value=[]),
+    ):
+        command = DuplicateDatasetCommand(
+            {"base_model_id": 1, "table_name": "copy", "is_managed_externally": False}
+        )
+        with pytest.raises(DatasetAccessDeniedError):
+            command.validate()
+
+
+@pytest.mark.parametrize("template_params", ["{bad", '[["t", "secret"]]'])
+def test_duplicate_dataset_unreadable_template_params_rejected(
+    template_params: str,
+) -> None:
+    """
+    The copy renders the base's SQL with the base's params, so params that
+    execution would read differently than any check can fail validation
+    instead of being authorized against a guess.
+    """
+    mock_dataset = MagicMock()
+    mock_dataset.id = 1
+    mock_dataset.kind = "virtual"
+    mock_dataset.sql = "SELECT * FROM {{ t | default('ok') }}"
+    mock_dataset.template_params = template_params
+
+    with (
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.find_by_id",
+            return_value=mock_dataset,
+        ),
+        patch(
+            "superset.commands.dataset.duplicate.security_manager.raise_for_access",
+        ) as mock_access,
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch("superset.commands.utils.populate_subject_list", return_value=[]),
+    ):
+        command = DuplicateDatasetCommand(
+            {"base_model_id": 1, "table_name": "copy", "is_managed_externally": False}
+        )
+        with pytest.raises(DatasetInvalidError) as exc_info:
+            command.validate()
+
+    assert any(
+        isinstance(exc, TemplateParamsInvalidValidationError)
+        for exc in exc_info.value._exceptions
+    )
+    mock_access.assert_called_once_with(datasource=mock_dataset)
 
 
 def test_duplicate_dataset_blocked_by_soft_deleted_twin(session: Session) -> None:
@@ -262,6 +391,7 @@ def test_duplicate_dataset_not_virtual() -> None:
     mock_base_model.id = 1
     mock_base_model.database_id = 1
     mock_base_model.kind = "physical"  # Not virtual
+    mock_base_model.sql = None
 
     with (
         patch(
@@ -304,6 +434,8 @@ def test_duplicate_dataset_name_exists_same_database_schema() -> None:
     mock_base_model.schema = "public"
     mock_base_model.catalog = None
     mock_base_model.kind = "virtual"
+    mock_base_model.sql = "SELECT 1 as c"
+    mock_base_model.template_params = None
 
     with (
         patch(
@@ -407,6 +539,8 @@ def test_duplicate_dataset_catalog_passed_to_uniqueness_check() -> None:
     mock_base_model.schema = "public"
     mock_base_model.catalog = "prod_catalog"
     mock_base_model.kind = "virtual"
+    mock_base_model.sql = "SELECT 1 as c"
+    mock_base_model.template_params = None
 
     with (
         patch(
@@ -454,6 +588,8 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
     mock_column.description = "Test column"
     mock_column.filterable = False
     mock_column.groupby = False
+    mock_column.partition_value_transform = "unix_timestamp(:value)"
+    mock_column.partition_transform_is_monotonic = True
 
     mock_metric = Mock(spec=SqlMetric)
     mock_metric.metric_name = "count"
@@ -522,6 +658,16 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
                         # clone rather than being reset to the column defaults.
                         assert result.columns[0].filterable is False
                         assert result.columns[0].groupby is False
+                        # `override` copies the table-level mapping references,
+                        # so the column-side configuration has to come with
+                        # them or the clone's mapping silently never mirrors.
+                        assert (
+                            result.columns[0].partition_value_transform
+                            == "unix_timestamp(:value)"
+                        )
+                        assert (
+                            result.columns[0].partition_transform_is_monotonic is True
+                        )
 
                         # Verify metrics were duplicated
                         assert len(result.metrics) == 1

@@ -22,6 +22,7 @@ import {
   ExtraFormData,
   Filter,
   FilterState,
+  NativeFilterTarget,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash-es';
 import { useSelector } from 'react-redux';
@@ -29,6 +30,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { RootState } from 'src/dashboard/types';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import { FilterElement } from './FilterControls/types';
 
 export const getOnlyExtraFormData = (
@@ -48,9 +50,10 @@ export const checkIsMissingRequiredValue = (
   filter: FilterElement,
   filterState?: FilterState,
 ) => {
-  const isRequired =
-    !!filter.controlValues?.enableEmptyFilter ||
-    !!filter.controlValues?.defaultToFirstItem;
+  // Only `enableEmptyFilter` ("Filter value is required") makes a value
+  // mandatory. `defaultToFirstItem` merely seeds an initial selection, so a
+  // filter cleared by the user must stay clearable, with Apply enabled.
+  const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   if (!isRequired) return false;
 
@@ -157,7 +160,9 @@ const chartsVerboseMapSelector = createSelector(
         : undefined;
       return {
         ...chartsVerboseMaps,
-        [chartId]: chartDatasource ? chartDatasource.verbose_map : {},
+        [chartId]: chartDatasource
+          ? withChartDisplayLabels(chartDatasource, chartId).verbose_map
+          : {},
       };
     }, {}),
 );
@@ -190,3 +195,17 @@ export const getFiltersToApply = (
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
+
+/**
+ * Reduce a chart-customization target to just its datasource binding, dropping
+ * the selected column(s) on a "clear all". The datasourceType MUST survive the
+ * clear: dropping it would silently rebind a semantic view to the regular
+ * dataset that shares its numeric id on the next resolution (sc-111089). Absent
+ * type is omitted rather than emitted as undefined, matching a regular dataset.
+ */
+export const clearedCustomizationTarget = (
+  target?: Partial<NativeFilterTarget>,
+): Partial<NativeFilterTarget> => ({
+  datasetId: target?.datasetId,
+  ...(target?.datasourceType ? { datasourceType: target.datasourceType } : {}),
+});

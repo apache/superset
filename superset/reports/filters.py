@@ -21,9 +21,14 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
+from superset.charts.filters import ChartFilter
 from superset.daos.base import _escape_like
-from superset.reports.models import ReportSchedule
+from superset.dashboards.filters import DashboardAccessFilter
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.reports.models import ReportExecutionLog, ReportSchedule
 from superset.subjects.filters import subject_relation_exists_for_current_user
+from superset.utils.filters import apply_extra_access_exclusions
 from superset.views.base import BaseFilter
 
 
@@ -43,6 +48,34 @@ class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-method
         return query.filter(ReportSchedule.id.in_(editor_ids_query))
 
 
+class ReportExecutionLogFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Scope execution logs to report schedules the user can edit, mirroring
+    ``ReportScheduleFilter`` on the schedule API. Logs carry evaluated alert
+    values and database error messages, so they must not be readable across
+    ownership boundaries via an attacker-chosen schedule id.
+
+    The unrestricted bypass is gated by ``can_access_all_queries`` rather
+    than ``can_access_all_datasources``: the latter is also granted to
+    stock Alpha, which would let a non-editor Alpha user read every other
+    schedule's evaluated values and database errors. ``can_access_all_queries``
+    is the admin-only permission this codebase already uses to gate the
+    equivalent per-execution data on SQL Lab query history
+    (see ``superset.queries.filters.QueryFilter``).
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.can_access_all_queries():
+            return query
+
+        from superset.subjects.models import report_schedule_editors
+
+        editor_ids_query = db.session.query(
+            report_schedule_editors.c.report_schedule_id
+        ).filter(subject_relation_exists_for_current_user(report_schedule_editors))
+        return query.filter(ReportExecutionLog.report_schedule_id.in_(editor_ids_query))
+
+
 class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("All Text")
     arg_name = "report_all_text"
@@ -60,3 +93,35 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
                 ReportSchedule.sql.ilike(ilike_value, escape="\\"),
             )
         )
+
+
+class ReportTargetChartFilter(ChartFilter):  # pylint: disable=too-few-public-methods
+    """Charts selectable as the target of a scheduled report.
+
+    A scheduled report is not rendered by the user who creates it: it runs later,
+    as whichever principal the deployment configures as its executor. So a
+    deployment can hold assets a user may read themselves but may not schedule a
+    report on, and that is a narrower question than ordinary chart visibility.
+
+    Only the exclusion key differs; every other rule is inherited. The exclusion
+    is applied before delegating so it survives the parent's short-circuits.
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = apply_extra_access_exclusions(query, "report_target_charts", Slice.id)
+        return super().apply(query, value)
+
+
+class ReportTargetDashboardFilter(  # pylint: disable=too-few-public-methods
+    DashboardAccessFilter
+):
+    """Dashboards selectable as the target of a scheduled report.
+
+    See :class:`ReportTargetChartFilter`.
+    """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = apply_extra_access_exclusions(
+            query, "report_target_dashboards", Dashboard.id
+        )
+        return super().apply(query, value)

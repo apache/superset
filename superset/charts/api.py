@@ -16,17 +16,35 @@
 # under the License.
 # pylint: disable=too-many-lines
 import logging
+from contextvars import ContextVar
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, Callable, cast, ClassVar, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import current_app, redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask import current_app, redirect, request, Response, url_for
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import (
+    expose,
+    merge_response_func,
+    protect,
+    rison as parse_rison,
+    safe,
+)
+from flask_appbuilder.const import (
+    API_DESCRIPTION_COLUMNS_RIS_KEY,
+    API_LABEL_COLUMNS_RIS_KEY,
+    API_LIST_COLUMNS_RIS_KEY,
+    API_LIST_TITLE_RIS_KEY,
+    API_ORDER_COLUMNS_RIS_KEY,
+)
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
+from sqlalchemy import asc, case, desc
+from sqlalchemy.orm import Query
+from sqlalchemy.orm.util import AliasedClass
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -46,6 +64,7 @@ from superset.charts.filters import (
     ChartTagNameFilter,
 )
 from superset.charts.schemas import (
+    chart_get_list_schema,
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
     ChartGetResponseSchema,
@@ -78,13 +97,17 @@ from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -92,7 +115,15 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
+)
+from superset.semantic_layers.access import (
+    is_semantic_image_unavailable,
+    SemanticLayersDisabledError,
+)
+from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -100,7 +131,7 @@ from superset.subjects.filters import (
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import sanitize_cookie_token
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -119,10 +150,12 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.filters import (
     BaseFilterRelatedUsers,
@@ -139,9 +172,65 @@ _CHART_PURGE_BINDING = SoftDeleteBinding(
     delete_failed=ChartDeleteFailedError,
 )
 
+_viz_type_order: ContextVar[dict[str, int] | None] = ContextVar(
+    "chart_viz_type_order", default=None
+)
+
+
+class ChartSQLAInterface(SQLAInterface):
+    """Chart model interface with request-scoped display viz type ordering."""
+
+    def apply_order_by(
+        self,
+        query: Query,
+        order_column: str,
+        order_direction: str,
+        aliases_mapping: dict[str, AliasedClass] | None = None,
+        bypass_many_to_many: bool = False,
+        add_pk: bool = False,
+    ) -> Query:
+        viz_type_order = _viz_type_order.get()
+        if order_column != "viz_type" or not viz_type_order:
+            return super().apply_order_by(
+                query,
+                order_column,
+                order_direction,
+                aliases_mapping=aliases_mapping,
+                bypass_many_to_many=bypass_many_to_many,
+                add_pk=add_pk,
+            )
+
+        order_expression = case(
+            viz_type_order,
+            value=Slice.viz_type,
+            else_=len(viz_type_order),
+        )
+        direction = asc if order_direction == "asc" else desc
+        order_by_columns = [direction(order_expression), direction(Slice.viz_type)]
+        primary_key = self.get_pk()
+        if add_pk and primary_key is not None:
+            order_by_columns.append(direction(primary_key))
+        return query.order_by(*order_by_columns)
+
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(Slice)
+    datamodel = ChartSQLAInterface(Slice)
+
+    restore_command_cls: ClassVar[type[RestoreChartCommand]] = RestoreChartCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartRestoreFailedError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _CHART_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartDeleteFailedError,
+    )
 
     resource_name = "chart"
     allow_browser_login = True
@@ -309,6 +398,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
 
     apispec_parameter_schemas = {
+        "chart_get_list_schema": chart_get_list_schema,
         "screenshot_query_schema": screenshot_query_schema,
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -400,8 +490,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-                result["extra_editors"] = get_extra_editor_subject_ids(dash)
+            attach_extra_editors(result, dash)
 
             return set_version_etag(
                 self.response(200, result=result),
@@ -410,12 +499,99 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ChartNotFoundError:
             return self.response_404()
 
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        attach_extra_editors_to_rows(data, Slice)
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    @parse_rison(chart_get_list_schema)
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_order_columns, API_ORDER_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_label_columns, API_LABEL_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_description_columns,
+        API_DESCRIPTION_COLUMNS_RIS_KEY,
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY
+    )
+    def get_list(self, **kwargs: Any) -> Response:
+        """Get a list of charts.
+        ---
+        get:
+          summary: Get a list of charts
+          parameters:
+          - in: query
+            name: q
+            description: >-
+              Rison-encoded list query. viz_type_order may contain up to 256
+              unique visualization type slugs, each at most 250 characters,
+              in the display-name order to use when sorting by viz_type.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/chart_get_list_schema'
+          responses:
+            200:
+              description: Charts
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+                      result:
+                        type: array
+                        items:
+                          $ref: >-
+                            #/components/schemas/{{self.__class__.__name__}}.get_list
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self.get_list_headless(**kwargs)
+
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        """Apply client display ordering before list pagination."""
+        args = kwargs.get("rison", {})
+        viz_types = args.get("viz_type_order")
+        if args.get("order_column") != "viz_type" or not viz_types:
+            return super().get_list_headless(**kwargs)
+
+        token = _viz_type_order.set(
+            {viz_type: index for index, viz_type in enumerate(viz_types)}
+        )
+        try:
+            return super().get_list_headless(**kwargs)
+        finally:
+            _viz_type_order.reset(token)
+
     @expose("/<pk>/deck_layers/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (f"{self.__class__.__name__}.deck_layers"),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.deck_layers",
         log_to_statsd=False,
     )
     def deck_layers(self, pk: int) -> Response:
@@ -522,9 +698,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new chart.
         ---
         post:
@@ -566,9 +746,14 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
+            # The id only exists once the command has run, so the event
+            # logger cannot derive it from the route.
+            add_extra_log_payload(slice_id=new_model.id)
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
+        except ChartForbiddenError:
+            return self.response_403()
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
@@ -679,13 +864,17 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        normalization_changes: object = item.pop("normalization_changes", None)
+
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
         # kill-switch).
         old_info = current_entity_version_info(Slice, pk)
 
         try:
-            changed_model = UpdateChartCommand(pk, item).run()
+            changed_model = UpdateChartCommand(
+                pk, item, normalization_changes=normalization_changes
+            ).run()
             new_info = current_entity_version_info(
                 Slice, changed_model.id, changed_model.uuid
             )
@@ -891,21 +1080,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreChartCommand(uuid).run()
-            return self.response(200, message="OK")
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
@@ -950,21 +1125,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
-            return self.response(200, message="OK")
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartDeleteFailedError as ex:
-            logger.error(
-                "Error purging model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._purge_soft_deleted(uuid)
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
@@ -1029,6 +1190,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
@@ -1050,7 +1213,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
+        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_chart_thumbnail.delay(
@@ -1110,8 +1273,16 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared
+            # across every chart (and, via the same backend, dashboards) --
+            # without this check any cache_key learned for one chart would
+            # serve its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"chart:{chart.id}":
+                return self.response_404()
             if cache_payload.status == StatusValues.UPDATED:
                 try:
                     image = cache_payload.get_image()
@@ -1175,6 +1346,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         if chart.digest != digest:
@@ -1265,21 +1438,20 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         with ZipFile(buf, "w") as bundle:
             try:
                 for file_name, file_content in ExportChartsCommand(requested_ids).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except ChartNotFoundError:
                 return self.response_404()
+            except DatasetNotFoundError:
+                # The dataset DAO hides datasets the caller cannot access, so
+                # mirror the dataset export's bare 404 without naming it.
+                return self.response_404()
+            except SemanticReferenceError as ex:
+                return self.response(ex.status, message=ex.message)
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()
@@ -1482,7 +1654,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 body.get("extra_filters"),
             ).run()
             return self.response(200, result=[result])
-        except CommandException as ex:
+        except (CommandException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=ex.message)
 
     @expose("/import/", methods=("POST",))
@@ -1577,32 +1749,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportChartsCommand(
@@ -1619,6 +1777,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -1667,6 +1826,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -1721,6 +1881,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
@@ -1802,6 +1963,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

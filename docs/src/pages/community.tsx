@@ -67,7 +67,7 @@ const communityLinks = [
       'Join our monthly virtual meetups and register for any upcoming events on Meetup',
   },
   {
-    url: 'https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md',
+    url: 'https://superset.apache.org/inTheWild/',
     title: 'Organizations',
     description:
       'A list of some of the organizations using Superset in production.',

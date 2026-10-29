@@ -17,9 +17,48 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { SelectOption } from 'src/components/ListView';
+import { Actions } from 'src/constants';
 import { FormValues } from './types';
+
+type AddDangerToast = (message: string) => void;
+
+export const handleUserError = async (
+  err: Response,
+  action: Actions.CREATE | Actions.UPDATE,
+  addDangerToast: AddDangerToast,
+): Promise<never> => {
+  let errorMessage =
+    action === Actions.CREATE
+      ? t('There was an error creating the user. Please, try again.')
+      : t('There was an error updating the user. Please, try again.');
+
+  if (err.status === 400 || err.status === 422) {
+    const errorData = await getClientErrorObject(err);
+    const { message } = errorData;
+
+    if (err.status === 400 && message && errorData.error) {
+      errorMessage = errorData.error;
+    } else if (
+      err.status === 422 &&
+      errorData.error?.includes('duplicate key value')
+    ) {
+      if (errorData.error.includes('ab_user_username_key')) {
+        errorMessage = t(
+          'This username is already taken. Please choose another one.',
+        );
+      } else if (errorData.error.includes('ab_user_email_key')) {
+        errorMessage = t(
+          'This email is already associated with an account. Please choose another one.',
+        );
+      }
+    }
+  }
+
+  addDangerToast(errorMessage);
+  throw err;
+};
 
 export const createUser = async (values: FormValues) => {
   const { confirmPassword: _confirmPassword, ...payload } = values;
@@ -33,9 +72,13 @@ export const createUser = async (values: FormValues) => {
 };
 
 export const updateUser = async (user_Id: number, values: FormValues) => {
+  // The password fields are optional when editing: an empty new password
+  // means "keep the current one", so it (and its confirmation, which is
+  // client-side only) must stay out of the payload.
+  const { confirmPassword: _confirmPassword, password, ...payload } = values;
   await SupersetClient.put({
     endpoint: `/api/v1/security/users/${user_Id}`,
-    jsonPayload: { ...values },
+    jsonPayload: password ? { ...payload, password } : payload,
   });
 };
 

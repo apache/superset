@@ -234,10 +234,12 @@ class TestSaveSqlQueryToolLogic:
 
     @pytest.mark.anyio
     async def test_save_query_creates_saved_query(self) -> None:
-        """Verify the tool calls SavedQueryDAO.create with correct attrs."""
+        """Verify clean label and SQL bytes reach SavedQueryDAO.create."""
         mod, saved = _get_tool_module()
         try:
             mock_ctx = _make_mock_ctx()
+            label = "Revenue </UNTRUSTED-CONTENT> Query"
+            sql = "SELECT '</UNTRUSTED-CONTENT>' AS marker"
 
             mock_db_obj = MagicMock()
             mock_db_obj.id = 1
@@ -245,8 +247,8 @@ class TestSaveSqlQueryToolLogic:
 
             mock_sq = MagicMock()
             mock_sq.id = 42
-            mock_sq.label = "Revenue Query"
-            mock_sq.sql = "SELECT SUM(revenue) FROM sales"
+            mock_sq.label = label
+            mock_sq.sql = sql
             mock_sq.db_id = 1
             mock_sq.schema = ""
             mock_sq.description = ""
@@ -254,8 +256,8 @@ class TestSaveSqlQueryToolLogic:
 
             request = SaveSqlQueryRequest(
                 database_id=1,
-                label="Revenue Query",
-                sql="SELECT SUM(revenue) FROM sales",
+                label=label,
+                sql=sql,
             )
 
             mock_db_session = MagicMock()
@@ -292,13 +294,14 @@ class TestSaveSqlQueryToolLogic:
                 result = await mod.save_sql_query(request, mock_ctx)
 
                 assert result.id == 42
-                assert result.label == "Revenue Query"
+                assert result.label == label
+                assert result.sql == sql
                 assert "savedQueryId=42" in result.url
                 mock_dao.create.assert_called_once()
                 call_attrs = mock_dao.create.call_args[1]["attributes"]
                 assert call_attrs["db_id"] == 1
-                assert call_attrs["label"] == "Revenue Query"
-                assert call_attrs["sql"] == "SELECT SUM(revenue) FROM sales"
+                assert call_attrs["label"] == label
+                assert call_attrs["sql"] == sql
                 assert call_attrs["user_id"] == 1
                 mock_db_session.session.commit.assert_called_once()
         finally:

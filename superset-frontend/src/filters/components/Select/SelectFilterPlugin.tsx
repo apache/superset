@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   AppSection,
@@ -102,14 +109,32 @@ const StyledSpace = styled(Space)<{
   width: 100%;
 
   .exclude-select {
-    width: 80px;
-    flex-shrink: 0;
+    width: 100%;
+    min-width: 80px;
   }
 
   &.ant-space {
     .ant-space-item {
       width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
     }
+
+    ${({ inverseSelection }) =>
+      inverseSelection &&
+      `
+      .ant-space-item:first-of-type {
+        flex: 1 1 25%;
+      }
+
+      .ant-space-item:last-child {
+        flex: 3 1 75%;
+        min-width: 0;
+      }
+
+      .select-container {
+        width: 100% !important;
+        max-width: none !important;
+      }
+    `}
   }
 `;
 
@@ -156,8 +181,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
-  const [search, setSearch] = useState('');
-  const prevDataRef = useRef(data);
+  const [searchInput, setSearchInput] = useState('');
+  const deferredSearchInput = useDeferredValue(searchInput);
+  // Trails searchInput by a quiet period; only this value drives the server
+  // search dispatch, since useDeferredValue lowers render priority but does
+  // not coalesce keystrokes by time.
+  const [settledSearch, setSettledSearch] = useState('');
+  const settleSearch = useMemo(
+    () => debounce(setSettledSearch, Constants.SLOW_DEBOUNCE),
+    [],
+  );
+  useEffect(() => () => settleSearch.cancel(), [settleSearch]);
+  // Set true the first time the user actually searches; distinguishes a real
+  // search from the clearAllTrigger reset below, which must not re-trigger
+  // the searchAllOptions dispatch once the deferred value catches up.
+  const hasSearchedRef = useRef(false);
   const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -183,11 +221,23 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [likeInputValue, setLikeInputValue] = useState<string>(
     filterState.value?.[0] != null ? String(filterState.value[0]) : '',
   );
+  // null until the user types in the LIKE input; distinguishes a real edit
+  // from the clearAllTrigger reset below, which also clears likeInputValue
+  // but must not re-trigger a dispatch once the deferred value catches up.
+  const [pendingLikeValue, setPendingLikeValue] = useState<string | null>(null);
+  const settleLikeValue = useMemo(
+    () => debounce(setPendingLikeValue, Constants.SLOW_DEBOUNCE),
+    [],
+  );
+  useEffect(() => () => settleLikeValue.cancel(), [settleLikeValue]);
 
   useEffect(() => {
     const externalValue =
       filterState.value?.[0] != null ? String(filterState.value[0]) : '';
     setLikeInputValue(externalValue);
+    // A parent-driven value change supersedes any settled edit, so re-entering
+    // the same text afterwards registers as a fresh edit.
+    setPendingLikeValue(null);
   }, [filterState.value]);
 
   const prevExcludeFilterValues = useRef(excludeFilterValues);
@@ -263,27 +313,62 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const isDisabled =
     appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
-  const onSearch = useMemo(
-    () =>
-      debounce((search: string) => {
-        setSearch(search);
-        if (searchAllOptions) {
-          dispatchDataMask({
-            type: 'ownState',
-            ownState: {
-              coltypeMap: initialColtypeMap,
-              search,
-            },
-          });
-        }
-      }, Constants.SLOW_DEBOUNCE),
-    [dispatchDataMask, initialColtypeMap, searchAllOptions],
+  const handleSearch = useCallback(
+    (value: string) => {
+      hasSearchedRef.current = true;
+      setSearchInput(value);
+      settleSearch(value);
+    },
+    [settleSearch],
   );
+
+  // Read through a ref so a parent re-render that hands down new identities
+  // for these doesn't, by itself, re-fire the dispatch below -- only an
+  // actual search settling (a change to deferredSearchInput) should.
+  const searchDispatchRef = useRef({
+    searchAllOptions,
+    dispatchDataMask,
+    initialColtypeMap,
+  });
+  useEffect(() => {
+    searchDispatchRef.current = {
+      searchAllOptions,
+      dispatchDataMask,
+      initialColtypeMap,
+    };
+  });
+
+  useEffect(() => {
+    if (!hasSearchedRef.current) {
+      return;
+    }
+    const {
+      searchAllOptions: currentSearchAllOptions,
+      dispatchDataMask: currentDispatchDataMask,
+      initialColtypeMap: currentInitialColtypeMap,
+    } = searchDispatchRef.current;
+    if (!currentSearchAllOptions) {
+      return;
+    }
+    currentDispatchDataMask({
+      type: 'ownState',
+      ownState: {
+        coltypeMap: currentInitialColtypeMap,
+        // The dropdown offers `stripSurroundingQuotes(search)` as the
+        // creatable option, so the server has to be asked for the same
+        // string or the two disagree about what was searched for.
+        search: stripSurroundingQuotes(settledSearch).trim(),
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settledSearch]);
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-    onSearch('');
-  }, [onSearch, unsetFocusedFilter]);
+    if (searchInput) {
+      handleSearch('');
+    }
+  }, [handleSearch, searchInput, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -304,6 +389,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+
+  // A capped list reads as the whole set, so a value sitting past the row
+  // limit looks like a value that does not exist. Each sentence is only added
+  // when it is actually true of this filter's configuration.
+  const rowLimit = Number(formData.rowLimit) || 0;
+  const helperText = useMemo(() => {
+    if (!rowLimit || data.length < rowLimit) {
+      return undefined;
+    }
+    return [
+      t('Only the first %s values are listed.', data.length),
+      searchAllOptions ? t('Type to search all of them.') : undefined,
+      creatable !== false
+        ? t('You can enter a value that is not listed.')
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }, [creatable, data.length, rowLimit, searchAllOptions]);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -334,10 +438,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    const unquotedSearch = stripSurroundingQuotes(search);
+    const unquotedSearch = stripSurroundingQuotes(deferredSearchInput);
     if (
       unquotedSearch &&
-      !searchAllOptions &&
       creatable !== false &&
       !hasOption(unquotedSearch, uniqueOptions, true)
     ) {
@@ -347,7 +450,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions, creatable, searchAllOptions]);
+  }, [deferredSearchInput, uniqueOptions, creatable]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
@@ -431,26 +534,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   ]);
 
   useEffect(() => {
-    const prev = prevDataRef.current;
-    const curr = data;
-
-    const hasDataChanged =
-      prev?.length !== curr?.length ||
-      prev?.some((row, i) => {
-        const prevVal = row[col];
-        const currVal = curr[i][col];
-        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
-          ? prevVal?.toString() !== currVal?.toString()
-          : prevVal !== currVal;
-      });
-
-    // If data actually changed (e.g., due to parent filter), reset flag
-    if (hasDataChanged) {
-      prevDataRef.current = data;
-    }
-  }, [data, col]);
-
-  useEffect(() => {
     if (
       filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
@@ -462,13 +545,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
 
-    // Skip default value update when clearAllTrigger is active
+    // Skip default value update when clearAllTrigger is active.
+    // `null` is a persisted "user cleared this" state, as opposed to
+    // `undefined` for "never set", so it must not be re-defaulted either —
+    // `userClearedRef` alone would not survive a reload.
     if (
       !clearAllTrigger &&
       defaultToFirstItem &&
       !userClearedRef.current &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
+      filterState.value !== null &&
       firstItem !== null &&
       filterState.value !== firstItem
     ) {
@@ -501,8 +588,26 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
 
       updateDataMask(null);
-      setSearch('');
+      settleSearch.cancel();
+      settleLikeValue.cancel();
+      // A search the user already ran left a server-side subset in ownState;
+      // publish the empty search so the cleared filter lists every option.
+      const {
+        searchAllOptions: currentSearchAllOptions,
+        dispatchDataMask: currentDispatchDataMask,
+        initialColtypeMap: currentInitialColtypeMap,
+      } = searchDispatchRef.current;
+      if (hasSearchedRef.current && currentSearchAllOptions) {
+        currentDispatchDataMask({
+          type: 'ownState',
+          ownState: { coltypeMap: currentInitialColtypeMap, search: '' },
+        });
+      }
+      setSearchInput('');
+      setSettledSearch('');
+      hasSearchedRef.current = false;
       setLikeInputValue('');
+      setPendingLikeValue(null);
       onClearAllComplete?.(formData.nativeFilterId);
     }
   }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
@@ -540,32 +645,37 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMaskRef.current = updateDataMask;
   }, [updateDataMask]);
 
-  const debouncedLikeChange = useMemo(
-    () =>
-      debounce((text: string) => {
-        if (text) {
-          updateDataMaskRef.current([text]);
-        } else {
-          updateDataMaskRef.current(null);
-        }
-      }, Constants.SLOW_DEBOUNCE),
-    [],
-  );
+  // Any match-type change (including between two LIKE modes) discards the
+  // pending edit, so text typed under the previous mode is never replayed and
+  // re-entering the same text afterwards registers as a fresh edit.
+  // The displayed text reverts to the committed value too, so a discarded edit
+  // never lingers in the input without a matching filter value.
+  const committedLikeValueRef = useRef('');
+  committedLikeValueRef.current =
+    filterState.value?.[0] != null ? String(filterState.value[0]) : '';
+  useEffect(() => {
+    settleLikeValue.cancel();
+    setPendingLikeValue(null);
+    setLikeInputValue(committedLikeValueRef.current);
+  }, [operatorType, isLikeOperator, settleLikeValue]);
 
   useEffect(() => {
-    if (!isLikeOperator || clearAllTrigger) {
-      debouncedLikeChange.cancel();
+    if (pendingLikeValue === null || !isLikeOperator || clearAllTrigger) {
+      return;
     }
-  }, [clearAllTrigger, debouncedLikeChange, isLikeOperator]);
-
-  useEffect(() => () => debouncedLikeChange.cancel(), [debouncedLikeChange]);
+    if (pendingLikeValue) {
+      updateDataMaskRef.current([pendingLikeValue]);
+    } else {
+      updateDataMaskRef.current(null);
+    }
+  }, [pendingLikeValue, isLikeOperator, clearAllTrigger]);
 
   const handleLikeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setLikeInputValue(e.target.value);
-      debouncedLikeChange(e.target.value);
+      settleLikeValue(e.target.value);
     },
-    [debouncedLikeChange],
+    [settleLikeValue],
   );
 
   const getSelectPopupContainer = useCallback(
@@ -634,17 +744,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               name={formData.nativeFilterId}
               allowClear
               autoClearSearchValue
-              allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptions={creatable !== false}
               allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
+              stableSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
               getPopupContainer={getSelectPopupContainer}
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
-              onClear={() => onSearch('')}
-              onSearch={onSearch}
+              helperText={helperText}
+              onClear={() => handleSearch('')}
+              onSearch={handleSearch}
               onBlur={handleBlur}
               onFocus={setFocusedFilter}
               onMouseEnter={setHoveredFilter}

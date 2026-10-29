@@ -39,7 +39,14 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  isServerPaginationUnsupported,
+  hasMatchingDatasourceMetadata,
+  ConditionalFormattingConfig,
+  ObjectFormattingEnum,
   ColorSchemeEnum,
+  getHeaderGroupsControlProps,
+  getTimeComparisonColumnKeys,
+  getKnownColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -61,12 +68,8 @@ import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 /**
  * Generate comparison column names for a given column.
  */
-const generateComparisonColumns = (colname: string) => [
-  `${t('Main')} ${colname}`,
-  `# ${colname}`,
-  `△ ${colname}`,
-  `% ${colname}`,
-];
+const generateComparisonColumns = (colname: string) =>
+  getTimeComparisonColumnKeys(colname);
 
 /**
  * Generate column types for the comparison columns.
@@ -194,6 +197,23 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   validators: [],
 };
 
+const percentMetricCalculationControl: ControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  label: t('Percentage metric calculation'),
+  description: t(
+    'Row Limit: percentages are calculated based on the subset of data retrieved, respecting the row limit. ' +
+      'All Records: Percentages are calculated based on the total dataset, ignoring the row limit.',
+  ),
+  default: 'row_limit',
+  clearable: false,
+  choices: [
+    ['row_limit', t('Row limit')],
+    ['all_records', t('All records')],
+  ],
+  visibility: isAggMode,
+  renderTrigger: false,
+};
+
 /*
 Options for row limit control
 */
@@ -247,6 +267,12 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.time_grain_sqla,
               visibility: ({ controls }) => {
+                // Time grain only applies to the aggregate query, so the
+                // control must follow the query mode like its siblings do.
+                if (!isAggMode({ controls })) {
+                  return false;
+                }
+
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
                     (option.column_name || '').toLowerCase(),
@@ -364,6 +390,16 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+                disabledReason: hasMatchingDatasourceMetadata(state)
+                  ? t('This semantic view does not support server pagination.')
+                  : undefined,
+                resetLabel: hasMatchingDatasourceMetadata(state)
+                  ? t('Turn off server pagination')
+                  : undefined,
+              }),
             },
           },
         ],
@@ -376,6 +412,10 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+              }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
@@ -391,7 +431,17 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
+                paginationUnsupported: isServerPaginationUnsupported(state),
+                choices: formatSelectOptions(
+                  ROW_LIMIT_OPTIONS_TABLE.filter(
+                    value =>
+                      !isServerPaginationUnsupported(state) ||
+                      value <=
+                        (state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+                  ),
+                ),
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
@@ -405,12 +455,24 @@ const config: ControlPanelConfig = {
                     state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
                 (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
+                  state?.paginationUnsupported && !state?.server_pagination
+                    ? validateMaxValue(
+                        v,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      ) &&
+                      t(
+                        'Lower the row limit to SQL_MAX_ROW (%s) or less.',
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      )
+                    : validateServerPagination(
+                        v,
+                        state?.server_pagination,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                        state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                      ),
               ],
               // Re run the validations when this control value
               validationDependencies: ['server_pagination'],
@@ -423,6 +485,12 @@ const config: ControlPanelConfig = {
             override: {
               default: 1000,
             },
+          },
+        ],
+        [
+          {
+            name: 'percent_metric_calculation',
+            config: percentMetricCalculationControl,
           },
         ],
       ],
@@ -475,6 +543,73 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'allow_rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                isEmpty(controls?.time_compare?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'allow_render_html',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Render columns in HTML format'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'json_in_cell',
+            config: {
+              type: 'CheckboxControl',
+              label: t('JSON in cell'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog.',
+              ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return getHeaderGroupsControlProps(explore, chart);
+              },
+            },
+          },
+        ],
       ],
     },
     {
@@ -503,14 +638,18 @@ const config: ControlPanelConfig = {
               label: t('Summary aggregation'),
               renderTrigger: true,
               description: t(
-                'Aggregation used for the summary row, independent of each ' +
-                  "metric's own aggregation. Only applies to simple metrics " +
-                  '(a metric built from custom SQL keeps its own aggregation ' +
-                  'in the summary row).',
+                'Aggregation used for the summary row. By default each metric ' +
+                  'keeps its own aggregation; Sum and Average override it for ' +
+                  'the summary row only. The override applies to simple ' +
+                  'metrics (a metric built from custom SQL always keeps its ' +
+                  'own aggregation). Overriding a count or a distinct count ' +
+                  'sums the counted column instead, which fails outright on a ' +
+                  'non-numeric column.',
               ),
-              default: 'SUM',
+              default: 'ORIGINAL',
               clearable: false,
               choices: [
+                ['ORIGINAL', t("Each metric's own")],
                 ['SUM', t('Sum')],
                 ['AVG', t('Average')],
               ],
@@ -529,6 +668,20 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('Whether to display the numbered column'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'zebra_striping',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Zebra striping'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Alternate the row background color to make rows easier to scan.',
+              ),
             },
           },
         ],
@@ -563,11 +716,14 @@ const config: ControlPanelConfig = {
                   const updatedColtypes: GenericDataType[] = [];
 
                   colnames
+                    .map(
+                      (colname, index) => [colname, index] as [string, number],
+                    )
                     .filter(
-                      colname =>
+                      ([colname]) =>
                         last(colname.split('__')) !== timeComparisonValue,
                     )
-                    .forEach((colname, index) => {
+                    .forEach(([colname, originalIndex]) => {
                       if (
                         shouldSkipMetricColumn({
                           colname,
@@ -604,7 +760,12 @@ const config: ControlPanelConfig = {
                         });
                       } else {
                         updatedColnames.push(colname);
-                        updatedColtypes.push(coltypes[index]);
+                        // Look up by the column's original position in
+                        // colnames/coltypes, not its position after the
+                        // filter above — those diverge whenever any
+                        // earlier column is a comparison-suffixed one that
+                        // got filtered out.
+                        updatedColtypes.push(coltypes[originalIndex]);
                         childColumnMap[colname] = false;
                         timeComparisonColumnMap[colname] = false;
                       }
@@ -619,6 +780,10 @@ const config: ControlPanelConfig = {
                     coltypes,
                     childColumnMap,
                     timeComparisonColumnMap,
+                    knownKeys: getKnownColumnConfigKeys(
+                      _colnames || [],
+                      explore.datasource,
+                    ),
                   },
                 };
               },
@@ -739,24 +904,71 @@ const config: ControlPanelConfig = {
                   : [];
 
                 const chartStatus = chart?.chartStatus;
+                // Normalize legacy `toAllRow`/`toTextColor` flags saved before
+                // `columnFormatting`/`objectFormatting` existed, so "entire row"
+                // formatters set under the old schema keep working.
+                const value = _?.value ?? [];
+                if (value && Array.isArray(value)) {
+                  value.forEach(
+                    (item: ConditionalFormattingConfig, index, array) => {
+                      if (
+                        item.colorScheme &&
+                        (typeof item.colorScheme !== 'string' ||
+                          !['Green', 'Red'].includes(item.colorScheme))
+                      ) {
+                        if (item.columnFormatting === undefined) {
+                          // eslint-disable-next-line no-param-reassign
+                          array[index] = {
+                            ...item,
+                            ...(item.toTextColor === true && {
+                              objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                            }),
+                            ...(item.toAllRow === true && {
+                              columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                            }),
+                          };
+                        }
+                      }
+                    },
+                  );
+                }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const numericColumns =
-                  Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames
-                        .filter(
-                          (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.Numeric,
-                        )
-                        .map((colname: string) => ({
-                          value: colname,
-                          label: Array.isArray(verboseMap)
-                            ? colname
-                            : (verboseMap[colname] ?? colname),
-                          dataType:
-                            colnames && coltypes[colnames?.indexOf(colname)],
-                        }))
-                    : [];
+                const hasColumns =
+                  Array.isArray(colnames) && Array.isArray(coltypes);
+                const allColumns = hasColumns
+                  ? [
+                      {
+                        value: ObjectFormattingEnum.ENTIRE_ROW,
+                        label: t('entire row'),
+                        dataType: GenericDataType.String,
+                      },
+                      ...colnames.map((colname: string, index: number) => ({
+                        value: colname,
+                        label: Array.isArray(verboseMap)
+                          ? colname
+                          : (verboseMap?.[colname] ?? colname),
+                        dataType: coltypes[index],
+                      })),
+                    ]
+                  : [];
+                const numericColumns = hasColumns
+                  ? colnames
+                      .filter(
+                        (colname: string, index: number) =>
+                          coltypes[index] === GenericDataType.Numeric,
+                      )
+                      .map((colname: string) => ({
+                        value: colname,
+                        label: Array.isArray(verboseMap)
+                          ? colname
+                          : (verboseMap?.[colname] ?? colname),
+                        // Every entry here already passed the Numeric filter
+                        // above, so the type is always Numeric — no need to
+                        // re-look it up (which breaks on duplicate colnames).
+                        dataType: GenericDataType.Numeric,
+                      }))
+                  : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
                       numericColumns || [],
@@ -768,7 +980,11 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  allColumns,
                   extraColorChoices,
+                  serverPagination: Boolean(
+                    explore?.controls?.server_pagination?.value,
+                  ),
                 };
               },
             },

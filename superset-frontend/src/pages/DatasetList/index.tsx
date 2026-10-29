@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
+  getClientErrorObject,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -43,7 +45,6 @@ import {
 } from 'src/views/CRUD/utils';
 import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
-import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ActionButton,
@@ -62,6 +63,7 @@ import {
 } from '@superset-ui/core/components';
 import {
   DatasourceModal,
+  withCertificationFields,
   GenericLink,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
@@ -76,9 +78,14 @@ import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
+  archiveToastContent,
+  rememberArchivedType,
+  archiveTitle,
+  datasetArchiveImpact,
   deleteActionLabel,
-  deletedToast,
+  deletedToastContent,
+  ToastContent,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -86,8 +93,8 @@ import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
+import { findPermission } from 'src/utils/findPermission';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
-
 import {
   PAGE_SIZE,
   SORT_BY,
@@ -113,6 +120,10 @@ import type {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
+
+// Keep saved Default URLs compatible with the prefix-free SPA route.
+const normalizeLegacyDashboardUrl = (url: string) =>
+  url.replace(/^\/superset(?=\/dashboard(?:\/|$))/, '');
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -187,14 +198,124 @@ const isSemanticView = (d: Pick<Dataset, 'kind'>): boolean =>
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
 type RelatedObjects = {
   count: number;
+  restricted_count?: number;
   result: Array<Record<string, unknown>>;
 };
+
+type DatasetRelatedObjects = {
+  charts: RelatedObjects;
+  dashboards: RelatedObjects;
+};
+
+type BulkRelatedLookup =
+  | { status: 'idle' | 'loading' | 'failed' }
+  | { status: 'done'; related: DatasetRelatedObjects };
+
+/**
+ * The "Affected Dashboards" / "Affected Charts" lists rendered inside a dataset
+ * delete confirmation, capped at 10 each with an overflow footer. Shared by the
+ * single-row delete modal and the bulk-delete confirm. `count` is the full
+ * number of dependents; `result` only holds the ones the user can see.
+ */
+const AffectedObjectsList: FunctionComponent<DatasetRelatedObjects> = ({
+  charts,
+  dashboards,
+}) => (
+  <>
+    {dashboards.count >= 1 && (
+      <>
+        <h4>{t('Affected Dashboards')}</h4>
+        <List
+          split={false}
+          size="small"
+          dataSource={dashboards.result.slice(0, 10)}
+          renderItem={(result: {
+            id: Key | null | undefined;
+            title: string;
+          }) => (
+            <List.Item key={result.id} compact>
+              <List.Item.Meta
+                avatar={<span>•</span>}
+                title={
+                  <Typography.Link
+                    href={ensureAppRoot(`/dashboard/${result.id}`)}
+                    target="_atRiskItem"
+                  >
+                    {result.title}
+                  </Typography.Link>
+                }
+              />
+            </List.Item>
+          )}
+          footer={
+            dashboards.result.length > 10 && (
+              <div>{t('... and %s others', dashboards.result.length - 10)}</div>
+            )
+          }
+        />
+        {(dashboards.restricted_count ?? 0) > 0 && (
+          <p>
+            {tn(
+              '%s additional restricted dashboard',
+              '%s additional restricted dashboards',
+              dashboards.restricted_count,
+              dashboards.restricted_count,
+            )}
+          </p>
+        )}
+      </>
+    )}
+    {charts.count >= 1 && (
+      <>
+        <h4>{t('Affected Charts')}</h4>
+        <List
+          split={false}
+          size="small"
+          dataSource={charts.result.slice(0, 10)}
+          renderItem={(result: {
+            id: Key | null | undefined;
+            slice_name: string;
+          }) => (
+            <List.Item key={result.id} compact>
+              <List.Item.Meta
+                avatar={<span>•</span>}
+                title={
+                  <Typography.Link
+                    href={ensureAppRoot(`/explore/?slice_id=${result.id}`)}
+                    target="_atRiskItem"
+                  >
+                    {result.slice_name}
+                  </Typography.Link>
+                }
+              />
+            </List.Item>
+          )}
+          footer={
+            charts.result.length > 10 && (
+              <div>{t('... and %s others', charts.result.length - 10)}</div>
+            )
+          }
+        />
+        {(charts.restricted_count ?? 0) > 0 && (
+          <p>
+            {tn(
+              '%s additional restricted chart',
+              '%s additional restricted charts',
+              charts.restricted_count,
+              charts.restricted_count,
+            )}
+          </p>
+        )}
+      </>
+    )}
+  </>
+);
 
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
@@ -219,6 +340,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   // change with the selection. Captured when the bulk action fires, before
   // the modal opens.
   const [pendingBulkSemanticCount, setPendingBulkSemanticCount] = useState(0);
+  // Dependents of the current bulk selection, so the bulk confirm can warn
+  // about the blast radius the same way the single-row delete modal does.
+  const [bulkRelatedLookup, setBulkRelatedLookup] = useState<BulkRelatedLookup>(
+    { status: 'idle' },
+  );
+  // Bumped on every lookup so a slow response for a previous selection is
+  // dropped instead of overwriting the current one.
+  const bulkRelatedLookupId = useRef(0);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [datasetCount, setDatasetCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -310,6 +439,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [],
   );
 
+  const canReadLayer = findPermission('can_read', 'SemanticLayer', user?.roles);
+
   const currentSourceFilter = useMemo(() => {
     const sourceTypeFilter = lastFetchConfig?.filters.find(
       filter => filter.id === 'source_type',
@@ -336,6 +467,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       const showDatabases = currentSourceFilter !== 'semantic_layer';
       const showSemanticLayers =
         isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+        canReadLayer &&
         currentSourceFilter !== 'database';
 
       const [dbResult, slResult] = await Promise.all([
@@ -384,7 +516,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         totalCount: slResult.totalCount + dbResult.totalCount,
       };
     },
-    [currentSourceFilter],
+    [currentSourceFilter, canReadLayer],
   );
 
   const fetchData = useCallback(
@@ -493,6 +625,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
     useState<Dataset | null>(null);
+  const [datasetCurrentlyEditingEtag, setDatasetCurrentlyEditingEtag] =
+    useState<string | undefined>();
 
   const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] =
     useState<VirtualDataset | null>(null);
@@ -501,6 +635,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
+  const [svDeleteError, setSVDeleteError] = useState<{
+    error: string;
+    total?: number;
+    archived_count?: number;
+  } | null>(null);
+  const [svDeleting, setSVDeleting] = useState(false);
+  const svDeleteRequest = useRef(0);
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
     useState<Dataset | null>(null);
 
@@ -562,24 +703,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${id}`,
       })
-        .then(({ json = {} }) => {
-          const addCertificationFields = json.result.columns.map(
-            (column: ColumnObject) => {
-              const {
-                certification: {
-                  details = '',
-                  certified_by: certifiedBy = '',
-                } = {},
-              } = JSON.parse(column.extra || '{}') || {};
-              return {
-                ...column,
-                certification_details: details || '',
-                certified_by: certifiedBy || '',
-                is_certified: details || certifiedBy,
-              };
-            },
+        .then(({ json = {}, response }) => {
+          setDatasetCurrentlyEditingEtag(
+            response.headers.get('ETag') ?? undefined,
           );
-          json.result.columns = [...addCertificationFields];
+          json.result.columns = withCertificationFields(json.result.columns);
           setDatasetCurrentlyEditing(json.result);
         })
         .catch(() => {
@@ -619,6 +747,36 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const openDatasetDuplicateModal = useCallback((dataset: VirtualDataset) => {
     setDatasetCurrentlyDuplicating(dataset);
+  }, []);
+
+  const fetchBulkRelatedObjects = useCallback((selected: Dataset[]) => {
+    // Semantic views share the id space with datasets but have no
+    // related_objects lookup, so only regular datasets are checked; the modal
+    // says so rather than claiming nothing depends on them.
+    const ids = selected.filter(d => !isSemanticView(d)).map(({ id }) => id);
+    bulkRelatedLookupId.current += 1;
+    const lookupId = bulkRelatedLookupId.current;
+    if (ids.length === 0) {
+      setBulkRelatedLookup({ status: 'idle' });
+      return;
+    }
+    setBulkRelatedLookup({ status: 'loading' });
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/related_objects/?q=${rison.encode(ids)}`,
+    })
+      .then(({ json }) => {
+        if (lookupId === bulkRelatedLookupId.current) {
+          setBulkRelatedLookup({
+            status: 'done',
+            related: { charts: json.charts, dashboards: json.dashboards },
+          });
+        }
+      })
+      .catch(() => {
+        if (lookupId === bulkRelatedLookupId.current) {
+          setBulkRelatedLookup({ status: 'failed' });
+        }
+      });
   }, []);
 
   const handleBulkDatasetExport = useCallback(
@@ -673,36 +831,45 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
 
   const handleSemanticViewDelete = (sv: Dataset) => {
+    svDeleteRequest.current += 1;
+    setSVDeleteError(null);
+    setSVDeleting(false);
     setSvCurrentlyDeleting(sv);
   };
 
-  const handleSemanticViewDeleteConfirm = () => {
+  const handleSemanticViewDeleteConfirm = async () => {
     if (!svCurrentlyDeleting) return;
     const { id, table_name: tableName } = svCurrentlyDeleting;
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_view/${id}`,
-    }).then(
-      () => {
-        setSvCurrentlyDeleting(null);
-        refreshData();
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
-      createErrorHandler(errMsg =>
+    svDeleteRequest.current += 1;
+    const request = svDeleteRequest.current;
+    setSVDeleting(true);
+    try {
+      await SupersetClient.delete({ endpoint: `/api/v1/semantic_view/${id}` });
+      refreshData();
+      addSuccessToast(t('Deleted: %s', tableName));
+      if (request === svDeleteRequest.current) setSvCurrentlyDeleting(null);
+    } catch (error) {
+      const parsed = await getClientErrorObject(error);
+      if (request !== svDeleteRequest.current) return;
+      if (parsed.status === 409) {
+        setSVDeleteError(parsed);
+      } else {
         addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
-      ),
-    );
+          t('There was an issue deleting %s: %s', tableName, parsed.error),
+        );
+      }
+    } finally {
+      if (request === svDeleteRequest.current) setSVDeleting(false);
+    }
   };
 
   const columns = useMemo(
     () => [
       {
-        Cell: () => null,
-        accessor: 'kind_icon',
-        disableSortBy: true,
-        size: 'xs',
+        accessor: 'id',
         id: 'id',
+        hidden: true,
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -722,11 +889,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           // Router basename, which re-prefixes the root — so strip it here to
           // avoid a doubled `/superset/superset/...`. External
           // `default_endpoint` URLs pass through unchanged.
-          const exploreTo = stripAppRoot(exploreURL);
+          const exploreTo = normalizeLegacyDashboardUrl(
+            stripAppRoot(exploreURL),
+          );
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
-              <Link data-test="internal-link" to={exploreTo}>
+              <Link
+                data-test="internal-link"
+                to={exploreTo}
+                title={datasetTitle}
+              >
                 {datasetTitle}
               </Link>
             );
@@ -734,7 +907,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             titleLink = (
               // exploreUrl can be a link to Explore or an external link
               // in the first case use SPA routing, else use HTML anchor
-              <GenericLink to={exploreTo}>{datasetTitle}</GenericLink>
+              <GenericLink to={exploreTo} title={datasetTitle}>
+                {datasetTitle}
+              </GenericLink>
             );
           }
           try {
@@ -770,6 +945,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxxl',
         id: 'table_name',
       },
       {
@@ -777,12 +953,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: CellProps<Dataset>) =>
-          isSemanticView({ kind }) ? (
-            <span>{t('Semantic View')}</span>
-          ) : (
-            <DatasetTypeLabel datasetType={kind} />
-          ),
+        }: CellProps<Dataset>) => (
+          <DatasetTypeLabel
+            datasetType={kind}
+            label={isSemanticView({ kind }) ? t('Semantic View') : undefined}
+          />
+        ),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
@@ -960,9 +1136,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
@@ -1270,7 +1450,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(deletedToast(tableName));
+        rememberArchivedType('dataset');
+        const toast = deletedToastContent(tableName, 'dataset');
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(deleteFailedToast(tableName, errMsg)),
@@ -1279,6 +1461,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   };
 
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
+    bulkRelatedLookupId.current += 1;
+    setBulkRelatedLookup({ status: 'idle' });
     // Misrouting here sends a semantic-view id to the dataset delete
     // endpoint, which looks rows up by bare numeric id against `tables`
     // only (see the export handler's comment) — hence the shared predicate.
@@ -1307,40 +1491,55 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       );
     }
 
-    Promise.allSettled(promises).then(results => {
+    Promise.allSettled(promises).then(async results => {
       const failures = results.filter(r => r.status === 'rejected');
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        if (softDelete && semanticViews.length) {
-          // Semantic views were hard-deleted, not archived; counting them as
-          // archived would tell the user they are recoverable.
-          addSuccessToast(
-            t(
-              'Archived %s item(s); permanently deleted %s semantic view(s)',
-              datasets.length,
-              semanticViews.length,
-            ),
-          );
-        } else {
-          addSuccessToast(
-            softDelete
+        const message =
+          softDelete && semanticViews.length
+            ? t(
+                'Archived %s item(s); permanently deleted %s semantic view(s)',
+                datasets.length,
+                semanticViews.length,
+              )
+            : softDelete
               ? t('Archived %s item(s)', datasetsToDelete.length)
-              : t('Deleted %s item(s)', datasetsToDelete.length),
+              : t('Deleted %s item(s)', datasetsToDelete.length);
+        if (datasets.length) rememberArchivedType('dataset');
+        const toast: ToastContent =
+          softDelete && datasets.length
+            ? archiveToastContent(message, 'dataset')
+            : { text: message };
+        addSuccessToast(toast.text, toast.options);
+      } else {
+        const semanticResult = semanticViews.length
+          ? results[results.length - 1]
+          : undefined;
+        if (semanticResult?.status === 'rejected') {
+          await createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'Could not delete semantic views %s: %s',
+                semanticViews.map(view => view.table_name).join(', '),
+                errMsg,
+              ),
+            ),
+          )(semanticResult.reason);
+        }
+        if (datasets.length && results[0].status === 'rejected') {
+          addDangerToast(
+            softDelete
+              ? t(
+                  'There was an issue archiving the selected %s',
+                  datasetsLabelLower(),
+                )
+              : t(
+                  'There was an issue deleting the selected %s',
+                  datasetsLabelLower(),
+                ),
           );
         }
-      } else {
-        addDangerToast(
-          softDelete
-            ? t(
-                'There was an issue archiving the selected %s',
-                datasetsLabelLower(),
-              )
-            : t(
-                'There was an issue deleting the selected %s',
-                datasetsLabelLower(),
-              ),
-        );
       }
     });
   };
@@ -1384,103 +1583,44 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               {softDelete && (
-                <p>{archiveConfirmDescription(datasetLabelLower())}</p>
+                <p>{archiveConfirmContent('dataset', datasetLabelLower())}</p>
               )}
-              <p>
-                {t('The %s', datasetLabelLower())}
-                <b> {datasetCurrentlyDeleting.table_name} </b>
-                {t(
-                  'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-                  datasetCurrentlyDeleting.charts.count,
-                  datasetCurrentlyDeleting.dashboards.count,
+              {softDelete &&
+                datasetCurrentlyDeleting.charts.count === 0 &&
+                datasetCurrentlyDeleting.dashboards.count === 0 && (
+                  <p>
+                    {t(
+                      'No charts or dashboards depend on the selected %s.',
+                      datasetLabelLower(),
+                    )}
+                  </p>
                 )}
-              </p>
-              {datasetCurrentlyDeleting.dashboards.count >= 1 && (
-                <>
-                  <h4>{t('Affected Dashboards')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={datasetCurrentlyDeleting.dashboards.result.slice(
-                      0,
-                      10,
+              {softDelete ? (
+                (datasetCurrentlyDeleting.charts.count > 0 ||
+                  datasetCurrentlyDeleting.dashboards.count > 0) && (
+                  <p>
+                    {datasetArchiveImpact(
+                      datasetLabelLower(),
+                      datasetCurrentlyDeleting.charts.count,
+                      datasetCurrentlyDeleting.dashboards.count,
                     )}
-                    renderItem={(result: {
-                      id: Key | null | undefined;
-                      title: string;
-                    }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={
-                            <Typography.Link
-                              href={ensureAppRoot(`/dashboard/${result.id}`)}
-                              target="_atRiskItem"
-                            >
-                              {result.title}
-                            </Typography.Link>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                    footer={
-                      datasetCurrentlyDeleting.dashboards.result.length >
-                        10 && (
-                        <div>
-                          {t(
-                            '... and %s others',
-                            datasetCurrentlyDeleting.dashboards.result.length -
-                              10,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                </>
+                  </p>
+                )
+              ) : (
+                <p>
+                  {t('The %s', datasetLabelLower())}
+                  <b> {datasetCurrentlyDeleting.table_name} </b>
+                  {t(
+                    'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                    datasetCurrentlyDeleting.charts.count,
+                    datasetCurrentlyDeleting.dashboards.count,
+                  )}
+                </p>
               )}
-              {datasetCurrentlyDeleting.charts.count >= 1 && (
-                <>
-                  <h4>{t('Affected Charts')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={datasetCurrentlyDeleting.charts.result.slice(
-                      0,
-                      10,
-                    )}
-                    renderItem={(result: {
-                      id: Key | null | undefined;
-                      slice_name: string;
-                    }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={
-                            <Typography.Link
-                              href={ensureAppRoot(
-                                `/explore/?slice_id=${result.id}`,
-                              )}
-                              target="_atRiskItem"
-                            >
-                              {result.slice_name}
-                            </Typography.Link>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                    footer={
-                      datasetCurrentlyDeleting.charts.result.length > 10 && (
-                        <div>
-                          {t(
-                            '... and %s others',
-                            datasetCurrentlyDeleting.charts.result.length - 10,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                </>
-              )}
+              <AffectedObjectsList
+                charts={datasetCurrentlyDeleting.charts}
+                dashboards={datasetCurrentlyDeleting.dashboards}
+              />
               {DatasetDeleteRelatedExtension && (
                 <DatasetDeleteRelatedExtension
                   dataset={datasetCurrentlyDeleting}
@@ -1497,21 +1637,51 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           open
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: datasetCurrentlyDeleting.table_name,
-                })
+              ? archiveTitle(datasetCurrentlyDeleting.table_name)
               : t('Delete %s?', datasetLabel())
           }
         />
       )}
       {svCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
+          preserveConfirmationOnConfirm
+          loading={svDeleting}
+          description={
+            <>
+              <p>
+                {t(
+                  'Are you sure you want to delete %s? This cannot be undone.',
+                  svCurrentlyDeleting.table_name,
+                )}
+              </p>
+              {svDeleteError && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={
+                    <>
+                      {typeof svDeleteError.total === 'number' &&
+                      typeof svDeleteError.archived_count === 'number'
+                        ? t(
+                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
+                            svDeleteError.total,
+                            svDeleteError.archived_count,
+                          )
+                        : svDeleteError.error}{' '}
+                      <a href={ensureAppRoot('/archived/')}>
+                        {t('Recently Archived')}
+                      </a>
+                    </>
+                  }
+                />
+              )}
+            </>
+          }
           onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
+          onHide={() => {
+            svDeleteRequest.current += 1;
+            setSvCurrentlyDeleting(null);
+          }}
           open
           title={t('Delete Semantic View?')}
         />
@@ -1519,6 +1689,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {datasetCurrentlyEditing && (
         <DatasourceModal
           datasource={datasetCurrentlyEditing}
+          etag={datasetCurrentlyEditingEtag}
           onDatasourceSave={refreshData}
           onHide={closeDatasetEditModal}
           show
@@ -1557,31 +1728,101 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : t('Please confirm')
         }
         description={
-          softDelete ? (
-            bulkIsRecoverable ? (
-              archiveConfirmDescription(datasetsLabelLower(), true)
+          <>
+            {softDelete ? (
+              bulkIsRecoverable ? (
+                archiveConfirmContent('dataset', datasetsLabelLower(), true)
+              ) : (
+                <>
+                  {tn(
+                    '%s of the selected items is a semantic view, which cannot be archived: it will be deleted permanently and cannot be recovered.',
+                    '%s of the selected items are semantic views, which cannot be archived: they will be deleted permanently and cannot be recovered.',
+                    pendingBulkSemanticCount,
+                    pendingBulkSemanticCount,
+                  )}{' '}
+                  {t(
+                    'The remaining %s will be moved to Recently Archived.',
+                    datasetsLabelLower(),
+                  )}
+                </>
+              )
             ) : (
-              <>
-                {tn(
-                  '%s of the selected items is a semantic view, which cannot be archived: it will be deleted permanently and cannot be recovered.',
-                  '%s of the selected items are semantic views, which cannot be archived: they will be deleted permanently and cannot be recovered.',
-                  pendingBulkSemanticCount,
-                  pendingBulkSemanticCount,
-                )}{' '}
+              t(
+                'Are you sure you want to delete the selected %s?',
+                datasetsLabelLower(),
+              )
+            )}
+            {bulkRelatedLookup.status === 'loading' && (
+              <p>{t('Checking for affected charts and dashboards…')}</p>
+            )}
+            {bulkRelatedLookup.status === 'failed' && (
+              <p>
+                {bulkIsRecoverable
+                  ? t(
+                      'Could not check which charts and dashboards depend on the selected %s. Archiving them may make charts unavailable.',
+                      datasetsLabelLower(),
+                    )
+                  : t(
+                      'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
+                      datasetsLabelLower(),
+                    )}
+              </p>
+            )}
+            {bulkRelatedLookup.status === 'done' &&
+              (bulkRelatedLookup.related.charts.count > 0 ||
+              bulkRelatedLookup.related.dashboards.count > 0 ? (
+                <>
+                  <p>
+                    {bulkIsRecoverable
+                      ? datasetArchiveImpact(
+                          datasetsLabelLower(),
+                          bulkRelatedLookup.related.charts.count,
+                          bulkRelatedLookup.related.dashboards.count,
+                          true,
+                        )
+                      : t(
+                          'The selected %s are linked to %s on %s. Deleting them will break those objects.',
+                          datasetsLabelLower(),
+                          tn(
+                            '%s chart',
+                            '%s charts',
+                            bulkRelatedLookup.related.charts.count,
+                            bulkRelatedLookup.related.charts.count,
+                          ),
+                          tn(
+                            '%s dashboard',
+                            '%s dashboards',
+                            bulkRelatedLookup.related.dashboards.count,
+                            bulkRelatedLookup.related.dashboards.count,
+                          ),
+                        )}
+                  </p>
+                  <AffectedObjectsList
+                    charts={bulkRelatedLookup.related.charts}
+                    dashboards={bulkRelatedLookup.related.dashboards}
+                  />
+                </>
+              ) : (
+                pendingBulkSemanticCount === 0 && (
+                  <p>
+                    {t(
+                      'No charts or dashboards depend on the selected %s.',
+                      datasetsLabelLower(),
+                    )}
+                  </p>
+                )
+              ))}
+            {pendingBulkSemanticCount > 0 && (
+              <p>
                 {t(
-                  'The remaining %s will be moved to Recently Archived.',
-                  datasetsLabelLower(),
+                  'Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
                 )}
-              </>
-            )
-          ) : (
-            t(
-              'Are you sure you want to delete the selected %s?',
-              datasetsLabelLower(),
-            )
-          )
+              </p>
+            )}
+          </>
         }
         onConfirm={handleBulkDatasetDelete}
+        disablePrimaryButton={bulkRelatedLookup.status === 'loading'}
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
@@ -1593,6 +1834,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 setPendingBulkSemanticCount(
                   selected.filter(isSemanticView).length,
                 );
+                fetchBulkRelatedObjects(selected);
                 confirmDelete(selected);
               },
               type: 'danger',

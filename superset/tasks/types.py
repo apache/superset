@@ -48,9 +48,10 @@ class ExecutorType(StrEnum):
     # The last modifier of the model, if they are an editor directly (user-type subject)
     # or indirectly (their role or group is an editor subject)
     MODIFIER_EDITOR = "modifier_editor"
-    # An editor of the model. Resolves to a user who is an editor either directly
-    # or through role/group membership. Prioritizes: modifier -> creator -> first
-    # direct user-type editor -> deterministic user from role/group editors.
+    # Whoever authored the model's current state, provided they are also an editor
+    # (directly, or through role/group membership). Prioritizes: modifier -> creator.
+    # Never resolves to any other attached editor -- only the user who actually wrote
+    # the state being executed.
     EDITOR = "editor"
 
 

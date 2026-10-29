@@ -16,10 +16,13 @@
 # under the License.
 """Tests for superset.views.base module"""
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from superset.app import SupersetApp
 
 
 @patch("superset.views.base.utils.get_user_id", return_value=1)
@@ -71,6 +74,57 @@ def test_common_bootstrap_payload_handles_none_locale(
     common_bootstrap_payload()
 
     mock_cached.assert_called_once_with(1, None)
+
+
+def test_common_bootstrap_payload_masks_websocket_without_realtime_permission(
+    app_context: None,
+) -> None:
+    from superset.views.base import common_bootstrap_payload
+
+    cached = {
+        "conf": {
+            "WEBSOCKET_ENABLE": True,
+            "WEBSOCKET_URL": "ws://localhost:8080/",
+        }
+    }
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value=cached,
+        ),
+        patch(
+            "superset.views.base.can_access_realtime_notifications",
+            return_value=False,
+        ),
+        patch("superset.views.base.utils.get_user_id", return_value=None),
+        patch("superset.views.base.get_locale", return_value=None),
+    ):
+        result = common_bootstrap_payload()
+
+    assert result["conf"]["WEBSOCKET_ENABLE"] is False
+    assert cached["conf"]["WEBSOCKET_ENABLE"] is True
+
+
+def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
+    app_context: None,
+) -> None:
+    from superset.views.base import common_bootstrap_payload
+
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value={"conf": {"WEBSOCKET_ENABLE": True}},
+        ),
+        patch(
+            "superset.views.base.can_access_realtime_notifications",
+            return_value=True,
+        ),
+        patch("superset.views.base.utils.get_user_id", return_value=1),
+        patch("superset.views.base.get_locale", return_value=None),
+    ):
+        result = common_bootstrap_payload()
+
+    assert result["conf"]["WEBSOCKET_ENABLE"] is True
 
 
 def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
@@ -245,6 +299,78 @@ def test_api_query_returns_json_content_type() -> None:
     assert response.content_type.startswith("application/json")
 
 
+def _run_api_query(*, is_guest: bool) -> list[dict[str, Any]]:
+    """Run the ``Api.query`` handler body for a payload that carries the
+    generated SQL, a stacktrace and a raw driver error, and return the parsed
+    response as a guest without "can view query on Dashboard" or as a regular
+    user."""
+    from flask import current_app
+
+    from superset.utils import json
+    from superset.views.api import Api
+
+    handler = Api.query
+    while hasattr(handler, "__wrapped__"):
+        handler = handler.__wrapped__
+
+    query_context = MagicMock()
+    query_context.get_payload.return_value = {
+        "queries": [
+            {
+                "data": [{"a": 1}],
+                "query": "SELECT secret_col FROM private_table",
+                "stacktrace": "Traceback (most recent call last): ...",
+                "error": "relation private_table does not exist",
+            }
+        ]
+    }
+    factory = MagicMock()
+    factory.create.return_value = query_context
+    api_view = Api()
+
+    with (
+        patch.object(api_view, "get_query_context_factory", return_value=factory),
+        patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=is_guest,
+        ),
+        patch(
+            "superset.security.SupersetSecurityManager.can_access",
+            return_value=False,
+        ),
+        current_app.test_request_context(
+            data={"query_context": '{"datasource": {"id": 1}}'}
+        ),
+    ):
+        response = handler(api_view)
+
+    return json.loads(response.get_data(as_text=True))
+
+
+def test_api_query_redacts_generated_sql_for_guests() -> None:
+    """``Api.query`` returns the same query-context payloads as chart data, so
+    an embedded guest without "can view query on Dashboard" gets the generated
+    SQL and stacktrace removed and the driver error replaced, while the data is
+    preserved."""
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    (result,) = _run_api_query(is_guest=True)
+
+    assert "query" not in result
+    assert "stacktrace" not in result
+    assert result["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert result["data"] == [{"a": 1}]
+
+
+def test_api_query_keeps_payload_for_regular_users() -> None:
+    """The redaction is scoped to guests: a regular user keeps the generated
+    SQL and the driver error."""
+    (result,) = _run_api_query(is_guest=False)
+
+    assert result["query"] == "SELECT secret_col FROM private_table"
+    assert result["error"] == "relation private_table does not exist"
+
+
 @pytest.mark.parametrize(
     "encoding, payload, expected",
     [
@@ -315,3 +441,34 @@ def test_deprecated_new_target_message_has_no_stray_space() -> None:
     formatted = template % tuple(args)
     assert "5.0.0. Use the following API endpoint instead" in formatted
     assert "5.0.0 . Use" not in formatted
+
+
+def test_language_pack_endpoint_is_public(app: "SupersetApp") -> None:
+    """The language pack endpoint must be accessible without authentication.
+
+    Translation data is non-sensitive and the embedded dashboard SPA needs to
+    fetch it with a bare ``fetch()`` (no guest-token header).  Previously the
+    endpoint was protected by ``@has_access`` which caused a 302 redirect to
+    ``/login/`` for unauthenticated requests, silently breaking i18n in
+    embedded dashboards (issue #42433).
+
+    When the compiled catalog exists the endpoint returns 200 with JSON.
+    When it is missing the endpoint returns 404 (never a 302 to /login/).
+    """
+    with app.test_client() as client:
+        resp = client.get("/language_pack/en/")
+        # The endpoint must be reachable without authentication.
+        # In the test environment compiled catalogs may not exist, so
+        # a 404 is acceptable; any 3xx redirect would indicate the old
+        # @has_access guard is still in place.
+        assert resp.status_code in (200, 404)
+        assert not (300 <= resp.status_code < 400)
+        if resp.status_code == 200:
+            assert resp.is_json
+
+
+def test_language_pack_endpoint_rejects_invalid_lang(app: "SupersetApp") -> None:
+    """Invalid language codes are rejected with 400."""
+    with app.test_client() as client:
+        resp = client.get("/language_pack/zz/")
+        assert resp.status_code in (400, 404)

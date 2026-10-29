@@ -27,11 +27,21 @@ const StyledTotalCell = styled.div`
   `}
 `;
 
+// `align` originates from the chart's stored column_config
+// (col.config.horizontalAlign), which can be set to an arbitrary string via
+// a direct chart-params API write. Emotion compiles interpolated strings as
+// CSS source, so the value must be clamped to a closed set of keywords
+// before it reaches the stylesheet — never interpolated raw.
+const ALLOWED_ALIGN_VALUES = new Set(['left', 'right', 'center']);
+
+const safeAlign = (align?: string) =>
+  align && ALLOWED_ALIGN_VALUES.has(align) ? align : 'left';
+
 const CellContainer = styled.div<{ backgroundColor?: string; align?: string }>`
   display: flex;
   background-color: ${({ backgroundColor }) =>
     backgroundColor || 'transparent'};
-  justify-content: ${({ align }) => align || 'left'};
+  justify-content: ${({ align }) => safeAlign(align)};
 `;
 
 const ArrowContainer = styled.div<{ arrowColor?: string }>`
