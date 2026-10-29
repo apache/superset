@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager, nullcontext
+from functools import wraps
 from typing import Any, Iterator
 
 from superset_core.extensions.types import Manifest
@@ -76,6 +77,27 @@ def semantic_layer_context(
         yield
 
 
+def _contextual_attribute(
+    semantic_layer_id: str,
+    implementation: Any,
+    name: str,
+    layer_uuid: str | None,
+    view_uuid: str | None,
+) -> Any:
+    """Keep both property access and fallback method calls in provider context."""
+    with semantic_layer_context(semantic_layer_id, layer_uuid, view_uuid):
+        attribute = getattr(implementation, name)
+    if not callable(attribute):
+        return attribute
+
+    @wraps(attribute)
+    def contextualized(*args: Any, **kwargs: Any) -> Any:
+        with semantic_layer_context(semantic_layer_id, layer_uuid, view_uuid):
+            return attribute(*args, **kwargs)
+
+    return contextualized
+
+
 class ContextualSemanticView:
     """Forward semantic view operations inside their extension context."""
 
@@ -92,10 +114,27 @@ class ContextualSemanticView:
         self._view_uuid = view_uuid
 
     def __getattr__(self, name: str) -> Any:
+        return _contextual_attribute(
+            self._semantic_layer_id,
+            self._implementation,
+            name,
+            self._layer_uuid,
+            self._view_uuid,
+        )
+
+    def __hash__(self) -> int:
         with semantic_layer_context(
             self._semantic_layer_id, self._layer_uuid, self._view_uuid
         ):
-            return getattr(self._implementation, name)
+            return hash(self._implementation)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, ContextualSemanticView):
+            other = other._implementation
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
+            return self._implementation == other
 
     def uid(self) -> str:
         with semantic_layer_context(
@@ -176,10 +215,13 @@ class ContextualSemanticLayer:
         self._view_uuid = view_uuid
 
     def __getattr__(self, name: str) -> Any:
-        with semantic_layer_context(
-            self._semantic_layer_id, self._layer_uuid, self._view_uuid
-        ):
-            return getattr(self._implementation, name)
+        return _contextual_attribute(
+            self._semantic_layer_id,
+            self._implementation,
+            name,
+            self._layer_uuid,
+            self._view_uuid,
+        )
 
     def get_semantic_views(self, runtime_configuration: dict[str, Any]) -> set[Any]:
         with semantic_layer_context(

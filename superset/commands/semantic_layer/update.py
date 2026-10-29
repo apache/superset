@@ -136,10 +136,6 @@ def unmask_stored_configuration(
         raise SemanticLayerInvalidError(str(ex)) from None
 
 
-# Kept while callers transition to the descriptive shared name above.
-_unmask_configuration = unmask_stored_configuration
-
-
 class UpdateSemanticViewCommand(BaseCommand):
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id

@@ -63,7 +63,7 @@ def _contextualize_extension_api_method(
 
     @wraps(method)
     def contextualized(*args: Any, **kwargs: Any) -> Any:
-        with extension_context(manifest, user_id=get_user_id()):
+        with extension_context(manifest, user_id=get_user_id):
             return method(*args, **kwargs)
 
     return contextualized

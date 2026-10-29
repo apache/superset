@@ -30,6 +30,8 @@ from superset.exceptions import OAuth2RedirectError
 from superset.extensions.context import get_context
 from superset.semantic_layers.registry import (
     contextualize_semantic_layer,
+    ContextualSemanticLayer,
+    ContextualSemanticView,
     register_semantic_layer,
     semantic_layer_context,
     unregister_semantic_layer,
@@ -121,3 +123,81 @@ def test_view_authentication_uses_shared_oauth_error(
     assert query["view_uuid"] == ["view-uuid"]
     assert query["tab_id"] == [error.extra["tab_id"]]
     assert error.extra["redirect_uri"].endswith(error.extra["tab_id"])
+
+
+@pytest.mark.parametrize("wrapper", [ContextualSemanticLayer, ContextualSemanticView])
+def test_fallback_method_executes_in_provider_context(
+    app: Flask, wrapper: type[ContextualSemanticLayer] | type[ContextualSemanticView]
+) -> None:
+    """Fallback callables must retain context after attribute lookup returns."""
+    manifest = create_manifest("acme", "semantic")
+    provider_id = "extensions.acme.semantic.fallback"
+    register_semantic_layer(provider_id, MagicMock(), manifest)
+    implementation = MagicMock()
+    implementation.custom_operation.side_effect = lambda: get_context().extension.id
+    try:
+        with app.app_context():
+            proxy = wrapper(provider_id, implementation)
+            operation = proxy.custom_operation
+            assert operation() == manifest.id
+    finally:
+        unregister_semantic_layer(provider_id)
+
+
+@pytest.mark.parametrize("wrapper", [ContextualSemanticLayer, ContextualSemanticView])
+def test_fallback_method_translates_oauth_failure(
+    app: Flask, wrapper: type[ContextualSemanticLayer] | type[ContextualSemanticView]
+) -> None:
+    """Provider methods outside the explicit forwarders use the OAuth bridge."""
+    app.add_url_rule(
+        "/layers/<uuid>/oauth2/<action_id>",
+        endpoint="SemanticLayerRestApi.oauth2_start",
+    )
+    app.add_url_rule(
+        "/oauth2/complete/<tab_id>", endpoint="SemanticLayerRestApi.oauth2_complete"
+    )
+    implementation = MagicMock()
+    implementation.custom_operation.side_effect = (
+        SemanticLayerAuthenticationRequiredError("connect")
+    )
+    proxy = wrapper("personal", implementation, "layer-id", "view-id")
+    with app.test_request_context():
+        with pytest.raises(OAuth2RedirectError) as raised:
+            proxy.custom_operation()
+    assert "view_uuid=view-id" in raised.value.error.extra["url"]
+
+
+def test_wrapped_view_sets_preserve_provider_equality(app: Flask) -> None:
+    """Repeated discovery keeps provider equality and hashing across proxy sets."""
+
+    class ProviderView:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def __hash__(self) -> int:
+            assert get_context().extension.id == "acme.semantic"
+            return hash(self.name)
+
+        def __eq__(self, other: object) -> bool:
+            assert get_context().extension.id == "acme.semantic"
+            return isinstance(other, ProviderView) and self.name == other.name
+
+    manifest = create_manifest("acme", "semantic")
+    provider_id = "extensions.acme.semantic.equality"
+    layer = MagicMock()
+    layer.get_semantic_views.side_effect = lambda _: {
+        ProviderView("orders"),
+        ProviderView("customers"),
+        ProviderView("orders"),
+    }
+    register_semantic_layer(provider_id, MagicMock(), manifest)
+    try:
+        with app.app_context():
+            proxy = contextualize_semantic_layer(provider_id, layer)
+            first = proxy.get_semantic_views({})
+            second = proxy.get_semantic_views({})
+            assert len(first) == 2
+            assert first == second
+            assert len(first | second) == 2
+    finally:
+        unregister_semantic_layer(provider_id)
