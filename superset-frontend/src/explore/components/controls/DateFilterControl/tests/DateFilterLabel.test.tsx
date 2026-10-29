@@ -37,6 +37,7 @@ import {
   SHIFT_INTO_VIEWPORT,
 } from '../../ControlPopover/ControlPopover';
 import DateFilterLabel from '..';
+import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import { DateFilterControlProps } from '../types';
 import { DateFilterTestKey } from '../utils';
 
@@ -576,4 +577,33 @@ test('Cancel discards an unsaved range selection', async () => {
 
   expect(await screen.findByLabelText('Last week')).toBeChecked();
   expect(screen.getByLabelText('Last month')).not.toBeChecked();
+});
+
+test('without a partition mapping the trigger is not wrapped in a flex row', async () => {
+  // A flex wrapper makes the trigger a flex item, which shrank the Time Range
+  // box in the ad-hoc filter popover to its label (250px against 320px).
+  render(setup());
+  const trigger = await screen.findByTestId(DateFilterTestKey.PopoverOverlay);
+  expect(trigger.closest('.ant-flex')).toBeNull();
+  expect(
+    screen.queryByTestId('partition-pruning-indicator'),
+  ).not.toBeInTheDocument();
+});
+
+test('with a partition mapping the glyph sits beside a trigger that fills the row', async () => {
+  const partitionMapping: PartitionFilterMapping = {
+    partition_column: 'dt',
+    mapped_column: 'event_time',
+    active: true,
+    evaluable: true,
+    is_monotonic: true,
+    mirrorable_operators: ['TEMPORAL_RANGE'],
+  };
+  render(setup({ ...defaultProps, partitionMapping }));
+  const trigger = await screen.findByTestId(DateFilterTestKey.PopoverOverlay);
+  const row = trigger.closest('.ant-flex');
+  expect(row).not.toBeNull();
+  expect(
+    within(row as HTMLElement).getByTestId('partition-pruning-indicator'),
+  ).toBeInTheDocument();
 });
