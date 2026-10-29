@@ -26,7 +26,7 @@ import {
   useMemo,
 } from 'react';
 
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
@@ -835,11 +835,11 @@ const ResultSet = ({
                 padding-bottom: ${theme.sizeUnit * 3}px;
               `}
             >
-              <AutoSizer disableWidth>
-                {({ height: autoHeight }) => (
-                  <ResultTable {...tableProps} height={autoHeight} />
+              <AutoSizer
+                renderProp={({ height }) => (
+                  <ResultTable {...tableProps} height={height ?? 0} />
                 )}
-              </AutoSizer>
+              />
             </div>
           </ResultContainer>
           <StreamingExportModal

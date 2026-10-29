@@ -22,9 +22,16 @@ metadata database."""
 from typing import Any
 
 import pytest
-from sqlalchemy.exc import DataError, OperationalError, ProgrammingError, StatementError
+from sqlalchemy.exc import (
+    DataError,
+    IntegrityError,
+    OperationalError,
+    ProgrammingError,
+    StatementError,
+)
 
 from superset.versioning.db_errors import (
+    is_foreign_key_violation,
     is_lock_contention_error,
     is_missing_table_error,
 )
@@ -308,3 +315,59 @@ def test_lock_contention_negative(orig: BaseException | None) -> None:
 
 def test_lock_contention_none_input() -> None:
     assert is_lock_contention_error(None) is False
+
+
+def _integrity_error(orig: BaseException | None) -> IntegrityError:
+    err: IntegrityError = IntegrityError("stmt", None, Exception("boom"))
+    err.orig = orig
+    return err
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        _FakeLockDriverError(
+            args=(1452, "Cannot add or update a child row: a foreign key fails")
+        ),
+        _FakeLockDriverError(args=(1216, "Cannot add or update a child row")),
+        _FakeLockDriverError(pgcode="23503"),
+        _FakeLockDriverError(sqlstate="23503"),
+        _FakeLockDriverError(message="FOREIGN KEY constraint failed"),
+    ],
+)
+def test_foreign_key_violation_positive(orig: _FakeLockDriverError) -> None:
+    assert is_foreign_key_violation(_integrity_error(orig)) is True
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        # Unique and primary key violations are integrity errors too, but
+        # not a missing parent row.
+        _FakeLockDriverError(args=(1062, "Duplicate entry")),
+        _FakeLockDriverError(pgcode="23505"),
+        _FakeLockDriverError(message="UNIQUE constraint failed: dashboard_slices.id"),
+        # A structured code is decisive even when the message says otherwise.
+        _FakeLockDriverError(
+            args=(1062, "foreign key constraint failed"), sqlstate="23000"
+        ),
+        _FakeLockDriverError(pgcode="23505", message="foreign key constraint failed"),
+        None,
+    ],
+)
+def test_foreign_key_violation_negative(orig: BaseException | None) -> None:
+    assert is_foreign_key_violation(_integrity_error(orig)) is False
+
+
+def test_foreign_key_phrase_in_sql_is_not_a_violation() -> None:
+    """The wrapper's rendered statement is never read, so a statement that
+    merely mentions the phrase is not classified as a violation."""
+    err: IntegrityError = IntegrityError(
+        "SELECT 'foreign key constraint failed'", None, Exception()
+    )
+    err.orig = None
+    assert is_foreign_key_violation(err) is False
+
+
+def test_foreign_key_violation_none_input() -> None:
+    assert is_foreign_key_violation(None) is False
