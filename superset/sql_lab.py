@@ -39,7 +39,7 @@ from superset import (
     results_backend_use_msgpack,
     security_manager,
 )
-from superset.common.db_query_status import QueryStatus
+from superset.common.db_query_status import FINISHED_QUERY_STATUSES, QueryStatus
 from superset.constants import (
     QUERY_CANCEL_KEY,
     QUERY_DISPATCHED_KEY,
@@ -317,7 +317,7 @@ def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
         parsed_statement.set_limit_value(
             # fetch an extra row to inform user if there are more rows
             query.limit + 1,
-            query.database.db_engine_spec.limit_method,
+            query.database.db_engine_spec.get_limit_method(query.database),
         )
 
 
@@ -860,7 +860,8 @@ def cancel_query(query: Query) -> bool:
     action is required.
 
     :param query: Query to cancel
-    :return: True if query cancelled successfully, False otherwise
+    :return: True if query cancelled successfully, False otherwise, including
+        when the query finished while the stop was being prepared
     """
 
     if query.database.db_engine_spec.has_implicit_cancel():
@@ -868,6 +869,11 @@ def cancel_query(query: Query) -> bool:
 
     # Some databases may need to make preparations for query cancellation
     query.database.db_engine_spec.prepare_cancel_query(query)
+
+    if query.status in FINISHED_QUERY_STATUSES:
+        # The query finished while the stop was being prepared, so there is
+        # nothing left to cancel and its terminal status must be kept.
+        return False
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
         # Query has been cancelled prior to being able to set the cancel key.
