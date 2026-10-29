@@ -17,7 +17,11 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { getTimeFormatter, TimeGranularity } from '@superset-ui/core';
+import {
+  getColumnLabel,
+  getTimeFormatter,
+  TimeGranularity,
+} from '@superset-ui/core';
 import {
   getSelectedWaterfallKeys,
   getWaterfallCrossFilterDataMask,
@@ -290,30 +294,36 @@ test('a temporal X axis without a grain stays an exact match', () => {
 
 test('an adhoc temporal X axis compares the truncated expression', () => {
   const orderDate = '2021-01-01T00:00:00';
+  // Chart data serializes a temporal column as epoch milliseconds.
+  const epoch = Date.parse(`${orderDate}Z`);
   const column = {
     sqlExpression: 'CAST(order_date AS TIMESTAMP)',
     label: 'order_date',
     expressionType: 'SQL' as const,
   };
-  const formattedVal = getTimeFormatter('%Y-%m-%d')(new Date(`${orderDate}Z`));
-  const mask = getWaterfallCrossFilterDataMask({
+  const bucketColumn = {
+    ...column,
+    columnType: 'BASE_AXIS' as const,
+    timeGrain: TimeGranularity.MONTH,
+  };
+  const formattedVal = getTimeFormatter('%Y-%m-%d')(new Date(epoch));
+  const context = {
     category: {
       ...breakdownBar,
       xColumn: column,
-      xValue: orderDate,
+      xValue: epoch,
     },
-    selectedKeys: [],
     coltypeMapping: { order_date: GenericDataType.Temporal },
     timeFormat: '%Y-%m-%d',
     timeGrain: TimeGranularity.MONTH,
+  };
+  const mask = getWaterfallCrossFilterDataMask({
+    ...context,
+    selectedKeys: [],
   }).dataMask;
   expect(mask.extraFormData.filters).toEqual([
     {
-      col: {
-        ...column,
-        columnType: 'BASE_AXIS',
-        timeGrain: TimeGranularity.MONTH,
-      },
+      col: bucketColumn,
       op: '==',
       val: orderDate,
       formattedVal,
@@ -322,6 +332,17 @@ test('an adhoc temporal X axis compares the truncated expression', () => {
     { col: 'name', op: 'IN', val: ['Sylvester'] },
   ]);
   expect(mask.extraFormData.time_range).toBeUndefined();
+  expect(
+    getWaterfallDrillFilters(context).find(
+      filter => getColumnLabel(filter.col) === 'order_date',
+    ),
+  ).toEqual({
+    col: bucketColumn,
+    op: '==',
+    val: orderDate,
+    formattedVal,
+    grain: TimeGranularity.MONTH,
+  });
 });
 
 test('a time grain does not bucket a non-temporal X axis', () => {

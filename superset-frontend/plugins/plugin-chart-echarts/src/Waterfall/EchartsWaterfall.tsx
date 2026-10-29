@@ -17,7 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { ContextMenuFilters, TimeGranularity } from '@superset-ui/core';
+import {
+  ContextMenuFilters,
+  getColumnLabel,
+  TimeGranularity,
+} from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { WaterfallChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
@@ -113,11 +117,12 @@ export default function EchartsWaterfall(
           timeFormat: xAxisTimeFormat,
           timeGrain,
         }) as NonNullable<ContextMenuFilters['drillToDetail']>;
+        const xColumnLabel = getColumnLabel(category.xColumn);
         const xAxisFilters = drillFilters.filter(
-          filter => filter.col === category.xColumn,
+          filter => getColumnLabel(filter.col) === xColumnLabel,
         );
         const breakdownFilters = drillFilters.filter(
-          filter => filter.col !== category.xColumn,
+          filter => getColumnLabel(filter.col) !== xColumnLabel,
         );
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillFilters,

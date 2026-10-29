@@ -75,16 +75,36 @@ export const simpleFilterToAdhoc = (
 
   let result: AdhocFilter;
   if (isAdhocColumn(filterClause.col)) {
-    result = {
-      expressionType: 'SQL',
-      clause,
-      sqlExpression: translateToSql({
-        expressionType: ExpressionTypes.Simple,
-        subject: `(${filterClause.col.sqlExpression})`,
+    // A grain on an adhoc expression has to stay on the column. Compiling it
+    // to raw SQL drops the grain, so the bucket is no longer truncated.
+    if (filterClause.grain) {
+      result = {
+        expressionType: 'SIMPLE',
+        clause,
         operator: filterClause.op,
+        operatorId: Object.entries(OPERATOR_ENUM_TO_OPERATOR_TYPE).find(
+          operatorEntry => operatorEntry[1].operation === filterClause.op,
+        )?.[0],
+        subject: {
+          ...filterClause.col,
+          columnType: 'BASE_AXIS',
+          timeGrain: filterClause.col.timeGrain || filterClause.grain,
+        },
+        timeGrain: filterClause.grain,
         comparator: 'val' in filterClause ? filterClause.val : undefined,
-      } as SimpleAdhocFilter),
-    };
+      } as SimpleAdhocFilter;
+    } else {
+      result = {
+        expressionType: 'SQL',
+        clause,
+        sqlExpression: translateToSql({
+          expressionType: ExpressionTypes.Simple,
+          subject: `(${filterClause.col.sqlExpression})`,
+          operator: filterClause.op,
+          comparator: 'val' in filterClause ? filterClause.val : undefined,
+        } as SimpleAdhocFilter),
+      };
+    }
   } else {
     result = {
       expressionType: 'SIMPLE',

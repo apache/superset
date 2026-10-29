@@ -30,7 +30,11 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { NULL_STRING } from '../constants';
 import { formatSeriesName } from '../utils/series';
-import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import {
+  formatNaiveDateTime,
+  getTemporalXAxisDrillByFilter,
+  parseTemporalValue,
+} from '../utils/xAxisDrillByFilter';
 
 /** Matches `optionLabel` in `src/utils/common.ts`. */
 const EMPTY_STRING = '<empty string>';
@@ -206,6 +210,27 @@ function temporalBucketFilter(
   return filter?.op === 'TEMPORAL_RANGE' ? filter : undefined;
 }
 
+/**
+ * Chart data sends a temporal value as epoch milliseconds. A dataset column
+ * turns that into a timestamp literal; an adhoc expression has no native type,
+ * so the comparison has to carry a naive datetime instead.
+ */
+function adhocTemporalValue(
+  col: QueryFormColumn,
+  value: DataRecordValue,
+  coltypeMapping?: Record<string, number>,
+): DataRecordValue {
+  if (
+    value == null ||
+    isPhysicalColumn(col) ||
+    !isTemporalColumn(col, coltypeMapping)
+  ) {
+    return value;
+  }
+  const date = parseTemporalValue(value);
+  return date ? formatNaiveDateTime(date) : value;
+}
+
 function dimensionFilter(
   col: QueryFormColumn,
   value: DataRecordValue,
@@ -291,13 +316,20 @@ function crossFilterClause(
     ) {
       return drillFilter(
         adhocBucketColumn(dimension.col, context.timeGrain),
-        dimension.value,
+        adhocTemporalValue(
+          dimension.col,
+          dimension.value,
+          context.coltypeMapping,
+        ),
         formattedVal,
         context.timeGrain,
       );
     }
   }
-  return dimensionFilter(dimension.col, dimension.value);
+  return dimensionFilter(
+    dimension.col,
+    adhocTemporalValue(dimension.col, dimension.value, context.coltypeMapping),
+  );
 }
 
 function detailClause(
@@ -317,7 +349,16 @@ function detailClause(
     isTemporalColumn(dimension.col, context.coltypeMapping)
       ? context.timeGrain
       : undefined;
-  return drillFilter(dimension.col, dimension.value, formattedVal, grain);
+  const col =
+    grain && !isPhysicalColumn(dimension.col)
+      ? adhocBucketColumn(dimension.col, grain)
+      : dimension.col;
+  return drillFilter(
+    col,
+    adhocTemporalValue(dimension.col, dimension.value, context.coltypeMapping),
+    formattedVal,
+    grain,
+  );
 }
 
 export function getWaterfallCrossFilterDataMask({
