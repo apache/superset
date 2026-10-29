@@ -3416,15 +3416,19 @@ def test_a_guest_is_refused_rather_than_run_on_the_base_credential(
 
     database = _embedded_snowflake_database(username=username, password=password)
 
+    log_warning = mocker.patch("superset.models.core.logger.warning")
     with pytest.raises(SupersetErrorException) as excinfo:
         database._get_sqla_engine(nullpool=False)
 
     assert excinfo.value.error.error_type == (
-        SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
     )
     # A configuration problem, so monitoring must not count it as a server fault.
     assert excinfo.value.status == 400
     create_engine_mock.assert_not_called()
+    # The fix is for the administrator, so it goes to the server log.
+    reason = log_warning.call_args[0][-1]
+    assert "Embedded guest credentials" in reason
 
 
 @pytest.mark.parametrize("global_client", [False, True])
@@ -3753,7 +3757,7 @@ def test_async_embedded_guest_without_credentials_is_refused(
         database._get_sqla_engine(nullpool=False)
     assert (
         excinfo.value.error.error_type
-        == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        == SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
     )
     create_engine_mock.assert_not_called()
 
@@ -3796,15 +3800,70 @@ def test_a_guest_on_a_promoted_connection_is_refused_with_an_actionable_message(
 
     assert database.embedded_guest_missing_oauth2_client()
     assert not database.embedded_fallback_applies()
+    log_warning = mocker.patch("superset.models.core.logger.warning")
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    assert excinfo.value.status == 400
+    create_engine_mock.assert_not_called()
+
+    # The administrator is told both ways to fix the connection.
+    log_warning.assert_called_once()
+    args = log_warning.call_args[0]
+    assert args[1:3] == (database.database_name, database.id)
+    reason = args[-1]
+    assert 'turn off "Impersonate logged in user"' in reason
+    assert "OAuth2 client information" in reason
+    assert "DATABASE_OAUTH2_CLIENTS" in reason
+    assert "add embedded guest credentials" in reason
+
+
+@pytest.mark.parametrize("missing", ["oauth2_client", "embedded_credentials"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_refused_guest_sees_a_message_that_names_nothing_about_the_connection(
+    mocker: MockerFixture, missing: str
+) -> None:
+    """
+    The refusal reaches the embedded viewer intact, and says nothing sensitive.
+
+    Guest error responses are redacted to a generic "An error occurred while
+    fetching the data." unless the error type is one Superset authors itself, so
+    the refusal uses an allowlisted type with a fixed message. That message must
+    not name the connection, its engine, its authentication or its accounts.
+    """
+    from superset.exceptions import SupersetErrorException
+    from superset.utils.error_sanitization import sanitize_superset_error
+
+    mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    if missing == "oauth2_client":
+        database = _promoted_snowflake_database(credential_survived=False)
+    else:
+        database = _embedded_snowflake_database(username="", password="")
+
     with pytest.raises(SupersetErrorException) as excinfo:
         database._get_sqla_engine(nullpool=False)
 
     error = excinfo.value.error
-    assert error.error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
-    assert "OAuth2 client information" in error.message
-    assert "imported from another environment" in error.message
-    assert excinfo.value.status == 400
-    create_engine_mock.assert_not_called()
+    assert sanitize_superset_error(error, required=True) is error
+    assert "isn't set up for embedded dashboards" in error.message
+    for detail in (
+        database.database_name,
+        "Snowflake",
+        "OAuth2",
+        "Impersonate",
+        "svc_user",
+        "xy12345",
+        "ANALYST",
+        "COMPUTE_WH",
+        "credential",
+    ):
+        assert detail.lower() not in error.message.lower()
 
 
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)

@@ -14748,6 +14748,9 @@ msgstr ""
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
+msgid "This chart can't be shown here because its database connection isn't set up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
@@ -14836,9 +14839,6 @@ msgid "This dashboard was saved successfully."
 msgstr ""
 
 msgid "This dashboard will be restored to the following version:"
-msgstr ""
-
-msgid "This dashboard's database connection authenticates users individually and has no credential configured for embedded viewers, so this query cannot run."
 msgstr ""
 
 msgid "This database does not allow creating tables from queries (CTAS). Please contact your administrator for more assistance."
