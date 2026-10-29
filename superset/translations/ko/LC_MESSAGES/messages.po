@@ -12780,6 +12780,12 @@ msgstr "각 기간의 고가."
 msgid "Histogram"
 msgstr "히스토그램"
 
+msgid ""
+"Hive requires a partition filter for this table. Add a filter on the "
+"partition column, or a time range on a column with a working partition "
+"mapping, and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13138,6 +13144,9 @@ msgstr "이 보기에서 처음 25개 행을 미리 볼 수 있습니다. "
 #, fuzzy
 msgid "Inactive"
 msgstr "차트 유형"
+
+msgid "Include :value in the transform to represent the filter value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -18550,6 +18559,9 @@ msgstr ""
 
 msgid "Preview"
 msgstr "데이터 미리보기"
+
+msgid "Preview temporarily unavailable"
+msgstr ""
 
 msgid "Preview this version"
 msgstr ""
@@ -25064,7 +25076,7 @@ msgstr "포트가 닫혀 있습니다."
 msgid "The port number is invalid."
 msgstr "차트의 파라미터가 부적절합니다."
 
-msgid "The preview could not be loaded."
+msgid "The preview could not be loaded. Try again."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -25570,7 +25582,9 @@ msgstr ""
 #, python-format
 msgid ""
 "The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
+"Mirrored filters on this mapping would fail at the database. Return a "
+"value compatible with %(type)s; use an explicit CAST in the transform if "
+"appropriate."
 msgstr ""
 
 #, python-format
@@ -25578,6 +25592,11 @@ msgid ""
 "The transform returned %(returned)s for %(column)s, which this database "
 "cannot write into a query as a %(type)s value without changing it. "
 "Filters on this mapping will not be mirrored."
+msgstr ""
+
+msgid ""
+"The transform returned NULL for one or more preview values, so no "
+"partition filter was generated."
 msgstr ""
 
 #, fuzzy
@@ -25688,14 +25707,14 @@ msgid ""
 msgstr ""
 
 msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
+"The value transform could not be parsed. Fix the expression to preview "
+"it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 #, python-format
 msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
+"The value transform could not be parsed: %(detail)s Fix the expression to"
+" preview it. Filters will not be mirrored while it is invalid."
 msgstr ""
 
 msgid ""
@@ -27495,6 +27514,9 @@ msgid "Token Request URI"
 msgstr "토큰 요청 URI"
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many preview requests. Wait a moment and try again."
 msgstr ""
 
 msgid "Too many requests. Please wait and try again."
@@ -32678,6 +32700,10 @@ msgstr "실행 취소"
 msgid "unknown type icon"
 msgstr "알 수 없는 에러"
 
+#, python-format
+msgid "unmatched parenthesis at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "unset"
 msgstr "컬럼 추가"
@@ -32694,6 +32720,9 @@ msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
 " than lower percentile."
 msgstr "상위 백분위수는 0보다 크고 100보다 작아야 합니다. 하위 백분위수보다 높아야 합니다."
+
+msgid "use a single SQL expression; this transform contains multiple expressions."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

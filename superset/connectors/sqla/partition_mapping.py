@@ -191,13 +191,11 @@ from typing import Any, cast, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-import sqlglot
 from dateutil.relativedelta import relativedelta
 from flask import current_app as app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.elements import ColumnElement
-from sqlglot.tokens import TokenType
 
 from superset.constants import LRU_CACHE_MAX_SIZE, TimeGrain
 from superset.exceptions import (
@@ -206,7 +204,11 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, feature_flag_manager
-from superset.sql.parse import SQLGLOT_DIALECTS, SQLScript, SQLStatement
+from superset.sql.parse import (
+    find_unmatched_parenthesis,
+    SQLScript,
+    SQLStatement,
+)
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator, get_username
@@ -893,24 +895,6 @@ def parse_skeleton(transform: str, standin: str = _PARSE_STANDIN) -> str:
 _SELECT_PREFIX = "SELECT "
 
 
-def _unmatched_parenthesis(transform: str, engine: str) -> int | None:
-    """Locate an unmatched SQL parenthesis, ignoring quoted text and comments."""
-    try:
-        tokens = sqlglot.tokenize(transform, read=SQLGLOT_DIALECTS.get(engine))
-    except sqlglot.errors.TokenError:
-        # Let the parser explain other unfinished tokens.
-        return None
-    openings: list[int] = []
-    for token in tokens:
-        if token.token_type == TokenType.L_PAREN:
-            openings.append(token.start + 1)
-        elif token.token_type == TokenType.R_PAREN:
-            if not openings:
-                return token.start + 1
-            openings.pop()
-    return openings[-1] if openings else None
-
-
 def _parse_skeleton(
     transform: str, engine: str, standin: str = _PARSE_STANDIN
 ) -> SQLStatement | None:
@@ -919,7 +903,7 @@ def _parse_skeleton(
 
     Returns ``None`` when the transform does not parse.
     """
-    if _unmatched_parenthesis(transform, engine) is not None:
+    if find_unmatched_parenthesis(transform, engine) is not None:
         return None
     try:
         return SQLStatement(
@@ -941,7 +925,7 @@ def parse_error_detail(transform: str, engine: str) -> str | None:
     The parser's own ``highlight`` is deliberately dropped: it would name the
     ``NULL`` we substituted for ``:value``, which is not a token the owner typed.
     """
-    if position := _unmatched_parenthesis(transform, engine):
+    if position := find_unmatched_parenthesis(transform, engine):
         return str(
             _("unmatched parenthesis at position %(position)d.", position=position)
         )
@@ -1105,7 +1089,7 @@ def is_unfinished(transform: str | None, engine: str) -> bool:
     """
     if not transform or not transform.strip():
         return False
-    if _unmatched_parenthesis(transform, engine) is not None:
+    if find_unmatched_parenthesis(transform, engine) is not None:
         return True
     try:
         SQLScript(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
