@@ -40,6 +40,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import Select
 
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
@@ -286,6 +287,19 @@ def test_dttm_sql_literal(
     result: str,
 ) -> None:
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
+
+
+def test_parameters_rejects_invalid_uri(app_context: None) -> None:
+    """
+    Test that an unparseable saved URI still raises instead of returning no parameters.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:pass@host:notaport/db",
+    )
+
+    with pytest.raises(DatabaseInvalidError):
+        _ = database.parameters
 
 
 def test_table_column_database() -> None:
