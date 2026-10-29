@@ -25,11 +25,14 @@ import {
   ChartProps,
   ComparisonType,
   ContributionType,
+  createSmartDateFormatter,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
@@ -4839,4 +4842,88 @@ test.each([
 
   const { echartOptions } = transformProps(chartProps);
   expect((echartOptions.yAxis as any).minInterval).toBe(expected);
+});
+
+test.each<[string | undefined, TimeGranularity]>([
+  [undefined, TimeGranularity.DAY],
+  [SMART_DATE_ID, TimeGranularity.DAY],
+  [SMART_DATE_ID, TimeGranularity.DATE],
+  ['%d/%m/%Y', TimeGranularity.DAY],
+])(
+  '#45489 gives boundaries standalone dates and hides colliding ticks (%s, %s)',
+  (xAxisTimeFormat, timeGrainSqla) => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla,
+          xAxisTimeFormat,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual(
+      xAxisTimeFormat === '%d/%m/%Y'
+        ? ['05/03/2014', '01/01/2016', '', '17/08/2026']
+        : ['Wed 5 Mar 2014', '2016', '', 'Mon 17 Aug 2026'],
+    );
+  },
+);
+
+test('#45489 retains hour precision in standalone boundary dates', () => {
+  const timestamps = [Date.UTC(2026, 7, 17, 9), Date.UTC(2026, 7, 17, 15)];
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      width: 1200,
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.HOUR,
+        xAxisTimeFormat: SMART_DATE_ID,
+      },
+      queriesData: [
+        createTestQueryData(
+          timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+          {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          },
+        ),
+      ],
+    }),
+  );
+  const { formatter } = (
+    echartOptions.xAxis as {
+      axisLabel: { formatter: (value: number) => string };
+    }
+  ).axisLabel;
+
+  expect(timestamps.map(formatter)).toEqual([
+    '2026-08-17 09:00',
+    '2026-08-17 15:00',
+  ]);
 });

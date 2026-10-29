@@ -389,6 +389,86 @@ test('createSpacedXAxisFormatter still dedupes identical consecutive labels when
   expect(labels).toEqual(['Jan', '', '']);
 });
 
+test('#45489 reserves space for both aligned boundary labels', () => {
+  const formatter = createSpacedXAxisFormatter(
+    () => 'Year',
+    0,
+    1000,
+    400,
+    false,
+    (value: number | string) => (value === 0 ? '5 Mar 2014' : '17 Aug 2026'),
+  );
+  const ticks = [0, 200, 500, 800, 1000];
+  const expected = ['5 Mar 2014', '', 'Year', '', '17 Aug 2026'];
+
+  expect(ticks.map(formatter)).toEqual(expected);
+  // ECharts formats the axis repeatedly during layout.
+  expect(ticks.map(formatter)).toEqual(expected);
+});
+
+test('#45489 protects boundaries even when ECharts does not format them first', () => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, 100);
+
+  expect(formatter(100)).toBe('');
+  expect(formatter(500)).toBe('500');
+  expect(formatter(800)).toBe('');
+  expect(formatter(1000)).toBe('1000');
+});
+
+test('#45489 allows ticks only outside the aligned boundary text and gap', () => {
+  const formatter = createSpacedXAxisFormatter(
+    String,
+    0,
+    1000,
+    1000,
+    false,
+    (value: number | string) => (value === 0 ? '5 Mar 2014' : '17 Aug 2026'),
+  );
+
+  expect([0, 84, 85, 904, 905, 1000].map(formatter)).toEqual([
+    '5 Mar 2014',
+    '',
+    '85',
+    '904',
+    '',
+    '17 Aug 2026',
+  ]);
+});
+
+test.each([0, 10])('#45489 retains boundaries on a %spx plot', width => {
+  const formatter = createSpacedXAxisFormatter(String, 0, 1000, width);
+  expect([0, 500, 1000].map(formatter)).toEqual(['0', '', '1000']);
+});
+
+test('#45489 retains full boundary dates when showing all labels', () => {
+  const start = Date.UTC(2014, 2, 5);
+  const end = Date.UTC(2026, 7, 17);
+  const formatter = createSpacedXAxisFormatter(
+    getXAxisFormatter(SMART_DATE_ID, TimeGranularity.DAY),
+    start,
+    end,
+    100,
+    true,
+    getTooltipTimeFormatter(SMART_DATE_ID, TimeGranularity.DAY),
+  );
+
+  expect([start, Date.UTC(2026, 0, 1), end].map(formatter)).toEqual([
+    '2014-03-05',
+    '2026',
+    '2026-08-17',
+  ]);
+  expect((formatter as { id?: string }).id).toBe(SMART_DATE_ID);
+});
+
+test.each([undefined, 0, -1])(
+  '#45489 tolerates an unavailable or degenerate domain (%s)',
+  domainMax => {
+    const formatter = createSpacedXAxisFormatter(String, 0, domainMax, 400);
+    expect(formatter(100)).toBe('100');
+    expect(formatter(200)).toBe('200');
+  },
+);
+
 describe('coerceTemporalMs', () => {
   test('passes a number through unchanged', () => {
     expect(coerceTemporalMs(1712361600000)).toBe(1712361600000);

@@ -279,7 +279,8 @@ export function createDedupXAxisFormatter(
  *   label on the axis.
  *
  * The forced axis boundary labels (domainMin/domainMax) are never blanked by
- * the spacing check so they stay visible regardless of density.
+ * the spacing check so they stay visible regardless of density. Reserve space
+ * for their left/right-aligned text before accepting a centered regular tick.
  *
  * `showAllLabels` (the "All" X Axis Label Interval option) skips the spacing
  * check so every tick renders, even ones that would visually collide. The
@@ -292,11 +293,27 @@ export function createSpacedXAxisFormatter(
   domainMax: number | undefined,
   plotWidthPx: number,
   showAllLabels: boolean = false,
+  boundaryFormatter: XAxisFormatterFn | undefined = xAxisFormatter,
 ): (value: number | string) => string {
   const pixelsPerMs =
     domainMin !== undefined && domainMax !== undefined && domainMax > domainMin
       ? plotWidthPx / (domainMax - domainMin)
       : undefined;
+  const formatLabel = (value: number | string, isBoundary: boolean) => {
+    const formatter = isBoundary ? boundaryFormatter : xAxisFormatter;
+    return typeof formatter === 'function'
+      ? (formatter as (value: number | string) => string)(value)
+      : String(value);
+  };
+  const { xAxisLabelCharWidthPx, xAxisLabelMinGapPx } = TIMESERIES_CONSTANTS;
+  const minLabelWidth =
+    domainMin === undefined
+      ? 0
+      : formatLabel(domainMin, true).length * xAxisLabelCharWidthPx;
+  const maxLabelWidth =
+    domainMax === undefined
+      ? 0
+      : formatLabel(domainMax, true).length * xAxisLabelCharWidthPx;
   let lastLabel: string | undefined;
   let lastValue: number | undefined;
   let lastShownValue: number | undefined;
@@ -316,24 +333,30 @@ export function createSpacedXAxisFormatter(
     if (typeof value === 'number') {
       lastValue = value;
     }
-    const label =
-      typeof xAxisFormatter === 'function'
-        ? (xAxisFormatter as Function)(value)
-        : String(value);
+    const isBoundary =
+      typeof value === 'number' && (value === domainMin || value === domainMax);
+    const label = formatLabel(value, isBoundary);
     if (label === lastLabel) {
       return '';
     }
-    const isBoundary =
-      typeof value === 'number' && (value === domainMin || value === domainMax);
     if (
       !showAllLabels &&
       !isBoundary &&
       typeof value === 'number' &&
       pixelsPerMs !== undefined &&
-      lastShownValue !== undefined &&
-      (value - lastShownValue) * pixelsPerMs <
-        label.length * TIMESERIES_CONSTANTS.xAxisLabelCharWidthPx +
-          TIMESERIES_CONSTANTS.xAxisLabelMinGapPx
+      ((domainMin !== undefined &&
+        (value - domainMin) * pixelsPerMs <
+          minLabelWidth +
+            (label.length * xAxisLabelCharWidthPx) / 2 +
+            xAxisLabelMinGapPx) ||
+        (domainMax !== undefined &&
+          (domainMax - value) * pixelsPerMs <
+            maxLabelWidth +
+              (label.length * xAxisLabelCharWidthPx) / 2 +
+              xAxisLabelMinGapPx) ||
+        (lastShownValue !== undefined &&
+          (value - lastShownValue) * pixelsPerMs <
+            label.length * xAxisLabelCharWidthPx + xAxisLabelMinGapPx))
     ) {
       return '';
     }
