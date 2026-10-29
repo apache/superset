@@ -24,6 +24,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  FC,
 } from 'react';
 import { isNil } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
@@ -502,9 +503,13 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-export const Modal = Object.assign(CustomModal, {
-  error: AntdModal.error,
-  warning: AntdModal.warning,
-  confirm: AntdModal.confirm,
-  useModal: AntdModal.useModal,
-});
+// The explicit type keeps the non-exported CustomModal out of the package's
+// declaration output, which TypeScript 7 rejects (TS4082).
+export const Modal: FC<ModalProps> &
+  Pick<typeof AntdModal, 'error' | 'warning' | 'confirm' | 'useModal'> =
+  Object.assign(CustomModal, {
+    error: AntdModal.error,
+    warning: AntdModal.warning,
+    confirm: AntdModal.confirm,
+    useModal: AntdModal.useModal,
+  });
