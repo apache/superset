@@ -3357,3 +3357,84 @@ def test_epoch_bucket_queries_preserve_actual_rows(
         connection.execute(unmirrored_sql).fetchall()
     )
     connection.close()
+
+
+@pytest.mark.parametrize("source_type", ["TIMESTAMP", "VARCHAR"])
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value)",
+        "CAST(unix_timestamp(:value) AS BIGINT)",
+        "unix_timestamp(:value) + 0",
+        "unix_timestamp(:value) * 1",
+        "floor(unix_timestamp(:value))",
+    ],
+)
+def test_a_raw_instant_transform_is_declined_onto_hourly_keys(
+    app: Flask, source_type: str, transform: str
+) -> None:
+    """
+    Any spelling of a raw-instant transform, on a timestamp or a text timestamp
+    column, would drop rows from hour-bucketed keys; the canaries decline it.
+    """
+    import math
+    import sqlite3
+    from datetime import timezone
+
+    from superset.connectors.sqla.partition_mapping import (
+        preview_partition_mapping,
+    )
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("floor", 1, math.floor)
+    connection.create_function(
+        "unix_timestamp",
+        1,
+        lambda value: int(
+            datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+        ),
+    )
+    connection.execute(
+        "CREATE TABLE web_events (country TEXT, event_time TEXT, dt_epoch BIGINT)"
+    )
+    origin = 1790812800  # 2026-10-01 UTC
+    connection.executemany(
+        "INSERT INTO web_events VALUES (?, ?, ?)",
+        [
+            (
+                str(offset),
+                datetime.fromtimestamp(origin + offset, timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                (origin + offset) // 3600 * 3600,
+            )
+            for offset in (37800, 38000, 39599)
+        ],
+    )
+    table = _table(transform=transform)
+    next(c for c in table.columns if c.column_name == "event_time").type = source_type
+    arguments = {
+        "filter": [{"col": "event_time", "op": "==", "val": "2026-10-01 10:33:20"}]
+    }
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "get_df",
+            side_effect=lambda sql, **kwargs: pd.read_sql_query(sql, connection),
+        ),
+    ):
+        mirrored_sql = _query(table, **arguments)
+        preview = preview_partition_mapping(
+            table,
+            mapped_column="event_time",
+            value_transform=transform,
+            sample_values=["2026-10-01 10:33:20"],
+        )
+        table.partition_column = None
+        unmirrored_sql = _query(table, **arguments)
+    assert "dt_epoch" not in mirrored_sql
+    assert connection.execute(mirrored_sql).fetchall() == [("38000",)]
+    assert connection.execute(unmirrored_sql).fetchall() == [("38000",)]
+    assert preview["reason"] == "unbucketed_epoch"
+    connection.close()

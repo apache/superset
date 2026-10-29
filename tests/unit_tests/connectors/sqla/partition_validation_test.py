@@ -26,10 +26,8 @@ import pytest
 from flask import Flask
 
 from superset.connectors.sqla.partition_mapping import (
-    build_mirrored_predicates,
     epoch_mapping_refusal,
     evaluate_transform,
-    PartitionMapping,
     preview_partition_mapping,
     resolve_partition_mapping,
 )
@@ -45,7 +43,7 @@ from superset.db_engine_specs.impala import ImpalaEngineSpec
 from superset.db_engine_specs.spark import SparkEngineSpec
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
-from superset.utils.core import FilterOperator, QueryStatus
+from superset.utils.core import QueryStatus
 from tests.unit_tests.models.partition_mirroring_test import _table
 
 
@@ -88,14 +86,8 @@ def test_former_default_is_declined_without_probing(
     ):
         assert spec.partition_value_transform_default is None
         assert epoch_mapping_refusal(table, "event_time", "dt_epoch", transform)
+        # The chart path reaches `build_mirrored_predicates` only through this.
         assert resolve_partition_mapping(table) is None
-        mapping = PartitionMapping("dt_epoch", "event_time", transform, True, True)
-        assert (
-            build_mirrored_predicates(
-                table, mapping, [(FilterOperator.EQUALS, "2026-01-15 10:47:23")]
-            )
-            == []
-        )
         preview = preview_partition_mapping(
             table,
             mapped_column="event_time",

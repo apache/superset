@@ -185,6 +185,7 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
@@ -1157,14 +1158,135 @@ def epoch_mapping_refusal(
         "mapped_column": str(mapped_column),
         "partition_column": str(partition_column),
         "value_transform": transform,
-        "message": str(
-            _(
-                "Raw epoch conversion does not specify the partition bucket. "
-                "Use the expression that populates the partition key, including "
-                "its hour or day rounding and timezone. Filters will not be mirrored."
-            )
-        ),
+        "message": _unbucketed_epoch_message(),
     }
+
+
+def _unbucketed_epoch_message() -> str:
+    return str(
+        _(
+            "Raw epoch conversion does not specify the partition bucket. "
+            "Use the expression that populates the partition key, including "
+            "its hour or day rounding and timezone. Filters will not be mirrored."
+        )
+    )
+
+
+#: Two instants 2843 seconds apart within one hour, probed for every
+#: temporal-to-numeric mirror. A transform that keeps that distance is answering
+#: raw epoch seconds (or milliseconds), not an hour or day key, whatever its
+#: spelling -- `CAST(unix_timestamp(:value) AS BIGINT)`, `+ 0`,
+#: `floor(unix_timestamp(:value))`. Mirroring raw instants onto bucketed keys
+#: drops rows; a partition per second is not a layout a warehouse survives, so
+#: declining costs pruning, never correctness.
+_EPOCH_CANARIES = (datetime(2001, 1, 1, 10, 0, 0), datetime(2001, 1, 1, 10, 47, 23))
+_RAW_INSTANT_STEPS = {2843, 2843000}
+
+
+def _epoch_canaries(
+    datasource: SqlaTable,
+    mapped_column: str,
+    partition_column: TableColumn,
+) -> list[Any]:
+    """The canary inputs for this mapping, empty when the check does not apply."""
+    source = next(
+        (col for col in datasource.columns if col.column_name == mapped_column),
+        None,
+    )
+    if (
+        source is None
+        or _native_generic_type(partition_column) != utils.GenericDataType.NUMERIC
+    ):
+        return []
+    source_type = _native_generic_type(source)
+    if source_type == utils.GenericDataType.TEMPORAL:
+        return list(_EPOCH_CANARIES)
+    if source_type == utils.GenericDataType.STRING and source.is_dttm:
+        # A text timestamp column binds the text the author typed.
+        return [canary.isoformat(sep=" ") for canary in _EPOCH_CANARIES]
+    return []
+
+
+def _canary_answers(
+    datasource: SqlaTable,
+    mapped_column: str,
+    partition_column: TableColumn,
+    mapping: PartitionMapping,
+) -> list[Any] | None:
+    """
+    The transform's answers at the canaries, or ``None`` when not applicable.
+
+    A probe of its own rather than extra values in the chart's batch, so the
+    filter values' probe and its cache entry are untouched; the canaries are
+    constant, so after the first chart this is a cache hit. Calls `_probe`
+    rather than `_run_probe` so a canary the engine rejects records no verdict
+    about a transform that evaluates the filter values perfectly well.
+    """
+    canaries = _epoch_canaries(datasource, mapped_column, partition_column)
+    if not canaries:
+        return None
+    database = datasource.database
+    key = _probe_cache_key(
+        database,
+        datasource.catalog,
+        datasource.schema,
+        mapping.value_transform,
+        canaries,
+    )
+    answers = _cache_get(key)
+    if answers is None:
+        answers = _probe(
+            database,
+            datasource.catalog,
+            datasource.schema,
+            mapping.value_transform,
+            canaries,
+        )
+        if answers is not None:
+            _cache_set(key, answers)
+    return answers
+
+
+def _declined_as_raw_instants(
+    datasource: SqlaTable,
+    mapping: PartitionMapping,
+    partition_column: TableColumn,
+    epoch_errors: list[str] | None,
+) -> bool:
+    """Whether to decline because the transform answers raw epoch instants."""
+    if not _answers_raw_instants(
+        _canary_answers(datasource, mapping.mapped_column, partition_column, mapping)
+    ):
+        return False
+    logger.warning(
+        "Partition transform answers raw epoch instants for a numeric key; "
+        "queries will not prune"
+    )
+    # Every probe of this transform re-records it, cache hit or not, so the
+    # editor and Explore stop promising pruning the query does not carry.
+    record_mirror_verdict(
+        datasource.database,
+        datasource.catalog,
+        datasource.schema,
+        mapping.value_transform,
+        mirrors=False,
+    )
+    if epoch_errors is not None:
+        epoch_errors.append(_unbucketed_epoch_message())
+    return True
+
+
+def _answers_raw_instants(answers: list[Any] | None) -> bool:
+    """Whether the canary answers sit exactly as far apart as their inputs."""
+    if not answers or len(answers) != len(_EPOCH_CANARIES):
+        return False
+    low, high = (_to_python_scalar(answer) for answer in answers)
+    if any(
+        isinstance(answer, bool) or not isinstance(answer, (int, float, Decimal))
+        for answer in (low, high)
+    ):
+        return False
+    return high - low in _RAW_INSTANT_STEPS
 
 
 def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
@@ -3168,6 +3290,7 @@ def _preview_probe_value(
     type_errors: list[str] = []
     escaping_errors: list[str] = []
     shape_errors: list[str] = []
+    epoch_errors: list[str] = []
     try:
         predicates = build_mirrored_predicates(
             datasource,
@@ -3177,6 +3300,7 @@ def _preview_probe_value(
             type_errors=type_errors,
             escaping_errors=escaping_errors,
             shape_errors=shape_errors,
+            epoch_errors=epoch_errors,
         )
     except Exception:  # pylint: disable=broad-except
         # The chart path fails open on the same call; the preview reports it
@@ -3187,6 +3311,13 @@ def _preview_probe_value(
             "reason": "engine",
             "sample_input": sample_input,
             "error": _("The transform could not be evaluated against the database."),
+        }
+    if epoch_errors:
+        return {
+            "valid": False,
+            "reason": "unbucketed_epoch",
+            "sample_input": sample_input,
+            "error": epoch_errors[0],
         }
     if shape_errors:
         return {
@@ -3500,6 +3631,7 @@ def build_mirrored_predicates(
     type_errors: list[str] | None = None,
     escaping_errors: list[str] | None = None,
     shape_errors: list[str] | None = None,
+    epoch_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -3527,13 +3659,10 @@ def build_mirrored_predicates(
         this database cannot be asked about" is a third problem, and the only
         one of the three whose fix is to stop the transform producing the
         character.
+    :param epoch_errors: optional sink for a transform answering raw epoch
+        instants onto a numeric key -- see `_EPOCH_CANARIES`.
     """
-    if not requests or epoch_mapping_refusal(
-        datasource,
-        mapping.mapped_column,
-        mapping.partition_column,
-        mapping.value_transform,
-    ):
+    if not requests:
         return []
 
     partition_column = next(
@@ -3572,7 +3701,9 @@ def build_mirrored_predicates(
     if not _bounds_are_ordered(evaluated, spans):
         return []
 
-    if _declined_for_reading_by_type(flat, evaluated, text_answers, shape_errors):
+    if _declined_for_reading_by_type(
+        flat, evaluated, text_answers, shape_errors
+    ) or _declined_as_raw_instants(datasource, mapping, partition_column, epoch_errors):
         return []
 
     # Declining here is the last chance to decline at all: once these

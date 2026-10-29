@@ -92,10 +92,14 @@ Bare `unix_timestamp(:value)` is not suggested or mirrored for temporal-to-numer
 mappings on Hive/Impala and their engine-spec subclasses. It produces an instant,
 not an hour/day boundary, and can silently exclude matching rows. Existing expressions
 remain editable; replace them with the pipeline's actual partition expression.
-Only that exact expression is recognised. Other spellings that still yield an unbucketed
-instant, such as `CAST(unix_timestamp(:value) AS BIGINT)`, `unix_timestamp(:value) + 0`
-or `floor(unix_timestamp(:value))`, or the bare form on a `STRING` timestamp column, are
-not detected. Check every transform with **Validate against data**.
+On any engine, a transform from a timestamp column (or a text column flagged as a
+datetime) onto a numeric key is also evaluated at two instants 2,843 seconds apart within
+one hour. If its answers are exactly that far apart (or 2,843,000, for milliseconds), it
+returns raw instants, however it is spelled: `CAST(unix_timestamp(:value) AS BIGINT)`,
+`unix_timestamp(:value) + 0` and `floor(unix_timestamp(:value))` are all declined. A key
+that really stores raw epoch seconds is declined too; queries then scan every partition
+but return correct rows. This check cannot catch a wrong bucket size or timezone, so still
+check every transform with **Validate against data**.
 
 Dataset time-range bounds already pass through Superset's timezone/hour-offset adjustment
 before mirroring. Do not convert those bounds from the dataset timezone a second time.
