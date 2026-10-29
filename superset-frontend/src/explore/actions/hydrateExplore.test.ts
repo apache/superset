@@ -54,19 +54,27 @@ function hydrateNewSemanticChart(
       user: {},
       charts: {},
       datasources: {},
-      common: {},
+      common: { conf: {} },
       explore: { hiddenFormData },
     }) as ExplorePageState;
   hydrateExplore({
     ...exploreInitialData,
     slice: null,
     form_data: {
-      datasource: `8__${type}`,
-      viz_type: VizType.Table,
+      adhoc_filters: [],
+      applied_time_extras: {},
+      datasource: `4__${type}`,
+      url_params: {
+        datasource_id: '4',
+        datasource_type: type,
+        viz_type: 'table',
+      },
       ...extraFormData,
-    },
+      // The API omits viz_type; hydration supplies it before query construction.
+    } as QueryFormData,
     dataset: {
       ...exploreInitialData.dataset,
+      id: 4,
       type,
       semantic_selection_version: 'cube-member-id-v1',
     },
@@ -74,7 +82,7 @@ function hydrateNewSemanticChart(
   return dispatch.mock.calls[0][0] as import('./hydrateExplore').HydrateExplore;
 }
 
-test('new identity-only semantic chart stamps controls and built query extras', () => {
+test('real new semantic chart payload stamps controls and built query extras', () => {
   const action = hydrateNewSemanticChart();
   const { explore, charts } = action.data;
   expect(explore.form_data.semantic_selection_version).toBe(
@@ -84,13 +92,29 @@ test('new identity-only semantic chart stamps controls and built query extras', 
     'cube-member-id-v1',
   );
   const queryFormData = Object.values(charts)[0].latestQueryFormData!;
-  expect(queryFormData.datasource).toBe('8__semantic_view');
+  expect(queryFormData.datasource).toBe('4__semantic_view');
   expect(queryFormData.viz_type).toBe(VizType.Table);
   expect(queryFormData.semantic_selection_version).toBe('cube-member-id-v1');
   expect(
     // ChartState permits partial form data; hydration supplies identity above.
     buildQueryContext(queryFormData as QueryFormData).queries[0].extras
       ?.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+});
+
+test.each<Record<string, string>>([
+  {},
+  {
+    datasource_id: '4',
+    datasource_type: 'semantic_view',
+    viz_type: 'table',
+    slice_id: '9',
+    form_data_key: 'cached-navigation',
+  },
+])('permits only string-valued navigation identities: %j', url_params => {
+  expect(
+    hydrateNewSemanticChart({ url_params }).data.explore.form_data
+      .semantic_selection_version,
   ).toBe('cube-member-id-v1');
 });
 
@@ -102,6 +126,14 @@ test.each([
   { x_axis: 'old' },
   { all_columns: ['old'] },
   { adhoc_filters: [{ subject: 'old' }] },
+  { applied_time_extras: { __time_col: 'old' } },
+  { url_params: { groupby: 'old' } },
+  { url_params: { datasource_id: { column: 'old' } } },
+  { url_params: [] },
+  { url_params: null },
+  { applied_time_extras: [] },
+  { applied_time_extras: null },
+  { adhoc_filters: {} },
   { column_config: { old: {} } },
   { plugin_field: 'old' },
   { semantic_selection_version: 'old' },

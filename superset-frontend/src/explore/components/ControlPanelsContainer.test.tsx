@@ -286,14 +286,26 @@ describe('ControlPanelsContainer', () => {
     },
   );
 
-  test('new identity-only semantic chart hydrates without the banner', () => {
+  test('real new semantic chart payload hydrates without the banner', () => {
     const dispatch = jest.fn();
+    const formData: Partial<QueryFormData> = {
+      adhoc_filters: [],
+      applied_time_extras: {},
+      datasource: '4__semantic_view',
+      url_params: {
+        datasource_id: '4',
+        datasource_type: 'semantic_view',
+        viz_type: 'table',
+      },
+    };
     hydrateExplore({
       ...exploreInitialData,
       slice: null,
-      form_data: { datasource: '8__semantic_view', viz_type: 'table' },
+      // Match the API payload: hydration supplies the missing top-level viz_type.
+      form_data: formData as QueryFormData,
       dataset: {
         ...exploreInitialData.dataset,
+        id: 4,
         type: DatasourceType.SemanticView,
         semantic_selection_version: 'cube-member-id-v1',
       },
@@ -304,7 +316,7 @@ describe('ControlPanelsContainer', () => {
           user: {},
           charts: {},
           datasources: {},
-          common: {},
+          common: { conf: {} },
           explore: {},
         }) as ExplorePageState,
     );
