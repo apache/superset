@@ -1788,3 +1788,62 @@ def test_gantt_validation_error_includes_response_versions(mock_auth: Mock) -> N
     assert result["error"]["error_type"] == "gantt_semantic_validation_error"
     assert result["schema_version"] == "2.0"
     assert result["api_version"] == "v1"
+
+
+@patch.object(update_chart_preview_module, "validate_and_compile")
+@patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+@patch.object(update_chart_preview_module, "analyze_chart_semantics")
+@patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+@patch.object(update_chart_preview_module, "generate_explore_link")
+@patch.object(update_chart_preview_module, "_get_previous_form_data")
+@patch.object(update_chart_preview_module, "_find_dataset")
+def test_cached_sql_trendline_is_kept_by_an_update_that_omits_it(
+    mock_find_dataset: Mock,
+    mock_get_previous_form_data: Mock,
+    mock_generate_explore_link: Mock,
+    mock_analyze_chart_capabilities: Mock,
+    mock_analyze_chart_semantics: Mock,
+    unused_access_mock: Mock,
+    mock_validate_and_compile: Mock,
+    mock_auth: Mock,
+) -> None:
+    """An update that only changes the metric keeps a cached SQL trendline."""
+    sql_time_column = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE(ds)",
+        "label": "day",
+    }
+    mock_find_dataset.return_value = _mock_dataset(id=99)
+    mock_generate_explore_link.return_value = (
+        "http://localhost:8088/explore/?form_data_key=new_key"
+    )
+    mock_analyze_chart_capabilities.return_value = None
+    mock_analyze_chart_semantics.return_value = None
+    mock_validate_and_compile.return_value = Mock(success=True)
+    mock_get_previous_form_data.return_value = {
+        "viz_type": "big_number",
+        "datasource": "99__table",
+        "metric": "count",
+        "x_axis": sql_time_column,
+        "compare_lag": 7,
+    }
+    request = UpdateChartPreviewRequest(
+        form_data_key="old_key",
+        dataset_id=99,
+        config=BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="ds", aggregate="COUNT"),
+        ),
+        generate_preview=False,
+    )
+
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
+    )
+
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["viz_type"] == "big_number"
+    assert generated["x_axis"] == sql_time_column
+    assert generated["metric"]["label"] == "COUNT(ds)"
+    assert generated["compare_lag"] == 7

@@ -38,6 +38,7 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
 from superset.tags.models import TaggedObject
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -197,6 +198,51 @@ def test_filter_chart_annotations_warns_on_dropped_reference(
     assert len(dropped) == 1
     assert str(config["uuid"]) in dropped[0]
     assert "integer reference" in dropped[0]
+
+
+def test_import_pivot_table_keeps_aggregate_function_with_dormant_percent_display(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """A same-version export/import round-trip must not drop a live
+    ``aggregateFunction`` just because a percent ``showValuesAs`` is also
+    present in ``params``/``query_context``. Selecting a result aggregation
+    (e.g. "Average") only hides the "Show values as" control in Explore --
+    it doesn't clear its stored value -- so that pairing is the normal shape
+    of any chart saved after the restoring control shipped, not evidence of
+    a pre-restoration orphan. ``effective_show_values_as`` in
+    ``client_processing.py`` already treats the percent mode as inert
+    whenever ``aggregateFunction`` is active, consistently across render,
+    export and report paths, so import must preserve both values rather
+    than guess and delete one of them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "pivot_table_v2"
+    config["params"]["viz_type"] = "pivot_table_v2"
+    config["params"]["aggregateFunction"] = "Average"
+    config["params"]["showValuesAs"] = "percent_col"
+    config["query_context"] = json.dumps(
+        {
+            "form_data": {
+                "viz_type": "pivot_table_v2",
+                "aggregateFunction": "Average",
+                "showValuesAs": "percent_col",
+            }
+        }
+    )
+
+    chart = import_chart(config)
+
+    params = json.loads(chart.params)
+    assert params["aggregateFunction"] == "Average"
+    assert params["showValuesAs"] == "percent_col"
+
+    form_data = json.loads(chart.query_context)["form_data"]
+    assert form_data["aggregateFunction"] == "Average"
+    assert form_data["showValuesAs"] == "percent_col"
 
 
 def test_import_existing_chart_without_permission(
