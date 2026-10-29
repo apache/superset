@@ -27,7 +27,7 @@ import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import { makeUrl } from './utils/navigationUtils';
-import './hooks/useLocale';
+import { DAYJS_LOCALE_MAPPING } from './hooks/useLocale';
 
 // Import dayjs plugin types for global TypeScript support
 import 'dayjs/plugin/utc';
@@ -89,7 +89,7 @@ export default function initPreamble(): Promise<void> {
           : undefined);
       if (bootstrapPack) {
         configure({ languagePack: bootstrapPack });
-        dayjs.locale(lang);
+        dayjs.locale(DAYJS_LOCALE_MAPPING[lang] ?? lang);
       } else {
         const abortController = new AbortController();
         const timeoutId = window.setTimeout(() => {
@@ -109,7 +109,7 @@ export default function initPreamble(): Promise<void> {
           if (typeof window !== 'undefined') {
             window.__SUPERSET_LANGUAGE_PACK__ = json as LanguagePack;
           }
-          dayjs.locale(lang);
+          dayjs.locale(DAYJS_LOCALE_MAPPING[lang] ?? lang);
         } catch (err) {
           logging.warn(
             'Failed to fetch language pack, falling back to default.',

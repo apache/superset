@@ -141,7 +141,10 @@ export default {
   }),
 
   typescript: {
-    reactDocgen: getAbsolutePath('react-docgen-typescript'),
+    // react-docgen-typescript needs the TypeScript compiler API, which the
+    // native TypeScript 7 package no longer ships; react-docgen (Storybook's
+    // default, Babel-based) reads the same prop types from source.
+    reactDocgen: 'react-docgen',
   },
 
   framework: {
