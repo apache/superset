@@ -930,7 +930,7 @@ def test_bounded_redirect_bodies_are_never_read(
 
 @contextmanager
 def _framing_server(
-    context: ssl.SSLContext, mode: str
+    context: ssl.SSLContext | None, mode: str
 ) -> Iterator[tuple[int, Event, Event]]:
     """Drip HTTP framing bytes (a header or chunk trailer), not body bytes."""
 
@@ -966,7 +966,8 @@ def _framing_server(
             pass
 
     server: HTTPServer = HTTPServer(("127.0.0.1", 0), Handler)
-    server.socket = context.wrap_socket(server.socket, server_side=True)
+    if context is not None:
+        server.socket = context.wrap_socket(server.socket, server_side=True)
     thread: Thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -999,21 +1000,32 @@ def test_bounded_framing_obeys_the_absolute_deadline(
     release: Event
     with (
         ThreadPoolExecutor(1) as worker,
-        _framing_server(public_tls[0], mode) as (port, ready, release),
+        _framing_server(None if allow_internal else public_tls[0], mode) as (
+            port,
+            ready,
+            release,
+        ),
         _internal_hosts(allow_internal),
     ):
         deadline: float = time.monotonic() + 30
-        future: Future[bytes] = worker.submit(
-            provider_body,
-            "MetricFlow",
-            "POST",
-            f"https://public.example.test:{port}/q",
-            deadline=deadline,
-            max_bytes=4096,
-            timeout=(5.0, 30.0),
-            json={"query": "{ ok }"},
+        transport: ProviderTransport = semantic_layer_http.build_provider_transport()
+        url: str = (
+            f"http://127.0.0.1:{port}/q"
+            if allow_internal
+            else f"https://public.example.test:{port}/q"
         )
-        assert ready.wait(timeout=10), "server did not reach framing mode"
+
+        def request_body() -> bytes:
+            return transport.request(
+                "MetricFlow",
+                "POST",
+                url,
+                budget=RequestBudget(deadline, 4096),
+                json={"query": "{ ok }"},
+            ).body
+
+        future: Future[bytes] = worker.submit(request_body)
+        assert ready.wait(timeout=5), "server did not reach framing mode"
         scheduler: semantic_layer_http.DeadlineScheduler = (
             semantic_layer_http._scheduler()
         )
@@ -2008,3 +2020,41 @@ def test_provider_debug_logs_omit_query_tokens(
         record.name == "urllib3.connectionpool" and "/background" in record.getMessage()
         for record in caplog.records
     )
+
+
+def test_malformed_provider_headers_do_not_log_query_tokens(
+    public_tls: tuple[ssl.SSLContext, list[str]],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A urllib3 header-parse warning must not reveal a provider URL."""
+
+    class MalformedHeaders(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            self.wfile.write(
+                b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nNot-A-Header\r\n\r\nok"
+            )
+            self.wfile.flush()
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    server: HTTPServer = HTTPServer(("127.0.0.1", 0), MalformedHeaders)
+    server.socket = public_tls[0].wrap_socket(server.socket, server_side=True)
+    thread: Thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with caplog.at_level(logging.WARNING, logger="urllib3.connection"):
+            response: ProviderResponse = provider_request(
+                "MetricFlow",
+                "GET",
+                f"https://public.example.test:{server.server_port}/q?token=SECRET",
+                timeout=2,
+            )
+        assert response.body == b"ok"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+    assert "SECRET" not in caplog.text
+    assert all("SECRET" not in record.getMessage() for record in caplog.records)
