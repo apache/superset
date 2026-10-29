@@ -18,6 +18,7 @@
  */
 import { createMemoryHistory, type Update } from 'history';
 import { Router } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   render,
@@ -50,6 +51,17 @@ const adminUser = {
   roles: { Admin: [] },
   permissions: {},
 } as unknown as UserWithPermissionsAndRoles;
+const nonEditorUser: UserWithPermissionsAndRoles = {
+  userId: 9,
+  firstName: 'Other',
+  lastName: 'User',
+  username: 'other',
+  isActive: true,
+  isAnonymous: false,
+  permissions: {},
+  roles: { Alpha: [] },
+  groups: [],
+};
 
 const renderCard = (
   history: ReturnType<typeof createMemoryHistory>,
@@ -97,6 +109,40 @@ test('renders the chart title', () => {
   expect(screen.getByText('Sample Chart')).toBeInTheDocument();
 });
 
+test.each([
+  [true, 'archive'],
+  [false, 'delete'],
+])(
+  'soft delete %s uses the chart card permission hint for %s',
+  async (enabled, verb) => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => enabled && flag === FeatureFlag.SoftDelete,
+    );
+    renderCard(createMemoryHistory(), {
+      user: nonEditorUser,
+    });
+    fireEvent.click(screen.getByTestId('chart-card-menu'));
+    await userEvent.hover(screen.getByTestId('chart-list-delete-option'));
+    const archiveButton = screen.getByTestId('chart-list-delete-option');
+    expect(archiveButton).toBeDisabled();
+    const editButton = screen.getByTestId('chart-list-edit-option');
+    expect(editButton).toBeDisabled();
+    expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
+    expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
+    expect(archiveButton).toHaveStyleRule('color', 'inherit');
+    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
+    fireEvent.click(archiveButton);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `You must be a chart editor in order to ${verb}.`,
+    );
+  },
+);
+
 test('clicking the thumbnail navigates to the chart exactly once', () => {
   // The cover is a router link and the whole card is clickable, so a click on
   // the cover used to be handled twice and pushed two identical entries. That
@@ -135,7 +181,9 @@ test('with soft delete on, the card delete flow shows the archive dialog', async
   fireEvent.click(await screen.findByText('Archive'));
 
   const dialog = await screen.findByRole('dialog');
-  expect(within(dialog).getByText('Archive Sample Chart?')).toBeInTheDocument();
+  expect(
+    within(dialog).getByText('Sample Chart').parentElement,
+  ).toHaveTextContent('Archive Sample Chart?');
   // The body comes from the shared soft-delete copy module; its exact
   // wording evolves there (location hint, retention clause), so pin the
   // stable prefix rather than a full sentence.
@@ -165,3 +213,23 @@ test('with soft delete off, the card delete dialog is the permanent-delete one',
   ).toBeInTheDocument();
   expect(within(dialog).getByTestId('delete-modal-input')).toBeInTheDocument();
 });
+
+test.each(['تقرير المبيعات حسب المنطقة', 'Sales overview'])(
+  'archive title isolates the object name %s',
+  async name => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => flag === FeatureFlag.SoftDelete,
+    );
+    renderCard(createMemoryHistory(), {
+      user: adminUser,
+      chart: { ...mockChart, slice_name: name },
+    });
+    fireEvent.click(screen.getByTestId('chart-card-menu'));
+    fireEvent.click(await screen.findByText('Archive'));
+    const dialog = await screen.findByRole('dialog');
+    const isolatedName = within(dialog).getByText(name);
+    expect(isolatedName.tagName).toBe('BDI');
+    expect(isolatedName).toHaveAttribute('dir', 'auto');
+    expect(isolatedName.parentElement).toHaveTextContent(`Archive ${name}?`);
+  },
+);
