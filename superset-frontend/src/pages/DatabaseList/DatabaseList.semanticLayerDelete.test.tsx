@@ -137,7 +137,12 @@ const setupMocks = ({
   }
   fetchMock.delete(
     DELETE_ROUTE,
-    deleteError ? { status: 409, body: { message: deleteError } } : {},
+    deleteError
+      ? {
+          status: 409,
+          body: { message: deleteError, total: 25, archived_count: 3 },
+        }
+      : {},
   );
 };
 
@@ -202,10 +207,11 @@ test('delete confirmation warns about cascade-deleting dependent views by count 
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -232,7 +238,7 @@ test('a single dependent view is announced in the singular', async () => {
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 1 semantic view. Charts built on that view will stop working.',
+      'This will also permanently delete its 1 semantic view. This cannot be undone.',
     ),
   ).toBeInTheDocument();
 });
@@ -245,10 +251,12 @@ test('a genuinely empty layer says so instead of warning about nonexistent views
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).toHaveTextContent('This cannot be undone.');
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This semantic layer has no dependent semantic views.',
+      'This semantic layer has no dependent semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -275,7 +283,7 @@ test('a counted response with an empty name page keeps the count but omits the l
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -291,7 +299,7 @@ test('a failed dependent lookup still opens the modal with an uncounted warning'
 
   expect(
     within(dialog).getByText(
-      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+      'Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed.',
     ),
   ).toBeInTheDocument();
 });
@@ -316,7 +324,7 @@ test('the overflow footer reports dependent views beyond the listed page', async
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 12 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 12 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(within(dialog).getByText('view_10')).toBeInTheDocument();
@@ -443,7 +451,7 @@ test("a stale lookup resolving late cannot replace a newer row's modal", async (
 
 test('layer delete displays the counted dependency conflict', async () => {
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   setupMocks({ dependents: [], deleteError: reason });
   const addDangerToast = jest.fn();
   renderDatabaseList(mockUser, addDangerToast);
@@ -453,11 +461,24 @@ test('layer delete displays the counted dependency conflict', async () => {
     'DELETE',
   );
   await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
-  await waitFor(() =>
-    expect(addDangerToast).toHaveBeenCalledWith(
-      `There was an issue deleting Demo Semantic Layer: ${reason}`,
-    ),
+  const alert = await within(dialog).findByRole('alert');
+  expect(alert).toHaveTextContent('25 dependent assets');
+  expect(alert).toHaveTextContent('3 archived');
+  expect(
+    within(alert).getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/');
+  expect(within(dialog).getByTestId('delete-modal-input')).toHaveValue(
+    'DELETE',
   );
+  expect(addDangerToast).not.toHaveBeenCalled();
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await openDeleteModal();
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('alert'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByTestId('delete-modal-input'),
+  ).toHaveValue('');
 });
 
 test('confirming the modal deletes the semantic layer', async () => {
