@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { useAppSelector } from 'src/views/store';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -614,6 +615,7 @@ function ArchivedListBody({
  */
 function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   const history = useHistory();
+  const location = useLocation();
   const roles = useAppSelector(
     state =>
       (state.user as UserWithPermissionsAndRoles | undefined)?.roles ??
@@ -653,11 +655,28 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   // SET_USER action exists precisely because that is not guaranteed). A
   // once-only useState initializer would leave a Select showing a value its
   // options no longer contain, fetching an API that answers 403.
-  const [chosenType, setType] = useState<ArchivedType | undefined>(undefined);
+  const chosenType = new URLSearchParams(location.search).get(
+    'type',
+  ) as ArchivedType | null;
+  const rememberedType = getItem(LocalStorageKeys.LastArchivedType, null);
+  const defaultType =
+    rememberedType && availableTypes.includes(rememberedType)
+      ? rememberedType
+      : availableTypes[0];
   const type =
     chosenType && availableTypes.includes(chosenType)
       ? chosenType
-      : availableTypes[0];
+      : chosenType
+        ? availableTypes[0]
+        : defaultType;
+
+  useEffect(() => {
+    if (chosenType && chosenType !== type && type) {
+      const params = new URLSearchParams(location.search);
+      params.set('type', type);
+      history.replace({ search: params.toString() });
+    }
+  }, [chosenType, type, location.search, history]);
 
   // ListView persists sort (`sortColumn`/`sortOrder`) and pagination
   // (`pageIndex`) in the shared URL and replays them on every mount. The
@@ -673,11 +692,11 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   const handleTypeChange = useCallback(
     (value: unknown) => {
       const params = new URLSearchParams(history.location.search);
+      params.set('type', String(value));
       params.delete('sortColumn');
       params.delete('sortOrder');
       params.delete('pageIndex');
       history.replace({ search: params.toString() });
-      setType(value as ArchivedType);
     },
     [history],
   );
@@ -690,7 +709,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   if (!type) {
     return (
       <>
-        <SubMenu name={t('Recently archived')} />
+        <SubMenu name={t('Recently Archived')} />
         <EmptyStateRow data-test="archived-no-readable-types">
           {t('You do not have permission to view any archived object types.')}
         </EmptyStateRow>
@@ -700,7 +719,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
 
   return (
     <>
-      <SubMenu name={t('Recently archived')} />
+      <SubMenu name={t('Recently Archived')} />
       <TypeSelectRow>
         <Select
           ariaLabel={t('Type')}
