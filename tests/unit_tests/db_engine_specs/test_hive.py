@@ -373,3 +373,43 @@ def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.partition_value_transform_default is None
+
+
+@pytest.mark.parametrize("quote", ["'", '"'])
+def test_extract_hive_strict_partition_error(quote: str, app_context: None) -> None:
+    """Thrift repr quoting must not obscure an actionable strict-mode error."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    detail = "SemanticException [Error 10056]: No partition predicate found"
+    error = Exception(
+        f"TExecuteStatementResp(status=TStatus(errorMessage={quote}{detail}{quote}))"
+    )
+    message = HiveEngineSpec.extract_error_message(error)
+    assert "Hive requires a partition filter" in message
+    assert "TExecuteStatementResp" not in message
+
+
+def test_extract_hive_structured_status() -> None:
+    """Use the driver's message without depending on its repr format."""
+    from types import SimpleNamespace
+
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    error = Exception(
+        SimpleNamespace(status=SimpleNamespace(errorMessage="Table 'events' not found"))
+    )
+    assert (
+        HiveEngineSpec.extract_error_message(error)
+        == "hive error: Table 'events' not found"
+    )
+
+
+@pytest.mark.parametrize("detail", ["ordinary database error", ""])
+def test_extract_hive_error_fallback(detail: str) -> None:
+    """Unstructured errors retain their original message."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert (
+        HiveEngineSpec.extract_error_message(Exception(detail))
+        == f"hive error: {detail}"
+    )

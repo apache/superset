@@ -231,7 +231,14 @@ def get_samples(  # pylint: disable=too-many-arguments
                 QueryCacheManager.delete(
                     count_star_data.get("cache_key"), CacheRegion.DATA
                 )
-                raise DatasetSamplesFailedError(sample_data.get("error") or "")
+                messages = [
+                    error["message"]
+                    for error in sample_data.get("errors") or []
+                    if isinstance(error.get("message"), str) and error["message"]
+                ]
+                raise DatasetSamplesFailedError(
+                    "\n".join(messages) or sample_data.get("error") or ""
+                )
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page

@@ -88,7 +88,11 @@ def test_get_samples_uses_normal_path_when_engine_supports_offset(
     datasource.database.db_engine_spec.fetch_data_with_cursor.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "messages", [[], [{"message": "Hive requires a partition filter"}]]
+)
 def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
+    messages: list[dict[str, str]],
     fake_datasource_factory: FakeDatasourceFactory,
 ) -> None:
     """
@@ -108,6 +112,7 @@ def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
             {
                 "status": "failed",
                 "error": "backend query failed",
+                "errors": messages,
             }
         ]
     }
@@ -140,7 +145,8 @@ def test_get_samples_normal_path_cleans_count_cache_when_sample_data_failed(
             )
 
     cache_mgr.delete.assert_called_once_with("count-cache-key", CacheRegion.DATA)
-    assert "backend query failed" in str(excinfo.value)
+    expected = messages[0]["message"] if messages else "backend query failed"
+    assert expected in str(excinfo.value)
 
 
 def test_get_samples_uses_cursor_path_when_engine_disallows_offset(

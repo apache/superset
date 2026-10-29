@@ -4220,3 +4220,38 @@ def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
         new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
     ):
         assert probed_value_type_error(column, [1767225600]) is None
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "hive", "sqlite"])
+def test_nested_unclosed_parenthesis_is_unfinished(engine: str) -> None:
+    """A parser-recovered nested expression must not reach the warehouse."""
+    from superset.connectors.sqla.partition_mapping import is_unfinished
+
+    transform = "extract(epoch from cast(:value as timestamp)"
+    assert not is_parseable(transform, engine)
+    assert is_unfinished(transform, engine)
+    assert "parenthesis" in (parse_error_detail(transform, engine) or "")
+    assert is_parseable(transform + ")", engine)
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "concat(:value, '(')",
+        'concat(:value, ")")',
+        "abs(:value) /* ( */",
+        "abs(:value) -- )",
+    ],
+)
+def test_parentheses_in_literals_and_comments_are_not_delimiters(
+    transform: str,
+) -> None:
+    """Only executable delimiters participate in the balance check."""
+    assert is_parseable(transform, "postgresql")
+
+
+def test_multiple_expressions_do_not_claim_the_mapping_is_saved() -> None:
+    """Preview copy must not contradict the write path's rejection."""
+    issues = _issues(transform="lower(:value), 'x'")
+    assert "multiple expressions" in str(issues[0].message)
+    assert "saved" not in str(issues[0].message)
