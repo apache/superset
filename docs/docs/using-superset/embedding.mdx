@@ -195,7 +195,8 @@ is otherwise disabled.
 - The connection needs an OAuth2 client — per-connection **OAuth2 client information**
   or a deployment-wide `DATABASE_OAUTH2_CLIENTS` entry — and **Impersonate logged in
   user** must be on. Superset refuses to save a credential otherwise, and it never
-  applies to a connection without OAuth2.
+  applies to a connection without OAuth2. While a credential is stored, turning
+  impersonation off is refused; remove the credential first.
 - Embedded viewers run with the embedded account's **default Snowflake role**. The
   connection's configured role and authenticator are not used for guest connections.
 - The embedded account needs `USAGE` on the connection's warehouse.
