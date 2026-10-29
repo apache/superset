@@ -64,6 +64,7 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.models.core import Theme as ThemeModel
 from superset.reports.models import ReportRecipientType
+from superset.security import password_recovery
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
@@ -293,6 +294,9 @@ def get_environment_tag() -> dict[str, Any]:
 
 
 def menu_data(user: User) -> dict[str, Any]:
+    # The archived view inherits BaseSupersetView from this module.
+    from superset.views.archived_assets import can_access_recently_archived
+
     languages = {
         lang: {**appbuilder.languages[lang], "url": appbuilder.get_url_for_locale(lang)}
         for lang in appbuilder.languages
@@ -324,6 +328,7 @@ def menu_data(user: User) -> dict[str, Any]:
         },
         "environment_tag": get_environment_tag(),
         "navbar_right": {
+            "can_access_recently_archived": can_access_recently_archived(),
             # show the watermark if the default app icon has been overridden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": app.config["BUG_REPORT_URL"],
@@ -614,6 +619,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["RECAPTCHA_PUBLIC_KEY"] = recaptcha_public_key
 
     frontend_config["AUTH_TYPE"] = auth_type
+    frontend_config["PASSWORD_RECOVERY_ENABLED"] = password_recovery.is_enabled()
     if auth_type == AUTH_OAUTH:
         oauth_providers = []
         for provider in appbuilder.sm.oauth_providers:

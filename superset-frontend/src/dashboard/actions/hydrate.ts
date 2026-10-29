@@ -76,10 +76,13 @@ export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 export interface HydrateChartData {
+  /** Chart id as served by the API; `slice_id` is derived from `form_data`. */
+  id?: number;
   slice_id: number;
   slice_url: string;
   slice_name: string;
-  form_data: JsonObject;
+  /** Withheld by the API for charts whose datasource the viewer cannot access. */
+  form_data?: JsonObject;
   description: string;
   description_markeddown: string;
   editors: { id: number }[];
@@ -128,7 +131,8 @@ export const hydrateDashboard =
 
     charts.forEach((chartItem: HydrateChartData) => {
       // eslint-disable-next-line no-param-reassign
-      chartItem.slice_id = chartItem.form_data.slice_id as number;
+      chartItem.slice_id = (chartItem.form_data?.slice_id ??
+        chartItem.id) as number;
     });
 
     // new dash: position_json could be {} or null
@@ -167,28 +171,36 @@ export const hydrateDashboard =
 
     charts.forEach((slice: HydrateChartData) => {
       const key = slice.slice_id;
+      // A chart without `form_data` is one the viewer may not read. Keep it on
+      // the dashboard with just its id, so its own data request is denied by
+      // the server and the chart reports that, instead of the whole dashboard
+      // failing to render.
+      const hasFormData = Boolean(slice.form_data);
+      const sliceFormData: JsonObject = slice.form_data ?? { slice_id: key };
       const formData = {
-        ...slice.form_data,
+        ...sliceFormData,
         url_params: {
-          ...(slice.form_data.url_params as JsonObject),
+          ...(sliceFormData.url_params as JsonObject),
           ...regularUrlParams,
         },
       };
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data: applyDefaultFormData(
-          formData as Parameters<typeof applyDefaultFormData>[0],
-        ),
+        form_data: hasFormData
+          ? applyDefaultFormData(
+              formData as Parameters<typeof applyDefaultFormData>[0],
+            )
+          : formData,
       };
 
       slices[key] = {
         slice_id: key,
         slice_url: slice.slice_url,
         slice_name: slice.slice_name,
-        form_data: slice.form_data,
-        viz_type: slice.form_data.viz_type,
-        datasource: slice.form_data.datasource,
+        form_data: sliceFormData,
+        viz_type: sliceFormData.viz_type,
+        datasource: sliceFormData.datasource,
         description: slice.description,
         description_markdown: slice.description_markeddown,
         editors: slice.editors,

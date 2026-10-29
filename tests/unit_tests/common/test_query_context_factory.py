@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
+from superset.utils.core import QueryObjectFilterClause
 
 
 class TestQueryContextFactory:
@@ -143,8 +146,8 @@ class TestQueryContextFactory:
         existing_columns = {"existing_col"}
 
         with patch.object(self.factory, "_find_column_definition") as mock_find:
-            mock_find.side_effect = (
-                lambda qo, col: f"def_{col}" if col != "tooltip_col2" else None
+            mock_find.side_effect = lambda qo, col: (
+                f"def_{col}" if col != "tooltip_col2" else None
             )
 
             self.factory._append_missing_tooltip_columns(
@@ -376,6 +379,45 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert len(query_object.filter) == 0
+
+    @pytest.mark.parametrize("x_axis", [None, "ds"])
+    @pytest.mark.parametrize("temporal_binding", [False, True])
+    @pytest.mark.parametrize("granularity", ["ds", "other_date"])
+    def test_apply_granularity_keeps_simple_filters(
+        self,
+        x_axis: str | None,
+        temporal_binding: bool,
+        granularity: str,
+    ) -> None:
+        """Keep comparisons unless replacing a different temporal column."""
+        query_object = QueryObject(
+            granularity=granularity,
+            columns=["ds"],
+            filters=[
+                {"col": "ds", "op": ">=", "val": "2026-01-01"},
+                {"col": "ds", "op": "<", "val": "2027-01-01"},
+                {"col": "category", "op": "==", "val": "active"},
+                {"col": "other_date", "op": ">=", "val": "2025-01-01"},
+            ],
+        )
+        expected_filters = list(query_object.filter)
+        if temporal_binding:
+            query_object.filter.append(
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}
+            )
+        datasource = SimpleNamespace(
+            columns=[
+                SimpleNamespace(column_name="ds", is_dttm=True),
+                SimpleNamespace(column_name="other_date", is_dttm=True),
+            ]
+        )
+
+        self.factory._apply_granularity(query_object, {"x_axis": x_axis}, datasource)
+
+        if (temporal_binding or x_axis == "ds") and granularity != "ds":
+            # A different Time Column replaces stale predicates on the old axis.
+            expected_filters = [f for f in expected_filters if f["col"] != "ds"]
+        assert query_object.filter == expected_filters
 
     def test_apply_granularity_with_granularity_in_temporal_filters(self):
         """Test _apply_granularity when granularity is already in temporal filters"""
@@ -977,3 +1019,36 @@ class TestQueryContextFactory:
         self.factory._add_currency_column(query_object, form_data, datasource)
 
         assert query_object.columns == ["col1"]
+
+
+@pytest.mark.parametrize(
+    "saved", [None, "No filter", "Aucun filtre", "2024-01-01 : 2024-06-01"]
+)
+@pytest.mark.parametrize("dashboard", [False, True])
+@pytest.mark.parametrize("already_extra", [False, True])
+def test_time_override_stamps_only_unbounded_saved_predicates(
+    mocker: MockerFixture,
+    saved: str | None,
+    dashboard: bool,
+    already_extra: bool,
+) -> None:
+    """Rewriting a real chart range never grants it dashboard provenance."""
+    mocker.patch("superset.utils.date_parser._", return_value="Aucun filtre")
+    filter_: QueryObjectFilterClause = {
+        "col": "ds",
+        "op": "TEMPORAL_RANGE",
+        "val": saved,
+    }
+    if already_extra:
+        filter_["isExtra"] = True
+    query: QueryObject = QueryObject(
+        filters=[filter_], time_range="2025-01-01 : 2025-02-01"
+    )
+    form_data: dict[str, object] = (
+        {"extra_form_data": {"time_range": query.time_range}} if dashboard else {}
+    )
+    QueryContextFactory()._apply_filters(query, form_data)
+    assert filter_["val"] == query.time_range
+    assert bool(filter_.get("isExtra")) == (
+        already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
+    )
