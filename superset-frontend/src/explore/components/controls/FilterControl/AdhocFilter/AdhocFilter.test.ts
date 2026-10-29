@@ -21,7 +21,9 @@ import {
   SimpleAdhocFilter,
   TimeGranularity,
 } from '@superset-ui/core';
-import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter, {
+  fromCoreAdhocFilter,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
@@ -496,7 +498,7 @@ test('editing a drilled adhoc bucket drops the grain from the column', () => {
     val: '2021-01-01T00:00:00',
     grain: TimeGranularity.MONTH,
   });
-  const filter = new AdhocFilter(created);
+  const filter = fromCoreAdhocFilter(created);
   const edited = filter.duplicateWith({
     comparator: '2021-01-15T00:00:00',
   });
