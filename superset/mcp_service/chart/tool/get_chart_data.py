@@ -1314,9 +1314,9 @@ async def _get_chart_data(  # noqa: C901
                 )
             )
             if isinstance(data_error, ChartDataQueryFailedError):
-                # The chart's query failed in the underlying database (bad
-                # column, missing table, ...). That is an expected data-side
-                # failure already returned to the caller, not a service fault.
+                # Query execution failed in the underlying database; this also
+                # covers connectivity and authentication failures. The caller
+                # receives the failure as a DataError.
                 logger.warning(
                     "Chart data query failed for chart %s: %s", chart_id, error_text
                 )
