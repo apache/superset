@@ -205,3 +205,26 @@ def test_upgrade_rejects_invalid_extra_without_losing_settings(
         row = conn.execute(sa.select(table)).one()
         assert row.sqlalchemy_uri == LEGACY + MASKED_SUFFIX
         assert row.extra == extra
+
+
+def test_converted_connection_extra_can_be_imported(engine: Engine) -> None:
+    """Exports of converted connections carry the marker; import must accept it."""
+    from superset.databases.schemas import ImportV1DatabaseExtraSchema
+
+    table = migration.databases
+    original_extra = {"engine_params": {"connect_args": {"http_path": "/sql/1.0"}}}
+    with engine.begin() as conn:
+        conn.execute(
+            table.insert().values(
+                id=1,
+                sqlalchemy_uri=LEGACY + MASKED_SUFFIX,
+                extra=json.dumps(original_extra),
+            )
+        )
+    _run(engine, True)
+    with engine.connect() as conn:
+        exported_extra = json.loads(conn.execute(sa.select(table.c.extra)).scalar_one())
+    assert ImportV1DatabaseExtraSchema().load(exported_extra) == {
+        **original_extra,
+        migration.MARKER: True,
+    }
