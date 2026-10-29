@@ -5546,6 +5546,9 @@ msgstr ""
 "Câmpurile SQL personalizate nu pot fi analizate ca o singură instrucțiune"
 " SQL."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
