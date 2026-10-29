@@ -1147,6 +1147,29 @@ def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
             projection.replace(exp.alias_(projection.copy(), alias))
 
 
+def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
+    """
+    Return the leaves of a chain of `AND`s, looking through parentheses.
+
+    `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
+    `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
+    comes back as a single `And` leaf rather than its own `y` and `z` leaves.
+    This walks an explicit stack instead, so a condition `AND`-ed together with
+    others stays found regardless of how it is grouped, and a long chain of
+    predicates cannot hit the recursion limit.
+    """
+    leaves: list[exp.Expression] = []
+    stack = [condition]
+    while stack:
+        node = stack.pop().unnest()
+        if isinstance(node, exp.And):
+            stack.append(node.expression)
+            stack.append(node.this)
+        else:
+            leaves.append(node)
+    return leaves
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -2131,6 +2154,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             comments=comments,
         ).generate(self._parsed, copy=True)
 
+    def format_select_clause(
+        self, *, orderby: bool = False, apply_dialect: bool = True
+    ) -> str:
+        """Unwrap a synthetic SELECT using its parsed projection or ORDER BY nodes.
+
+        Extract clauses structurally so keywords inside comments are never wrappers.
+        Disable dialect rewrites when unwrapping sanitize_clause's neutral output.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            raise SupersetParseError("Expected a SELECT statement")
+        select = self._parsed
+        clause = select.args.get("order") if orderby else select
+        if clause is None:
+            raise SupersetParseError("Expected an ORDER BY clause")
+        expressions = [expression.copy() for expression in clause.expressions]
+        if expressions:
+            expressions[0].add_comments(select.comments)
+        generator = _normalized_generator(
+            self._dialect if apply_dialect else None, pretty=False, comments=True
+        )
+        result = ", ".join(generator.generate(expression) for expression in expressions)
+        if not orderby and (distinct := select.args.get("distinct")):
+            result = f"{generator.generate(distinct.copy())} {result}"
+        return result
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL statement.
@@ -2529,10 +2577,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if where is None:
             return None
 
-        condition = where.this.unnest()
-        conditions = (
-            condition.flatten() if isinstance(condition, exp.And) else [condition]
-        )
+        conditions = _flatten_and(where.this)
         caps = []
         for predicate in conditions:
             predicate = predicate.unnest()
