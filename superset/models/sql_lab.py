@@ -22,7 +22,8 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, cast, Optional, TYPE_CHECKING
+from functools import cache
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -83,6 +84,7 @@ from superset.utils.core import (
     QueryStatus,
     user_label,
 )
+from superset.utils.dates import naive_utcnow
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -177,7 +179,7 @@ class Query(
     tracking_url_raw = Column(Text, name="tracking_url")
 
     changed_on = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+        DateTime, default=naive_utcnow, onupdate=naive_utcnow, nullable=True
     )
 
     @hybrid_property
@@ -371,7 +373,16 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        if not self.database:
+            return ""
+        return (
+            security_manager.get_schema_perm(
+                self.database.database_name,
+                self.catalog or self.database.get_default_catalog(),
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:
@@ -382,7 +393,56 @@ class Query(
         return ""
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        """
+        Include the RLS predicates that apply to this ad-hoc query's
+        underlying tables in the cache key, mirroring what
+        ``SqlaTable.get_extra_cache_keys`` already does for virtual datasets.
+
+        ``is_rls_supported`` is ``False`` for a SQL Lab query (it has no RLS
+        rules of its own to look up via ``get_rls_cache_key``), which left
+        ``security_manager.get_rls_cache_key()`` contributing nothing here.
+        Without this, two viewers of the same not-yet-saved query-backed
+        chart (e.g. via a shared Explore permalink) with different RLS on
+        the tables the query references would collide on the same cache
+        entry, regardless of their own access.
+        """
+        if not self.sql:
+            return []
+        resolve_catalog = cache(self.database.get_default_catalog)
+        resolve_schema = cache(self._get_rls_schema)
+        predicates = self.get_inner_rls_cache_key(
+            resolve_catalog=resolve_catalog, resolve_schema=resolve_schema
+        )
+        predicates.extend(
+            self._get_query_rls_cache_keys(
+                query_obj,
+                resolve_catalog=resolve_catalog,
+                resolve_schema=resolve_schema,
+            )
+        )
+        return list(dict.fromkeys(predicates))
+
+    def get_inner_rls_cache_key(
+        self,
+        *,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Key query-backed caches on the RLS execution injects into inner tables."""
+        from superset.utils.rls import collect_rls_predicates_for_sql
+
+        if not self.sql:
+            return []
+        return collect_rls_predicates_for_sql(
+            self.sql,
+            self.database,
+            self.catalog,
+            self.schema,
+            # Match ``get_from_clause``: a Query has no outer RLS application.
+            include_global_guest_rls=True,
+            resolve_catalog=resolve_catalog,
+            resolve_schema=resolve_schema or self._get_rls_schema,
+        )
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """

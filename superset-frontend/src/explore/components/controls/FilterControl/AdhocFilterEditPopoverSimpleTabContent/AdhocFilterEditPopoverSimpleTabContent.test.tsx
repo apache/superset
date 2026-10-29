@@ -39,6 +39,7 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
+  DatasourceType,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
@@ -452,6 +453,47 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   expect(
     props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
   ).toEqual(simpleAdhocFilter.duplicateWith({ comparator: '20' }));
+});
+
+test('editing a dashboard-inherited time range filter clears isExtra so the new value is kept on save', () => {
+  const inheritedTimeFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'ds',
+    operator: Operators.TemporalRange,
+    comparator: '2024-01-01 : 2024-02-01',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedTimeFilter });
+  const { onDatePickerChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onDatePickerChange('ds', '2025-01-01 : 2025-02-01');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('2025-01-01 : 2025-02-01');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
+test('editing a dashboard-inherited filter comparator clears isExtra so the new value is kept on save', () => {
+  const inheritedFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.GreaterThan,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+    comparator: '10',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedFilter });
+  const { onComparatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onComparatorChange('20');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('20');
+  expect(editedFilter.isExtra).toBe(false);
 });
 
 test('will filter operators for table datasources', () => {
@@ -983,7 +1025,10 @@ fetchMock.get(COLUMN_VALUES_ENDPOINT, (...args: unknown[]) =>
     : columnValuesResponse,
 );
 
-const setupWithFilterValuesResponse = (response: unknown) => {
+const setupWithFilterValuesResponse = (
+  response: unknown,
+  datasourceType = TestDataset.type,
+) => {
   columnValuesResponse = response;
   const onChange = jest.fn();
   const validHandler = jest.fn();
@@ -1002,6 +1047,7 @@ const setupWithFilterValuesResponse = (response: unknown) => {
     options,
     datasource: {
       ...TestDataset,
+      type: datasourceType,
       columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
       filter_select: true,
     },
@@ -1329,7 +1375,7 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
   const subjectSelect = screen.getByRole('combobox', {
     name: 'Select subject',
   });
-  userEvent.click(subjectSelect);
+  await userEvent.click(subjectSelect);
 
   const dropdown = await waitFor(() => {
     const list = document.querySelector(
@@ -1341,11 +1387,196 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
   expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
 
-  userEvent.click(within(dropdown).getByText('Product Category'));
+  await userEvent.click(within(dropdown).getByText('Product Category'));
 
   await waitFor(() => {
     expect(props.onChange).toHaveBeenCalledWith(
       expect.objectContaining({ subject: 'category' }),
     );
   });
+});
+
+test('versioned suggestions are unavailable without a failure and allow manual input', async () => {
+  const { onChange } = setupWithFilterValuesResponse({
+    result: [],
+    suggestions_status: 'unavailable_versioned_view',
+  });
+  const comparator = await openComparator();
+  expect(
+    await screen.findByText(
+      'Suggestions are unavailable for this view. Enter a value manually.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+  await userEvent.type(comparator, 'manual');
+  await userEvent.click(await screen.findByTitle('manual'));
+  expect(onChange).toHaveBeenCalled();
+});
+
+test('shows semantic provider rejection guidance and keeps manual entry', async () => {
+  const guidance =
+    'A semantic query filter is invalid. Check its operator and values, then try again.';
+  const props = setupWithFilterValuesResponse(
+    { status: 400, body: { message: guidance } },
+    DatasourceType.SemanticView,
+  );
+  const comparator = await openComparator();
+  expect(await screen.findByText(guidance)).toBeInTheDocument();
+  await userEvent.type(comparator, 'manual-value');
+  await userEvent.click(await screen.findByTitle('manual-value'));
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  expect(props.onChange.mock.calls.at(-1)[0].comparator).toEqual([
+    'manual-value',
+  ]);
+});
+
+test('semantic bounded suggestions do not promise search beyond the page', async () => {
+  setupWithFilterValuesResponse(
+    { result: ['alpha', 'beta'], limit: 2 },
+    DatasourceType.SemanticView,
+  );
+  await openComparator();
+  expect(
+    await screen.findByText(/Only the first 2 values are listed/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/Type to search all of them/),
+  ).not.toBeInTheDocument();
+});
+
+test('ignores semantic rejection guidance parsed after a newer successful search', async () => {
+  let releaseBody: (value: { message: string }) => void = () => {};
+  const pendingBody = new Promise<{ message: string }>(resolve => {
+    releaseBody = resolve;
+  });
+  const response = new Response(JSON.stringify({ message: 'stale guidance' }), {
+    status: 400,
+  });
+  const cloned = response.clone();
+  const parseBody = jest.spyOn(cloned, 'json').mockReturnValueOnce(pendingBody);
+  jest.spyOn(response, 'clone').mockReturnValueOnce(cloned);
+  jest.spyOn(SupersetClient, 'get').mockRejectedValueOnce(response);
+  setupWithFilterValuesResponse(
+    { result: ['alpha'], limit: 10000 },
+    DatasourceType.SemanticView,
+  );
+  const comparator = await openComparator();
+  await waitFor(() => expect(parseBody).toHaveBeenCalledTimes(1));
+  await userEvent.type(comparator, 'al');
+  expect(
+    await screen.findByTitle('alpha', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  await act(async () => {
+    releaseBody({ message: 'stale guidance' });
+    await pendingBody;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+  expect(screen.queryByText('stale guidance')).not.toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test.each([
+  [undefined, false],
+  ['old-title-version', false],
+  ['cube-member-id-v1', false],
+  ['cube-member-id-v1', true],
+] as const)(
+  'suggestions carry only the selection provenance %s (external: %s)',
+  async (version, isExtra) => {
+    columnValuesResponse = { result: ['US'] };
+    setup({
+      semanticSelectionVersion: version,
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'value',
+        operatorId: Operators.In,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+        comparator: [],
+        clause: Clauses.Where,
+        isExtra,
+      }),
+      datasource: {
+        ...TestDataset,
+        type: 'semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+        columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+        filter_select: true,
+      },
+    });
+    await openComparator();
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT).length,
+      ).toBeGreaterThan(0),
+    );
+    const calls = fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT);
+    expect(
+      new URL(String(calls.at(-1)?.url)).searchParams.get(
+        'semantic_selection_version',
+      ),
+    ).toBe(isExtra ? null : (version ?? null));
+  },
+);
+
+test('late suggestions cannot repopulate a different selection version', async () => {
+  jest.spyOn(redux, 'useSelector').mockReturnValue({});
+  let finishOld: (value: {
+    json: { result: string[] };
+    response: Response;
+  }) => void = () => {};
+  const oldResponse = new Promise<{
+    json: { result: string[] };
+    response: Response;
+  }>(resolve => {
+    finishOld = resolve;
+  });
+  const get = jest
+    .spyOn(SupersetClient, 'get')
+    .mockReset()
+    .mockImplementationOnce(() => oldResponse)
+    .mockResolvedValue({
+      json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+      response: new Response(),
+    });
+  try {
+    const props = {
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'value',
+        operatorId: Operators.In,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+        comparator: [],
+        clause: Clauses.Where,
+      }),
+      onChange: jest.fn(),
+      options,
+      validHandler: jest.fn(),
+      datasource: {
+        ...TestDataset,
+        type: 'semantic_view',
+        columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+        filter_select: true,
+      },
+    } as unknown as Props;
+    const { rerender } = render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...props}
+        semanticSelectionVersion="cube-member-id-v1"
+      />,
+    );
+    await openComparator();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+    rerender(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+    await openComparator();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    await act(async () =>
+      finishOld({
+        json: { result: ['wrong-generation-value'] },
+        response: new Response(),
+      }),
+    );
+    expect(screen.queryAllByText('wrong-generation-value')).toHaveLength(0);
+  } finally {
+    get.mockRestore();
+  }
 });

@@ -63,6 +63,24 @@ if TYPE_CHECKING:
     from superset.reports.notifications.slack import SlackNotification
 
 
+@pytest.mark.parametrize("attempt,maximum", [(None, None), (1, 3), (None, 3)])
+def test_error_notifications_redact_provider_diagnostics(
+    attempt: int | None, maximum: int | None
+) -> None:
+    """Retry and ordinary failures must not publish raw provider errors."""
+    from superset.reports.notifications.slack_mixin import SlackMixin
+
+    body = SlackMixin()._error_template(
+        "report",
+        "description",
+        "secret-provider-diagnostic",
+        retry_attempt=attempt,
+        retry_max_attempts=maximum,
+    )
+    assert "secret-provider-diagnostic" not in body
+    assert "Contact the report owner for error details." in body
+
+
 @pytest.fixture(autouse=True)
 def _skip_backoff_sleep():
     """Make phase-level Slack retry waits instant.
@@ -818,29 +836,39 @@ def test_slackv2_send_without_channels_raises(
 def test_slack_mixin_get_body_truncates_large_table(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
-    mock_header_data,
+    mock_header_data: HeaderDataType,
 ) -> None:
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
 
     flask_global_mock.logs_context = {}
     # Create a large DataFrame that exceeds the 4000-char message limit
-    large_df = pd.DataFrame({"col_" + str(i): range(100) for i in range(10)})
-    content = NotificationContent(
+    large_df: pd.DataFrame = pd.DataFrame(
+        {"col_" + str(i): range(100) for i in range(10)}
+    )
+    content: NotificationContent = NotificationContent(
         name="test",
         header_data=mock_header_data,
         embedded_data=large_df,
         description="desc",
     )
-    notification = SlackV2Notification(
+    notification: SlackV2Notification = SlackV2Notification(
         recipient=ReportRecipients(
             type=ReportRecipientType.SLACKV2,
             recipient_config_json='{"target": "some_channel"}',
         ),
         content=content,
     )
-    body = notification._get_body(content=content)
+    body: str = notification._get_body(content=content)
     assert "(table was truncated)" in body
+    assert len(body) <= 4000
+
+    assert any(
+        line.startswith("|")
+        and "..." not in line
+        and line.split("|")[1].strip().isdigit()
+        for line in body.splitlines()
+    )
 
 
 @patch("superset.reports.notifications.slackv2.g")

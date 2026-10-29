@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import ipaddress
 import logging
 from typing import Any
 from urllib.parse import urlparse
@@ -23,9 +22,7 @@ from urllib.parse import urlparse
 import backoff
 import requests
 from flask import current_app
-from requests.adapters import HTTPAdapter
-from urllib3.connection import HTTPConnection, HTTPSConnection
-from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from flask_babel import gettext as __
 
 from superset import feature_flag_manager
 from superset.reports.models import ReportRecipientType
@@ -36,7 +33,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.utils import json
 from superset.utils.decorators import statsd_gauge
-from superset.utils.network import is_safe_host, is_safe_ip
+from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 logger = logging.getLogger(__name__)
 
@@ -60,91 +57,6 @@ def _sanitize_for_log(text: str) -> str:
     return text.translate(
         {c: f"\\x{c:02x}" for c in [*range(0x20), 0x7F] if c not in (0x09,)}
     )
-
-
-def _raise_for_unsafe_peer(conn: HTTPConnection) -> None:
-    """
-    Validate that a connection's actual peer is publicly routable.
-
-    ``_validate_webhook_url`` resolves and checks the hostname once, ahead of
-    time; the connection opened here is resolved independently and may reach
-    a different address (DNS rebinding via a low-TTL record), so the check
-    has to be repeated against the address actually connected to.
-    """
-    sock = conn.sock
-    if sock is None:
-        return
-    peer = sock.getpeername()[0]
-    if not is_safe_ip(ipaddress.ip_address(peer)):
-        raise NotificationParamException("Webhook URL target host is not allowed.")
-
-
-class _PeerValidatingHTTPConnection(HTTPConnection):
-    """HTTP connection that validates the peer address on connect."""
-
-    def connect(self) -> None:
-        super().connect()
-        _raise_for_unsafe_peer(self)
-
-
-class _PeerValidatingHTTPSConnection(HTTPSConnection):
-    """HTTPS connection that validates the peer address after the handshake."""
-
-    def connect(self) -> None:
-        super().connect()
-        _raise_for_unsafe_peer(self)
-
-
-class _PeerValidatingHTTPConnectionPool(HTTPConnectionPool):
-    ConnectionCls = _PeerValidatingHTTPConnection
-
-
-class _PeerValidatingHTTPSConnectionPool(HTTPSConnectionPool):
-    ConnectionCls = _PeerValidatingHTTPSConnection
-
-
-class _PeerValidatingHTTPAdapter(HTTPAdapter):
-    """
-    Transport adapter that routes requests through connection classes which
-    validate the connected peer address, closing the TOCTOU window between
-    the hostname check in ``_validate_webhook_url`` and the connection that
-    ``send()`` actually opens.
-
-    Mirrors the peer-validation approach used for dataset-import data URIs
-    (``superset.commands.dataset.importers.v1.utils``), adapted to
-    ``requests``/``urllib3`` connection pooling instead of ``urllib``.
-    """
-
-    def init_poolmanager(self, *args: Any, **kwargs: Any) -> None:
-        super().init_poolmanager(*args, **kwargs)
-        # Assign a new dict rather than mutating the manager's dict in
-        # place -- the attribute otherwise aliases urllib3's module-global
-        # default scheme-to-pool-class mapping.
-        self.poolmanager.pool_classes_by_scheme = {
-            "http": _PeerValidatingHTTPConnectionPool,
-            "https": _PeerValidatingHTTPSConnectionPool,
-        }
-
-
-def _get_requester() -> Any:
-    """
-    Return the object used to issue the webhook POST -- either the
-    ``requests`` module itself or a ``requests.Session``, both of which
-    expose a compatible ``.post(url, ...)``.
-
-    Operators who explicitly opt into internal webhook targets via
-    ``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS`` get the plain ``requests``
-    module (no peer pinning -- internal hosts are the intended destination).
-    Otherwise a session is returned whose transport pins the connection to
-    the address that was actually validated.
-    """
-    if current_app.config["ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS"]:
-        return requests
-    session = requests.Session()
-    adapter = _PeerValidatingHTTPAdapter()
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    return session
 
 
 class WebhookNotification(BaseNotification):
@@ -180,7 +92,13 @@ class WebhookNotification(BaseNotification):
         content = {
             "name": self._content.name,
             "header": header_content,
-            "text": self._content.text,
+            # NotificationContent.text carries failure diagnostics; successful
+            # tabular output uses embedded_data rather than this field.
+            "text": (
+                __("Contact the report owner for error details.")
+                if self._content.text
+                else self._content.text
+            ),
             "description": self._content.description,
             "url": self._content.url,
         }
@@ -284,7 +202,11 @@ class WebhookNotification(BaseNotification):
         payload = self._get_req_payload()
         files = self._get_files()
         timeout = current_app.config["ALERT_REPORTS_WEBHOOK_TIMEOUT"]
-        requester = _get_requester()
+        requester = get_ssrf_safe_requester(
+            allow_unsafe_hosts=current_app.config[
+                "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS"
+            ]
+        )
 
         try:
             if files:

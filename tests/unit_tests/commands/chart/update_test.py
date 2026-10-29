@@ -14,19 +14,138 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
+from typing import Any
+from unittest.mock import MagicMock, Mock
+
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
+from superset.charts.schemas import ChartPutSchema
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.commands.chart.update import UpdateChartCommand
-from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    DatasourceTypeInvalidError,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
+
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_update_rejects_null_type_without_mutating_chart(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Explicit empty types must fail before updating a chart or its permissions."""
+    chart: Slice = Slice(
+        id=1,
+        datasource_id=42,
+        datasource_type=datasource_type,
+        perm="original datasource permission",
+        catalog_perm="original catalog permission",
+        schema_perm="original schema permission",
+        is_managed_externally=False,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id", return_value=chart
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.compute_subjects")
+    mocker.patch.object(g, "user", Mock(), create=True)
+    update: Mock = mocker.patch("superset.commands.chart.update.ChartDAO.update")
+    commit: Mock = mocker.patch("superset.db.session.commit")
+    mocker.patch("superset.db.session.rollback")
+    error: pytest.ExceptionInfo[ChartInvalidError]
+    with pytest.raises(ChartInvalidError) as error:
+        UpdateChartCommand(
+            chart.id, ChartPutSchema().load({"datasource_type": None})
+        ).run()
+
+    assert any(
+        isinstance(exception, DatasourceTypeUpdateRequiredValidationError)
+        for exception in error.value._exceptions
+    )
+    update.assert_not_called()
+    commit.assert_not_called()
+    assert chart.datasource_id == 42
+    assert chart.datasource_type == datasource_type
+    assert chart.perm == "original datasource permission"
+    assert chart.catalog_perm == "original catalog permission"
+    assert chart.schema_perm == "original schema permission"
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+@pytest.mark.parametrize(
+    "outcome", ["allowed", "denied", "missing", "no_id", "null_id"]
+)
+def test_type_only_update_checks_retained_datasource(
+    mocker: MockerFixture, datasource_type: str, outcome: str
+) -> None:
+    """Changing only type must authorize the new kind at the stored ID."""
+    chart: Mock = Mock(
+        id=1,
+        datasource_id=None if outcome == "no_id" else 42,
+        datasource_type="table",
+        is_managed_externally=False,
+        tags=[],
+        dashboards=[],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id", return_value=chart
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.compute_subjects")
+    datasource: Mock = Mock()
+    datasource.name = "semantic name"
+    lookup: Mock = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=datasource,
+        side_effect=DatasourceNotFoundValidationError()
+        if outcome == "missing"
+        else None,
+    )
+    access: Mock = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+        side_effect=_access_exc() if outcome == "denied" else None,
+    )
+    command: UpdateChartCommand = UpdateChartCommand(
+        1,
+        {
+            "datasource_type": datasource_type,
+            **({"datasource_id": None} if outcome == "null_id" else {}),
+        },
+    )
+    if outcome in {"missing", "no_id", "null_id"}:
+        error: pytest.ExceptionInfo[ChartInvalidError]
+        with pytest.raises(ChartInvalidError) as error:
+            command.validate()
+        assert any(
+            isinstance(exception, DatasourceNotFoundValidationError)
+            for exception in error.value._exceptions
+        )
+        access.assert_not_called()
+    elif outcome == "denied":
+        with pytest.raises(ChartForbiddenError):
+            command.validate()
+    else:
+        command.validate()
+        assert command._properties["datasource_name"] == "semantic name"
+    if outcome in {"no_id", "null_id"}:
+        lookup.assert_not_called()
+    else:
+        lookup.assert_called_once_with(42, datasource_type)
+    if outcome in {"allowed", "denied"}:
+        access.assert_called_once_with(datasource=datasource)
 
 
 def _editorship_exc() -> SupersetSecurityException:
@@ -141,6 +260,31 @@ def test_update_chart_query_context_non_editor_with_access_allowed(
     raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
+def test_update_chart_query_context_denied_for_guest_user(
+    mocker: MockerFixture,
+) -> None:
+    """An embedded guest token holds no write capability on any resource, so a
+    query-context-only update is refused before the access check even though
+    ``raise_for_access`` admits a guest for the charts its dashboard embeds."""
+    # The guest deny raises before any chart attribute is read, so the default
+    # MagicMock the patch installs is enough of a model here.
+    mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.is_guest_user",
+        return_value=True,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+    )
+
+    with pytest.raises(ChartForbiddenError):
+        UpdateChartCommand(
+            1, {"query_context": "{}", "query_context_generation": True}
+        ).validate()
+
+    raise_for_access.assert_not_called()
+
+
 def test_update_chart_editor_can_perform_regular_update(
     mocker: MockerFixture,
 ) -> None:
@@ -179,6 +323,7 @@ def _query_context_payload(datasource: object) -> dict[str, object]:
     "datasource_type",
     [
         "table",
+        "semantic_view",
         "query",  # non-table datasource types must also be accepted when matching
     ],
 )
@@ -266,7 +411,7 @@ def test_update_chart_query_context_without_datasource_is_allowed(
     ).validate()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_update_chart_rejects_repointing_to_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
@@ -301,6 +446,42 @@ def test_update_chart_rejects_repointing_to_non_table_datasource(
         isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
     )
     get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_accepts_semantic_view_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """Repointing a chart at a SIP-182 semantic view must be accepted: the
+    view is a first-class resolvable datasource (Slice resolves it through
+    the type-guarded ``semantic_view`` relationship), so the non-table guard
+    must explicitly allow it (apache/superset#44167)."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    datasource = mocker.MagicMock(spec=SemanticView)
+    datasource.name = "my_semantic_view"
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=datasource,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access"
+    )
+
+    cmd = UpdateChartCommand(
+        1, {"datasource_id": 11, "datasource_type": "semantic_view"}
+    )
+    cmd.validate()
+
+    get_datasource_by_id.assert_called_once_with(11, "semantic_view")
+    raise_for_access.assert_called_once_with(datasource=datasource)
+    assert cmd._properties["datasource_name"] == "my_semantic_view"
 
 
 def test_update_chart_missing_datasource_type_keeps_required_error(
@@ -338,7 +519,7 @@ def test_update_chart_missing_datasource_type_keeps_required_error(
     get_datasource_by_id.assert_not_called()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_update_chart_rejects_type_only_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
@@ -367,3 +548,265 @@ def test_update_chart_rejects_type_only_non_table_datasource(
         isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
     )
     get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_touches_newly_linked_dashboards(
+    mocker: MockerFixture,
+) -> None:
+    """Issue #44305: Adding new dashboards to a chart touches audit metadata."""
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    existing_dashboard = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
+    new_dashboard = MagicMock(
+        id=2,
+        is_managed_externally=False,
+        changed_on=seeded_changed_on,
+        changed_by=None,
+    )
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[existing_dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+
+    def _find_dashboards_by_ids(ids: list[int], **kwargs: Any) -> list[Any]:
+        lookup = {1: existing_dashboard, 2: new_dashboard}
+        return [lookup[i] for i in ids if i in lookup]
+
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        side_effect=_find_dashboards_by_ids,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    cmd = UpdateChartCommand(10, {"dashboards": [1, 2]})
+    cmd.run()
+
+    # The existing dashboard should NOT be touched
+    assert existing_dashboard.changed_on == seeded_changed_on
+    assert existing_dashboard.changed_by is None
+    # The newly linked dashboard MUST be touched
+    assert new_dashboard.changed_on > seeded_changed_on
+    assert new_dashboard.changed_by == user
+
+
+def test_update_chart_does_not_touch_unchanged_dashboards(
+    mocker: MockerFixture,
+) -> None:
+    """Updating a chart without changing dashboard attachments does not touch them."""
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    existing_dashboard = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[existing_dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[existing_dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    # The unchanged dashboard should remain untouched
+    assert existing_dashboard.changed_on == seeded_changed_on
+    assert existing_dashboard.changed_by is None
+
+
+def test_update_chart_touches_dashboards_when_removed(
+    mocker: MockerFixture,
+) -> None:
+    """Issue #44305: Removing a chart from a dashboard touches that dashboard."""
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    d1 = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
+    d2 = MagicMock(id=2, changed_on=seeded_changed_on, changed_by=None)
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[d1, d2],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[d1],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    # Keep only d1, removing d2
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    # The dashboard that keeps the chart is untouched
+    assert d1.changed_on == seeded_changed_on
+    assert d1.changed_by is None
+    # The dashboard the chart was removed from is touched
+    assert d2.changed_on > seeded_changed_on
+    assert d2.changed_by == user
+
+
+def test_update_chart_without_dashboards_in_payload_leaves_dashboards_untouched(
+    mocker: MockerFixture,
+) -> None:
+    """Updates that do not alter dashboard links do not evaluate dashboard touches."""
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    dashboard = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    g.user = MagicMock()
+    cmd = UpdateChartCommand(10, {"slice_name": "Renamed only"})
+    cmd.run()
+
+    assert dashboard.changed_on == seeded_changed_on
+    assert dashboard.changed_by is None
+
+
+def test_update_chart_touches_dashboards_when_removed_in_no_user_context(
+    mocker: MockerFixture,
+) -> None:
+    """Issue #44305: Removing a chart without active user preserves audit metadata."""
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    prior_user = MagicMock()
+    d1 = MagicMock(
+        id=1,
+        changed_on=seeded_changed_on,
+        changed_by=prior_user,
+        changed_by_fk=1,
+    )
+    d2 = MagicMock(
+        id=2,
+        changed_on=seeded_changed_on,
+        changed_by=prior_user,
+        changed_by_fk=2,
+    )
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[d1, d2],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[d1],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    g.user = None
+
+    # Keep only d1, removing d2
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    # The dashboard that keeps the chart is untouched
+    assert d1.changed_on == seeded_changed_on
+    assert d1.changed_by == prior_user
+    assert d1.changed_by_fk == 1
+    # The dashboard the chart was removed from is touched and attribution is preserved
+    assert d2.changed_on > seeded_changed_on
+    assert d2.changed_by == prior_user
+    assert d2.changed_by_fk == 2
