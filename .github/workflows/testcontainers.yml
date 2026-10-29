@@ -48,6 +48,11 @@ jobs:
     # can't reference `matrix` (only github/inputs/needs/vars are available
     # there), so the filtering has to happen here, before the matrix exists,
     # instead of on the testcontainers job itself.
+    #
+    # The nightly run only exists to catch driver drift for the upstream
+    # project, so it is skipped on forks and mirrors (which can still start
+    # it manually); skipping here skips the testcontainers jobs with it.
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-26.04
     outputs:
       include: ${{ steps.filter.outputs.include }}
@@ -170,7 +175,7 @@ jobs:
             --junit-xml=test-results/junit-testcontainers-${{ matrix.dialect }}.xml
       - name: Upload JUnit test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: junit-results-testcontainers-${{ matrix.dialect }}
           path: test-results/
@@ -178,7 +183,7 @@ jobs:
 
   actions-timeline:
     needs: [testcontainers]
-    if: always()
+    if: always() && (github.event_name != 'schedule' || github.repository == 'apache/superset')
     runs-on: ubuntu-26.04
     permissions:
       actions: read

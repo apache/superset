@@ -16,13 +16,122 @@
 # under the License.
 import io
 import sys
+from decimal import Decimal, DivisionByZero, InvalidOperation, localcontext
 
 import pandas as pd
+import pytest
 
 from superset.constants import PandasPostprocessingCompare as PPC  # noqa: N817
 from superset.utils import pandas_postprocessing as pp
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import multiple_metrics_df, timeseries_df2
+
+
+@pytest.mark.parametrize(
+    "compare_type, expected",
+    [
+        (PPC.PCT, [float("inf"), float("nan"), -float("inf"), 1.5, -1.0]),
+        (PPC.RAT, [float("inf"), float("nan"), -float("inf"), 2.5, 0.0]),
+    ],
+)
+@pytest.mark.parametrize("multi_index", [False, True])
+def test_compare_decimal_zero_baseline(
+    compare_type: PPC, expected: list[float], multi_index: bool
+) -> None:
+    """Decimal comparisons follow numeric division semantics for zero baselines."""
+    df = pd.DataFrame(
+        {
+            "current": [Decimal(value) for value in ["10", "0", "-10", "10", "0"]],
+            "previous": [Decimal(value) for value in ["0", "0", "0", "4", "4"]],
+        }
+    )
+    if multi_index:
+        df.columns = pd.MultiIndex.from_product([df.columns, ["group"]])
+    original = df.copy(deep=True)
+
+    result = pp.compare(
+        df,
+        source_columns=["current"],
+        compare_columns=["previous"],
+        compare_type=compare_type,
+        drop_original_columns=True,
+    )
+    column = f"{compare_type}__current__previous"
+    columns = (
+        pd.MultiIndex.from_tuples([(column, "group")]) if multi_index else [column]
+    )
+    pd.testing.assert_frame_equal(result, pd.DataFrame(expected, columns=columns))
+    pd.testing.assert_frame_equal(df, original)
+
+
+def test_compare_decimal_raw_query() -> None:
+    """Raw query columns retain Decimals through normalization and comparison."""
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+
+    query = QueryObject(
+        columns=["current", "previous"],
+        metrics=[],
+        post_processing=[
+            {
+                "operation": "compare",
+                "options": {
+                    "source_columns": ["current"],
+                    "compare_columns": ["previous"],
+                    "compare_type": PPC.RAT,
+                    "drop_original_columns": True,
+                },
+            }
+        ],
+    )
+    df = pd.DataFrame({"current": [Decimal("10")], "previous": [Decimal("0")]})
+    df = SqlaTable().normalize_df(df, query)
+    assert isinstance(df.loc[0, "current"], Decimal)
+
+    result = query.exec_post_processing(df)
+
+    pd.testing.assert_frame_equal(
+        result, pd.DataFrame({"ratio__current__previous": [float("inf")]})
+    )
+
+
+@pytest.mark.parametrize("compare_type, expected", [(PPC.PCT, 1.0), (PPC.RAT, 2.0)])
+@pytest.mark.parametrize("exponent", [500, -500])
+def test_compare_decimal_range(
+    compare_type: PPC, expected: float, exponent: int
+) -> None:
+    """Divide Decimals before converting the finite result to a float."""
+    df = pd.DataFrame(
+        {
+            "current": [Decimal(f"1e{exponent}")],
+            "previous": [Decimal(f"5e{exponent - 1}")],
+        }
+    )
+
+    result = pp.compare(
+        df,
+        source_columns=["current"],
+        compare_columns=["previous"],
+        compare_type=compare_type,
+    )
+
+    assert result[f"{compare_type}__current__previous"].iloc[0] == expected
+
+
+def test_compare_preserves_decimal_context() -> None:
+    """Zero-baseline handling must not change the caller's Decimal traps."""
+    df = pd.DataFrame({"current": [Decimal("0")], "previous": [Decimal("0")]})
+    with localcontext() as context:
+        context.traps[DivisionByZero] = True
+        context.traps[InvalidOperation] = True
+        pp.compare(
+            df,
+            source_columns=["current"],
+            compare_columns=["previous"],
+            compare_type=PPC.RAT,
+        )
+        assert context.traps[DivisionByZero]
+        assert context.traps[InvalidOperation]
 
 
 def test_compare_should_not_side_effect():
