@@ -139,6 +139,16 @@ Validation does not save a global verdict, change chart behavior, or override th
 safety refusal. Before enabling a production mapping, compare chart row IDs and counts with
 and without its partition predicates, including equality, IN, and partial-bucket ranges.
 
+The transform belongs to the column it was written for, so moving the mapping clears it.
+That happens when you change the default datetime column, move the mapping to another
+column, or clear the partition column. The editor asks for confirmation first. **Cancel**
+leaves everything as it was. Selecting the old column again does not restore the transform.
+
+The editor says filters will be mirrored only once the engine has confirmed the transform.
+That confirmation comes from a preview or from the last stored check. Until then, it says
+pruning has not been confirmed. A new dashboard filter on a mapped dataset starts with a
+*Last week* time range only after that same confirmation.
+
 ### Transform preserves ordering
 
 Range filters — including the Explore time range, the most important case — are only
