@@ -3535,6 +3535,30 @@ def test_bullet_update_preserves_range_colors_through_validation() -> None:
     assert validate_merged_bullet_form_data(merged_cleared, config) is not None
 
 
+def test_bullet_update_keeps_range_colors_when_ranges_repeat_saved_value() -> None:
+    """Repeating the saved thresholds leaves the bands unchanged, so their
+    per-band colors survive; changing the thresholds still clears them."""
+    existing = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "ranges": "50,100",
+        "range_colors": ["#ff0000", "#00ff00"],
+    }
+    same = BulletChartConfig(metric=_simple_metric("profit"), ranges=[50, 100])
+    merged_same = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(same), same, dataset_rebind=False
+    )
+    assert merged_same is not None
+    assert merged_same["range_colors"] == ["#ff0000", "#00ff00"]
+
+    changed = BulletChartConfig(metric=_simple_metric("profit"), ranges=[10, 20])
+    merged_changed = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(changed), changed, dataset_rebind=False
+    )
+    assert merged_changed is not None
+    assert merged_changed["range_colors"] == []
+
+
 def test_mapping_other_registered_chart_type_is_unchanged() -> None:
     from superset.mcp_service.chart.schemas import PieChartConfig
 
