@@ -90,6 +90,17 @@ class Page(BaseModel):
         pattern=PERMISSION_NAME_PATTERN,
         max_length=100,
     )
+    featureFlag: str | None = Field(  # noqa: N815
+        default=None,
+        description=(
+            "Feature flag the page depends on. While the flag is off the "
+            "page is hidden from the navigation and refuses to open, so a "
+            "feature that is switched off advertises nothing. Omit for a "
+            "page that does not depend on a flag."
+        ),
+        pattern=r"^[A-Z][A-Z0-9_]*$",
+        max_length=100,
+    )
 
 
 class Contributions(BaseModel):
