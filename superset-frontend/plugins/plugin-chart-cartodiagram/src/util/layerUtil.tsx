@@ -183,7 +183,7 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
 export const createDataLayer = async (dataLayerConf: DataLayerConf) => {
   const { attribution, style } = dataLayerConf;
   const dataSource = new VectorSource({
-    attributions: attribution,
+    attributions: escapeAttribution(attribution),
   });
 
   let writeStyleResult;
