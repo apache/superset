@@ -110,7 +110,7 @@ interface ExportChartParams {
 
 interface SubjectWithColumnName {
   column_name?: string;
-  label?: string;
+  sqlExpression?: string;
 }
 
 type ComparatorValue = string | number | boolean | null;
@@ -467,10 +467,11 @@ export const getSimpleSQLExpression = (
   );
   const showComparator =
     disableInputOperatorValues.indexOf(operator ?? '') === -1;
-  // A dataset column carries column_name. An adhoc column carries label.
+  // A dataset column carries column_name. Adhoc SQL carries sqlExpression.
+  // The filter pill picks its own label and does not use this text.
   let expression: string =
     typeof subject === 'object'
-      ? (subject?.column_name ?? subject?.label ?? '')
+      ? (subject?.column_name ?? subject?.sqlExpression ?? '')
       : (subject ?? '');
   if (subject && operator) {
     expression += ` ${operator}`;
