@@ -209,13 +209,11 @@ def encrypted_extra_secrets_reused(
         return False
 
     def is_stored(field: str) -> bool:
-        return any(match.value for match in parse(field).find(existing))
+        return any(
+            match.value not in (None, "") for match in parse(field).find(existing)
+        )
 
-    if not any(
-        match.value
-        for field in sensitive_fields
-        for match in parse(field).find(existing)
-    ):
+    if not any(is_stored(field) for field in sensitive_fields):
         return False  # nothing stored to carry over
     if not submitted:
         return True
