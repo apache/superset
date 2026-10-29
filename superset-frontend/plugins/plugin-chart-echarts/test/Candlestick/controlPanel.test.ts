@@ -100,6 +100,16 @@ test('formDataOverrides keeps existing OHLC fields when fewer than four metrics 
   expect(newFormData.low).toBe('existingLow');
 });
 
+test('labels the OHLC metric controls with their own price strings', () => {
+  const getLabel = (controlName: string) =>
+    (getControl(controlName) as { config: { label: string } } | null)?.config
+      .label;
+  expect(getLabel('open')).toBe('Open price');
+  expect(getLabel('close')).toBe('Close price');
+  expect(getLabel('high')).toBe('High price');
+  expect(getLabel('low')).toBe('Low price');
+});
+
 test('overrides series to a single optional dimension', () => {
   expect(controlPanel.controlOverrides?.series).toEqual(
     expect.objectContaining({

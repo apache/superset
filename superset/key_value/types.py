@@ -19,7 +19,8 @@ from __future__ import annotations
 import json
 import pickle
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict, Union
+from dataclasses import dataclass
+from typing import Any, TYPE_CHECKING, TypedDict, Union
 from uuid import UUID
 
 from marshmallow import Schema, ValidationError
@@ -30,6 +31,9 @@ from superset.key_value.exceptions import (
 )
 from superset.utils.backports import StrEnum
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Query
+
 Key = Union[int, UUID]
 
 
@@ -39,15 +43,53 @@ class KeyValueFilter(TypedDict, total=False):
     uuid: UUID | None
 
 
+@dataclass(frozen=True)
+class RowLock:
+    """
+    Row lock to take when reading a key-value entry, held for the rest of the
+    transaction. The fields map to the arguments of ``Query.with_for_update``;
+    the defaults take an exclusive ``FOR UPDATE`` lock.
+    """
+
+    # Shared lock (``FOR SHARE`` / ``LOCK IN SHARE MODE``) instead of exclusive
+    read: bool = False
+    nowait: bool = False
+    skip_locked: bool = False
+    # Postgres only (``FOR KEY SHARE`` / ``FOR NO KEY UPDATE``)
+    key_share: bool = False
+
+    def apply(self, query: Query) -> Query:
+        return query.with_for_update(
+            read=self.read,
+            nowait=self.nowait,
+            skip_locked=self.skip_locked,
+            key_share=self.key_share,
+        )
+
+
 class KeyValueResource(StrEnum):
     APP = "app"
+    ALERT_REPORT_CONFIG = "alert_report_config"
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXCEL_EXPORT_DOWNLOAD = "excel_export_download"
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
+    # Self-service AUTH_DB password recovery: outstanding single-use tokens
+    # (stored as verifiers only) and the per-address resend cooldown.
+    PASSWORD_RECOVERY_THROTTLE = "password_recovery_throttle"  # noqa: S105
+    PASSWORD_RECOVERY_TOKEN = "password_recovery_token"  # noqa: S105
     PKCE_CODE_VERIFIER = "pkce_code_verifier"
+    SEMANTIC_EXECUTION = "semantic_execution"
     SQLLAB_PERMALINK = "sqllab_permalink"
+
+
+SEMANTIC_INSTALL_ID_KEY: UUID = UUID("b75b1c70-5553-4c5b-868b-bf8d99612626")
+
+# Stable UUIDs for resources that keep one named row in the key-value store.
+FIXED_RESOURCE_KEYS: dict[KeyValueResource, UUID] = {
+    KeyValueResource.ALERT_REPORT_CONFIG: UUID("d4f7d2f0-bbd7-4d03-b1da-09c70f5705ec"),
+}
 
 
 class SharedKey(StrEnum):

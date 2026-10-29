@@ -561,3 +561,50 @@ def test_plan_propagates_soft_time_limits(charts: mock.MagicMock) -> None:
         pytest.raises(SoftTimeLimitExceeded),
     ):
         plan_inline_export(mock.MagicMock())
+
+
+@pytest.mark.parametrize("query_mode", ["aggregate", "raw"])
+@pytest.mark.parametrize("max_rows, fits", [(999, False), (1000, True)])
+def test_rebuilt_paginated_table_budget_uses_full_export_limit(
+    charts: mock.MagicMock, query_mode: str, max_rows: int, fits: bool
+) -> None:
+    """Inline exports size the full table, not an interactive page or rowcount."""
+    form_data = {
+        "groupby": ["country"],
+        "all_columns": ["country"],
+        "metrics": ["count"],
+        "query_mode": query_mode,
+        "server_pagination": True,
+        "server_page_length": 10,
+        "row_limit": 1000,
+        "row_offset": 20,
+        "result_format": "json",
+        "result_type": "full",
+    }
+    chart = _chart(10)
+    chart.query_context = None
+    chart.params = json.dumps(form_data)
+    chart.datasource_id = 1
+    chart.datasource_type = "table"
+    charts.return_value = [chart]
+
+    with mock.patch.dict(
+        current_app.config,
+        {
+            "EXPORT_STORAGE": {},
+            "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER": None,
+            "EXCEL_EXPORT_SYNC_MAX_ROWS": max_rows,
+        },
+    ):
+        plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.requested_rows == 1000
+    assert plan.fits_row_budget is fits
+    context = plan.query_contexts[10]
+    assert context is not None
+    assert len(context["queries"]) == 1
+    query = context["queries"][0]
+    assert query["row_limit"] == 1000
+    assert query.get("row_offset", 0) == 0
+    assert not query.get("is_rowcount")
+    assert json.loads(chart.params) == form_data

@@ -43,6 +43,7 @@ const d3Formatted: [string, string][] = [
   '.2%',
   '.3%',
   '.4r',
+  ',.0f',
   ',.1f',
   ',.2f',
   ',.3f',

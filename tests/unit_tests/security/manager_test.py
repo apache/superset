@@ -25,6 +25,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
+from flask_appbuilder.actions import ActionItem
 from flask_appbuilder.const import (
     AUTH_DB,
     AUTH_LDAP,
@@ -32,12 +33,27 @@ from flask_appbuilder.const import (
     AUTH_REMOTE_USER,
     AUTH_SAML,
 )
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
+    assoc_permissionview_role,
+    assoc_user_group,
+    assoc_user_role,
+    Group,
+    Permission,
+    PermissionView,
+    Role,
+    User,
+    ViewMenu,
+)
+from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
+from werkzeug.exceptions import NotFound
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
@@ -58,6 +74,33 @@ def test_security_manager(app_context: None) -> None:
     """
     sm = SupersetSecurityManager(appbuilder)
     assert sm
+
+
+def test_is_guest_user_no_jwt_returns_false_without_raising(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    ``is_guest_user`` must not propagate ``NoAuthorizationError``.
+
+    Resolving the current user on a request with no JWT and no guest token
+    invokes the app's request loader, which lets ``verify_jwt_in_request``
+    raise ``NoAuthorizationError``. When ``is_guest_user`` runs before auth
+    (e.g. error sanitization while handling an unrelated HTTPException) that
+    raise would escape as an unhandled exception. Such a request cannot be an
+    embedded guest viewer, so the method must return ``False`` instead.
+    """
+    from flask_jwt_extended.exceptions import NoAuthorizationError
+
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.get_current_user",
+        side_effect=NoAuthorizationError("Missing JWT in cookies or headers"),
+    )
+
+    assert SupersetSecurityManager.is_guest_user() is False
 
 
 def _register_views_with_mock_appbuilder(
@@ -322,13 +365,15 @@ def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
         return_value=False,
     )
 
-    child_datasource = mocker.MagicMock()
-    other_datasource = mocker.MagicMock()
+    child_datasource: MagicMock = mocker.MagicMock(id=7, type="table")
+    other_datasource: MagicMock = mocker.MagicMock(id=8, type="table")
 
     parent_slc = mocker.MagicMock()
     parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
     child_slc = mocker.MagicMock()
     child_slc.datasource = child_datasource
+    child_slc.datasource_id = 7
+    child_slc.datasource_type = "table"
 
     dashboard = mocker.MagicMock()
     dashboard.slices = [parent_slc]
@@ -1928,7 +1973,8 @@ def _native_filter_ctx(
         "native_filter_id": native_filter_id,
         "dashboardId": dashboard_id,
     }
-    qc.datasource.data = {"id": dataset_id}
+    qc.datasource.id = dataset_id
+    qc.datasource.type = "table"
     qc.queries = queries
     dash = mocker.MagicMock()
     dash.json_metadata = json.dumps(
@@ -4086,6 +4132,180 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         sm.raise_for_access(query=query, force_dataset_match=True)
 
 
+def test_raise_for_access_editorship_denied_in_strict_mode(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Editorship of a registered dataset for the referenced table
+    must not authorize a raw query on the strict ``force_dataset_match`` path
+    (SQL Lab, MetaDB, MCP execute_sql). Any dataset-creating principal can
+    make themselves an editor of a dataset named after an arbitrary table, so
+    accepting editorship here would let dataset creation stand in for data
+    access and would outlive revocation of every real grant. The same
+    editorship stays sufficient on the non-strict path (the dataset-owner
+    "explore your own dataset" grant, #20382).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    # A registered dataset exists for the referenced table and the user is its
+    # editor, but holds no datasource_access (nor any catalog/schema grant).
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)")
+    ]
+
+    # Real Database so the SQL parse / engine-spec path is genuinely
+    # exercised, like the catalog-self-reference test above.
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM dbo.foo",
+    )
+
+    # Strict mode (SQL Lab / MetaDB / MCP): editorship alone is not enough.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+    # allow_editorship=False (dataset create/update validation): also not enough.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, allow_editorship=False)
+
+    # Non-strict mode: editorship still authorizes access (#20382).
+    sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    allow_editorship=False must not drop the schema_access fallthrough: a
+    user with schema_access can still DEFINE a dataset over the table (unlike
+    force_dataset_match=True, which requires a registered dataset match).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database, schema=None, catalog=None, sql="SELECT * FROM dbo.foo"
+    )
+    # Only schema_access holds (the dbo schema on this connection).
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    # allow_editorship=False still passes on schema_access ...
+    sm.raise_for_access(query=query, allow_editorship=False)
+    # ... whereas the strict flag would deny it (no registered dataset).
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_catalog_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    allow_editorship=False must not drop the catalog_access fallthrough either:
+    a user with catalog_access on the referenced catalog is not over-blocked
+    when defining a dataset over a table in it.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    mocker.patch.object(database.db_engine_spec, "supports_catalog", True)
+    query = mocker.MagicMock(
+        database=database, schema="dbo", catalog="other", sql="SELECT * FROM dbo.foo"
+    )
+    # Only catalog_access holds (the "other" catalog on this connection).
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "catalog_access"
+        and vm == f"[{MSSQL_CONN_NAME}].[other]",
+    )
+
+    sm.raise_for_access(query=query, allow_editorship=False)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_datasource_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    End-to-end ALLOW guard: a holder of real ``datasource_access`` on a
+    registered dataset for the referenced table passes even with
+    ``allow_editorship=False`` -- the define/repoint paths never over-block a
+    principal with genuine data access (only editorship-as-access is removed).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(
+            perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)", sql=None, catalog=None
+        )
+    ]
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database, schema=None, catalog=None, sql="SELECT * FROM dbo.foo"
+    )
+    # Only datasource_access on the registered dataset holds.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "datasource_access"
+        and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)",
+    )
+
+    sm.raise_for_access(query=query, allow_editorship=False)
+
+
+def test_raise_for_access_datasource_branch_honors_allow_editorship(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The ``datasource=`` branch honors ``allow_editorship`` like the per-table
+    branch: an editor holding no schema, datasource or semantic-layer grant is
+    refused when the caller opts out of the editorship accept, and keeps the
+    #20382 accept by default.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    datasource = mocker.MagicMock(perm="[db].[orders](id:1)")
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(datasource=datasource, allow_editorship=False)
+
+    sm.raise_for_access(datasource=datasource)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,
@@ -5384,3 +5604,814 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
+
+
+def test_skip_legacy_fab_password_view_registration_refuses_reset_views(
+    app_context: None,
+) -> None:
+    """The patched ``add_view_no_menu`` drops both legacy reset views, whether
+    FAB hands over an instance (as ``register_views`` does) or the class, and
+    passes everything else through to the original."""
+
+    class NonPasswordView:
+        pass
+
+    registered: list[Any] = []
+
+    def add_view_no_menu(baseview: Any, *args: Any, **kwargs: Any) -> Any:
+        registered.append(baseview)
+        return baseview
+
+    fake_appbuilder = SimpleNamespace(add_view_no_menu=add_view_no_menu)
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = fake_appbuilder
+
+    original = sm._skip_legacy_fab_password_view_registration()
+    assert original is add_view_no_menu
+
+    fake_appbuilder.add_view_no_menu(ResetPasswordView())
+    fake_appbuilder.add_view_no_menu(ResetMyPasswordView())
+    fake_appbuilder.add_view_no_menu(ResetPasswordView)
+    fake_appbuilder.add_view_no_menu(ResetMyPasswordView)
+    fake_appbuilder.add_view_no_menu(NonPasswordView)
+
+    assert registered == [NonPasswordView]
+
+
+def test_register_views_never_registers_legacy_password_views(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """End to end through ``register_views``: the reset views FAB adds for
+    ``AUTH_DB`` never reach the appbuilder, other views do, and the appbuilder's
+    ``add_view_no_menu`` is restored once FAB's registration is done."""
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": AUTH_DB,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+    original_add_view_no_menu = mock_appbuilder.add_view_no_menu
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    class NonPasswordView:
+        pass
+
+    def fab_register_views(fab_sm: SupersetSecurityManager) -> None:
+        # What FAB's ``register_views`` does for AUTH_DB, reduced to the calls
+        # that matter here.
+        fab_sm.appbuilder.add_view_no_menu(ResetPasswordView())
+        fab_sm.appbuilder.add_view_no_menu(ResetMyPasswordView())
+        fab_sm.appbuilder.add_view_no_menu(NonPasswordView)
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+        side_effect=fab_register_views,
+    )
+
+    sm.register_views()
+
+    registered = [call.args[0] for call in original_add_view_no_menu.call_args_list]
+    assert NonPasswordView in registered
+    assert not any(
+        isinstance(view, (ResetPasswordView, ResetMyPasswordView))
+        or view in (ResetPasswordView, ResetMyPasswordView)
+        for view in registered
+    )
+    assert mock_appbuilder.add_view_no_menu is original_add_view_no_menu
+
+
+def test_disable_legacy_password_reset_launchers(app_context: None) -> None:
+    """The user view's two reset buttons are hidden and answer 404, while
+    unrelated actions on the same view are left alone.
+
+    FAB's ``UserDBModelView`` actions redirect to the reset views via
+    ``url_for``, which would raise ``BuildError`` (a 500) since those views are
+    never registered.
+    """
+
+    def launcher(item: Any) -> str:
+        return "redirect"
+
+    actions = {
+        name: ActionItem(name, name, None, "fa-lock", False, True, launcher)
+        for name in ("resetpasswords", "resetmypassword", "userinfoedit")
+    }
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = SimpleNamespace(actions=actions)
+
+    sm._disable_legacy_password_reset_launchers()
+
+    for name in ("resetpasswords", "resetmypassword"):
+        assert actions[name].single is False
+        assert actions[name].multiple is False
+        with pytest.raises(NotFound):
+            actions[name].func(None)
+    assert actions["userinfoedit"].single is True
+    assert actions["userinfoedit"].func(None) == "redirect"
+
+
+def test_disable_legacy_password_reset_launchers_without_user_view() -> None:
+    """Auth backends other than AUTH_DB have no reset launchers to hide."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = None
+
+    sm._disable_legacy_password_reset_launchers()
+
+
+@pytest.mark.parametrize(
+    "permission,view_menu,expected",
+    [
+        ("can_this_form_get", "ResetPasswordView", True),
+        ("can_this_form_post", "ResetPasswordView", True),
+        ("can_this_form_get", "ResetMyPasswordView", True),
+        ("can_this_form_post", "ResetMyPasswordView", True),
+        ("resetpasswords", "UserDBModelView", True),
+        ("resetmypassword", "UserDBModelView", True),
+        ("userinfoedit", "UserDBModelView", False),
+        ("can_userinfo", "UserDBModelView", False),
+        ("resetmypassword", "SomeOtherView", False),
+        ("can_read", "Dashboard", False),
+    ],
+)
+def test_is_legacy_password_pvm(
+    permission: str, view_menu: str, expected: bool
+) -> None:
+    assert (
+        SupersetSecurityManager._is_legacy_password_pvm(_pvm(permission, view_menu))
+        is expected
+    )
+
+
+def test_sync_role_definitions_excludes_stale_legacy_password_pvms(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Upgraded installs must not have any role retain the removed views.
+
+    The reset views' permission rows (and the user-view launcher actions that
+    redirected to them) persist in the metadata database of an installation
+    that ran them before, and ``_get_all_pvms`` still returns them;
+    ``sync_role_definitions`` has to leave them out of every role.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    stale_pvms = [
+        _pvm("can_this_form_get", "ResetPasswordView"),
+        _pvm("can_this_form_post", "ResetMyPasswordView"),
+        _pvm("resetpasswords", "UserDBModelView"),
+        _pvm("resetmypassword", "UserDBModelView"),
+    ]
+    other_pvm = _pvm("can_read", "Dashboard")
+
+    mocker.patch.object(sm, "create_custom_permissions")
+    mocker.patch.object(sm, "_get_all_pvms", return_value=[*stale_pvms, other_pvm])
+    mock_set_role = mocker.patch.object(sm, "set_role")
+    mocker.patch.object(sm, "create_missing_perms")
+    mocker.patch.object(sm, "clean_perms")
+    mocker.patch.dict(current_app.config, {"PUBLIC_ROLE_LIKE": None})
+
+    sm.sync_role_definitions()
+
+    assert mock_set_role.call_args_list
+    for call in mock_set_role.call_args_list:
+        role_name, _classifier_fn, synced_pvms = call.args
+        for stale_pvm in stale_pvms:
+            assert stale_pvm not in synced_pvms, role_name
+        assert other_pvm in synced_pvms, role_name
+
+
+def test_reset_password_self_service_commits_cleared_flag(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """``clear_password_must_change`` no longer commits on its own, so the
+    self-service branch of ``reset_password`` has to."""
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch(
+        "superset.security.manager.g", new=SimpleNamespace(user=SimpleNamespace(id=5))
+    )
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+    mock_commit = mocker.patch("superset.db.session.commit")
+
+    sm.reset_password(5, "new-password")
+
+    mock_clear.assert_called_once_with(5)
+    # One commit for the session-invalidation stamp, one for the cleared flag.
+    assert mock_commit.call_count == 2
+
+
+@pytest.mark.parametrize("granted", [True, False])
+def test_raise_for_access_never_reads_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    granted: bool,
+) -> None:
+    """
+    Pin the invariant the chart-data semantic preflight relies on: for a
+    non-guest caller, ``raise_for_access`` decides from the datasource and form
+    data alone and never reads ``query_context.queries``.
+    """
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=granted)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+
+    query_context: MagicMock = mocker.MagicMock()
+    # A consistent saved chart, so a payload comparison would reach the queries
+    # rather than stopping at a slice mismatch.
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {}
+    query_context.form_data = {"slice_id": 42}
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    if granted:
+        sm.raise_for_access(query_context=query_context)
+    else:
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(query_context=query_context)
+
+
+_DASHBOARD_ID: int = 7
+_VIEW_ID: int = 1
+_OTHER_VIEW_ID: int = 2
+
+
+def _chart(mocker: MockerFixture, chart_id: int, datasource_id: int) -> MagicMock:
+    """A saved chart on the given semantic view."""
+    chart: MagicMock = mocker.MagicMock(
+        id=chart_id, datasource_id=datasource_id, datasource_type="semantic_view"
+    )
+    return chart
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["native-filter", "chart", "multilayer-child", "drill-to-detail", "drill-by"],
+)
+def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    path: str,
+) -> None:
+    """
+    Extend the non-guest invariant to the dashboard, viewer and drill branches.
+
+    Each case passes every earlier check on its branch and is refused only by
+    that branch's last check, which a spy proves was reached, so a read of
+    ``query_context.queries`` anywhere along the branch would fail the test.
+    """
+    from superset.models.dashboard import Dashboard
+    from superset.security import manager as manager_module
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "_validate_child_in_parent_multilayer", return_value=True)
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+    matches: MagicMock = mocker.patch.object(
+        manager_module,
+        "_datasource_matches",
+        wraps=manager_module._datasource_matches,
+    )
+
+    datasource: MagicMock = mocker.MagicMock(
+        id=_VIEW_ID, type="semantic_view", perm="[view](id:1)"
+    )
+    datasource.has_drill_by_columns.return_value = False
+    own_chart: MagicMock = _chart(mocker, 42, _VIEW_ID)
+    foreign_chart: MagicMock = _chart(mocker, 42, _OTHER_VIEW_ID)
+    parent_chart: MagicMock = _chart(mocker, 43, _OTHER_VIEW_ID)
+    native_filters: list[dict[str, Any]] = [
+        {
+            "id": "f",
+            "targets": [
+                {"datasetId": _OTHER_VIEW_ID, "datasourceType": "semantic_view"}
+            ],
+        }
+    ]
+
+    form_data: dict[str, Any]
+    charts: dict[int, MagicMock]
+    if path == "native-filter":
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "type": "NATIVE_FILTER",
+            "native_filter_id": "f",
+        }
+        charts = {}
+    elif path == "chart":
+        form_data = {"dashboardId": _DASHBOARD_ID, "slice_id": 42}
+        charts = {42: foreign_chart}
+    elif path == "multilayer-child":
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 42,
+            "parent_slice_id": 43,
+        }
+        charts = {42: foreign_chart, 43: parent_chart}
+    elif path == "drill-to-detail":
+        form_data = {"dashboardId": _DASHBOARD_ID}
+        charts = {}
+    else:
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 0,
+            "chart_id": 42,
+            "groupby": ["a"],
+        }
+        charts = {42: own_chart}
+
+    dashboard: MagicMock = mocker.MagicMock(
+        id=_DASHBOARD_ID,
+        json_metadata=json.dumps({"native_filter_configuration": native_filters}),
+        slices=list(charts.values()),
+    )
+    dashboard.has_member_datasource.return_value = False
+
+    def query(model: Any) -> MagicMock:
+        """Resolve ``Model.id == <value>`` lookups against the fixtures."""
+        rows: dict[int, MagicMock] = (
+            {_DASHBOARD_ID: dashboard} if model is Dashboard else charts
+        )
+        chain: MagicMock = mocker.MagicMock()
+        chain.filter.side_effect = lambda clause: mocker.MagicMock(
+            one_or_none=lambda: rows.get(clause.right.value)
+        )
+        return chain
+
+    mocker.patch.object(
+        SupersetSecurityManager,
+        "session",
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.MagicMock(query=query),
+    )
+
+    query_context: MagicMock = mocker.MagicMock()
+    query_context.datasource = datasource
+    query_context.form_data = form_data
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    excinfo: pytest.ExceptionInfo[SupersetSecurityException]
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query_context=query_context)
+
+    assert (
+        excinfo.value.error.error_type
+        == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+    )
+    # Prove each case reached its branch's final check.
+    if path == "drill-by":
+        datasource.has_drill_by_columns.assert_called_once_with(["a"])
+    elif path == "drill-to-detail":
+        dashboard.has_member_datasource.assert_called_once_with(datasource)
+    else:
+        matches.assert_any_call(datasource, _OTHER_VIEW_ID, "semantic_view")
+
+
+@pytest.mark.parametrize("dashboard_granted", [True, False])
+@pytest.mark.parametrize("path", ["drill-to-detail", "drill-by"])
+def test_raise_for_access_dashboard_final_check_never_reads_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    path: str,
+    dashboard_granted: bool,
+) -> None:
+    """
+    Carry the non-guest invariant through a successful drill to the shared final
+    ``can_access_dashboard`` check.
+
+    The drill's membership or dimension check passes, so the final dashboard
+    check alone decides the outcome; a spy proves it was reached, and a read of
+    ``query_context.queries`` on the way there or around it fails the test.
+    """
+    from superset.models.dashboard import Dashboard
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    final_check: MagicMock = mocker.patch.object(
+        sm, "can_access_dashboard", return_value=dashboard_granted
+    )
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+
+    datasource: MagicMock = mocker.MagicMock(
+        id=_VIEW_ID, type="semantic_view", perm="[view](id:1)"
+    )
+    datasource.has_drill_by_columns.return_value = True
+
+    form_data: dict[str, Any]
+    charts: dict[int, MagicMock]
+    if path == "drill-to-detail":
+        form_data = {"dashboardId": _DASHBOARD_ID}
+        charts = {}
+    else:
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 0,
+            "chart_id": 42,
+            "groupby": ["a"],
+        }
+        charts = {42: _chart(mocker, 42, _VIEW_ID)}
+
+    dashboard: MagicMock = mocker.MagicMock(
+        id=_DASHBOARD_ID, json_metadata=None, slices=list(charts.values())
+    )
+    dashboard.has_member_datasource.return_value = True
+
+    def query(model: Any) -> MagicMock:
+        """Resolve ``Model.id == <value>`` lookups against the fixtures."""
+        rows: dict[int, MagicMock] = (
+            {_DASHBOARD_ID: dashboard} if model is Dashboard else charts
+        )
+        chain: MagicMock = mocker.MagicMock()
+        chain.filter.side_effect = lambda clause: mocker.MagicMock(
+            one_or_none=lambda: rows.get(clause.right.value)
+        )
+        return chain
+
+    mocker.patch.object(
+        SupersetSecurityManager,
+        "session",
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.MagicMock(query=query),
+    )
+
+    query_context: MagicMock = mocker.MagicMock()
+    query_context.datasource = datasource
+    query_context.form_data = form_data
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    if dashboard_granted:
+        sm.raise_for_access(query_context=query_context)
+    else:
+        excinfo: pytest.ExceptionInfo[SupersetSecurityException]
+        with pytest.raises(SupersetSecurityException) as excinfo:
+            sm.raise_for_access(query_context=query_context)
+        assert (
+            excinfo.value.error.error_type
+            == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+        )
+
+    # The drill succeeded, so the final dashboard check made the decision.
+    if path == "drill-by":
+        datasource.has_drill_by_columns.assert_called_once_with(["a"])
+    else:
+        dashboard.has_member_datasource.assert_called_once_with(datasource)
+    final_check.assert_called_once_with(dashboard)
+
+
+def test_dataset_delete_uses_stored_permission_identity(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The delete hook must retire the PVM actually stored on the dataset."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    target: MagicMock = MagicMock()
+    target.perm = "[stored](id:42)"
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    mocker.patch.object(sm, "get_dataset_perm", return_value="[derived](id:42)")
+    owned_elsewhere: MagicMock = mocker.patch.object(
+        sm, "_datasource_perm_owned_elsewhere", return_value=False
+    )
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(mapper, connection, target)
+
+    owned_elsewhere.assert_called_once_with(connection, "[stored](id:42)", None)
+    delete_pvm.assert_called_once_with(
+        mapper, connection, "datasource_access", "[stored](id:42)"
+    )
+
+
+def test_dataset_delete_derives_missing_stored_permission(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Legacy rows without a stored permission still clean up their grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    target: MagicMock = MagicMock()
+    target.perm = None
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    mocker.patch.object(sm, "get_dataset_perm", return_value="[derived](id:42)")
+    mocker.patch.object(sm, "_datasource_perm_owned_elsewhere", return_value=False)
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(mapper, connection, target)
+
+    delete_pvm.assert_called_once_with(
+        mapper, connection, "datasource_access", "[derived](id:42)"
+    )
+
+
+def test_shared_permission_owner_probe_locks_permission_first(
+    app_context: None,
+) -> None:
+    """Competing final-owner deletes must serialize before checking owners."""
+    from sqlalchemy.dialects import postgresql
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.execute.return_value.scalar_one_or_none.return_value = 1
+    connection.execute.return_value.first.return_value = None
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is False
+    )
+
+    first_statement: Any = connection.execute.call_args_list[0].args[0]
+    sql: str = str(first_statement.compile(dialect=postgresql.dialect()))
+    assert "ab_view_menu" in sql
+    assert "FOR UPDATE" in sql
+
+
+def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
+    app_context: None,
+) -> None:
+    """A cascading child delete must use the shared owner-deletion lock."""
+    from sqlalchemy.dialects import postgresql
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.execute.side_effect = [
+        MagicMock(scalars=MagicMock(return_value=["[shared](id:42)"])),
+        MagicMock(all=MagicMock(return_value=[1])),
+        MagicMock(scalars=MagicMock(return_value=[])),
+        MagicMock(scalars=MagicMock(return_value=[])),
+    ]
+    target: MagicMock = MagicMock()
+    target.uuid = "layer-uuid"
+
+    sm.semantic_layer_before_delete(MagicMock(), connection, target)
+
+    child_statement: Any = connection.execute.call_args_list[0].args[0]
+    child_sql: str = str(child_statement.compile(dialect=postgresql.dialect()))
+    assert "semantic_views" in child_sql
+    assert "ORDER BY semantic_views.id" in child_sql
+    assert "FOR UPDATE" in child_sql
+
+    lock_statement: Any = connection.execute.call_args_list[1].args[0]
+    sql: str = str(lock_statement.compile(dialect=postgresql.dialect()))
+    assert "ab_view_menu" in sql
+    assert "ORDER BY" in sql
+    assert "FOR UPDATE" in sql
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+@pytest.mark.parametrize("isolation", ["REPEATABLE READ", "SERIALIZABLE", None])
+def test_shared_permission_cleanup_retains_on_unsafe_mysql_isolation(
+    dialect_name: str, isolation: str | None, mocker: MockerFixture, app_context: None
+) -> None:
+    """An untrusted MySQL snapshot must not retire a shared grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = isolation
+    warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is True
+    )
+    connection.execute.assert_not_called()
+    warning.assert_called_once()
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_shared_permission_cleanup_retains_when_mysql_isolation_cannot_be_read(
+    dialect_name: str, mocker: MockerFixture, app_context: None
+) -> None:
+    """Isolation lookup failure must leave the grant in place."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.side_effect = RuntimeError("unavailable")
+    warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is True
+    )
+    connection.execute.assert_not_called()
+    warning.assert_called_once()
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_dataset_delete_retains_grant_on_mysql_repeatable_read(
+    dialect_name: str, mocker: MockerFixture, app_context: None
+) -> None:
+    """The ORM delete hook must not revoke a possibly shared grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = "REPEATABLE READ"
+    target: MagicMock = MagicMock()
+    target.perm = "[shared](id:42)"
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(MagicMock(), connection, target)
+
+    connection.execute.assert_not_called()
+    delete_pvm.assert_not_called()
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_shared_permission_cleanup_proceeds_on_mysql_read_committed(
+    dialect_name: str,
+    app_context: None,
+) -> None:
+    """The configured safe isolation still permits final-owner cleanup."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = "READ COMMITTED"
+    connection.execute.return_value.first.return_value = None
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is False
+    )
+    connection.get_isolation_level.assert_called_once_with()
+    assert connection.execute.call_count == 3
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_semantic_layer_delete_retains_child_grant_on_mysql_repeatable_read(
+    dialect_name: str, mocker: MockerFixture, app_context: None
+) -> None:
+    """The unloaded-child cascade uses the same fail-safe isolation gate."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = "REPEATABLE READ"
+    connection.execute.return_value.scalars.return_value = ["[shared](id:42)"]
+    target: MagicMock = MagicMock()
+    target.uuid = "layer-uuid"
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.semantic_layer_before_delete(MagicMock(), connection, target)
+
+    connection.execute.assert_called_once()
+    delete_pvm.assert_not_called()
+
+
+def _create_fab_security_tables(session: Session) -> None:
+    """
+    The shared in-memory SQLite ``session`` fixture only creates Superset's own
+    metadata; FAB's security tables live on a separate declarative base, so
+    they have to be created explicitly before they can be populated.
+    """
+    Permission.metadata.create_all(
+        session.get_bind(),
+        tables=[
+            Permission.__table__,
+            ViewMenu.__table__,
+            PermissionView.__table__,
+            Role.__table__,
+            User.__table__,
+            Group.__table__,
+            assoc_permissionview_role,
+            assoc_user_role,
+            assoc_user_group,
+            assoc_group_role,
+        ],
+        checkfirst=True,
+    )
+
+
+def _build_rbac_graph(session: Session) -> dict[str, int]:
+    """
+    Build a small RBAC graph exercising both ways a user can hold a role:
+    granted directly, and granted via a group.
+
+        direct_user  --role--> role_direct --pvm--> [db].[direct_schema]
+        group_user   --group--> grp --role--> role_group --pvm--> [db].[group_schema]
+        no_access_user holds neither.
+
+    An extra ``schema_access`` pvm attached to no role at all guards against
+    the query returning permissions nobody was granted.
+    """
+    perm = Permission(name="schema_access")
+    session.add(perm)
+
+    vm_direct = ViewMenu(name="[db].[direct_schema]")
+    vm_group = ViewMenu(name="[db].[group_schema]")
+    vm_orphan = ViewMenu(name="[db].[ungranted_schema]")
+    session.add_all([vm_direct, vm_group, vm_orphan])
+    session.flush()
+
+    pvm_direct = PermissionView(permission=perm, view_menu=vm_direct)
+    pvm_group = PermissionView(permission=perm, view_menu=vm_group)
+    pvm_orphan = PermissionView(permission=perm, view_menu=vm_orphan)
+    session.add_all([pvm_direct, pvm_group, pvm_orphan])
+    session.flush()
+
+    role_direct = Role(name="role_direct", permissions=[pvm_direct])
+    role_group = Role(name="role_group", permissions=[pvm_group])
+    session.add_all([role_direct, role_group])
+    session.flush()
+
+    grp = Group(name="grp", roles=[role_group])
+    session.add(grp)
+    session.flush()
+
+    users = {}
+    for name, roles, groups in (
+        ("direct_user", [role_direct], []),
+        ("group_user", [], [grp]),
+        ("both_user", [role_direct], [grp]),
+        ("no_access_user", [], []),
+    ):
+        user = User(
+            first_name=name,
+            last_name="t",
+            username=name,
+            email=f"{name}@example.invalid",
+            roles=roles,
+            groups=groups,
+        )
+        session.add(user)
+        session.flush()
+        users[name] = user.id
+    session.commit()
+    return users
+
+
+@pytest.mark.parametrize(
+    "username,expected",
+    [
+        ("direct_user", {"[db].[direct_schema]"}),
+        ("group_user", {"[db].[group_schema]"}),
+        ("both_user", {"[db].[direct_schema]", "[db].[group_schema]"}),
+        ("no_access_user", set()),
+    ],
+)
+def test_user_view_menu_names_resolves_direct_and_group_roles(
+    mocker: MockerFixture,
+    app_context: None,
+    session: Session,
+    username: str,
+    expected: set[str],
+) -> None:
+    """
+    ``user_view_menu_names`` must resolve permissions from roles held directly
+    *and* from roles inherited through a group, and must never return a
+    permission that no role was granted.
+    """
+    _create_fab_security_tables(session)
+    users = _build_rbac_graph(session)
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(
+        type(sm), "session", new_callable=mocker.PropertyMock, return_value=session
+    )
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch(
+        "superset.security.manager.g",
+        new=SimpleNamespace(user=SimpleNamespace(is_anonymous=False)),
+    )
+    mocker.patch("superset.security.manager.get_user_id", return_value=users[username])
+
+    assert sm.user_view_menu_names("schema_access") == expected
