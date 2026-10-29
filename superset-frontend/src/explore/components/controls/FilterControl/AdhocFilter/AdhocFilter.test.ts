@@ -457,6 +457,25 @@ test('Explore filter duplicates preserve grains but bucket edits clear them', ()
   );
 });
 
+test('a grained adhoc column subject uses its label', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: {
+      sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+      label: 'order_date',
+      expressionType: 'SQL',
+      columnType: 'BASE_AXIS',
+      timeGrain: TimeGranularity.MONTH,
+    },
+    operator: '==',
+    comparator: '2021-01-01T00:00:00',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.getDefaultLabel()).toBe(
+    "[P1M] order_date = '2021-01-01T00:00:00'",
+  );
+});
+
 test('a grained drill filter displays its grain and drops it on operator or SQL edits', () => {
   const filter = new AdhocFilter({
     expressionType: 'SIMPLE',

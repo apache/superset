@@ -288,3 +288,51 @@ test('a monthly temporal bar cross-filters the whole month', () => {
   expect(payload.crossFilter.isCurrentValueSelected).toBe(false);
   expect(payload.crossFilter.dataMask.extraFormData.time_range).toBe(range);
 });
+
+test('keeps an adhoc temporal axis in the drill-by scope', () => {
+  const column = {
+    sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+    label: 'order_date',
+    expressionType: 'SQL' as const,
+  };
+  const epoch = Date.parse('2021-01-01T00:00:00Z');
+  const { eventHandlers, onContextMenu } = renderChart({
+    emitCrossFilters: true,
+    formData: {
+      ...formData,
+      groupby: undefined,
+      x_axis: column,
+      time_grain_sqla: TimeGranularity.MONTH,
+    } as unknown as SqlaFormData,
+    queriesData: [
+      {
+        data: [
+          { order_date: epoch, sum: 10 },
+          { order_date: Date.parse('2021-02-01T00:00:00Z'), sum: -3 },
+        ],
+        colnames: ['order_date', 'sum'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      },
+    ],
+  });
+  eventHandlers.contextmenu(pointerEvent(0));
+  const payload = onContextMenu.mock.calls[0][2];
+  const axisFilter = {
+    col: expect.objectContaining({
+      sqlExpression: column.sqlExpression,
+      label: 'order_date',
+      columnType: 'BASE_AXIS',
+      timeGrain: TimeGranularity.MONTH,
+    }),
+    op: '==',
+    val: '2021-01-01T00:00:00',
+    grain: TimeGranularity.MONTH,
+  };
+  expect(payload.drillBy.xAxisFilters).toEqual([
+    expect.objectContaining(axisFilter),
+  ]);
+  expect(payload.drillBy.filters).toEqual([]);
+  expect(payload.drillToDetail).toEqual([
+    expect.objectContaining(axisFilter),
+  ]);
+});

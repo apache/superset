@@ -110,6 +110,7 @@ interface ExportChartParams {
 
 interface SubjectWithColumnName {
   column_name?: string;
+  label?: string;
 }
 
 type ComparatorValue = string | number | boolean | null;
@@ -466,10 +467,10 @@ export const getSimpleSQLExpression = (
   );
   const showComparator =
     disableInputOperatorValues.indexOf(operator ?? '') === -1;
-  // If returned value is an object after changing dataset
+  // A dataset column carries column_name. An adhoc column carries label.
   let expression: string =
     typeof subject === 'object'
-      ? (subject?.column_name ?? '')
+      ? (subject?.column_name ?? subject?.label ?? '')
       : (subject ?? '');
   if (subject && operator) {
     expression += ` ${operator}`;
