@@ -107,6 +107,17 @@ npm link superset-plugin-chart-hello-world
 7. **Import and register in Superset**:
    Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
 
+### Sharing colors in composed charts
+
+`ChartProps.colorScale` accepts an optional `CategoricalColorScale`. A parent
+visualization can pass the same scale to its child chart transforms so categories
+use consistent colors across the composition. Create a fresh scale for each parent
+transformation using the selected color scheme. Child plugins must explicitly use
+the supplied scale, falling back to their own scale when it is absent.
+
+Cartodiagram uses this contract with Pie charts to coordinate category colors
+across map locations in Explore.
+
 ## Testing
 
 ### Python Testing
@@ -162,6 +173,9 @@ npm run test -- --watch
 
 # Run specific test file
 npm run test -- MyComponent.test.tsx
+
+# Cap the worker pool (default is 80% of cores) on a shared or busy machine
+JEST_MAX_WORKERS=2 npm run test -- MyComponent.test.tsx
 ```
 
 ### E2E Integration Testing
@@ -290,19 +304,92 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l d
 ### Extracting new strings for translation
 
 ```bash
-# Extract Python strings
-pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gettext superset
-
-# Extract JavaScript strings
-npm run build-translation
+# Extract backend and frontend strings into messages.pot, then update every
+# language catalog from it
+./scripts/translations/babel_update.sh
 ```
+
+Run the script rather than `pybabel extract` directly. It passes the keywords
+the frontend uses (`t`, `tn`, `tct`), extracts `i18n:` translator comments,
+and stamps do-not-translate markers. A bare
+`pybabel extract` does none of these. CI's template drift check
+(`scripts/translations/check_pot_drift.py`) fails when the template's strings
+differ from what the script's extraction finds.
+
+### Adding context for translators
+
+A translatable string arrives in a catalog with no surrounding code, so a term
+that is unambiguous in context can be guessed wrong in isolation. Shipped
+examples include `Slug` rendered as the animal, `Host` as a guest, and `Backend`
+as a driver.
+
+To attach context, put a comment tagged `i18n:` on the line directly above the
+call:
+
+```python
+# i18n: the short identifier in a dashboard's URL, not the animal
+"slug": _("Slug"),
+```
+
+```tsx
+// i18n: the kind of system behind a connection: a database engine
+// (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
+Header: t('Backend'),
+```
+
+`babel_update.sh` extracts these with `--add-comments=i18n:`, so they land on the
+entry in `messages.pot` as `#. i18n: ...` and `pybabel update` propagates them
+into every language catalog, the same way the do-not-translate marker described
+below does:
+
+```
+#. i18n: the short identifier in a dashboard's URL, not the animal
+msgid "Slug"
+msgstr ""
+```
+
+Where the comment goes decides whether it is extracted:
+
+- A blank line between the comment and the call drops the comment.
+- A comment inside the call's parentheses is dropped.
+- In Python, the comment is dropped when the string starts on the line after
+  `_(` and only a comment, such as `# noqa: E501`, or nothing follows the
+  string. Put the string on the same line as `_(`, or follow it with a comma.
+  A wrapped `t(` call in TypeScript keeps the comment.
+- When two calls are on one line, only the first call gets the comment. Put
+  each call on its own line.
+- Every comment line between the `i18n:` line and the call is published with
+  the note. Put lint directives and other comments above the `i18n:` line.
+
+A dropped comment raises no error, and the drift check cannot see it. After
+`babel_update.sh`, confirm the note is on its entry, for example with
+`grep -B3 'msgid "Slug"' superset/translations/messages.pot`.
+
+Write the comment for someone who cannot see the code: say what the term refers
+to, and where a translation would plausibly go wrong. A note only guides the
+translation; to keep a string untranslated, add it to the do-not-translate
+registry described below.
+
+For terms that apply to a whole language, see the
+[Translation Guide](./translation-guide.md).
+
+`scripts/translations/backfill_po.py` also sends the comment to the model as a
+developer note. In a live run, the note did not change the model's choice when
+every reference translation used another sense, so review machine translations
+of noted strings. After changing a comment, re-run `babel_update.sh`: CI's
+template drift check fails when a string's `i18n:` comment in source no longer
+matches `messages.pot`.
+
+Per-string context disambiguates one entry. It does not enforce consistency
+across entries — one term used for two concepts across a catalog is a
+catalog-wide problem and needs a per-language terminology decision instead.
 
 ### Updating language files
 
-```bash
-# Update all language files with new strings
-pybabel update -i superset/translations/messages.pot -d superset/translations
-```
+`babel_update.sh` updates every language catalog from `messages.pot`. Do not
+run `pybabel update` on its own: babel adds a `python-format` flag to labels
+such as `% calculation`, and `msgfmt` then rejects their translations. The
+script removes that flag after its update pass.
 
 ### Applying translations
 
