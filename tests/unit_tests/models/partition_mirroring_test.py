@@ -25,6 +25,7 @@ which is where the correctness argument lives.
 from __future__ import annotations
 
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -33,6 +34,7 @@ import pytest
 import sqlalchemy as sa
 from flask import Flask
 
+from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.partition_mapping import RawProbeValue
 from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
@@ -3278,3 +3280,113 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
     # The filter itself is untouched: the query is still correct, it just reads
     # every partition.
     assert "dt_epoch = 5" in sql
+
+
+# ---------------------------------------------------------------------------
+# A partition column the source no longer has
+# ---------------------------------------------------------------------------
+
+
+def _warehouse_table(
+    tmp_path: Path, *, source_partition_column: str | None
+) -> SqlaTable:
+    """
+    A dataset over a real SQLite table, mapped ``event_time`` -> ``dt_key``.
+
+    The dataset's cached columns always include ``dt_key``; ``source_partition_column``
+    is what the physical table actually has. ``None`` is a column dropped at the
+    source, a different name is one renamed there -- in both cases Superset's
+    metadata is stale until someone runs "Sync columns from source".
+    """
+    path = tmp_path / "warehouse.db"
+    source_columns = [
+        sa.Column("event_time", sa.String),
+        sa.Column("country", sa.String),
+    ]
+    rows: list[dict[str, Any]] = [
+        {"event_time": "2026-01-05 00:00:00", "country": "US"},
+        {"event_time": "2026-03-05 00:00:00", "country": "FR"},
+    ]
+    if source_partition_column:
+        source_columns.append(sa.Column(source_partition_column, sa.Integer))
+        for row in rows:
+            row[source_partition_column] = int(row["event_time"][:10].replace("-", ""))
+    source = sa.Table("web_events", sa.MetaData(), *source_columns)
+    engine = sa.create_engine(f"sqlite:///{path}")
+    with engine.begin() as connection:
+        source.create(connection)
+        connection.execute(sa.insert(source), rows)
+    engine.dispose()
+    database = Database(database_name="warehouse", sqlalchemy_uri=f"sqlite:///{path}")
+    table = SqlaTable(
+        table_name="web_events",
+        database=database,
+        main_dttm_col="event_time",
+        columns=[
+            TableColumn(
+                column_name="event_time",
+                is_dttm=True,
+                type="TIMESTAMP",
+                partition_value_transform="CAST(strftime('%Y%m%d', :value) AS INTEGER)",
+                partition_transform_is_monotonic=True,
+            ),
+            TableColumn(column_name="country", type="TEXT"),
+            TableColumn(column_name="dt_key", type="INTEGER"),
+        ],
+    )
+    table.partition_column = "dt_key"
+    return table
+
+
+def _run_january_chart(table: SqlaTable) -> Any:
+    """A time-ranged chart that never references the partition column."""
+    return table.query(
+        {
+            "columns": ["country"],
+            "metrics": [],
+            "orderby": [],
+            "extras": {},
+            "filter": [],
+            "granularity": "event_time",
+            "is_timeseries": False,
+            "from_dttm": datetime(2026, 1, 1),
+            "to_dttm": datetime(2026, 2, 1),
+        }
+    )
+
+
+def test_a_time_ranged_chart_prunes_when_the_source_has_the_partition_column(
+    app: Flask, tmp_path: Path
+) -> None:
+    """Control for the tests below: the mirror is really in the executed SQL."""
+    table = _warehouse_table(tmp_path, source_partition_column="dt_key")
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "dt_key >= 20260101" in result.query
+    assert result.df["country"].tolist() == ["US"]
+
+
+@pytest.mark.parametrize("source_partition_column", [None, "dt_key_renamed"])
+def test_a_partition_column_missing_at_the_source_leaves_charts_unpruned(
+    app: Flask, tmp_path: Path, source_partition_column: str | None
+) -> None:
+    """
+    The mirror is only an optimisation, so a partition column the warehouse no
+    longer has may cost the query its pruning but never the chart.
+
+    ``resolve_partition_mapping`` reads the dataset's cached columns, which
+    still list the column until a sync, so the predicate is emitted into the
+    statement and the warehouse rejects it -- for a chart that does not even
+    select the column.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=source_partition_column)
+
+    with app.app_context():
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert "dt_key" not in result.query
+    assert result.df["country"].tolist() == ["US"]
