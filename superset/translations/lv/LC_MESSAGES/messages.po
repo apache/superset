@@ -5255,6 +5255,9 @@ msgstr "Pielāgoti SQL ad-hoc rādītāji nav iespējoti šai datu kopai"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Pielāgotos SQL laukus nevar parsēt kā vienu SQL priekšrakstu."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Pielāgotie SQL lauki nevar saturēt apakšvaicājumus."

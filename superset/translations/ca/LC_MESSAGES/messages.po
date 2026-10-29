@@ -5470,6 +5470,9 @@ msgstr ""
 "Els camps SQL personalitzats no es poden analitzar com una única "
 "instrucció SQL."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Els camps SQL personalitzats no poden contenir sub-consultes."

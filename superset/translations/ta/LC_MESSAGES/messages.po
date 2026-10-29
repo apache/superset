@@ -5218,6 +5218,9 @@ msgstr ""
 "தனிப்பயன் SQL புலங்கள் துணை வினவல்களைக் (sub-queries) கொண்டிருக்க "
 "முடியாது."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr ""

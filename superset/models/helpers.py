@@ -31,6 +31,7 @@ from contextlib import contextmanager
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
+from functools import cache
 from typing import (
     Any,
     Callable,
@@ -190,7 +191,7 @@ from superset.utils.date_parser import (
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
-from superset.utils.rls import apply_rls, get_predicates_for_table
+from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
 
 
 class ValidationResultDict(TypedDict):
@@ -598,6 +599,22 @@ SQLA_QUERY_KEYS = {
 }
 
 
+def _unwrap_select_clause(sql: str, engine: str, *, orderby: bool = False) -> str:
+    """Remove an intact synthetic prefix, or extract a rewritten clause from its AST.
+
+    Preserve source SQL when the prefix is intact: regenerating unmodified
+    dialect-specific expressions can change their semantics. RLS and comment
+    normalization can move comments before the prefix; use the parsed clause
+    in that case, never a keyword search through the formatted text.
+    """
+    prefix = "SELECT 1 ORDER BY " if orderby else "SELECT "
+    if sql.startswith(prefix):
+        return sql[len(prefix) :].strip()
+    return SQLStatement(sql, engine).format_select_clause(
+        orderby=orderby, apply_dialect=False
+    )
+
+
 def validate_adhoc_subquery(
     sql: str,
     database: Database,
@@ -617,6 +634,7 @@ def validate_adhoc_subquery(
     """
     parsed_statement = SQLStatement(sql, engine)
     rls_applied = False
+    wrapped = False
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             raise SupersetSecurityException(
@@ -627,13 +645,24 @@ def validate_adhoc_subquery(
                 )
             )
 
+        # Scope traversal needs a query root to find tables inside bare expressions
+        # such as MAX((SELECT ...)), including Query-backed adhoc columns.
+        if not parsed_statement.is_select() and not parsed_statement.is_set_operation():
+            parsed_statement = SQLStatement(f"SELECT {sql}", engine)
+            wrapped = True
+
         # enforce RLS rules in any relevant tables
+        default_schema = get_rls_schema(database, catalog, default_schema, sql)
         rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
 
     # Only regenerate the SQL if RLS predicates were actually applied;
     # unnecessary round-tripping through sqlglot can alter dialect-specific
     # syntax.
-    return parsed_statement.format() if rls_applied else sql
+    if not rls_applied:
+        return sql
+    if wrapped:
+        return parsed_statement.format_select_clause()
+    return parsed_statement.format()
 
 
 def validate_stored_expression_at_query_time(
@@ -676,10 +705,8 @@ def validate_stored_expression_at_query_time(
     except SupersetParseError:
         pass
 
-    # The detector passes below are detection only: the SQL they return is
-    # discarded rather than returned, since it is wrapped and may be in the wrong
-    # dialect. RLS injection is therefore not applied here, matching how such
-    # expressions reached the query before this check existed.
+    # Select-list fragments may only parse with a SELECT wrapper. Preserve any RLS
+    # rewrite in the engine dialect, but do not embed SQL rendered in another dialect.
     wrapped = f"SELECT {expression}"
     for dialect in (engine, "base"):
         try:
@@ -687,11 +714,19 @@ def validate_stored_expression_at_query_time(
                 raise QueryObjectValidationError(
                     _("Custom SQL fields cannot be parsed as a single SQL statement.")
                 )
-            validate_adhoc_subquery(wrapped, database, catalog, default_schema, dialect)
+            validated = validate_adhoc_subquery(
+                wrapped, database, catalog, default_schema, dialect
+            )
         except SupersetParseError:
             continue
         except SupersetSecurityException as ex:
             raise QueryObjectValidationError(ex.message) from ex
+        if validated != wrapped:
+            if dialect != engine:
+                raise QueryObjectValidationError(
+                    _("Custom SQL fields cannot be safely rewritten with RLS filters.")
+                )
+            return SQLStatement(validated, engine).format_select_clause()
         return expression
 
     logger.warning("Skipping query-time validation of unparseable stored expression")
@@ -745,13 +780,7 @@ def validate_rendered_expression(
     except QueryClauseValidationException as ex:
         raise QueryObjectValidationError(ex.message) from ex
 
-    prefix, expression = re.split(
-        r"SELECT\s+",
-        wrapped,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )
-    return expression.strip()
+    return _unwrap_select_clause(wrapped, engine)
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -2190,8 +2219,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
         checks, memoized per datasource instance.
 
-        An explicit datasource schema always wins. Otherwise the schema is
-        resolved through the query-aware ``get_default_schema_for_query`` (not
+        An explicit datasource schema wins only on engines that can switch
+        schemas per query. Otherwise the schema is resolved through the query-aware
+        ``get_default_schema_for_query`` (not
         the static ``get_default_schema``) so the value matches what the engine
         uses at runtime -- honoring dynamic-schema engines and URI/connect-arg
         schema rules -- exactly like the SQL Lab / executor denylist gate.
@@ -2201,12 +2231,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         at most once instead of issuing a fallback inspector round-trip per
         expression.
         """
-        if self.schema:
+        if self.schema and self.db_engine_spec.supports_dynamic_schema:
             return self.schema
         if not hasattr(self, "_denylist_default_schema"):
             catalog = self.catalog or self.database.get_default_catalog()
             self._denylist_default_schema = self.database.resolve_query_default_schema(
-                sql, None, catalog
+                sql, self.schema, catalog
             )
         return self._denylist_default_schema
 
@@ -2295,7 +2325,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # `SELECT SELECT ...` fails the sqlglot parse.
                 sql_to_check = (
                     expression
-                    if expression.strip().upper().startswith("SELECT")
+                    if SQLStatement(expression, context.engine).is_select()
                     else f"SELECT {expression}"
                 )
                 parsed = SQLScript(sql_to_check, engine=context.engine)
@@ -2340,13 +2370,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"SELECT\s+",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine)
 
         return None
 
@@ -2363,13 +2387,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_metric_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"SELECT\s+",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine)
         return None
 
     def _process_orderby_expression(
@@ -2390,13 +2408,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"ORDER\s+BY",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine, orderby=True)
 
         return None
 
@@ -2413,13 +2425,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         context = SqlExpressionContext(engine, schema, template_processor)
         if processed := self._process_metric_sql_expression(expression, context):
-            _prefix, expression = re.split(
-                r"ORDER\s+BY",
-                processed,
-                maxsplit=1,
-                flags=re.IGNORECASE,
-            )
-            return expression.strip()
+            return _unwrap_select_clause(processed, engine, orderby=True)
         return None
 
     def make_sqla_column_compatible(
@@ -4107,6 +4113,401 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
 
+    def _get_rls_schema(self) -> str:
+        """Resolve RLS tables with the same schema policy as SQL expressions."""
+        return get_rls_schema(
+            self.database,
+            self.catalog,
+            self.schema,
+            self.sql or "",
+            self.template_params_dict,
+        )
+
+    def _get_filter_column(
+        self,
+        name: str,
+        columns_by_name: dict[str, "TableColumn"],
+    ) -> Optional["TableColumn"]:
+        """Resolve real names before the first matching verbose filter label."""
+        col = columns_by_name.get(name)
+        if col is not None:
+            return col
+        return next((col for col in self.columns if col.verbose_name == name), None)
+
+    def _get_adhoc_column_rls_expression(
+        self,
+        col: AdhocColumn,
+        rendered_sql: str,
+        render: Callable[[str], str | None],
+    ) -> str | None:
+        """Query-backed adhoc columns execute their rendered SQL literally."""
+        return rendered_sql
+
+    def _get_query_sql_expressions(  # noqa: C901
+        self,
+        query_obj: QueryObjectDict,
+        template_processor: BaseTemplateProcessor,
+        granularity: str | None,
+        removed_filters: list[str],
+        opaque_templates: list[str],
+        prequery_objs: list[QueryObjectDict],
+    ) -> list[str]:
+        """Render SQL-bearing chart fields without building a chart or its prequeries.
+
+        Render each source expression once, matching execution, but through
+        ``render_for_discovery`` so no macro runs before the cache lookup. An
+        expression that needs a macro is recorded in ``opaque_templates``. An
+        adhoc column that resolves to saved metadata also renders that column's
+        expression. A series-limit prequery is appended to ``prequery_objs``.
+        """
+        columns_by_name = {col.column_name: col for col in self.columns}
+        columns = {name: col.expression for name, col in columns_by_name.items()}
+        metrics = {metric.metric_name: metric.expression for metric in self.metrics}
+        selected_columns = query_obj.get("columns") or []
+        selected_metrics = query_obj.get("metrics") or []
+        adhoc_columns_by_label = {
+            col.get("label"): col
+            for col in selected_columns
+            if utils.is_adhoc_column(col)
+        }
+        metric_labels = {utils.get_metric_name(metric) for metric in selected_metrics}
+        expressions: list[str] = []
+
+        def render(expression: str) -> str | None:
+            """Render like execution without running macros; None when opaque."""
+            # Only FROM's removals may skip filter columns: execution renders
+            # FROM first, so they are a subset of its own and collection can
+            # only over-include. Removals made by a chart expression are
+            # discarded for the same reason.
+            removed = list(removed_filters)
+            try:
+                return template_processor.render_for_discovery(expression)
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                # Opaque (a stubbed macro was used) or invalid: either way the
+                # SQL execution produces is unknown here.
+                opaque_templates.append(expression)
+                return None
+            finally:
+                removed_filters[:] = removed
+
+        def add_expression(expression: str) -> None:
+            """Render source SQL, preserving literal Jinja in its output."""
+            if (rendered := render(expression)) is not None:
+                expressions.append(rendered)
+
+        def add(value: Any, metric: bool = False) -> None:
+            """Resolve stored references in the namespace used by the query sink."""
+            if isinstance(value, str):
+                references = metrics if metric else columns
+                # Saved columns without expressions are quoted identifiers.
+                # Unknown selection strings have a separate SQL fallback below.
+                if expression := references.get(value):
+                    add_expression(expression)
+            elif isinstance(value, dict):
+                if (sql := value.get("sqlExpression")) and (
+                    sql := render(sql)
+                ) is not None:
+                    if not metric:
+                        sql = self._get_adhoc_column_rls_expression(
+                            cast(AdhocColumn, value), sql, render
+                        )
+                    if sql:
+                        expressions.append(sql)
+                add(value.get("column"))
+                add(value.get("column_name"))
+
+        def add_orderby(value: Any) -> None:
+            """ORDER BY prefers selected labels before stored metric/column names."""
+            if isinstance(value, str):
+                if value in metric_labels:
+                    # Selected metrics have already been collected.
+                    return
+                if value in adhoc_columns_by_label:
+                    add(adhoc_columns_by_label[value])
+                    return
+            add(
+                value,
+                metric=utils.is_adhoc_metric(value)
+                or (isinstance(value, str) and value in metrics),
+            )
+
+        def add_filter(value: Any) -> None:
+            """Filters accept verbose column names before stored metric names."""
+            # Execution renders adhoc/metric SQL before checking removal, but
+            # delays saved-column SQL until after that check.
+            if not isinstance(value, str):
+                add(value)
+            elif value == utils.DTTM_ALIAS and query_obj.get("is_timeseries", True):
+                if value not in removed_filters and granularity not in removed_filters:
+                    add(granularity)
+            elif (col := self._get_filter_column(value, columns_by_name)) is not None:
+                if value not in removed_filters and col.expression:
+                    add_expression(col.expression)
+            elif value in metrics:
+                add(value, metric=True)
+            elif value in adhoc_columns_by_label:
+                add(adhoc_columns_by_label[value])
+
+        effective_columns = query_obj.get("groupby") or [
+            col for col in selected_columns if col != utils.DTTM_ALIAS
+        ]
+        # ORDER BY metrics can enable grouping even without selected metrics.
+        need_groupby = bool(
+            query_obj.get("metrics") is not None
+            or query_obj.get("groupby")
+            or any(
+                utils.is_adhoc_metric(cast(Metric, value))
+                or (
+                    isinstance(value, str)
+                    and (
+                        value in metric_labels
+                        or (value in metrics and value not in adhoc_columns_by_label)
+                    )
+                )
+                for value, _ascending in query_obj.get("orderby") or []
+            )
+        )
+        # Grouped execution labels unknown strings with their rendered SQL.
+        rendered_groupby: dict[str, str | None] = {}
+        for value in effective_columns:
+            if isinstance(value, str) and value not in columns:
+                # GROUP BY executes unknown strings as SQL. Detail selections
+                # quote them before rendering, unlike saved bare column names.
+                if not need_groupby:
+                    add_expression(self.database.quote_identifier(value))
+                elif (rendered := render(value)) is not None:
+                    rendered_groupby[value] = rendered
+                    expressions.append(rendered)
+            else:
+                add(value)
+        for metric_value in selected_metrics:
+            add(metric_value, metric=True)
+        for orderby_value, _ascending in query_obj.get("orderby") or []:
+            add_orderby(orderby_value)
+        # FROM templates remove filters before execution renders time/filter
+        # columns. Discovery runs the request-only filter readers for real, so
+        # their removals reach this collector. A macro aborts the render early,
+        # recording fewer removals, which only over-includes expressions.
+        if self.sql:
+            try:
+                template_processor.render_for_discovery(self.sql.strip("\t\r\n; "))
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001, S110
+                pass
+        collect_time_column = query_obj.get("is_timeseries", True) or (
+            granularity not in removed_filters
+            and utils.DTTM_ALIAS not in removed_filters
+        )
+        if collect_time_column:
+            add(granularity)
+        if (
+            granularity
+            and self.always_filter_main_dttm
+            and self.main_dttm_col in self.dttm_cols
+            and self.main_dttm_col != granularity
+            and self.main_dttm_col not in removed_filters
+        ):
+            add(self.main_dttm_col)
+        for flt in query_obj.get("filter") or []:
+            if all(flt.get(key) for key in ("col", "op")):
+                add_filter(flt["col"])
+        extras = query_obj.get("extras") or {}
+        for key in ("where", "having"):
+            if extras.get(key):
+                add_expression(extras[key])
+        if (
+            query_obj.get("apply_fetch_values_predicate")
+            and self.fetch_values_predicate
+        ):
+            add_expression(self.fetch_values_predicate)
+        series_limit = query_obj.get("series_limit") or (
+            query_obj.get("timeseries_limit")
+            if query_obj.get("is_timeseries", True)
+            else 0
+        )
+        series_columns = {
+            self.db_engine_spec.make_label_compatible(name)
+            for name in utils.get_column_names(query_obj.get("series_columns"))
+        }
+
+        def get_groupby_label(value: Any) -> str | None:
+            """The label grouped execution gives a selection; None when unknown."""
+            if not isinstance(value, str) or value in columns or value == granularity:
+                return utils.get_column_name(value)
+            # Execution labels unknown strings with their processed SQL.
+            engine = self.database.backend
+            if (rendered := rendered_groupby.get(value)) is None:
+                return None
+            try:
+                sql = f"SELECT {rendered}"
+                if SQLStatement(sql, engine).has_subquery():
+                    # RLS rewrites the subquery, and so the label, per viewer.
+                    return None
+                return _unwrap_select_clause(sanitize_clause(sql, engine), engine)
+            except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+                return None
+
+        def is_series_groupby(value: Any) -> bool:
+            label = get_groupby_label(value)
+            return (
+                label is None
+                or self.db_engine_spec.make_label_compatible(label) in series_columns
+            )
+
+        has_series_groupby = bool(
+            need_groupby
+            and effective_columns
+            and (
+                (query_obj.get("is_timeseries", True) and not series_columns)
+                or (
+                    series_columns
+                    # Without aliases execution names columns by their SQL.
+                    and (
+                        not self.db_engine_spec.get_allows_alias_in_select(
+                            self.database
+                        )
+                        or any(is_series_groupby(value) for value in effective_columns)
+                    )
+                )
+            )
+        )
+        if series_limit and has_series_groupby:
+            # The join planner builds its own time filter without checking
+            # removal. Prequeries rebuild a normal query and honor removal.
+            if (
+                not collect_time_column
+                and self.db_engine_spec.allows_joins
+                and self.db_engine_spec.allows_subqueries
+                and not self.db_engine_spec.time_groupby_inline
+            ):
+                add(granularity)
+            series_limit_metric = query_obj.get("series_limit_metric") or query_obj.get(
+                "timeseries_limit_metric"
+            )
+            add(series_limit_metric, metric=True)
+            if not (
+                self.db_engine_spec.allows_joins
+                and self.db_engine_spec.allows_subqueries
+            ):
+                # Execution runs a prequery for the top series, which renders
+                # these templates again with its own context (row limit,
+                # columns), so collect it as execution builds it.
+                prequery_objs.append(
+                    {
+                        "is_timeseries": False,
+                        "row_limit": series_limit,
+                        "metrics": selected_metrics,
+                        "granularity": granularity,
+                        "groupby": query_obj.get("groupby") or [],
+                        "filter": query_obj.get("filter") or [],
+                        # The series metric is rendered by the main query.
+                        "orderby": []
+                        if series_limit_metric
+                        else query_obj.get("orderby") or [],
+                        "extras": extras,
+                        # Grouped execution selects ``groupby or columns``
+                        # without the timestamp pseudo column.
+                        "columns": get_non_base_axis_columns(effective_columns),
+                        "order_desc": True,
+                    }
+                )
+        return expressions
+
+    def _get_query_rls_cache_keys(
+        self,
+        query_obj: QueryObjectDict,
+        default_schema: str | None = None,
+        resolve_catalog: Callable[[], str | None] | None = None,
+        resolve_schema: Callable[[], str] | None = None,
+    ) -> list[str]:
+        """Collect expression-only RLS rules without building or executing SQL.
+
+        Only subquery expressions need table discovery. Reuse the
+        datasource SQL's resolved schema, or resolve it once for physical datasets.
+        Do not exclude the dataset's own id: an independent expression subquery is
+        not constrained by the outer query's RLS.
+        """
+        from superset.utils.rls import (
+            _get_cache_identity,
+            collect_rls_predicates_for_sql,
+        )
+
+        if not query_obj or not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+            return []
+        resolve_catalog = resolve_catalog or cache(self.database.get_default_catalog)
+        resolve_schema = resolve_schema or cache(self._get_rls_schema)
+        extras = query_obj.get("extras") or {}
+        granularity = query_obj.get("granularity")
+        if granularity is not None and granularity not in self.dttm_cols:
+            granularity = self.main_dttm_col
+        template_kwargs = {
+            key: query_obj.get(key)
+            for key in (
+                "columns",
+                "groupby",
+                "metrics",
+                "row_limit",
+                "row_offset",
+                "filter",
+            )
+        }
+        template_kwargs.update(
+            time_column=granularity,
+            time_grain=extras.get("time_grain_sqla"),
+            table_columns=[col.column_name for col in self.columns],
+        )
+        template_kwargs.update(self.template_params_dict)
+        removed_filters: list[str] = []
+        template_kwargs.update(removed_filters=removed_filters, applied_filters=[])
+        template_processor = self.get_template_processor(**template_kwargs)
+        predicates: set[str] = set()
+        opaque_templates: list[str] = []
+        prequery_objs: list[QueryObjectDict] = []
+        for expression in self._get_query_sql_expressions(
+            query_obj,
+            template_processor,
+            granularity,
+            removed_filters,
+            opaque_templates,
+            prequery_objs,
+        ):
+            sql = f"SELECT {expression}"
+            try:
+                parsed = SQLStatement(sql, self.db_engine_spec.engine)
+            except SupersetParseError:
+                # The collector supplies a per-user failure key for unparseable SQL.
+                pass
+            else:
+                if not parsed.has_subquery():
+                    continue
+            # A query root lets scope traversal find tables in scalar expressions
+            # and select-list fragments such as DISTINCT (SELECT ...). Execution
+            # applies every rule, global guest rules included, to these tables.
+            predicates.update(
+                collect_rls_predicates_for_sql(
+                    sql,
+                    self.database,
+                    self.catalog,
+                    default_schema,
+                    include_global_guest_rls=True,
+                    resolve_catalog=resolve_catalog,
+                    resolve_schema=resolve_schema if default_schema is None else None,
+                )
+            )
+        if opaque_templates:
+            # A macro may generate SQL that cannot be known without running it.
+            # Match the collector's parse-failure isolation policy rather than
+            # running it before a cache lookup or sharing an unknown scope.
+            predicates.add(
+                f"rls-predicate-parse-failed-for-user-{_get_cache_identity()}"
+            )
+        for prequery_obj in prequery_objs:
+            predicates.update(
+                self._get_query_rls_cache_keys(
+                    prequery_obj, default_schema, resolve_catalog, resolve_schema
+                )
+            )
+        return sorted(predicates)
+
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
     ) -> tuple[Union[TableClause, Alias], Optional[str]]:
@@ -4128,21 +4529,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
         # For each table referenced in the virtual dataset, apply its RLS filters
         if parsed_script.statements:
-            default_schema = self.database.get_default_schema(self.catalog)
+            default_schema = self._get_rls_schema()
+            # Only a dataset applies its own RLS and the global guest rules on
+            # the outer WHERE, so only a dataset leaves them out of its inner
+            # SQL. Other subclasses (e.g. a SQL Lab Query) apply no RLS outside,
+            # and their ``id`` is not a dataset id: excluding it would drop the
+            # RLS of whichever dataset shares that number. Imported locally to
+            # avoid a circular import with the connectors package.
+            from superset.connectors.sqla.models import SqlaTable
+
+            dataset = self if isinstance(self, SqlaTable) else None
+            is_dataset = dataset is not None
+            self_id = dataset.id if dataset is not None else None
             try:
                 rls_applied = False
-                # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
-                # ExploreMixin itself. getattr keeps this safe for non-dataset
-                # subclasses (e.g. SQL Lab Query), which have no RLS to dedupe.
-                self_id = getattr(self, "id", None)
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
                         self.catalog,
-                        self.schema or default_schema or "",
+                        default_schema,
                         statement,
                         exclude_dataset_id=self_id,
-                        include_global_guest_rls=False,
+                        include_global_guest_rls=not is_dataset,
                     ):
                         rls_applied = True
 
@@ -4166,17 +4574,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         get_predicates_for_table(
                             table.qualify(
                                 catalog=self.catalog,
-                                schema=self.schema or default_schema or "",
+                                schema=default_schema,
                             ),
                             self.database,
                             self.database.get_default_catalog(),
-                            # at least as strict as apply_rls(), which injects
-                            # this dataset's own RLS and the global guest rules
-                            # into the inner SQL's sub-queries
+                            # at least as strict as apply_rls(): a dataset's
+                            # inner SQL gets its own RLS and the global guest
+                            # rules in sub-queries only; any other SQL gets
+                            # every rule everywhere
                             exclude_dataset_id=(
                                 None if statement.has_subquery() else self_id
                             ),
-                            include_global_guest_rls=statement.has_subquery(),
+                            include_global_guest_rls=(
+                                not is_dataset or statement.has_subquery()
+                            ),
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
@@ -5885,6 +6296,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        execute_prequeries: bool = True,
         # Set False by callers that want the SQL's *shape* rather than the SQL
         # a chart would run -- `get_extra_cache_keys`, which reaches this before
         # the chart cache is even consulted. The mirrors cost a synchronous
@@ -5892,7 +6304,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Not in `SQLA_QUERY_KEYS`, so no request payload can set it.
         mirror_partition_filters: bool = True,
     ) -> SqlaQuery:
-        """Querying any sqla table from this common interface"""
+        """Build a chart query, optionally omitting execution of series prequeries.
+
+        Cache-key extraction disables prequeries: only template side effects are
+        needed, not the top-series rows used to constrain an executed chart.
+        """
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
@@ -6435,18 +6851,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
             else:
-                # Check if it's a regular column first
-                col_obj = columns_by_name.get(cast(str, flt_col))
-                # If not found in columns, check if it's a metric
-                # This supports filtering on metric columns for any chart type
-                if col_obj is None:
-                    # Fall back to verbose_name so filters produced by
-                    # right-click "Drill to detail by" (which can pass a
-                    # column's verbose label) still resolve to a real column.
-                    col_obj = next(
-                        (c for c in self.columns if c.verbose_name == flt_col),
-                        None,
-                    )
+                # Drill-to-detail filters can use verbose labels. Share their
+                # resolution order with the RLS cache-key collector.
+                col_obj = self._get_filter_column(cast(str, flt_col), columns_by_name)
                 if (
                     col_obj is None
                     and isinstance(flt_col, str)
@@ -7254,67 +7661,72 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     ]
 
-                # run prequery to get top groups
-                prequery_obj: QueryObjectDict = {
-                    "is_timeseries": False,
-                    "row_limit": series_limit,
-                    "metrics": metrics,
-                    "granularity": granularity,
-                    "groupby": groupby,
-                    "from_dttm": inner_from_dttm or from_dttm,
-                    "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": filter or [],
-                    "orderby": orderby,
-                    "extras": extras,
-                    "columns": get_non_base_axis_columns(columns),
-                    "order_desc": True,
-                }
+                if execute_prequeries:
+                    # run prequery to get top groups
+                    prequery_obj: QueryObjectDict = {
+                        "is_timeseries": False,
+                        "row_limit": series_limit,
+                        "metrics": metrics,
+                        "granularity": granularity,
+                        "groupby": groupby,
+                        "from_dttm": inner_from_dttm or from_dttm,
+                        "to_dttm": inner_to_dttm or to_dttm,
+                        "filter": filter or [],
+                        "orderby": orderby,
+                        "extras": extras,
+                        "columns": get_non_base_axis_columns(columns),
+                        "order_desc": True,
+                    }
 
-                result = self.query(prequery_obj)
-                prequeries.append(result.query)
-                dimensions = [
-                    c
-                    for c in result.df.columns
-                    if c not in metrics and c in groupby_series_columns
-                ]
-                top_groups = self._get_top_groups(
-                    result.df, dimensions, groupby_series_columns, columns_by_name
-                )
-
-                if group_others_when_limit_reached:
-                    # Apply Others grouping using the refactored method
-                    def _create_top_groups_condition(col_name: str, expr: Any) -> Any:
-                        return top_groups
-
-                    select_exprs, groupby_all_columns = (
-                        self._apply_series_others_grouping(
-                            select_exprs,
-                            groupby_all_columns,
-                            groupby_series_columns,
-                            _create_top_groups_condition,
-                        )
+                    result = self.query(prequery_obj)
+                    prequeries.append(result.query)
+                    dimensions = [
+                        c
+                        for c in result.df.columns
+                        if c not in metrics and c in groupby_series_columns
+                    ]
+                    top_groups = self._get_top_groups(
+                        result.df, dimensions, groupby_series_columns, columns_by_name
                     )
 
-                    # Reconstruct query with modified expressions
-                    qry = sa.select(*select_exprs)
-                    if groupby_all_columns:
-                        qry = qry.group_by(
-                            *self._groupby_clause_exprs(groupby_all_columns.values())
+                    if group_others_when_limit_reached:
+                        # Apply Others grouping using the refactored method
+                        def _create_top_groups_condition(
+                            col_name: str, expr: Any
+                        ) -> Any:
+                            return top_groups
+
+                        select_exprs, groupby_all_columns = (
+                            self._apply_series_others_grouping(
+                                select_exprs,
+                                groupby_all_columns,
+                                groupby_series_columns,
+                                _create_top_groups_condition,
+                            )
                         )
 
-                    # Re-apply WHERE and HAVING clauses lost during query reconstruction
-                    qry = self._reapply_query_filters(
-                        qry,
-                        apply_fetch_values_predicate,
-                        template_processor,
-                        granularity,
-                        time_filters,
-                        where_clause_and,
-                        having_clause_and,
-                    )
-                else:
-                    # Original behavior: filter to only top groups
-                    qry = qry.where(top_groups)
+                        # Reconstruct query with modified expressions
+                        qry = sa.select(*select_exprs)
+                        if groupby_all_columns:
+                            qry = qry.group_by(
+                                *self._groupby_clause_exprs(
+                                    groupby_all_columns.values()
+                                )
+                            )
+
+                        # Restore filters lost during query reconstruction.
+                        qry = self._reapply_query_filters(
+                            qry,
+                            apply_fetch_values_predicate,
+                            template_processor,
+                            granularity,
+                            time_filters,
+                            where_clause_and,
+                            having_clause_and,
+                        )
+                    else:
+                        # Original behavior: filter to only top groups
+                        qry = qry.where(top_groups)
 
         qry = qry.select_from(tbl)
         self.rename_shadowing_aliases(qry)
