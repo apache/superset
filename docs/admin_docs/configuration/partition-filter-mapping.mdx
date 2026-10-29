@@ -263,6 +263,31 @@ The mirror only has to be *no narrower* than the filter it stands in for, so adm
 `NULL` partition costs one extra partition read and keeps those rows. Engines still prune
 everything else.
 
+## When the partition column is removed from the warehouse
+
+Superset reads the partition column from the dataset's stored column list, so a partition
+column that is dropped or renamed in the warehouse is still mirrored until the dataset's
+columns are refreshed. A column that a calculated partition column's expression reads counts
+the same way.
+
+When the warehouse rejects a query because of that column, Superset runs the query once more
+without the mirrored predicate. The rows returned are the same; the query is slower, because
+it reads every partition. Each affected query therefore costs one rejected statement followed
+by the unpruned run, and the unpruned result is cached like any other.
+
+Three limits apply:
+
+- The retry only happens when the warehouse's error message names the column. A message that
+  does not (for instance one that names only a function in the expression), a timeout, and a
+  permission error are not retried, and the chart fails as it would without this recovery.
+- A chart or table that itself selects the missing column cannot be rescued. Both attempts
+  fail and the warehouse's error is shown.
+- The pruning indicator in the dataset editor and on filters stays on, because it reads the
+  stored column list rather than the warehouse.
+
+Run **Sync columns from source** on the dataset to fix this properly. The sync clears the
+mapping when its partition column no longer exists, and says so.
+
 ## How the transform is evaluated
 
 The transform is evaluated against the engine — pinned to the dataset's database, catalog

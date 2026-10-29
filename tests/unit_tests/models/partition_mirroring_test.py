@@ -3705,3 +3705,108 @@ def test_a_rejection_naming_a_column_the_expression_reads_is_retried(
     assert result.status == QueryStatus.SUCCESS, result.error_message
     assert len(executed) == 2
     assert "source_key" not in executed[1]
+
+
+def test_a_retry_that_also_fails_surfaces_its_own_error(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    The unmirrored statement is the one the user would have run without the
+    feature, so when it fails too, its error is the one that explains why.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    executed: list[str] = []
+
+    real_get_df = Database.get_df
+
+    def get_df(self: Database, sql: str, *args: Any, **kwargs: Any) -> Any:
+        if "FROM web_events" not in sql:
+            return real_get_df(self, sql, *args, **kwargs)
+        executed.append(sql)
+        if "dt_key" in sql:
+            raise sqlite3.OperationalError("no such column: dt_key")
+        raise sqlite3.OperationalError("disk I/O error")
+
+    with app.app_context(), patch.object(Database, "get_df", get_df):
+        result = _run_january_chart(table)
+
+    assert result.status == QueryStatus.FAILED
+    assert len(executed) == 2
+    assert result.error_message == "disk I/O error"
+    assert "dt_key" not in result.query
+
+
+def test_a_chart_selecting_the_missing_column_is_attempted_twice_and_fails_once(
+    app: Flask, tmp_path: Path
+) -> None:
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention(
+            "dt_key", sqlite3.OperationalError("no such column: dt_key")
+        ) as executed,
+    ):
+        result = table.query(
+            {
+                "columns": ["country", "dt_key"],
+                "metrics": [],
+                "orderby": [],
+                "extras": {},
+                "filter": [],
+                "granularity": "event_time",
+                "is_timeseries": False,
+                "from_dttm": datetime(2026, 1, 1),
+                "to_dttm": datetime(2026, 2, 1),
+            }
+        )
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message == "no such column: dt_key"
+    assert len(executed) == 2
+    assert "dt_key >= " in executed[0]
+    assert "dt_key >= " not in executed[1]
+
+
+def test_a_series_limited_chart_recovers_with_one_retry(
+    app: Flask, tmp_path: Path
+) -> None:
+    """
+    The ranking subquery carries its own copy of the mirror, and both go with
+    the single retry.
+    """
+    table = _warehouse_table(tmp_path, source_partition_column=None)
+    error = sqlite3.OperationalError("no such column: dt_key")
+
+    with (
+        app.app_context(),
+        _rejecting_statements_that_mention("dt_key", error) as executed,
+    ):
+        result = table.query(
+            {
+                "columns": ["country"],
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": "COUNT(*)",
+                        "label": "hits",
+                    }
+                ],
+                "orderby": [],
+                "extras": {},
+                "filter": [],
+                "granularity": "event_time",
+                "is_timeseries": True,
+                "series_columns": ["country"],
+                "series_limit": 1,
+                "from_dttm": datetime(2026, 1, 1),
+                "to_dttm": datetime(2026, 2, 1),
+            }
+        )
+
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert len(executed) == 2
+    assert "dt_key" in executed[0]
+    assert "dt_key" not in executed[1]
+    assert result.df["country"].tolist() == ["US"]
+    assert list(result.df.columns) == ["__timestamp", "country", "hits"]

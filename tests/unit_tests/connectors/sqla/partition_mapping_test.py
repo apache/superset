@@ -51,6 +51,7 @@ from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
+    failure_names_mirror_identifier,
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
@@ -61,6 +62,7 @@ from superset.connectors.sqla.partition_mapping import (
     known_mirror_verdict,
     literal_round_trips,
     MappingValidationIssue,
+    mirror_identifiers,
     mirror_operator,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
@@ -82,6 +84,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.exceptions import SupersetParseError
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement
 from superset.utils.core import FilterOperator, GenericDataType, override_user
@@ -4220,3 +4223,87 @@ def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
         new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
     ):
         assert probed_value_type_error(column, [1767225600]) is None
+
+
+# ---------------------------------------------------------------------------
+# Attributing a warehouse rejection to the mirror
+# ---------------------------------------------------------------------------
+
+
+def _mapped_table_with_partition_expression(expression: str | None) -> SqlaTable:
+    table = _mapped_table()
+    for column in table.columns:
+        if column.column_name == "dt_epoch":
+            column.expression = expression
+    return table
+
+
+def _resolved(table: SqlaTable) -> Any:
+    with patch(
+        "superset.connectors.sqla.partition_mapping.feature_flag_manager"
+    ) as flags:
+        flags.is_feature_enabled.return_value = True
+        mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    return mapping
+
+
+def test_the_identifiers_of_a_physical_partition_column_are_its_name() -> None:
+    table = _mapped_table_with_partition_expression(None)
+
+    assert mirror_identifiers(table, _resolved(table)) == {"dt_epoch"}
+
+
+def test_the_identifiers_of_a_calculated_partition_column_include_its_sources() -> None:
+    table = _mapped_table_with_partition_expression("source_key + other_key")
+
+    assert mirror_identifiers(table, _resolved(table)) == {
+        "dt_epoch",
+        "source_key",
+        "other_key",
+    }
+
+
+def test_an_unreadable_expression_leaves_the_partition_column_name_alone() -> None:
+    """
+    Reading the expression is best-effort and never raises: the identifiers fall
+    back to the partition column's own name, so a rejection naming a column of
+    the expression is simply not attributed to the mirror and the original
+    warehouse error surfaces unchanged.
+    """
+    table = _mapped_table_with_partition_expression("source_key + 0")
+    mapping = _resolved(table)
+
+    with patch(
+        "superset.connectors.sqla.partition_mapping._expression_columns",
+        side_effect=SupersetParseError("SELECT source_key + 0", "sqlite"),
+    ):
+        assert mirror_identifiers(table, mapping) == {"dt_epoch"}
+        assert not failure_names_mirror_identifier(
+            table, mapping, "no such column: source_key"
+        )
+        assert failure_names_mirror_identifier(
+            table, mapping, "no such column: dt_epoch"
+        )
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("no such column: dt_epoch", True),
+        ("Invalid table alias or column reference 'DT_EPOCH'", True),
+        ('column "dt_epoch" does not exist', True),
+        ("Column `dt_epoch` cannot be resolved", True),
+        ("no such column: my_dt_epoch", False),
+        ("no such column: x$dt_epoch", False),
+        ("no such column: dt_epoch2", False),
+        ("Query exceeded the maximum time limit", False),
+        ("", False),
+    ],
+)
+def test_a_message_is_matched_on_whole_identifiers(
+    message: str, expected: bool
+) -> None:
+    table = _mapped_table_with_partition_expression(None)
+
+    assert failure_names_mirror_identifier(table, _resolved(table), message) is expected

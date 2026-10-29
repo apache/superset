@@ -1148,7 +1148,9 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
 
     columns_by_name = {column.column_name: column for column in datasource.columns}
     if partition_column not in columns_by_name:
-        # The partition column was dropped by a column sync or at the source.
+        # Dropped by a column sync. A column dropped at the source is not
+        # visible here, since this only reads the cached metadata; the warehouse
+        # rejecting the mirror is recovered from when the query is executed.
         return None
 
     mapped_column_name = (
@@ -1189,6 +1191,63 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         equality_is_safe=equality_mirrors_safely(
             mapped_column, datasource.database.db_engine_spec
         ),
+    )
+
+
+def _expression_columns(expression: str, engine: str) -> set[str]:
+    """The columns a calculated column's expression reads, lowercased."""
+    return SQLStatement(f"SELECT {expression}", engine).get_column_names()
+
+
+def mirror_identifiers(datasource: SqlaTable, mapping: PartitionMapping) -> set[str]:
+    """
+    The identifiers the mirrored predicate puts into a statement.
+
+    The partition column's own name and, when it is a calculated column, the
+    columns its expression reads: `convert_tbl_column_to_sqla_col` inlines the
+    expression, so a warehouse rejecting the mirror because the source column
+    behind it is gone names that column rather than the partition column.
+
+    Column names only. Qualifiers and function names inside the expression are
+    not collected, so a rejection that names only those is not attributed to the
+    mirror. If the expression cannot be read, the partition column's name alone
+    is returned; this never raises.
+    """
+    names = {mapping.partition_column}
+    partition_column = next(
+        (
+            column
+            for column in datasource.columns
+            if column.column_name == mapping.partition_column
+        ),
+        None,
+    )
+    if expression := getattr(partition_column, "expression", None):
+        try:
+            names |= _expression_columns(expression, datasource.database.backend)
+        except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "Could not read the columns of the partition column expression",
+                exc_info=True,
+            )
+    return names
+
+
+def failure_names_mirror_identifier(
+    datasource: SqlaTable, mapping: PartitionMapping, message: str
+) -> bool:
+    """
+    Whether a warehouse error message refers to an identifier the mirror emitted.
+
+    Case-insensitive, and only identifier characters (letters, digits, ``_`` and
+    ``$``) count as part of a name: ``$dt_key`` matches itself and ``dt_key``
+    inside quotes or backticks, while ``my_dt_key`` and ``x$dt_key`` are other
+    identifiers. ``\\b`` would miss a name that starts or ends with ``$`` and
+    match ``x$dt_key``.
+    """
+    return any(
+        re.search(rf"(?<![\w$]){re.escape(name)}(?![\w$])", message, re.IGNORECASE)
+        for name in mirror_identifiers(datasource, mapping)
     )
 
 
