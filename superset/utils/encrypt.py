@@ -646,16 +646,16 @@ class SecretsMigrator:
                 # Storage encrypts a text envelope with a per-user key. Keep
                 # that envelope intact and use the same derivation for both keys.
                 from superset.extensions.storage.persistent_dao import (  # pylint: disable=import-outside-toplevel
-                    _derive_key,
+                    derive_user_key,
                 )
 
                 value_type = String()
                 user_fk = row._mapping["user_fk"]
                 if user_fk is not None:
                     migrator = copy(self)
-                    migrator._secret_key = _derive_key(self._secret_key, user_fk)
+                    migrator._secret_key = derive_user_key(self._secret_key, user_fk)
                     migrator._previous_secret_key = (
-                        _derive_key(self._previous_secret_key, user_fk)
+                        derive_user_key(self._previous_secret_key, user_fk)
                         if self._previous_secret_key
                         else None
                     )

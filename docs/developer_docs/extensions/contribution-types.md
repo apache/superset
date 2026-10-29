@@ -282,7 +282,10 @@ Store access and refresh tokens using the Python-only
 Never put personal credentials in the shared layer configuration, action results,
 query results, logs, or exceptions. The host executes provider methods under the
 owning extension and requesting user's context, including background chart work.
-Semantic View query results and shared async query tasks are partitioned by user.
+Semantic View query results and shared async query tasks are partitioned by user,
+including providers without connection actions. This reduces cache sharing for
+providers with identical results for all users, but declaring no actions does not
+establish that a provider returns user-independent data.
 
 When any provider operation requires authentication, raise the core exception:
 
@@ -309,6 +312,11 @@ The original tab then refreshes the configuration form or retries the failed
 operation. Returning browser focus before authorization completes does not
 consume the completion notification. Closing an unfinished connection window
 allows the user to start another attempt.
+
+The completion URL uses the request's externally visible host and scheme. Operators
+must configure their reverse proxy, forwarded headers, and allowed hosts so
+Superset sees its trusted public HTTPS origin. See the
+[reverse proxy configuration](../../admin_docs/configuration/configuring-superset.mdx#configuration-behind-a-load-balancer).
 
 Action POST responses contain `result.redirect_url` and a host-generated
 `result.tab_id`. Both the configuration modal and the generic OAuth error UI

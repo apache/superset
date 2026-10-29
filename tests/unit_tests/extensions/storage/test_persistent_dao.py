@@ -34,9 +34,9 @@ from superset.extensions.storage.codecs import get_codec
 from superset.extensions.storage.filters import ExtensionStorageFilter
 from superset.extensions.storage.persistent_dao import (
     _decrypt_value,
-    _derive_key,
     _enc_type,
     _encrypt_value,
+    derive_user_key,
     ExtensionStorageDAO,
     ExtensionStorageKeyTooLong,
     ExtensionStorageListPayloadTooLarge,
@@ -717,7 +717,7 @@ def test_enc_type_user_scoped_uses_derived_key(app: Flask) -> None:
     with app.app_context():
         secret = app.config["SECRET_KEY"]
         enc = _enc_type(user_fk=42)
-        expected_key = _derive_key(secret, 42)
+        expected_key = derive_user_key(secret, 42)
         # The key lambda on the EncryptedType resolves to the derived key.
         assert enc.key == expected_key
 

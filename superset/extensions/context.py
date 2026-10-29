@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from superset_core.extensions.types import BaseExtension, Manifest
 
@@ -60,7 +60,11 @@ class ExtensionStorage:
 class ConcreteExtensionContext:
     """Concrete implementation of ExtensionContext for the host."""
 
-    def __init__(self, manifest: Manifest, user_id: int | None = None):
+    def __init__(
+        self,
+        manifest: Manifest,
+        user_id: int | None | Callable[[], int | None] = None,
+    ) -> None:
         self._manifest = manifest
         self._user_id = user_id
         self._storage = ExtensionStorage()
@@ -76,8 +80,8 @@ class ConcreteExtensionContext:
 
     @property
     def user_id(self) -> int | None:
-        """Explicit principal for extension execution outside a request."""
-        return self._user_id
+        """Resolve request principals after authentication, or use a fixed worker ID."""
+        return self._user_id() if callable(self._user_id) else self._user_id
 
 
 # Context variable for ambient extension context pattern.
@@ -133,7 +137,7 @@ def use_context(ctx: ConcreteExtensionContext) -> Iterator[None]:
 @contextmanager
 def extension_context(
     manifest: Manifest,
-    user_id: int | None = None,
+    user_id: int | None | Callable[[], int | None] = None,
 ) -> Iterator[ConcreteExtensionContext]:
     """
     Context manager for setting extension context during loading.
@@ -142,6 +146,7 @@ def extension_context(
     the current context. Supports nested contexts via ContextVar tokens.
 
     :param manifest: The extension manifest
+    :param user_id: A fixed principal or a resolver called when the ID is accessed
     :yields: The created ExtensionContext
     """
     ctx = ConcreteExtensionContext(manifest, user_id=user_id)
