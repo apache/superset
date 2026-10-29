@@ -147,6 +147,9 @@ provider test processes, not a live host. An executable, SDK-only example is in
 It demonstrates discovery and values only; unsupported table/count queries are
 explicitly refused, not claimed as a full provider implementation.
 
+See [Testing semantic providers](../../semantic-layer-provider-testing.md) for the
+reusable SDK conformance suite and its provider-owned fixtures.
+
 ## Execution context
 
 The unreleased SDK uses one `SemanticLayer.from_configuration` factory with
