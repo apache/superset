@@ -122,8 +122,9 @@ def _make_command(
     )
     mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled",
-        side_effect=lambda name: name
-        in {"SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"},
+        side_effect=lambda name: (
+            name in {"SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST"}
+        ),
     )
     mocker.patch(
         "superset.db_engine_specs.query_warning.is_feature_enabled", return_value=True
@@ -747,17 +748,31 @@ def test_warning_real_errors_propagate(mocker: MockerFixture, error: Exception) 
         _run_warning(command)
 
 
-def test_warning_known_timeout_is_unavailable(mocker: MockerFixture) -> None:
-    """Only the known estimation timeout is an advisory unavailable result."""
+@pytest.mark.parametrize("timed_out", [False, True])
+def test_warning_uses_configured_timeout(
+    mocker: MockerFixture, app: Flask, timed_out: bool
+) -> None:
+    """Enter the configured timeout and turn its expiration into confirmation."""
     command = _make_command(mocker)
-    command.validate()
-    _estimator(command).side_effect = SupersetTimeoutException(
-        SupersetErrorType.SQLLAB_TIMEOUT_ERROR, "timed out", ErrorLevel.ERROR
-    )
+    mocker.patch.dict(app.config, {"SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 13})
+    timeout = mocker.patch("superset.commands.sql_lab.estimate.utils.timeout")
+    context = timeout.return_value
+    if timed_out:
+        context.__enter__.side_effect = SupersetTimeoutException(
+            SupersetErrorType.SQLLAB_TIMEOUT_ERROR, "timed out", ErrorLevel.ERROR
+        )
     result = _run_warning(command)
-    assert result["action"] == "confirm"
-    assert result["reason"] == "unavailable"
-    assert "timed out" in result["message"]
+    timeout.assert_called_once_with(seconds=13, error_message=mocker.ANY)
+    context.__enter__.assert_called_once()
+    if timed_out:
+        assert result["action"] == "confirm"
+        assert result["reason"] == "unavailable"
+        assert "timed out" in result["message"]
+        _estimator(command).assert_not_called()
+    else:
+        assert result == {"action": "proceed"}
+        _estimator(command).assert_called_once()
+        context.__exit__.assert_called_once()
 
 
 @pytest.mark.parametrize(
