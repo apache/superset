@@ -1191,3 +1191,26 @@ test('a stalled status detail does not prevent completeness guidance', async () 
   await rejection;
   expect(refetch).not.toHaveBeenCalled();
 });
+
+test('preserves an OAuth authorization prompt from a failed query task', async () => {
+  const oauthError = {
+    error_type: 'OAUTH2_REDIRECT',
+    level: 'warning',
+    message: 'Authorization needed',
+    extra: {
+      url: '/api/v1/semantic_layer/layer/oauth2/connect',
+      tab_id: 'flow-id',
+    },
+  };
+  fetchMock.get('glob:*/api/v1/task/oauth-task', {
+    status: 200,
+    body: { result: { properties: { errors: [oauthError] } } },
+  });
+  queueStatuses({ 'oauth-task': { status: 'failure' } });
+  asyncEvent.init(config);
+  const refetch = jest.fn();
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['oauth-task'] }, refetch),
+  ).rejects.toEqual({ errors: [oauthError] });
+  expect(refetch).not.toHaveBeenCalled();
+});

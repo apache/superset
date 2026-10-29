@@ -889,6 +889,10 @@ test('the save payload carries every selected metric', async () => {
 
   await waitFor(
     () => {
+      expect(mockedPost).toHaveBeenCalledWith({
+        endpoint: '/api/v1/semantic_layer/layer-1/views',
+        jsonPayload: { runtime_data: { metrics: ['m1', 'm2', 'm3'] } },
+      });
       expect(
         screen.getByRole('combobox', { name: 'Semantic views' }),
       ).toBeEnabled();
@@ -1975,3 +1979,67 @@ describe('setup documentation', () => {
     },
   );
 });
+test.each(['runtime', 'views'])(
+  'offers OAuth and retries when %s discovery needs a personal token',
+  async stage => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Personal layer' }] },
+    });
+    let needsAuthentication = true;
+    const authorizationUrl = '/api/v1/semantic_layer/layer-1/oauth2/connect';
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      const isRuntime = endpoint.endsWith('/schema/runtime');
+      if (
+        needsAuthentication &&
+        (isRuntime ? stage === 'runtime' : stage === 'views')
+      ) {
+        return Promise.reject({
+          response: new Response(
+            JSON.stringify({
+              errors: [
+                {
+                  error_type: 'OAUTH2_REDIRECT',
+                  message: 'Authorization needed',
+                  level: 'warning',
+                  extra: { url: authorizationUrl, tab_id: 'personal-flow' },
+                },
+              ],
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } },
+          ),
+        });
+      }
+      return Promise.resolve({
+        json: {
+          result: isRuntime
+            ? { properties: {} }
+            : [{ name: 'orders', already_added: false }],
+        },
+      });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Personal layer');
+    const authorize = await screen.findByRole('link', {
+      name: 'provide authorization',
+    });
+    expect(authorize).toHaveAttribute('href', authorizationUrl);
+    expect(props.addDangerToast).not.toHaveBeenCalled();
+    needsAuthentication = false;
+    await act(async () => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'oauth2_auth_complete',
+          newValue: JSON.stringify({ tabId: 'personal-flow' }),
+        }),
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('link', { name: 'provide authorization' }),
+      ).not.toBeInTheDocument(),
+    );
+    await selectOption('Semantic views', 'orders');
+    expect(screen.getByRole('button', { name: 'Add 1 view(s)' })).toBeEnabled();
+  },
+);

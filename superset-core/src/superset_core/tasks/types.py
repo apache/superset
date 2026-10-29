@@ -87,6 +87,8 @@ class TaskProperties(TypedDict, total=False):
     # failure reason (public); the exception class and traceback are internal
     # debug detail and live under ``private["framework"]`` instead.
     error_message: str
+    # Actionable OAuth errors; credentials and provider exceptions are excluded.
+    errors: list[dict[str, Any]]
 
     # Internal runtime state, surfaced to user-facing API payloads only in debug
     # mode (the Task REST API strips this key otherwise). Holds framework/task
