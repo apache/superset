@@ -36,7 +36,7 @@ blinker==1.9.0
     # via flask
 bottleneck==1.5.0
     # via apache-superset (pyproject.toml)
-brotli==1.2.0
+brotli==1.2.1
     # via
     #   -r requirements/base.in
     #   flask-compress
@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.2.1
+cachetools==7.2.5
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -193,7 +193,7 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
-jsonpath-ng==1.8.0
+jsonpath-ng==1.13.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
     # via
@@ -377,7 +377,7 @@ six==1.17.0
     #   wtforms-json
 slack-sdk==3.45.0
     # via apache-superset (pyproject.toml)
-sqlalchemy==2.0.52
+sqlalchemy==2.0.55
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
@@ -388,14 +388,14 @@ sqlalchemy==2.0.52
     #   shillelagh
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-continuum==1.8.0
+sqlalchemy-continuum==2.0.0
     # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.43.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.21.0
+sqlglot==30.24.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
