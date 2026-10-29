@@ -425,6 +425,49 @@ test('?edit=true does not hydrate editMode for a user without edit permission', 
   expect(action.data.dashboardState.editMode).toBe(false);
 });
 
+// The charts endpoint withholds `form_data` for a chart whose datasource the
+// viewer cannot access, serving only its identifying fields. Hydration must
+// keep the dashboard usable (it used to throw reading `slice_id` of
+// undefined, blanking the whole page) and leave that chart to be denied by the
+// server when it requests its data.
+const buildInaccessibleChart = (id: number) => ({
+  id,
+  slice_url: `/explore/?slice_id=${id}`,
+  slice_name: 'Restricted chart',
+  description: '',
+  description_markeddown: '',
+  changed_on: '2024-01-01T00:00:00.000Z',
+});
+
+test('hydrates a chart served without form_data, keyed by its id', () => {
+  const action = hydrate(flatTabsPositionData, {
+    charts: [buildChart(), buildInaccessibleChart(9)],
+  });
+
+  expect(Object.keys(action.data.charts).sort()).toEqual(['7', '9']);
+  expect(action.data.sliceEntities.slices[9]).toMatchObject({
+    slice_id: 9,
+    slice_name: 'Restricted chart',
+  });
+});
+
+test('an inaccessible chart keeps only its slice_id as form_data, leaving others untouched', () => {
+  window.history.replaceState(null, '', '/superset/dashboard/1/?foo=bar');
+
+  const action = hydrate(flatTabsPositionData, {
+    charts: [buildChart(), buildInaccessibleChart(9)],
+  });
+
+  expect(action.data.charts[9].form_data).toEqual({
+    slice_id: 9,
+    url_params: { foo: 'bar' },
+  });
+  expect(action.data.charts[7].form_data).toMatchObject({
+    slice_id: 7,
+    viz_type: 'table',
+  });
+});
+
 // hydrate.ts merges the non-reserved ("regular") URL query params into every
 // chart's form_data.url_params so drill-through/native-filter query params
 // carried on the dashboard URL reach each chart's query.
