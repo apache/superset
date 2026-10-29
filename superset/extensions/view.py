@@ -16,7 +16,7 @@
 # under the License.
 import logging
 import re
-from typing import Callable
+from typing import Callable, NamedTuple
 
 from flask import abort, current_app, Flask, g, render_template
 from flask_appbuilder import expose
@@ -46,7 +46,31 @@ _ENDPOINT_PREFIX = "extension_page"
 _REQUIREMENTS = "superset_extension_page_requirements"
 
 
-def _requirements(app: Flask) -> dict[tuple[str, str], str | None]:
+class PageRequirement(NamedTuple):
+    """What a registered page requires before it may be opened.
+
+    Two independent conditions, deliberately separate. A permission says
+    *who*; a feature flag says *whether the feature is running at all*. A
+    page whose flag is off must be hidden from everyone, including the
+    administrator who holds every permission there is (QA-23).
+    """
+
+    permission: str | None = None
+    feature_flag: str | None = None
+
+
+def page_available(feature_flag: str | None) -> bool:
+    """Whether a page's feature flag, if it declares one, is on."""
+    if feature_flag is None:
+        return True
+    # Read per request, like ENABLE_EXTENSIONS above it: flipping a flag
+    # takes effect without waiting for a restart.
+    from superset import is_feature_enabled
+
+    return bool(is_feature_enabled(feature_flag))
+
+
+def _requirements(app: Flask) -> dict[tuple[str, str], PageRequirement]:
     """What each registered page requires, keyed by extension and path.
 
     Written when a page's rule is registered and read on the way in to it, so
@@ -64,7 +88,7 @@ def _requirements(app: Flask) -> dict[tuple[str, str], str | None]:
 
 def _page_requirement(
     app: Flask, extension_id: str, path: str
-) -> tuple[bool, str | None]:
+) -> tuple[bool, PageRequirement]:
     """Whether this page is registered, and what it requires if so.
 
     Two answers rather than one, because `None` is a real requirement -- a
@@ -75,7 +99,7 @@ def _page_requirement(
     requirements = _requirements(app)
     key = (extension_id, path)
     if key not in requirements:
-        return False, None
+        return False, PageRequirement()
     return True, requirements[key]
 
 
@@ -163,21 +187,26 @@ def _make_page_view(extension_id: str, path: str) -> Callable[..., FlaskResponse
         if not g.user or not get_user_id():
             return redirect_to_login()
 
-        registered, permission = _page_requirement(current_app, extension_id, path)
+        registered, requirement = _page_requirement(current_app, extension_id, path)
         if not registered:
             # No requirement recorded means no page: a rule exists for a path
             # nothing registered. Refused rather than served, because the
             # alternative reads as "requires nothing", which is the one answer
             # that must never be reached by default.
             abort(404)
-        if not may_open(extension_id, permission):
+        if not page_available(requirement.feature_flag):
+            # Not a permission problem, so not a 403: with the flag off the
+            # feature is not running and the page has nothing to show. A
+            # bookmark should read as "no such page", which is what it is.
+            abort(404)
+        if not may_open(extension_id, requirement.permission):
             logger.warning(
                 "User %s was refused the page '%s' of extension '%s', which "
                 "requires '%s'",
                 get_user_id(),
                 path,
                 extension_id,
-                permission,
+                requirement.permission,
             )
             return _render_shell(), 403
         return _render_shell()
@@ -523,7 +552,10 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
             continue
 
         endpoint = f"{_ENDPOINT_PREFIX}.{manifest.id}{page.path}"
-        requirements[(manifest.id, page.path)] = page.permission
+        requirements[(manifest.id, page.path)] = PageRequirement(
+            permission=page.permission,
+            feature_flag=page.featureFlag,
+        )
         view = _make_page_view(manifest.id, page.path)
         app.add_url_rule(
             page.path,
@@ -716,7 +748,11 @@ def permitted_page_paths(app: Flask, manifest: Manifest) -> set[str]:
         # The requirement comes from the table the rule was registered with,
         # not from `page.permission` beside it: this manifest was read on this
         # request and may say something the live route does not enforce.
-        recorded, permission = _page_requirement(app, manifest.id, page.path)
-        if recorded and may_open(manifest.id, permission):
+        recorded, requirement = _page_requirement(app, manifest.id, page.path)
+        if (
+            recorded
+            and page_available(requirement.feature_flag)
+            and may_open(manifest.id, requirement.permission)
+        ):
             permitted.add(page.path)
     return permitted

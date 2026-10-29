@@ -14,7 +14,8 @@
           "label": "Approvals",
           "category": "Manage"
         },
-        "permission": "can_review"
+        "permission": "can_review",
+        "featureFlag": "CHANGE_MANAGEMENT"
       },
       {
         "path": "/change-review-settings",
@@ -22,7 +23,9 @@
         "nav": {
           "label": "Change review",
           "category": "Manage"
-        }
+        },
+        "featureFlag": "CHANGE_MANAGEMENT",
+        "permission": "can_review"
       }
     ]
   },

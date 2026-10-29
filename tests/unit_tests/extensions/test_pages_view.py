@@ -304,6 +304,8 @@ def render_with(
     permission: str | None = None,
     granted: bool = False,
     recorded: bool = True,
+    feature_flag: str | None = None,
+    flag_on: bool = True,
 ) -> object:
     """Run one page view's guards without rendering a real template.
 
@@ -321,19 +323,86 @@ def render_with(
     )
     monkeypatch.setattr(superset, "security_manager", security, raising=False)
     monkeypatch.setattr(
-        superset, "is_feature_enabled", lambda _flag: extensions_enabled
+        superset,
+        "is_feature_enabled",
+        lambda flag: flag_on if flag == feature_flag else extensions_enabled,
     )
     monkeypatch.setattr(view, "get_user_id", lambda: user_id)
     monkeypatch.setattr(view, "_render_shell", lambda: "SHELL")
     monkeypatch.setattr(view, "redirect_to_login", lambda: "LOGIN")
 
     if recorded:
-        view._requirements(app)[("acme.tools", "/approvals")] = permission
+        view._requirements(app)[("acme.tools", "/approvals")] = (
+            view.PageRequirement(permission=permission, feature_flag=feature_flag)
+        )
     page_view = view._make_page_view("acme.tools", "/approvals")
 
     with app.test_request_context("/approvals"):
         g.user = object() if user_id else None
         return page_view()
+
+
+def test_a_page_whose_feature_flag_is_off_is_not_served(
+    monkeypatch: pytest.MonkeyPatch, app: Flask
+) -> None:
+    """A switched-off feature must not keep a page open (QA-23).
+
+    404 rather than 403: with the flag off the feature is not running and
+    there is no page, which is not a question about who the user is. An
+    administrator holds every permission there is and must not see it
+    either.
+    """
+    with pytest.raises(NotFound):
+        render_with(
+            monkeypatch,
+            app,
+            permission="can_review",
+            granted=True,
+            feature_flag="CHANGE_MANAGEMENT",
+            flag_on=False,
+        )
+
+
+def test_a_page_whose_feature_flag_is_on_is_served(
+    monkeypatch: pytest.MonkeyPatch, app: Flask
+) -> None:
+    assert (
+        render_with(
+            monkeypatch,
+            app,
+            permission="can_review",
+            granted=True,
+            feature_flag="CHANGE_MANAGEMENT",
+            flag_on=True,
+        )
+        == "SHELL"
+    )
+
+
+def test_a_page_without_a_feature_flag_is_unaffected(
+    monkeypatch: pytest.MonkeyPatch, app: Flask
+) -> None:
+    # The field is optional, and adding it must not change a page that does
+    # not declare one.
+    assert (
+        render_with(monkeypatch, app, permission="can_review", granted=True) == "SHELL"
+    )
+
+
+def test_the_flag_is_checked_before_the_permission(
+    monkeypatch: pytest.MonkeyPatch, app: Flask
+) -> None:
+    # Otherwise a user without the permission would learn, from a 403 rather
+    # than a 404, that the page exists while the feature is off.
+    with pytest.raises(NotFound):
+        render_with(
+            monkeypatch,
+            app,
+            permission="can_review",
+            granted=False,
+            feature_flag="CHANGE_MANAGEMENT",
+            flag_on=False,
+        )
 
 
 def test_the_flag_decides_what_a_registered_page_answers(
@@ -1058,7 +1127,9 @@ def test_a_duplicate_declaration_cannot_relax_the_permission(
     register_extension_pages(app, manifest)
 
     assert registered_page_paths(app, "acme.tools") == ["/review-queue"]
-    assert view._requirements(app)[("acme.tools", "/review-queue")] == "can_review"
+    assert view._requirements(app)[
+        ("acme.tools", "/review-queue")
+    ].permission == "can_review"
 
     with app.app_context():
         assert permitted_page_paths(app, manifest) == set()
