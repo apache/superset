@@ -7,6 +7,7 @@ on:
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch:
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -73,7 +74,7 @@ jobs:
           name: docker-image
           path: docker-image.tar.zst
 
-  sharded-jest-tests:
+  sharded-frontend-tests:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     strategy:
@@ -108,8 +109,25 @@ jobs:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage
 
+  frontend-tests-required:
+    needs: [sharded-frontend-tests]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check sharded-frontend-tests result
+        env:
+          RESULT: ${{ needs.sharded-frontend-tests.result }}
+        run: |
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "sharded-frontend-tests did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "sharded-frontend-tests result: $RESULT"
+
   report-coverage:
-    needs: [sharded-jest-tests]
+    needs: [sharded-frontend-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 15
@@ -165,7 +183,7 @@ jobs:
       - name: tsc
         run: |
           docker run --rm $TAG bash -c \
-          "npm run plugins:build && npm run type"
+          "npm run plugins:build -- --skip-lib && npm run type"
 
   validate-frontend:
     needs: frontend-build
@@ -207,8 +225,67 @@ jobs:
           docker run --rm -e CI=true $TAG bash -c \
           "npx playwright install --with-deps chromium && npm run test-storybook"
 
+  # Chromatic used to live in its own workflow and build a second copy of the
+  # CI image (about 50 s on a warm layer cache, 7 minutes after a lockfile
+  # change). It now reuses the image frontend-build uploads, like the other
+  # jobs here. Every step is skipped when the project token is absent
+  # (forks), which is what the old workflow did too.
+  chromatic:
+    needs: frontend-build
+    # Pushes publish only from master; release-branch pushes would otherwise
+    # auto-accept their changes as that branch's baseline unreviewed.
+    if: >-
+      needs.frontend-build.outputs.should-run == 'true' &&
+      (github.event_name != 'push' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    steps:
+      # Chromatic's onlyChanged (TurboSnap) needs git history to find the
+      # baseline commit, hence the deeper checkout.
+      - name: Checkout Code
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 500
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Download Docker Image Artifact
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: docker-image
+      - name: Load Docker Image
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          zstd -d < docker-image.tar.zst | docker load
+      - name: Build Storybook
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
+          --rm $TAG \
+          bash -c "npm run build-storybook -- --webpack-stats-json"
+      - name: Publish to Chromatic
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: chromaui/action@882b4728513a3720bfcd27bd9ad1260c603c6090 # v18.13.2
+        with:
+          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workingDir: superset-frontend
+          storybookBuildDir: storybook-static
+          onlyChanged: true
+          exitZeroOnChanges: true
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/master' }}
+          zip: true
+
   actions-timeline:
-    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
+    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook, chromatic]
     if: always()
     runs-on: ubuntu-slim
     permissions:

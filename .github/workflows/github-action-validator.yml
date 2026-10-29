@@ -45,8 +45,8 @@ jobs:
       - name: Run Script
         run: bash .github/workflows/github-action-validator.sh
 
-      - name: Test docs-deploy freshness gate
-        run: bash .github/workflows/scripts/check-docs-deploy-freshness.test.sh
+      - name: Test branch freshness gate
+        run: bash .github/workflows/scripts/check-branch-freshness.test.sh
 
       - name: Test code scanning availability check
         run: bash .github/workflows/scripts/check-code-scanning-available.test.sh

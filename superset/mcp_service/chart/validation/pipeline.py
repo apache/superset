@@ -323,11 +323,14 @@ class ValidationPipeline:
                 dataset_context=dataset_context,
             )
 
-            # Create a new request with the normalized config
-            request_dict = request.model_dump()
+            # Create a new request with the normalized config. The name is
+            # already sanitized; carry it over instead of sanitizing it again.
+            request_dict = request.model_dump(exclude={"chart_name"})
             request_dict["config"] = normalized_config.model_dump(exclude_unset=True)
 
-            return GenerateChartRequest.model_validate(request_dict)
+            return GenerateChartRequest.model_validate(request_dict).model_copy(
+                update={"chart_name": request.chart_name}
+            )
 
         except (GanttSemanticNormalizationError, AmbiguousDatasetReferenceError):
             # These name a real, actionable schema conflict rather than a
