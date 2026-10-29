@@ -47,6 +47,7 @@ _server_major_versions: dict[str, int] = {}
 class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
     engine_name = "Oracle"
+    select_without_from_suffix = " FROM DUAL"
 
     metadata = {
         "description": "Oracle Database is a multi-model database management system.",
