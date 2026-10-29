@@ -22,6 +22,7 @@ import pytest
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.common.utils.query_cache_manager import QueryCacheManager
 
 
 def _query_timing() -> QueryTiming:
@@ -338,3 +339,99 @@ def test_dataframe_payload_result_resolves_force_and_timeout_onto_query_object(
     assert query_obj.cache_timeout == -1
     cache_manager.get.assert_called_once()
     assert cache_manager.get.call_args.kwargs["force_query"] is True
+
+
+def _cache(is_loaded: bool) -> MagicMock:
+    cache: MagicMock = MagicMock()
+    cache.is_loaded = is_loaded
+    cache.is_cached = is_loaded
+    cache.df = pd.DataFrame({"col1": [1]})
+    cache.cache_dttm = "2026-01-01T00:00:00" if is_loaded else None
+    cache.queried_dttm = "2026-01-01T00:00:00"
+    cache.applied_template_filters = []
+    cache.applied_filter_columns = []
+    cache.rejected_filter_columns = []
+    cache.annotation_data = {}
+    cache.error_message = None
+    cache.query = "SELECT 1"
+    cache.status = QueryStatus.SUCCESS
+    cache.stacktrace = None
+    cache.sql_rowcount = 1
+    cache.bq_memory_limited = False
+    cache.bq_memory_limited_row_count = 0
+    return cache
+
+
+def _emitted(stats_logger: MagicMock) -> tuple[set[str], set[str]]:
+    timers = {call.args[0] for call in stats_logger.timing.call_args_list}
+    counters = {call.args[0] for call in stats_logger.incr.call_args_list}
+    return timers, counters
+
+
+@pytest.mark.parametrize(
+    ("is_loaded", "timeout", "expected_counter"),
+    [
+        (True, 300, "chart_data.cache.hit"),
+        (False, 300, "chart_data.cache.miss"),
+        (False, -1, "chart_data.cache.bypass"),
+    ],
+)
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_dataframe_payload_result_emits_cache_outcome(
+    cache_manager: MagicMock,
+    stats_logger_manager: MagicMock,
+    is_loaded: bool,
+    timeout: int,
+    expected_counter: str,
+) -> None:
+    cache_manager.get.return_value = _cache(is_loaded)
+    processor: QueryContextProcessor = _processor()
+    with (
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=timeout),
+        patch.object(processor, "get_query_result", return_value=MagicMock()),
+        patch.object(processor, "get_annotation_data", return_value={}),
+    ):
+        processor.get_df_payload_result(_query_obj())
+
+    timers, counters = _emitted(stats_logger_manager.instance)
+    assert counters == {expected_counter}
+    # A bypass never reads the cache backend, so it has no read timing.
+    assert ("chart_data.cache.get" in timers) is (
+        expected_counter != "chart_data.cache.bypass"
+    )
+    assert {
+        "chart_data.cache.key",
+        "chart_data.query.planning",
+        "chart_data.query.payload_assembly",
+        "chart_data.query.total",
+    } <= timers
+    # Datasource time is only measured when the datasource was queried.
+    assert ("chart_data.query.data_acquisition" in timers) is (not is_loaded)
+    assert ("chart_data.query.annotations" in timers) is (not is_loaded)
+
+
+@pytest.mark.parametrize(
+    ("status", "expect_write"),
+    [(QueryStatus.SUCCESS, True), (QueryStatus.FAILED, False)],
+)
+@patch("superset.utils.timing_metrics.stats_logger_manager")
+@patch.object(QueryCacheManager, "set", return_value=True)
+def test_cache_set_timed_only_for_cache_writes(
+    cache_set: MagicMock,
+    stats_logger_manager: MagicMock,
+    status: QueryStatus,
+    expect_write: bool,
+    app_context: None,
+) -> None:
+    """Failed results are never written, so they must not skew the timer."""
+    query_result: MagicMock = MagicMock()
+    query_result.status = status
+    query_result.df = pd.DataFrame({"col1": [1]})
+
+    QueryCacheManager().set_query_result(key="key", query_result=query_result)
+
+    timers, _ = _emitted(stats_logger_manager.instance)
+    assert cache_set.called is expect_write
+    assert ("chart_data.cache.set" in timers) is expect_write

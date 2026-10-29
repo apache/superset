@@ -86,6 +86,14 @@ from superset.utils.core import (
     is_adhoc_metric,
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
+from superset.utils.timing_metrics import (
+    elapsed_ms,
+    emit_incr,
+    emit_timing,
+    NANOSECONDS_PER_MILLISECOND,
+    now_ns,
+    timed,
+)
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -269,13 +277,15 @@ class QueryContextProcessor:
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> QueryAcquisitionResult:
         """Acquire a dataframe and return timing as a typed sidecar."""
+        metrics_start_ns = now_ns()
         query_planning_start_ns = time.perf_counter_ns()
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        cache_key = self.query_cache_key(query_obj)
+        with timed("chart_data.cache.key"):
+            cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = (
             self._resolve_forced_query(query_obj, cache_key)
@@ -311,6 +321,11 @@ class QueryContextProcessor:
             cache.is_loaded = False
 
         cache_resolution_ns = max(0, time.perf_counter_ns() - cache_resolution_start_ns)
+        self._emit_cache_outcome(
+            bypassed=not cache_key or force_query,
+            hit=cache.is_loaded,
+            cache_resolution_ns=cache_resolution_ns,
+        )
 
         data_acquisition_ns: int | None = None
         if query_obj and cache_key and not cache.is_loaded:
@@ -333,7 +348,8 @@ class QueryContextProcessor:
                     )
 
                 query_result = self.get_query_result(query_obj)
-                annotation_data = self.get_annotation_data(query_obj)
+                with timed("chart_data.query.annotations"):
+                    annotation_data = self.get_annotation_data(query_obj)
             except SemanticResultCompletenessError:
                 raise
             except QueryObjectValidationError as ex:
@@ -451,7 +467,54 @@ class QueryContextProcessor:
                 0, time.perf_counter_ns() - payload_assembly_start_ns
             ),
         )
+        self._emit_acquisition_metrics(timing, metrics_start_ns)
         return QueryAcquisitionResult(payload=payload, timing=timing)
+
+    @staticmethod
+    def _emit_cache_outcome(
+        bypassed: bool, hit: bool, cache_resolution_ns: int
+    ) -> None:
+        """
+        Count the results cache outcome and time real cache reads.
+
+        A forced or keyless query never reads the cache backend, so its
+        near-zero lookup time is kept out of the cache read distribution.
+        """
+        if bypassed:
+            emit_incr("chart_data.cache.bypass")
+            return
+        emit_timing(
+            "chart_data.cache.get",
+            cache_resolution_ns / NANOSECONDS_PER_MILLISECOND,
+        )
+        emit_incr("chart_data.cache.hit" if hit else "chart_data.cache.miss")
+
+    @staticmethod
+    def _emit_acquisition_metrics(
+        timing: QueryAcquisitionTiming, started_ns: int
+    ) -> None:
+        """
+        Emit the per-query acquisition phases as StatsD timers.
+
+        Runs in both the synchronous request and the async worker, so the
+        distributions cover every executed chart-data query.
+        ``chart_data.query.data_acquisition`` is only emitted when the
+        datasource was actually queried (a cache miss or bypass).
+        """
+        emit_timing(
+            "chart_data.query.planning",
+            timing.query_planning_ns / NANOSECONDS_PER_MILLISECOND,
+        )
+        if timing.data_acquisition_ns is not None:
+            emit_timing(
+                "chart_data.query.data_acquisition",
+                timing.data_acquisition_ns / NANOSECONDS_PER_MILLISECOND,
+            )
+        emit_timing(
+            "chart_data.query.payload_assembly",
+            timing.payload_assembly_ns / NANOSECONDS_PER_MILLISECOND,
+        )
+        emit_timing("chart_data.query.total", elapsed_ms(started_ns))
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
@@ -767,7 +830,11 @@ class QueryContextProcessor:
         # Skip ensure_totals_available when force_cached=True
         # This prevents recalculating contribution_totals from cached results
         if not force_cached:
-            self.ensure_totals_available(queries_needing_totals, totals_idx)
+            if queries_needing_totals and totals_idx is not None:
+                with timed("chart_data.totals"):
+                    self.ensure_totals_available(queries_needing_totals, totals_idx)
+            else:
+                self.ensure_totals_available(queries_needing_totals, totals_idx)
 
             # Update cache_values to reflect modifications made by
             # ensure_totals_available()

@@ -192,6 +192,7 @@ from superset.utils.date_parser import (
 )
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
+from superset.utils.timing_metrics import timed
 
 
 class ValidationResultDict(TypedDict):
@@ -2661,7 +2662,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         datasource types (Query, SqlaTable, etc.).
         """
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        with timed("datasource.query.sql_generation"):
+            query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
 
         self._raise_for_disallowed_sql(sql)
@@ -2986,22 +2988,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(
-                df,
-                query_object,
-                result.sql_shifted_temporal_labels,
-                keep_exact_integers=dataframe_utils.can_keep_exact_integers(
-                    query_object
-                ),
-            )
+            with timed("datasource.query.normalize"):
+                df = self.normalize_df(
+                    df,
+                    query_object,
+                    result.sql_shifted_temporal_labels,
+                    keep_exact_integers=dataframe_utils.can_keep_exact_integers(
+                        query_object
+                    ),
+                )
 
             # Process time offsets if requested
             if query_object.time_offsets:
                 # Process time offsets using the datasource's own method
                 # Note: caching is disabled here as we don't have query context
-                time_offsets = self.processing_time_offsets(
-                    df, query_object, cache_key_fn=None, cache_timeout_fn=None
-                )
+                with timed("datasource.query.time_offsets"):
+                    time_offsets = self.processing_time_offsets(
+                        df, query_object, cache_key_fn=None, cache_timeout_fn=None
+                    )
                 df = time_offsets["df"]
                 queries = time_offsets["queries"]
                 query += ";\n\n".join(queries)
@@ -3009,7 +3013,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Execute post-processing operations
             try:
-                df = query_object.exec_post_processing(df)
+                if query_object.post_processing:
+                    with timed("datasource.query.post_processing"):
+                        df = query_object.exec_post_processing(df)
+                else:
+                    df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
             except (TypeError, pd.errors.DataError) as ex:

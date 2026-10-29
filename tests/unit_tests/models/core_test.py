@@ -2405,6 +2405,35 @@ def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
     assert description == result_description
 
 
+def test_get_df_emits_warehouse_phase_timers(mocker: MockerFixture) -> None:
+    """Connect, execute, fetch and dataframe build are timed per engine."""
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    cursor = mocker.MagicMock()
+    cursor.description = [("value", "BIGINT", None, None, None, None, None)]
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+    stats_logger_manager = mocker.patch(
+        "superset.utils.timing_metrics.stats_logger_manager"
+    )
+
+    database.get_df("SELECT 1")
+
+    timers = [
+        call.args[0] for call in stats_logger_manager.instance.timing.call_args_list
+    ]
+    assert timers == [
+        "database.connect.sqlite",
+        "database.execute.sqlite",
+        "database.fetch.sqlite",
+        "database.dataframe.sqlite",
+    ]
+
+
 def test_post_process_df_non_zero_based_index() -> None:
     """
     post_process_df must not raise when the DataFrame index doesn't contain 0

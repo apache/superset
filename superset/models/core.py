@@ -103,6 +103,13 @@ from superset.utils.oauth2 import (
     is_oauth2_retry_active,
     OAuth2ClientConfigSchema,
 )
+from superset.utils.timing_metrics import (
+    elapsed_ms,
+    emit_timing,
+    metric_suffix,
+    now_ns,
+    timed,
+)
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -1032,7 +1039,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     security_manager,
                 )
 
+        engine_suffix = metric_suffix(self.db_engine_spec.engine)
+        connect_start_ns = now_ns()
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
+            emit_timing(
+                f"database.connect.{engine_suffix}", elapsed_ms(connect_start_ns)
+            )
             cursor = conn.cursor()
             rows = None
             description = None
@@ -1069,12 +1081,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         database=self,
                         object_ref=__name__,
                     ):
-                        self.db_engine_spec.execute(cursor, sql_, self)
+                        with timed(f"database.execute.{engine_suffix}"):
+                            self.db_engine_spec.execute(cursor, sql_, self)
                         query_executed()
 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
-                        rows = self.db_engine_spec.fetch_data(cursor)
+                        with timed(f"database.fetch.{engine_suffix}"):
+                            rows = self.db_engine_spec.fetch_data(cursor)
                         # Some asynchronous DB-API drivers expose placeholder metadata
                         # until fetching waits for the operation to finish.
                         description = cursor.description
@@ -1121,14 +1135,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             sql, catalog, schema, fetch_last_result=True
         )
 
-        df = None
-        if rows is not None:
-            df = self.load_into_dataframe(description, rows)
+        with timed(f"database.dataframe.{metric_suffix(self.db_engine_spec.engine)}"):
+            df = None
+            if rows is not None:
+                df = self.load_into_dataframe(description, rows)
 
-        if mutator:
-            df = mutator(df)
+            if mutator:
+                df = mutator(df)
 
-        return self.post_process_df(df)
+            return self.post_process_df(df)
 
     @event_logger.log_this
     def fetch_rows(self, cursor: Any, last: bool) -> list[tuple[Any, ...]] | None:

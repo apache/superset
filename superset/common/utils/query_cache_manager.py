@@ -33,6 +33,7 @@ from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
+from superset.utils.timing_metrics import timed
 
 logger = logging.getLogger(__name__)
 
@@ -157,13 +158,14 @@ class QueryCacheManager:
                 "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
-                self.result_persisted = self.set(
-                    key=key,
-                    value=value,
-                    timeout=timeout,
-                    datasource_uid=datasource_uid,
-                    region=region,
-                )
+                with timed("chart_data.cache.set"):
+                    self.result_persisted = self.set(
+                        key=key,
+                        value=value,
+                        timeout=timeout,
+                        datasource_uid=datasource_uid,
+                        region=region,
+                    )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             if not self.error_message:
