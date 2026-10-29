@@ -163,6 +163,30 @@ def test_aggregate_is_computed_over_filtered_rows(
     assert run(warehouse, scoped(database, sql)) == [(30,)]
 
 
+def test_not_equals_keeps_null_rows_like_the_dataset_path(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """``client != 'A'`` excludes only A: B (300) and the NULL client (1000) stay."""
+    not_a = DashboardConstraints(
+        ({"col": "client", "op": "!=", "val": "A"},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", not_a)
+    ) == [(1300,)]
+
+
+def test_not_equals_null_operand_stays_is_not_null(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """A NULL operand still means IS NOT NULL: the NULL client row is excluded."""
+    not_null = DashboardConstraints(
+        ({"col": "client", "op": "!=", "val": None},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", not_null)
+    ) == [(330,)]
+
+
 @pytest.mark.parametrize(
     "sql",
     [
@@ -336,6 +360,57 @@ def test_null_aware_in_list_matches_the_dataset_path(
     assert run(
         warehouse, scoped(database, "SELECT SUM(amount) FROM orders", with_null)
     ) == [(1030,)]
+
+
+@pytest.mark.parametrize(
+    "op,values,expected_total",
+    [
+        # NOT IN without NULL excludes only the listed values and keeps NULL rows
+        ("NOT IN", ["A"], 1300),
+        ("NOT IN", ["A", "B"], 1000),
+        # NOT IN with NULL excludes the NULL rows too
+        ("NOT IN", ["A", None], 300),
+        ("NOT IN", [None], 330),
+        # IN is unchanged
+        ("IN", ["A"], 30),
+        ("IN", ["A", None], 1030),
+    ],
+)
+def test_in_list_null_handling(
+    database: Any,
+    warehouse: sa.engine.Engine,
+    op: str,
+    values: list[Any],
+    expected_total: int,
+) -> None:
+    constraints = DashboardConstraints(
+        ({"col": "client", "op": op, "val": values},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", constraints)
+    ) == [(expected_total,)]
+
+
+def test_not_in_null_check_uses_the_engine_spec_hook() -> None:
+    """
+    The NULL check that keeps NULL rows for ``NOT IN`` goes through the engine
+    spec, so KQL gets ``isnull(col)`` rather than a SQL-style ``IS NULL``.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+    from superset.mcp_service.dashboard_scope_sql import _in_list_clause
+    from superset.utils.core import FilterOperator
+
+    def render(spec: Any) -> str:
+        clause = _in_list_clause(
+            sa.column("client"), FilterOperator.NOT_IN, ["A"], "client", spec
+        )
+        return str(clause.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "client IS NULL" in render(BaseEngineSpec)
+    kql = render(KustoKqlEngineSpec)
+    assert "isnull(client)" in kql
+    assert "IS NULL" not in kql
 
 
 def test_time_range_is_applied_to_the_resolved_datetime_column(
