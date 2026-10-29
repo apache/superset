@@ -2734,6 +2734,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr ""
 
+msgid "Boxplot metrics must contain numeric values"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr ""
 

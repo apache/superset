@@ -2495,6 +2495,9 @@ def test_get_sqla_query_raises_for_nonaggregate_custom_sql_metric_with_timeserie
         )
 
 
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
 def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     database: Database,
 ) -> None:
@@ -2546,6 +2549,9 @@ def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     assert "{{" not in sql
 
 
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
 def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
     database: Database,
 ) -> None:

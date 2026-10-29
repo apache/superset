@@ -11,6 +11,8 @@ on:
     - tests/unit_tests/db_engine_specs/test_lint_metadata.py
     - pyproject.toml
     - superset/result_set.py
+    - superset/common/utils/dataframe_utils.py
+    - tests/unit_tests/common/test_dataframe_utils.py
     - superset/utils/pandas_postprocessing/**
     - tests/unit_tests/pandas_postprocessing/**
     - tests/unit_tests/result_set_test.py
@@ -71,7 +73,6 @@ jobs:
       matrix:
         python-version: [ "3.11", "3.12", "3.13", "3.14", "3.15" ]
     env:
-      SUPERSET_HOME: ${{ runner.temp }}/superset-python-compatibility
       SUPERSET_SECRET_KEY: python-compatibility-ci-only-not-for-production
       FLASK_APP: superset
     steps:
@@ -88,6 +89,8 @@ jobs:
         python -m pip install -e ./superset-core -e . pytest==7.4.4 pytest-mock freezegun parameterized responses rich prophet
     - name: Check dependency consistency
       run: python -m pip check
+    - name: Configure metadata directory
+      run: echo "SUPERSET_HOME=$RUNNER_TEMP/superset-python-compatibility" >> "$GITHUB_ENV"
     - name: Migrate a fresh metadata database
       run: python -m flask db upgrade
     - name: Test application health and runtime compatibility
@@ -105,6 +108,7 @@ jobs:
                 'tests/unit_tests/db_engine_specs/test_lint_metadata.py',
                 'tests/unit_tests/pandas_postprocessing',
                 'tests/unit_tests/result_set_test.py',
+                'tests/unit_tests/common/test_dataframe_utils.py',
                 'tests/unit_tests/commands/importers/v1/utils_test.py',
                 'tests/unit_tests/models/helpers_test.py',
                 'tests/unit_tests/db_engine_specs/test_base.py::test_resolve_column_type_prefers_cursor_type',

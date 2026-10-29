@@ -4520,7 +4520,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list": {
-        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "nullable": true,
@@ -4605,7 +4604,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Subject": {
-        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4625,7 +4623,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Subject1": {
-        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4645,7 +4642,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Tag": {
-        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4667,7 +4663,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User": {
-        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4688,7 +4683,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User1": {
-        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -23750,21 +23744,6 @@
               }
             },
             "description": "SQL statement for a select star for table"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
           }
         },
         "security": [
@@ -23775,7 +23754,7 @@
             "api_key": []
           }
         ],
-        "summary": "Get database select star for table",
+        "summary": "Get database select star for table in the default schema",
         "tags": [
           "Database"
         ]
