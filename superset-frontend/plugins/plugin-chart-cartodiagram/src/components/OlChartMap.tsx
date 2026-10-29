@@ -21,11 +21,10 @@ import { useSelector } from 'react-redux';
 
 import Point from 'ol/geom/Point';
 import { Map, View } from 'ol';
-import BaseEvent from 'ol/events/Event';
 import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
 import { toLonLat, transformExtent } from 'ol/proj';
-import { debounce, isEqual } from 'lodash-es';
+import { isEqual } from 'lodash-es';
 import { fitMapToData } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
@@ -342,22 +341,21 @@ export const OlChartMap = (props: OlChartMapProps) => {
   }, [olMap, currentMapMaxExtent]);
 
   /**
-   * Create listener on map movement
+   * Create listener on map movement. The listener is registered on the map,
+   * because the view gets replaced when the max extent changes.
    */
   useEffect(() => {
     const { fixedLatitude, fixedLongitude, fixedZoom } = currentMapView;
 
-    const view = olMap.getView();
+    const onMoveEnd = () => {
+      const view = olMap.getView();
 
-    const onViewChange = (event: BaseEvent) => {
-      const targetView: View = event.target as unknown as View;
-
-      const center = targetView.getCenter();
-      const zoom = targetView.getZoom();
+      const center = view.getCenter();
+      const zoom = view.getZoom();
 
       const size = olMap.getSize();
       if (!size) return;
-      const [minx, miny, maxx, maxy] = targetView.calculateExtent(size);
+      const [minx, miny, maxx, maxy] = view.calculateExtent(size);
       const [minX, minY, maxX, maxY] = transformExtent(
         [minx, miny, maxx, maxy],
         'EPSG:3857',
@@ -387,26 +385,14 @@ export const OlChartMap = (props: OlChartMapProps) => {
       });
     };
 
-    // timeout=100ms seems to work well, 1000ms has other side-effects
-    const debouncedOnViewChange = debounce((event: BaseEvent) => {
-      onViewChange(event);
-    }, 100);
-
-    const listenerKey = view.on('change', debouncedOnViewChange);
+    const listenerKey = olMap.on('moveend', onMoveEnd);
 
     // this is executed before the next render,
     // here we cleanup the listener
     return () => {
       unByKey(listenerKey);
-      debouncedOnViewChange.cancel();
     };
-  }, [
-    olMap,
-    setControlValue,
-    currentMapView,
-    currentChartConfigs,
-    currentMapMaxExtent,
-  ]);
+  }, [olMap, setControlValue, currentMapView, currentMapMaxExtent]);
 
   useEffect(() => {
     if (currentMapView.mode === 'FIT_DATA') {
@@ -477,13 +463,8 @@ export const OlChartMap = (props: OlChartMapProps) => {
    * Send updated zoom to chart config control.
    */
   useEffect(() => {
-    const view = olMap.getView();
-
-    const onViewChange = (event: BaseEvent) => {
-      const targetView: View = event.target as unknown as View;
-
-      // ensure only zoom has changed
-      const zoom = targetView.getZoom();
+    const onMoveEnd = () => {
+      const zoom = olMap.getView().getZoom();
 
       // needed for TypeScript
       if (!zoom) return;
@@ -506,17 +487,12 @@ export const OlChartMap = (props: OlChartMapProps) => {
       setControlValue('chart_size', updatedChartSizeConf);
     };
 
-    const debouncedOnZoomChange = debounce((event: BaseEvent) => {
-      onViewChange(event);
-    }, 100);
-
-    const listenerKey = view.on('change:resolution', debouncedOnZoomChange);
+    const listenerKey = olMap.on('moveend', onMoveEnd);
 
     // This is executed before the next render,
     // here we cleanup our listener.
     return () => {
       unByKey(listenerKey);
-      debouncedOnZoomChange.cancel();
     };
   }, [olMap, setControlValue, chartSize]);
 
