@@ -1076,7 +1076,7 @@ class BaseDatasource(
 
         # editors is the source of truth for access control
         if "editors" in obj:
-            self.editors = obj.get("editors", [])
+            self.editors = self._resolve_editors(obj.get("editors"))
 
         # Syncing metrics
         metrics = (
@@ -1095,6 +1095,34 @@ class BaseDatasource(
             )
             if "columns" in obj
             else []
+        )
+
+    def _resolve_editors(self, requested: Any) -> list[Any]:
+        """Turn whatever the caller sent into real ``Subject`` rows.
+
+        ``.data`` emits editors as plain ``{id, label, type}`` dicts, and the
+        legacy datasource editor posts that same shape straight back -- so
+        this is reached on an ordinary round-trip, not only on a crafted
+        request. Assigning those dicts to the relationship scheduled a DELETE
+        of the association rows and then failed further down, and the legacy
+        view had no transaction to undo it, so the cleared editors were what
+        survived. Editorship is the access-control source of truth, so the
+        dataset lost its owners (QA-02).
+        """
+        # Inline: superset.commands.utils imports back into the model layer.
+        from superset.commands.utils import compute_subject_list
+
+        if requested is None:
+            subject_ids = None
+        else:
+            subject_ids = [
+                item["id"] if isinstance(item, dict) else getattr(item, "id", item)
+                for item in requested
+            ]
+        return compute_subject_list(
+            self.editors,
+            subject_ids,
+            field_name="editors",
         )
 
     def get_extra_cache_keys(

@@ -49,6 +49,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
+from superset.utils.decorators import transaction
 from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
@@ -283,6 +284,7 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     @deprecated(new_target="/api/v1/dataset/<int:pk>")
+    @transaction()
     def save(self) -> FlaskResponse:
         data = request.form.get("data")
         if not isinstance(data, str):
@@ -344,7 +346,11 @@ class Datasource(BaseSupersetView):
                 ),
                 status=409,
             )
-        orm_datasource.update_from_object(datasource_dict)
+        try:
+            orm_datasource.update_from_object(datasource_dict)
+        except ValidationError as ex:
+            # A bad editors list is the caller's mistake, not a server fault.
+            return json_error_response(str(ex), status=422)
         data = orm_datasource.data
         db.session.commit()  # pylint: disable=consider-using-transaction
 

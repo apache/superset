@@ -225,8 +225,6 @@ def install_views() -> None:
 
     from superset.extensions import appbuilder
 
-    from asset_approval.gate import is_enabled
-
     from asset_approval.api import ChangeRequestRestApi
 
     appbuilder.add_api(ChangeRequestRestApi)
@@ -235,21 +233,33 @@ def install_views() -> None:
     # Settings -> Manage -> Change review (mock S1, mock 16c). The page is
     # read-only, but an administrator still has to be able to find out
     # whether review is on, and a page reachable only by typing its URL
-    # does not answer that. Hidden when the flag is off, because there is
-    # nothing to report then.
+    # does not answer that.
+    #
+    # Both contributed pages declare ``featureFlag`` and ``permission`` in
+    # extension.json rather than being registered from here: the host hides
+    # a page whose flag is off and refuses one the user has no permission
+    # for, so there is nothing left for this function to do about either
+    # (QA-23).
 
 
 def init() -> None:
     from asset_approval.bindings import install_bindings, install_review_commands
-    from asset_approval.install import patched_targets
+    from asset_approval.install import patched_targets, rebind_registered_routes
 
     _create_schema()
     install_review_commands()
     install_bindings()
+    # Views are built before extensions load, so a route that is a gated
+    # method is already holding the ungated one. Patching the class does not
+    # reach it; this does (S-01).
+    rebound = rebind_registered_routes(current_app._get_current_object())  # pylint: disable=protected-access  # noqa: E501
     install_http()
     install_views()
     logger.info(
-        "%s installed: %d write paths bound", EXTENSION_ID, len(patched_targets())
+        "%s installed: %d write paths bound, %d route(s) rebound",
+        EXTENSION_ID,
+        len(patched_targets()),
+        len(rebound),
     )
 
 

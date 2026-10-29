@@ -43,6 +43,11 @@ REVIEW_COMMANDS: dict[tuple[str, str], str] = {
 
 _patched: list[str] = []
 
+#: ``(class name, attribute, original function, patched function)`` for every
+#: method gate, so ``rebind_registered_routes`` can find a route still holding
+#: the original. See that function for why one is needed.
+_method_gates: list[tuple[str, str, Any, Any]] = []
+
 
 def _gate_applies() -> bool:
     """Whether to consult the gate for this call at all.
@@ -258,6 +263,65 @@ def gate_method(
     patched.__asset_approval_gate__ = True  # type: ignore[attr-defined]
     setattr(host_cls, attr, _as_declared(host_cls, attr, patched))
     _patched.append(f"{class_name}.{attr}")
+    _method_gates.append((class_name, attr, original, patched))
+
+
+def rebind_registered_routes(app: Any) -> list[str]:
+    """Repoint Flask routes that captured a method before we gated it.
+
+    Patching a class is enough for anything resolved at call time, which is
+    every command and DAO here. It is not enough for a method Flask-AppBuilder
+    has already turned into a route: ``BaseView.create_blueprint`` does
+    ``attr = getattr(self, attr_name)`` and registers that **bound method
+    object**, and ``init_views()`` runs before
+    ``init_all_dependencies_and_extensions()``. By the time an extension
+    patches the class, the route is holding the original and keeps calling it.
+
+    ``POST /datasource/save/`` was bound this way (S-01). The gate installed,
+    ``patched_targets()`` reported it, the class attribute really was wrapped
+    -- and the route wrote a governed dataset with no review, because the
+    route was not looking at the class attribute any more.
+
+    The tests did not catch it because the suite installs the bindings before
+    it builds the app, which is the opposite of the production order.
+
+    Returns the endpoints it repaired, for the log line.
+    """
+    rebound: list[str] = []
+    view_functions = getattr(app, "view_functions", {})
+    for endpoint, view in list(view_functions.items()):
+        underlying = getattr(view, "__func__", None)
+        instance = getattr(view, "__self__", None)
+        if underlying is None or instance is None:
+            # Not a bound method: either a plain function route or one
+            # Flask-AppBuilder wrapped in before-request hooks, which closes
+            # over the handler where we cannot reach it.
+            continue
+        for class_name, attr, original, patched in _method_gates:
+            if underlying is not original:
+                continue
+            view_functions[endpoint] = _rebound(patched, instance)
+            rebound.append(endpoint)
+            logger.info(
+                "asset-approval: rebound %s -- the route held the ungated "
+                "%s.%s",
+                endpoint,
+                class_name,
+                attr,
+            )
+            break
+    return rebound
+
+
+def _rebound(patched: Callable[..., Any], instance: Any) -> Callable[..., Any]:
+    """``patched`` bound to the view instance the route was registered with."""
+
+    @functools.wraps(patched)
+    def call(*args: Any, **kwargs: Any) -> Any:
+        return patched(instance, *args, **kwargs)
+
+    call.__asset_approval_gate__ = True  # type: ignore[attr-defined]
+    return call
 
 
 def patched_targets() -> list[str]:
