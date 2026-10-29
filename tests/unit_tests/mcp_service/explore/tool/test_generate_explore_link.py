@@ -21,10 +21,13 @@ Comprehensive unit tests for MCP generate_explore_link tool
 
 import importlib
 import logging
+from collections.abc import Iterator, Mapping
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -45,6 +48,105 @@ from superset.mcp_service.common.error_schemas import DatasetContext
 generate_explore_link_module = importlib.import_module(
     "superset.mcp_service.explore.tool.generate_explore_link"
 )
+
+
+@pytest.mark.parametrize("time_range", ["", "   ", "No filter"])
+@pytest.mark.parametrize("comparator", ["Last week", "", "   "])
+@patch.object(generate_explore_link_module, "validate_and_compile")
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_gauge_fastmcp_entry_compiles_and_returns_native_form_data(
+    mock_find_dataset, mock_validate, mcp_server, time_range: str, comparator: str
+) -> None:
+    """The public Gauge request reaches compile and a native Explore payload."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_validate.return_value = CompileResult(success=True)
+    request = {
+        "dataset_id": "3",
+        "config": {
+            "chart_type": "gauge",
+            "metric": {"name": "num", "aggregate": "AVG"},
+            "min_val": 0,
+            "max_val": 100,
+            "number_format": ",.1f",
+            "time_range": time_range,
+            "adhoc_filters": [
+                {
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": comparator,
+                }
+            ],
+        },
+    }
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("generate_explore_link", {"request": request})
+
+    assert result.structured_content["success"] is True
+    form_data = result.structured_content["form_data"]
+    assert form_data["viz_type"] == "gauge_chart"
+    assert form_data["metric"]["label"] == "AVG(num)"
+    assert form_data["number_format"] == ",.1f"
+    if comparator == "Last week":
+        assert form_data["time_range"] == "Last week"
+    else:
+        assert form_data.get("time_range") in (None, "No filter")
+        assert form_data["adhoc_filters"][0]["subject"] == "event_time"
+        assert form_data["adhoc_filters"][0]["comparator"] == "No filter"
+    assert mock_validate.call_args.kwargs["run_compile_check"] is True
+
+
+@pytest.mark.parametrize("time_range", ["", "   ", "No filter"])
+@pytest.mark.parametrize("comparator", ["Last week", "", "   "])
+@patch.object(generate_explore_link_module, "validate_and_compile")
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_treemap_fastmcp_entry_compiles_native_temporal_form_data(
+    mock_find_dataset, mock_validate, mcp_server, time_range: str, comparator: str
+) -> None:
+    """The public Treemap request reaches compile and a native Explore payload."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_validate.return_value = CompileResult(success=True)
+    request = {
+        "dataset_id": "3",
+        "config": {
+            "chart_type": "treemap_v2",
+            "metric": {"name": "num", "aggregate": "AVG"},
+            "groupby": ["name"],
+            "show_labels": False,
+            "number_format": ",.1f",
+            "time_range": time_range,
+            "adhoc_filters": [
+                {
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": comparator,
+                }
+            ],
+        },
+    }
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("generate_explore_link", {"request": request})
+
+    assert result.structured_content["success"] is True
+    form_data = result.structured_content["form_data"]
+    assert form_data["viz_type"] == "treemap_v2"
+    assert form_data["metric"]["label"] == "AVG(num)"
+    assert form_data["number_format"] == ",.1f"
+    if comparator == "Last week":
+        assert form_data["time_range"] == "Last week"
+    else:
+        assert form_data.get("time_range") in (None, "No filter")
+        assert form_data["adhoc_filters"][0]["subject"] == "event_time"
+        assert form_data["adhoc_filters"][0]["comparator"] == "No filter"
+    assert mock_validate.call_args.kwargs["run_compile_check"] is True
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -71,6 +173,14 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def mock_event_logger():
+    """Skip event-logger DB writes so a bad logs FK doesn't poison the
+    session for FastMCP's response serialization on the success path."""
+    with patch("superset.utils.log.DBEventLogger.log", return_value=None):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -151,6 +261,406 @@ class TestGenerateExploreLink:
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
+    async def test_sunburst_accepts_complete_frontend_column_meta(
+        self, mock_find_dataset, mcp_server
+    ) -> None:
+        """The real FastMCP boundary accepts the frontend's open ColumnMeta."""
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        column_meta = {
+            "advanced_data_type": None,
+            "certification_details": None,
+            "certified_by": None,
+            "column_name": "sales",
+            "columnName": "sales",
+            "description": None,
+            "expression": "",
+            "filterable": True,
+            "groupby": True,
+            "id": 332,
+            "is_certified": False,
+            "is_dttm": False,
+            "python_date_format": None,
+            "type": "DOUBLE",
+            "type_generic": 0,
+            "verbose_name": None,
+            "warning_markdown": None,
+            "future_metadata": {"nested": ["value", 1, True, None]},
+        }
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region", "country"],
+                "metric": {
+                    "expressionType": "SIMPLE",
+                    "column": column_meta,
+                    "aggregate": "SUM",
+                    "hasCustomLabel": False,
+                    "label": "SUM(sales)",
+                },
+            },
+        }
+
+        with patch.object(
+            generate_explore_link_module.DatasetValidator,
+            "normalize_column_names",
+            side_effect=lambda config, _dataset_id: config,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_explore_link", {"request": request}
+                )
+
+        assert result.structured_content["success"] is True
+        metric = result.structured_content["form_data"]["metric"]
+        assert metric["column"] == {"column_name": "sales"}
+        assert "future_metadata" not in metric["column"]
+
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            {
+                "expressionType": None,
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+            {"column": "sales", "aggregate": "SUM"},
+            {
+                "expressionType": "OTHER",
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+            {
+                "expressionType": "SIMPLE",
+                "column": {
+                    "column_name": "sales",
+                    "columnName": "profit",
+                    "future_metadata": {"enabled": True},
+                },
+                "aggregate": "SUM",
+            },
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": 7, "columnName": "sales"},
+                "aggregate": "SUM",
+            },
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_rejects_malformed_native_metric_requests(
+        self, metric: dict[str, object], mcp_server
+    ) -> None:
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "annotation_layers": [],
+                "metric": metric,
+            },
+        }
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool("generate_explore_link", {"request": request})
+
+    @pytest.mark.parametrize(
+        "metric,expected_expression_type",
+        [
+            (
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "column_name": "sales",
+                        "columnName": "sales",
+                        "certification_details": None,
+                        "warning_markdown": None,
+                        "future_metadata": {"enabled": True},
+                    },
+                    "aggregate": "SUM",
+                },
+                "SIMPLE",
+            ),
+            (
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "SUM(sales)",
+                    "label": "Sales",
+                },
+                "SQL",
+            ),
+        ],
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_accepts_explicit_native_metric_types(
+        self,
+        mock_find_dataset,
+        metric: dict[str, object],
+        expected_expression_type: str,
+        mcp_server,
+    ) -> None:
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "metric": metric,
+            },
+        }
+        with patch.object(
+            generate_explore_link_module.DatasetValidator,
+            "normalize_column_names",
+            side_effect=lambda config, _dataset_id: config,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_explore_link", {"request": request}
+                )
+        assert result.is_error is False
+        assert result.structured_content["success"] is True
+        assert (
+            result.structured_content["form_data"]["metric"]["expressionType"]
+            == expected_expression_type
+        )
+
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_sanitizes_all_hostile_native_metric_inputs(  # noqa: C901
+        self, mcp_server
+    ) -> None:
+        calls: list[str] = []
+
+        class HostileObject:
+            def __repr__(self) -> str:
+                calls.append("object.repr")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("object.str")
+                raise AssertionError
+
+            def __hash__(self) -> int:
+                calls.append("object.hash")
+                raise AssertionError
+
+            def __eq__(self, _other: object) -> bool:
+                calls.append("object.eq")
+                raise AssertionError
+
+            def __bool__(self) -> bool:
+                calls.append("object.bool")
+                raise AssertionError
+
+        class HostileStr(str):
+            def __hash__(self) -> int:
+                calls.append("str.hash")
+                return str.__hash__(self)
+
+            def __eq__(self, _other: object) -> bool:
+                calls.append("str.eq")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("str.str")
+                raise AssertionError
+
+            def __repr__(self) -> str:
+                calls.append("str.repr")
+                raise AssertionError
+
+        class HostileDict(dict[object, object]):
+            def __repr__(self) -> str:
+                calls.append("dict.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("dict.iter")
+                raise AssertionError
+
+            def items(self):
+                calls.append("dict.items")
+                raise AssertionError
+
+            def keys(self):
+                calls.append("dict.keys")
+                raise AssertionError
+
+            def get(self, _key: object, _default: object = None) -> object:
+                calls.append("dict.get")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:
+                calls.append("dict.getitem")
+                raise AssertionError
+
+        class HostileList(list[object]):
+            def __repr__(self) -> str:
+                calls.append("list.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("list.iter")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:  # type: ignore[override]
+                calls.append("list.getitem")
+                raise AssertionError
+
+        class HostileMapping(Mapping[object, object]):
+            def __repr__(self) -> str:
+                calls.append("mapping.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("mapping.iter")
+                raise AssertionError
+
+            def __len__(self) -> int:
+                calls.append("mapping.len")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:
+                calls.append("mapping.getitem")
+                raise AssertionError
+
+        def simple(**overrides: object) -> dict[object, object]:
+            metric: dict[object, object] = {
+                "expressionType": "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            }
+            for key, value in overrides.items():
+                dict.__setitem__(metric, key, value)
+            return metric
+
+        hostile_key = HostileStr("expressionType")
+        cases: list[object] = [
+            simple(label=HostileStr("Sales")),
+            simple(aggregate=HostileStr("SUM")),
+            {
+                "expressionType": "SQL",
+                "sqlExpression": HostileStr("SUM(sales)"),
+                "label": "Sales",
+            },
+            simple(optionName=HostileStr("metric")),
+            simple(expressionType=HostileObject()),
+            simple(hasCustomLabel=HostileObject()),
+            simple(datasourceWarning=HostileObject()),
+            simple(column=HostileDict(column_name="sales")),
+            simple(column=HostileList(["sales"])),
+            simple(column={"column_name": "sales", "future": HostileObject()}),
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileDict(enabled=True),
+                }
+            ),
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileList([True]),
+                }
+            ),
+            HostileMapping(),
+            HostileList([]),
+            HostileDict(expressionType="SIMPLE", column="sales", aggregate="SUM"),
+            {
+                hostile_key: "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+        ]
+        calls.clear()  # constructing the hostile-key dictionary needs hashing
+        for metric in cases:
+            request = {
+                "dataset_id": 1,
+                "config": {
+                    "viz_type": "sunburst_v2",
+                    "columns": ["region"],
+                    "annotation_layers": [],
+                    "metric": metric,
+                },
+            }
+            with (
+                patch("fastmcp.server.server.logger.warning"),
+                pytest.raises(
+                    (ValidationError, FastMCPValidationError)
+                ) as validation_error,
+            ):
+                await mcp_server.call_tool(
+                    "generate_explore_link",
+                    {"request": request},
+                    run_middleware=False,
+                )
+            assert calls == []
+            error = validation_error.value
+            outputs = [str(error), repr(error)]
+            if isinstance(error, ValidationError):
+                outputs.append(repr(error.errors()))
+            assert calls == []
+            assert all(len(output.encode()) < 64 * 1024 for output in outputs)
+
+    @pytest.mark.parametrize(
+        "metric_path",
+        ["metric", "secondary_metric", "secondaryMetric", "standardized metrics"],
+    )
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_sanitizes_every_native_metric_path(
+        self, metric_path: str, mcp_server
+    ) -> None:
+        calls: list[str] = []
+
+        class HostileStr(str):
+            def __repr__(self) -> str:
+                calls.append("repr")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("str")
+                raise AssertionError
+
+        hostile_metric = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+            "label": HostileStr("Sales"),
+        }
+        valid_metric = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+        }
+        config: dict[str, object] = {
+            "viz_type": "sunburst_v2",
+            "columns": ["region"],
+            "annotation_layers": [],
+            "metric": valid_metric,
+        }
+        if metric_path == "standardized metrics":
+            config["standardizedFormData"] = {"controls": {"metrics": [hostile_metric]}}
+        else:
+            config[metric_path] = hostile_metric
+        request = {"dataset_id": 1, "config": config}
+        with (
+            patch("fastmcp.server.server.logger.warning"),
+            pytest.raises(
+                (ValidationError, FastMCPValidationError)
+            ) as validation_error,
+        ):
+            await mcp_server.call_tool(
+                "generate_explore_link",
+                {"request": request},
+                run_middleware=False,
+            )
+        error = validation_error.value
+        outputs = [str(error), repr(error)]
+        if isinstance(error, ValidationError):
+            outputs.append(repr(error.errors()))
+        assert calls == []
+        assert all(len(output.encode()) < 64 * 1024 for output in outputs)
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
     async def test_generate_table_explore_link_minimal(
         self, mock_find_dataset, mcp_server
     ):
@@ -167,14 +677,16 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            assert result.data["permalink_key"] == "test_permalink_key"
-            assert result.data["form_data_key"] is None
-            assert result.data["chart_type_label"] == "table chart"
+            assert result.structured_content["permalink_key"] == "test_permalink_key"
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["chart_type_label"] == "table chart"
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -204,14 +716,16 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            assert result.data["permalink_key"] == "test_permalink_key"
-            assert result.data["form_data_key"] is None
-            assert result.data["chart_type_label"] == "table chart"
+            assert result.structured_content["permalink_key"] == "test_permalink_key"
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["chart_type_label"] == "table chart"
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -233,8 +747,13 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
-            assert result.data["chart_type_label"] == "interactive table chart"
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
+            assert (
+                result.structured_content["chart_type_label"]
+                == "interactive table chart"
+            )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -264,12 +783,14 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
-            assert result.data["chart_type_label"] is None
+            assert result.structured_content["chart_type_label"] is None
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -292,9 +813,11 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
 
@@ -324,9 +847,11 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
 
@@ -354,9 +879,11 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
 
@@ -392,13 +919,15 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/?form_data_key=fallback_form_data_key"
             )
-            assert result.data["form_data_key"] == "fallback_form_data_key"
-            assert result.data["permalink_key"] is None
+            assert (
+                result.structured_content["form_data_key"] == "fallback_form_data_key"
+            )
+            assert result.structured_content["permalink_key"] is None
             mock_create_form_data.assert_called_once()
 
     @patch(_PERMALINK_PATCH)
@@ -434,9 +963,10 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/?datasource_type=table&datasource_id=1"
             )
 
@@ -473,9 +1003,10 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/?form_data_key=lock_fallback_key"
             )
 
@@ -505,9 +1036,11 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
 
@@ -543,9 +1076,11 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
 
@@ -595,10 +1130,11 @@ class TestGenerateExploreLink:
 
                 # All URLs should follow the same permalink format
                 assert (
-                    result.data["url"]
+                    result.structured_content["url"]
                     == "http://localhost:9001/explore/p/test_permalink_key/"
                 )
-                assert result.data["error"] is None
+                assert result.structured_content["error"] is None
+                assert result.structured_content["success"] is True
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -621,9 +1157,10 @@ class TestGenerateExploreLink:
                 result = await client.call_tool(
                     "generate_explore_link", {"request": request.model_dump()}
                 )
-                assert result.data["error"] is None
+                assert result.structured_content["error"] is None
+                assert result.structured_content["success"] is True
                 assert (
-                    result.data["url"]
+                    result.structured_content["url"]
                     == "http://localhost:9001/explore/p/test_permalink_key/"
                 )
 
@@ -661,9 +1198,11 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/p/test_permalink_key/"
             )
 
@@ -708,8 +1247,9 @@ class TestGenerateExploreLink:
                     f"http://localhost:9001/explore/?datasource_type=table"
                     f"&datasource_id={dataset_id}"
                 )
-                assert result.data["error"] is None
-                assert result.data["url"] == expected_url
+                assert result.structured_content["error"] is None
+                assert result.structured_content["success"] is True
+                assert result.structured_content["url"] == expected_url
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -744,12 +1284,19 @@ class TestGenerateExploreLink:
                 )
 
                 # Should return error response with empty URL
-                assert result.data["url"] == ""
-                assert result.data["form_data"] == {}
-                assert result.data["form_data_key"] is None
-                assert result.data["permalink_key"] is None
-                assert result.data["chart_type_label"] is None
-                assert "Invalid config structure" in result.data["error"]
+                assert result.structured_content["url"] == ""
+                assert result.structured_content["form_data"] == {}
+                assert result.structured_content["form_data_key"] is None
+                assert result.structured_content["permalink_key"] is None
+                assert result.structured_content["chart_type_label"] is None
+                assert result.structured_content["success"] is False
+                error = result.structured_content["error"]
+                assert error["error_type"] == "generation_failed"
+                # ``details`` is the static, sanitized message; the raw
+                # exception text ("Invalid config structure") is kept
+                # only in the server-side log, not echoed to the client.
+                assert "check server logs" in error["details"]
+                assert "Invalid config structure" not in error["details"]
         finally:
             # Restore original function
             explore_module.map_config_to_form_data = original_func
@@ -774,11 +1321,14 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
-            assert result.data["permalink_key"] == "extracted_permalink_xyz"
-            assert result.data["form_data_key"] is None
-            assert "extracted_permalink_xyz" in result.data["url"]
-            assert result.data["url"] == (
+            assert result.structured_content["error"] is None
+            assert result.structured_content["success"] is True
+            assert (
+                result.structured_content["permalink_key"] == "extracted_permalink_xyz"
+            )
+            assert result.structured_content["form_data_key"] is None
+            assert "extracted_permalink_xyz" in result.structured_content["url"]
+            assert result.structured_content["url"] == (
                 "http://localhost:9001/explore/p/extracted_permalink_xyz/"
             )
 
@@ -803,13 +1353,20 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
-            assert "form_data" in result.data
-            assert isinstance(result.data["form_data"], dict)
-            assert result.data["form_data"].get("viz_type") == "echarts_timeseries_line"
-            assert result.data["form_data"].get("x_axis") == "date"
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
+            assert "form_data" in result.structured_content
+            assert isinstance(result.structured_content["form_data"], dict)
+            assert (
+                result.structured_content["form_data"].get("viz_type")
+                == "echarts_timeseries_line"
+            )
+            assert result.structured_content["form_data"].get("x_axis") == "date"
             # Verify datasource field format: "{dataset_id}__table"
-            assert result.data["form_data"].get("datasource") == "1__table"
+            assert (
+                result.structured_content["form_data"].get("datasource") == "1__table"
+            )
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -829,20 +1386,26 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["url"] == ""
-            assert result.data["form_data"] == {}
-            assert result.data["form_data_key"] is None
-            assert result.data["permalink_key"] is None
-            assert result.data["chart_type_label"] is None
-            assert "Dataset not found: 99999" in result.data["error"]
-            assert "list_datasets" in result.data["error"]
+            assert result.structured_content["url"] == ""
+            assert result.structured_content["form_data"] == {}
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["permalink_key"] is None
+            assert result.structured_content["chart_type_label"] is None
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "dataset_not_found"
+            assert "Dataset not found: 99999" in error["message"]
+            assert "list_datasets" in error["details"]
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
     async def test_generate_explore_link_without_config(
         self, mock_find_dataset, mcp_server
     ):
-        """Omitting config returns a default dataset explore URL."""
+        """Omitting config returns a default dataset explore URL through
+        the same typed ``GenerateExploreLinkResponse`` shape as every
+        other code path. ``success=True`` and ``error=None`` so callers
+        cannot mistake a no-config response for a failure."""
         mock_find_dataset.return_value = _mock_dataset(id=42)
 
         request = GenerateExploreLinkRequest(dataset_id="42")
@@ -852,23 +1415,26 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+            assert result.structured_content["success"] is True
             assert (
-                result.data["url"]
+                result.structured_content["url"]
                 == "http://localhost:9001/explore/?datasource_type=table"
                 "&datasource_id=42"
             )
-            assert result.data["form_data"] == {}
-            assert result.data["form_data_key"] is None
-            assert result.data["permalink_key"] is None
-            assert result.data["chart_type_label"] is None
+            assert result.structured_content["form_data"] == {}
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["permalink_key"] is None
+            assert result.structured_content["chart_type_label"] is None
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
     async def test_generate_explore_link_without_config_missing_dataset(
         self, mock_find_dataset, mcp_server
     ):
-        """Omitting config still surfaces a dataset-not-found error."""
+        """Omitting config still surfaces a dataset-not-found error
+        through the structured error object — not as a substring on a
+        dict, which is the bug this test originally hid."""
         mock_find_dataset.return_value = None
 
         request = GenerateExploreLinkRequest(dataset_id="99999")
@@ -878,12 +1444,15 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["url"] == ""
-            assert result.data["form_data"] == {}
-            assert result.data["form_data_key"] is None
-            assert result.data["permalink_key"] is None
-            assert result.data["chart_type_label"] is None
-            assert "Dataset not found: 99999" in result.data["error"]
+            assert result.structured_content["url"] == ""
+            assert result.structured_content["form_data"] == {}
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["permalink_key"] is None
+            assert result.structured_content["chart_type_label"] is None
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "dataset_not_found"
+            assert "Dataset not found: 99999" in error["message"]
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
@@ -905,12 +1474,40 @@ class TestGenerateExploreLink:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["url"] == ""
-            assert result.data["form_data"] == {}
-            assert result.data["form_data_key"] is None
-            assert result.data["permalink_key"] is None
-            assert result.data["chart_type_label"] is None
-            assert "Dataset not found" in result.data["error"]
+            assert result.structured_content["url"] == ""
+            assert result.structured_content["form_data"] == {}
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["permalink_key"] is None
+            assert result.structured_content["chart_type_label"] is None
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "dataset_not_found"
+            assert "Dataset not found" in error["message"]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_non_decimal_digit_dataset_id(
+        self, mock_find_dataset, mcp_server
+    ):
+        """A Unicode "digit" (isdigit() True, isdecimal() False) dataset_id
+        must fall through to the uuid lookup branch instead of raising out
+        of int()."""
+        mock_find_dataset.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="test_col")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="²", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "dataset_not_found"
+        mock_find_dataset.assert_called_once_with("²", id_column="uuid")
 
 
 class TestGenerateExploreLinkColumnNormalization:
@@ -959,9 +1556,11 @@ class TestGenerateExploreLinkColumnNormalization:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             # x-axis should be normalized from 'orderdate' to 'OrderDate'
-            assert result.data["form_data"]["x_axis"] == "OrderDate"
+            assert result.structured_content["form_data"]["x_axis"] == "OrderDate"
 
     @patch(
         "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context"
@@ -1004,8 +1603,10 @@ class TestGenerateExploreLinkColumnNormalization:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
-            form_data = result.data["form_data"]
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
+            form_data = result.structured_content["form_data"]
             # x-axis normalized
             assert form_data["x_axis"] == "OrderDate"
             # filter subject normalized to match x-axis
@@ -1045,9 +1646,11 @@ class TestGenerateExploreLinkColumnNormalization:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["error"] is None
+            assert result.structured_content["error"] is None
+
+            assert result.structured_content["success"] is True
             # original names should pass through unchanged
-            assert result.data["form_data"]["x_axis"] == "orderdate"
+            assert result.structured_content["form_data"]["x_axis"] == "orderdate"
 
 
 class TestGenerateExploreLinkValidation:
@@ -1105,11 +1708,12 @@ class TestGenerateExploreLinkValidation:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["url"] == ""
-            assert result.data["form_data_key"] is None
-            assert result.data["permalink_key"] is None
-            assert result.data["chart_type_label"] is None
-            error = result.data["error"]
+            assert result.structured_content["url"] == ""
+            assert result.structured_content["form_data_key"] is None
+            assert result.structured_content["permalink_key"] is None
+            assert result.structured_content["chart_type_label"] is None
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             assert "sum_boys" in error["suggestions"]
@@ -1141,8 +1745,12 @@ class TestGenerateExploreLinkValidation:
                 "generate_explore_link", {"request": request.model_dump()}
             )
 
-            assert result.data["url"] == ""
-            assert result.data["chart_type_label"] is None
-            # Surface as "not found" rather than leaking that the dataset exists.
-            assert "Dataset not found" in result.data["error"]
+            assert result.structured_content["url"] == ""
+            assert result.structured_content["chart_type_label"] is None
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            # error_type lets programmatic callers distinguish, while the
+            # user-facing message still avoids leaking dataset existence.
+            assert error["error_type"] == "permission_denied"
+            assert "Dataset not found" in error["message"]
             mock_create_permalink.assert_not_called()

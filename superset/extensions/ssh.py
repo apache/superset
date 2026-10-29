@@ -25,7 +25,14 @@ from typing import TYPE_CHECKING
 import paramiko
 import sshtunnel
 from flask import Flask
-from paramiko import RSAKey
+from paramiko import (
+    ECDSAKey,
+    Ed25519Key,
+    PasswordRequiredException,
+    PKey,
+    RSAKey,
+    SSHException,
+)
 from paramiko.pkey import UnknownKeyType
 
 from superset.commands.database.ssh_tunnel.exceptions import (
@@ -39,6 +46,39 @@ if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
 logger = logging.getLogger(__name__)
+
+# Order matters: paramiko's per-class loaders raise SSHException with vague
+# "unpack requires 4 bytes" messages on type mismatches, so we try the more
+# modern key types first (ed25519, ECDSA) and fall back to RSA, which is the
+# most permissive parser and the historical default in this codebase.
+_SSH_KEY_TYPES: tuple[type[PKey], ...] = (Ed25519Key, ECDSAKey, RSAKey)
+
+
+def _load_private_key(pem: str, password: str | None) -> PKey:
+    """Load a private key PEM regardless of algorithm (ed25519, ECDSA, RSA).
+
+    paramiko 3.2+ has ``PKey.from_path()`` for polymorphic loading, but it
+    requires a filesystem path; writing private key material to disk would be a
+    security regression. Each per-class loader only accepts its own format, so
+    iterate over the supported types on the in-memory ``StringIO`` and return
+    the first that parses cleanly.
+    """
+    last_exc: SSHException | None = None
+    for key_class in _SSH_KEY_TYPES:
+        try:
+            return key_class.from_private_key(StringIO(pem), password=password)
+        except PasswordRequiredException:
+            raise
+        except SSHException as exc:
+            last_exc = exc
+    # NOTE: last_exc holds the error from the final attempt (RSAKey), not the
+    # closest-matching type. For a corrupted ed25519 key, the appended message
+    # reflects RSAKey's parse error; the full type list above still identifies
+    # all types attempted.
+    raise SSHException(
+        "Unable to parse SSH private key as any of "
+        f"{', '.join(k.__name__ for k in _SSH_KEY_TYPES)}: {last_exc}"
+    ) from last_exc
 
 
 def _parse_authorized_key(authorized_key: str) -> paramiko.PKey:
@@ -171,6 +211,9 @@ class SSHManager:
         ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
     ) -> sshtunnel.SSHTunnelForwarder:
+        # Deferred import to break a circular import:
+        # superset.utils.ssh_tunnel -> superset.databases.ssh_tunnel.models
+        # -> superset.extensions -> superset.extensions.ssh (this module).
         from superset.utils.ssh_tunnel import get_default_port
 
         url = make_url_safe(sqlalchemy_database_uri)
@@ -203,11 +246,9 @@ class SSHManager:
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
-            private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(
-                private_key_file, ssh_tunnel.private_key_password
+            params["ssh_pkey"] = _load_private_key(
+                ssh_tunnel.private_key, ssh_tunnel.private_key_password
             )
-            params["ssh_pkey"] = private_key
 
         return sshtunnel.open_tunnel(**params)
 

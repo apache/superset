@@ -82,8 +82,10 @@ test('drag and drop', () => {
 test('remove filter', async () => {
   defaultRender();
   // First trash icon
-  const removeFilterIcon = document.querySelector("[alt='Remove filter']")!;
-  userEvent.click(removeFilterIcon);
+  const removeFilterIcon = document.querySelector(
+    "[aria-label='Remove filter']",
+  )!;
+  await userEvent.click(removeFilterIcon);
   expect(defaultProps.onRemove).toHaveBeenCalledWith('NATIVE_FILTER-1');
 });
 
@@ -91,14 +93,14 @@ test('add filter', async () => {
   defaultRender();
   // First trash icon
   const addFilterButton = await screen.findByText('Add filter');
-  userEvent.click(addFilterButton);
+  await userEvent.click(addFilterButton);
   expect(defaultProps.onAdd).toHaveBeenCalledWith('NATIVE_FILTER');
 });
 
 test('add divider', async () => {
   defaultRender();
   const addFilterButton = await screen.findByText('Add divider');
-  userEvent.click(addFilterButton);
+  await userEvent.click(addFilterButton);
   expect(defaultProps.onAdd).toHaveBeenCalledWith('DIVIDER');
 });
 
@@ -122,7 +124,7 @@ test('filter container should scroll to bottom when adding items', async () => {
 
   const addFilterButton = await screen.findByText('Add filter');
 
-  userEvent.click(addFilterButton);
+  await userEvent.click(addFilterButton);
 
   await waitFor(() => {
     const containerElement = screen.getByTestId('filter-title-container');

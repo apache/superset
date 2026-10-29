@@ -19,6 +19,24 @@ from unittest.mock import Mock, patch
 import paramiko
 import pytest
 import sshtunnel
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import (
+    generate_private_key as generate_rsa_key,
+)
+from cryptography.hazmat.primitives.serialization import (
+    BestAvailableEncryption,
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+)
+from paramiko import (
+    ECDSAKey,
+    Ed25519Key,
+    PasswordRequiredException,
+    RSAKey,
+    SSHException,
+)
 
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelHostKeyVerificationError,
@@ -38,6 +56,20 @@ def _make_manager(strict: bool = False) -> SSHManager:
         "SSH_TUNNEL_STRICT_HOST_KEY_CHECKING": strict,
     }
     return SSHManager(app)
+
+
+def _make_ssh_tunnel(private_key: str, private_key_password: str | None = None) -> Mock:
+    ssh_tunnel = Mock()
+    ssh_tunnel.server_address = "ssh.example.com"
+    ssh_tunnel.server_port = 22
+    ssh_tunnel.username = "tunneluser"
+    ssh_tunnel.password = None
+    ssh_tunnel.private_key = private_key
+    ssh_tunnel.private_key_password = private_key_password
+    # No expected host key: keeps create_tunnel on the key-parsing path without
+    # triggering host-key verification (exercised separately below).
+    ssh_tunnel.server_host_key = None
+    return ssh_tunnel
 
 
 def _authorized_key(key: paramiko.PKey) -> str:
@@ -67,6 +99,154 @@ def test_ssh_tunnel_timeout_setting() -> None:
     factory.init_app(app)
     assert sshtunnel.TUNNEL_TIMEOUT == 123.0
     assert sshtunnel.SSH_TIMEOUT == 321.0
+
+
+def _make_ed25519_pem() -> str:
+    """Generate a fresh OpenSSH-format ed25519 private key PEM."""
+    key = Ed25519PrivateKey.generate()
+    return key.private_bytes(
+        encoding=Encoding.PEM,
+        format=PrivateFormat.OpenSSH,
+        encryption_algorithm=NoEncryption(),
+    ).decode()
+
+
+def test_create_tunnel_accepts_ed25519_private_key() -> None:
+    """
+    Regression for #24180: ed25519 SSH keys must be loadable for tunnel
+    setup. The bug surfaces as ``unpack requires 4 bytes`` because the
+    code unconditionally calls ``RSAKey.from_private_key`` regardless of
+    key type, which mis-parses the ed25519 byte stream.
+
+    The Superset UI accepts any key the user pastes, so the fix is to
+    detect the key type (or use ``paramiko.PKey.from_private_key`` once
+    paramiko exposes a polymorphic loader) rather than hard-coding RSA.
+
+    This test exercises ``create_tunnel`` end-to-end with a freshly
+    generated ed25519 key. It mocks ``sshtunnel.open_tunnel`` so the
+    test does not actually open a network connection — only the key
+    parsing path is exercised.
+    """
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(_make_ed25519_pem())
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        manager.create_tunnel(
+            ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+        )
+
+    # Key-type-agnostic loader must produce a paramiko PKey usable as ssh_pkey.
+    assert mock_open.called, "open_tunnel was never invoked — key parsing aborted"
+    forwarded_pkey = mock_open.call_args.kwargs["ssh_pkey"]
+    assert isinstance(forwarded_pkey, Ed25519Key)
+
+
+def test_create_tunnel_accepts_rsa_private_key_unchanged() -> None:
+    """
+    Companion to test_create_tunnel_accepts_ed25519_private_key: pin the
+    backward-compatible RSA path so a fix for ed25519 doesn't regress the
+    historically-supported RSA case. Uses a freshly generated RSA key in
+    OpenSSH format.
+    """
+    rsa_pem = (
+        generate_rsa_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.OpenSSH,
+            encryption_algorithm=NoEncryption(),
+        )
+        .decode()
+    )
+
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(rsa_pem)
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        manager.create_tunnel(
+            ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+        )
+
+    assert mock_open.called, "open_tunnel was never invoked — RSA key parsing aborted"
+    assert isinstance(mock_open.call_args.kwargs["ssh_pkey"], RSAKey)
+
+
+def test_create_tunnel_accepts_ecdsa_private_key() -> None:
+    """
+    Companion to the ed25519 and RSA tests: verify ECDSAKey (the third type
+    in _SSH_KEY_TYPES) is reachable by _load_private_key. Uses NIST P-256,
+    the most common ECDSA curve in practice.
+    """
+    ecdsa_pem = (
+        ec.generate_private_key(ec.SECP256R1())
+        .private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.OpenSSH,
+            encryption_algorithm=NoEncryption(),
+        )
+        .decode()
+    )
+
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(ecdsa_pem)
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        manager.create_tunnel(
+            ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+        )
+
+    assert mock_open.called, "open_tunnel was never invoked — ECDSA key parsing aborted"
+    assert isinstance(mock_open.call_args.kwargs["ssh_pkey"], ECDSAKey)
+
+
+def test_create_tunnel_passphrase_protected_key_without_password() -> None:
+    """
+    A passphrase-protected key supplied without a passphrase must surface as
+    ``PasswordRequiredException`` (an actionable "key requires passphrase"
+    signal) rather than being absorbed by the per-type loop and reported as a
+    generic "Unable to parse" error.
+    """
+    encrypted_pem = (
+        Ed25519PrivateKey.generate()
+        .private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.OpenSSH,
+            encryption_algorithm=BestAvailableEncryption(b"correct horse"),
+        )
+        .decode()
+    )
+
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(encrypted_pem, private_key_password=None)
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        with pytest.raises(PasswordRequiredException):
+            manager.create_tunnel(
+                ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+            )
+
+    assert not mock_open.called
+
+
+def test_create_tunnel_invalid_key_raises_combined_error() -> None:
+    """
+    When a key parses as none of the supported types, ``_load_private_key``
+    raises ``SSHException`` whose message lists every type that was attempted,
+    so the failure clearly communicates that all loaders were tried.
+    """
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel("not a valid private key")
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        with pytest.raises(SSHException) as exc_info:
+            manager.create_tunnel(
+                ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+            )
+
+    message = str(exc_info.value)
+    assert "Ed25519Key" in message
+    assert "ECDSAKey" in message
+    assert "RSAKey" in message
+    assert not mock_open.called
 
 
 @patch("superset.extensions.ssh.socket.create_connection")

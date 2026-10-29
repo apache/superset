@@ -19,7 +19,12 @@
 import { useCallback, useMemo } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from '@superset-ui/core/components';
-import type { CellKeyDownEvent, Column, GridOptions } from 'ag-grid-community';
+import type {
+  CellKeyDownEvent,
+  Column,
+  GridOptions,
+  ValueGetterParams,
+} from 'ag-grid-community';
 import type { AgGridReactProps } from 'ag-grid-react';
 
 import copyTextToClipboard from 'src/utils/copy';
@@ -45,7 +50,7 @@ export function GridTable<RecordType extends object>({
   showRowNumber,
   enableActions,
   size = GridSize.Middle,
-  striped,
+  themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();
   const isExternalFilterPresent = useCallback(
@@ -85,7 +90,8 @@ export function GridTable<RecordType extends object>({
       [
         {
           field: PIVOT_COL_ID,
-          valueGetter: 'node.rowIndex+1',
+          valueGetter: (params: ValueGetterParams) =>
+            (params.node?.rowIndex ?? 0) + 1,
           cellClass: 'row-number-col',
           cellStyle: {
             backgroundColor: theme.colorFillTertiary,
@@ -138,18 +144,26 @@ export function GridTable<RecordType extends object>({
     [columnReorderable, enableActions, sortable],
   );
 
-  const rowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const defaultRowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const rowHeight = themeOverrides?.rowHeight ?? defaultRowHeight;
+  const headerHeight = themeOverrides?.headerHeight ?? rowHeight;
 
   const gridOptions = useMemo<GridOptions>(
     () => ({
       enableCellTextSelection: true,
       ensureDomOrder: true,
       suppressFieldDotNotation: true,
-      headerHeight: rowHeight,
-      rowSelection: 'multiple',
+      headerHeight,
       rowHeight,
     }),
-    [rowHeight],
+    [rowHeight, headerHeight],
+  );
+
+  // ag-grid paints its sticky header and pinned containers with the data
+  // background, so it must be opaque or scrolled rows show through them.
+  const gridThemeOverrides = useMemo(
+    () => ({ backgroundColor: theme.colorBgContainer, ...themeOverrides }),
+    [theme.colorBgContainer, themeOverrides],
   );
 
   return (
@@ -167,6 +181,30 @@ export function GridTable<RecordType extends object>({
           overflow: hidden;
         }
 
+        /* Preserve significant whitespace within cell values (e.g. option
+        symbols and other whitespace-sensitive data). ag-Grid's default
+        collapses runs of spaces, which can misrepresent the underlying
+        value.
+
+        'pre' is a deliberate trade-off over 'pre-wrap': it keeps values on a
+        single line so row heights and column sizing stay unchanged. CSS has no
+        value that preserves spaces while collapsing newlines, so an embedded
+        newline renders on multiple lines; truncating such values to the
+        visible row is acceptable here. The value element grows to fit its
+        lines, so the clip is applied on .ag-cell, which has the fixed row
+        height; otherwise the extra lines paint over the rows below.
+        overflow/text-overflow keep over-long single-line values clipped with
+        an ellipsis rather than overflowing the cell. */
+        .ag-cell {
+          overflow: hidden;
+        }
+
+        .ag-cell-value {
+          white-space: pre;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
         & [role='columnheader']:hover .customHeaderAction {
           display: flex;
         }
@@ -182,6 +220,7 @@ export function GridTable<RecordType extends object>({
         components={gridComponents}
         gridOptions={gridOptions}
         onCellKeyDown={onKeyDown}
+        themeOverrides={gridThemeOverrides}
       />
     </div>
   );

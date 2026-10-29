@@ -80,6 +80,7 @@ dataset-references/
 ```
 
 **Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
+
 - Directory name: `dataset-references` (kebab-case)
 - Backend Python namespace: `my_org.dataset_references`
 - Backend distribution package: `my_org-dataset_references`
@@ -249,6 +250,43 @@ class DatasetReferencesAPI(RestApi):
 
         return self.response(200, result={"databases": databases})
 ```
+
+#### Python SQL query results
+
+Extensions using `Database.execute_async()` receive SELECT results as pandas
+DataFrames from `handle.get_result()`, including empty results with column names.
+DML statements have `data=None`. Both `RESULTS_BACKEND_USE_MSGPACK` settings use
+Arrow IPC for statement data (Base64-encoded inside the JSON transport), so scalar
+columns follow the synchronous Arrow conversion. Nested lists and dictionaries
+retain JSON scalar types (including arbitrary-sized integers), `datetime`
+(naive or with `datetime.timezone` fixed offsets, including microseconds),
+`date`, `time`, `timedelta`, `UUID`, `Decimal`, and `bytes` values in both transports. These values match
+synchronous execution rather than Arrow's
+string representation. Other nested types (for example, sets or tuples) use the
+Arrow string representation for the entire affected column, not Python objects.
+This fallback also applies to scalar subclasses (including numpy scalars and `pandas.Timestamp`) and
+datetimes/times with other timezone implementations (for example, pytz or
+`zoneinfo.ZoneInfo`). A debug log records each column that uses this fallback.
+An unreadable sidecar or unknown type tag also falls back to Arrow strings for
+that column, without discarding other columns or statements.
+
+For these async results, `SQLLAB_PAYLOAD_MAX_MB` counts the uncompressed payload
+with raw Arrow IPC bytes instead of their Base64 representation. Nested-value
+sidecars count at their raw size, discounting at most the size of the matching
+Arrow column, so each nested column counts once, at the larger of its two
+copies. Envelope and sidecar metadata also count. Both copies are retained in
+storage so a reader can fall back to Arrow strings for unknown tags, which lets
+the uncompressed payload reach about twice the counted size (more in JSON mode,
+which Base64-encodes it). MessagePack stores sidecars as raw bytes; JSON uses
+Base64. Stored payloads are compressed.
+
+Legacy JSON-record results remain readable, but types
+already converted to strings or floats cannot be recovered; rerun those queries
+for typed results. Cached SQL results are rebuilt as DataFrames. Legacy entries
+without column metadata infer column names from the record keys and preserve
+nullable integer values without converting them to floats. An unreadable
+cache entry is treated as a cache miss. These
+Python result handles are separate from the SQL Lab results API's JSON format.
 
 ### Automatic Context Detection
 

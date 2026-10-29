@@ -133,8 +133,8 @@ def main(docker: bool, frontend: bool, backend: bool) -> None:  # noqa: C901
     requirements = [
         Requirement(
             "python",
-            (Version("3.10.0"), Version("3.10.999")),
-            (Version("3.9.0"), Version("3.11.999")),
+            (Version("3.11.0"), Version("3.11.999")),
+            (Version("3.11.0"), Version("3.12.999")),
             "backend",
             "python --version",
         ),

@@ -27,6 +27,7 @@ import {
   Label,
 } from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
 
 const StyledInfoTooltip = styled(InfoTooltip)`
   margin: 0 ${({ theme }) => theme.sizeUnit}px;
@@ -39,6 +40,7 @@ export default function Option({
   withCaret,
   isExtra,
   datasourceWarningMessage,
+  partitionMapping,
   canDelete = true,
   multiValueWarningMessage,
 }: OptionProps) {
@@ -54,10 +56,10 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          type="button"
           css={css`
             text-align: center;
           `}
-          role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
         >
@@ -71,6 +73,7 @@ export default function Option({
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
+      <PartitionPruningIndicator mapping={partitionMapping} />
       {!!multiValueWarningMessage && (
         <StyledInfoTooltip
           type="warning"

@@ -34,7 +34,7 @@ export default function useStoredSidebarWidth(
     widthsMapRef.current =
       widthsMapRef.current ??
       getItem(LocalStorageKeys.CommonResizableSidebarWidths, {});
-    if (widthsMapRef.current[id]) {
+    if (typeof widthsMapRef.current[id] === 'number') {
       setSidebarWidth(widthsMapRef.current[id]);
     }
   }, [id]);

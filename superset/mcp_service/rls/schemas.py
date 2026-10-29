@@ -28,18 +28,13 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_serializer,
-    model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
 
 DEFAULT_RLS_COLUMNS = ["id", "name", "filter_type", "clause"]
@@ -49,7 +44,7 @@ ALL_RLS_COLUMNS = [
     "name",
     "filter_type",
     "tables",
-    "roles",
+    "subjects",
     "clause",
     "group_key",
     "changed_on",
@@ -77,9 +72,11 @@ class RlsTableRef(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class RlsRoleRef(BaseModel):
-    id: int | None = Field(None, description="Role ID")
-    name: str | None = Field(None, description="Role name")
+class RlsSubjectRef(BaseModel):
+    id: int | None = Field(None, description="Subject ID")
+    label: str | None = Field(None, description="Subject label")
+    secondary_label: str | None = Field(None, description="Secondary subject label")
+    type: int | None = Field(None, description="Subject type")
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -90,8 +87,8 @@ class RlsFilterInfo(BaseModel):
     tables: List[RlsTableRef] | None = Field(
         None, description="Tables this filter applies to"
     )
-    roles: List[RlsRoleRef] | None = Field(
-        None, description="Roles this filter applies to"
+    subjects: List[RlsSubjectRef] | None = Field(
+        None, description="Subjects this filter applies to"
     )
     clause: str | None = Field(None, description="SQL WHERE clause")
     group_key: str | None = Field(
@@ -117,86 +114,12 @@ class RlsFilterInfo(BaseModel):
         return data
 
 
-class RlsFilterList(BaseModel):
+class RlsFilterList(PaginatedResponse[RlsColumnFilter]):
     rls_filters: List[RlsFilterInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(default_factory=list)
-    columns_loaded: List[str] = Field(default_factory=list)
-    columns_available: List[str] = Field(default_factory=list)
-    sortable_columns: List[str] = Field(default_factory=list)
-    filters_applied: List[RlsColumnFilter] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListRlsFiltersRequest(BaseModel):
+class ListRlsFiltersRequest(PaginatedListRequest[RlsColumnFilter]):
     """Request schema for list_rls_filters."""
-
-    filters: Annotated[
-        List[RlsColumnFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (col, opr, value). "
-            "Cannot be used with search.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="Columns to include in response. Defaults to common columns.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search on filter name. Cannot be used with filters.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction"),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[RlsColumnFilter]:
-        return parse_json_or_model_list(v, RlsColumnFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListRlsFiltersRequest":
-        if self.search and self.filters:
-            raise ValueError("Cannot use both 'search' and 'filters' simultaneously.")
-        return self
 
 
 class RlsFilterError(BaseModel):
@@ -235,12 +158,14 @@ def serialize_rls_filter_object(rls_filter: Any) -> RlsFilterInfo | None:
         for t in (getattr(rls_filter, "tables", None) or [])
     ]
 
-    roles = [
-        RlsRoleRef(
-            id=getattr(r, "id", None),
-            name=getattr(r, "name", None),
+    subjects = [
+        RlsSubjectRef(
+            id=getattr(subject, "id", None),
+            label=getattr(subject, "label", None),
+            secondary_label=getattr(subject, "secondary_label", None),
+            type=getattr(subject, "type", None),
         )
-        for r in (getattr(rls_filter, "roles", None) or [])
+        for subject in (getattr(rls_filter, "subjects", None) or [])
     ]
 
     return RlsFilterInfo(
@@ -248,7 +173,7 @@ def serialize_rls_filter_object(rls_filter: Any) -> RlsFilterInfo | None:
         name=getattr(rls_filter, "name", None),
         filter_type=getattr(rls_filter, "filter_type", None),
         tables=tables,
-        roles=roles,
+        subjects=subjects,
         clause=getattr(rls_filter, "clause", None),
         group_key=getattr(rls_filter, "group_key", None),
         changed_on=getattr(rls_filter, "changed_on", None),

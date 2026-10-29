@@ -16,31 +16,28 @@
 # under the License.
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask
+from flask import Flask
 from flask_caching import Cache
 from markupsafe import Markup
 
 from superset.utils.core import DatasourceType
+from superset.utils.hashing import _HASH_CONSTRUCTORS, get_hash_algorithm
 
 if TYPE_CHECKING:
-    from superset.async_events.cache_backend import (
+    from superset.coordination.cache_backend import (
         RedisCacheBackend,
         RedisSentinelCacheBackend,
+    )
+    from superset.semantic_layers.cache_coordination import (
+        OwnerTokenCoordinationBackend,
     )
 
 logger = logging.getLogger(__name__)
 
 CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
-
-# Hash function lookup table matching superset.utils.hashing
-_HASH_METHODS: dict[str, Callable[..., Any]] = {
-    "sha256": hashlib.sha256,
-    "md5": hashlib.md5,
-}
 
 
 class ConfigurableHashMethod:
@@ -68,8 +65,8 @@ class ConfigurableHashMethod:
         Raises:
             ValueError: If HASH_ALGORITHM is set to an unsupported value
         """
-        algorithm = current_app.config["HASH_ALGORITHM"]
-        hash_func = _HASH_METHODS.get(algorithm)
+        algorithm = get_hash_algorithm()
+        hash_func = _HASH_CONSTRUCTORS.get(algorithm)
         if hash_func is None:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
         return hash_func(data)
@@ -147,16 +144,12 @@ class SupersetCache(Cache):
     def _memoize_make_cache_key(
         self,
         make_name: Callable[..., Any] | None = None,
-        timeout: Callable[..., Any] | None = None,
-        forced_update: bool = False,
         hash_method: Callable[..., Any] = configurable_hash_method,
         source_check: bool | None = False,
         args_to_ignore: Any | None = None,
     ) -> Callable[..., Any]:
         return super()._memoize_make_cache_key(
             make_name=make_name,
-            timeout=timeout,
-            forced_update=forced_update,
             hash_method=hash_method,
             source_check=source_check,
             args_to_ignore=args_to_ignore,
@@ -193,15 +186,25 @@ class CacheManager:
         self._thumbnail_cache = SupersetCache()
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
+        self._extension_ephemeral_state_cache = SupersetCache()
         self._distributed_coordination: (
             RedisCacheBackend | RedisSentinelCacheBackend | None
         ) = None
 
     @staticmethod
     def _init_cache(
-        app: Flask, cache: Cache, cache_config_key: str, required: bool = False
+        app: Flask,
+        cache: Cache,
+        config: str | dict[str, Any],
+        required: bool = False,
     ) -> None:
-        cache_config = app.config[cache_config_key]
+        if isinstance(config, dict):
+            cache_config = config
+            config_name = cache_config.get("CACHE_KEY_PREFIX", "unknown")
+        else:
+            cache_config = app.config[config]
+            config_name = config
+
         cache_type = cache_config.get("CACHE_TYPE")
         if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
             if cache_type is None and not app.debug:
@@ -210,10 +213,10 @@ class CacheManager:
                     "metadata database, for the following cache: `%s`. "
                     "It is recommended to use `RedisCache`, `MemcachedCache` or "
                     "another dedicated caching backend for production deployments",
-                    cache_config_key,
+                    config_name,
                 )
             cache_type = CACHE_IMPORT_PATH
-            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", cache_config_key)
+            cache_key_prefix = cache_config.get("CACHE_KEY_PREFIX", config_name)
             cache_config.update(
                 {"CACHE_TYPE": cache_type, "CACHE_KEY_PREFIX": cache_key_prefix}
             )
@@ -237,11 +240,17 @@ class CacheManager:
             "EXPLORE_FORM_DATA_CACHE_CONFIG",
             required=True,
         )
+        self._init_cache(
+            app,
+            self._extension_ephemeral_state_cache,
+            app.config.get("EXTENSIONS_EPHEMERAL_STORAGE", {}),
+            required=True,
+        )
         self._init_distributed_coordination(app)
 
     def _init_distributed_coordination(self, app: Flask) -> None:
         """Initialize the distributed coordination backend (pub/sub, locks, streams)."""
-        from superset.async_events.cache_backend import (
+        from superset.coordination.cache_backend import (
             RedisCacheBackend,
             RedisSentinelCacheBackend,
         )
@@ -285,6 +294,10 @@ class CacheManager:
         return self._explore_form_data_cache
 
     @property
+    def extension_ephemeral_state_cache(self) -> Cache:
+        return self._extension_ephemeral_state_cache
+
+    @property
     def distributed_coordination(
         self,
     ) -> RedisCacheBackend | RedisSentinelCacheBackend | None:
@@ -307,3 +320,17 @@ class CacheManager:
         Returns None if DISTRIBUTED_COORDINATION_CONFIG is not configured.
         """
         return self._distributed_coordination
+
+    @property
+    def semantic_cache_coordination(self) -> OwnerTokenCoordinationBackend | None:
+        """Return coordination only when it supports owner-token leases."""
+        from superset.semantic_layers.cache_coordination import (
+            OwnerTokenCoordinationBackend,
+        )
+
+        backend: RedisCacheBackend | RedisSentinelCacheBackend | None = (
+            self._distributed_coordination
+        )
+        if isinstance(backend, OwnerTokenCoordinationBackend):
+            return backend
+        return None

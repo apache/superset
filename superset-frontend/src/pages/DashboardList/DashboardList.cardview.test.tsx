@@ -24,7 +24,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { isFeatureEnabled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   mockDashboards,
   mockHandleResourceExport,
@@ -82,7 +82,7 @@ describe('DashboardList Card View Tests', () => {
 
     // Verify card view toggle is active
     const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
   });
 
@@ -96,7 +96,7 @@ describe('DashboardList Card View Tests', () => {
     const listViewToggle = screen.getByRole('img', {
       name: 'unordered-list',
     });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toBeNull();
     fireEvent.click(listViewButton!);
 
@@ -412,4 +412,81 @@ describe('DashboardList Card View Tests', () => {
       );
     });
   });
+});
+
+afterEach(() => fetchMock.clearHistory().removeRoutes());
+
+const enableCardViewWith = (...flags: FeatureFlag[]) =>
+  (
+    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+  ).mockImplementation(
+    (feature: string) =>
+      feature === FeatureFlag.ListviewsDefaultCardView ||
+      flags.includes(feature as FeatureFlag),
+  );
+
+// Admin qualifies as editor, so the card's delete entry is enabled; the role
+// check needs a user with a `permissions` key.
+const adminUser = { ...mockUser, username: 'admin', permissions: {} };
+
+const openFirstCardMenu = async () => {
+  renderDashboardList(adminUser);
+  await screen.findByTestId('dashboard-list-view');
+  await screen.findByText(mockDashboards[0].dashboard_title);
+  fireEvent.click(screen.getAllByLabelText('more')[0]);
+};
+
+test('with soft delete on, the card delete flow shows the archive dialog', async () => {
+  setupMocks();
+  enableCardViewWith(FeatureFlag.SoftDelete);
+  fetchMock.delete(`glob:*/api/v1/dashboard/${mockDashboards[0].id}`, {
+    message: 'OK',
+  });
+  await openFirstCardMenu();
+
+  fireEvent.click(await screen.findByText('Archive'));
+
+  const dialog = await screen.findByRole('dialog');
+  expect(
+    within(dialog).getByText(mockDashboards[0].dashboard_title, {
+      selector: 'bdi',
+    }),
+  ).toBeInTheDocument();
+  // The body comes from the shared soft-delete copy module; pin its stable
+  // prefix rather than the retention-dependent full sentence.
+  expect(
+    within(dialog).getByText(
+      /This dashboard will be moved to Recently Archived/,
+    ),
+  ).toBeInTheDocument();
+  // Recoverable deletes drop the type-DELETE friction.
+  expect(
+    within(dialog).queryByTestId('delete-modal-input'),
+  ).not.toBeInTheDocument();
+
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Archive' }));
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(
+        `glob:*/api/v1/dashboard/${mockDashboards[0].id}`,
+        { method: 'DELETE' },
+      ),
+    ).toHaveLength(1);
+  });
+});
+
+test('with soft delete off, the card delete dialog is the permanent-delete one', async () => {
+  setupMocks();
+  enableCardViewWith();
+  await openFirstCardMenu();
+
+  fireEvent.click(await screen.findByText('Delete'));
+
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('Please confirm')).toBeInTheDocument();
+  expect(
+    within(dialog).getByText(/Are you sure you want to delete/),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByTestId('delete-modal-input')).toBeInTheDocument();
 });

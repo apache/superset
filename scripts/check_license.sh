@@ -35,7 +35,7 @@ acquire_rat_jar () {
       wget --quiet ${URL} -O "$JAR_DL" && mv "$JAR_DL" "$JAR"
     else
       printf "You do not have curl or wget installed, please install rat manually.\n"
-      exit -1
+      exit 255
     fi
   fi
 
@@ -44,7 +44,7 @@ acquire_rat_jar () {
     # We failed to download
     rm "$JAR"
     printf "Our attempt to download rat locally to ${JAR} failed. Please install rat manually.\n"
-    exit -1
+    exit 255
   fi
   printf "Done downloading.\n"
 }

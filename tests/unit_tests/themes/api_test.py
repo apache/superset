@@ -15,8 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import struct
+from io import BytesIO
+from typing import Any
+from zipfile import is_zipfile, ZIP_DEFLATED, ZipFile
 
 from superset.themes.api import ThemeRestApi
+from superset.themes.schemas import ThemePostSchema, ThemePutSchema
+from superset.utils import json
 
 
 class TestThemeRestApi:
@@ -55,6 +61,9 @@ class TestThemeRestApi:
             "created_by.first_name",
             "created_by.id",
             "created_by.last_name",
+            "editors.id",
+            "editors.label",
+            "editors.type",
             "json_data",
             "id",
             "is_system",
@@ -77,6 +86,9 @@ class TestThemeRestApi:
             "created_by.first_name",
             "created_by.id",
             "created_by.last_name",
+            "editors.id",
+            "editors.label",
+            "editors.type",
             "json_data",
             "id",
             "is_system",
@@ -104,8 +116,6 @@ class TestThemeRestApi:
 
     def test_custom_schemas_configured(self):
         """Test that custom schemas are properly configured"""
-        from superset.themes.schemas import ThemePostSchema, ThemePutSchema
-
         api = ThemeRestApi()
         assert isinstance(api.add_model_schema, ThemePostSchema)
         assert isinstance(api.edit_model_schema, ThemePutSchema)
@@ -121,3 +131,71 @@ class TestThemeRestApi:
         expected_new_fields = ["is_system", "uuid"]
         for field in expected_new_fields:
             assert field in ThemeRestApi.list_columns
+
+    def test_theme_post_schema_uses_sanitized_json_data(self):
+        """Test that sanitized theme JSON is written back during load."""
+        schema = ThemePostSchema()
+
+        result = schema.load(
+            {
+                "theme_name": "test_theme",
+                "json_data": json.dumps(
+                    {
+                        "token": {
+                            "brandSpinnerUrl": "javascript:alert('xss')",
+                            "colorPrimary": "#ff0000",
+                        }
+                    }
+                ),
+            }
+        )
+
+        assert json.loads(result["json_data"])["token"]["brandSpinnerUrl"] == ""
+
+    def test_theme_put_schema_uses_sanitized_json_data(self):
+        """Test that update schema also writes back sanitized theme JSON."""
+        schema = ThemePutSchema()
+
+        result = schema.load(
+            {
+                "theme_name": "test_theme",
+                "json_data": json.dumps(
+                    {
+                        "token": {
+                            "brandSpinnerUrl": "javascript:alert('xss')",
+                            "colorPrimary": "#ff0000",
+                        }
+                    }
+                ),
+            }
+        )
+
+        assert json.loads(result["json_data"])["token"]["brandSpinnerUrl"] == ""
+
+
+def test_import_theme_corrupt_member(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    A ZIP whose member has a corrupt deflate stream passes ``is_zipfile`` and
+    opens fine, but fails when the member is read; the endpoint must return a
+    422 instead of a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w", compression=ZIP_DEFLATED) as bundle:
+        bundle.writestr("bundle/themes/theme.yaml", "theme_name: test\n" * 20)
+    data = bytearray(buf.getvalue())
+    name_length, extra_length = struct.unpack("<HH", data[26:30])
+    # 0xFF starts a deflate block with the reserved (invalid) block type
+    data[30 + name_length + extra_length] = 0xFF
+    assert is_zipfile(BytesIO(bytes(data)))
+
+    response = client.post(
+        "/api/v1/theme/import/",
+        data={"formData": (BytesIO(bytes(data)), "corrupt.zip")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 422
+    assert response.json["errors"][0]["message"] == "Invalid or corrupted ZIP file"

@@ -30,8 +30,7 @@ from functools import reduce
 
 from alembic import op
 from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 from superset import db
 from superset.utils import json

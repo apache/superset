@@ -335,7 +335,7 @@ def migrate_dashboard(dashboard: Dashboard) -> None:  # noqa: C901
 
                 meta["code"] = dedent(
                     f"""
-                        &#9888; The <a href="/superset/slice/{slc.id}/">{slc.slice_name}
+                        &#9888; The <a href="/slice/{slc.id}/">{slc.slice_name}
                         </a> filter-box chart has been migrated to a native filter.
                         """
                 )

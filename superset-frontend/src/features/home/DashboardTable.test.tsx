@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   render,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
-import { SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
@@ -36,6 +38,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
 
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
@@ -78,6 +84,7 @@ const mockDashboards = [
     changed_on_delta_humanized: '1 day ago',
     url: '/dashboard/1',
     thumbnail_url: '/thumbnail/1',
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
   },
   {
     id: 2,
@@ -85,6 +92,7 @@ const mockDashboards = [
     changed_on_delta_humanized: '2 days ago',
     url: '/dashboard/2',
     thumbnail_url: '/thumbnail/2',
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
   },
 ];
 
@@ -242,8 +250,16 @@ test('handles create dashboard button click', async () => {
   );
 
   const createButton = screen.getByRole('button', { name: /dashboard$/i });
+  // No pending state before the click — the button is idle.
+  expect(createButton).not.toHaveClass('ant-btn-loading');
   await userEvent.click(createButton);
-  expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
+  expect(assignMock).toHaveBeenCalledWith('/dashboard/new/');
+  // /dashboard/new/ is a hard navigation whose GET creates the dashboard
+  // server-side; the button must show a loading state for the whole
+  // round-trip instead of looking dead (issue #43385).
+  await waitFor(() => {
+    expect(createButton).toHaveClass('ant-btn-loading');
+  });
   locationSpy.mockRestore();
 });
 
@@ -506,4 +522,61 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
     pageSize: 5,
     sortBy: [{ desc: true, id: 'changed_on_delta_humanized' }],
   });
+});
+
+test('with soft delete on, the card delete flow shows the archive dialog', async () => {
+  const originalFlags = window.featureFlags;
+  window.featureFlags = { [FeatureFlag.SoftDelete]: true };
+  try {
+    const refreshDataMock = jest.fn();
+    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+      state: {
+        loading: false,
+        resourceCollection: mockDashboards,
+        resourceCount: mockDashboards.length,
+        bulkSelectEnabled: false,
+        lastFetched: new Date().toISOString(),
+      },
+      setResourceCollection: jest.fn(),
+      hasPerm: jest.fn().mockReturnValue(true),
+      refreshData: refreshDataMock,
+      fetchData: jest.fn(),
+      toggleBulkSelect: jest.fn(),
+    }));
+
+    render(
+      <Router history={history}>
+        <DashboardTable {...defaultProps} mine={mockDashboards} />
+      </Router>,
+      { store },
+    );
+
+    await userEvent.click(screen.getAllByLabelText('more')[0]);
+    await userEvent.click(await screen.findByText('Archive'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(mockDashboards[0].dashboard_title, {
+        selector: 'bdi',
+      }),
+    ).toBeInTheDocument();
+    // The body comes from the shared soft-delete copy module; pin its stable
+    // prefix rather than the retention-dependent full sentence.
+    expect(
+      within(dialog).getByText(
+        /This dashboard will be moved to Recently Archived/,
+      ),
+    ).toBeInTheDocument();
+    // Recoverable deletes drop the type-DELETE friction.
+    expect(
+      within(dialog).queryByTestId('delete-modal-input'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: 'Archive' }),
+    );
+    await waitFor(() => expect(refreshDataMock).toHaveBeenCalled());
+  } finally {
+    window.featureFlags = originalFlags;
+  }
 });

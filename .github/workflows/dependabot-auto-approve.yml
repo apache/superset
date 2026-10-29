@@ -1,0 +1,63 @@
+name: Auto-approve Dependabot patch bumps
+
+# Posts an approving review on Dependabot PRs that only bump a patch
+# version, using the same trigger/guard convention already proven to work
+# for Dependabot PRs in sync-requirements-for-python-dep-upgrade-pr.yml
+# (plain `pull_request` gets a working, write-capable GITHUB_TOKEN here
+# because Dependabot pushes branches directly to this repo, not a fork).
+#
+# This does NOT auto-merge anything - repo-wide auto-merge is disabled
+# (Settings > General > Pull Requests > "Allow auto-merge" is off), and
+# flipping that is a separate, repo-wide decision this workflow doesn't
+# make on its own. Branch protection also still requires 1 approving
+# review; this just means that review can already exist by the time a
+# human looks at the PR, for the (large majority of) ecosystems whose
+# files aren't matched by any CODEOWNERS pattern. One ecosystem - the npm
+# bump under .github/actions - matches the /.github/ CODEOWNERS entry, so
+# those PRs will still need a human owner's approval regardless of this
+# workflow; it posts a review there too, but that alone won't satisfy the
+# code-owner requirement.
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+# Cancel a superseded run if Dependabot pushes to the same PR again before
+# the previous run finished (matches the pattern used elsewhere in
+# superset-docs-verify.yml).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  approve-patch-bump:
+    name: Approve patch-level bump
+    # Mirrors the guard in sync-requirements-for-python-dep-upgrade-pr.yml:
+    # limited to (1) PRs authored by Dependabot and (2) the upstream repo,
+    # since forked PRs don't get a write-capable token here anyway.
+    if: >
+      github.repository == 'apache/superset' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # to post the approving review via `gh pr review`
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        # This exact SHA is on ASF Infra's action allowlist
+        # (apache/infrastructure-actions approved_patterns.yml) as of this
+        # writing. Do not bump without opening an Infra ticket to allow
+        # the new SHA first!
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - name: Approve patch-level bump
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+        run: |
+          gh pr review --approve "$PR_URL" \
+            --body "Auto-approved: patch-level bump only ($DEPENDENCY_NAMES)."

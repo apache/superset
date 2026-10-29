@@ -29,10 +29,16 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import NoSuchModuleError
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import backref, relationship, Session
+from sqlalchemy.orm import (
+    backref,
+    declarative_base,
+    declared_attr,
+    Mapped,
+    relationship,
+    Session,
+)
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import functions as func
 from sqlalchemy.sql.expression import and_, or_
@@ -186,7 +192,7 @@ class SqlaTable(AuxiliaryColumnsMixin, Base):
     id = sa.Column(sa.Integer, primary_key=True)
     extra = sa.Column(sa.Text)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
-    database: Database = relationship(
+    database: Mapped[Database] = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
@@ -269,7 +275,7 @@ class NewTable(AuxiliaryColumnsMixin, Base):
     name = sa.Column(sa.Text)
     external_url = sa.Column(sa.Text, nullable=True)
     extra_json = sa.Column(MediumText(), default="{}")
-    database: Database = relationship(
+    database: Mapped[Database] = relationship(
         "Database",
         backref=backref("new_tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
@@ -874,14 +880,14 @@ new_tables: sa.Table = [
 def reset_postgres_id_sequence(table: str) -> None:
     """Reset PostgreSQL sequence ID for a table's id column."""
     op.execute(
-        """
+        text("""
         SELECT setval(
             pg_get_serial_sequence(:table, 'id'),
             COALESCE(max(id) + 1, 1),
             false
         )
         FROM :table;
-        """,
+        """),
         {"table": table},
     )
 
