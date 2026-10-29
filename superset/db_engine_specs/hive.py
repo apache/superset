@@ -39,7 +39,11 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    DatabaseCategory,
+    TIME_LIMIT_EXCEPTIONS,
+)
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
@@ -458,6 +462,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             try:
                 logs = cursor.fetch_logs()
                 log = "\n".join(logs) if logs else ""
+            except TIME_LIMIT_EXCEPTIONS:
+                raise
             except Exception:  # pylint: disable=broad-except
                 logger.warning("Call to GetLog() failed")
                 log = ""

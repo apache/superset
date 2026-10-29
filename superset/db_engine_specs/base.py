@@ -41,6 +41,7 @@ from uuid import UUID, uuid4
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from celery.exceptions import SoftTimeLimitExceeded
 from deprecation import deprecated
 from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
@@ -77,6 +78,7 @@ from superset.exceptions import (
     OAuth2TokenRefreshError,
     SupersetGenericDBErrorException,
     SupersetParseError,
+    SupersetTimeoutException,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
@@ -133,6 +135,12 @@ logger = logging.getLogger()
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
+
+# SQL Lab's time limits are raised into whatever the worker is executing: the
+# Celery soft limit for asynchronous runs and the ``SQLLAB_TIMEOUT`` alarm for
+# synchronous ones. Each fires once, so a handler that swallows it leaves the
+# query running with nothing left to stop it.
+TIME_LIMIT_EXCEPTIONS = (SoftTimeLimitExceeded, SupersetTimeoutException)
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:

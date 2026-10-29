@@ -29,8 +29,15 @@ from superset.constants import (
     QUERY_EARLY_CANCEL_KEY,
 )
 from superset.db_engine_specs.impala import ImpalaEngineSpec
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.sql.execution.executor import SQLExecutor
-from superset.sql_lab import cancel_query, execute_query, SqlLabQueryStoppedException
+from superset.sql_lab import (
+    cancel_query,
+    execute_query,
+    SqlLabException,
+    SqlLabQueryStoppedException,
+)
 from superset.utils.core import QueryStatus
 
 
@@ -401,3 +408,114 @@ def test_pending_refresh_observes_stop() -> None:
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
+
+
+def _sync_timeout() -> SupersetTimeoutException:
+    """Build the exception SQL Lab's synchronous ``SQLLAB_TIMEOUT`` alarm raises."""
+    return SupersetTimeoutException(
+        error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+        message="The query exceeded the 30 seconds timeout.",
+        level=ErrorLevel.ERROR,
+    )
+
+
+@pytest.mark.parametrize("state", ["PENDING_STATE", "RUNNING_STATE"])
+def test_sync_timeout_cancels_the_operation(state: str) -> None:
+    """
+    The synchronous ``SQLLAB_TIMEOUT`` firing while the loop polls must cancel the
+    operation and propagate, rather than being swallowed so the Run keeps waiting
+    for the whole query.
+    """
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 5}
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    cursor.status.return_value = state
+    cursor.get_log.return_value = ""
+    timeout: SupersetTimeoutException = _sync_timeout()
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.impala.db"),
+        patch("superset.db_engine_specs.impala.time.sleep", side_effect=timeout),
+    ):
+        with pytest.raises(SupersetTimeoutException):
+            ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "timeout", [SoftTimeLimitExceeded(), _sync_timeout()], ids=["async", "sync"]
+)
+def test_timeout_during_progress_log_cancels_the_operation(
+    timeout: Exception,
+) -> None:
+    """
+    A time limit that fires while the progress log is fetched must not be mistaken
+    for a failed ``GetLog()`` call: it fires only once, so swallowing it leaves
+    the query running until the hard limit.
+    """
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 5}
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    # Finite, so a swallowed time limit shows up as a failed assertion rather than
+    # a loop that never ends.
+    cursor.status.side_effect = ["RUNNING_STATE", "RUNNING_STATE", "FINISHED_STATE"]
+    cursor.get_log.side_effect = timeout
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.impala.db"),
+        patch("superset.db_engine_specs.impala.time.sleep") as sleep,
+    ):
+        with pytest.raises(type(timeout)):
+            ImpalaEngineSpec.handle_cursor(cursor, query)
+    sleep.assert_not_called()
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+
+
+def test_status_failure_still_ends_polling_without_raising() -> None:
+    """Ordinary polling failures keep ending the loop quietly."""
+    app: Flask = Flask(__name__)
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    cursor.status.side_effect = RuntimeError("rpc failed")
+    with app.app_context(), patch("superset.db_engine_specs.impala.db"):
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_not_called()
+
+
+def test_sync_timeout_fails_the_run_and_cancels_the_operation(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """A synchronous timeout during polling ends the Run with the timeout message."""
+    query = MagicMock(
+        id=1,
+        status=QueryStatus.RUNNING,
+        progress=0,
+        executed_sql="SELECT 1",
+        extra={},
+        limit=None,
+    )
+    query.database.db_engine_spec = ImpalaEngineSpec
+    cursor = MagicMock()
+    cursor.status.return_value = "RUNNING_STATE"
+    cursor.get_log.return_value = ""
+    mocker.patch(
+        "superset.db_engine_specs.impala.time.sleep", side_effect=_sync_timeout()
+    )
+    mocker.patch("superset.db.session")
+    mocker.patch("superset.sql_lab.warm_and_release_connection")
+    mocker.patch(
+        "superset.sql_lab.event_logger.log_context", return_value=nullcontext()
+    )
+    mocker.patch.object(ImpalaEngineSpec, "get_cancel_query_id", return_value=None)
+
+    with pytest.raises(SqlLabException, match="exceeded the 30 seconds timeout"):
+        execute_query(query, cursor)
+
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.fetchall.assert_not_called()

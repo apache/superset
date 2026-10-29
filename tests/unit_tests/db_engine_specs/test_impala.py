@@ -20,9 +20,12 @@ from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.impala import ImpalaEngineSpec as spec  # noqa: N813
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -304,3 +307,29 @@ def test_engines_without_a_sensible_default_offer_none() -> None:
 
     assert BaseEngineSpec.partition_value_transform_default is None
     assert PostgresEngineSpec.partition_value_transform_default is None
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_fetch_data_cancels_the_operation_on_time_limit(
+    sleep_mock: Mock, timeout: Exception, app_context: None, impala_errors: None
+) -> None:
+    """A SQL Lab time limit hitting the wait must not leave the operation running."""
+    sleep_mock.side_effect = timeout
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    with pytest.raises(type(timeout)):
+        spec.fetch_data(cursor)
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.fetchall.assert_not_called()

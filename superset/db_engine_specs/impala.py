@@ -23,14 +23,17 @@ import time
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    DatabaseCategory,
+    TIME_LIMIT_EXCEPTIONS,
+)
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
 from superset.utils.network import get_ssrf_safe_requester, is_safe_host
@@ -152,6 +155,16 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     cursor.fetchall()
             except Error as ex:
                 raise cls.get_dbapi_mapped_exception(ex) from ex
+            except TIME_LIMIT_EXCEPTIONS:
+                # The operation is released before the time limit propagates so
+                # it does not keep running on the coordinator.
+                try:
+                    cursor.cancel_operation()
+                except TIME_LIMIT_EXCEPTIONS:
+                    raise
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("cancel_operation() failed after a time limit")
+                raise
         return super().fetch_data(cursor, limit)
 
     @classmethod
@@ -159,7 +172,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         """Cancel the live operation and release its handles."""
         try:
             cursor.cancel_operation()
-        except SoftTimeLimitExceeded:
+        except TIME_LIMIT_EXCEPTIONS:
             raise
         except Exception:  # pylint: disable=broad-except
             logger.warning("Query %s: cancel_operation() failed", query_id)
@@ -168,13 +181,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
         # of the connection's life.
         try:
             cursor.close_operation()
-        except SoftTimeLimitExceeded:
+        except TIME_LIMIT_EXCEPTIONS:
             raise
         except Exception:  # pylint: disable=broad-except
             logger.warning("Query %s: close_operation() failed", query_id)
         try:
             cursor.close()
-        except SoftTimeLimitExceeded:
+        except TIME_LIMIT_EXCEPTIONS:
             raise
         except Exception:  # pylint: disable=broad-except
             logger.warning("Query %s: close() failed", query_id)
@@ -219,6 +232,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 if status == "RUNNING_STATE":
                     try:
                         log = cursor.get_log() or ""
+                    except TIME_LIMIT_EXCEPTIONS:
+                        raise
                     except Exception:  # pylint: disable=broad-except
                         logger.warning("Call to GetLog() failed")
                         log = ""
@@ -234,9 +249,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     pending_sleep_interval *= 2
                 time.sleep(sleep_interval)
                 status = cursor.status()
-        except SoftTimeLimitExceeded:
-            # SQL Lab's own handler marks the query TIMED_OUT once this propagates;
-            # the operation is cancelled first so it does not keep running on the
+        except TIME_LIMIT_EXCEPTIONS:
+            # SQL Lab ends the query as timed out once this propagates; the
+            # operation is cancelled first so it does not keep running on the
             # coordinator while fetch_data() waits on it.
             cls._cancel_operation(cursor, query_id)
             raise

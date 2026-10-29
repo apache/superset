@@ -18,13 +18,18 @@
 
 from datetime import datetime
 from typing import Optional
+from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
+from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
 from superset.constants import TimeGrain
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
 from superset.sql.parse import Table
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -373,3 +378,49 @@ def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
     assert PrestoEngineSpec.partition_value_transform_default is None
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="The query exceeded the 30 seconds timeout.",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
+def test_handle_cursor_propagates_time_limits(timeout: Exception) -> None:
+    """
+    A SQL Lab time limit that fires while the logs are fetched is not a failed
+    ``fetch_logs`` call: it fires only once, so swallowing it leaves the query
+    running until the hard limit.
+    """
+    from pyhive import hive
+
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"hive": 0}
+    query: Mock = Mock(id=1, progress=0)
+    cursor: Mock = Mock()
+    # Finite, so a swallowed time limit shows up as a failed assertion rather than
+    # a loop that never ends.
+    cursor.poll.side_effect = [
+        Mock(operationState=hive.ttypes.TOperationState.RUNNING_STATE),
+        Mock(operationState=hive.ttypes.TOperationState.RUNNING_STATE),
+        Mock(operationState=hive.ttypes.TOperationState.FINISHED_STATE),
+    ]
+    cursor.fetch_logs.side_effect = timeout
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.hive.db") as db,
+        patch("superset.db_engine_specs.hive.time.sleep"),
+    ):
+        db.session.query.return_value.filter_by.return_value.one.return_value = query
+        query.status = "running"
+        with pytest.raises(type(timeout)):
+            HiveEngineSpec.handle_cursor(cursor, query)
+    cursor.fetch_logs.assert_called_once_with()
