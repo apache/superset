@@ -54,6 +54,7 @@ describe('BigNumberTotal transformProps', () => {
     yAxisFormat: 'SMART_NUMBER',
     conditionalFormatting: [{ color: 'red', op: '>', value: 0 }],
     currencyFormat: { symbol: '$', symbolPosition: 'prefix' },
+    headerAlignment: 'center',
   };
 
   const baseDatasource = {
@@ -86,6 +87,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.subtitle).toBe(baseFormData.subheader);
     expect(result.onContextMenu).toBe(onContextMenu);
     expect(result.refs).toEqual({});
+    expect(result.headerAlignment).toBe('center');
     // headerFormatter should be set even if there's no data
     expect(typeof result.headerFormatter).toBe('function');
     // colorThresholdFormatters fallback to empty array when getColorFormatters returns falsy

@@ -19,9 +19,12 @@
 
 import dataclasses
 from collections import defaultdict
+from collections.abc import Iterator
+from datetime import datetime
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
+from uuid import uuid4
 from zipfile import is_zipfile
 
 import rison
@@ -30,12 +33,13 @@ import pytest
 from unittest.mock import Mock
 
 from sqlalchemy.engine.url import make_url  # noqa: F401
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.sql import func
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
+from sqlalchemy.sql import func, text
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import MissingOAuth2TokenError
 from superset.connectors.sqla.models import SqlaTable
+from superset.daos.database import DatabaseUserOAuth2TokensDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe  # noqa: F401
 from superset.db_engine_specs.mysql import MySQLEngineSpec
@@ -45,14 +49,18 @@ from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
-from superset.models.core import Database, ConfigurationMethod
+from superset.models.core import Database, ConfigurationMethod, DatabaseUserOAuth2Tokens
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils import json
 from superset.utils.core import shortid
 from superset.utils.database import get_example_database, get_main_database
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -134,6 +142,60 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.add(database)
         db.session.commit()
         return database
+
+    @pytest.fixture
+    def create_oauth2_tokens(self) -> Iterator[None]:
+        """Create and clean up credentials on two connections for token API tests."""
+        with self.create_app().app_context():
+            users = [
+                security_manager.find_user(username=username)
+                for username in (ADMIN_USERNAME, ALPHA_USERNAME, GAMMA_USERNAME)
+            ]
+            databases = [
+                Database(
+                    database_name=f"oauth2-token-test-{uuid4()}",
+                    sqlalchemy_uri="sqlite://",
+                )
+                for _ in range(2)
+            ]
+            db.session.add_all(databases)
+            db.session.flush()
+            tokens = [
+                DatabaseUserOAuth2Tokens(
+                    database_id=databases[0].id,
+                    user_id=user.id,
+                    access_token=f"access-secret-{user.id}",
+                    refresh_token=f"refresh-secret-{user.id}",
+                    access_token_expiration=datetime(2027, 1, 1),
+                )
+                for user in users
+            ]
+            other_token = DatabaseUserOAuth2Tokens(
+                database_id=databases[1].id,
+                user_id=users[0].id,
+                access_token=f"other-access-secret-{users[0].id}",
+                refresh_token=f"other-refresh-secret-{users[0].id}",
+            )
+            db.session.add_all([*tokens, other_token])
+            db.session.commit()
+            self._oauth2_database_id = databases[0].id
+            self._oauth2_other_database_id = databases[1].id
+            self._oauth2_token_ids = [token.id for token in tokens]
+            self._oauth2_other_token_id = other_token.id
+            try:
+                yield
+            finally:
+                db.session.rollback()
+                for token in db.session.query(DatabaseUserOAuth2Tokens).filter(
+                    DatabaseUserOAuth2Tokens.database_id.in_(
+                        [self._oauth2_database_id, self._oauth2_other_database_id]
+                    )
+                ):
+                    db.session.delete(token)
+                db.session.flush()
+                for database in databases:
+                    db.session.delete(database)
+                db.session.commit()
 
     @pytest.fixture
     def create_database_with_report(self):
@@ -1636,6 +1698,241 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(test_database)
         db.session.commit()
 
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_list_oauth2_tokens_pagination_and_search(self) -> None:
+        """Authenticated listings paginate and search only the route's connection."""
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/"
+        for page, expected_ids in (
+            (0, self._oauth2_token_ids[:2]),
+            (1, self._oauth2_token_ids[2:]),
+        ):
+            response = self.client.get(
+                uri,
+                query_string={"q": rison.dumps({"page": page, "page_size": 2})},
+            )
+            assert response.status_code == 200
+            assert response.json["count"] == 3
+            assert [token["id"] for token in response.json["result"]] == list(
+                expected_ids
+            )
+            assert "access_token" not in response.json["result"][0]
+            assert "refresh_token" not in response.json["result"][0]
+            assert "secret" not in response.get_data(as_text=True)
+
+        response = self.client.get(
+            uri,
+            query_string={
+                "q": rison.dumps(
+                    {
+                        "filters": [
+                            {
+                                "col": "id",
+                                "opr": "oauth2_tokens_user",
+                                "value": ADMIN_USERNAME,
+                            }
+                        ]
+                    }
+                )
+            },
+        )
+        assert response.status_code == 200
+        assert response.json["count"] == 1
+        assert response.json["result"][0]["id"] == self._oauth2_token_ids[0]
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_single_oauth2_token(self) -> None:
+        """Delete selected credentials while preserving other connections' tokens."""
+        self.login(ADMIN_USERNAME)
+        selected = [self._oauth2_token_ids[0]]
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/delete/"
+        response = self.client.post(uri, json={"token_ids": selected})
+        assert response.status_code == 200
+        assert response.json == {"message": "OK"}
+        remaining_ids = {
+            token_id
+            for (token_id,) in db.session.query(DatabaseUserOAuth2Tokens.id).filter_by(
+                database_id=self._oauth2_database_id
+            )
+        }
+        assert remaining_ids == set(self._oauth2_token_ids) - set(selected)
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_multiple_oauth2_tokens(self) -> None:
+        """Delete selected credentials while preserving other connections' tokens."""
+        self.login(ADMIN_USERNAME)
+        selected = self._oauth2_token_ids[:2]
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/delete/"
+        response = self.client.post(uri, json={"token_ids": selected})
+        assert response.status_code == 200
+        assert response.json == {"message": "OK"}
+        remaining_ids = {
+            token_id
+            for (token_id,) in db.session.query(DatabaseUserOAuth2Tokens.id).filter_by(
+                database_id=self._oauth2_database_id
+            )
+        }
+        assert remaining_ids == set(self._oauth2_token_ids) - set(selected)
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_duplicate_oauth2_token_ids(self) -> None:
+        """Delete selected credentials while preserving other connections' tokens."""
+        self.login(ADMIN_USERNAME)
+        selected = [self._oauth2_token_ids[0], *self._oauth2_token_ids[:2]]
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/delete/"
+        response = self.client.post(uri, json={"token_ids": selected})
+        assert response.status_code == 200
+        assert response.json == {"message": "OK"}
+        remaining_ids = {
+            token_id
+            for (token_id,) in db.session.query(DatabaseUserOAuth2Tokens.id).filter_by(
+                database_id=self._oauth2_database_id
+            )
+        }
+        assert remaining_ids == set(self._oauth2_token_ids) - set(selected)
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_missing_oauth2_token_is_atomic(self) -> None:
+        """Reject an invalid ID without partially deleting selected credentials."""
+        self.login(ADMIN_USERNAME)
+        invalid_id = self.get_nonexistent_numeric_id(DatabaseUserOAuth2Tokens)
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/delete/"
+        response = self.client.post(
+            uri, json={"token_ids": [self._oauth2_token_ids[0], invalid_id]}
+        )
+        assert response.status_code == 404
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(database_id=self._oauth2_database_id)
+            .count()
+            == 3
+        )
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_foreign_oauth2_token_is_atomic(self) -> None:
+        """Reject an invalid ID without partially deleting selected credentials."""
+        self.login(ADMIN_USERNAME)
+        invalid_id = self._oauth2_other_token_id
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/delete/"
+        response = self.client.post(
+            uri, json={"token_ids": [self._oauth2_token_ids[0], invalid_id]}
+        )
+        assert response.status_code == 404
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(database_id=self._oauth2_database_id)
+            .count()
+            == 3
+        )
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_all_oauth2_tokens_is_scoped(self) -> None:
+        """Delete-all removes scoped credentials and succeeds on an empty connection."""
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/all/"
+        for _ in range(2):
+            response = self.client.post(uri)
+            assert response.status_code == 200
+            assert response.json == {"message": "OK"}
+            assert (
+                db.session.query(DatabaseUserOAuth2Tokens)
+                .filter_by(database_id=self._oauth2_database_id)
+                .count()
+                == 0
+            )
+            assert (
+                db.session.query(DatabaseUserOAuth2Tokens)
+                .filter_by(id=self._oauth2_other_token_id)
+                .count()
+                == 1
+            )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_selected_oauth2_tokens_database_failure(self) -> None:
+        """Return the documented failure response and preserve stored credentials."""
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/delete/"
+        with patch.object(
+            DatabaseUserOAuth2TokensDAO,
+            "delete",
+            side_effect=SQLAlchemyError("database-failure-sentinel"),
+        ):
+            response = self.client.post(
+                uri, json={"token_ids": [self._oauth2_token_ids[0]]}
+            )
+        assert response.status_code == 422
+        assert response.json == {"message": "OAuth2 tokens could not be deleted."}
+        assert "database-failure-sentinel" not in response.get_data(as_text=True)
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(database_id=self._oauth2_database_id)
+            .count()
+            == 3
+        )
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
+    @pytest.mark.usefixtures("create_oauth2_tokens")
+    def test_delete_all_oauth2_tokens_database_failure(self) -> None:
+        """Return the documented failure response and preserve stored credentials."""
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/database/{self._oauth2_database_id}/oauth2_tokens/all/"
+        with patch.object(
+            DatabaseUserOAuth2TokensDAO,
+            "delete_all_tokens",
+            side_effect=SQLAlchemyError("database-failure-sentinel"),
+        ):
+            response = self.client.post(uri)
+        assert response.status_code == 422
+        assert response.json == {"message": "OAuth2 tokens could not be deleted."}
+        assert "database-failure-sentinel" not in response.get_data(as_text=True)
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(database_id=self._oauth2_database_id)
+            .count()
+            == 3
+        )
+        assert (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(id=self._oauth2_other_token_id)
+            .count()
+            == 1
+        )
+
     def test_delete_database(self):
         """
         Database API: Test delete
@@ -2347,6 +2644,59 @@ class TestDatabaseApi(SupersetTestCase):
             "Database not found.", exc_info=True
         )
 
+    def test_database_tables_unknown_schema(self):
+        """
+        Database API: Test database tables with a schema that does not exist
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/tables/?q={rison.dumps({'schema_name': 'non_existent'})}"  # noqa: E501
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["error"] == "Schema not found."
+
+    def test_database_tables_dataset_access_only(self):
+        """
+        Database API: Test database tables for a user with dataset access only
+        """
+        example_db = get_example_database()
+        schema_name = example_db.get_default_schema(None)
+        table_name = f"tables_dataset_access_{shortid()}"
+        with example_db.get_sqla_engine() as engine:
+            with engine.begin() as conn:
+                conn.execute(text(f"CREATE TABLE {table_name} (id INTEGER)"))
+        table = SqlaTable(
+            table_name=table_name,
+            catalog=example_db.get_default_catalog(),
+            schema=schema_name,
+            database=example_db,
+        )
+        db.session.add(table)
+        db.session.commit()
+
+        try:
+            with self.temporary_user(
+                clone_user=security_manager.find_user(GAMMA_USERNAME),
+                extra_pvms=[("datasource_access", table.perm)],
+                login=True,
+            ):
+                arguments = {"schema_name": schema_name, "force": True}
+                rv = self.client.get(
+                    f"api/v1/database/{example_db.id}/tables/?q={rison.dumps(arguments)}"
+                )
+                assert rv.status_code == 200
+                response = json.loads(rv.data.decode("utf-8"))
+                assert [option["value"] for option in response["result"]] == [
+                    table_name
+                ]
+        finally:
+            db.session.delete(table)
+            db.session.commit()
+            with example_db.get_sqla_engine() as engine:
+                with engine.begin() as conn:
+                    conn.execute(text(f"DROP TABLE {table_name}"))
+
     def test_database_tables_invalid_query(self):
         """
         Database API: Test database tables with invalid query
@@ -2371,8 +2721,9 @@ class TestDatabaseApi(SupersetTestCase):
         database = db.session.query(Database).filter_by(database_name="examples").one()
         mock_can_access_database.side_effect = Exception("Test Error")
 
+        schema_name = self.default_schema_backend_map[database.backend]
         rv = self.client.get(
-            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': 'main'})}"  # noqa: E501
+            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': schema_name})}"  # noqa: E501
         )
         assert rv.status_code == 422
         logger_mock.warning.assert_called_once_with("Test Error", exc_info=True)
@@ -4128,6 +4479,53 @@ class TestDatabaseApi(SupersetTestCase):
                         ],
                     },
                 },
+            ]
+        }
+
+    def test_validate_parameters_extra_metadata_cache_timeout_invalid(self):
+        self.login(ADMIN_USERNAME)
+        url = "api/v1/database/validate_parameters/"
+        payload = {
+            "engine": "postgresql",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+            "extra": json.dumps(
+                {"metadata_cache_timeout": {"schema_cache_timeout": -1}}
+            ),
+            "parameters": {
+                "host": "localhost",
+                "port": 5432,
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            },
+        }
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": (
+                        "The schema_cache_timeout in metadata_cache_timeout "
+                        "must be a non-negative integer."
+                    ),
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["extra"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": (
+                                    "Issue 1020 - The submitted payload "
+                                    "has the incorrect schema."
+                                ),
+                            }
+                        ],
+                    },
+                }
             ]
         }
 
