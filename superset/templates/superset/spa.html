@@ -116,11 +116,15 @@
 
     {% block head_js %}
       {% include "head_custom_extra.html" %}
+      {# A service worker script must be same-origin with the page, so register
+         it from the app origin (`application_root_rstrip`), never from
+         `assets_prefix`, which may point at a CDN. No `scope` is passed, so
+         the scope remains the script's directory (`<root>/static/`). #}
       <script nonce="{{ macros.get_nonce() }}">
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', function() {
             navigator.serviceWorker
-              .register('{{ assets_prefix }}/static/service-worker.js')
+              .register('{{ application_root_rstrip }}/static/service-worker.js')
               .catch(function(err) {
                 console.error('Service Worker registration failed:', err);
               });
