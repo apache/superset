@@ -17,7 +17,7 @@
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy.engine.url import make_url
@@ -60,6 +60,20 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "{col}"),
+        ("PT1S", "toStartOfSecond(toDateTime64({col}, 3))"),
+        ("PT1M", "toStartOfMinute(toDateTime({col}))"),
+    ],
+)
+def test_time_grain_expressions(time_grain: Optional[str], expected: str) -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    assert ClickHouseBaseEngineSpec._time_grain_expressions[time_grain] == expected
 
 
 def test_convert_dttm_normalizes_aware_datetime_to_utc() -> None:
@@ -129,7 +143,30 @@ def test_connect_convert_dttm(
             GenericDataType.STRING,
             False,
         ),
-        ("Array(UInt8)", String, None, GenericDataType.STRING, False),
+        ("Array(UInt8)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(String)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(UInt64)", String, None, GenericDataType.MULTI_VALUE, False),
+        (
+            "Array(LowCardinality(String))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
+        # Array(Enum(...)) is a real array and must classify as MULTI_VALUE, not
+        # get short-circuited by the Enum rule (the anchored ^Array\( pattern is
+        # ordered before the Enum entry).
+        (
+            "Array(Enum8('a' = 1, 'b' = 2))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
+        # Arrays nested inside Map/Tuple are not top-level array columns; the
+        # anchored pattern must not over-match them into MULTI_VALUE.
+        ("Map(String, Array(String))", String, None, GenericDataType.STRING, False),
+        ("Tuple(Array(String))", String, None, GenericDataType.STRING, False),
         ("Enum('hello', 'world')", String, None, GenericDataType.STRING, False),
         ("Enum('UInt32', 'Bool')", String, None, GenericDataType.STRING, False),
         (
@@ -616,3 +653,457 @@ def test_use_equality_for_boolean_filters_property() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
 
     assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
+
+
+def _compile(expr) -> str:
+    return str(expr.compile(compile_kwargs={"literal_binds": True}))
+
+
+def test_clickhouse_supports_multivalue_columns() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.supports_multivalue_columns is True
+
+
+def test_multivalue_contains_any_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_any(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAny(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_all_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_all(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAll(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_binds_parameters() -> None:
+    """Values must be bound parameters, not inlined (SQL-injection safety)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_any(column("skills"), ["Driver"])
+    compiled = expr.compile()
+    assert "Driver" not in str(compiled)
+    assert "Driver" in compiled.params.values()
+
+
+def test_multivalue_length_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_length(column("skills"))
+    assert _compile(expr) == "length(skills)"
+
+
+@pytest.mark.parametrize(
+    "native_type,expected",
+    [
+        ("Array(String)", GenericDataType.STRING),
+        ("Array(Int32)", GenericDataType.NUMERIC),
+        ("Array(UInt64)", GenericDataType.NUMERIC),
+        ("Array(Decimal(10, 2))", GenericDataType.NUMERIC),
+        ("Array(DateTime)", GenericDataType.TEMPORAL),
+        ("Array(Enum8('a' = 1))", GenericDataType.STRING),
+        # Wrappers around the element type don't change the generic type.
+        ("Array(Nullable(Int64))", GenericDataType.NUMERIC),
+        ("Array(LowCardinality(String))", GenericDataType.STRING),
+        # Non-array / nested-array types have no array element type.
+        ("String", None),
+        ("Map(String, Array(String))", None),
+    ],
+)
+def test_multivalue_get_array_element_type(
+    native_type: str, expected: GenericDataType | None
+) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.get_array_element_type(native_type) == expected
+
+
+def test_multivalue_array_explode_sql() -> None:
+    """array_explode compiles to ``arrayJoin(col)`` (element expansion)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_explode(column("scores"))
+    assert _compile(expr) == "arrayJoin(scores)"
+
+
+def test_multivalue_contains_any_numeric_coercion_sql() -> None:
+    """Numeric-array element values must render as numbers, not quoted strings."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    # Simulate values already coerced to numbers (as helpers.py does via the
+    # element type) and confirm the emitted array literal is numeric.
+    expr = spec.array_contains_any(column("scores"), [5, 6])
+    assert _compile(expr) == "hasAny(scores, array(5, 6))"
+
+
+def test_get_cancel_query_id_mints_a_uuid_without_a_round_trip() -> None:
+    """
+    No SQL should be issued to obtain the id: ClickHouse never hands one
+    back, the id is entirely client-chosen (verified against a real server
+    in tests/testcontainers/db_engine_specs/test_clickhouse.py).
+    """
+    import uuid
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    cursor_mock = Mock()
+    cancel_query_id = spec.get_cancel_query_id(cursor_mock, query)
+
+    assert cancel_query_id is not None
+    assert uuid.UUID(cancel_query_id).version == 4
+    cursor_mock.execute.assert_not_called()
+
+
+def test_get_cancel_query_id_declines_for_the_gtf_chart_data_stub() -> None:
+    """
+    `superset.tasks.query_cancel._CancellationQuery` stubs `query.id` as
+    `None` for the GTF chart-data path, which dispatches through the base
+    `execute()` rather than `execute_with_cursor` and so never forwards a
+    `settings` kwarg. An id minted for that path would never reach the
+    driver, so `cancel_query`'s `KILL QUERY WHERE query_id = ...` would have
+    nothing real to kill and would still report success via its "nothing to
+    confirm" fallback -- worse than the pre-existing, honest non-cancellable
+    behavior. Decline by returning `None` instead.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    query = Query()
+    assert query.id is None
+
+    assert spec.get_cancel_query_id(cursor_mock, query) is None
+    cursor_mock.execute.assert_not_called()
+
+
+def test_execute_with_cursor_forwards_recorded_cancel_id_as_query_id_setting() -> None:
+    """
+    `execute_with_cursor` is the only place that can thread the id recorded
+    by `get_cancel_query_id` into the driver -- the base `execute`/
+    `execute_with_cursor` pair (superset/db_engine_specs/base.py) never
+    forwards per-query kwargs to `cursor.execute()`. Without this, the id
+    Superset records in `query.extra` would never reach the server, and
+    `KILL QUERY WHERE query_id = ...` would have nothing real to kill.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    query.set_extra_json_key("cancel_query", "d14b9e5b-47ec-478e-bc7c-f8b56be98576")
+    cursor_mock = Mock()
+
+    spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1",
+        settings={"query_id": "d14b9e5b-47ec-478e-bc7c-f8b56be98576"},
+    )
+
+
+def test_execute_with_cursor_omits_settings_when_no_cancel_id_recorded() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    cursor_mock = Mock()
+
+    spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+
+
+def test_execute_with_cursor_refuses_to_dispatch_an_already_stopped_query() -> None:
+    """
+    The window this closes: the per-block loop's own STOPPED check
+    (sql_lab.py, which already ran once before this call) can pass, and
+    then Stop can be clicked and committed before the statement below is
+    actually sent. Unlike Postgres/MySQL (whose cancel_query() kills the
+    whole connection, so a cursor.execute() landing in this window fails
+    outright and gets caught upstream), ClickHouse's KILL QUERY has no such
+    side effect when nothing has matched yet -- without this check, the
+    statement would be sent and run to completion even though Superset
+    already told the user it stopped.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+        ClickHouseQueryStoppedBeforeDispatchError,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    query.status = QueryStatus.STOPPED
+    cursor_mock = Mock()
+
+    with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+        with pytest.raises(ClickHouseQueryStoppedBeforeDispatchError):
+            spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    # The real assertion: the statement must never reach the driver.
+    cursor_mock.execute.assert_not_called()
+
+
+def test_execute_with_cursor_dispatches_normally_when_not_stopped() -> None:
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    query.status = QueryStatus.RUNNING
+    cursor_mock = Mock()
+
+    with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+        spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+
+
+def test_cancel_query_issues_kill_query_sync_for_the_recorded_id() -> None:
+    """
+    SYNC is required: the default ASYNC mode returns immediately with
+    kill_status="waiting", before ClickHouse has confirmed the query is
+    actually gone -- verified empirically against a real server (see
+    RCA.md). Without SYNC, cancel_query's return value would be meaningless.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+    cursor_mock.fetchall.return_value = [
+        ["finished", cancel_query_id, "default", "SELECT 1"]
+    ]
+
+    assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
+    cursor_mock.execute.assert_called_once_with(
+        f"KILL QUERY WHERE query_id = '{cancel_query_id}' SYNC"
+    )
+
+
+def test_cancel_query_returns_false_when_kill_status_not_confirmed() -> None:
+    """
+    A real process matched our query_id, but ClickHouse itself reports it
+    couldn't confirm termination (e.g. `cant_cancel`) -- there's positive
+    evidence the query may still be running, so this must not report
+    success just because `cursor.execute()` didn't raise.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    for kill_status in ("waiting", "cant_cancel", "pending", "unknown_status"):
+        cursor_mock = Mock()
+        cursor_mock.fetchall.return_value = [
+            [kill_status, cancel_query_id, "default", "SELECT 1"]
+        ]
+        assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is False, (
+            f"kill_status={kill_status!r} must not report success"
+        )
+
+
+def test_cancel_query_returns_true_when_nothing_matched() -> None:
+    """
+    No row with a recognizable kill_status -- either a genuinely empty
+    result (no process matched, e.g. the query already finished on its
+    own) or clickhouse-connect==1.9.0's own synthesized "stats" row (its
+    DB-API cursor returns a 1-row summary derived from the
+    X-ClickHouse-Summary response header instead of an empty list when the
+    real HTTP body is empty -- verified empirically against a real server,
+    see RCA.md). Both mean "nothing to confirm", which is treated as
+    success so SQL Lab doesn't get stuck believing an already-finished
+    query is still running.
+
+    `Query()` here is transient (never added to a session), so the
+    best-effort `db.session.refresh(query)` follow-up check (see the next
+    two tests) raises and is caught, falling back to this same True --
+    exercising that fallback path, not bypassing it.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    # Case 1: a genuinely empty result.
+    cursor_mock = Mock()
+    cursor_mock.fetchall.return_value = []
+    assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
+
+    # Case 2: clickhouse-connect's synthesized X-ClickHouse-Summary stats
+    # row -- same 9-column shape observed against a real server, first
+    # column is an int (a row count), never a kill_status string.
+    cursor_mock = Mock()
+    cursor_mock.fetchall.return_value = [[1, 834, 0, 0, 0, 0, 0, 1686330, "some-id"]]
+    assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
+
+
+def test_cancel_query_returns_false_when_query_finished_during_kill_round_trip() -> (
+    None
+):
+    """
+    The narrow race this guards: KILL QUERY SYNC finds no match because the
+    query finished -- with a real result already committed -- *during* the
+    round-trip itself, after QueryDAO.stop_query()'s own already-complete
+    guard ran (it only checks once, before calling cancel_query(), and never
+    re-checks after). Returning True here would make that caller
+    unconditionally overwrite the just-committed status with STOPPED.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    for terminal_status in (
+        QueryStatus.SUCCESS,
+        QueryStatus.FAILED,
+        QueryStatus.TIMED_OUT,
+    ):
+        query = Query()
+        query.status = terminal_status
+        cursor_mock = Mock()
+        cursor_mock.fetchall.return_value = []
+
+        with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+            assert spec.cancel_query(cursor_mock, query, cancel_query_id) is False, (
+                f"status={terminal_status!r} must not be overwritten"
+            )
+
+
+def test_cancel_query_returns_true_when_refresh_shows_still_running() -> None:
+    """
+    The common case: the refresh succeeds and shows the query is still
+    genuinely RUNNING (or STOPPED already) -- nothing matched because it
+    hadn't registered yet, or some other benign reason, not because a
+    result was raced. This must stay True, or routine stops would start
+    spuriously failing.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    query = Query()
+    query.status = QueryStatus.RUNNING
+    cursor_mock = Mock()
+    cursor_mock.fetchall.return_value = []
+
+    with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+        assert spec.cancel_query(cursor_mock, query, cancel_query_id) is True
+
+
+def test_cancel_query_rejects_non_uuid_ids() -> None:
+    """
+    Defense-in-depth against injection via a tampered/forged cancel id --
+    mirrors every other engine's own id-shaped validation (e.g. Postgres/
+    MySQL's `^\\d+$` for their integer ids).
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+
+    assert (
+        spec.cancel_query(cursor_mock, Query(), "1; DROP TABLE system.processes")
+        is False
+    )
+    cursor_mock.execute.assert_not_called()
+
+
+def test_cancel_query_returns_false_on_driver_error() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    cursor_mock.execute.side_effect = Exception("boom")
+
+    assert (
+        spec.cancel_query(cursor_mock, Query(), "d14b9e5b-47ec-478e-bc7c-f8b56be98576")
+        is False
+    )
+
+
+def test_legacy_clickhouse_engine_spec_has_no_cancel_support() -> None:
+    """
+    The legacy `clickhouse-sqlalchemy` driver's cursor (`ClickHouseEngineSpec`,
+    the non-recommended "clickhouse" engine) has a different `execute()`
+    signature with no `settings` kwarg, and only generates its own query id
+    internally inside `execute()` -- it isn't available beforehand the way
+    `has_query_id_before_execute` (the base default both engines use)
+    requires. Passing a `settings` kwarg to that driver's cursor would raise
+    a TypeError, so the cancel overrides below live on
+    `ClickHouseConnectEngineSpec` only; this locks in that the legacy engine
+    still falls through to the inert base defaults rather than inheriting
+    something that would break it.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    assert spec.get_cancel_query_id(cursor_mock, Query()) is None
+    assert spec.cancel_query(cursor_mock, Query(), "123") is False

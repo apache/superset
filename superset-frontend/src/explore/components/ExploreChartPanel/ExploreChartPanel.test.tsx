@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { isValidElement } from 'react';
+import fetchMock from 'fetch-mock';
 import {
   render,
   screen,
@@ -29,6 +30,10 @@ import {
   VizType,
 } from '@superset-ui/core';
 import ChartContainerComponent from 'src/explore/components/ExploreChartPanel';
+import {
+  ExploreStandaloneMode,
+  LEGACY_AGGREGATION_TAG,
+} from 'src/explore/constants';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 jest.mock('./StandaloneDownloadControl', () => ({
@@ -85,6 +90,8 @@ describe('ChartContainer', () => {
   jest.setTimeout(10000);
 
   afterEach(() => {
+    fetchMock.removeRoutes();
+    fetchMock.clearHistory();
     window.history.replaceState({}, '', window.location.pathname);
   });
 
@@ -103,7 +110,6 @@ describe('ChartContainer', () => {
       new ChartMetadata({
         name: 'fake table',
         thumbnail: '.png',
-        useLegacyApi: false,
       }),
     );
     render(<ChartContainer {...props} />, { useRedux: true });
@@ -163,7 +169,7 @@ describe('ChartContainer', () => {
     const cached = await screen.findByText('Cached');
     expect(cached).toBeInTheDocument();
 
-    userEvent.click(cached);
+    await userEvent.click(cached);
     expect(setForceQuery).toHaveBeenCalledTimes(1);
     expect(postChartFormData).toHaveBeenCalledTimes(1);
     expect(updateQueryFormData).toHaveBeenCalledTimes(1);
@@ -197,14 +203,14 @@ describe('ChartContainer', () => {
     const gutter = container.querySelector('.gutter');
     expect(gutter).toBeVisible();
 
-    userEvent.click(screen.getByLabelText('Collapse data panel'));
+    await userEvent.click(screen.getByLabelText('Collapse data panel'));
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(gutter).not.toBeVisible();
   });
 
   test('does not render standalone download control when show_download is absent', () => {
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: true,
     });
 
@@ -219,7 +225,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=0');
 
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: true,
     });
 
@@ -234,7 +240,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=1');
 
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: true,
     });
 
@@ -249,7 +255,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=1');
 
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: false,
     });
 
@@ -264,7 +270,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=1');
 
     const props = createProps({
-      standalone: false,
+      standalone: ExploreStandaloneMode.None,
       can_download: true,
     });
 
@@ -273,5 +279,25 @@ describe('ChartContainer', () => {
     expect(
       screen.queryByTestId('standalone-download-button'),
     ).not.toBeInTheDocument();
+  });
+
+  test('shows the legacy aggregation notice for a tagged saved pivot table', async () => {
+    fetchMock.get('glob:*/api/v1/chart/318', {
+      result: {
+        tags: [{ id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 }],
+      },
+    });
+    const props = createProps({
+      vizType: 'pivot_table_v2',
+      slice: { slice_id: 318, form_data: {}, query_context: {} },
+    });
+
+    render(<ChartContainer {...props} />, { useRedux: true });
+
+    expect(
+      await screen.findByText(
+        'This chart was updated to use the restored aggregation',
+      ),
+    ).toBeInTheDocument();
   });
 });

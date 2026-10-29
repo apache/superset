@@ -71,6 +71,7 @@ The Alerts & Reports feature relies on Celery for task scheduling and execution.
 
 - Redis running on `localhost:6379`
 - [MailHog](https://github.com/mailhog/MailHog) installed (a local SMTP server with a web UI for viewing caught emails)
+- Playwright and Chromium installed, for report screenshots
 
 ### superset_config.py
 
@@ -124,8 +125,6 @@ ALERT_REPORTS_EXECUTORS = [ExecutorType.EDITOR]
 
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
-    # Recommended for better screenshot support (WebGL/DeckGL charts)
-    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,
 }
 ```
 
@@ -159,13 +158,13 @@ Use `--concurrency=1` to limit resource usage on your dev machine.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| Beat shows no output | Ensure `beat_schedule` is defined in your `CeleryConfig` and `--loglevel=info` is set |
+| Problem                                                    | Solution                                                                                                              |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Beat shows no output                                       | Ensure `beat_schedule` is defined in your `CeleryConfig` and `--loglevel=info` is set                                 |
 | "Report Schedule is still working, refusing to re-compute" | Previous executions are stuck. Reset with: `UPDATE report_schedule SET last_state = 'Not triggered' WHERE id = <id>;` |
-| Task backlog overwhelming the worker | Flush Redis: `redis-cli FLUSHDB`, then restart Beat and Worker |
-| Screenshot timeout | Ensure your frontend dev server is running and `WEBDRIVER_BASEURL` matches its URL |
+| Task backlog overwhelming the worker                       | Flush Redis: `redis-cli FLUSHDB`, then restart Beat and Worker                                                        |
+| Screenshot timeout                                         | Ensure your frontend dev server is running and `WEBDRIVER_BASEURL` matches its URL                                    |
 
 ---
 
-*This documentation is under active development. Check back soon for updates!*
+_This documentation is under active development. Check back soon for updates!_

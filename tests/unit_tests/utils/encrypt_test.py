@@ -22,8 +22,10 @@ import pytest
 from sqlalchemy import String
 from sqlalchemy.engine import make_url
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEngine
+from sqlalchemy_utils.types.encrypted.padding import PKCS5Padding
 
 from superset.utils.encrypt import (
+    BackwardCompatibleAesEngine,
     EncryptedType,
     ReEncryptStats,
     resolve_encryption_engine,
@@ -73,6 +75,65 @@ def test_default_engine_is_aes_cbc() -> None:
     """Without config, the adapter keeps the historical AES-CBC engine."""
     field = SQLAlchemyUtilsAdapter().create(SECRET, String(128))
     assert isinstance(field.engine, AesEngine)
+
+
+def test_trailing_asterisk_survives_round_trip() -> None:
+    """A secret ending in a literal '*' must not be truncated on decrypt.
+
+    Reported in apache/superset#32664: a Redshift/Postgres password ending in
+    '*' connects fine (Test Connection succeeds) but authentication fails
+    after the Database row is saved and reloaded. The default field used to
+    pad new writes with sqlalchemy_utils' "naive" scheme, which pads short
+    values with literal '*' bytes and unpads by unconditionally stripping
+    every trailing '*' on decrypt (see NaivePadding.unpad) -- stripping a
+    real trailing '*' in the secret right along with the padding.
+    BackwardCompatibleAesEngine pads new writes with PKCS5 instead, which
+    can't be confused with real data.
+    """
+    field = SQLAlchemyUtilsAdapter().create(SECRET, String(1024))
+
+    encrypted = field.process_bind_param("mypassword*", DIALECT)
+    decrypted = field.process_result_value(encrypted, DIALECT)
+
+    assert decrypted == "mypassword*", (
+        f"expected the trailing '*' to survive the round trip, got {decrypted!r}"
+    )
+
+
+def test_multiple_trailing_asterisks_survive_round_trip() -> None:
+    """Several real trailing '*' characters all survive, not just one."""
+    field = SQLAlchemyUtilsAdapter().create(SECRET, String(1024))
+
+    encrypted = field.process_bind_param("hunter2***", DIALECT)
+    decrypted = field.process_result_value(encrypted, DIALECT)
+
+    assert decrypted == "hunter2***"
+
+
+def test_legacy_naive_padded_secret_still_decrypts() -> None:
+    """A value stored under the old naive-padding scheme keeps decrypting
+    correctly under the new engine -- no re-encryption pass required.
+
+    Simulates a secret written before this fix (or by any caller using the
+    raw upstream ``AesEngine`` directly, naive padding included) and confirms
+    ``BackwardCompatibleAesEngine`` still reads it back byte-for-byte. This
+    is the property that makes the fix safe to ship without a data
+    migration: it only has to be backward-read-compatible, since existing
+    ciphertext is never rewritten in place.
+    """
+    legacy = _encrypted_type(AesEngine)
+    legacy_ciphertext = legacy.process_bind_param("legacy-secret", DIALECT)
+
+    current = _encrypted_type(BackwardCompatibleAesEngine)
+
+    assert current.process_result_value(legacy_ciphertext, DIALECT) == "legacy-secret"
+
+
+def test_new_writes_use_pkcs5_padding() -> None:
+    """New ciphertext is padded with PKCS5, not the legacy naive scheme."""
+    field = _encrypted_type(BackwardCompatibleAesEngine)
+
+    assert isinstance(field.engine.padding_engine, PKCS5Padding)
 
 
 def test_aes_gcm_engine_selected_by_config() -> None:

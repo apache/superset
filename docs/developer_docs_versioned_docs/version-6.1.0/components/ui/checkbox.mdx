@@ -33,23 +33,24 @@ Checkbox component that supports both regular and indeterminate states, built on
 <StoryWithControls
   component="Checkbox"
   props={{
-  checked: false,
-  indeterminate: false
-}}
+    checked: false,
+    indeterminate: false,
+  }}
   controls={[
-  {
-    name: "checked",
-    label: "Checked",
-    type: "boolean",
-    description: "Whether the checkbox is checked."
-  },
-  {
-    name: "indeterminate",
-    label: "Indeterminate",
-    type: "boolean",
-    description: "Whether the checkbox is in indeterminate state (partially selected)."
-  }
-]}
+    {
+      name: 'checked',
+      label: 'Checked',
+      type: 'boolean',
+      description: 'Whether the checkbox is checked.',
+    },
+    {
+      name: 'indeterminate',
+      label: 'Indeterminate',
+      type: 'boolean',
+      description:
+        'Whether the checkbox is in indeterminate state (partially selected).',
+    },
+  ]}
 />
 
 ## Try It
@@ -60,7 +61,7 @@ Edit the code below to experiment with the component:
 function Demo() {
   return (
     <Checkbox
-      // Add props here
+    // Add props here
     />
   );
 }
@@ -76,7 +77,9 @@ function AllStates() {
       <Checkbox checked={true}>Checked</Checkbox>
       <Checkbox indeterminate={true}>Indeterminate</Checkbox>
       <Checkbox disabled>Disabled unchecked</Checkbox>
-      <Checkbox disabled checked>Disabled checked</Checkbox>
+      <Checkbox disabled checked>
+        Disabled checked
+      </Checkbox>
     </div>
   );
 }
@@ -97,7 +100,7 @@ function SelectAllDemo() {
       <Checkbox
         checked={allSelected}
         indeterminate={indeterminate}
-        onChange={(e) => setSelected(e.target.checked ? [...options] : [])}
+        onChange={e => setSelected(e.target.checked ? [...options] : [])}
       >
         Select All
       </Checkbox>
@@ -106,9 +109,13 @@ function SelectAllDemo() {
           <div key={opt}>
             <Checkbox
               checked={selected.includes(opt)}
-              onChange={() => setSelected(prev =>
-                prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]
-              )}
+              onChange={() =>
+                setSelected(prev =>
+                  prev.includes(opt)
+                    ? prev.filter(x => x !== opt)
+                    : [...prev, opt],
+                )
+              }
             >
               {opt}
             </Checkbox>
@@ -122,9 +129,9 @@ function SelectAllDemo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `checked` | `boolean` | `false` | Whether the checkbox is checked. |
+| Prop            | Type      | Default | Description                                                          |
+| --------------- | --------- | ------- | -------------------------------------------------------------------- |
+| `checked`       | `boolean` | `false` | Whether the checkbox is checked.                                     |
 | `indeterminate` | `boolean` | `false` | Whether the checkbox is in indeterminate state (partially selected). |
 
 ## Import

@@ -117,7 +117,11 @@ import { extensions } from '@apache-superset/core';
 const ctx = extensions.getContext();
 
 // Store with a 5-minute TTL
-await ctx.storage.ephemeral.set('job_progress', { pct: 42, status: 'running' }, { ttl: 300 });
+await ctx.storage.ephemeral.set(
+  'job_progress',
+  { pct: 42, status: 'running' },
+  { ttl: 300 },
+);
 
 // Retrieve
 const progress = await ctx.storage.ephemeral.get('job_progress');
@@ -155,7 +159,11 @@ import { extensions } from '@apache-superset/core';
 
 const ctx = extensions.getContext();
 
-await ctx.storage.ephemeral.shared.set('shared_result', { data: [1, 2, 3] }, { ttl: 3600 });
+await ctx.storage.ephemeral.shared.set(
+  'shared_result',
+  { data: [1, 2, 3] },
+  { ttl: 3600 },
+);
 const result = await ctx.storage.ephemeral.shared.get('shared_result');
 ```
 
@@ -198,7 +206,9 @@ import { extensions } from '@apache-superset/core';
 const ctx = extensions.getContext();
 
 // Store a saved SQL snippet
-await ctx.storage.persistent.set('snippet:top_customers', { sql: 'SELECT ...' });
+await ctx.storage.persistent.set('snippet:top_customers', {
+  sql: 'SELECT ...',
+});
 
 // Retrieve
 const snippet = await ctx.storage.persistent.get('snippet:top_customers');
@@ -268,7 +278,10 @@ result.entries.forEach(entry => {
 console.log(result.count); // total matching entries across all pages
 
 // Shared (global) scope
-const shared = await ctx.storage.persistent.shared.list({ page: 0, pageSize: 10 });
+const shared = await ctx.storage.persistent.shared.list({
+  page: 0,
+  pageSize: 10,
+});
 ```
 
 ```python

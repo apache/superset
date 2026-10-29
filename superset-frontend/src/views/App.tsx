@@ -32,9 +32,10 @@ import {
 } from 'react-reverse-portal';
 import { bindActionCreators } from 'redux';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { Flex, Layout, Loading } from '@superset-ui/core/components';
+import { Flex, Layout, Loading, Splitter } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
+import MobileRouteGuard from 'src/components/MobileRouteGuard';
 import MenuWrapper from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -48,7 +49,6 @@ import { store } from 'src/views/store';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { isUser } from 'src/types/bootstrapTypes';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
-import { Splitter } from 'src/components/Splitter';
 import { ChatFloatingHost, ChatPanelHost, useChat } from 'src/core/chat';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { RootContextProviders } from './RootContextProviders';
@@ -97,19 +97,29 @@ const RouteSwitch = () => {
   const theme = useTheme();
   return (
     <Switch>
-      {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-        <Route path={path} key={path}>
-          <Suspense fallback={<Fallback />}>
-            <ErrorBoundary
-              css={css`
-                margin: ${theme.sizeUnit * 4}px;
-              `}
-            >
-              <Component user={bootstrapData.user} {...props} />
-            </ErrorBoundary>
-          </Suspense>
-        </Route>
-      ))}
+      {routes.map(
+        ({
+          path,
+          Component,
+          props = {},
+          Fallback = Loading,
+          mobileSupported,
+        }) => (
+          <Route path={path} key={path}>
+            <Suspense fallback={<Fallback />}>
+              <MobileRouteGuard mobileSupported={mobileSupported}>
+                <ErrorBoundary
+                  css={css`
+                    margin: ${theme.sizeUnit * 4}px;
+                  `}
+                >
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </MobileRouteGuard>
+            </Suspense>
+          </Route>
+        ),
+      )}
       <Redirect from="/" to="/welcome/" exact />
     </Switch>
   );
@@ -136,8 +146,15 @@ const lockedShellCss = css`
   overflow: hidden;
 `;
 
-const pageScrollShellCss = css`
-  min-height: 100vh;
+// Fill the height #app grants instead of claiming a whole viewport. When a host
+// page injects content above #app, a 100vh shell overflows the now-shorter #app,
+// and routes that hide body overflow (Explore, SQL Lab) clip that overflow with
+// no way to scroll to it (#44867). Content taller than #app still grows the
+// shell, so page scrolling is unchanged. Exported for App.test.tsx: jest omits
+// emotion's babel plugin, so a css prop cannot be read back off the DOM.
+export const pageScrollShellCss = css`
+  flex: 1 1 auto;
+  min-height: 0;
 `;
 
 const pageScrollContentCss = css`
@@ -159,6 +176,17 @@ const AppContent = ({
   const { open: panelOpen, mode, chat } = useChat();
   const hasChatExtension = chatExtensionsEnabled && !!chat;
   const isPanelOpen = hasChatExtension && mode === 'panel' && panelOpen;
+  // Keep the provider mounted while its DOM moves between display modes.
+  const chatPortalNode = useMemo(
+    () =>
+      createHtmlPortalNode({
+        attributes: {
+          style:
+            'display: flex; flex-direction: column; height: 100%; min-height: 0;',
+        },
+      }),
+    [],
+  );
 
   const [storedWidth, setStoredWidth] = useStoredSidebarWidth(
     'chat:panel',
@@ -204,13 +232,17 @@ const AppContent = ({
     >
       <Splitter.Panel>{layoutContent}</Splitter.Panel>
       <Splitter.Panel size={storedWidth} min={CHAT_PANEL_MIN_WIDTH}>
-        <ChatPanelHost />
+        <OutPortal node={chatPortalNode} />
       </Splitter.Panel>
     </Splitter>
   ) : (
     <>
       {layoutContent}
-      {hasChatExtension && <ChatFloatingHost />}
+      {hasChatExtension && (
+        <ChatFloatingHost>
+          <OutPortal node={chatPortalNode} />
+        </ChatFloatingHost>
+      )}
     </>
   );
 
@@ -220,7 +252,14 @@ const AppContent = ({
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
       />
-      <ExtensionsStartup>{content}</ExtensionsStartup>
+      <ExtensionsStartup>
+        {hasChatExtension && panelOpen && (
+          <InPortal node={chatPortalNode}>
+            <ChatPanelHost />
+          </InPortal>
+        )}
+        {content}
+      </ExtensionsStartup>
     </Flex>
   );
 };

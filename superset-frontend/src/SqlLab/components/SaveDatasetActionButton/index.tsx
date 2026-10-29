@@ -23,11 +23,13 @@ import { Button } from '@superset-ui/core/components';
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
   onSaveAsExplore?: () => void;
+  canSaveDataset: boolean;
 }
 
 const SaveDatasetActionButton = ({
   setShowSave,
   onSaveAsExplore,
+  canSaveDataset,
 }: SaveDatasetActionButtonProps) => (
   <>
     <Button
@@ -43,8 +45,13 @@ const SaveDatasetActionButton = ({
         color="default"
         variant="text"
         onClick={() => onSaveAsExplore?.()}
+        disabled={!canSaveDataset}
         icon={<Icons.TableOutlined />}
-        tooltip={t('Save or Overwrite Dataset')}
+        tooltip={
+          canSaveDataset
+            ? t('Save or Overwrite Dataset')
+            : t('You must run the query successfully first')
+        }
         aria-label={t('Save dataset')}
       />
     )}

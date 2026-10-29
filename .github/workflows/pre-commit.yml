@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -41,42 +42,16 @@ jobs:
           # determine changed files (see "Determine changed files" below).
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: ./.github/actions/setup-backend/
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-
-      - name: Install helm-docs
-        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: "superset-frontend/.nvmrc"
-          cache: "npm"
-          cache-dependency-path: "superset-frontend/package-lock.json"
-
-      - name: Install Frontend Dependencies
-        run: |
-          cd superset-frontend
-          npm ci
-
-      - name: Install Docs Dependencies
-        run: |
-          cd docs
-          yarn install --immutable
-
-      - name: Cache pre-commit environments
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
-
+      # Determined early (right after checkout, before any dependency
+      # installs) so the frontend/docs installs below can skip themselves
+      # when nothing under those trees changed — npm ci and yarn install are
+      # the two most expensive steps in this job, and every hook that needs
+      # them (oxfmt/oxlint/stylelint/type-checking for superset-frontend,
+      # oxlint-docs for docs) is itself gated in .pre-commit-config.yaml on
+      # exactly those path prefixes, so skipping the installs alongside the
+      # hooks that would use them is safe, not just faster. The Node.js setup
+      # has its own, slightly wider gate (needs_node): oxfmt-websocket runs
+      # `npx oxfmt` with no install at all, but still wants the .nvmrc Node.
       - name: Determine changed files
         id: changed_files
         env:
@@ -85,9 +60,27 @@ jobs:
         run: |
           set -euo pipefail
 
+          emit_needs() {
+            # $1: mode (all/none). The "files" mode is handled separately,
+            # via scripts/pre_commit_dependency_needs.py, not this function.
+            case "$1" in
+              all)
+                echo "needs_frontend=true" >> "$GITHUB_OUTPUT"
+                echo "needs_docs=true" >> "$GITHUB_OUTPUT"
+                echo "needs_node=true" >> "$GITHUB_OUTPUT"
+                ;;
+              none)
+                echo "needs_frontend=false" >> "$GITHUB_OUTPUT"
+                echo "needs_docs=false" >> "$GITHUB_OUTPUT"
+                echo "needs_node=false" >> "$GITHUB_OUTPUT"
+                ;;
+            esac
+          }
+
           # Scheduled runs check the whole tree (see the pre-commit step).
           if [ "${EVENT_NAME}" = "schedule" ]; then
             echo "mode=all" >> "$GITHUB_OUTPUT"
+            emit_needs all
             exit 0
           fi
 
@@ -115,6 +108,7 @@ jobs:
           if [ -z "${base}" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
             echo "::notice::Could not resolve a diff base; falling back to --all-files."
             echo "mode=all" >> "$GITHUB_OUTPUT"
+            emit_needs all
             exit 0
           fi
 
@@ -127,11 +121,13 @@ jobs:
           if [ "$(printf '%s' "${files}" | wc -c)" -gt 100000 ]; then
             echo "::notice::Changed-file list too large to pass via env; falling back to --all-files."
             echo "mode=all" >> "$GITHUB_OUTPUT"
+            emit_needs all
             exit 0
           fi
 
           if [ -z "${files}" ]; then
             echo "mode=none" >> "$GITHUB_OUTPUT"
+            emit_needs none
           else
             echo "mode=files" >> "$GITHUB_OUTPUT"
             {
@@ -139,9 +135,78 @@ jobs:
               echo "${files}"
               echo "__CHANGED_FILES_EOF__"
             } >> "$GITHUB_OUTPUT"
+            # scripts/pre_commit_dependency_needs.py (tests:
+            # tests/unit_tests/scripts/pre_commit_dependency_needs_test.py)
+            # writes needs_frontend/needs_docs/needs_node straight to
+            # $GITHUB_OUTPUT. A
+            # prior inline `printf | grep -q` version risked a false "not
+            # needed" result: under `pipefail`, grep -q's early exit on a
+            # match can SIGPIPE a producer still mid-write for a large
+            # enough list (our own 100000-byte cap above is bigger than a
+            # typical 64KB pipe buffer), silently skipping a needed install
+            # instead of running it. Plain Python reading stdin to EOF has
+            # no equivalent early-exit-close behavior.
+            printf '%s\n' "${files}" | python3 scripts/pre_commit_dependency_needs.py
           fi
 
-      - name: pre-commit
+      - name: Setup Python
+        uses: $/.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+
+      - name: Install helm-docs
+        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
+
+      # Spike: run the existing .pre-commit-config.yaml through prek (a Rust
+      # reimplementation of pre-commit) instead of pre-commit itself, to see
+      # whether it's viable to speed up this job. CI-only — contributors keep
+      # installing/running `pre-commit` locally exactly as documented; nothing
+      # here changes that.
+      - name: Install prek
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
+
+      - name: Setup Node.js
+        if: steps.changed_files.outputs.needs_node == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: "superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
+
+      - name: Install Frontend Dependencies
+        if: steps.changed_files.outputs.needs_frontend == 'true'
+        run: |
+          cd superset-frontend
+          npm ci
+
+      - name: Cache yarn (docs)
+        if: steps.changed_files.outputs.needs_docs == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/yarn
+          key: docs-yarn-v1-${{ runner.os }}-${{ hashFiles('docs/yarn.lock') }}
+          restore-keys: |
+            docs-yarn-v1-${{ runner.os }}-
+
+      - name: Install Docs Dependencies
+        if: steps.changed_files.outputs.needs_docs == 'true'
+        run: |
+          cd docs
+          yarn install --immutable
+
+      - name: Cache prek environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/prek
+          key: prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: pre-commit (via prek)
         env:
           MODE: ${{ steps.changed_files.outputs.mode }}
           CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
@@ -151,22 +216,22 @@ jobs:
 
           case "${MODE}" in
             all)
-              echo "ℹ️ Running pre-commit on all files."
-              pre-commit run --all-files
+              echo "ℹ️ Running prek on all files."
+              prek run --all-files
               ;;
             files)
-              echo "ℹ️ Running pre-commit on changed files:"
+              echo "ℹ️ Running prek on changed files:"
               echo "${CHANGED_FILES}"
               # shellcheck disable=SC2086
-              pre-commit run --files ${CHANGED_FILES}
+              prek run --files ${CHANGED_FILES}
               ;;
             none)
-              echo "ℹ️ No source files changed; nothing for pre-commit to check."
+              echo "ℹ️ No source files changed; nothing for prek to check."
               exit 0
               ;;
             *)
               echo "⚠️ Unrecognized changed-files mode '${MODE}'; checking all files."
-              pre-commit run --all-files
+              prek run --all-files
               ;;
           esac
           PRE_COMMIT_EXIT_CODE=$?
@@ -188,3 +253,26 @@ jobs:
             echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
           fi
+
+      # Sole-input mypy regression guards (tests/mypy_fixtures/). Each fixture
+      # pins a type that mypy resolves differently when the file is its only
+      # input than when the whole tree is loaded, so neither the scoped run
+      # above nor the nightly all-files sweep can stand in for this: a revert
+      # of the guarded declaration only surfaces when the fixture is checked
+      # alone. Hence one prek invocation per fixture.
+      - name: mypy sole-input fixtures
+        run: |
+          set -euo pipefail
+          for fixture in tests/mypy_fixtures/[!_]*.py; do
+            echo "ℹ️ Checking ${fixture} as mypy's sole input."
+            prek run mypy-sole-input-fixtures --stage manual --files "${fixture}"
+          done
+
+  actions-timeline:
+    needs: pre-commit
+    if: always()
+    runs-on: ubuntu-slim
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

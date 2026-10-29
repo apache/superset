@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { css } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
   ConfirmStatusChange,
@@ -32,14 +32,23 @@ import {
 import Chart from 'src/types/Chart';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
-import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
+import {
+  handleChartDelete,
+  CardStyles,
+  isNavigationHandledByLink,
+} from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
+import {
+  archiveConfirmContent,
+  archiveTitle,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
-const menuItemButtonCss = css`
+const MenuItemButton = styled.button`
   appearance: none;
   border: none;
   background: none;
@@ -48,7 +57,11 @@ const menuItemButtonCss = css`
   width: 100%;
   font: inherit;
   text-align: left;
+  color: inherit;
   cursor: pointer;
+  &:disabled {
+    cursor: not-allowed;
+  }
 `;
 
 interface ChartCardProps {
@@ -92,7 +105,11 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const allowEdit = isUserEditorOrAdmin(user, chart.editors);
+  const allowEdit = isUserEditorOrAdmin(
+    user,
+    chart.editors,
+    chart.extra_editors,
+  );
   const menuItems: MenuItem[] = [];
 
   if (canEdit) {
@@ -100,6 +117,7 @@ export default function ChartCard({
       key: 'edit',
       label: (
         <Tooltip
+          placement="right"
           title={
             allowEdit
               ? null
@@ -108,10 +126,11 @@ export default function ChartCard({
                 )
           }
         >
-          <button
+          <MenuItemButton
             type="button"
-            css={menuItemButtonCss}
             data-test="chart-list-edit-option"
+            disabled={!allowEdit}
+            aria-disabled={!allowEdit}
             onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
           >
             <Icons.EditOutlined
@@ -121,7 +140,7 @@ export default function ChartCard({
               `}
             />{' '}
             {t('Edit')}
-          </button>
+          </MenuItemButton>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -132,9 +151,8 @@ export default function ChartCard({
     menuItems.push({
       key: 'export',
       label: (
-        <button
+        <MenuItemButton
           type="button"
-          css={menuItemButtonCss}
           data-test="chart-list-export-option"
           onClick={() => handleBulkChartExport([chart])}
         >
@@ -145,21 +163,33 @@ export default function ChartCard({
             `}
           />{' '}
           {t('Export')}
-        </button>
+        </MenuItemButton>
       ),
     });
   }
 
   if (canDelete) {
+    // With soft delete on, deleting archives the chart (recoverable), so the
+    // confirmation drops the type-DELETE friction and uses the shared archive
+    // copy -- matching the list view's dialog for the same action.
+    const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
     menuItems.push({
       key: 'delete',
       label: (
         <ConfirmStatusChange
-          title={t('Please confirm')}
+          recoverable={softDelete}
+          title={
+            softDelete ? archiveTitle(chart.slice_name) : t('Please confirm')
+          }
           description={
-            <>
-              {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
-            </>
+            softDelete ? (
+              <p>{archiveConfirmContent('chart', t('chart'))}</p>
+            ) : (
+              <>
+                {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>
+                ?
+              </>
+            )
           }
           onConfirm={() =>
             handleChartDelete(
@@ -175,29 +205,37 @@ export default function ChartCard({
         >
           {confirmDelete => (
             <Tooltip
+              placement="right"
               title={
                 allowEdit
                   ? null
-                  : t(
-                      'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                    )
+                  : softDelete
+                    ? t(
+                        'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                      )
+                    : t(
+                        'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                      )
               }
             >
-              <button
-                type="button"
-                css={menuItemButtonCss}
-                data-test="chart-list-delete-option"
-                className="action-button"
-                onClick={allowEdit ? confirmDelete : undefined}
-              >
-                <Icons.DeleteOutlined
-                  iconSize="l"
-                  css={css`
-                    vertical-align: text-top;
-                  `}
-                />{' '}
-                {t('Delete')}
-              </button>
+              <span>
+                <MenuItemButton
+                  type="button"
+                  disabled={!allowEdit}
+                  aria-disabled={!allowEdit}
+                  data-test="chart-list-delete-option"
+                  className="action-button"
+                  onClick={allowEdit ? confirmDelete : undefined}
+                >
+                  <Icons.DeleteOutlined
+                    iconSize="l"
+                    css={css`
+                      vertical-align: text-top;
+                    `}
+                  />{' '}
+                  {deleteActionLabel()}
+                </MenuItemButton>
+              </span>
             </Tooltip>
           )}
         </ConfirmStatusChange>
@@ -208,8 +246,12 @@ export default function ChartCard({
 
   return (
     <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled && chart.url) {
+      onClick={event => {
+        if (
+          !bulkSelectEnabled &&
+          chart.url &&
+          !isNavigationHandledByLink(event)
+        ) {
           history.push(chart.url);
         }
       }}

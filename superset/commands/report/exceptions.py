@@ -16,7 +16,7 @@
 # under the License.
 
 import math
-from typing import Optional
+from typing import Any, Optional
 
 from flask_babel import lazy_gettext as _
 
@@ -38,6 +38,38 @@ class DatabaseNotFoundValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(_("Database does not exist"), field_name="database")
+
+
+class AlertQueryMultipleStatementsValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL containing multiple statements
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Alert query must be a single statement"),
+            field_name="sql",
+        )
+
+
+class AlertQueryDMLNotAllowedValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL that mutates state on a
+    database that does not allow DML
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Alert query must be read-only"), field_name="sql")
+
+
+class AlertQueryDataAccessValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL referencing tables the user
+    is not authorized to query
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, field_name="sql")
 
 
 class ReportScheduleDatabaseNotAllowedValidationError(ValidationError):
@@ -133,6 +165,23 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
         )
 
 
+class ReportScheduleCrontabNotValidError(ValidationError):  # noqa: N818
+    """
+    Marshmallow validation error for a crontab that is syntactically valid
+    but never matches a real calendar date (e.g. February 30th)
+    """
+
+    def __init__(self, cron_schedule: str = "") -> None:
+        super().__init__(
+            _(
+                "Invalid crontab schedule: %(cron_schedule)s never matches"
+                " a valid date",
+                cron_schedule=cron_schedule,
+            ),
+            field_name="crontab",
+        )
+
+
 class ChartNotSavedValidationError(ValidationError):
     """
     Marshmallow validation error for charts that haven't been saved yet
@@ -218,11 +267,16 @@ class ReportScheduleExecutorNotFoundError(CommandException):
     status = 500
 
     def __init__(self, username: str = "", exception: Optional[Exception] = None):
-        super().__init__(
+        message = (
             _(
                 "Report Schedule executor user %(username)s was not found.",
-                username=f'"{username}"' if username else "(unknown)",
-            ),
+                username=f'"{username}"',
+            )
+            if username
+            else _("Scheduled task executor not found")
+        )
+        super().__init__(
+            message,
             exception,
         )
 
@@ -384,6 +438,148 @@ class ReportScheduleUserEmailNotFoundError(ValidationError):
             ),
             field_name="recipients",
         )
+
+
+class ReportScheduleRunAsNotFoundError(ValidationError):
+    """
+    Validation error when a Run As user does not exist or is inactive
+    """
+
+    def __init__(self, field_name: str = "run_as") -> None:
+        super().__init__(
+            _("User does not exist or is inactive"),
+            field_name=field_name,
+        )
+
+
+class ReportScheduleRunAsForbiddenError(ValidationError):
+    """
+    Validation error when a non-admin attempts to set a Run As field to a user
+    other than themselves
+    """
+
+    def __init__(self, field_name: str = "run_as") -> None:
+        super().__init__(
+            _("Only admins can set this field to a user other than themselves"),
+            field_name=field_name,
+        )
+
+
+class ReportScheduleRunAsContentForbiddenError(ValidationError):
+    """
+    Validation error when a non-admin attempts to change the content of a
+    schedule that executes as another user
+    """
+
+    def __init__(self, field_name: str = "run_as") -> None:
+        super().__init__(
+            _(
+                "This %(schedule)s executes as another user. Only admins can "
+                "change its content; set the Run As field to your own account "
+                "to make this change.",
+                schedule="alert/report",
+            ),
+            field_name=field_name,
+        )
+
+
+class ReportScheduleRunAsConditionForbiddenError(ValidationError):
+    """A non-admin cannot change a condition executed with another identity."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            _(
+                "This alert query is not set to execute as your account. Only admins "
+                'can change its condition; set "Run alert query as" to your own account'
+                " first."
+            ),
+            field_name="run_alert_query_as",
+        )
+
+
+class ReportScheduleRunAlertQueryAsNotAllowedError(ValidationError):
+    """
+    Validation error when ``run_alert_query_as`` is set on a Report schedule
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("The alert query executor is only allowed on alerts"),
+            field_name="run_alert_query_as",
+        )
+
+
+class ReportScheduleFormatRequiredError(ValidationError):
+    """
+    Validation error when a Report schedule is configured without an attachment
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Reports require a content format"),
+            field_name="report_format",
+        )
+
+
+class ReportScheduleRecipientNotAllowedError(ValidationError):
+    """
+    Validation error when an e-mail recipient violates the global recipient
+    policy (allowed domains and/or existing users only)
+    """
+
+    def __init__(self, addresses: list[str]) -> None:
+        super().__init__(
+            _(
+                "The following recipients are not allowed by the Alerts & Reports "
+                "configuration: %(addresses)s",
+                addresses=", ".join(addresses),
+            ),
+            field_name="recipients",
+        )
+
+
+class ReportScheduleRecipientsNotAllowedError(CommandException):
+    """
+    Raised at execution time when the recipients no longer comply with the
+    global recipient policy. The notification is not delivered.
+    """
+
+    status = 422
+
+    def __init__(self, addresses: list[str]) -> None:
+        super().__init__(
+            _(
+                "Report Schedule not delivered: the following recipients are not "
+                "allowed by the Alerts & Reports configuration: %(addresses)s",
+                addresses=", ".join(addresses),
+            )
+        )
+
+
+class ReportConfigInvalidError(CommandInvalidError):
+    status = 422
+    message = _("Alerts & Reports configuration parameters are invalid.")
+
+
+class ReportConfigConflictError(CommandException):
+    """
+    Raised when a proposed Alerts & Reports configuration conflicts with
+    existing schedules. ``impacted_schedules`` lists what has to be fixed first.
+    """
+
+    status = 422
+    message = _(
+        "Some existing alerts/reports conflict with the new configuration. "
+        "Please update them first."
+    )
+
+    def __init__(self, impacted_schedules: list[dict[str, Any]]) -> None:
+        super().__init__()
+        self.impacted_schedules = impacted_schedules
+
+
+class ReportConfigUpdateFailedError(CommandException):
+    message = _("Alerts & Reports configuration could not be updated.")
 
 
 class ReportScheduleExecuteNowFailedError(CommandException):

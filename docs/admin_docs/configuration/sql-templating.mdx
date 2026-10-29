@@ -90,7 +90,7 @@ In the UI you can assign a set of parameters as JSON
 The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
 SQL Lab template parameters are stored with the dataset as `TEMPLATE PARAMETERS`.
 
-There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+There is a special `_filters` parameter which can be used to test filters used in the jinja template.
 
 ```json
 {
@@ -111,7 +111,7 @@ WHERE action in {{ filter_values('action_type')|where_in }}
 GROUP BY action
 ```
 
-Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+Note `_filters` is not stored with the dataset. It's only used within the SQL Lab UI.
 
 Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
 the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
@@ -245,16 +245,19 @@ cache key by adding the following parameter to your Jinja code:
 ```
 
 You can json-stringify the array by adding `|tojson` to your Jinja code:
+
 ```python
 {{ current_user_roles()|tojson }}
 ```
 
 You can use the `|where_in` filter to use your roles in a SQL statement. For example, if `current_user_roles()` returns `['admin', 'viewer']`, the following template:
+
 ```python
 SELECT * FROM users WHERE role IN {{ current_user_roles()|where_in }}
 ```
 
 Will be rendered as:
+
 ```sql
 SELECT * FROM users WHERE role IN ('admin', 'viewer')
 ```
@@ -280,6 +283,7 @@ Always treat `url_param()` values as untrusted input. Escaping behaviour varies 
 {% if cc not in ('US', 'ES', 'FR') %}{% set cc = 'US' %}{% endif %}
 WHERE country_code = '{{ cc }}'
 ```
+
 :::
 
 Here's a concrete example:
@@ -310,6 +314,76 @@ Here's a concrete example:
   FROM ORDERS
   WHERE country_code = 'US'
   ```
+
+**Guest User Attributes**
+
+The `{{ get_guest_user_attribute('attribute_name') }}` macro returns a specific attribute value from the guest user context.
+This is useful when working with embedded Superset where guest tokens can contain custom attributes that need to be
+accessed in SQL queries.
+
+This macro only works when the current user is a guest user (authenticated via guest token). If the current user is
+not a guest user, or if the specified attribute doesn't exist, the macro will return `None` or the provided default value.
+
+If you have caching enabled in your Superset configuration, then by default the resolved value (whether it
+came from the guest token, a null attribute, or the provided default) will be used by Superset when
+calculating the cache key. A cache key is a unique identifier that determines if there's a cache hit in the
+future and Superset can retrieve cached data. Including the resolved value on every branch ensures two guests
+whose tokens render different SQL never share a cache entry.
+
+You can disable the inclusion of the attribute value in the calculation of the
+cache key by adding the following parameter to your Jinja code, but only do so
+when the value cannot affect the query results:
+
+```
+{{ get_guest_user_attribute('department', add_to_cache_keys=False) }}
+```
+
+You can also provide a default value if the attribute is not found:
+
+```
+{{ get_guest_user_attribute('region', default='US') }}
+```
+
+Here's a concrete example of using guest user attributes in a query:
+
+```sql
+SELECT *
+FROM sales_data
+WHERE region = '{{ get_guest_user_attribute("user_region", default="global") }}'
+  AND department = '{{ get_guest_user_attribute("department") }}'
+```
+
+:::warning[Security Warning]
+
+Guest token attributes come from the embedding application. By default,
+`get_guest_user_attribute()` escapes string values — including strings nested inside
+arrays and object values, and caller-supplied defaults — through the database dialect's
+literal rendering (the same mechanism as `url_param()`). This covers dialect-specific
+escape characters such as the backslash on MySQL/MariaDB, so the example above is safe
+to interpolate directly. If you pass `escape_result=False`, or interpolate non-string
+values (numbers, booleans), you are responsible for validating or allowlisting the
+values, since they originate outside Superset.
+
+If a guest attribute is an array and you plan to pipe it through the `|where_in` filter
+(for example `full_name IN {{ get_guest_user_attribute('names')|where_in }}`), call
+`get_guest_user_attribute('names', escape_result=False)`. `where_in` already applies its
+own dialect-safe quoting, so escaping the values twice can corrupt them (a value such as
+`O'Brien` would come back doubly escaped and match nothing).
+
+Only individual string values are escaped as SQL literals. Interpolating an entire array
+or object directly (rather than through `|where_in`, or by accessing a specific element)
+renders Python's string form of that structure, which is not valid SQL, and object keys
+are not escaped at all. Use `|where_in` for arrays, `|tojson` where you need a
+JSON-stringified value, or read individual keys/elements out of the structure yourself.
+
+The same double-escaping problem described above for `|where_in` applies to `|tojson`:
+pass `escape_result=False` before piping to `|tojson` (for example
+`{{ get_guest_user_attribute('profile', escape_result=False)|tojson }}`), since JSON
+already handles its own quoting and re-escaping a value first would corrupt it (a nested
+string such as `O'Brien` would come back as the altered `O''Brien` in the serialized
+JSON).
+
+:::
 
 ### Explicitly Including Values in Cache Key
 
@@ -364,6 +438,7 @@ This is useful if:
     AND full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
 {%- endif -%}
 ```
+
 :::
 
 Here's a concrete example:
@@ -431,7 +506,7 @@ The macro takes the following parameters:
 - `column`: Name of the temporal column. Leave undefined to reference the time range from a Dashboard Native Time Range
   filter (when present).
 - `default`: The default value to fall back to if the time filter is not present, or has the value `No filter`
-- `target_type`: The target temporal type as recognized by the target  database (e.g. `TIMESTAMP`, `DATE` or
+- `target_type`: The target temporal type as recognized by the target database (e.g. `TIMESTAMP`, `DATE` or
   `DATETIME`). If `column` is defined, the format will default to the type of the column. This is used to produce
   the format of the `from_expr` and `to_expr` properties of the returned `TimeFilter` object.
 - `strftime`: format using the `strftime` method of `datetime` for custom time formatting.
@@ -537,6 +612,7 @@ The parameter can be used in SQL Lab, or when fetching a metric from another dat
 Superset supports [builtin filters from the Jinja2 templating package](https://jinja.palletsprojects.com/en/stable/templates/#builtin-filters). Custom filters have also been implemented:
 
 ### Where In
+
 Parses a list into a SQL-compatible statement. This is useful with macros that return an array (for example the `filter_values` macro):
 
 ```
@@ -556,6 +632,7 @@ Dashboard filter without any value applied
 ### To Datetime
 
 Loads a string as a `datetime` object. This is useful when performing date operations. For example:
+
 ```
 {% set from_expr = get_time_filter("dttm", strftime="%Y-%m-%d").from_expr %}
 {% set to_expr = get_time_filter("dttm", strftime="%Y-%m-%d").to_expr %}
@@ -567,5 +644,6 @@ Loads a string as a `datetime` object. This is useful when performing date opera
 ```
 
 :::resources
+
 - [Blog: Intro to Jinja Templating in Apache Superset](https://preset.io/blog/intro-jinja-templating-apache-superset/)
-:::
+  :::

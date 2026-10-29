@@ -21,7 +21,7 @@ After ``Superset.route_base = ""`` collapsed the historical ``/superset``
 prefix off every view, bookmarks/email links/external integrations to the
 legacy paths would 404. This middleware closes that gap for one release
 cycle (removed at EOL ``5.0.0``, matching the ``@deprecated`` gate on
-``Superset.explore`` and ``Superset.explore_json``).
+``Superset.explore``).
 
 Layering invariant
 ------------------
@@ -104,12 +104,6 @@ LEGACY_REDIRECT_MAP: dict[str, tuple[frozenset[str], str]] = {
     "/file-handler": (frozenset({"GET"}), "/file-handler"),
     "/log/": (frozenset({"POST"}), "/log/"),
     "/sqllab/history/": (frozenset({"GET"}), "/sqllab/history/"),
-    # NOTE: the /explore_json[/data] canonicals below (Superset.explore_json /
-    # explore_json_data) are themselves @deprecated. When those endpoints are
-    # deleted these rows become redirects-to-404 — prune them (and their
-    # closed-set snapshot entries) in the same PR that removes the endpoints.
-    "/explore_json/": (frozenset({"GET", "POST"}), "/explore_json/"),
-    "/explore_json/data/": (frozenset({"GET"}), "/explore_json/data/"),
     # views/explore.py — ExploreView (route_base = "/explore") owns the
     # bare /explore/ rule; Superset.explore (deprecated) provides the
     # POST handler. ExplorePermalinkView.permalink (route_base = "")

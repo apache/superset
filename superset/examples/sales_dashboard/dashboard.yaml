@@ -129,6 +129,7 @@ metadata:
   - '#D1C6BC'
   cross_filters_enabled: true
   default_filters: '{}'
+  expand_all_slices: false
   expanded_slices: {}
   global_chart_configuration:
     chartsInScope:

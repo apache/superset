@@ -20,7 +20,7 @@ import { styled, css } from '@apache-superset/core/theme';
 import { Form, StyledModal } from '@superset-ui/core/components';
 
 const MODAL_MARGIN = 16;
-const MIN_WIDTH = 880;
+const MODAL_WIDTH = 880;
 
 export interface BaseModalWrapperProps {
   expanded: boolean;
@@ -31,13 +31,9 @@ export interface BaseModalBodyProps {
 }
 
 export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
-  min-width: ${MIN_WIDTH}px;
-  width: ${({ expanded }) => (expanded ? '100%' : MIN_WIDTH)} !important;
-
-  @media (max-width: ${MIN_WIDTH + MODAL_MARGIN * 2}px) {
-    width: 100% !important;
-    min-width: auto;
-  }
+  width: ${({ expanded }) =>
+    expanded ? '100%' : `${MODAL_WIDTH}px`} !important;
+  max-width: calc(100% - ${MODAL_MARGIN * 2}px);
 
   .ant-modal-header {
     margin-bottom: 0;

@@ -24,6 +24,7 @@ export interface Dashboard {
   slug?: string | null;
   url: string;
   dashboard_title: string;
+  description?: string | null;
   thumbnail_url: string | null;
   published: boolean;
   css?: string | null;
@@ -34,7 +35,12 @@ export interface Dashboard {
   changed_on: string;
   charts: string[]; // just chart names, unfortunately...
   editors?: Subject[];
+  // Subject ids resolved by a deployment's EXTRA_EDITORS_RESOLVER; the API
+  // attaches them after the response schema is dumped, so they survive the
+  // `columns` projection. Bare ids, not Subjects.
+  extra_editors?: number[];
   viewers?: Subject[];
+  is_managed_externally: boolean;
   theme?: {
     id: number;
     theme_name: string;

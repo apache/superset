@@ -35,6 +35,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
+import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import User from 'src/types/User';
@@ -123,6 +124,7 @@ export type DashboardState = {
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
   dashboardIsSaving: boolean;
+  lastModifiedTime?: number;
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
@@ -160,6 +162,7 @@ export type DashboardState = {
   inactiveTabs?: string[];
   datasetsStatus?: ResourceStatus;
   expandedSlices?: Record<number, boolean>;
+  expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
@@ -169,6 +172,7 @@ export type DashboardState = {
 };
 export type DashboardInfo = {
   id: number;
+  uuid?: string;
   common: {
     conf: JsonObject;
   };
@@ -187,12 +191,14 @@ export type DashboardInfo = {
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
     chart_customization_config?: (
-      ChartCustomization | ChartCustomizationDivider
+      | ChartCustomization
+      | ChartCustomizationDivider
     )[];
     timed_refresh_immune_slices?: number[];
     refresh_frequency?: number;
     positions?: JsonObject;
     filter_scopes?: JsonObject;
+    async_mode?: AsyncModeOverride;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -204,6 +210,19 @@ export type DashboardInfo = {
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
+  semanticDatasets?: {
+    dashboardId: number;
+    datasets: Pick<Datasource, 'uid' | 'type' | 'columns'>[];
+  } | null;
+  semanticDatasetsRequestId?: string;
+  semanticDatasetRequests?: Record<string, string>;
+  semanticDatasetOverrides?: Record<
+    string,
+    Pick<Datasource, 'uid' | 'type' | 'columns'> | null
+  >;
+  semanticDatasetsGeneration?: number;
+  semanticDatasetsSaveGeneration?: number;
+  semanticDatasetMutationGenerations?: Record<string, number>;
   theme?: {
     id: number;
     theme_name: string;
@@ -211,7 +230,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
@@ -226,12 +245,17 @@ export type ChartsState = { [key: string]: Chart };
 
 export type Datasource = Dataset & {
   uid: string;
+  chart_display_labels?: Record<string, Record<string, string>>;
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;
   // Populated by the dashboard datasets API alongside ``type``; declared here
   // so callers can rely on structural typing instead of casting.
   datasource_type?: DatasourceType;
+  /** False when the datasource can't return row samples (e.g. semantic views). */
+  supports_samples?: boolean;
+  /** False when the datasource can't answer drill-to-detail requests. */
+  supports_drill_to_detail?: boolean;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;
@@ -398,4 +422,5 @@ export enum MenuKeys {
   ManageEmailReports = 'manage_email_reports',
   ExportPivotXlsx = 'export_pivot_xlsx',
   EmbedCode = 'embed_code',
+  VersionHistory = 'version_history',
 }

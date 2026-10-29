@@ -65,27 +65,17 @@ export const NO_COLUMNS_TITLE = t('No table columns');
 export const NO_COLUMNS_DESCRIPTION = t(
   'This database table does not contain any data. Please select a different table.',
 );
-export const ERROR_TITLE = t('An Error Occurred');
-export const ERROR_DESCRIPTION = t(
-  'Unable to load columns for the selected table. Please select a different table.',
-);
 
 interface MessageContentProps {
-  hasError: boolean;
   tableName?: string | null;
-  hasColumns: boolean;
 }
 
 export const MessageContent = (props: MessageContentProps) => {
-  const { hasError, tableName, hasColumns } = props;
-  let currentImage: string | undefined = 'empty-dataset.svg';
+  const { tableName } = props;
+  let currentImage = 'empty-dataset.svg';
   let currentTitle = SELECT_TABLE_TITLE;
   let currentDescription = renderEmptyDescription();
-  if (hasError) {
-    currentTitle = ERROR_TITLE;
-    currentDescription = <>{ERROR_DESCRIPTION}</>;
-    currentImage = undefined;
-  } else if (tableName && !hasColumns) {
+  if (tableName) {
     currentImage = 'no-columns.svg';
     currentTitle = NO_COLUMNS_TITLE;
     currentDescription = <>{NO_COLUMNS_DESCRIPTION}</>;

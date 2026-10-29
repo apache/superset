@@ -28,7 +28,7 @@ params:
   columns: []
   contribution: false
   datasource: 21__table
-  granularity_sqla: year
+  x_axis: year
   groupby:
   - genre
   label_colors:

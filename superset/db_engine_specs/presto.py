@@ -26,7 +26,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from re import Pattern
 from textwrap import dedent
-from typing import Any, cast, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
@@ -164,6 +164,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
@@ -181,6 +184,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
     # which raises a query error. Use = true/false instead.
     use_equality_for_boolean_filters = True
+
+    # Presto/Trino's coordinator sends query results as JSON, which has no
+    # literal for NaN/Infinity/-Infinity, so REAL/DOUBLE columns holding
+    # those values arrive as quoted strings. Coerce them back to real
+    # floats so numeric post-processing (e.g. a pivot's mean) doesn't choke
+    # on a string value.
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        types.FLOAT: lambda val: float(val) if isinstance(val, str) else val
+    }
 
     column_type_mappings = (
         (
@@ -381,6 +393,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             presto://localhost:8080/hive[/default]
 
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         database = sqlalchemy_uri.database.strip("/")
 
         if "/" not in database:
@@ -934,6 +949,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["pyhive"],
         "install_instructions": 'pip install "apache-superset[presto]"',
+        "version_requirements": (
+            "PyHive 0.7.0 or later is required for SQLAlchemy 2. "
+            "PyHive 0.6.5 imports the removed sqlalchemy.databases module."
+        ),
         "connection_string": "presto://{hostname}:{port}/{database}",
         "default_port": 8080,
         "parameters": {

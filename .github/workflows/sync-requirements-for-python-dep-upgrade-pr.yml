@@ -38,7 +38,7 @@ jobs:
       - name: Login to Docker Hub
         if: ${{ steps.dependabot-metadata.outputs.package-ecosystem == 'pip' }}
         continue-on-error: true
-        uses: docker/login-action@06fb636fac595d6fb4b28a5dfcb21a6f5091859c # v4.5.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

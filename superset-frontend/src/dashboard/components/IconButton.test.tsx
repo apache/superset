@@ -73,3 +73,17 @@ test('renders the provided label', () => {
 
   expect(screen.getByText('My Label')).toBeInTheDocument();
 });
+
+test('hideVisibleLabel suppresses visible text but keeps the accessible name', () => {
+  render(
+    <IconButton
+      icon={icon}
+      onClick={jest.fn()}
+      label="My Label"
+      hideVisibleLabel
+    />,
+  );
+
+  expect(screen.queryByText('My Label')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'My Label' })).toBeInTheDocument();
+});

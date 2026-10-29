@@ -160,6 +160,43 @@ test('Theme.setConfig correctly applies algorithm changes', () => {
   expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
 });
 
+test('Theme.setConfig with baseTheme merges the config over the base theme tokens', () => {
+  const baseTheme: AnyThemeConfig = {
+    token: { colorPrimary: '#111111', colorError: '#ff0000' },
+  };
+  const theme = Theme.fromConfig();
+  theme.setConfig({ token: { colorPrimary: '#0000ff' } }, baseTheme);
+
+  // Config wins for colorPrimary; the base theme fills the untouched colorError.
+  expect(theme.theme.colorPrimary).toBe('#0000ff');
+  expect(theme.theme.colorError).toBe('#ff0000');
+});
+
+test('Theme.setConfig with baseTheme keeps the base theme ECharts overrides', () => {
+  const baseTheme = {
+    token: { colorPrimary: '#111111' },
+    echartsOptionsOverrides: { backgroundColor: '#123456' },
+    echartsOptionsOverridesByChartType: {
+      pie: { itemStyle: { borderWidth: 2 } },
+    },
+  } as AnyThemeConfig & {
+    echartsOptionsOverrides: Record<string, unknown>;
+    echartsOptionsOverridesByChartType: Record<string, unknown>;
+  };
+  const theme = Theme.fromConfig();
+
+  // In-place update whose config sets no ECharts overrides: the base theme's
+  // overrides must survive, the same way its tokens do.
+  theme.setConfig({ token: { colorPrimary: '#0000ff' } }, baseTheme);
+
+  expect(theme.theme.echartsOptionsOverrides).toEqual({
+    backgroundColor: '#123456',
+  });
+  expect(theme.theme.echartsOptionsOverridesByChartType).toEqual({
+    pie: { itemStyle: { borderWidth: 2 } },
+  });
+});
+
 test('Theme.toggleDarkMode switches to dark algorithm when toggling dark mode on', () => {
   const theme = Theme.fromConfig();
 
@@ -204,6 +241,47 @@ test('Theme.toggleDarkMode preserves other algorithms when toggling dark mode', 
   expect(serialized.algorithm).toContain(ThemeAlgorithm.DEFAULT);
   expect(serialized.algorithm).toContain(ThemeAlgorithm.COMPACT);
   expect(serialized.algorithm).not.toContain(ThemeAlgorithm.DARK);
+});
+
+test('Theme.toggleDarkMode is a no-op when the requested mode is already active', () => {
+  // Pages with many live component demos (see docs/src/components/
+  // StorybookWrapper.jsx's ThemeSync) mount one dark-mode-sync bridge per
+  // demo, so a single toggle event can call toggleDarkMode once per demo
+  // with the same isDark value. Only the first of those calls should
+  // actually recompute the theme and fan out to providers.
+  const theme = Theme.fromConfig();
+  const setConfigSpy = jest.spyOn(theme, 'setConfig');
+
+  theme.toggleDarkMode(true);
+  expect(setConfigSpy).toHaveBeenCalledTimes(1);
+
+  // Repeating the same toggle should not recompute the theme again.
+  theme.toggleDarkMode(true);
+  theme.toggleDarkMode(true);
+  expect(setConfigSpy).toHaveBeenCalledTimes(1);
+
+  // Toggling to the other mode should still go through.
+  theme.toggleDarkMode(false);
+  expect(setConfigSpy).toHaveBeenCalledTimes(2);
+
+  setConfigSpy.mockRestore();
+});
+
+test('Theme.toggleDarkMode no-op check accounts for other algorithms in the array', () => {
+  // Start already in dark mode alongside a non-mode algorithm (compact).
+  const theme = Theme.fromConfig({
+    algorithm: [
+      antdThemeImport.compactAlgorithm,
+      antdThemeImport.darkAlgorithm,
+    ],
+  });
+  const setConfigSpy = jest.spyOn(theme, 'setConfig');
+
+  // Already dark, so this should be a no-op rather than reordering the array.
+  theme.toggleDarkMode(true);
+  expect(setConfigSpy).not.toHaveBeenCalled();
+
+  setConfigSpy.mockRestore();
 });
 
 test('Theme.toSerializedConfig serializes theme config correctly', () => {

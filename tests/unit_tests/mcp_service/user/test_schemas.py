@@ -94,10 +94,8 @@ def test_serialize_user_object_round_trip_with_empty_roles() -> None:
     assert info is not None
     assert info.roles == []
     assert info.username == "admin"
-    assert "<UNTRUSTED-CONTENT>" in (info.first_name or "")
-    assert "Admin" in (info.first_name or "")
-    assert "<UNTRUSTED-CONTENT>" in (info.last_name or "")
-    assert "User" in (info.last_name or "")
+    assert info.first_name == "Admin"
+    assert info.last_name == "User"
     assert info.active is True
     assert info.email == "admin@example.com"
 
@@ -125,6 +123,32 @@ def test_serialize_user_object_omits_sensitive_fields_when_not_permitted() -> No
     assert info.username == "admin"
 
 
+def test_serialize_user_object_includes_roles_granted_through_groups() -> None:
+    """get_user_info reports the roles a user holds through a group."""
+    group = MagicMock()
+    group_role = MagicMock()
+    group_role.name = "editor"
+    group.roles = [group_role]
+    direct_role = MagicMock()
+    direct_role.name = "Gamma"
+
+    user = MagicMock()
+    user.id = 2
+    user.username = "editor"
+    user.first_name = "Ed"
+    user.last_name = "Itor"
+    user.active = True
+    user.email = "editor@example.com"
+    user.changed_on = None
+    user.roles = [direct_role]
+    user.groups = [group]
+
+    info = serialize_user_object(user, include_sensitive=True, include_roles=True)
+
+    assert info is not None
+    assert info.roles == ["Gamma", "editor"]
+
+
 def test_serialize_user_object_round_trip_with_role_objects() -> None:
     """Full from_attributes path through serialize_user_object -> UserInfo."""
     role_admin = MagicMock()
@@ -145,9 +169,7 @@ def test_serialize_user_object_round_trip_with_role_objects() -> None:
     assert info is not None
     assert info.roles == ["Admin"]
     assert info.username == "admin"
-    assert "<UNTRUSTED-CONTENT>" in (info.first_name or "")
-    assert "Admin" in (info.first_name or "")
-    assert "<UNTRUSTED-CONTENT>" in (info.last_name or "")
-    assert "User" in (info.last_name or "")
+    assert info.first_name == "Admin"
+    assert info.last_name == "User"
     assert info.active is True
     assert info.email == "admin@example.com"

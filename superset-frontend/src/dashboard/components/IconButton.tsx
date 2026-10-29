@@ -22,6 +22,7 @@ import { styled, SupersetTheme } from '@apache-superset/core/theme';
 interface IconButtonProps extends HTMLAttributes<HTMLButtonElement> {
   icon: JSX.Element;
   label?: string;
+  hideVisibleLabel?: boolean;
   onClick: MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
   'data-test'?: string;
@@ -51,7 +52,8 @@ const StyledButton = styled.button<{ isDisabled?: boolean }>`
   padding: ${({ theme }) => theme.paddingXXS}px;
   border-radius: ${({ theme }) => theme.borderRadiusXS}px;
 
-  ${({ isDisabled, theme }) => (isDisabled ? disabledCss : activeCss({ theme }))}
+  ${({ isDisabled, theme }) =>
+    isDisabled ? disabledCss : activeCss({ theme })}
 `;
 
 const StyledSpan = styled.span`
@@ -63,6 +65,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     {
       icon,
       label,
+      hideVisibleLabel,
       onClick,
       onKeyDown,
       disabled,
@@ -75,6 +78,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       {...rest}
       ref={ref}
       type="button"
+      aria-label={label}
       isDisabled={disabled}
       aria-disabled={disabled}
       data-test={dataTest}
@@ -91,7 +95,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       }}
     >
       {icon}
-      {label && <StyledSpan>{label}</StyledSpan>}
+      {label && !hideVisibleLabel && <StyledSpan>{label}</StyledSpan>}
     </StyledButton>
   ),
 );

@@ -79,7 +79,7 @@ export function hasOption(
 
 /**
  * It creates a comparator to check for a specific property.
- * Can be used with string and number property values.
+ * Can be used with string, number, and bigint property values.
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
@@ -90,6 +90,18 @@ export const propertyComparator =
     }
     if (typeof propertyA === 'number' && typeof propertyB === 'number') {
       return propertyA - propertyB;
+    }
+    // BIGINT columns can decode to native `bigint` values (see json-bigint
+    // parsing of large numeric values). Compare numerically rather than
+    // falling through to the string fallback below, which would sort them
+    // lexicographically (e.g. "10", "100", "2").
+    if (
+      (typeof propertyA === 'bigint' || typeof propertyA === 'number') &&
+      (typeof propertyB === 'bigint' || typeof propertyB === 'number')
+    ) {
+      if (propertyA < propertyB) return -1;
+      if (propertyA > propertyB) return 1;
+      return 0;
     }
     return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };

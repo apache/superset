@@ -33,7 +33,8 @@ from superset.commands.report.exceptions import (
 )
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.reports.models import ReportSchedule
+from superset.reports.models import ReportSchedule, ReportScheduleType
+from superset.utils.report_execution import get_report_task_timeout_options
 
 logger = logging.getLogger(__name__)
 
@@ -88,19 +89,13 @@ class ExecuteReportScheduleNowCommand(BaseCommand):
                 "eta": datetime.now(tz=timezone.utc),
             }
 
-            if self._model.working_timeout is not None and current_app.config.get(
-                "ALERT_REPORTS_WORKING_TIME_OUT_KILL", True
-            ):
-                async_options["time_limit"] = (
-                    self._model.working_timeout
-                    + current_app.config.get("ALERT_REPORTS_WORKING_TIME_OUT_LAG", 10)
+            async_options.update(
+                get_report_task_timeout_options(
+                    is_report=self._model.type == ReportScheduleType.REPORT,
+                    working_timeout=self._model.working_timeout,
+                    config=current_app.config,
                 )
-                async_options["soft_time_limit"] = (
-                    self._model.working_timeout
-                    + current_app.config.get(
-                        "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG", 5
-                    )
-                )
+            )
 
             try:
                 execute.apply_async((self._model.id,), **async_options)

@@ -68,6 +68,24 @@ export function simulateDrop(
   );
 }
 
+/**
+ * Drives a folder drag (dragging a whole folder of columns/metrics from the
+ * DatasourcePanel) onto the captured droppable through the production
+ * `resolveDragEnd` dispatcher.
+ */
+export function simulateFolderDrop(
+  captured: CapturedDroppable,
+  items: { type: DndItemType; value: DndItemValue }[],
+) {
+  resolveDragEnd(
+    {
+      id: 'drag-source-folder',
+      data: { current: { type: DndItemType.Folder, items } },
+    },
+    { id: 'dropzone', data: { current: captured.current ?? {} } },
+  );
+}
+
 export type SortableItemData = {
   type: string;
   dragIndex: number;
