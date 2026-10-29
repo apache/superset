@@ -134,7 +134,9 @@ class BubbleChartPlugin(BaseChartPlugin):
                     metric["name"], dataset_context
                 )
         DatasetValidator.normalize_filters(config_dict, dataset_context)
-        return BubbleChartConfig.model_validate(config_dict)
+        normalized = BubbleChartConfig.model_validate(config_dict)
+        normalized.__pydantic_fields_set__ = set(config.model_fields_set)
+        return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:
         return ChartGenerationError(

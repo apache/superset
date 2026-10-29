@@ -23,7 +23,6 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';
 import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
-import CopyPlugin from 'copy-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MinimizerPlugin from 'minimizer-webpack-plugin';
@@ -33,7 +32,6 @@ import {
   WebpackManifestPlugin,
   getCompilerHooks,
 } from 'webpack-manifest-plugin';
-import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -81,9 +79,6 @@ const devserverHost =
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
-// TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 8192;
-
 const defaultEntryFilename = isDevMode
   ? '[name].[contenthash:8].entry.js'
   : nameChunks
@@ -107,6 +102,21 @@ const output = {
     pathData.chunk?.name === 'service-worker'
       ? '../service-worker.js'
       : defaultChunkFilename,
+  copy: [
+    'package.json',
+    { from: 'src/assets/images', to: 'images' },
+    // maplibre-gl 6's ESM-only build loads its worker from a real URL
+    // instead of an inlined blob (see MapLibre.tsx for the matching
+    // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+    // relative ESM import of its "shared" chunk, so both files must be
+    // copied verbatim, unhashed, into the same output directory.
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+    },
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+    },
+  ],
 };
 
 if (!isDevMode) {
@@ -159,26 +169,6 @@ const plugins = [
     'process.env.REDUX_DEFAULT_MIDDLEWARE':
       process.env.REDUX_DEFAULT_MIDDLEWARE,
     'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
-  }),
-
-  new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      // maplibre-gl 6's ESM-only build loads its worker from a real URL
-      // instead of an inlined blob (see MapLibre.tsx for the matching
-      // maplibregl.setWorkerUrl() call). The worker's own bundle does a
-      // relative ESM import of its "shared" chunk, so both files must be
-      // copied verbatim, unhashed, into the same output directory.
-      {
-        from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
-        to: 'maplibre-gl-worker.mjs',
-      },
-      {
-        from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
-        to: 'maplibre-gl-shared.mjs',
-      },
-    ],
   }),
 
   // static pages
@@ -253,40 +243,11 @@ if (!isDevMode) {
   );
 }
 
-// TypeScript type checking and .d.ts generation
-// SWC handles transpilation; this plugin handles type checking separately.
-// build: true enables project references so .d.ts files are auto-generated
-// across the monorepo when editing plugins/packages.
-// mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
-// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
-// Type errors are still caught by pre-commit and CI.
-const disableTsChecker = ['true', '1'].includes(
-  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
-);
-if (isDevMode && !disableTsChecker) {
-  plugins.push(
-    new ForkTsCheckerWebpackPlugin({
-      async: true,
-      typescript: {
-        build: true,
-        mode: 'write-references',
-        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-        configOverwrite: {
-          compilerOptions: {
-            skipLibCheck: true,
-            incremental: true,
-          },
-          exclude: [
-            'src/**/*.js',
-            'src/**/*.jsx',
-            '**/*.test.*',
-            '**/*.stories.*',
-          ],
-        },
-      },
-    }),
-  );
-}
+// Type checking does not run inside webpack: SWC only transpiles, and the
+// native TypeScript compiler is fast enough to run on its own. Use
+// `npm run type` (or `npm run type -- --watch`) for type errors, and
+// `npm run plugins:build` (or `npx tsc --build --watch`) to refresh the
+// packages' .d.ts output while editing plugins/packages.
 
 // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
 const PREAMBLE = isDevMode

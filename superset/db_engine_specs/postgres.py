@@ -178,6 +178,9 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_multivalues_insert = True
 
     # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
@@ -370,10 +373,32 @@ class PostgresParametersSchema(BasicParametersSchema):
         return data
 
 
+#: The text forms PostgreSQL's date/time input reads, which `RedshiftEngineSpec`
+#: shares. Both the ISO spellings and the unseparated ones --
+#: ``'20260115'::date`` is 2026-01-15 -- so a ``YYYYMMDD`` bucketing key
+#: mirrors on either.
+#:
+#: Declared on the concrete specs rather than on `PostgresBaseEngineSpec`,
+#: which Snowflake, Vertica, HANA, Netezza and Hologres also inherit.
+#: Snowflake's AUTO date input does not take ``YYYYMMDD`` and reads an
+#: all-digit string as epoch seconds, so inheriting this misread the mirror.
+POSTGRES_TEMPORAL_LITERAL_FORMATS = (
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%dT%H:%M:%S.%f",
+    "%Y%m%d",
+    "%Y%m%d%H%M%S",
+)
+
+
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
+
+    temporal_literal_formats = POSTGRES_TEMPORAL_LITERAL_FORMATS
 
     supports_dynamic_schema = True
     supports_catalog = True
@@ -629,7 +654,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             {
                 "name": "ClickHouse Managed Postgres",
                 "description": "Managed PostgreSQL from ClickHouse.",
-                "logo": "clickhouse.png",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
                 "homepage_url": "https://clickhouse.com/cloud/postgres",
                 "pypi_packages": ["psycopg2"],
                 "connection_string": (

@@ -584,7 +584,11 @@ test('should call exportChart when exportCSV is clicked', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to .CSV');
+  const exportAction = await findByText(
+    'Export to .CSV',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
@@ -617,7 +621,11 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to full .CSV');
+  const exportAction = await findByText(
+    'Export to full .CSV',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
@@ -648,7 +656,11 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to Excel');
+  const exportAction = await findByText(
+    'Export to Excel',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
   expect(stubbedExportXLSX).toHaveBeenCalledWith(
@@ -678,7 +690,11 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to full Excel');
+  const exportAction = await findByText(
+    'Export to full Excel',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
   expect(stubbedExportXLSX).toHaveBeenCalledWith(
@@ -1183,4 +1199,85 @@ test('a hidden chart does not adopt a prop update, and adopts it once revealed',
   // Revealing the tab lets the chart re-render and adopt the pending update.
   rerender(<Chart {...props} isComponentVisible isInView />);
   expect(capturedChartContainerProps.isInView).toBe(true);
+});
+
+test('merges only the current chart labels into the ChartContainer verbose map', () => {
+  const datasourceId = chartQueries[queryId].form_data.datasource;
+  const datasource = {
+    ...mockDatasource['7__table'],
+    verbose_map: undefined,
+    chart_display_labels: {
+      [queryId]: { country_name: 'Country', sum__num: 'Population' },
+      [queryId + 1]: { other_column: 'Other chart' },
+    },
+  };
+  setup({}, { datasources: { [datasourceId]: datasource } });
+
+  expect(capturedChartContainerProps.datasource).toEqual({
+    ...datasource,
+    verbose_map: { country_name: 'Country', sum__num: 'Population' },
+  });
+  expect(datasource.verbose_map).toBeUndefined();
+  expect(capturedChartContainerProps.formData).toEqual(
+    expect.objectContaining({ datasource: datasourceId }),
+  );
+});
+
+test('keeps the merged datasource reference when a labelled chart rerenders', () => {
+  const datasourceId = chartQueries[queryId].form_data.datasource;
+  const datasource = {
+    ...mockDatasource['7__table'],
+    verbose_map: undefined,
+    chart_display_labels: {
+      [queryId]: { country_name: 'Country' },
+    },
+  };
+  const { rerender } = setup(
+    { isComponentVisible: true, isInView: false },
+    { datasources: { [datasourceId]: datasource } },
+  );
+  const mergedDatasource = capturedChartContainerProps.datasource;
+  expect(mergedDatasource).not.toBe(datasource);
+  expect(mergedDatasource).toEqual({
+    ...datasource,
+    verbose_map: { country_name: 'Country' },
+  });
+
+  rerender(<Chart {...props} isComponentVisible isInView />);
+
+  expect(capturedChartContainerProps.isInView).toBe(true);
+  expect(capturedChartContainerProps.datasource).toBe(mergedDatasource);
+});
+
+test('preserves the datasource reference when no chart display labels are present', () => {
+  setup();
+  expect(capturedChartContainerProps.datasource).toBe(
+    mockDatasource['7__table'],
+  );
+});
+
+test('passes the form data of the last request to ChartContainer next to the current form data', () => {
+  // With deferred data a chart off screen starts no new query, so the form
+  // data of the request in flight lags behind the current one. A chart kept on
+  // screen draws that request's response with the form data it was sent with.
+  const chart = defaultState.charts[queryId];
+  const queriedFormData = { ...chart.form_data, groupby: ['country'] };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...chart,
+          form_data: { ...chart.form_data, groupby: ['region'] },
+          latestQueryFormData: queriedFormData,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps.latestQueryFormData).toBe(queriedFormData);
+  expect(capturedChartContainerProps.formData).toEqual(
+    expect.objectContaining({ groupby: ['region'] }),
+  );
 });

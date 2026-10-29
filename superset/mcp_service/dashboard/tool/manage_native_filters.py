@@ -25,15 +25,19 @@ translating high-level operations into the ``deleted`` / ``modified`` /
 
 import copy
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NULL_STRING
+from superset.dashboards.filter_scope import _is_divider
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
+    DividerSpec,
     FilterRangeSpec,
     FilterSelectSpec,
     FilterSelectValue,
@@ -44,10 +48,16 @@ from superset.mcp_service.dashboard.schemas import (
     NativeFilterSummary,
     NativeFilterUpdateSpec,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
 
 # Update fields that map to a filter's controlValues, keyed by the
 # NativeFilterUpdateSpec field name they come from.
@@ -274,10 +284,29 @@ def _build_scope(
 
 
 def _build_new_filter_config(
-    spec: FilterSelectSpec | FilterTimeSpec | FilterRangeSpec | FilterTimeGrainSpec,
+    spec: (
+        FilterSelectSpec
+        | FilterTimeSpec
+        | FilterRangeSpec
+        | FilterTimeGrainSpec
+        | DividerSpec
+    ),
     dashboard_chart_ids: list[int],
 ) -> dict[str, Any]:
-    """Build a full native filter config dict for a new filter."""
+    """Build a full native filter (or divider) config dict for a new entry."""
+    if isinstance(spec, DividerSpec):
+        # Dividers have no filterType/targets/controlValues/cascadeParentIds;
+        # matching the frontend's stored shape (see
+        # transformDivider in filterTransformer.ts) keeps this entry
+        # indistinguishable from one created through the UI.
+        return {
+            "id": generate_id("NATIVE_FILTER_DIVIDER"),
+            "type": "DIVIDER",
+            "title": spec.name,
+            "description": spec.description,
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        }
+
     base: dict[str, Any] = {
         "id": generate_id("NATIVE_FILTER"),
         "type": "NATIVE_FILTER",
@@ -350,9 +379,19 @@ def _build_new_filter_config(
 
 
 def _validate_update_type_compat(
-    spec: NativeFilterUpdateSpec, filter_type: str | None
+    spec: NativeFilterUpdateSpec, filter_type: str | None, *, is_divider: bool = False
 ) -> None:
-    """Reject update fields that do not apply to the filter's type."""
+    """Reject update fields that do not apply to the filter's type.
+
+    Dividers have no ``filterType`` at all, so every type-specific field
+    (dataset_id, column, multi_select, ...) is rejected for them, same as
+    for any other filter type that does not declare it as allowed.
+    """
+    if is_divider and spec.scope_chart_ids is not None:
+        raise _FilterValidationError(
+            f"Divider '{spec.id}' does not support scope_chart_ids; "
+            "dividers are always in scope."
+        )
     allowed = (
         _TYPE_SPECIFIC_UPDATE_FIELDS.get(filter_type, frozenset())
         if filter_type is not None
@@ -371,8 +410,9 @@ def _validate_update_type_compat(
                 if fields & set(invalid_fields)
             }
         )
+        type_label = "divider" if is_divider else filter_type
         raise _FilterValidationError(
-            f"Filter '{spec.id}' has type '{filter_type}'; fields "
+            f"Filter '{spec.id}' has type '{type_label}'; fields "
             f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
         )
 
@@ -488,16 +528,23 @@ def _merge_filter_update(
     existing: dict[str, Any],
     dashboard_chart_ids: list[int],
 ) -> dict[str, Any]:
-    """Merge a partial update into an existing filter config.
+    """Merge a partial update into an existing filter (or divider) config.
 
     Returns a FULL filter config (the backend command substitutes whole
     entries, it does not merge deltas).
     """
     merged = copy.deepcopy(existing)
-    _validate_update_type_compat(spec, merged.get("filterType"))
+    is_divider = _is_divider(merged)
+    _validate_update_type_compat(spec, merged.get("filterType"), is_divider=is_divider)
 
     if spec.name is not None:
-        merged["name"] = spec.name
+        # Dividers store their display text under "title", not "name";
+        # writing "name" here would silently fail to update what the
+        # filter bar actually renders.
+        if is_divider:
+            merged["title"] = spec.name
+        else:
+            merged["name"] = spec.name
     if spec.description is not None:
         merged["description"] = spec.description
     if spec.scope_chart_ids is not None:
@@ -510,35 +557,46 @@ def _merge_filter_update(
             previous_target
         )
 
-    control_values = dict(merged.get("controlValues") or {})
-    for field, control_key in _CONTROL_VALUE_FIELDS.items():
-        value = getattr(spec, field)
-        if value is not None:
-            control_values[control_key] = value
-    merged["controlValues"] = control_values
+    if not is_divider:
+        # Dividers have no controlValues/defaultDataMask; type-specific
+        # fields that would populate them are already rejected above, so
+        # skip these to avoid introducing fields the frontend never writes
+        # for a divider.
+        control_values = dict(merged.get("controlValues") or {})
+        for field, control_key in _CONTROL_VALUE_FIELDS.items():
+            value = getattr(spec, field)
+            if value is not None:
+                control_values[control_key] = value
+        merged["controlValues"] = control_values
 
-    _merge_select_default(spec, existing, merged, target_changed)
+        _merge_select_default(spec, existing, merged, target_changed)
 
-    if spec.default_time_range is not None:
-        merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
+        if spec.default_time_range is not None:
+            merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
 
     return merged
 
 
 def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
-    """Summarize a filter config for the response.
+    """Summarize a filter (or divider) config for the response.
 
     Returns the id, name, filterType, and non-empty targets; empty target
     entries (e.g. for time filters) are dropped so the summary only lists
     real dataset/column targets. All user-controlled and operational fields
     preserve their application values so clients can pass them back verbatim.
+
+    Dividers store their display text under "title" and have no
+    "filterType"; both are normalized here so a divider shows up with a
+    usable name and a "divider" filter_type instead of None/None.
     """
-    name = conf.get("name")
+    is_divider = _is_divider(conf)
+    name = conf.get("title") if is_divider else conf.get("name")
+    filter_type = "divider" if is_divider else conf.get("filterType")
     targets = [t for t in (conf.get("targets") or []) if t]
     return NativeFilterSummary(
         id=conf.get("id"),
         name=name,
-        filter_type=conf.get("filterType"),
+        filter_type=filter_type,
         targets=targets,
     )
 
@@ -647,6 +705,60 @@ def _build_native_filters_payload(  # noqa: C901
     return payload, added_filter_ids, updated_filter_ids
 
 
+def _pre_filter_update_refusal(
+    dashboard: "Dashboard | None", dashboard_id: int
+) -> ManageNativeFiltersResponse | None:
+    """Reject a missing or externally managed dashboard before filter edits."""
+    if dashboard is None:
+        return ManageNativeFiltersResponse(
+            error=(
+                f"Dashboard with ID {dashboard_id} not found."
+                " Use list_dashboards to get valid dashboard IDs."
+            ),
+        )
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is None:
+        return None
+
+    from superset import security_manager
+
+    try:
+        security_manager.raise_for_editorship(dashboard)
+    except SupersetSecurityException:
+        return ManageNativeFiltersResponse(
+            dashboard_id=dashboard_id,
+            permission_denied=True,
+            error=(
+                f"You don't have permission to edit dashboard {dashboard_id}. "
+                "Changing native filters requires editorship of the dashboard."
+            ),
+        )
+    except SQLAlchemyError:
+        logger.exception(
+            "Database error checking editorship for dashboard %s", dashboard_id
+        )
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during native filter error handling"
+            )
+        return ManageNativeFiltersResponse(
+            dashboard_id=dashboard_id,
+            error=(
+                "Failed to verify dashboard edit permission due to a database error."
+            ),
+        )
+    return ManageNativeFiltersResponse(
+        dashboard_id=dashboard_id,
+        managed_externally=True,
+        error=refusal,
+    )
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -663,15 +775,21 @@ def manage_native_filters(
     request: ManageNativeFiltersRequest, ctx: Context
 ) -> ManageNativeFiltersResponse:
     """
-    Add, update, remove, and reorder native filters on a dashboard.
+    Add, update, remove, or reorder dashboard native filters.
+
+    Externally managed dashboards refuse edits
+    (``managed_externally=True``); do not retry.
 
     Supported filter types for new filters: filter_select (dropdown backed
     by a dataset column), filter_time (time range), filter_range (numerical
-    range backed by a dataset column), and filter_timegrain (time grain
+    range backed by a dataset column), filter_timegrain (time grain
     backed by a dataset, which determines the grains it offers and
-    validates selections against). filter_timecolumn (time column) is not
-    yet supported. Filter IDs are generated by the server and returned in
-    the response.
+    validates selections against), and divider (a title/description-only
+    visual separator with no dataset or column, used to group related
+    filters in the filter bar). filter_timecolumn (time column) is not
+    yet supported. Filter and divider IDs are generated by the server and
+    returned in the response. Dividers share the same ordering as filters,
+    so include their IDs in ``reorder`` alongside filter IDs.
 
     Concurrency note: the filter-list snapshot used for validation is read
     outside the DAO write transaction.  A ``reorder`` that is valid against
@@ -696,13 +814,12 @@ def manage_native_filters(
     try:
         with event_logger.log_context(action="mcp.manage_native_filters.validation"):
             dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-            if not dashboard:
-                return ManageNativeFiltersResponse(
-                    error=(
-                        f"Dashboard with ID {request.dashboard_id} not found."
-                        " Use list_dashboards to get valid dashboard IDs."
-                    ),
-                )
+            pre_filter_refusal: ManageNativeFiltersResponse | None = (
+                _pre_filter_update_refusal(dashboard, request.dashboard_id)
+            )
+            if pre_filter_refusal is not None:
+                return pre_filter_refusal
+            assert dashboard is not None
 
             current_config = current_native_filter_config(dashboard)
             dashboard_chart_ids = [slc.id for slc in dashboard.slices]
