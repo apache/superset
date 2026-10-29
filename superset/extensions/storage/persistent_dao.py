@@ -174,7 +174,7 @@ def _validate_key_length(key: str) -> None:
         raise ExtensionStorageKeyTooLong(MAX_KEY_LENGTH)
 
 
-def _derive_key(secret: str, user_fk: int) -> str:
+def derive_user_key(secret: str, user_fk: int) -> str:
     """Derive a per-user encryption key from the master secret and user ID.
 
     Uses HMAC-SHA256 so the derived key is cryptographically bound to both.
@@ -195,7 +195,7 @@ def _enc_type(user_fk: int | None) -> EncryptedBytesType:
     Shared rows (user_fk=None) use SECRET_KEY directly.
     """
     secret = current_app.config["SECRET_KEY"]
-    key = _derive_key(secret, user_fk) if user_fk is not None else secret
+    key = derive_user_key(secret, user_fk) if user_fk is not None else secret
     engine_name = current_app.config.get(
         "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
     )
