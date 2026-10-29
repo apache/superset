@@ -24,7 +24,10 @@ import {
   Filter,
   FilterState,
 } from '@superset-ui/core';
+import { renderHook } from '@testing-library/react';
+import { createWrapper } from 'spec/helpers/testing-library';
 import {
+  useChartsVerboseMaps,
   checkIsApplyDisabled,
   checkIsValidateError,
   checkIsMissingRequiredValue,
@@ -904,4 +907,36 @@ test('clearedCustomizationTarget tolerates an absent target', () => {
   expect(clearedCustomizationTarget(undefined)).toStrictEqual({
     datasetId: undefined,
   });
+});
+
+test('cross-filter verbose maps use each chart own labels on a shared datasource', () => {
+  const datasource = {
+    verbose_map: { shared_column: 'Dataset label' },
+    chart_display_labels: {
+      '12': { country_name: 'Country', shared_column: 'Chart label' },
+      '13': { sum__num: 'Population' },
+    },
+  };
+  const { result } = renderHook(() => useChartsVerboseMaps(), {
+    wrapper: createWrapper({
+      useRedux: true,
+      initialState: {
+        datasources: { '7__table': datasource },
+        sliceEntities: {
+          slices: {
+            12: { form_data: { datasource: '7__table' } },
+            13: { form_data: { datasource: '7__table' } },
+            14: { form_data: { datasource: 'missing__table' } },
+          },
+        },
+      },
+    }),
+  });
+
+  expect(result.current).toEqual({
+    '12': { country_name: 'Country', shared_column: 'Dataset label' },
+    '13': { sum__num: 'Population', shared_column: 'Dataset label' },
+    '14': {},
+  });
+  expect(datasource.verbose_map).toEqual({ shared_column: 'Dataset label' });
 });

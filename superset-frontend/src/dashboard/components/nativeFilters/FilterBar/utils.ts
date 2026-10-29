@@ -30,6 +30,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { RootState } from 'src/dashboard/types';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import { FilterElement } from './FilterControls/types';
 
 export const getOnlyExtraFormData = (
@@ -159,7 +160,9 @@ const chartsVerboseMapSelector = createSelector(
         : undefined;
       return {
         ...chartsVerboseMaps,
-        [chartId]: chartDatasource ? chartDatasource.verbose_map : {},
+        [chartId]: chartDatasource
+          ? withChartDisplayLabels(chartDatasource, chartId).verbose_map
+          : {},
       };
     }, {}),
 );
