@@ -20,9 +20,10 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
-from typing import Any, cast, TYPE_CHECKING
+from typing import Annotated, Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy import case, select
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -138,6 +139,8 @@ class _ChartListCore(ModelListCore[ChartList]):
         columns_to_load: list[str],
         custom_filters: dict[str, Any] | None = None,
     ) -> tuple[list[Any], int]:
+        if "datasource_type" not in columns_to_load:
+            columns_to_load = [*columns_to_load, "datasource_type"]
         name_filters = [
             item for item in (filters or []) if item.col == "datasource_name"
         ]
@@ -179,7 +182,16 @@ class _ChartListCore(ModelListCore[ChartList]):
     ),
 )
 async def list_charts(
-    request: ListChartsRequest | None = None,
+    request: Annotated[
+        ListChartsRequest | None,
+        Field(
+            description=(
+                'Wrap parameters as {"request": {"search": "sales"}}; omit request for defaults. '
+                "Do NOT pass search, page, page_size or filters as top-level arguments. "
+                "For people, resolve IDs with find_users and use filters, not search."
+            )
+        ),
+    ] = None,
     ctx: Context = None,
 ) -> ChartList | ChartError:
     """List charts with filtering and search.
@@ -202,7 +214,7 @@ async def list_charts(
         list_charts(search="revenue", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``slice_name``, ``viz_type``, ``datasource_name``, ``editor``,
+        ``slice_name``, ``viz_type``, ``datasource_name``, ``datasource_id``, ``editor``,
         ``created_by_fk``, ``changed_by_fk``, ``dashboards``
 
     Sortable columns for ``order_column``:

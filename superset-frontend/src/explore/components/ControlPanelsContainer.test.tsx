@@ -16,25 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { t } from '@apache-superset/core/translation';
+import {
+  Dataset,
+  getStandardizedControls,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import {
   ComparisonType,
   DatasourceType,
   FeatureFlag,
   getChartControlPanelRegistry,
   isFeatureEnabled,
+  NO_TIME_RANGE,
+  QueryFormData,
   QueryMode,
 } from '@superset-ui/core';
-import { defaultControls, defaultState } from 'src/explore/store';
+import {
+  defaultControls,
+  defaultState,
+  getControlsState,
+} from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
-import { getFormDataFromControls } from 'src/explore/controlUtils';
+import { setControlValue } from 'src/explore/actions/exploreActions';
+import {
+  getControlStateFromControlConfig,
+  getFormDataFromControls,
+} from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
@@ -43,6 +61,7 @@ import {
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+  fetchTimeRange: jest.fn(async () => ({ value: 'Actual time range' })),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -53,6 +72,43 @@ const FormDataMock = () => {
   );
 
   return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
+};
+
+// Mirrors the props ExploreViewContainer derives from the store, so the real
+// reducer and the real container run against each other.
+const StoreBackedControlPanelsContainer = () => {
+  const dispatch = useDispatch();
+  const exploreState = useSelector((state: ExplorePageState) => state.explore);
+  const actions = {
+    setControlValue: (
+      ...args: Parameters<typeof setControlValue>
+    ): ReturnType<typeof setControlValue> =>
+      dispatch(setControlValue(...args)) as unknown as ReturnType<
+        typeof setControlValue
+      >,
+    resetSemanticSelections: jest.fn(),
+  };
+  return (
+    <ControlPanelsContainer
+      exploreState={exploreState}
+      actions={actions}
+      datasource_type={DatasourceType.Table}
+      controls={exploreState.controls}
+      form_data={getFormDataFromControls(exploreState.controls)}
+      isDatasourceMetaLoading={false}
+      chart={
+        {
+          queriesResponse: null,
+          chartStatus: 'success',
+        } as ControlPanelsContainerProps['chart']
+      }
+      onQuery={jest.fn()}
+      onStop={jest.fn()}
+      canStopQuery={false}
+      chartIsStale={false}
+      errorMessage={null}
+    />
+  );
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -99,8 +155,46 @@ describe('ControlPanelsContainer', () => {
     ],
   };
 
+  // Reuses the 'Query' section label of the table config so the section stays
+  // expanded after a switch (the accordion only honors its initial open keys).
+  const switchTargetConfig = {
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [['groupby'], ['metrics'], ['limit']],
+      },
+    ],
+  };
+
+  // Consumes the standardized metrics/columns under field names the source viz
+  // never had, so values can only arrive through the StandardizedFormData
+  // transform and not by copying same-named form_data keys.
+  const switchMappedConfig = {
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [['size'], ['series_columns']],
+      },
+    ],
+    formDataOverrides: (formData: QueryFormData) => ({
+      ...formData,
+      size: getStandardizedControls().shiftMetric(),
+      series_columns: getStandardizedControls().popAllColumns(),
+    }),
+  };
+
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
+    getChartControlPanelRegistry().registerValue(
+      'switch-mapped',
+      switchMappedConfig,
+    );
+    getChartControlPanelRegistry().registerValue(
+      'switch-target',
+      switchTargetConfig,
+    );
     jest.clearAllMocks();
     // Default: feature disabled
     mockIsFeatureEnabled.mockReturnValue(false);
@@ -108,6 +202,8 @@ describe('ControlPanelsContainer', () => {
 
   afterEach(() => {
     getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().remove('switch-target');
+    getChartControlPanelRegistry().remove('switch-mapped');
     jest.clearAllMocks();
   });
 
@@ -684,6 +780,243 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
     getChartControlPanelRegistry().remove('bar');
     getChartControlPanelRegistry().remove('pie');
+  });
+
+  // The partition-pruning glyph on the standalone Time Range control is
+  // recomputed here, at render, rather than by the explore reducer: a control
+  // that listed itself in `validationDependencies` was rebuilt by the reducer
+  // from its own superseded value, which dropped every Time Range change on the
+  // charts that still carry this control. `shouldMapStateToProps` gives the
+  // glyph the freshness it needs without the reducer ever touching the value.
+  const PARTITION_FILTER_MAPPING = {
+    partition_column: 'dt_epoch',
+    mapped_column: 'event_time',
+    active: true,
+    is_monotonic: true,
+    mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
+  };
+
+  const mirroredDatasource: Dataset = {
+    id: 1,
+    type: DatasourceType.Table,
+    datasource_name: 'mirrored',
+    description: null,
+    column_formats: {},
+    verbose_map: {},
+    main_dttm_col: 'event_time',
+    always_filter_main_dttm: false,
+    columns: [{ column_name: 'event_time', is_dttm: true }],
+    metrics: [],
+    partition_filter_mapping: PARTITION_FILTER_MAPPING,
+  };
+
+  /**
+   * Props shaped the way SET_FIELD_VALUE leaves the store: `form_data` and the
+   * control's `value` carry the new range, while the control state still holds
+   * the `partitionMapping` computed for `initialTimeRange`. Recomputing that
+   * stale prop is the container's job, so building the control fresh for each
+   * range would test nothing.
+   */
+  function mirroredTimeRangeProps(
+    timeRange: string,
+    initialTimeRange = timeRange,
+  ) {
+    const controlPanelState = {
+      controls: {},
+      form_data: {
+        datasource: '1__table',
+        viz_type: 'table',
+        granularity_sqla: 'event_time',
+        time_range: initialTimeRange,
+      },
+      datasource: mirroredDatasource,
+    };
+    const controlState = getControlStateFromControlConfig(
+      sharedControls.time_range,
+      controlPanelState as Parameters<
+        typeof getControlStateFromControlConfig
+      >[1],
+      initialTimeRange,
+    )!;
+    const formData = {
+      datasource: '1__table',
+      viz_type: 'table',
+      granularity_sqla: 'event_time',
+      time_range: timeRange,
+    };
+
+    return {
+      ...getDefaultProps(),
+      controls: {
+        time_range: { ...controlState, value: timeRange },
+      } as unknown as ControlPanelsContainerProps['controls'],
+      form_data: formData,
+      exploreState: { form_data: formData, datasource: mirroredDatasource },
+    } as unknown as ControlPanelsContainerProps;
+  }
+
+  function registerTimeRangeOnlyPanel() {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Time'),
+          expanded: true,
+          controlSetRows: [['time_range']],
+        },
+      ],
+    });
+  }
+
+  test('the partition glyph shows on a time range that is mirrored', async () => {
+    registerTimeRangeOnlyPanel();
+
+    render(
+      <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
+      {
+        useRedux: true,
+      },
+    );
+
+    expect(
+      await screen.findByTestId('partition-pruning-indicator'),
+    ).toBeInTheDocument();
+  });
+
+  test('the partition glyph drops when the time range becomes "No filter"', async () => {
+    registerTimeRangeOnlyPanel();
+
+    const { rerender } = render(
+      <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
+      { useRedux: true },
+    );
+    expect(
+      await screen.findByTestId('partition-pruning-indicator'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ControlPanelsContainer
+        {...mirroredTimeRangeProps(NO_TIME_RANGE, 'Last week')}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('partition-pruning-indicator'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  function createStoreBackedExplore() {
+    const datasource = {
+      id: 1,
+      type: DatasourceType.Table,
+      columns: [{ column_name: 'name' }, { column_name: 'gender' }],
+      metrics: [{ metric_name: 'count' }],
+      verbose_map: {},
+      column_formats: {},
+    };
+    const baseState = { datasource };
+    const formData = {
+      viz_type: 'table',
+      datasource: '1__table',
+      groupby: ['name', 'gender'],
+      metrics: ['count'],
+      all_columns: ['name'],
+      row_limit: 100,
+    };
+    const controls = getControlsState(
+      baseState,
+      formData as unknown as Parameters<typeof getControlsState>[1],
+    );
+    // Control states carry mapStateToProps functions, so the default
+    // serializability check would only add noise.
+    return configureStore({
+      reducer: reducerIndex,
+      preloadedState: {
+        explore: {
+          ...baseState,
+          controls,
+          form_data: getFormDataFromControls(
+            controls as ControlPanelsContainerProps['controls'],
+          ),
+        },
+      } as never,
+      middleware: getDefaultMiddleware =>
+        getDefaultMiddleware({
+          serializableCheck: false,
+          immutableCheck: false,
+        }),
+      devTools: false,
+    });
+  }
+
+  test('switching viz_type re-renders the control sections of the new viz', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+
+    expect(
+      await screen.findByRole('button', { name: /group by/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/series limit/i)).not.toBeInTheDocument();
+    expect(
+      (store.getState() as ExplorePageState).explore.controls.limit,
+    ).toBeUndefined();
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-target'));
+    });
+
+    expect(
+      (await screen.findAllByText(/series limit/i)).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /group by/i }),
+    ).not.toBeInTheDocument();
+    // The label above comes from the registered panel config, so also check the
+    // reducer built control state for `limit`, which only the target viz has.
+    const { controls } = (store.getState() as ExplorePageState).explore;
+    expect(controls.limit).toMatchObject({ label: 'Series limit' });
+  });
+
+  test('switching viz_type carries shared metrics and groupby over and drops controls the new viz lacks', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-target'));
+    });
+    await screen.findAllByText(/series limit/i);
+
+    const { form_data: formData, controls } = (
+      store.getState() as ExplorePageState
+    ).explore;
+    expect(formData.viz_type).toBe('switch-target');
+    expect(formData.groupby).toEqual(['name', 'gender']);
+    expect(formData.metrics).toEqual(['count']);
+    expect(formData.standardizedFormData.controls).toEqual({
+      metrics: ['count'],
+      columns: ['name', 'gender'],
+    });
+    expect(controls.all_columns).toBeUndefined();
+    expect(formData.all_columns).toBeUndefined();
+  });
+
+  test('switching viz_type hands standardized metrics and columns to the target formDataOverrides', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-mapped'));
+    });
+
+    const { form_data: formData } = (store.getState() as ExplorePageState)
+      .explore;
+    expect(formData.viz_type).toBe('switch-mapped');
+    expect(formData.size).toBe('count');
+    expect(formData.series_columns).toEqual(['name', 'gender']);
   });
 
   function withHeaderGroupsSync(

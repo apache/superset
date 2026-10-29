@@ -35,6 +35,7 @@ from superset.legacy import update_time_range
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
+from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView
 from superset.views.error_handling import handle_api_exception
 
@@ -74,6 +75,10 @@ class Api(BaseSupersetView):
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
+        # These are the same query-context payloads ``/api/v1/chart/data``
+        # returns, including the generated SQL under ``query``, so apply the same
+        # guest redaction before responding.
+        redact_sensitive_query_fields(payload_json)
         return self.json_response(payload_json)
 
     @event_logger.log_this
@@ -138,5 +143,7 @@ class Api(BaseSupersetView):
             # pylint: disable=import-outside-toplevel
             from superset.common.query_context_factory import QueryContextFactory
 
-            self.query_context_factory = QueryContextFactory()
+            self.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
         return self.query_context_factory
