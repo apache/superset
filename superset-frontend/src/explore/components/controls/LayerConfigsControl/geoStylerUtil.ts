@@ -95,7 +95,7 @@ export const createGeoStylerContext = (
 ) => {
   const context: GeoStylerContextInterface = {
     locale: gsLocale,
-    composition: composition ?? {},
+    composition: structuredClone(composition) ?? {},
   };
 
   if (data) {
