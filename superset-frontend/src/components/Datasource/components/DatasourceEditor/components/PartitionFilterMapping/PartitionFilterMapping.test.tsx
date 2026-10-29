@@ -220,6 +220,8 @@ test('the banner also defers to the stored mapping the engine refused', () => {
         partition_filter_mapping: {
           evaluable: false,
           evaluated_transform: 'unix_timestamp(:value)',
+          mapped_column: 'event_time',
+          partition_column: 'dt_epoch',
         },
       }}
       columns={MAPPED_COLUMNS}
@@ -634,6 +636,8 @@ test('a stored refusal stops applying once the transform changes', () => {
         partition_filter_mapping: {
           evaluable: false,
           evaluated_transform: 'no_such_fn(:value)',
+          mapped_column: 'event_time',
+          partition_column: 'dt_epoch',
         },
       }}
       columns={MAPPED_COLUMNS}
@@ -1615,6 +1619,7 @@ test('saved safety refusal is shown before expanding or previewing the mapped ro
       {...common}
       datasource={datasource}
       allColumns={corrected}
+      previewMirrors
     />,
   );
   expect(
@@ -1623,4 +1628,35 @@ test('saved safety refusal is shown before expanding or previewing the mapped ro
     ),
   ).not.toBeInTheDocument();
   expect(screen.getByText(/will automatically apply/)).toBeInTheDocument();
+});
+
+test('a stored pass about another partition column is not a confirmation', () => {
+  // The stored verdict is keyed on the transform text alone, so after the
+  // partition column is re-pointed it still reads as a pass -- for a mirror
+  // onto a column nobody has checked it against.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_filter_mapping: {
+          evaluable: true,
+          evaluated_transform: 'unix_timestamp(:value)',
+          mapped_column: 'event_time',
+          partition_column: 'dt_other',
+        },
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('partition-mapping-unconfirmed'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/will automatically apply an equivalent filter to/),
+  ).not.toBeInTheDocument();
 });

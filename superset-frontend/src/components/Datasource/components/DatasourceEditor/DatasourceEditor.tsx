@@ -1660,7 +1660,9 @@ function DatasourceEditor({
           // never show a transform, and anything already stored on one still
           // has to go either way, because it is saved and the query path reads
           // it.
-          setCalculatedColumns(prev => clearMappingTransforms(prev));
+          setCalculatedColumns(prev =>
+            applyImplicitMappingMove(prev, moveFrom, value),
+          );
           setDatasource(prev => ({ ...prev, main_dttm_col: value }));
         },
       );
