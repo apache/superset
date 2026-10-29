@@ -27,6 +27,7 @@ Create Date: 2026-10-27 00:00:00.000000
 
 import logging
 from decimal import InvalidOperation
+from typing import Any
 
 from alembic import op
 from sqlalchemy import column, Integer, select, table, Text
@@ -46,6 +47,41 @@ _TIMEOUT_KEYS = (
 )
 
 
+def _serialize_extra(extra: dict[str, Any], original: str) -> str | None:
+    """Keep compact output representable without increasing its storage needs."""
+    try:
+        serialized = json.dumps(extra, separators=(",", ":"), ensure_ascii=True)
+        serialized_size = len(serialized.encode("ascii"))
+        original_size = len(original.encode("utf-8"))
+    except UnicodeError:
+        return None
+    # Original characters are also a conservative capacity lower bound when the
+    # metadata column's charset is unknown. ASCII avoids new literal Unicode.
+    if serialized_size > original_size or serialized_size > len(original):
+        return None
+    return serialized
+
+
+def _parse_extra(raw_extra: str | None, database_id: int) -> dict[str, Any] | None:
+    """Read configured timeouts, skipping healthy blanks without a warning."""
+    if raw_extra is None or raw_extra == "":
+        return None
+    try:
+        extra = json.loads(raw_extra, use_decimal=True)
+    except (TypeError, ValueError, InvalidOperation):
+        logger.warning(
+            "Database %s: skipping metadata cache timeouts; "
+            "invalid or unrepresentable JSON",
+            database_id,
+        )
+        return None
+    if not isinstance(extra, dict) or not isinstance(
+        extra.get("metadata_cache_timeout"), dict
+    ):
+        return None
+    return extra
+
+
 def upgrade() -> None:
     """Convert legacy ASCII digit strings to integer timeouts."""
     connection = op.get_bind()
@@ -53,18 +89,8 @@ def upgrade() -> None:
         select(_DATABASES.c.id, _DATABASES.c.extra).with_for_update()
     ).all()
     for database_id, raw_extra in rows:
-        try:
-            extra = json.loads(raw_extra, use_decimal=True)
-        except (TypeError, ValueError, InvalidOperation):
-            logger.warning(
-                "Database %s: skipping metadata cache timeouts; "
-                "invalid or unrepresentable JSON",
-                database_id,
-            )
-            continue
-        if not isinstance(extra, dict) or not isinstance(
-            extra.get("metadata_cache_timeout"), dict
-        ):
+        extra = _parse_extra(raw_extra, database_id)
+        if extra is None:
             continue
         timeouts = extra["metadata_cache_timeout"]
 
@@ -95,10 +121,19 @@ def upgrade() -> None:
             changed = True
 
         if changed:
+            serialized = _serialize_extra(extra, raw_extra)
+            if serialized is None:
+                logger.warning(
+                    "Database %s: leaving metadata cache timeouts unchanged; "
+                    "configuration cannot be serialized without byte growth "
+                    "or encoding loss",
+                    database_id,
+                )
+                continue
             result = connection.execute(
                 _DATABASES.update()
                 .where(_DATABASES.c.id == database_id, _DATABASES.c.extra == raw_extra)
-                .values(extra=json.dumps(extra))
+                .values(extra=serialized)
             )
             if result.rowcount != 1:
                 raise RuntimeError(

@@ -84,6 +84,165 @@ def _read_extra(engine: Engine) -> str | None:
         return connection.execute(select(dbs.c.extra).where(dbs.c.id == 1)).scalar_one()
 
 
+def _near_text_limit(extra: str) -> str:
+    """Pad a UTF-8 document to MySQL TEXT's byte limit without changing its values."""
+    padding = 65_535 - len(extra.encode("utf-8"))
+    assert padding >= 0
+    return extra.replace('"padding":""', '"padding":"' + "a" * padding + '"', 1)
+
+
+@pytest.mark.parametrize("timeout", ["60", "0"])
+@pytest.mark.parametrize(
+    "label,count,spaces,ensure_ascii",
+    [
+        ("schema", 6800, 0, True),
+        ("\u6570\u636e\u5e93", 1, 32, False),
+        ("\U0001f600", 1, 0, True),
+        ("\ud800", 1, 0, True),
+    ],
+    ids=["ascii", "literal-unicode", "escaped-astral", "escaped-surrogate"],
+)
+def test_upgrade_serializes_near_text_limit(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    timeout: str,
+    label: str,
+    count: int,
+    spaces: int,
+    ensure_ascii: bool,
+) -> None:
+    """Safe compact output fits the original capacity and retains unrelated data."""
+    original = json.dumps(
+        {
+            "metadata_cache_timeout": {"schema_cache_timeout": timeout},
+            "default_schemas": [label] * count,
+            "precise": Decimal("0.12345678901234567890123456789"),
+            "large": Decimal("1e500"),
+            "unknown": {"enabled": True},
+            "padding": "",
+        },
+        separators=(",", ":"),
+        ensure_ascii=ensure_ascii,
+    )
+    original = _near_text_limit(
+        original.replace(',"padding":', "," + " " * spaces + '"padding":')
+    )
+    assert len(original.encode("utf-8")) == 65_535
+    expected = json.loads(original, use_decimal=True)
+    expected["metadata_cache_timeout"]["schema_cache_timeout"] = int(timeout)
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    migrated = _read_extra(engine)
+    assert migrated is not None
+    assert migrated.isascii()
+    assert len(migrated.encode("utf-8")) <= len(original.encode("utf-8"))
+    assert len(migrated.encode("ascii")) <= len(original)
+    assert json.loads(migrated, use_decimal=True) == expected
+    assert not [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+
+
+@pytest.mark.parametrize("timeout", ["60", "0"])
+def test_upgrade_preserves_unicode_that_would_expand(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    timeout: str,
+) -> None:
+    """A valid literal-Unicode row is preserved rather than escaped past capacity."""
+    original = _near_text_limit(
+        json.dumps(
+            {
+                "metadata_cache_timeout": {"schema_cache_timeout": timeout},
+                "default_schemas": ["\u6570\u636e\u5e93"] * 5000,
+                "sensitive_field": "private-config-token",
+                "padding": "",
+            },
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+    )
+    assert len(original.encode("utf-8")) == 65_535
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "byte" in warnings[0].getMessage()
+    assert "private-config-token" not in caplog.text
+    assert original not in caplog.text
+
+
+@pytest.mark.parametrize("label", ["", "\u6570\u636e\u5e93\u6570\u636e\u5e93"])
+def test_upgrade_preserves_json_when_decimal_rendering_grows(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    label: str,
+) -> None:
+    """Exact Decimal rendering may grow even if literal Unicode avoids escaping."""
+    original = _near_text_limit(
+        '{"metadata_cache_timeout":{"schema_cache_timeout":"0"},'
+        '"small":[1e-6,1e-6],"label":'
+        + json.dumps(label, ensure_ascii=False)
+        + ',"sensitive_field":"private-config-token","padding":""}'
+    )
+    expected = json.loads(original, use_decimal=True)
+    expected["metadata_cache_timeout"]["schema_cache_timeout"] = 0
+    literal_candidate = json.dumps(expected, separators=(",", ":"), ensure_ascii=False)
+    assert len(literal_candidate.encode("utf-8")) > 65_535
+    if label:
+        assert len(literal_candidate) < 65_535
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "byte" in warnings[0].getMessage()
+    assert "private-config-token" not in caplog.text
+    assert original not in caplog.text
+
+
+@pytest.mark.parametrize("original", [None, ""])
+def test_upgrade_silently_preserves_blank_extra(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    original: str | None,
+) -> None:
+    """NULL and empty configuration are healthy states rather than corrupt JSON."""
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    assert not [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+
+
 @pytest.mark.parametrize("cache_type", ["catalog", "schema", "table"])
 @pytest.mark.parametrize("timeout", ["600", "0"])
 def test_upgrade_restores_metadata_cache(
