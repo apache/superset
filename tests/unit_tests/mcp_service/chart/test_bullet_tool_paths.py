@@ -37,6 +37,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
 from superset.mcp_service.chart.compile import CompileResult
+from superset.mcp_service.chart.preview_utils import _javascript_number_string
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
@@ -345,6 +346,9 @@ class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    async def warning(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
 
 @pytest.fixture
 def mcp_server():
@@ -544,6 +548,8 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         tzinfo=dateutil_dublin,
         fold=1,
     )
+    # Capture the producer-selected instant before projecting dataframe values.
+    dublin_epoch_ms: float = dublin_fold.timestamp() * 1000
     new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
     form_data = {
         "viz_type": "bullet",
@@ -645,10 +651,10 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         1730615400000.0,
         -0.0010000000000287557,
         None,
-        1729989000123.456,
+        dublin_epoch_ms,
         1710052200123.456,
         2224774800123.456,
-        1729989000123.456,
+        dublin_epoch_ms,
         1710052200123.456,
     ]
 
@@ -1529,8 +1535,10 @@ async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+@pytest.mark.parametrize("microsecond", [0, 123456])
 async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
     format_: str,
+    microsecond: int,
 ) -> None:
     from contextlib import nullcontext
 
@@ -1556,10 +1564,12 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         1,
         30,
         0,
-        123456,
+        microsecond,
         tzinfo=dateutil_dublin,
         fold=1,
     )
+    # Capture the producer-selected instant before projecting dataframe values.
+    dublin_epoch_ms: float = dublin_fold.timestamp() * 1000
     new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
     source_values = [
         pd.Timestamp("2024-01-02 03:04:05.123456789"),
@@ -1611,12 +1621,12 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         "-0.0010000000000287557",
         "1704153600000",
         "null",
-        "1729989000123.456",
+        _javascript_number_string(dublin_epoch_ms),
         "1710052200123.456",
         "2224774800123.456",
         "1710052200123.456",
         "1710052200123.456",
-        "1729989000123.456",
+        _javascript_number_string(dublin_epoch_ms),
         "1710052200123.456",
     ]
     form_data = {
@@ -1714,12 +1724,12 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
             -0.0010000000000287557,
             1704153600000.0,
             None,
-            1729989000123.456,
+            dublin_epoch_ms,
             1710052200123.456,
             2224774800123.456,
             1710052200123.456,
             1710052200123.456,
-            1729989000123.456,
+            dublin_epoch_ms,
             1710052200123.456,
         ]
 
