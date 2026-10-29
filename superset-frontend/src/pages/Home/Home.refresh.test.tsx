@@ -21,11 +21,14 @@ import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
 import {
+  act,
+  createStore,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import Welcome from 'src/pages/Home';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
@@ -40,10 +43,21 @@ jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 // Stub the tables with a button that simulates a completed delete.
 jest.mock('src/features/home/DashboardTable', () => ({
   __esModule: true,
-  default: ({ onActivityRefresh }: { onActivityRefresh?: () => void }) => (
-    <button type="button" onClick={onActivityRefresh}>
-      simulate delete
-    </button>
+  default: ({
+    onActivityRefresh,
+    mine,
+  }: {
+    onActivityRefresh?: () => void;
+    mine?: { id: number; dashboard_title: string }[];
+  }) => (
+    <>
+      <button type="button" onClick={onActivityRefresh}>
+        simulate delete
+      </button>
+      {mine?.map(d => (
+        <span key={d.id}>{`mine: ${d.dashboard_title}`}</span>
+      ))}
+    </>
   ),
 }));
 jest.mock('src/features/home/ChartTable', () => ({
@@ -80,7 +94,31 @@ const editedDashboard = (title: string, id: number) => ({
   changed_on_delta_humanized: 'a day ago',
 });
 
+type Deferred = {
+  resolve: (value: unknown) => void;
+  reject: (reason: Error) => void;
+};
+
+// Returns a response promise that the test settles by hand, so requests can
+// resolve (or fail) out of order.
+const deferResponse = (pending: Deferred[]) =>
+  new Promise<unknown>((resolve, reject) => {
+    pending.push({ resolve, reject });
+  });
+
+// Waits for the requests a just-settled response kicked off (the chained
+// chart/dashboard fetches) and for the resulting React updates to finish.
+const drainPendingWork = async () => {
+  await act(async () => {
+    await fetchMock.callHistory.flush(true);
+  });
+  await act(async () => {
+    await fetchMock.callHistory.flush(true);
+  });
+};
+
 let recentResponder: () => unknown;
+let editableDashboardsResponder: () => unknown;
 let editedDashboards: ReturnType<typeof editedDashboard>[] = [];
 
 beforeAll(() => {
@@ -93,9 +131,15 @@ beforeEach(() => {
   setItem(LocalStorageKeys.HomepageCollapseState, ['recents', 'dashboards']);
   fetchMock.get(chartsEndpoint, { result: [] });
   editedDashboards = [];
-  fetchMock.get(dashboardsEndpoint, ({ url }) =>
-    url.includes('changed_by') ? { result: editedDashboards } : { result: [] },
-  );
+  editableDashboardsResponder = () => ({ result: [] });
+  fetchMock.get(dashboardsEndpoint, ({ url }) => {
+    if (url.includes('is_editable')) {
+      return editableDashboardsResponder();
+    }
+    return url.includes('changed_by')
+      ? { result: editedDashboards }
+      : { result: [] };
+  });
   fetchMock.get(savedQueryEndpoint, { result: [] });
   fetchMock.get(recentActivityEndpoint, () => recentResponder());
 });
@@ -106,13 +150,17 @@ afterEach(() => {
 });
 
 const renderHome = async () => {
-  render(<Welcome user={user} />, { useRedux: true, useRouter: true });
-  return screen.findByRole('button', { name: 'simulate delete' });
+  const store = createStore({}, reducerIndex);
+  render(<Welcome user={user} />, { store, useRouter: true });
+  const deleteButton = await screen.findByRole('button', {
+    name: 'simulate delete',
+  });
+  return { deleteButton, store };
 };
 
 test('delete refetches recents without resetting the selected tab', async () => {
   recentResponder = () => ({ result: [recentItem('Viewed dash', 1)] });
-  const deleteButton = await renderHome();
+  const { deleteButton } = await renderHome();
   expect(await screen.findByText('Viewed dash')).toBeInTheDocument();
   expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
   const dashboardCallsBefore =
@@ -155,37 +203,104 @@ test('an older in-flight refresh cannot repopulate a deleted item', async () => 
   recentResponder = () => ({
     result: [recentItem('Doomed dash', 1), recentItem('Kept dash', 2)],
   });
-  const deleteButton = await renderHome();
+  const { deleteButton } = await renderHome();
   expect(await screen.findByText('Doomed dash')).toBeInTheDocument();
 
   // Defer the next two recents responses so they can resolve out of order.
-  const resolvers: Array<(value: unknown) => void> = [];
-  recentResponder = () =>
-    new Promise(resolve => {
-      resolvers.push(resolve);
-    });
+  const pending: Deferred[] = [];
+  recentResponder = () => deferResponse(pending);
 
   await userEvent.click(deleteButton);
-  await waitFor(() => expect(resolvers).toHaveLength(1));
+  await waitFor(() => expect(pending).toHaveLength(1));
   await userEvent.click(deleteButton);
-  await waitFor(() => expect(resolvers).toHaveLength(2));
+  await waitFor(() => expect(pending).toHaveLength(2));
 
   // The newer refresh (post-delete data) resolves first...
-  resolvers[1]({ result: [recentItem('Kept dash', 2)] });
+  pending[1].resolve({ result: [recentItem('Kept dash', 2)] });
   await waitFor(() =>
     expect(screen.queryByText('Doomed dash')).not.toBeInTheDocument(),
   );
   expect(screen.getByText('Kept dash')).toBeInTheDocument();
+  await drainPendingWork();
 
-  // ...then the older, stale response arrives and must be discarded.
-  resolvers[0]({
+  // ...then the older, stale response arrives and must be discarded. Wait for
+  // the chart/dashboard requests it chains, then let React settle.
+  const chainedCallsBefore =
+    fetchMock.callHistory.calls(chartsEndpoint).length;
+  pending[0].resolve({
     result: [recentItem('Doomed dash', 1), recentItem('Kept dash', 2)],
   });
-  await new Promise(resolve => {
-    setTimeout(resolve, 50);
-  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(chartsEndpoint).length).toBeGreaterThan(
+      chainedCallsBefore,
+    ),
+  );
+  await drainPendingWork();
   expect(screen.queryByText('Doomed dash')).not.toBeInTheDocument();
   expect(screen.getByText('Kept dash')).toBeInTheDocument();
+});
+
+test('a stale refresh that fails cannot blank current items or toast', async () => {
+  recentResponder = () => ({ result: [recentItem('Kept dash', 2)] });
+  const { deleteButton, store } = await renderHome();
+  expect(await screen.findByText('Kept dash')).toBeInTheDocument();
+
+  const recents: Deferred[] = [];
+  const editable: Deferred[] = [];
+  recentResponder = () => deferResponse(recents);
+  editableDashboardsResponder = () => deferResponse(editable);
+
+  // Refresh A starts, then refresh B supersedes it.
+  await userEvent.click(deleteButton);
+  await waitFor(() => expect(recents).toHaveLength(1));
+  await userEvent.click(deleteButton);
+  await waitFor(() => expect(recents).toHaveLength(2));
+  await waitFor(() => expect(editable).toHaveLength(2));
+
+  // B succeeds and renders the current items.
+  recents[1].resolve({ result: [recentItem('Kept dash', 2)] });
+  editable[1].resolve({ result: [editedDashboard('Current dash', 2)] });
+  expect(await screen.findByText('mine: Current dash')).toBeInTheDocument();
+  await drainPendingWork();
+
+  // A then fails: its guards must keep B's data and suppress the toast.
+  recents[0].reject(new Error('stale recents failure'));
+  editable[0].reject(new Error('stale editable failure'));
+  await drainPendingWork();
+
+  expect(screen.getByText('Kept dash')).toBeInTheDocument();
+  expect(screen.getByText('mine: Current dash')).toBeInTheDocument();
+  expect(
+    (store.getState() as { messageToasts: unknown[] }).messageToasts,
+  ).toEqual([]);
+});
+
+test('out-of-order editable-object responses keep the newest data', async () => {
+  recentResponder = () => ({ result: [recentItem('Viewed dash', 1)] });
+  editableDashboardsResponder = () => ({
+    result: [editedDashboard('Doomed dash', 1)],
+  });
+  const { deleteButton } = await renderHome();
+  expect(await screen.findByText('mine: Doomed dash')).toBeInTheDocument();
+
+  const editable: Deferred[] = [];
+  editableDashboardsResponder = () => deferResponse(editable);
+
+  await userEvent.click(deleteButton);
+  await waitFor(() => expect(editable).toHaveLength(1));
+  await userEvent.click(deleteButton);
+  await waitFor(() => expect(editable).toHaveLength(2));
+
+  // The newer refresh resolves first with post-delete data...
+  editable[1].resolve({ result: [editedDashboard('Kept dash', 2)] });
+  expect(await screen.findByText('mine: Kept dash')).toBeInTheDocument();
+  await drainPendingWork();
+
+  // ...then the older one resolves with pre-delete data and must be dropped.
+  editable[0].resolve({ result: [editedDashboard('Doomed dash', 1)] });
+  await drainPendingWork();
+  expect(screen.queryByText('mine: Doomed dash')).not.toBeInTheDocument();
+  expect(screen.getByText('mine: Kept dash')).toBeInTheDocument();
 });
 
 test('delete refetches the Edited tab so a removed item disappears', async () => {
@@ -194,7 +309,7 @@ test('delete refetches the Edited tab so a removed item disappears', async () =>
     editedDashboard('Doomed edited dash', 1),
     editedDashboard('Kept edited dash', 2),
   ];
-  const deleteButton = await renderHome();
+  const { deleteButton } = await renderHome();
   expect(await screen.findByText('Viewed dash')).toBeInTheDocument();
 
   await userEvent.click(screen.getByText('Edited'));
@@ -213,7 +328,7 @@ test('delete refetches the Edited tab so a removed item disappears', async () =>
 
 test('delete refresh keeps a collapsed Dashboards panel collapsed', async () => {
   recentResponder = () => ({ result: [recentItem('Viewed dash', 1)] });
-  const deleteButton = await renderHome();
+  const { deleteButton } = await renderHome();
   expect(await screen.findByText('Viewed dash')).toBeInTheDocument();
 
   // Collapse Dashboards while keeping Recents open.
