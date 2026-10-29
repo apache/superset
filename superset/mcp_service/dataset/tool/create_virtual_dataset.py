@@ -16,11 +16,13 @@
 # under the License.
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.exceptions import SupersetGenericDBErrorException
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateVirtualDatasetRequest,
@@ -28,6 +30,58 @@ from superset.mcp_service.dataset.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _build_update_props(
+    request: CreateVirtualDatasetRequest, dataset: Any
+) -> dict[str, Any]:
+    update_props: dict[str, Any] = {}
+    if request.metrics:
+        # Merge existing metrics with new ones
+        existing_metrics = [
+            {"id": m.id, "metric_name": m.metric_name} for m in dataset.metrics
+        ]
+        update_props["metrics"] = existing_metrics + [
+            m.model_dump(exclude_none=True) for m in request.metrics
+        ]
+    if request.calculated_columns:
+        # Merge existing columns with new ones
+        existing_cols = [
+            {"id": c.id, "column_name": c.column_name} for c in dataset.columns
+        ]
+        update_props["columns"] = existing_cols + [
+            c.model_dump(exclude_none=True) for c in request.calculated_columns
+        ]
+    return update_props
+
+
+def _cleanup_failed_dataset(dataset_id: int) -> None:
+    from superset.commands.dataset.delete import DeleteDatasetCommand
+
+    try:
+        DeleteDatasetCommand([dataset_id]).run()
+    except Exception as cleanup_exc:
+        logger.error(
+            "Failed to clean up dataset %s after update error: %s",
+            dataset_id,
+            cleanup_exc,
+        )
+
+
+def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> Any:
+    from superset.commands.dataset.exceptions import (
+        DatasetInvalidError,
+        DatasetUpdateFailedError,
+    )
+    from superset.commands.dataset.update import UpdateDatasetCommand
+
+    try:
+        return UpdateDatasetCommand(dataset_id, update_props).run()
+    except Exception as exc:
+        _cleanup_failed_dataset(dataset_id)
+        if not isinstance(exc, (DatasetInvalidError, DatasetUpdateFailedError)):
+            raise DatasetUpdateFailedError() from exc
+        raise
 
 
 @tool(
@@ -38,10 +92,23 @@ logger = logging.getLogger(__name__)
         title="Create virtual dataset from SQL",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
-async def create_virtual_dataset(
-    request: CreateVirtualDatasetRequest, ctx: Context
+async def create_virtual_dataset(  # noqa: C901
+    request: Annotated[
+        CreateVirtualDatasetRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "Provide SQL and a dataset name. Use returned id as dataset_id in "
+                "generate_chart or generate_explore_link; "
+                "pick chart columns from returned columns."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> CreateVirtualDatasetResponse:
     """Save a SQL query as a virtual dataset so it can be charted.
 
@@ -56,8 +123,8 @@ async def create_virtual_dataset(
     3. Use the returned ``columns`` list to pick columns for the chart config
     """
     await ctx.info(
-        "Creating virtual dataset: database_id=%s, dataset_name=%r"
-        % (request.database_id, request.dataset_name)
+        f"Creating virtual dataset: database_id={request.database_id}, "
+        f"dataset_name={request.dataset_name!r}"
     )
 
     try:
@@ -65,6 +132,8 @@ async def create_virtual_dataset(
         from superset.commands.dataset.exceptions import (
             DatasetCreateFailedError,
             DatasetInvalidError,
+            DatasetSoftDeletedTwinExistsError,
+            DatasetUpdateFailedError,
         )
         from superset.mcp_service.utils.url_utils import get_superset_base_url
 
@@ -85,6 +154,14 @@ async def create_virtual_dataset(
 
             dataset = CreateDatasetCommand(properties).run()
 
+            if request.metrics or request.calculated_columns:
+                update_props = _build_update_props(request, dataset)
+
+                with event_logger.log_context(
+                    action="mcp.create_virtual_dataset.update"
+                ):
+                    dataset = _update_virtual_dataset(dataset.id, update_props)
+
         # Build response
         columns = [col.column_name for col in dataset.columns]
         dataset_url = (
@@ -93,8 +170,8 @@ async def create_virtual_dataset(
         )
 
         await ctx.info(
-            "Virtual dataset created: id=%s, dataset_name=%r, columns=%s"
-            % (dataset.id, dataset.table_name, columns)
+            f"Virtual dataset created: id={dataset.id}, "
+            f"dataset_name={dataset.table_name!r}, columns={columns}"
         )
 
         return CreateVirtualDatasetResponse(
@@ -106,9 +183,23 @@ async def create_virtual_dataset(
             url=dataset_url,
         )
 
+    except DatasetSoftDeletedTwinExistsError as exc:
+        # Raised directly by validate() (not wrapped in DatasetInvalidError):
+        # a soft-deleted dataset still occupies this physical table. Return the
+        # actionable restore-or-rename message instead of an unexpected error.
+        await ctx.warning(f"Virtual dataset blocked by soft-deleted twin: {exc}")
+        return CreateVirtualDatasetResponse(
+            id=None,
+            dataset_name=request.dataset_name,
+            sql=request.sql,
+            database_id=request.database_id,
+            columns=[],
+            url=None,
+            error=str(exc),
+        )
     except DatasetInvalidError as exc:
         messages = exc.normalized_messages()
-        await ctx.warning("Virtual dataset validation failed: %s" % (messages,))
+        await ctx.warning(f"Virtual dataset validation failed: {messages}")
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -119,7 +210,7 @@ async def create_virtual_dataset(
             error=str(messages),
         )
     except DatasetCreateFailedError as exc:
-        await ctx.error("Virtual dataset creation failed: %s" % (str(exc),))
+        await ctx.error(f"Virtual dataset creation failed: {exc}")
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -129,9 +220,33 @@ async def create_virtual_dataset(
             url=None,
             error=f"Failed to create dataset: {exc}",
         )
+    except DatasetUpdateFailedError as exc:
+        await ctx.error(f"Virtual dataset update failed: {exc}")
+        return CreateVirtualDatasetResponse(
+            id=None,
+            dataset_name=request.dataset_name,
+            sql=request.sql,
+            database_id=request.database_id,
+            columns=[],
+            url=None,
+            error=f"Failed to update dataset metadata (creation rolled back): {exc}",
+        )
+    except SupersetGenericDBErrorException as exc:
+        # Defensive backstop for direct raises (see
+        # test_create_virtual_dataset_sql_error_is_actionable).
+        logger.warning("Virtual dataset SQL validation failed", exc_info=True)
+        await ctx.warning(f"Virtual dataset SQL failed validation: {exc}")
+        return CreateVirtualDatasetResponse(
+            id=None,
+            dataset_name=request.dataset_name,
+            sql=request.sql,
+            database_id=request.database_id,
+            columns=[],
+            url=None,
+            error=f"Dataset SQL could not be executed: {exc}",
+        )
     except Exception as exc:
         await ctx.error(
-            "Unexpected error creating virtual dataset: %s: %s"
-            % (type(exc).__name__, str(exc))
+            f"Unexpected error creating virtual dataset: {type(exc).__name__}: {exc}"
         )
         raise

@@ -118,11 +118,11 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
     description: t(`Select dimension and values`),
     default: { dimension: '', values: [] },
     validators: [], // No validation - rely on visibility
-    renderTrigger: true,
     tabOverride: 'matrixify',
     shouldMapStateToProps: (prevState, state) => {
       // Recalculate when any relevant form_data field changes
       const fieldsToCheck = [
+        'semantic_selection_version',
         `matrixify_topn_value_${axis}`,
         `matrixify_topn_metric_${axis}`,
         `matrixify_topn_order_${axis}`,

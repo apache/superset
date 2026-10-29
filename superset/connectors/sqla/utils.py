@@ -23,22 +23,27 @@ from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
+from jinja2 import UndefinedError
 from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset import db
 from superset.constants import LRU_CACHE_MAX_SIZE
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    SupersetErrorException,
     SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetVirtualTableParseException,
 )
 from superset.models.core import Database
+from superset.models.helpers import template_params_for_access_check
 from superset.result_set import SupersetResultSet
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
@@ -96,6 +101,28 @@ def get_physical_table_metadata(
     return cols
 
 
+def _has_jinja_markers(sql: str) -> bool:
+    """Return True if ``sql`` contains Jinja template markers (``{%`` or ``{{``)."""
+    return "{%" in sql or "{{" in sql
+
+
+def _raise_for_unsafe_script(script: SQLScript) -> None:
+    """Reject a script that is not a single read-only statement."""
+    if script.has_mutation():
+        message = _("Only `SELECT` statements are allowed")
+    elif len(script.statements) > 1:
+        message = _("Only single queries supported")
+    else:
+        return
+    raise SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message=message,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
 def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
@@ -104,36 +131,61 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         )
 
     db_engine_spec = dataset.database.db_engine_spec
+    original_sql = dataset.sql
     try:
+        # Render with the params chart execution exposes, so the columns
+        # come from the same SQL the access check and chart-data render.
         sql = dataset.get_template_processor().process_template(
-            dataset.sql, **dataset.template_params_dict
+            original_sql,
+            **template_params_for_access_check(dataset.template_params_dict),
         )
-    except SupersetSyntaxErrorException as ex:
-        raise SupersetGenericDBErrorException(
+    except UndefinedError as ex:
+        # ``process_template``'s Jinja *render* step re-raises a raw
+        # ``UndefinedError`` directly (not wrapped in
+        # ``SupersetSyntaxErrorException``) when the undefined reference
+        # isn't shaped like a function call — same "missing runtime
+        # context" case the ``SupersetSyntaxErrorException`` branch below
+        # already softens for ``RefreshDatasetCommand``. See #38012.
+        raise SupersetVirtualTableParseException(
             message=_("Template processing error: %(error)s", error=str(ex)),
+        ) from ex
+    except SupersetSyntaxErrorException as ex:
+        # ``process_template`` aggregates several jinja2 exceptions
+        # (``TemplateSyntaxError``, ``SecurityError``, ``UndefinedError``,
+        # ``Unicode*Error``) into ``SupersetSyntaxErrorException``. Only
+        # the ``UndefinedError`` case is a "missing runtime context"
+        # signal that ``RefreshDatasetCommand`` can safely soften — the
+        # rest (sandbox violations, malformed template syntax, encoding
+        # errors) indicate a real problem with the template that must
+        # surface. See #38012.
+        # str(ex) stringifies the raw SupersetError list (enum reprs and all).
+        error_message = "; ".join(err.message for err in ex.errors)
+        if isinstance(ex.__cause__, UndefinedError):
+            raise SupersetVirtualTableParseException(
+                message=_("Template processing error: %(error)s", error=error_message),
+            ) from ex
+        raise SupersetGenericDBErrorException(
+            message=_("Template processing error: %(error)s", error=error_message),
         ) from ex
     try:
         parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
     except SupersetParseError as ex:
+        # ``SQLScript`` fails on any invalid SQL, including static SQL
+        # with no template dependency. Only soften when the input
+        # contained Jinja markers — in that case an "Invalid SQL"
+        # outcome is very likely a rendering artifact (e.g. an empty
+        # ``filter_values('x')`` producing ``WHERE col IN ()``) rather
+        # than a genuine defect in the user's SQL, and the row is
+        # already persisted by ``UpdateDatasetCommand``. Genuinely
+        # invalid static SQL must still hard-error. See #38012.
+        if _has_jinja_markers(original_sql):
+            raise SupersetVirtualTableParseException(
+                message=_("Invalid SQL: %(error)s", error=ex.error.message),
+            ) from ex
         raise SupersetGenericDBErrorException(
             message=_("Invalid SQL: %(error)s", error=ex.error.message),
         ) from ex
-    if parsed_script.has_mutation():
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only `SELECT` statements are allowed"),
-                level=ErrorLevel.ERROR,
-            )
-        )
-    if len(parsed_script.statements) > 1:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only single queries supported"),
-                level=ErrorLevel.ERROR,
-            )
-        )
+    _raise_for_unsafe_script(parsed_script)
     return get_columns_description(
         dataset.database,
         dataset.catalog,
@@ -157,11 +209,47 @@ def get_columns_description(
             limit = database.get_column_description_limit_size()
             query = database.apply_limit_to_sql(query, limit=limit)
             mutated_query = database.mutate_sql_based_on_config(query)
-            cursor.execute(mutated_query)
+            # Callers validate the pre-mutation SQL is a single read-only
+            # statement, but the mutator runs afterwards. Re-assert both on the
+            # mutated text so a mutator that rewrites the query cannot turn it
+            # into several statements or a write. Fail open when the dialect's
+            # parser cannot read the mutated text, to avoid blocking a
+            # legitimate probe.
+            if mutated_query != query:
+                try:
+                    mutated_script = SQLScript(
+                        mutated_query, engine=db_engine_spec.engine
+                    )
+                except SupersetParseError:
+                    pass
+                else:
+                    _raise_for_unsafe_script(mutated_script)
             db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor, limit=limit)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
-            return result_set.columns
+            if not result_set.columns and (
+                retry_sql := db_engine_spec.get_column_description_retry_sql(
+                    mutated_query
+                )
+            ):
+                # Some drivers (e.g. clickhouse-connect) fail to populate
+                # cursor.description for a legitimate zero-row metadata probe
+                # once SQL_QUERY_MUTATOR has added leading comments. Retry
+                # once with a comment-safe wrapped query -- see
+                # get_column_description_retry_sql -- before giving up.
+                db_engine_spec.execute(cursor, retry_sql, database)
+                result = db_engine_spec.fetch_data(cursor, limit=limit)
+                result_set = SupersetResultSet(
+                    result, cursor.description, db_engine_spec
+                )
+            return db_engine_spec.expand_nested_columns(cursor, result_set.columns)
+    except (SupersetErrorException, SupersetDBAPIError):
+        # Preserve exceptions that already carry specific, actionable typing
+        # (e.g. OAuth2RedirectError, or a driver connection/timeout error
+        # normalized by ``db_engine_spec.execute`` via its ``custom_errors``
+        # mapping) so callers can act on them instead of seeing an opaque
+        # generic DB error.
+        raise
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
 

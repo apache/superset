@@ -25,7 +25,11 @@ from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.views.base import BaseSupersetView, common_bootstrap_payload
+from superset.views.base import (
+    BaseSupersetView,
+    common_bootstrap_payload,
+    get_language_pack_template_context,
+)
 
 
 class EmbeddedView(BaseSupersetView):
@@ -66,6 +70,20 @@ class EmbeddedView(BaseSupersetView):
         if not is_referrer_allowed:
             abort(403)
 
+        # Defense in depth: when the browser sends a Sec-Fetch-Dest header,
+        # require an embeddable destination (iframe/frame) or a direct
+        # document/fetch load, rather than e.g. an <img>/<script>/<object> tag.
+        # The header is unforgeable by page script; an absent header (older
+        # browsers / non-browser clients) is allowed for compatibility.
+        sec_fetch_dest = request.headers.get("Sec-Fetch-Dest")
+        if sec_fetch_dest and sec_fetch_dest not in {
+            "iframe",
+            "frame",
+            "document",
+            "empty",
+        }:
+            abort(403)
+
         # Log in as an anonymous user, just for this view.
         # This view needs to be visible to all users,
         # and building the page fails if g.user and/or ctx.user aren't present.
@@ -78,18 +96,33 @@ class EmbeddedView(BaseSupersetView):
 
         bootstrap_data = {
             "config": {
-                "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
+                "GUEST_TOKEN_HEADER_NAME": current_app.config[
+                    "GUEST_TOKEN_HEADER_NAME"
+                ],
+                "GUEST_TOKEN_HEADER_MAX_BYTES": current_app.config[
+                    "GUEST_TOKEN_HEADER_MAX_BYTES"
+                ],
             },
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
+                # The list of domains allowed to embed this dashboard. An empty
+                # list means any domain is allowed (no restriction). The frontend
+                # uses this to validate the origin of incoming postMessage events.
+                "allowed_domains": embedded.allowed_domains,
             },
         }
 
+        # This page renders before any guest token has been presented, and the
+        # Referer / Sec-Fetch-Dest checks above are browser cooperation only --
+        # a non-browser client can forge or omit both. Serve a neutral shell:
+        # no dashboard title or description here; the embedded SPA fetches
+        # dashboard metadata through the guest-token-authenticated API.
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
+            **get_language_pack_template_context(bootstrap_data["common"]),
         )

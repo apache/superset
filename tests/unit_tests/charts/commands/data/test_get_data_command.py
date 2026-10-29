@@ -20,9 +20,31 @@ from unittest.mock import Mock, patch
 import pytest
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.commands.chart.exceptions import (
+    ChartDataQueryFailedError,
+    ChartDataQueryValidationError,
+)
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import (
+    QueryContextExecutionResult,
+    QueryDataResult,
+    QueryTiming,
+)
 from superset.common.query_context import QueryContext
+from superset.exceptions import (
+    QueryObjectValidationError,
+    QueryObjectValidationMessage,
+)
+
+
+def _query_timing() -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=1_000_000,
+        cache_resolution_ns=2_000_000,
+        data_acquisition_ns=3_000_000,
+        payload_assembly_ns=4_000_000,
+        total_ns=10_000_000,
+    )
 
 
 def test_query_result_type_allows_validation_error_payload() -> None:
@@ -148,6 +170,43 @@ def test_full_result_type_returns_successful_data() -> None:
     assert "error" not in result["queries"][0]
 
 
+def test_execute_returns_timing_sidecar_without_mutating_payload() -> None:
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    query_payload = {"data": [{"col1": "value1"}], "colnames": ["col1"]}
+    mock_query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult(query_payload, _query_timing()),),
+        cache_key="cache-key",
+    )
+
+    command = ChartDataCommand(mock_query_context)
+
+    result = command.execute(cache=True)
+
+    assert result.queries[0].payload is query_payload
+    assert "timing" not in query_payload
+
+    materialized = result.materialize()
+    assert materialized["cache_key"] == "cache-key"
+    assert "timing" not in materialized["queries"][0]
+    assert "timing" not in query_payload
+
+
+def test_execute_raises_on_error_payload_for_data_results() -> None:
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"error": "Invalid column name"}, _query_timing()),),
+    )
+
+    command = ChartDataCommand(mock_query_context)
+
+    with pytest.raises(ChartDataQueryFailedError) as exc_info:
+        command.execute()
+
+    assert "Invalid column name" in str(exc_info.value)
+
+
 def test_query_result_type_with_multiple_queries_and_mixed_results() -> None:
     """
     Test that result_type='query' handles multiple queries with mixed results.
@@ -209,6 +268,60 @@ def test_full_result_type_fails_fast_on_first_error_in_multiple_queries() -> Non
     assert "First query failed" in str(exc_info.value)
 
 
+def _validation_failure_context() -> tuple[Mock, QueryObjectValidationError]:
+    """A data request whose query failed validation while it ran."""
+    cause = QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+    payload = {"error": QueryObjectValidationMessage(cause)}
+    query_context = Mock(spec=QueryContext)
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload.return_value = {"queries": [payload]}
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult(payload, _query_timing()),),
+    )
+    return query_context, cause
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_validation_failure_raises_typed_error(entry: str) -> None:
+    """A query that failed validation keeps that category and its cause."""
+    query_context, cause = _validation_failure_context()
+
+    with pytest.raises(ChartDataQueryValidationError) as exc_info:
+        getattr(ChartDataCommand(query_context), entry)()
+
+    assert isinstance(exc_info.value, ChartDataQueryFailedError)
+    assert exc_info.value.__cause__ is cause
+    assert str(exc_info.value) == ("Error: Semantic IN/NOT IN filters cannot be empty.")
+
+
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_other_query_failure_stays_untyped(entry: str) -> None:
+    """Database and other failures keep the plain query-failed error."""
+    query_context = Mock(spec=QueryContext)
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.get_payload.return_value = {"queries": [{"error": "timeout"}]}
+    query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"error": "timeout"}, _query_timing()),),
+    )
+
+    with pytest.raises(ChartDataQueryFailedError) as exc_info:
+        getattr(ChartDataCommand(query_context), entry)()
+
+    assert type(exc_info.value) is ChartDataQueryFailedError
+
+
+def test_query_result_type_returns_validation_failure() -> None:
+    """Query-only requests still return a validation failure in the payload."""
+    query_context, _ = _validation_failure_context()
+    query_context.result_type = ChartDataResultType.QUERY
+
+    result = ChartDataCommand(query_context).run()
+
+    assert result["queries"][0]["error"] == (
+        "Semantic IN/NOT IN filters cannot be empty."
+    )
+
+
 def test_get_query_catches_parsing_error() -> None:
     """
     Test that _get_query() catches SupersetParseError and returns both SQL and error.
@@ -239,7 +352,10 @@ def test_get_query_catches_parsing_error() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         # GREEN: Exception is caught, values returned (new behavior after fix)
@@ -278,7 +394,10 @@ def test_get_query_handles_parsing_error_with_missing_sql_key() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         result = _get_query(mock_query_context, mock_query_obj, False)
@@ -315,7 +434,10 @@ def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         result = _get_query(mock_query_context, mock_query_obj, False)

@@ -17,9 +17,12 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
+import { cloneDeep } from 'lodash-es';
+import { defaultSchema } from 'rehype-sanitize';
 import {
   getOverrideHtmlSchema,
   SafeMarkdown,
+  transformLinkUri,
 } from '../../src/components/SafeMarkdown/SafeMarkdown';
 
 /**
@@ -49,6 +52,198 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.clobberPrefix).toEqual('custom-prefix');
     expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
     expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+
+  test('should not mutate the original schema', () => {
+    const original = {
+      attributes: { '*': ['size'] },
+      tagNames: ['h1'],
+    };
+    getOverrideHtmlSchema(original, {
+      attributes: { '*': ['src'] },
+      tagNames: ['iframe'],
+    });
+    // The original passed in is left untouched.
+    expect(original.attributes).toEqual({ '*': ['size'] });
+    expect(original.tagNames).toEqual(['h1']);
+  });
+
+  test('should not mutate the shared defaultSchema import or accumulate across calls', () => {
+    const snapshot = cloneDeep(defaultSchema);
+    const overrides = { tagNames: ['iframe'] };
+
+    const first = getOverrideHtmlSchema(defaultSchema, overrides);
+    const second = getOverrideHtmlSchema(defaultSchema, overrides);
+
+    // The shared singleton is never modified...
+    expect(defaultSchema).toEqual(snapshot);
+    // ...and repeated calls do not accumulate the override (no growing arrays).
+    expect(first.tagNames).toEqual(second.tagNames);
+    expect(
+      (second.tagNames ?? []).filter(name => name === 'iframe'),
+    ).toHaveLength(1);
+  });
+
+  // Regression tests for #34191: hast-util-sanitize's real default schema
+  // restricts `li`/`ul`/`ol` `className` to specific task-list values, e.g.
+  // `li: [['className', 'task-list-item']]` (see hast-util-sanitize's
+  // `lib/schema.js`). `rehype-sanitize` is mocked globally in this jest
+  // project (see NOTE above), so `defaultSchema` isn't usable here; this
+  // fixture mirrors just the shape that matters for these tests.
+  //
+  // findDefinition only ever returns the FIRST definition it finds for a
+  // given property name, so simply concatenating the operator's override
+  // after the default restrictive tuple left the default in charge: any
+  // other class value was silently dropped, and (since a failed allowlist
+  // check returns `[]` rather than `undefined`) hast-util-sanitize's own
+  // `'*'` wildcard fallback never kicked in either.
+  const taskListSchemaFixture: typeof defaultSchema = {
+    attributes: {
+      li: [['className', 'task-list-item']],
+      ul: [['className', 'contains-task-list']],
+      ol: [['className', 'contains-task-list']],
+    },
+  };
+
+  test('an override for a property replaces the same-named default definition', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: ['className'] },
+    });
+
+    // The override should fully replace the default `li` className
+    // restriction, not merely be appended after it.
+    expect(result.attributes?.li).toEqual(['className']);
+  });
+
+  test('a per-tag override leaves a sibling tag definition untouched', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: ['className'] },
+    });
+
+    // Only the overridden tag (`li`) is replaced; `ul`/`ol` keep their
+    // default restrictive definitions since the merge recurses per-tag.
+    expect(result.attributes?.ul).toEqual(taskListSchemaFixture.attributes?.ul);
+    expect(result.attributes?.ol).toEqual(taskListSchemaFixture.attributes?.ol);
+  });
+
+  test('a "*" wildcard override alone does not widen li, which has its own default definition', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { '*': ['className'] },
+    });
+
+    expect(result.attributes?.['*']).toContainEqual('className');
+    // The restrictive `li`-specific default is still present (untouched by
+    // this override), but since findDefinition matches on the specific
+    // `li` entry first, this alone documents why an `li`-specific override
+    // is required to unblock arbitrary classes on `li` -- a `'*'` override
+    // does not, by itself, widen a tag that already has its own definition.
+    expect(result.attributes?.li).toEqual(taskListSchemaFixture.attributes?.li);
+  });
+
+  test('a malformed (non-array) attribute override for a tag falls back to the default definition instead of throwing', () => {
+    expect(() =>
+      getOverrideHtmlSchema(taskListSchemaFixture, {
+        // Runtime config isn't guaranteed to match the expected shape; a
+        // string here (rather than an array of attribute definitions) must
+        // not crash markdown rendering.
+        attributes: { li: 'className' as unknown as string[] },
+      }),
+    ).not.toThrow();
+
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: 'className' as unknown as string[] },
+    });
+    expect(result.attributes?.li).toEqual(taskListSchemaFixture.attributes?.li);
+  });
+
+  test('a malformed (null) element within an attribute override array falls back to the default definition instead of throwing', () => {
+    expect(() =>
+      getOverrideHtmlSchema(taskListSchemaFixture, {
+        // Runtime config isn't guaranteed to match the expected shape; a
+        // `null` element here must not crash the key lookup used to
+        // dedup overrides against the default definitions.
+        attributes: { li: [null] as unknown as string[] },
+      }),
+    ).not.toThrow();
+
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {
+      attributes: { li: [null] as unknown as string[] },
+    });
+    expect(result.attributes?.li).toEqual([
+      ...taskListSchemaFixture.attributes!.li!,
+      null,
+    ]);
+  });
+
+  test('the default task-list class restriction on li/ul/ol still applies with no override', () => {
+    const result = getOverrideHtmlSchema(taskListSchemaFixture, {});
+
+    expect(result.attributes?.li).toEqual([['className', 'task-list-item']]);
+    expect(result.attributes?.ul).toContainEqual([
+      'className',
+      'contains-task-list',
+    ]);
+    expect(result.attributes?.ol).toContainEqual([
+      'className',
+      'contains-task-list',
+    ]);
+  });
+});
+
+describe('transformLinkUri', () => {
+  // Build script-executing protocols via concatenation so the literal URLs
+  // don't trip the no-script-url lint rule.
+  const js = `java${'script'}`;
+  const vbs = `vb${'script'}`;
+
+  // Cases are [label, uri] pairs: the raw URIs contain C0 control characters
+  // (\x00, \x01, \x1F) that are invalid in XML, so they must not be
+  // interpolated into the test name (the HTML/JUnit reporters serialize names
+  // to XML and would crash). The label keeps the reported name printable while
+  // the uri is exercised in the body.
+  test.each([
+    ['javascript', `${js}:alert(1)`],
+    ['mixed-case JavaScript', `Java${'Script'}:alert(1)`],
+    ['leading whitespace', `  ${js}:alert(document.cookie)`],
+    ['tab inside scheme', `java\t${'script'}:alert(1)`],
+    // Leading C0 control characters are stripped by the WHATWG URL parser
+    // before the scheme is resolved, so they must not bypass the blocklist.
+    ['leading 0x01 control', `\x01${js}:alert(1)`],
+    ['leading NUL (0x00)', `\x00${js}:alert(1)`],
+    ['leading 0x1F control', `\x1F${js}:alert(1)`],
+    // C0 control characters inside the scheme are ignored by browsers too.
+    ['0x01 control inside scheme', `java\x01${'script'}:alert(1)`],
+    ['vbscript', `${vbs}:msgbox(1)`],
+    ['data: text/html', 'data:text/html,<script>alert(1)</script>'],
+  ])(
+    'blocks the script-executing protocol (%s)',
+    (_label: string, uri: string) => {
+      expect(transformLinkUri(uri)).toBe('');
+    },
+  );
+
+  test.each([
+    'https://superset.apache.org',
+    'http://example.com/path?q=1',
+    'mailto:someone@example.com',
+    '/relative/path',
+    '#section',
+  ])('keeps the safe URL %p unchanged', uri => {
+    expect(transformLinkUri(uri)).toBe(uri);
+  });
+
+  test.each([
+    'custom-scheme://open/thing',
+    'slack://channel?id=1',
+    `foo:bar?${js}:alert(1)`,
+  ])('preserves custom link scheme %p (see #26211)', uri => {
+    expect(transformLinkUri(uri)).toBe(uri);
+  });
+
+  test('handles empty and nullish input', () => {
+    expect(transformLinkUri('')).toBe('');
+    // @ts-expect-error -- guarding runtime nullish input
+    expect(transformLinkUri(undefined)).toBe('');
   });
 });
 

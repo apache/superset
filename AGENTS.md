@@ -2,24 +2,31 @@
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
-## ⚠️ CRITICAL: Always Run Pre-commit Before Pushing
+## Run Pre-commit Before Pushing
 
-**ALWAYS run `pre-commit run --all-files` before pushing commits.** CI will fail if pre-commit checks don't pass. This is non-negotiable.
+Always run pre-commit against the files changed by the current branch before
+pushing. This matches CI and keeps unrelated failures already present on
+`master` from blocking otherwise independent work.
 
 ```bash
 # Stage your changes first
 git add .
 
-# Run pre-commit on all files
-pre-commit run --all-files
+# Run pre-commit on staged files
+pre-commit run
 
 # If there are auto-fixes, stage them and commit
 git add .
 git commit --amend  # or new commit
 ```
 
+Use `pre-commit run --all-files` when auditing or repairing the repository-wide
+baseline. If that check finds failures in files untouched by the current branch,
+fix them in a separate branch rather than adding unrelated changes to the
+current pull request.
+
 Common pre-commit failures:
-- **Formatting** - black, prettier, eslint will auto-fix
+- **Formatting** - black, oxfmt, eslint will auto-fix
 - **Type errors** - mypy failures need manual fixes
 - **Linting** - ruff, pylint issues need manual fixes
 
@@ -37,8 +44,7 @@ Common pre-commit failures:
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
 - **Prefer integration tests** over end-to-end tests
-- **Use Playwright for E2E tests** - Migrating from Cypress
-- **Cypress is deprecated** - Will be removed once migration is completed
+- **Use Playwright for E2E tests** - Cypress has been removed
 - **Use Jest + React Testing Library** for component testing
 - **Use `test()` instead of `describe()`** - Follow [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principles
 
@@ -51,6 +57,43 @@ Common pre-commit failures:
 - **Prefer UUIDs over auto-incrementing IDs** - New models should use UUID primary keys
 - **External API exposure** - Use UUIDs in public APIs instead of internal integer IDs
 - **Existing models** - Add UUID fields alongside integer IDs for gradual migration
+
+## Security and Threat Model
+
+Before evaluating any code path for security issues, read [`SECURITY.md`](SECURITY.md). It is the canonical, authoritative source for Apache Superset's security model and is referenced by both human reporters and automated scanners.
+
+In short, the test for whether a finding is in scope is one question:
+
+> *Does it let a principal perform an action the role and capability matrix in `SECURITY.md` does not entitle them to?*
+
+If yes, it is in scope. If no, it is not.
+
+The three trust boundaries are:
+
+1. **The Admin role** is a fully trusted operational principal. Anything an Admin can do through documented configuration, API, or UI is an intended capability, not a vulnerability.
+2. **The operator** owns deployment-time decisions (secrets, network exposure, feature-flag selection, connector and codec choices, notification destinations, third-party plugins). Misconfiguration at this layer is a deployment defect, not a Superset vulnerability.
+3. **The codebase** is responsible for enforcing the role and capability matrix wherever it exposes functionality to a principal: API routes, command and DAO layers, UI handlers, background jobs, and any other entry point. A missing or incorrect enforcement check is in scope no matter where it lives.
+
+The security model assumes that operator-controlled infrastructure, including the metadata database, cache backends, message brokers, secret stores, and deployment environment, remains within the operator's trust boundary. Vulnerabilities must demonstrate a security boundary violation by an attacker who does not already control those systems.
+
+Route-level authorization in this codebase uses one of three Flask-AppBuilder decorators depending on the route type:
+
+- `@protect()` for REST API routes (`ModelRestApi` / `BaseApi`)
+- `@has_access_api` for legacy view routes
+- `@has_access` for legacy HTML view routes
+
+Object-level authorization via `security_manager.raise_for_access(...)` applies to data-bearing resources: dashboards, charts, datasets and datasources, queries, database and table access, and query contexts. Other resources (annotations, tags, CSS templates, reports, RLS rules, and similar) rely on the route-level decorator plus DAO `base_filters` for ownership scoping; the absence of `raise_for_access` on these resources is by design, not a finding. Code that omits the per-object gate on a route that returns or mutates a specific data-bearing object is in scope; code that follows the correct pattern for its resource class can still contain injection, SSRF, XSS, or other classes of finding unrelated to authorization, which are evaluated separately.
+
+The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`SECURITY.md`](SECURITY.md). Defer to that document for any specifics.
+
+**Requirements for findings filed by automated tooling**
+
+Automated scanners (LLM-based code scanners, static analyzers, dependency tools) that file findings against this codebase must, in each finding, name:
+
+1. The specific role and capability matrix row in [`SECURITY.md`](SECURITY.md) the finding believes is violated.
+2. The principal the finding assumes the attacker holds (Public, Gamma, sql_lab, Alpha, Admin, Embedded guest token, or a custom role with explicit capability grants).
+
+Findings that cannot identify both should be filed as questions, not vulnerabilities. This requirement exists to ensure every reported issue is testable against the published security model and to keep speculative or pattern-match-only reports out of the triage queue.
 
 ## Key Directories
 
@@ -123,11 +166,12 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ### Generator Location
 - Script: `docs/scripts/generate-superset-components.mjs`
 - Wrapper: `docs/src/components/StorybookWrapper.jsx`
-- Output: `docs/developer_portal/components/`
+- Output: `docs/developer_docs/components/`
 
 ## Architecture Patterns
 
 ### Security & Features
+- **Security model**: see the top-level [Security and Threat Model](#security-and-threat-model) section and [`SECURITY.md`](SECURITY.md)
 - **RBAC**: Role-based access via Flask-AppBuilder
 - **Feature flags**: Control feature rollouts
 - **Row-level security**: SQL-based data access control
@@ -156,18 +200,14 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 # Frontend
 npm run test                           # All tests
 npm run test -- filename.test.tsx     # Single file
+JEST_MAX_WORKERS=2 npm run test -- filename.test.tsx  # Cap workers on a shared machine
 
-# E2E Tests (Playwright - NEW)
+# E2E Tests (Playwright)
 npm run playwright:test                # All Playwright tests
 npm run playwright:ui                  # Interactive UI mode
 npm run playwright:headed              # See browser during tests
 npx playwright test tests/auth/login.spec.ts  # Single file
 npm run playwright:debug tests/auth/login.spec.ts  # Debug specific file
-
-# E2E Tests (Cypress - DEPRECATED)
-cd superset-frontend/cypress-base
-npm run cypress-run-chrome             # All Cypress tests (headless)
-npm run cypress-debug                  # Interactive Cypress UI
 
 # Backend  
 pytest                                 # All tests
@@ -225,7 +265,7 @@ git add .                        # Pre-commit only checks staged files
 # Quick validation (faster than --all-files)
 pre-commit run                   # Staged files only
 pre-commit run mypy              # Python type checking
-pre-commit run prettier          # Code formatting
+pre-commit run format            # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
 
@@ -267,3 +307,10 @@ pre-commit run eslint            # Frontend linting
 ---
 
 **LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
+
+## Active Technologies
+- TypeScript (React 17-style functional components, Node 24 toolchain); Python 3.11+ + Redux chart store (`state.charts`), `@superset-ui/core/components` (`CodeSyntaxHighlighter`, `Loading`), `@apache-superset/core` (translation, theme, `Alert`), `src/components` `CopyToClipboard`; backend `QueryObjectValidationError` + `_get_query` result-type handler (sc-104912-semantic-view-show-sql)
+- N/A — no persisted change; displays data already carried on the chart-data response (sc-104912-semantic-view-show-sql)
+
+## Recent Changes
+- sc-104912-semantic-view-show-sql: Added TypeScript (React 17-style functional components, Node 24 toolchain); Python 3.11+ + Redux chart store (`state.charts`), `@superset-ui/core/components` (`CodeSyntaxHighlighter`, `Loading`), `@apache-superset/core` (translation, theme, `Alert`), `src/components` `CopyToClipboard`; backend `QueryObjectValidationError` + `_get_query` result-type handler

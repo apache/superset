@@ -16,8 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, isEqual, cloneDeep } from 'lodash';
-import { createRef, Component, RefObject, MouseEvent, ReactNode } from 'react';
+import { snakeCase, cloneDeep, isEqual } from 'lodash-es';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  MouseEvent,
+  ReactNode,
+  memo,
+} from 'react';
 import {
   SuperChart,
   Behavior,
@@ -28,15 +37,20 @@ import {
   QueryFormData,
   AnnotationData,
   DataMask,
+  FilterState,
   QueryData,
   JsonObject,
   LatestQueryFormData,
   AgGridChartState,
   ContextMenuFilters,
   DataRecordFilters,
+  isMatrixifyEnabled,
+  type MatrixifyFormData,
+  type Hooks,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
@@ -45,6 +59,10 @@ import type { Dispatch } from 'redux';
 import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
+import { handleChartDataResponse } from './chartAction';
+import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
+import { getTabId } from 'src/hooks/useTabId';
+import { getDisplayControlNames } from 'src/explore/controlUtils/getDisplayControlNames';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -91,12 +109,6 @@ interface OwnState {
   [key: string]: unknown;
 }
 
-// Types for filter state
-interface FilterState {
-  value?: FilterValue[];
-  [key: string]: unknown;
-}
-
 // Props interface
 export interface ChartRendererProps {
   annotationData?: AnnotationData;
@@ -116,6 +128,10 @@ export interface ChartRendererProps {
   chartAlert?: string;
   chartStatus?: ChartStatus | null;
   queriesResponse?: QueryData[] | null;
+  // The form data queriesResponse was queried with, when it is known and the
+  // response can be drawn again. Without it a previous response is never
+  // drawn while a new query is in flight.
+  responseFormData?: QueryFormData;
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   addFilter?: (
@@ -124,7 +140,6 @@ export interface ChartRendererProps {
     merge?: boolean,
     refresh?: boolean,
   ) => void;
-  setDataMask?: (dataMask: DataMask) => void;
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;
   ownState?: OwnState;
@@ -135,18 +150,19 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  asyncModeOverride?: AsyncModeOverride;
 }
 
-// State interface
-interface ChartRendererState {
-  showContextMenu: boolean;
-  inContextMenu: boolean;
-  legendState: LegendState | undefined;
-  legendIndex: number;
-}
+// Async resolution is injected for self-contained chart components in
+// superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
+// import app-level async-event middleware themselves.
+type AsyncChartHooks = Pick<
+  Hooks,
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+>;
 
 // Hooks interface
-interface ChartHooks {
+interface ChartHooks extends AsyncChartHooks {
   onAddFilter: (
     col: string,
     vals: FilterValue[],
@@ -168,6 +184,44 @@ interface ChartHooks {
   onChartStateChange?: (chartState: AgGridChartState) => void;
 }
 
+/**
+ * Whether a chart has a previous response it can stay on screen with while a
+ * new query is in flight.
+ */
+export function hasValidPreviousData(
+  queriesResponse: QueryData[] | null | undefined,
+  formData: QueryFormData,
+  vizType: string,
+): boolean {
+  // A Matrixify grid ignores the response: each cell fetches its own data when
+  // it mounts. Kept on screen, the cells would never pick up the refresh.
+  if (isMatrixifyEnabled(formData as MatrixifyFormData)) {
+    return false;
+  }
+  // A failed load leaves its errored response in the store, and the next
+  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
+  // the response itself keeps that stale error from being drawn as chart data
+  // while the retry is in flight.
+  const hasAnyErrors = queriesResponse?.some(item => item?.error);
+  // The response of a chart that fetches its own data stays empty once it has
+  // loaded, so for those any response that landed counts as previous data.
+  const hasPreviousResponse =
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true)
+      ? (queriesResponse?.length ?? 0) > 0
+      : Array.isArray(queriesResponse);
+  return hasPreviousResponse && !hasAnyErrors;
+}
+
+// The colour settings a dashboard merges into each chart's form data. They
+// change without a new query and sit in no control panel.
+const DASHBOARD_COLOR_KEYS = [
+  'color_scheme',
+  'own_color_scheme',
+  'label_colors',
+  'shared_label_colors',
+  'map_label_colors',
+] as const;
+
 const BLANK = {};
 
 const BIG_NO_RESULT_MIN_WIDTH = 300;
@@ -175,402 +229,491 @@ const BIG_NO_RESULT_MIN_HEIGHT = 220;
 
 const behaviors = [Behavior.InteractiveChart];
 
-const defaultProps: Partial<ChartRendererProps> = {
-  addFilter: () => BLANK,
-  onFilterMenuOpen: () => BLANK,
-  onFilterMenuClose: () => BLANK,
-  initialValues: BLANK,
-  setControlValue: () => {},
-  triggerRender: false,
-};
+interface ChartRendererState {
+  inContextMenu: boolean;
+  legendState: LegendState | undefined;
+  legendIndex: number;
+}
 
-class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
-  static defaultProps = defaultProps;
+function ChartRendererComponent({
+  addFilter = () => BLANK,
+  onFilterMenuOpen = () => BLANK,
+  onFilterMenuClose = () => BLANK,
+  initialValues = BLANK,
+  setControlValue = () => {},
+  ...restProps
+}: ChartRendererProps): JSX.Element | null {
+  const {
+    annotationData,
+    actions,
+    chartId,
+    datasource,
+    formData,
+    latestQueryFormData,
+    height,
+    width,
+    vizType: propVizType,
+    chartAlert,
+    chartStatus,
+    queriesResponse,
+    responseFormData,
+    chartIsStale,
+    ownState,
+    filterState,
+    postTransformProps,
+    source,
+    emitCrossFilters,
+    onChartStateChange,
+    asyncModeOverride,
+  } = restProps;
 
-  private hasQueryResponseChange: boolean;
+  const theme = useTheme();
 
-  private contextMenuRef: RefObject<ChartContextMenuRef>;
+  const suppressContextMenu = getChartMetadataRegistry().get(
+    formData.viz_type ?? propVizType,
+  )?.suppressContextMenu;
 
-  private hooks: ChartHooks;
+  // Derived from props/feature-flags: must NOT live in state, otherwise a
+  // `source` or viz-type change on the same mounted instance would leave
+  // it stale. (Pre-refactor this was a class-instance field recomputed on
+  // every render — preserve that semantic by using a memo here.)
+  const showContextMenu = useMemo(
+    () =>
+      source === ChartSource.Dashboard &&
+      !suppressContextMenu &&
+      isFeatureEnabled(FeatureFlag.DrillToDetail),
+    [source, suppressContextMenu],
+  );
 
-  private mutableQueriesResponse: QueryData[] | null | undefined;
+  const [state, setState] = useState<ChartRendererState>({
+    inContextMenu: false,
+    legendState: undefined,
+    legendIndex: 0,
+  });
 
-  private renderStartTime: number;
+  const hasQueryResponseChangeRef = useRef(false);
+  const renderStartTimeRef = useRef(0);
+  const contextMenuRef = useRef<ChartContextMenuRef>(null);
 
-  constructor(props: ChartRendererProps) {
-    super(props);
-    const suppressContextMenu = getChartMetadataRegistry().get(
-      props.formData.viz_type ?? props.vizType,
-    )?.suppressContextMenu;
-    this.state = {
-      showContextMenu:
-        props.source === ChartSource.Dashboard &&
-        !suppressContextMenu &&
-        isFeatureEnabled(FeatureFlag.DrillToDetail),
-      inContextMenu: false,
-      legendState: undefined,
-      legendIndex: 0,
-    };
-    this.hasQueryResponseChange = false;
-    this.renderStartTime = 0;
+  // Results are "ready" when we have a non-error queriesResponse and the
+  // chartStatus reflects it. This mirrors the gating logic from the former
+  // shouldComponentUpdate implementation.
+  const resultsReady =
+    queriesResponse &&
+    ['success', 'rendered'].indexOf(chartStatus as string) > -1 &&
+    !queriesResponse?.[0]?.error;
 
-    this.contextMenuRef = createRef<ChartContextMenuRef>();
-
-    this.handleAddFilter = this.handleAddFilter.bind(this);
-    this.handleRenderSuccess = this.handleRenderSuccess.bind(this);
-    this.handleRenderFailure = this.handleRenderFailure.bind(this);
-    this.handleSetControlValue = this.handleSetControlValue.bind(this);
-    this.handleOnContextMenu = this.handleOnContextMenu.bind(this);
-    this.handleContextMenuSelected = this.handleContextMenuSelected.bind(this);
-    this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
-    this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
-    this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
-    this.handleLegendScroll = this.handleLegendScroll.bind(this);
-
-    this.hooks = {
-      onAddFilter: this.handleAddFilter,
-      onContextMenu: this.state.showContextMenu
-        ? this.handleOnContextMenu
-        : undefined,
-      onError: this.handleRenderFailure,
-      setControlValue: this.handleSetControlValue,
-      onFilterMenuOpen: this.props.onFilterMenuOpen,
-      onFilterMenuClose: this.props.onFilterMenuClose,
-      onLegendStateChanged: this.handleLegendStateChanged,
-      setDataMask: (dataMask: DataMask) => {
-        this.props.actions?.updateDataMask?.(this.props.chartId, dataMask);
-      },
-      onLegendScroll: this.handleLegendScroll,
-      onChartStateChange: this.props.onChartStateChange,
-    };
-
-    // TODO: queriesResponse comes from Redux store but it's being edited by
-    // the plugins, hence we need to clone it to avoid state mutation
-    // until we change the reducers to use Redux Toolkit with Immer
-    this.mutableQueriesResponse = cloneDeep(this.props.queriesResponse);
+  // Track whether queriesResponse changed since the previous render so that
+  // handleRenderSuccess / handleRenderFailure know whether to log render time.
+  // Updating a ref during render is safe when the value doesn't affect the
+  // render output (here it's read asynchronously from SuperChart callbacks).
+  const prevQueriesResponseRef = useRef<QueryData[] | null | undefined>(
+    queriesResponse,
+  );
+  if (resultsReady) {
+    hasQueryResponseChangeRef.current =
+      queriesResponse !== prevQueriesResponseRef.current;
   }
+  useEffect(() => {
+    prevQueriesResponseRef.current = queriesResponse;
+  }, [queriesResponse]);
 
-  shouldComponentUpdate(
-    nextProps: ChartRendererProps,
-    nextState: ChartRendererState,
-  ): boolean {
-    const resultsReady =
-      nextProps.queriesResponse &&
-      ['success', 'rendered'].indexOf(nextProps.chartStatus as string) > -1 &&
-      !nextProps.queriesResponse?.[0]?.error;
+  const currentFormData =
+    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
+  const vizType = currentFormData.viz_type || propVizType;
+  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
+  // Multiple Layers, which renders its sub-layer charts), so an empty response
+  // is expected and shouldn't trigger the no-results state. Honor the chart's
+  // own enableNoResults metadata (defaults to true).
+  const chartEnableNoResults =
+    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
 
-    if (resultsReady) {
-      if (!isEqual(this.state, nextState)) {
-        return true;
-      }
-      this.hasQueryResponseChange =
-        nextProps.queriesResponse !== this.props.queriesResponse;
+  // A dashboard keeps the chart on screen while its query is in flight, be it
+  // an auto-refresh, a manual refresh or a filter change. The store holds the
+  // previous response until the new one lands, so that response is what the
+  // chart renders in the meantime.
+  const isAutoRefreshing =
+    Boolean(restProps.suppressLoadingSpinner) && chartStatus === 'loading';
+  const isRefreshing =
+    chartStatus === 'loading' &&
+    (isAutoRefreshing || source === ChartSource.Dashboard);
+  const hasRenderableResults =
+    resultsReady ||
+    (isRefreshing &&
+      responseFormData !== undefined &&
+      hasValidPreviousData(queriesResponse, responseFormData, vizType));
 
-      if (this.hasQueryResponseChange) {
-        this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
-      }
-
-      // Check if any matrixify-related properties have changed
-      const hasMatrixifyChanges = (): boolean => {
-        const nextFormData = nextProps.formData as JsonObject;
-        const currentFormData = this.props.formData as JsonObject;
-        const isMatrixifyEnabled =
-          nextFormData.matrixify_enable === true &&
-          ((nextFormData.matrixify_mode_rows !== undefined &&
-            nextFormData.matrixify_mode_rows !== 'disabled') ||
-            (nextFormData.matrixify_mode_columns !== undefined &&
-              nextFormData.matrixify_mode_columns !== 'disabled'));
-        if (!isMatrixifyEnabled) return false;
-
-        // Check all matrixify-related properties
-        const matrixifyKeys = Object.keys(nextFormData).filter(key =>
-          key.startsWith('matrixify_'),
-        );
-
-        return matrixifyKeys.some(
-          key => !isEqual(nextFormData[key], currentFormData[key]),
-        );
-      };
-
-      const nextFormData = nextProps.formData as JsonObject;
-      const currentFormData = this.props.formData as JsonObject;
-
-      return (
-        this.hasQueryResponseChange ||
-        !isEqual(nextProps.datasource, this.props.datasource) ||
-        nextProps.annotationData !== this.props.annotationData ||
-        nextProps.ownState !== this.props.ownState ||
-        nextProps.filterState !== this.props.filterState ||
-        nextProps.height !== this.props.height ||
-        nextProps.width !== this.props.width ||
-        nextProps.triggerRender === true ||
-        nextProps.labelsColor !== this.props.labelsColor ||
-        nextProps.labelsColorMap !== this.props.labelsColorMap ||
-        nextFormData.color_scheme !== currentFormData.color_scheme ||
-        nextFormData.stack !== currentFormData.stack ||
-        nextFormData.subcategories !== currentFormData.subcategories ||
-        nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
-        nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
-        nextProps.postTransformProps !== this.props.postTransformProps ||
-        hasMatrixifyChanges()
+  // A filter change updates formData as soon as the new query starts, so the
+  // previous response is drawn with the form data it was queried with until
+  // the new one lands. What changes without a new query always comes from the
+  // current form data: the dashboard's colours, and the controls a chart sets
+  // on itself, such as an Area chart's stack toggle or a map's viewport.
+  //
+  // A plugin transforms and redraws the chart whenever it gets a new form data
+  // object, and an ECharts chart replays its entrance animation when it does.
+  // When the chart is already drawn with the same values, as it is when a
+  // refresh starts with nothing changed, it keeps the object it has.
+  const drawnFormDataRef = useRef(currentFormData);
+  const renderedFormData = useMemo(() => {
+    let nextFormData = currentFormData;
+    if (isRefreshing && responseFormData) {
+      nextFormData = { ...responseFormData };
+      [...DASHBOARD_COLOR_KEYS, ...getDisplayControlNames(vizType)].forEach(
+        key => {
+          if (key in currentFormData) {
+            nextFormData[key] = currentFormData[key];
+          } else {
+            delete nextFormData[key];
+          }
+        },
       );
     }
-    return false;
-  }
+    return isEqual(nextFormData, drawnFormDataRef.current)
+      ? drawnFormDataRef.current
+      : nextFormData;
+  }, [isRefreshing, responseFormData, currentFormData, vizType]);
+  useEffect(() => {
+    drawnFormDataRef.current = renderedFormData;
+  }, [renderedFormData]);
 
-  handleAddFilter(
-    col: string,
-    vals: FilterValue[],
-    merge = true,
-    refresh = true,
-  ): void {
-    this.props.addFilter?.(col, vals, merge, refresh);
-  }
+  // Clone queriesResponse to protect against plugin mutation of Redux state.
+  // Gate on `hasRenderableResults` so the deep clone doesn't run for every
+  // queriesResponse identity change during loading/idle (only when results
+  // are actually about to render).
+  // TODO: remove once reducers use Redux Toolkit with Immer.
+  const mutableQueriesResponse = useMemo(
+    () => (hasRenderableResults ? cloneDeep(queriesResponse) : undefined),
+    [queriesResponse, hasRenderableResults],
+  );
 
-  handleRenderSuccess(): void {
-    const { actions, chartStatus, chartId, vizType } = this.props;
+  // Handler functions
+  const handleAddFilter = useCallback(
+    (col: string, vals: FilterValue[], merge = true, refresh = true): void => {
+      addFilter?.(col, vals, merge, refresh);
+    },
+    [addFilter],
+  );
+
+  // The response the last render success was reported for. A refreshed
+  // response can be reported both by the effect below and by a plugin that
+  // mounts for it, and only the first report counts.
+  const reportedResponseRef = useRef<QueryData[] | null | undefined>();
+
+  const handleRenderSuccess = useCallback((): void => {
+    if (reportedResponseRef.current === queriesResponse) {
+      return;
+    }
+    reportedResponseRef.current = queriesResponse;
     if (['loading', 'rendered'].indexOf(chartStatus as string) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
 
     // only log chart render time which is triggered by query results change
-    // currently we don't log chart re-render time, like window resize etc
-    if (this.hasQueryResponseChange) {
+    if (hasQueryResponseChangeRef.current) {
       actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
         slice_id: chartId,
-        viz_type: vizType,
-        start_offset: this.renderStartTime,
+        viz_type: propVizType,
+        start_offset: renderStartTimeRef.current,
         ts: new Date().getTime(),
-        duration: Logger.getTimestamp() - this.renderStartTime,
+        duration: Logger.getTimestamp() - renderStartTimeRef.current,
       });
     }
-  }
+  }, [actions, chartId, chartStatus, propVizType, queriesResponse]);
 
-  handleRenderFailure(
-    error: Error,
-    info: { componentStack: string } | null,
-  ): void {
-    const { actions, chartId } = this.props;
-    logging.warn(error);
-    actions.chartRenderingFailed(
-      error.toString(),
-      chartId,
-      info ? info.componentStack : null,
-    );
-
-    // only trigger render log when query is changed
-    if (this.hasQueryResponseChange) {
-      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
-        slice_id: chartId,
-        has_err: true,
-        error_details: error.toString(),
-        start_offset: this.renderStartTime,
-        ts: new Date().getTime(),
-        duration: Logger.getTimestamp() - this.renderStartTime,
-      });
+  // The plugin reports render success once, after it loads. A chart kept on
+  // screen through an auto-refresh stays mounted when the new response lands,
+  // so that render is reported here to move the chart back to `rendered`.
+  const keptOnScreenRef = useRef(false);
+  useEffect(() => {
+    if (chartStatus === 'loading') {
+      keptOnScreenRef.current = hasRenderableResults;
+      return;
     }
-  }
-
-  handleSetControlValue(name: string, value: unknown): void {
-    const { setControlValue } = this.props;
-    if (setControlValue) {
-      setControlValue(name, value);
+    const refreshLanded = keptOnScreenRef.current;
+    keptOnScreenRef.current = false;
+    if (refreshLanded && chartStatus === 'success') {
+      handleRenderSuccess();
     }
-  }
+  }, [chartStatus, handleRenderSuccess, hasRenderableResults, queriesResponse]);
 
-  handleOnContextMenu(
-    offsetX: number,
-    offsetY: number,
-    filters?: ContextMenuFilters,
-  ): void {
-    this.contextMenuRef.current?.open(offsetX, offsetY, filters);
-    this.setState({ inContextMenu: true });
-  }
+  const handleRenderFailure = useCallback(
+    (error: Error, info: { componentStack: string } | null): void => {
+      logging.warn(error);
+      actions.chartRenderingFailed(
+        error.toString(),
+        chartId,
+        info ? info.componentStack : null,
+      );
 
-  handleContextMenuSelected(): void {
-    this.setState({ inContextMenu: false });
-  }
+      // only trigger render log when query is changed
+      if (hasQueryResponseChangeRef.current) {
+        actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+          slice_id: chartId,
+          has_err: true,
+          error_details: error.toString(),
+          start_offset: renderStartTimeRef.current,
+          ts: new Date().getTime(),
+          duration: Logger.getTimestamp() - renderStartTimeRef.current,
+        });
+      }
+    },
+    [actions, chartId],
+  );
 
-  handleContextMenuClosed(): void {
-    this.setState({ inContextMenu: false });
-  }
+  const handleSetControlValue = useCallback(
+    (name: string, value: unknown): void => {
+      if (setControlValue) {
+        setControlValue(name, value);
+      }
+    },
+    [setControlValue],
+  );
 
-  handleLegendStateChanged(legendState: LegendState): void {
-    this.setState({ legendState });
-  }
+  const handleOnContextMenu = useCallback(
+    (offsetX: number, offsetY: number, filters?: ContextMenuFilters): void => {
+      contextMenuRef.current?.open(offsetX, offsetY, filters);
+      setState(prev => ({ ...prev, inContextMenu: true }));
+    },
+    [contextMenuRef],
+  );
+
+  const handleContextMenuSelected = useCallback((): void => {
+    setState(prev => ({ ...prev, inContextMenu: false }));
+  }, []);
+
+  const handleContextMenuClosed = useCallback((): void => {
+    setState(prev => ({ ...prev, inContextMenu: false }));
+  }, []);
+
+  const handleLegendStateChanged = useCallback(
+    (legendState: LegendState): void => {
+      setState(prev => ({ ...prev, legendState }));
+    },
+    [],
+  );
+
+  const handleLegendScroll = useCallback((legendIndex: number): void => {
+    setState(prev => ({ ...prev, legendIndex }));
+  }, []);
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
   // calls `handleOnContextMenu` with no `filters` param.
-  onContextMenuFallback(event: MouseEvent<HTMLDivElement>): void {
-    if (!this.state.inContextMenu) {
-      event.preventDefault();
-      this.handleOnContextMenu(event.clientX, event.clientY);
-    }
-  }
-
-  handleLegendScroll(legendIndex: number): void {
-    this.setState({ legendIndex });
-  }
-
-  render(): ReactNode {
-    const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
-
-    const hasAnyErrors = this.props.queriesResponse?.some(item => item?.error);
-    const hasValidPreviousData =
-      (this.props.queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
-
-    if (!!chartAlert || chartStatus === null) {
-      return null;
-    }
-
-    if (chartStatus === 'loading') {
-      if (!this.props.suppressLoadingSpinner || !hasValidPreviousData) {
-        return null;
+  const onContextMenuFallback = useCallback(
+    (event: MouseEvent<HTMLDivElement>): void => {
+      if (!state.inContextMenu) {
+        event.preventDefault();
+        handleOnContextMenu(event.clientX, event.clientY);
       }
-    }
+    },
+    [handleOnContextMenu, state.inContextMenu],
+  );
 
-    this.renderStartTime = Logger.getTimestamp();
-
-    const {
-      width,
-      height,
-      datasource,
-      annotationData,
-      initialValues,
-      ownState,
-      filterState,
-      chartIsStale,
-      formData,
-      latestQueryFormData,
-      postTransformProps,
-    } = this.props;
-
-    const currentFormData =
-      chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
-    const vizType = currentFormData.viz_type || this.props.vizType;
-
-    // It's bad practice to use unprefixed `vizType` as classnames for chart
-    // container. It may cause css conflicts as in the case of legacy table chart.
-    // When migrating charts, we should gradually add a `superset-chart-` prefix
-    // to each one of them.
-    const snakeCaseVizType = snakeCase(vizType);
-    const chartClassName =
-      vizType === VizType.Table
-        ? `superset-chart-${snakeCaseVizType}`
-        : snakeCaseVizType;
-
-    const webpackHash =
-      process.env.WEBPACK_MODE === 'development'
-        ? `-${
-            // eslint-disable-next-line camelcase
-            typeof __webpack_require__ !== 'undefined' &&
-            // eslint-disable-next-line camelcase, no-undef
-            typeof __webpack_require__.h === 'function' &&
-            // eslint-disable-next-line no-undef, camelcase
-            __webpack_require__.h()
-          }`
-        : '';
-
-    let noResultsComponent: ReactNode;
-    const noResultTitle = t('No results were returned for this query');
-    const noResultDescription =
-      this.props.source === ChartSource.Explore
-        ? t(
-            'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
-          )
-        : undefined;
-    const noResultImage = 'chart.svg';
-    if (
-      (width ?? 0) > BIG_NO_RESULT_MIN_WIDTH &&
-      (height ?? 0) > BIG_NO_RESULT_MIN_HEIGHT
-    ) {
-      noResultsComponent = (
-        <EmptyState
-          size="large"
-          title={noResultTitle}
-          description={noResultDescription}
-          image={noResultImage}
-        />
+  // Read through a ref so the callback, and the hooks passed to the chart,
+  // keep their identity when the form data changes. A new hooks object makes
+  // the plugin transform and redraw the chart, which a filter change would
+  // otherwise do under the spinner as soon as its query starts.
+  const dataMaskSourceRef = useRef(latestQueryFormData ?? formData);
+  dataMaskSourceRef.current = latestQueryFormData ?? formData;
+  const setDataMaskCallback = useCallback(
+    (dataMask: DataMask) => {
+      const sourceForm = dataMaskSourceRef.current;
+      actions?.updateDataMask?.(
+        chartId,
+        sourceForm.datasource?.endsWith('__semantic_view')
+          ? {
+              ...dataMask,
+              extraFormData: {
+                ...dataMask.extraFormData,
+                semantic_selection_sources: [
+                  ...(dataMask.extraFormData?.semantic_selection_sources ?? []),
+                  ...(sourceForm.semantic_selection_sources ?? []),
+                  {
+                    datasource: sourceForm.datasource,
+                    version: sourceForm.semantic_selection_version ?? null,
+                  },
+                ],
+              },
+            }
+          : dataMask,
       );
-    } else {
-      noResultsComponent = (
-        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
-      );
-    }
+    },
+    [actions, chartId],
+  );
 
-    // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
-    // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
-    const drillToDetailProps = getChartMetadataRegistry()
-      .get(vizType)
-      ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
-      ? { inContextMenu: this.state.inContextMenu }
-      : {};
-    // By pass no result component when server pagination is enabled & the table has:
-    // - a backend search query, OR
-    // - non-empty AG Grid filter model
-    const hasSearchText = (ownState?.searchText?.length || 0) > 0;
-    const hasAgGridFilters =
-      ownState?.agGridFilterModel &&
-      Object.keys(ownState.agGridFilterModel).length > 0;
+  // Hooks object - memoized
+  const hooks = useMemo<ChartHooks>(
+    () => ({
+      onAddFilter: handleAddFilter,
+      onContextMenu: showContextMenu ? handleOnContextMenu : undefined,
+      onError: handleRenderFailure,
+      setControlValue: handleSetControlValue,
+      onFilterMenuOpen,
+      onFilterMenuClose,
+      onLegendStateChanged: handleLegendStateChanged,
+      setDataMask: setDataMaskCallback,
+      onLegendScroll: handleLegendScroll,
+      onChartStateChange,
+      // Lets self-contained chart components in superset-ui-core (e.g.
+      // StatefulChart) resolve async (202) chart-data responses without
+      // depending on app-level async-event middleware.
+      handleAsyncChartData: handleChartDataResponse,
+      // Shares the async opt-in policy (feature flag + deployment default, plus
+      // the per-dashboard `async_mode` override) with those self-contained
+      // producers so they don't always run synchronously and honor the
+      // dashboard override like the Redux chart path.
+      resolveAsyncMode: () => resolveAsyncMode(asyncModeOverride),
+      // Lets those producers send this tab's id on an async request so the
+      // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
+      // chart path (see chartAction.ts).
+      getTabId: () => getTabId(),
+    }),
+    [
+      handleAddFilter,
+      handleLegendScroll,
+      handleLegendStateChanged,
+      handleOnContextMenu,
+      handleRenderFailure,
+      handleSetControlValue,
+      onChartStateChange,
+      onFilterMenuClose,
+      onFilterMenuOpen,
+      setDataMaskCallback,
+      showContextMenu,
+      asyncModeOverride,
+    ],
+  );
 
-    const currentFormDataExtended = currentFormData as JsonObject;
-    const bypassNoResult = !(
-      currentFormDataExtended?.server_pagination &&
+  if (!!chartAlert || chartStatus === null) {
+    return null;
+  }
+
+  if (chartStatus === 'loading' && !hasRenderableResults) {
+    return null;
+  }
+
+  renderStartTimeRef.current = Logger.getTimestamp();
+
+  // It's bad practice to use unprefixed `vizType` as classnames for chart
+  // container. It may cause css conflicts as in the case of legacy table chart.
+  // When migrating charts, we should gradually add a `superset-chart-` prefix
+  // to each one of them.
+  const snakeCaseVizType = snakeCase(vizType);
+  const chartClassName =
+    vizType === VizType.Table
+      ? `superset-chart-${snakeCaseVizType}`
+      : snakeCaseVizType;
+
+  const webpackHash =
+    process.env.WEBPACK_MODE === 'development'
+      ? `-${
+          // eslint-disable-next-line camelcase
+          typeof __webpack_require__ !== 'undefined' &&
+          // eslint-disable-next-line camelcase, no-undef
+          typeof __webpack_require__.h === 'function' &&
+          // eslint-disable-next-line no-undef, camelcase
+          __webpack_require__.h()
+        }`
+      : '';
+
+  let noResultsComponent: ReactNode;
+  const noResultTitle = t('No results were returned for this query');
+  const noResultDescription =
+    source === ChartSource.Explore
+      ? t(
+          'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
+        )
+      : undefined;
+  const noResultImage = 'chart.svg';
+  if (
+    (width ?? 0) > BIG_NO_RESULT_MIN_WIDTH &&
+    (height ?? 0) > BIG_NO_RESULT_MIN_HEIGHT
+  ) {
+    noResultsComponent = (
+      <EmptyState
+        size="large"
+        title={noResultTitle}
+        description={noResultDescription}
+        image={noResultImage}
+      />
+    );
+  } else {
+    noResultsComponent = (
+      <EmptyState title={noResultTitle} image={noResultImage} size="small" />
+    );
+  }
+
+  // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
+  // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
+  const drillToDetailProps = getChartMetadataRegistry()
+    .get(vizType)
+    ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
+    ? { inContextMenu: state.inContextMenu }
+    : {};
+  // By pass no result component when server pagination is enabled & the table has:
+  // - a backend search query, OR
+  // - non-empty AG Grid filter model
+  const hasSearchText = (ownState?.searchText?.length || 0) > 0;
+  const hasAgGridFilters =
+    ownState?.agGridFilterModel &&
+    Object.keys(ownState.agGridFilterModel).length > 0;
+
+  const renderedFormDataExtended = renderedFormData as JsonObject;
+  const bypassNoResult =
+    chartEnableNoResults &&
+    !(
+      renderedFormDataExtended?.server_pagination &&
       (hasSearchText || hasAgGridFilters)
     );
 
-    return (
-      <>
-        {this.state.showContextMenu && (
-          <ChartContextMenu
-            ref={this.contextMenuRef}
-            id={chartId}
-            formData={currentFormData as QueryFormData}
-            onSelection={this.handleContextMenuSelected}
-            onClose={this.handleContextMenuClosed}
-          />
-        )}
-        <div
-          onContextMenu={
-            this.state.showContextMenu ? this.onContextMenuFallback : undefined
-          }
-        >
-          <SuperChart
-            disableErrorBoundary
-            key={`${chartId}${webpackHash}`}
-            id={`chart-id-${chartId}`}
-            className={chartClassName}
-            chartType={vizType}
-            width={width}
-            height={height}
-            annotationData={annotationData}
-            datasource={datasource}
-            initialValues={initialValues}
-            formData={currentFormData}
-            ownState={ownState}
-            filterState={filterState}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            hooks={this.hooks as any}
-            behaviors={behaviors}
-            queriesData={this.mutableQueriesResponse ?? undefined}
-            onRenderSuccess={this.handleRenderSuccess}
-            onRenderFailure={this.handleRenderFailure}
-            noResults={noResultsComponent}
-            postTransformProps={postTransformProps}
-            emitCrossFilters={emitCrossFilters}
-            legendState={this.state.legendState}
-            enableNoResults={bypassNoResult}
-            legendIndex={this.state.legendIndex}
-            isRefreshing={
-              Boolean(this.props.suppressLoadingSpinner) &&
-              chartStatus === 'loading'
-            }
-            {...drillToDetailProps}
-          />
-        </div>
-      </>
-    );
-  }
+  return (
+    <>
+      {showContextMenu && (
+        <ChartContextMenu
+          ref={contextMenuRef}
+          id={chartId}
+          formData={renderedFormData as QueryFormData}
+          onSelection={handleContextMenuSelected}
+          onClose={handleContextMenuClosed}
+        />
+      )}
+      <div onContextMenu={showContextMenu ? onContextMenuFallback : undefined}>
+        <SuperChart
+          disableErrorBoundary
+          key={`${chartId}${webpackHash}`}
+          id={`chart-id-${chartId}`}
+          className={chartClassName}
+          chartType={vizType}
+          width={width}
+          height={height}
+          theme={theme}
+          annotationData={annotationData}
+          datasource={datasource}
+          initialValues={initialValues}
+          formData={renderedFormData}
+          ownState={ownState}
+          filterState={filterState}
+          hooks={hooks as unknown as Parameters<typeof SuperChart>[0]['hooks']}
+          behaviors={behaviors}
+          queriesData={mutableQueriesResponse ?? undefined}
+          onRenderSuccess={handleRenderSuccess}
+          onRenderFailure={handleRenderFailure}
+          noResults={noResultsComponent}
+          postTransformProps={postTransformProps}
+          emitCrossFilters={emitCrossFilters}
+          legendState={state.legendState}
+          enableNoResults={bypassNoResult}
+          legendIndex={state.legendIndex}
+          // Only an auto-refresh is passed on, the one refresh that shows no
+          // spinner. Plugins redraw when this flips, and a chart under the
+          // spinner should stay as it was drawn.
+          isRefreshing={isAutoRefreshing}
+          {...drillToDetailProps}
+        />
+      </div>
+    </>
+  );
 }
+
+const ChartRenderer = memo(ChartRendererComponent);
 
 export default ChartRenderer;

@@ -32,13 +32,18 @@ Covers:
 """
 
 import logging
+from collections.abc import Iterator
+from functools import partial
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
 
+from superset import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+from superset.security.manager import SupersetSecurityManager
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -67,17 +72,20 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def mock_chart_access():
-    """Allow chart data access by default so tests focus on dashboard logic."""
-    with patch(
-        "superset.mcp_service.auth.check_chart_data_access",
-        return_value=DatasetValidationResult(
-            is_valid=True,
-            dataset_id=1,
-            dataset_name="test_dataset",
-            warnings=[],
-            error=None,
+def mock_chart_access() -> Iterator[None]:
+    """Allow chart and data access by default for dashboard-focused tests."""
+    with (
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True,
+                dataset_id=1,
+                dataset_name="test_dataset",
+                warnings=[],
+                error=None,
+            ),
         ),
+        patch("superset.security_manager.can_access_chart", return_value=True),
     ):
         yield
 
@@ -94,7 +102,7 @@ def _mock_chart(id: int = 10, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.description = None
@@ -119,9 +127,8 @@ def _mock_dashboard(
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = slices or []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
-    dashboard.roles = []
     dashboard.position_json = "{}"
     dashboard.json_metadata = None
     dashboard.css = None
@@ -135,6 +142,63 @@ def _mock_dashboard(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("restricted", "datasource_granted"), [(True, False), (True, True), (False, True)]
+)
+@patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+@patch("superset.db.session.get")
+@patch("superset.security_manager.raise_for_editorship")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_link_requires_chart_access(
+    mock_find: Mock,
+    mock_edit: Mock,
+    mock_get: Mock,
+    mock_update: Mock,
+    mcp_server: object,
+    restricted: bool,
+    datasource_granted: bool,
+) -> None:
+    """A datasource grant cannot bypass explicit chart viewers."""
+    chart: Mock = _mock_chart()
+    chart.configure_mock(
+        viewers=[Mock(id=99)] if restricted else [],
+        resolved_datasource=Mock(),
+        dashboards=[],
+    )
+    dashboard: Mock = _mock_dashboard()
+    mock_find.configure_mock(side_effect=[dashboard, _mock_dashboard(slices=[chart])])
+    mock_get.configure_mock(return_value=chart)
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "is_editor", return_value=False),
+        patch.object(security_manager, "is_viewer", return_value=False),
+        patch.object(security_manager, "is_guest_user", return_value=False),
+        patch.object(
+            security_manager, "can_access_datasource", return_value=datasource_granted
+        ),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            side_effect=partial(
+                SupersetSecurityManager.can_access_chart, security_manager
+            ),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "add_chart_to_existing_dashboard",
+                {"request": {"dashboard_id": 1, "chart_id": 10}},
+            )
+    if restricted:
+        assert result.structured_content["permission_denied"] is True
+        assert result.structured_content["dashboard"] is None
+        mock_update.assert_not_called()
+    else:
+        assert result.structured_content["error"] is None
+        mock_update.assert_called_once()
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -155,11 +219,11 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
     assert "not found" in (result.structured_content["error"] or "").lower()
 
 
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_permission_denied(
-    mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
+    mock_find_by_id: Mock, mock_raise_for_editorship: Mock, mcp_server: object
 ) -> None:
     """Returns permission_denied=True and an actionable error when the user
     cannot edit the dashboard.
@@ -174,7 +238,7 @@ async def test_permission_denied(
 
     dashboard = _mock_dashboard(id=1, title="Sales Dashboard")
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
             message="Changing this Dashboard is forbidden",
             error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
@@ -201,19 +265,19 @@ async def test_permission_denied(
 
 
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_not_found(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mcp_server: object,
 ) -> None:
     """Returns an error when the requested chart does not exist."""
     dashboard = _mock_dashboard()
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = None  # chart not found
 
     async with Client(mcp_server) as client:
@@ -229,12 +293,12 @@ async def test_chart_not_found(
 
 
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_chart_already_in_dashboard(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mcp_server: object,
 ) -> None:
@@ -242,7 +306,7 @@ async def test_chart_already_in_dashboard(
     chart = _mock_chart(id=10)
     dashboard = _mock_dashboard(slices=[chart])
     mock_find_by_id.return_value = dashboard
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = chart
 
     async with Client(mcp_server) as client:
@@ -259,12 +323,12 @@ async def test_chart_already_in_dashboard(
 
 @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
 @patch("superset.db.session.get")
-@patch("superset.security_manager.raise_for_ownership")
+@patch("superset.security_manager.raise_for_editorship")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_successful_add(
     mock_find_by_id: Mock,
-    mock_raise_for_ownership: Mock,
+    mock_raise_for_editorship: Mock,
     mock_session_get: Mock,
     mock_update_cmd_cls: Mock,
     mcp_server: object,
@@ -275,7 +339,7 @@ async def test_successful_add(
     updated_dashboard = _mock_dashboard(id=1, slices=[chart])
 
     mock_find_by_id.side_effect = [dashboard, updated_dashboard]
-    mock_raise_for_ownership.return_value = None
+    mock_raise_for_editorship.return_value = None
     mock_session_get.return_value = chart
 
     mock_update_cmd = Mock()
@@ -292,6 +356,142 @@ async def test_successful_add(
     assert content["error"] is None
     assert content["permission_denied"] is False
     assert content["dashboard_url"] is not None
-    assert "/superset/dashboard/1/" in content["dashboard_url"]
+    assert content["dashboard_url"].endswith("/dashboard/1/")
+    assert "/superset/superset/dashboard/" not in content["dashboard_url"]
     assert content["position"] is not None
     assert "chart_key" in content["position"]
+
+
+@patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+@patch("superset.db.session.get")
+@patch("superset.security_manager.raise_for_editorship")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_successful_add_repairs_truncated_parents(
+    mock_find_by_id: Mock,
+    mock_raise_for_editorship: Mock,
+    mock_session_get: Mock,
+    mock_update_cmd_cls: Mock,
+    mcp_server: object,
+) -> None:
+    """A chart added into an existing TABS dashboard whose stored layout
+    already carries truncated ``parents``
+    (only the immediate parent, as an earlier MCP write may have persisted)
+    gets the full ancestor chain from ``ROOT_ID`` — both for the new chart
+    and for the rest of the layout, which is repaired as a side effect."""
+    from superset.utils import json
+
+    existing_chart = _mock_chart(id=5, slice_name="Existing")
+    new_chart = _mock_chart(id=10, slice_name="New")
+    dashboard = _mock_dashboard(id=1, slices=[existing_chart])
+    dashboard.position_json = json.dumps(
+        {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["TABS-1"],
+                "parents": ["ROOT_ID"],
+            },
+            "TABS-1": {
+                "type": "TABS",
+                "children": ["TAB-1"],
+                "meta": {},
+                "parents": ["GRID_ID"],
+            },
+            "TAB-1": {
+                "type": "TAB",
+                "children": ["ROW-1"],
+                "meta": {"text": "Overview"},
+                "parents": ["TABS-1"],
+            },
+            "ROW-1": {
+                "type": "ROW",
+                "children": ["CHART-5"],
+                "meta": {},
+                "parents": ["TAB-1"],
+            },
+            "CHART-5": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 5},
+                "parents": ["ROW-1"],
+            },
+        }
+    )
+    updated_dashboard = _mock_dashboard(id=1, slices=[existing_chart, new_chart])
+
+    mock_find_by_id.side_effect = [dashboard, updated_dashboard]
+    mock_raise_for_editorship.return_value = None
+    mock_session_get.return_value = new_chart
+
+    mock_update_cmd = Mock()
+    mock_update_cmd.run.return_value = updated_dashboard
+    mock_update_cmd_cls.return_value = mock_update_cmd
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "add_chart_to_existing_dashboard",
+            {"request": {"dashboard_id": 1, "chart_id": 10, "target_tab": "Overview"}},
+        )
+
+    assert result.structured_content["error"] is None
+
+    _dashboard_id, update_data = mock_update_cmd_cls.call_args[0]
+    stored = json.loads(update_data["position_json"])
+
+    # The pre-existing chart's parents are repaired even though this write
+    # only touched the new chart's branch of the tree.
+    assert stored["CHART-5"]["parents"] == [
+        "ROOT_ID",
+        "GRID_ID",
+        "TABS-1",
+        "TAB-1",
+        "ROW-1",
+    ]
+    # The newly added chart lands under the same tab with a correct chain,
+    # not one inherited from the tab's own (previously truncated) parents.
+    new_chart_key = "CHART-10"
+    assert stored[new_chart_key]["parents"][:4] == [
+        "ROOT_ID",
+        "GRID_ID",
+        "TABS-1",
+        "TAB-1",
+    ]
+
+
+def test_empty_target_tab_rejected_by_schema() -> None:
+    """Empty string target_tab is rejected at schema layer, not as 'Tab not found'."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardRequest
+
+    with pytest.raises(ValidationError):
+        AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab="")
+
+    # None is valid (tab omitted)
+    req = AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab=None)
+    assert req.target_tab is None
+
+
+def test_add_chart_response_error_preserves_application_text() -> None:
+    """Error fields do not add presentation markup to application text."""
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardResponse
+
+    raw_error = (
+        "Tab 'malicious tab <script>alert(1)</script>' not found in dashboard 42. "
+        "Available tabs: Sales (TAB-abc), <b>Marketing</b> (TAB-xyz)."
+    )
+    response = AddChartToDashboardResponse(
+        dashboard=None,
+        dashboard_url=None,
+        position=None,
+        error=raw_error,
+    )
+
+    assert response.error == raw_error
+    # None error is passed through unchanged
+    empty_response = AddChartToDashboardResponse(
+        dashboard=None, dashboard_url=None, position=None, error=None
+    )
+    assert empty_response.error is None

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty, isNaN, isNil, isString, trim } from 'lodash';
+import { isEmpty, isNaN, isNil, isString, trim } from 'lodash-es';
 
 /**
  * Checks if a value is null, undefined, NaN, or a whitespace-only string.

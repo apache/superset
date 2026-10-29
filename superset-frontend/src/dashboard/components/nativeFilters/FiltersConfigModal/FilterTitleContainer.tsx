@@ -19,7 +19,7 @@
 import { forwardRef, useCallback, useState } from 'react';
 
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
@@ -166,6 +166,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
         <FilterTitle
           role="tab"
           key={`filter-title-tab-${id}`}
+          tabIndex={0}
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
           aria-selected={isActive}
@@ -189,18 +190,25 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
               <StyledWarning className="warning" iconSize="s" />
             )}
             {isRemoved && (
-              <span
-                css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}
-                role="button"
+              <button
+                type="button"
+                css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
+                  align-self: flex-end;
+                  margin-left: auto;
+                `}
                 data-test="undo-button"
-                tabIndex={0}
                 onClick={e => {
                   e.preventDefault();
                   restoreFilter(id);
                 }}
               >
                 {t('Undo?')}
-              </span>
+              </button>
             )}
           </div>
           <div css={{ alignSelf: 'flex-start', marginLeft: 'auto' }}>
@@ -211,7 +219,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
-                alt={t('Remove filter')}
+                aria-label={t('Remove filter')}
                 data-test="filter-remove-button"
               />
             )}

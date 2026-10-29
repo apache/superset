@@ -1,0 +1,393 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Regression test for #38012.
+
+``RefreshDatasetCommand`` runs after ``UpdateDatasetCommand`` when the
+Dataset Editor modal saves with ``override_columns=True``. Historically
+it re-parsed the dataset's SQL with an empty runtime template context;
+Jinja-templated virtual datasets like
+``SELECT * FROM t {% if from_dttm %}WHERE ds > '{{ from_dttm }}'{% endif %}``
+render to malformed SQL, sqlglot rejects it, and the whole PUT surfaces
+as an "Invalid SQL" toast — even though the dataset row was already
+committed successfully by ``UpdateDatasetCommand``.
+
+``get_virtual_table_metadata`` now raises a dedicated
+``SupersetVirtualTableParseException`` for the specific template/parse
+failure paths, and ``RefreshDatasetCommand`` catches only that
+subclass. Genuine driver, connection, and permission errors still raise
+the broader ``SupersetGenericDBErrorException`` (from
+``get_columns_description``'s catch-all) and bubble up unchanged.
+
+This module covers:
+
+1. Template/parse failures become a warning (no re-raise), and the
+   command reports the refresh as skipped.
+2. Generic DB errors (connection, permission, driver) still propagate.
+3. Security failures still propagate.
+4. Pre-existing validation paths (not-found, forbidden) still work.
+"""
+
+from __future__ import annotations
+
+import logging
+
+import pytest
+from flask_appbuilder.security.sqla.models import Role, User
+from marshmallow import ValidationError
+from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
+
+from superset.commands.dataset.exceptions import (
+    DatasetForbiddenError,
+    DatasetNotFoundError,
+)
+from superset.commands.dataset.refresh import RefreshDatasetCommand
+from superset.commands.dataset.update import UpdateDatasetCommand
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.daos.dataset import DatasetDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
+from superset.extensions import db
+from superset.models.core import Database
+from superset.utils.core import override_user
+from tests.unit_tests.conftest import with_feature_flags
+
+
+def test_refresh_swallows_virtual_table_parse_exception(
+    mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Template/parse failures during metadata refresh must NOT bubble
+    up as a hard error — the dataset has already been persisted by the
+    caller (``UpdateDatasetCommand``), so the refresh is best-effort for
+    SQL that cannot be validated at save time. See #38012.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_model = mocker.MagicMock(is_managed_externally=False)
+    mock_model.table_name = "jinja_dataset"
+    mock_model.fetch_metadata.side_effect = SupersetVirtualTableParseException(
+        message="Invalid SQL: unexpected token"
+    )
+    mock_dataset_dao.find_by_id.return_value = mock_model
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    # Skip datetime-format detection to keep the test focused.
+    mocker.patch(
+        "superset.commands.dataset.refresh.current_app.config.get",
+        return_value=False,
+    )
+
+    command = RefreshDatasetCommand(model_id=1)
+    with caplog.at_level(logging.WARNING, logger="superset.commands.dataset.refresh"):
+        result = command.run()
+
+    assert result is mock_model, "command should return the model, not re-raise"
+    assert command.metadata_refreshed is False
+    assert any(
+        "Dataset column refresh skipped for jinja_dataset" in rec.message
+        for rec in caplog.records
+    ), "expected a warning naming the dataset"
+
+
+def test_refresh_reports_completed_refresh(mocker: MockerFixture) -> None:
+    """metadata_refreshed tells a completed refresh apart from a skipped one."""
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_model = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset_dao.find_by_id.return_value = mock_model
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    mocker.patch(
+        "superset.commands.dataset.refresh.current_app.config.get",
+        return_value=False,
+    )
+
+    command = RefreshDatasetCommand(model_id=1)
+    assert command.run() is mock_model
+
+    mock_model.fetch_metadata.assert_called_once_with()
+    assert command.metadata_refreshed is True
+
+
+def test_refresh_still_raises_generic_db_error(mocker: MockerFixture) -> None:
+    """A plain ``SupersetGenericDBErrorException`` from ``fetch_metadata``
+    (raised by ``get_columns_description`` for connection / permission /
+    driver failures) must still bubble up. The subclass-based catch in
+    the refresh command must NOT silence these — even when the same
+    dataset also contains Jinja markers. See #38012."""
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_model = mocker.MagicMock(is_managed_externally=False)
+    mock_model.table_name = "jinja_dataset_with_bad_connection"
+    mock_model.sql = (
+        "SELECT * FROM foo {% if from_dttm %}WHERE ds > '{{ from_dttm }}'{% endif %}"
+    )
+    mock_model.fetch_metadata.side_effect = SupersetGenericDBErrorException(
+        message="Connection refused"
+    )
+    mock_dataset_dao.find_by_id.return_value = mock_model
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    mocker.patch(
+        "superset.commands.dataset.refresh.current_app.config.get",
+        return_value=False,
+    )
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        RefreshDatasetCommand(model_id=1).run()
+
+
+def test_refresh_still_raises_on_security_exception(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetSecurityException`` must still fail hard — softening the
+    refresh path must not become a bypass for security checks. See #38012.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_model = mocker.MagicMock(is_managed_externally=False)
+    mock_model.table_name = "restricted_dataset"
+    mock_model.fetch_metadata.side_effect = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message="Access denied",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    mock_dataset_dao.find_by_id.return_value = mock_model
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    mocker.patch(
+        "superset.commands.dataset.refresh.current_app.config.get",
+        return_value=False,
+    )
+
+    # ``on_error`` only wraps ``SQLAlchemyError`` into
+    # ``DatasetRefreshFailedError``; other exception classes propagate
+    # unchanged. We just need to prove the softening does NOT swallow
+    # this one.
+    with pytest.raises(SupersetSecurityException):
+        RefreshDatasetCommand(model_id=1).run()
+
+
+def test_refresh_dataset_not_found(mocker: MockerFixture) -> None:
+    """Sanity check that the pre-existing not-found path still works.
+    Guards against the softening change accidentally masking validation
+    errors.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_dataset_dao.find_by_id.return_value = None
+
+    with pytest.raises(DatasetNotFoundError):
+        RefreshDatasetCommand(model_id=999).run()
+
+
+def test_refresh_forbidden(mocker: MockerFixture) -> None:
+    """Sanity check that the pre-existing forbidden path still works."""
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False
+    )
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="Access denied",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    with pytest.raises(DatasetForbiddenError):
+        RefreshDatasetCommand(model_id=1).run()
+
+
+def _admin() -> User:
+    return User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+
+def _mapped_dataset() -> SqlaTable:
+    """
+    A persisted dataset mapping `event_time` onto the `dt_epoch` partition.
+
+    Written under `override_user` because `AuditMixinNullable` reads `g.user`
+    on insert and these tests have no request context.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_refresh_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset = SqlaTable(
+        table_name="pfm_refresh",
+        database=database,
+        schema="main",
+        main_dttm_col="event_time",
+        columns=[
+            TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="dt_epoch", type="BIGINT"),
+        ],
+    )
+    dataset.partition_column = "dt_epoch"
+    dataset.partition_mapped_column = "event_time"
+    dataset.columns[0].partition_value_transform = "unix_timestamp(:value)"
+    dataset.columns[0].partition_transform_is_monotonic = True
+    with override_user(_admin()):
+        db.session.add(dataset)
+        db.session.flush()
+    return dataset
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_refresh_clears_a_mapping_whose_partition_column_went_away(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    `fetch_metadata` writes the columns itself rather than going through
+    `DatasetDAO.update`, so neither of the mapping's repairs ran and a dropped
+    partition column left `partition_column` naming a column that is gone.
+    """
+    dataset = _mapped_dataset()
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    # Only the lookup is stubbed -- `find_by_id` applies an ownership filter
+    # these tests have no real logged-in user for. The DAO's two repair helpers
+    # stay real, because they are what is under test.
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    mocker.patch.object(
+        SqlaTable,
+        "fetch_metadata",
+        lambda self, commit=True: setattr(
+            self,
+            "columns",
+            [c for c in self.columns if c.column_name != "dt_epoch"],
+        ),
+    )
+
+    with override_user(_admin()):
+        RefreshDatasetCommand(model_id=dataset.id).run()
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_description_only_put_survives_a_refresh_that_dropped_the_column(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The repair is what keeps the dataset editable. A later PUT that carries no
+    `columns` payload cannot reach the branch that forgives a stored-only
+    dangling reference, so an unrepaired mapping made every ordinary edit 422
+    until the client happened to send `partition_column: null`.
+    """
+    dataset = _mapped_dataset()
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    # Only the lookup is stubbed -- `find_by_id` applies an ownership filter
+    # these tests have no real logged-in user for. The DAO's two repair helpers
+    # stay real, because they are what is under test.
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    mocker.patch.object(
+        SqlaTable,
+        "fetch_metadata",
+        lambda self, commit=True: setattr(
+            self,
+            "columns",
+            [c for c in self.columns if c.column_name != "dt_epoch"],
+        ),
+    )
+
+    with override_user(_admin()):
+        RefreshDatasetCommand(model_id=dataset.id).run()
+
+    command = UpdateDatasetCommand(dataset.id, {"description": "just a note"})
+    command._model = dataset
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_refresh_disarms_a_transform_the_new_default_datetime_column_holds(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    `fetch_metadata` can also *set* `main_dttm_col`, which moves the effective
+    mapped column when no override is stored -- bringing a transform parked on
+    the newly-default column live under a mapping nobody authored.
+
+    Which is why the cleanup runs on both sides of the move. See the assertion
+    at the end for what each side catches.
+    """
+    dataset = _mapped_dataset()
+    dataset.partition_mapped_column = None
+    parked = TableColumn(column_name="other_time", is_dttm=True, type="TIMESTAMP")
+    parked.partition_value_transform = "to_unixtime(:value)"
+    parked.partition_transform_is_monotonic = True
+    dataset.columns.append(parked)
+    with override_user(_admin()):
+        db.session.flush()
+
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    mocker.patch.object(
+        SqlaTable,
+        "fetch_metadata",
+        lambda self, commit=True: setattr(self, "main_dttm_col", "other_time"),
+    )
+
+    with override_user(_admin()):
+        RefreshDatasetCommand(model_id=dataset.id).run()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    # Both go, and that is the point. `other_time`'s transform was *parked*: no
+    # row rendered it, nobody asked for it, and the only thing that made it
+    # effective was `fetch_metadata` moving `main_dttm_col`. Cleared only after
+    # the move, the cleanup resolved the new mapping, found `other_time`
+    # effective and skipped it -- so an epoch transform nobody chose went live
+    # and started adding `other_time`-derived predicates to every filter,
+    # dropping rows that do not match. Meanwhile `event_time`'s real transform,
+    # the one the owner actually wrote, was the one erased.
+    #
+    # Running the cleanup on both sides of the move leaves the mapping inert
+    # instead: it points at `other_time` with no transform, which is a state the
+    # owner can see in the editor and fix deliberately. This is what
+    # `DatasetDAO.update` already does, for the same reason.
+    assert transforms["event_time"] is None
+    assert transforms["other_time"] is None

@@ -117,6 +117,7 @@ export type DatabaseObject = {
     disable_ssh_tunneling?: boolean;
     supports_dynamic_catalog?: boolean;
     supports_oauth2?: boolean;
+    oauth2_enabled?: boolean;
   };
 
   // SSH Tunnel information
@@ -308,6 +309,7 @@ export interface FieldPropTypes {
   } & {
     onExtraInputChange: (value: any) => void;
     onEncryptedExtraInputChange: (value: any) => void;
+    onClearEncryptedExtraKey: (name: string) => void;
     onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
@@ -323,6 +325,8 @@ export interface FieldPropTypes {
   defaultDBName?: string;
   editNewDb?: boolean;
   isValidating: boolean;
+  isPublic?: boolean;
+  setIsPublic?: (value: boolean) => void;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
@@ -364,6 +368,7 @@ export interface DatabaseConnectionFormProps {
   onEncryptedExtraInputChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onClearEncryptedExtraKey: (name: string) => void;
   onAddTableCatalog: () => void;
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;

@@ -116,10 +116,11 @@ export default function SyntaxHighlighterCopy({
 
   return (
     <SyntaxHighlighterWrapper>
+      {/* role is auto-computed by BaseIconComponent as "button" since
+          onClick is present, so no explicit role needed here. */}
       <Icons.CopyOutlined
         className="copy-button"
         tabIndex={0}
-        role="button"
         aria-label={t('Copy code to clipboard')}
         onClick={handleCopyClick}
         onKeyDown={handleKeyDown}

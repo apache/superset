@@ -20,25 +20,35 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime
+from functools import partial
 from importlib import import_module
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
+from fastmcp.client.client import CallToolResult
 
+from superset import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.dashboard.constants import generate_id
+from superset.mcp_service.dashboard.layout_placement import (
+    collect_available_tab_names,
+    ensure_layout_structure,
+    find_next_row_position,
+    find_tab_insert_target,
+)
 from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
     _add_chart_to_layout,
-    _ensure_layout_structure,
-    _find_next_row_position,
-    _find_tab_insert_target,
 )
 from superset.mcp_service.dashboard.tool.generate_dashboard import (
     _generate_title_from_charts,
 )
+from superset.models.dashboard import Dashboard as _RealDashboard
+from superset.security.manager import SupersetSecurityManager
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -51,6 +61,47 @@ generate_dashboard_module = import_module(
 )
 
 
+@pytest.mark.parametrize("variant", ["int", "string", "float", "nested", "detached"])
+@pytest.mark.asyncio
+async def test_generate_dashboard_refuses_unlisted_layout_chart(
+    variant: str, mcp_server: FastMCP
+) -> None:
+    """Every persisted layout reference must belong to the checked chart list."""
+    chart_ids: dict[str, int | str | float] = {"string": "999", "float": 999.0}
+    chart_id: int | str | float = chart_ids.get(variant, 999)
+    layout: dict[str, Any] = {
+        "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+        "GRID_ID": {"type": "GRID", "children": ["ROW"]},
+        "ROW": {"type": "ROW", "children": ["CHART-1", "CHART-extra"]},
+        "CHART-1": {"type": "CHART", "meta": {"chartId": 1}},
+        "CHART-extra": {"type": "CHART", "meta": {"chartId": chart_id}},
+    }
+    if variant == "nested":
+        layout["GRID_ID"]["children"] = ["TABS"]
+        layout["TABS"] = {"type": "TABS", "children": ["TAB"]}
+        layout["TAB"] = {"type": "TAB", "children": ["ROW"]}
+    elif variant == "detached":
+        layout["ROW"]["children"] = ["CHART-1"]
+    with (
+        patch("superset.db.session") as session,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.models.dashboard.Dashboard") as dashboard_cls,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, dashboard_cls, [_mock_chart(id=1)], _mock_dashboard()
+        )
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "generate_dashboard",
+                {"request": {"chart_ids": [1], "position_json": layout}},
+            )
+        assert result.structured_content["error"] is not None
+        assert "chart_ids" in result.structured_content["error"]
+        assert result.structured_content["dashboard"] is None
+        dashboard_cls.assert_not_called()
+        session.add.assert_not_called()
+
+
 @pytest.fixture
 def mcp_server():
     return mcp
@@ -60,7 +111,7 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        with patch("superset.security_manager.raise_for_ownership"):
+        with patch("superset.security_manager.raise_for_editorship"):
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
@@ -69,17 +120,20 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def mock_chart_access():
-    """Mock chart dataset validation so tests don't hit real security manager."""
-    with patch(
-        "superset.mcp_service.auth.check_chart_data_access",
-        return_value=DatasetValidationResult(
-            is_valid=True,
-            dataset_id=1,
-            dataset_name="test_dataset",
-            warnings=[],
-            error=None,
+def mock_chart_access() -> Iterator[None]:
+    """Allow chart and data access by default for dashboard-focused tests."""
+    with (
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True,
+                dataset_id=1,
+                dataset_name="test_dataset",
+                warnings=[],
+                error=None,
+            ),
         ),
+        patch("superset.security_manager.can_access_chart", return_value=True),
     ):
         yield
 
@@ -91,7 +145,7 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.slice_name = slice_name
     chart.uuid = f"chart-uuid-{id}"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     chart.viz_type = "table"
     chart.datasource_name = None
     chart.datasource_type = None
@@ -114,6 +168,7 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     """Create a mock dashboard object."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.dashboard_title = title
     dashboard.slug = f"test-dashboard-{id}"
     dashboard.description = "Test dashboard description"
@@ -128,7 +183,7 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     dashboard.changed_by_name = "test_user"
     dashboard.uuid = f"dashboard-uuid-{id}"
     dashboard.slices = []
-    dashboard.owners = []
+    dashboard.editors = []
     dashboard.tags = []
     return dashboard
 
@@ -156,6 +211,7 @@ def _setup_generate_dashboard_mocks(
 
     mock_query = Mock()
     mock_filter = Mock()
+    mock_query.options.return_value = mock_query
     mock_query.filter.return_value = mock_filter
     mock_query.filter_by.return_value = mock_filter
     mock_filter.order_by.return_value = mock_filter
@@ -166,9 +222,92 @@ def _setup_generate_dashboard_mocks(
     mock_dashboard_cls.return_value = dashboard
     mock_find_by_id.return_value = dashboard
 
+    # `generate_dashboard` builds its re-fetch eager-load options with
+    # `subqueryload(Dashboard.slices).subqueryload(Slice.editors)` etc.
+    # against this same patched `Dashboard` class. SQLAlchemy 2.0 validates
+    # loader-path arguments eagerly and raises `ArgumentError` ("Wildcard
+    # token cannot be followed by another entity") when given a plain
+    # MagicMock attribute instead of a real `InstrumentedAttribute` --
+    # SQLAlchemy 1.4 didn't validate this eagerly, so the same mock chain
+    # silently worked before. Copy over the real class-level relationship
+    # attributes (captured at module import time, before `Dashboard` gets
+    # patched, since `from ... import Dashboard` done here would just
+    # return the mock itself) so `subqueryload`/`joinedload` construction
+    # sees genuine mapped attributes while `Dashboard(...)` instantiation
+    # (used to create new dashboards) still returns the mocked `dashboard`
+    # object.
+    mock_dashboard_cls.slices = _RealDashboard.slices
+    mock_dashboard_cls.editors = _RealDashboard.editors
+    mock_dashboard_cls.tags = _RealDashboard.tags
+
+    # Prevent Subject DB queries during dashboard creation.
+    # The mock is started here and will be cleaned up by patch.stopall()
+    # or when the test process ends.
+    patch("superset.subjects.utils.get_user_subject", return_value=None).start()
+
 
 class TestGenerateDashboard:
     """Tests for generate_dashboard MCP tool."""
+
+    @pytest.mark.parametrize(
+        ("restricted", "datasource_granted"),
+        [(True, False), (True, True), (False, True)],
+    )
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_requires_chart_access(
+        self,
+        mock_session: Mock,
+        mock_find: Mock,
+        mock_dashboard_cls: Mock,
+        mcp_server: object,
+        restricted: bool,
+        datasource_granted: bool,
+    ) -> None:
+        """Datasource-only readers cannot link viewer-restricted charts."""
+        chart: Mock = _mock_chart()
+        chart.configure_mock(
+            viewers=[Mock(id=99)] if restricted else [],
+            resolved_datasource=Mock(),
+            dashboards=[],
+        )
+        _setup_generate_dashboard_mocks(
+            mock_session, mock_find, mock_dashboard_cls, [chart], _mock_dashboard()
+        )
+        with (
+            patch.object(security_manager, "is_admin", return_value=False),
+            patch.object(security_manager, "is_editor", return_value=False),
+            patch.object(security_manager, "is_viewer", return_value=False),
+            patch.object(security_manager, "is_guest_user", return_value=False),
+            patch.object(
+                security_manager,
+                "can_access_datasource",
+                return_value=datasource_granted,
+            ),
+            patch.object(
+                security_manager,
+                "can_access_chart",
+                side_effect=partial(
+                    SupersetSecurityManager.can_access_chart, security_manager
+                ),
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result: CallToolResult = await client.call_tool(
+                    "generate_dashboard", {"request": {"chart_ids": [1]}}
+                )
+        if restricted:
+            assert result.structured_content["error"] == (
+                "You don't have permission to access chart 1."
+            )
+            assert result.structured_content["dashboard"] is None
+            mock_session.add.assert_not_called()
+            mock_dashboard_cls.assert_not_called()
+        else:
+            assert result.structured_content["error"] is None
+            mock_session.commit.assert_called()
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -205,8 +344,15 @@ class TestGenerateDashboard:
                 == "Analytics Dashboard"
             )
             assert result.structured_content["dashboard"]["chart_count"] == 2
+            # URL prefers the slug over the id (matching update_dashboard) and
+            # is prefix-free under route_base="": the single app-root prefix is
+            # supplied by get_superset_base_url(), never doubled.
+            assert result.structured_content["dashboard_url"].endswith(
+                "/dashboard/test-dashboard-10/"
+            )
             assert (
-                "/superset/dashboard/10/" in result.structured_content["dashboard_url"]
+                "/superset/superset/dashboard/"
+                not in result.structured_content["dashboard_url"]
             )
 
     @patch("superset.models.dashboard.Dashboard")
@@ -248,6 +394,7 @@ class TestGenerateDashboard:
         """Test error handling when some charts don't exist."""
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
@@ -277,6 +424,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = charts
@@ -432,6 +580,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
@@ -459,6 +608,119 @@ class TestGenerateDashboard:
             assert result.structured_content["dashboard"] is None
             # rollback called by tool + event_logger error handling
             assert mock_db_session.rollback.call_count >= 1
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_duplicate_slug_returns_actionable_error(
+        self,
+        mock_db_session,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """When the supplied slug collides with an existing dashboard,
+        ``commit()`` raises ``IntegrityError``. The tool catches it,
+        recognises the slug-uniqueness violation, and returns a
+        structured error naming the offending slug so the LLM can
+        propose a different one — instead of the generic
+        "internal error" message used for other DB failures."""
+        from sqlalchemy.exc import IntegrityError
+
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.options.return_value = mock_query
+        mock_query.filter.return_value = mock_filter
+        mock_query.filter_by.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=1)]
+        mock_filter.first.return_value = Mock(
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            active=True,
+        )
+        mock_db_session.query.return_value = mock_query
+        # Postgres-shaped IntegrityError naming the slug constraint.
+        mock_db_session.commit.side_effect = IntegrityError(
+            statement="INSERT INTO dashboards ...",
+            params={},
+            orig=Exception(
+                "duplicate key value violates unique constraint "
+                '"dashboards_slug_key"\n'
+                "DETAIL:  Key (slug)=(my-slug) already exists."
+            ),
+        )
+        mock_dashboard_cls.return_value = _mock_dashboard(id=100)
+
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Q4 Review",
+            "slug": "my-slug",
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            err = result.structured_content["error"]
+            assert err is not None
+            assert "my-slug" in err
+            assert "already in use" in err
+            assert "different slug" in err or "Choose a different" in err
+            assert result.structured_content["dashboard"] is None
+            assert mock_db_session.rollback.call_count >= 1
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_integrity_error_unrelated_to_slug(
+        self,
+        mock_db_session,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """An IntegrityError that is NOT about the slug (e.g. an FK
+        violation on chart_id) gets the generic constraint message
+        rather than the slug-specific one — slug detection must not
+        match every IntegrityError indiscriminately."""
+        from sqlalchemy.exc import IntegrityError
+
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.options.return_value = mock_query
+        mock_query.filter.return_value = mock_filter
+        mock_query.filter_by.return_value = mock_filter
+        mock_filter.order_by.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=1)]
+        mock_filter.first.return_value = Mock(
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            active=True,
+        )
+        mock_db_session.query.return_value = mock_query
+        mock_db_session.commit.side_effect = IntegrityError(
+            statement="INSERT INTO dashboard_slices ...",
+            params={},
+            orig=Exception(
+                'violates foreign key constraint "dashboard_slices_slice_id_fkey"'
+            ),
+        )
+        mock_dashboard_cls.return_value = _mock_dashboard(id=101)
+
+        # No slug → the slug-detection branch must not match.
+        request = {"chart_ids": [1], "dashboard_title": "No Slug Dashboard"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            err = result.structured_content["error"]
+            assert err is not None
+            assert "constraint" in err
+            assert "slug" not in err.lower()
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -552,27 +814,422 @@ class TestGenerateDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
-    async def test_generate_dashboard_empty_string_title_preserved(
-        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
-    ):
-        """Test that an explicit empty-string title is NOT replaced by auto-gen."""
+    @pytest.mark.parametrize("blank_title", ["", " ", "\t\n"])
+    async def test_generate_dashboard_blank_title_auto_generated(
+        self,
+        mock_db_session: Mock,
+        mock_find_by_id: Mock,
+        mock_dashboard_cls: Mock,
+        mcp_server: FastMCP,
+        blank_title: str,
+    ) -> None:
+        """Blank titles use the same chart-derived title as an omitted title."""
         charts = [_mock_chart(id=1, slice_name="Sales Revenue")]
-        mock_dashboard = _mock_dashboard(id=60, title="")
+        mock_dashboard = _mock_dashboard(id=60, title="Sales Revenue")
         _setup_generate_dashboard_mocks(
             mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
         )
 
-        # Explicit empty string title
-        request = {"chart_ids": [1], "dashboard_title": ""}
+        request = {"chart_ids": [1], "dashboard_title": blank_title}
 
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
             assert result.structured_content["error"] is None
 
-            # Verify empty string title was preserved (not replaced by auto-gen)
             created = mock_dashboard_cls.return_value
-            assert created.dashboard_title == ""
+            assert created.dashboard_title == "Sales Revenue"
+            assert (
+                result.structured_content["dashboard"]["dashboard_title"]
+                == "Sales Revenue"
+            )
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_override(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """An explicit ``position_json`` replaces the auto-generated layout
+        in full — the tool uses the caller's structure (children, meta) as
+        given rather than calling the layout-builder helper, but rebuilds
+        every component's ``parents`` as the full ancestor chain from
+        ``ROOT_ID`` rather than persisting the caller's ``parents`` (here,
+        omitted entirely) verbatim."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=70, title="Custom Layout Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        custom_layout = {
+            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"type": "GRID", "children": ["ROW-custom"]},
+            "ROW-custom": {
+                "type": "ROW",
+                "children": ["CHART-1"],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            },
+            "CHART-1": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1, "width": 12, "height": 100},
+            },
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Custom Layout Dashboard",
+            "position_json": custom_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            # position_json on the model is a JSON string; round-trip it
+            # and verify the caller's layout — not the auto-generated 2-col
+            # grid — was written.
+            stored = json.loads(created.position_json)
+            # The auto-generated layout's HEADER/ROW ids wouldn't match
+            # `ROW-custom`; this sanity-check guards against regressions
+            # where the override silently merges with the default.
+            assert "ROW-custom" in stored
+            # children/meta pass through unchanged; only `parents` is
+            # (re)computed from the children edges.
+            assert stored["ROW-custom"]["children"] == ["CHART-1"]
+            assert stored["ROW-custom"]["meta"] == {
+                "background": "BACKGROUND_TRANSPARENT"
+            }
+            assert stored["CHART-1"]["meta"] == {
+                "chartId": 1,
+                "width": 12,
+                "height": 100,
+            }
+            assert "parents" not in stored["ROOT_ID"]
+            assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
+            assert stored["ROW-custom"]["parents"] == ["ROOT_ID", "GRID_ID"]
+            assert stored["CHART-1"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "ROW-custom",
+            ]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_override_repairs_truncated_tabs(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """A caller-supplied TABS layout whose ``parents`` hold only the
+        immediate parent (the shape a dashboard export can carry) is persisted
+        with full ancestor chains from ``ROOT_ID``, so
+        ``superset.dashboards.filter_scope`` derives non-empty
+        ``chartsInScope`` for a dashboard-wide native filter on read."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1436, slice_name="Out of production")]
+        mock_dashboard = _mock_dashboard(id=71, title="Tabbed Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        # Each node's `parents` is truncated to only its immediate parent
+        # instead of the full ROOT_ID-rooted chain.
+        truncated_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["TABS-lthree"],
+                "parents": ["ROOT_ID"],
+            },
+            "TABS-lthree": {
+                "type": "TABS",
+                "children": ["TAB-out-quarter"],
+                "meta": {},
+                "parents": ["GRID_ID"],
+            },
+            "TAB-out-quarter": {
+                "type": "TAB",
+                "children": ["ROW-out-prod"],
+                "meta": {"text": "Q4"},
+                "parents": ["TABS-lthree"],
+            },
+            "ROW-out-prod": {
+                "type": "ROW",
+                "children": ["CHART-1436"],
+                "meta": {},
+                "parents": ["TAB-out-quarter"],
+            },
+            "CHART-1436": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1436},
+                "parents": ["ROW-out-prod"],
+            },
+        }
+        request = {
+            "chart_ids": [1436],
+            "dashboard_title": "Tabbed Dashboard",
+            "position_json": truncated_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            stored = json.loads(created.position_json)
+            assert stored["CHART-1436"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "TABS-lthree",
+                "TAB-out-quarter",
+                "ROW-out-prod",
+            ]
+            assert stored["ROW-out-prod"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "TABS-lthree",
+                "TAB-out-quarter",
+            ]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_repairs_detached_cycle(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """A caller-supplied layout with a detached COLUMN/ROW cycle is
+        repaired like the other write paths: the cycle is dropped and the
+        chart trapped in it is reattached under the grid."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=73, title="Detached Cycle")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": []},
+            "COLUMN-orphan": {
+                "id": "COLUMN-orphan",
+                "type": "COLUMN",
+                "children": ["CHART-1", "ROW-orphan"],
+            },
+            "ROW-orphan": {
+                "id": "ROW-orphan",
+                "type": "ROW",
+                "children": ["COLUMN-orphan"],
+            },
+            "CHART-1": {
+                "id": "CHART-1",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1},
+            },
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Detached Cycle",
+            "position_json": layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            stored = json.loads(mock_dashboard_cls.return_value.position_json)
+            assert "COLUMN-orphan" not in stored
+            assert "ROW-orphan" not in stored
+            [new_row_id] = stored["GRID_ID"]["children"]
+            assert stored["CHART-1"]["parents"] == ["ROOT_ID", "GRID_ID", new_row_id]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_root_children_not_a_list(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """``generate_dashboard`` has no layout pre-flight, so a caller can
+        hand it a ``ROOT_ID`` whose ``children`` is not a list. The rebuild
+        skips the malformed entry instead of raising, leaving the rest of the
+        layout untouched."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1436, slice_name="Out of production")]
+        mock_dashboard = _mock_dashboard(id=72, title="Malformed Root")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        malformed_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            # `children` is an int rather than a list of component ids.
+            "ROOT_ID": {"type": "ROOT", "children": 1},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["CHART-1436"],
+                "parents": ["ROOT_ID"],
+            },
+            "CHART-1436": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1436},
+                "parents": ["GRID_ID"],
+            },
+        }
+        request = {
+            "chart_ids": [1436],
+            "dashboard_title": "Malformed Root",
+            "position_json": malformed_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            stored = json.loads(created.position_json)
+            # Nothing is reachable from a malformed root, so every component
+            # keeps the `parents` it came in with.
+            assert stored["ROOT_ID"]["children"] == 1
+            assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
+            assert stored["CHART-1436"]["parents"] == ["GRID_ID"]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_json_metadata_overrides_shallow_merged(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """``json_metadata_overrides`` is shallow-merged on top of the
+        defaults: caller-supplied keys win, defaults for keys the caller
+        didn't touch survive."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=71, title="Themed Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        overrides = {
+            "label_colors": {"Electronics": "#4C78A8"},
+            "cross_filters_enabled": True,
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Themed Dashboard",
+            "json_metadata_overrides": overrides,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            merged = json.loads(created.json_metadata)
+            # Caller overrides land verbatim
+            assert merged["label_colors"] == {"Electronics": "#4C78A8"}
+            assert merged["cross_filters_enabled"] is True
+            # Defaults for keys the caller did NOT supply must still be
+            # present — this is what makes it a *shallow merge* rather
+            # than a full replace.
+            assert "timed_refresh_immune_slices" in merged
+            assert "refresh_frequency" in merged
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_slug_and_css_applied(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """Both ``slug`` and ``css`` land on the created dashboard model
+        when supplied. Verifying via the model directly — not just the
+        response — confirms the tool wrote the fields, not merely echoed
+        them back."""
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=72, title="Branded Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        css_value = ".header-controls { display: none; }"
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Branded Dashboard",
+            "slug": "branded-q4",
+            "css": css_value,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            assert created.slug == "branded-q4"
+            assert created.css == css_value
 
 
 class TestAddChartToExistingDashboard:
@@ -651,8 +1308,10 @@ class TestAddChartToExistingDashboard:
             assert "chart_key" in result.structured_content["position"]
             row_key = result.structured_content["position"]["row_key"]
             assert row_key.startswith("ROW-")
+            assert result.structured_content["dashboard_url"].endswith("/dashboard/1/")
             assert (
-                "/superset/dashboard/1/" in result.structured_content["dashboard_url"]
+                "/superset/superset/dashboard/"
+                not in result.structured_content["dashboard_url"]
             )
 
             call_args = mock_update_command.call_args[0][1]
@@ -1063,6 +1722,112 @@ class TestAddChartToExistingDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    async def test_add_chart_target_tab_not_found(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ) -> None:
+        """target_tab specified but no matching tab → descriptive error listing
+        available tabs, not a silent fallback to the first tab."""
+        mock_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
+        mock_dashboard.slices = [_mock_chart(id=10)]
+        mock_dashboard.position_json = json.dumps(
+            {
+                "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+                "GRID_ID": {
+                    "children": ["TABS-abc123"],
+                    "id": "GRID_ID",
+                    "parents": ["ROOT_ID"],
+                    "type": "GRID",
+                },
+                "TABS-abc123": {
+                    "children": ["TAB-tab1", "TAB-tab2"],
+                    "id": "TABS-abc123",
+                    "parents": ["ROOT_ID", "GRID_ID"],
+                    "type": "TABS",
+                },
+                "TAB-tab1": {
+                    "children": [],
+                    "id": "TAB-tab1",
+                    "meta": {"text": "Overview"},
+                    "parents": ["ROOT_ID", "GRID_ID", "TABS-abc123"],
+                    "type": "TAB",
+                },
+                "TAB-tab2": {
+                    "children": [],
+                    "id": "TAB-tab2",
+                    "meta": {"text": "Details"},
+                    "parents": ["ROOT_ID", "GRID_ID", "TABS-abc123"],
+                    "type": "TAB",
+                },
+                "DASHBOARD_VERSION_KEY": "v2",
+            }
+        )
+        mock_chart = _mock_chart(id=30)
+        mock_db_session.get.return_value = mock_chart
+        mock_find_dashboard.return_value = mock_dashboard
+
+        request = {"dashboard_id": 3, "chart_id": 30, "target_tab": "Nonexistent Tab"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            assert result.structured_content["error"] is not None
+            error = result.structured_content["error"]
+            assert "Nonexistent Tab" in error
+            assert "not found" in error
+            # Available tabs listed with both label and component ID
+            assert "Overview" in error
+            assert "Details" in error
+            assert "TAB-tab1" in error
+            assert "TAB-tab2" in error
+            # No layout mutation should have been persisted
+            mock_update_command.assert_not_called()
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_target_tab_on_non_tabbed_dashboard(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ) -> None:
+        """target_tab on a dashboard with no tabs → descriptive error."""
+        mock_dashboard = _mock_dashboard(id=5, title="Flat Dashboard")
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = json.dumps(
+            {
+                "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+                "GRID_ID": {
+                    "children": [],
+                    "id": "GRID_ID",
+                    "parents": ["ROOT_ID"],
+                    "type": "GRID",
+                },
+                "DASHBOARD_VERSION_KEY": "v2",
+            }
+        )
+        mock_chart = _mock_chart(id=99)
+        mock_db_session.get.return_value = mock_chart
+        mock_find_dashboard.return_value = mock_dashboard
+
+        request = {"dashboard_id": 5, "chart_id": 99, "target_tab": "Sales"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            assert result.structured_content["error"] is not None
+            error = result.structured_content["error"]
+            assert "no tabs" in error.lower()
+            assert "target_tab" in error
+            # No layout mutation should have been persisted
+            mock_update_command.assert_not_called()
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
     async def test_add_chart_to_tabbed_dashboard_tabs_under_root(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
@@ -1255,28 +2020,28 @@ class TestLayoutHelpers:
         assert len(ids) == 100
 
     def test_find_next_row_position_empty_layout(self):
-        """Test _find_next_row_position with empty layout."""
-        result = _find_next_row_position({})
+        """Test find_next_row_position with empty layout."""
+        result = find_next_row_position({})
         assert isinstance(result, str)
         assert result.startswith("ROW-")
 
     def test_find_tab_insert_target_no_tabs(self):
-        """Test _find_tab_insert_target with no tabs."""
+        """Test find_tab_insert_target with no tabs."""
         layout = {"GRID_ID": {"children": ["ROW-1"], "type": "GRID"}}
-        assert _find_tab_insert_target(layout) is None
+        assert find_tab_insert_target(layout) is None
 
     def test_find_tab_insert_target_with_tabs(self):
-        """Test _find_tab_insert_target with tabbed dashboard."""
+        """Test find_tab_insert_target with tabbed dashboard."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
             "TAB-first": {"children": [], "type": "TAB"},
             "TAB-second": {"children": [], "type": "TAB"},
         }
-        assert _find_tab_insert_target(layout) == "TAB-first"
+        assert find_tab_insert_target(layout) == "TAB-first"
 
     def test_find_tab_insert_target_by_tab_name(self):
-        """Test _find_tab_insert_target resolves target_tab by display name."""
+        """Test find_tab_insert_target resolves target_tab by display name."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
@@ -1291,10 +2056,10 @@ class TestLayoutHelpers:
                 "meta": {"text": "Customers"},
             },
         }
-        assert _find_tab_insert_target(layout, target_tab="Customers") == "TAB-second"
+        assert find_tab_insert_target(layout, target_tab="Customers") == "TAB-second"
 
     def test_find_tab_insert_target_by_tab_id(self):
-        """Test _find_tab_insert_target resolves target_tab by component ID."""
+        """Test find_tab_insert_target resolves target_tab by component ID."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
@@ -1309,11 +2074,11 @@ class TestLayoutHelpers:
                 "meta": {"text": "Tab 2"},
             },
         }
-        assert _find_tab_insert_target(layout, target_tab="TAB-second") == "TAB-second"
+        assert find_tab_insert_target(layout, target_tab="TAB-second") == "TAB-second"
 
-    def test_find_tab_insert_target_unmatched_falls_back_to_first(self):
-        """Test _find_tab_insert_target falls back to first tab when target_tab
-        doesn't match any tab name or ID."""
+    def test_find_tab_insert_target_unmatched_returns_none(self):
+        """Test find_tab_insert_target returns None when target_tab doesn't
+        match any tab name or ID, so the caller can return a descriptive error."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
@@ -1328,12 +2093,20 @@ class TestLayoutHelpers:
                 "meta": {"text": "Tab 2"},
             },
         }
-        assert (
-            _find_tab_insert_target(layout, target_tab="Nonexistent Tab") == "TAB-first"
-        )
+        assert find_tab_insert_target(layout, target_tab="Nonexistent Tab") is None
 
-    def test_find_tab_insert_target_tabs_under_root(self):
-        """Test _find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
+    def test_find_tab_insert_target_empty_string_returns_none(self) -> None:
+        """An empty-string target_tab is treated as specified-but-not-found,
+        not as 'no tab requested', so it returns None rather than first tab."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
+            "TABS-main": {"children": ["TAB-first"], "type": "TABS"},
+            "TAB-first": {"children": [], "type": "TAB", "meta": {"text": "Tab 1"}},
+        }
+        assert find_tab_insert_target(layout, target_tab="") is None
+
+    def test_find_tab_insert_target_tabs_under_root(self) -> None:
+        """Test find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
         layout = {
             "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
             "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
@@ -1341,10 +2114,10 @@ class TestLayoutHelpers:
             "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
         }
-        assert _find_tab_insert_target(layout) == "TAB-a"
+        assert find_tab_insert_target(layout) == "TAB-a"
 
-    def test_find_tab_insert_target_tabs_under_root_by_name(self):
-        """Test _find_tab_insert_target matches tab name when TABS under ROOT_ID."""
+    def test_find_tab_insert_target_tabs_under_root_by_name(self) -> None:
+        """Test find_tab_insert_target matches tab name when TABS under ROOT_ID."""
         layout = {
             "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
             "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
@@ -1352,11 +2125,52 @@ class TestLayoutHelpers:
             "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
         }
-        assert _find_tab_insert_target(layout, target_tab="Details") == "TAB-b"
+        assert find_tab_insert_target(layout, target_tab="Details") == "TAB-b"
 
-    def test_find_tab_insert_target_no_grid(self):
-        """Test _find_tab_insert_target with missing GRID_ID."""
-        assert _find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
+    def test_find_tab_insert_target_no_grid(self) -> None:
+        """Test find_tab_insert_target with missing GRID_ID."""
+        assert find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
+
+    def test_collect_available_tab_names_returns_display_names(self) -> None:
+        """collect_available_tab_names returns label + component ID for each tab."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
+            "TABS-x": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
+            "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
+            "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
+        }
+        names = collect_available_tab_names(layout)
+        assert names == ["Overview (TAB-a)", "Details (TAB-b)"]
+
+    def test_collect_available_tab_names_falls_back_to_id(self) -> None:
+        """collect_available_tab_names uses component ID only when text is empty."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
+            "TABS-x": {"children": ["TAB-a"], "type": "TABS"},
+            "TAB-a": {"children": [], "type": "TAB", "meta": {}},
+        }
+        names = collect_available_tab_names(layout)
+        assert names == ["TAB-a"]
+
+    def test_collect_available_tab_names_duplicate_names(self) -> None:
+        """Duplicate display names are disambiguated by component ID in the entry."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
+            "TABS-x": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
+            "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Sales"}},
+            "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Sales"}},
+        }
+        names = collect_available_tab_names(layout)
+        assert names == ["Sales (TAB-a)", "Sales (TAB-b)"]
+        assert names[0] != names[1]
+
+    def test_collect_available_tab_names_no_tabs(self) -> None:
+        """collect_available_tab_names returns empty list for non-tabbed dashboards."""
+        layout = {
+            "GRID_ID": {"children": ["ROW-1"], "type": "GRID"},
+            "ROW-1": {"children": [], "type": "ROW"},
+        }
+        assert collect_available_tab_names(layout) == []
 
     def test_add_chart_to_layout_creates_column(self):
         """Test that _add_chart_to_layout creates ROW > COLUMN > CHART."""
@@ -1385,9 +2199,9 @@ class TestLayoutHelpers:
         assert layout[chart_key]["meta"]["chartId"] == 42
 
     def test_ensure_layout_structure_creates_missing(self):
-        """Test _ensure_layout_structure creates GRID and ROOT if missing."""
+        """Test ensure_layout_structure creates GRID and ROOT if missing."""
         layout: dict = {}
-        _ensure_layout_structure(layout, "ROW-test", "GRID_ID")
+        ensure_layout_structure(layout, "ROW-test", "GRID_ID")
 
         assert "ROOT_ID" in layout
         assert "GRID_ID" in layout
@@ -1396,7 +2210,7 @@ class TestLayoutHelpers:
         assert layout["DASHBOARD_VERSION_KEY"] == "v2"
 
     def test_ensure_layout_structure_adds_to_tab(self):
-        """Test _ensure_layout_structure adds row to tab parent."""
+        """Test ensure_layout_structure adds row to tab parent."""
         layout = {
             "ROOT_ID": {"children": ["GRID_ID"], "type": "ROOT"},
             "GRID_ID": {
@@ -1406,13 +2220,13 @@ class TestLayoutHelpers:
             },
             "TAB-first": {"children": ["ROW-existing"], "type": "TAB"},
         }
-        _ensure_layout_structure(layout, "ROW-new", "TAB-first")
+        ensure_layout_structure(layout, "ROW-new", "TAB-first")
 
         assert "ROW-new" in layout["TAB-first"]["children"]
         assert "ROW-new" not in layout["GRID_ID"]["children"]
 
     def test_ensure_layout_structure_tabs_under_root_no_grid_added(self):
-        """Test _ensure_layout_structure does NOT add GRID_ID to ROOT_ID
+        """Test ensure_layout_structure does NOT add GRID_ID to ROOT_ID
         when TABS already exists as a ROOT_ID child.
 
         Real Superset tabbed dashboards place TABS under ROOT_ID, not
@@ -1440,7 +2254,7 @@ class TestLayoutHelpers:
                 "parents": ["ROOT_ID", "TABS-xxx"],
             },
         }
-        _ensure_layout_structure(layout, "ROW-new", "TAB-a")
+        ensure_layout_structure(layout, "ROW-new", "TAB-a")
 
         # Row added to the correct tab
         assert "ROW-new" in layout["TAB-a"]["children"]
@@ -1449,14 +2263,14 @@ class TestLayoutHelpers:
         assert layout["ROOT_ID"]["children"] == ["TABS-xxx"]
 
     def test_ensure_layout_structure_no_tabs_adds_grid_to_root(self):
-        """Test _ensure_layout_structure still adds GRID_ID to ROOT_ID
+        """Test ensure_layout_structure still adds GRID_ID to ROOT_ID
         when the dashboard has no tabs (non-tabbed dashboard regression check).
         """
         layout = {
             "ROOT_ID": {"children": [], "type": "ROOT"},
             "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
         }
-        _ensure_layout_structure(layout, "ROW-new", "GRID_ID")
+        ensure_layout_structure(layout, "ROW-new", "GRID_ID")
 
         assert "GRID_ID" in layout["ROOT_ID"]["children"]
         assert "ROW-new" in layout["GRID_ID"]["children"]
@@ -1547,6 +2361,44 @@ class TestDashboardSerializationEagerLoading:
             # Verify DashboardDAO.find_by_id was called for re-fetch
             mock_find_by_id.assert_called()
 
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_refetch_sqlalchemy_error_rollback(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        """When the DAO re-fetch raises SQLAlchemyError, the session is
+        rolled back and a minimal response is returned with only scalar
+        attributes (no editors/tags/charts that would trigger lazy-loading)."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        charts = [_mock_chart(id=1, slice_name="Chart 1")]
+        dashboard = _mock_dashboard(id=10, title="Rollback Test")
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, dashboard
+        )
+        # Make the DAO re-fetch raise SQLAlchemyError
+        mock_find_by_id.side_effect = SQLAlchemyError("session error")
+
+        request = {"chart_ids": [1], "dashboard_title": "Rollback Test"}
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            data = result.structured_content
+            assert data["error"] is None
+            mock_db_session.rollback.assert_called()
+            # Minimal response should have scalar fields
+            dash = data["dashboard"]
+            assert dash["id"] == 10
+            assert dash["dashboard_title"] == "Rollback Test"
+            assert data["dashboard_url"].endswith("/dashboard/test-dashboard-10/")
+            assert "/superset/superset/dashboard/" not in data["dashboard_url"]
+            # Access-list fields should not be returned.
+            assert "editors" not in dash
+            assert dash["tags"] == []
+            assert dash["charts"] == []
+
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -1615,3 +2467,121 @@ class TestDashboardSerializationEagerLoading:
 
             # Tool should still succeed using fallback dashboard
             assert result.structured_content["error"] is None
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_refetch_sqlalchemy_error_rollback(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
+        """When the DAO re-fetch raises SQLAlchemyError after adding a chart,
+        the session is rolled back and a minimal response is returned with
+        only scalar attributes and position info."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_dashboard = _mock_dashboard(id=1, title="Dashboard")
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = "{}"
+
+        mock_chart = _mock_chart(id=15)
+        mock_db_session.get.return_value = mock_chart
+
+        updated = _mock_dashboard(id=1, title="Dashboard")
+        updated.slices = [_mock_chart(id=15)]
+        mock_update_command.return_value.run.return_value = updated
+
+        # First call returns dashboard (validation), second raises (re-fetch)
+        mock_find_dashboard.side_effect = [
+            mock_dashboard,
+            SQLAlchemyError("session error"),
+        ]
+
+        request = {"dashboard_id": 1, "chart_id": 15}
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "add_chart_to_existing_dashboard", {"request": request}
+            )
+
+            data = result.structured_content
+            assert data["error"] is None
+            mock_db_session.rollback.assert_called()
+            # Minimal response should have scalar fields
+            dash = data["dashboard"]
+            assert dash["id"] == 1
+            assert dash["dashboard_title"] == "Dashboard"
+            assert data["dashboard_url"].endswith("/dashboard/1/")
+            assert "/superset/superset/dashboard/" not in data["dashboard_url"]
+            # Position info should still be returned
+            assert data["position"] is not None
+            assert "chart_key" in data["position"]
+            # Access-list fields should not be returned.
+            assert "editors" not in dash
+            assert dash["tags"] == []
+            assert dash["charts"] == []
+
+
+class TestGenerateDashboardCreatorGroups:
+    """The tool creates dashboards outside CreateDashboardCommand, so it has to
+    apply the creator's default viewers itself."""
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generated_dashboard_gets_the_creators_default_viewers(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        charts = [_mock_chart(id=1, slice_name="Sales Chart")]
+        mock_dashboard = _mock_dashboard(id=10, title="Analytics Dashboard")
+        mock_dashboard.viewers = []
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+        viewer = Mock()
+
+        with patch(
+            "superset.subjects.utils.get_default_viewers_for_new_asset",
+            return_value=[viewer],
+        ):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "generate_dashboard",
+                    {"request": {"chart_ids": [1], "dashboard_title": "Analytics"}},
+                )
+
+        assert mock_dashboard.viewers == [viewer]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+async def test_generate_dashboard_literal_less_than_storage_round_trip(
+    title: str, mcp_server: object
+) -> None:
+    """Dashboard creation and readback preserve non-tag less-than text."""
+    dashboard = _mock_dashboard(id=10, title="Old")
+    with (
+        patch("superset.models.dashboard.Dashboard") as model,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.db.session") as session,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, model, [_mock_chart()], dashboard
+        )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_dashboard",
+                {"request": {"chart_ids": [1], "dashboard_title": title}},
+            )
+    assert dashboard.dashboard_title == title
+    assert result.structured_content["error"] is None
+    assert result.structured_content["dashboard"]["dashboard_title"] == title

@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { render } from '@superset-ui/core/spec';
+import { render, userEvent, waitFor } from '@superset-ui/core/spec';
+import { useState } from 'react';
 import * as ReactCronPicker from 'react-js-cron';
 import { CronPicker } from '.';
 
@@ -36,4 +37,51 @@ test('Should send correct props to ReactCronPicker', () => {
     }),
     expect.anything(),
   );
+});
+
+// The invalid-cron error styling was silently dead under antd 6 until
+// react-js-cron was bumped to v6 (its v5 stylesheet targeted antd 5 Select
+// classes that no longer exist). Pin the error contract: an invalid value
+// must fire onError and apply the vendor's error class — the hook that both
+// the vendor stylesheet and Superset's overrides style the error state
+// through.
+test('flags an invalid cron value with the error state', async () => {
+  const onError = jest.fn();
+  const { container } = render(
+    <CronPicker value="not a cron" setValue={jest.fn()} onError={onError} />,
+  );
+  await waitFor(() =>
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ type: expect.any(String) }),
+    ),
+  );
+  expect(
+    // eslint-disable-next-line testing-library/no-node-access
+    container.querySelector('.react-js-cron-error'),
+  ).toBeInTheDocument();
+});
+
+// Choosing "minute" as the period yields `* * * * *`, which react-js-cron v6
+// considers "empty" and, by default, flags as invalid unless it was the initial
+// value. It is a valid schedule, so it must not get the error state.
+test('does not flag "Every minute" as invalid when switching to it', async () => {
+  const onError = jest.fn();
+  const Wrapper = () => {
+    const [value, setValue] = useState('0 0 * * *');
+    return (
+      <>
+        <button type="button" onClick={() => setValue('* * * * *')}>
+          every minute
+        </button>
+        <CronPicker value={value} setValue={setValue} onError={onError} />
+      </>
+    );
+  };
+  const { container, getByRole } = render(<Wrapper />);
+  await userEvent.click(getByRole('button', { name: 'every minute' }));
+  await waitFor(() => expect(onError).toHaveBeenLastCalledWith(undefined));
+  expect(
+    // eslint-disable-next-line testing-library/no-node-access
+    container.querySelector('.react-js-cron-error'),
+  ).not.toBeInTheDocument();
 });

@@ -27,13 +27,12 @@ import {
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Descriptions } from 'src/components/Descriptions';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   UserInfoEditModal,
   UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
-import { Icons, Collapse } from '@superset-ui/core/components';
+import { Icons, Collapse, Descriptions } from '@superset-ui/core/components';
 import { ApiKeyList } from 'src/features/apiKeys/ApiKeyList';
 
 const StyledHeader = styled.div`

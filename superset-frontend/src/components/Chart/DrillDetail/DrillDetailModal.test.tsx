@@ -21,9 +21,15 @@ import { useState } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
+import { logEvent } from 'src/logger/actions';
+import { LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED } from 'src/logger/LogUtils';
 import DrillDetailModal from './DrillDetailModal';
 
 jest.mock('./DrillDetailPane', () => () => null);
+jest.mock('src/logger/actions', () => ({
+  ...jest.requireActual('src/logger/actions'),
+  logEvent: jest.fn(() => () => {}),
+}));
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -71,7 +77,7 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
     },
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
   await screen.findByRole('dialog', { name: `Drill to detail: ${chartName}` });
 };
 
@@ -91,13 +97,13 @@ test('should render the button', async () => {
 test('should close the modal', async () => {
   await renderModal();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('should forward to Explore', async () => {
   await renderModal();
-  userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
   );
@@ -111,4 +117,33 @@ test('should render "Edit chart" as disabled without can_explore permission', as
     },
   });
   expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
+});
+
+test('should log an event when the modal is opened', async () => {
+  (logEvent as jest.Mock).mockClear();
+  await renderModal();
+  expect(logEvent).toHaveBeenCalledWith(
+    LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED,
+    { slice_id: chartId },
+  );
+});
+
+test('should not log an event while the modal is closed', () => {
+  (logEvent as jest.Mock).mockClear();
+  render(
+    <DrillDetailModal
+      chartId={chartId}
+      formData={formData}
+      initialFilters={[]}
+      showModal={false}
+      onHideModal={() => {}}
+    />,
+    {
+      useRouter: true,
+      useRedux: true,
+      initialState: drillToDetailModalState,
+    },
+  );
+
+  expect(logEvent).not.toHaveBeenCalled();
 });

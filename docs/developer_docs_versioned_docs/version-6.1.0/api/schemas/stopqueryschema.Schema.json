@@ -1,1 +1,8 @@
-{"schema":{"properties":{"client_id":{"type":"string"}},"type":"object","title":"StopQuerySchema"},"schemaType":"response"}
+{
+  "schema": {
+    "properties": { "client_id": { "type": "string" } },
+    "type": "object",
+    "title": "StopQuerySchema"
+  },
+  "schemaType": "response"
+}

@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { findPermission } from './findPermission';
+import { isFeatureEnabled } from '@superset-ui/core';
+import { UserRoles } from 'src/types/bootstrapTypes';
+import { canDownloadData, findPermission } from './findPermission';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 test('findPermission for single role', () => {
   expect(findPermission('abc', 'def', { role: [['abc', 'def']] })).toEqual(
@@ -60,4 +69,45 @@ test('findPermission for multiple roles', () => {
 
 test('handles nonexistent roles', () => {
   expect(findPermission('abc', 'def', null)).toEqual(false);
+});
+
+describe('canDownloadData', () => {
+  const csvOnly: UserRoles = { role: [['can_csv', 'Superset']] };
+  const exportOnly: UserRoles = { role: [['can_export_data', 'Superset']] };
+  const both: UserRoles = {
+    role: [
+      ['can_csv', 'Superset'],
+      ['can_export_data', 'Superset'],
+    ],
+  };
+  const neither: UserRoles = { role: [['can_write', 'Chart']] };
+
+  afterEach(() => {
+    mockIsFeatureEnabled.mockReset();
+  });
+
+  test('checks can_csv when GranularExportControls is off', () => {
+    mockIsFeatureEnabled.mockReturnValue(false);
+    expect(canDownloadData(csvOnly)).toEqual(true);
+    expect(canDownloadData(exportOnly)).toEqual(false);
+    expect(canDownloadData(both)).toEqual(true);
+    expect(canDownloadData(neither)).toEqual(false);
+  });
+
+  test('checks can_export_data only when GranularExportControls is on, matching the backend', () => {
+    mockIsFeatureEnabled.mockReturnValue(true);
+    expect(canDownloadData(exportOnly)).toEqual(true);
+    // no can_csv fallback: a can_csv-only user would 403 at the backend, so
+    // the button must not show
+    expect(canDownloadData(csvOnly)).toEqual(false);
+    expect(canDownloadData(both)).toEqual(true);
+    expect(canDownloadData(neither)).toEqual(false);
+  });
+
+  test('handles nonexistent roles', () => {
+    mockIsFeatureEnabled.mockReturnValue(true);
+    expect(canDownloadData(null)).toEqual(false);
+    mockIsFeatureEnabled.mockReturnValue(false);
+    expect(canDownloadData(undefined)).toEqual(false);
+  });
 });

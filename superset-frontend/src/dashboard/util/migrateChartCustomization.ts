@@ -78,12 +78,15 @@ export function migrateChartCustomization(
 
   const controlValues: ChartCustomization['controlValues'] = {
     sortAscending: customization.sortAscending,
-    sortMetric: customization.sortMetric,
     canSelectMultiple: customization.canSelectMultiple,
   };
 
   if (customization.controlValues) {
-    Object.assign(controlValues, customization.controlValues);
+    Object.entries(customization.controlValues).forEach(([key, value]) => {
+      if (key !== 'sortMetric') {
+        controlValues[key] = value;
+      }
+    });
   }
 
   let defaultDataMask = customization.defaultDataMask || {

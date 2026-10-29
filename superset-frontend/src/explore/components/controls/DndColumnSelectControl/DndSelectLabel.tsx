@@ -17,7 +17,11 @@
  * under the License.
  */
 import { ReactNode, useCallback, useContext, useEffect, useMemo } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDroppable } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { t } from '@apache-superset/core/translation';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
@@ -33,6 +37,39 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { DndItemType } from '../../DndItemType';
 import { DraggingContext, DropzoneContext } from '../../ExploreContainer';
 
+export type ActiveDragData = {
+  type: string;
+  value?: unknown;
+  items?: DatasourcePanelDndItem[];
+};
+
+/**
+ * Pure, folder-aware `canDrop` logic for the currently dragged item, extracted
+ * so it can be unit-tested directly: @dnd-kit's PointerSensor only reacts to
+ * real pointer events, which jsdom cannot meaningfully dispatch (see
+ * ExploreDndContext's `resolveDragEnd` for the same pattern).
+ */
+export function resolveCanDrop(
+  activeData: ActiveDragData | undefined,
+  acceptTypes: DndItemType[],
+  dropValidator: (item: DatasourcePanelDndItem) => boolean,
+): boolean {
+  if (!activeData) return false;
+  if (!acceptTypes.includes(activeData.type as DndItemType)) return false;
+  // A folder can drop here when at least one of its items is acceptable.
+  if (activeData.type === DndItemType.Folder) {
+    const items = Array.isArray(activeData.items) ? activeData.items : [];
+    return items.some(
+      item =>
+        acceptTypes.includes(item.type as DndItemType) && dropValidator(item),
+    );
+  }
+  return dropValidator({
+    type: activeData.type as DndItemType,
+    value: activeData.value as DndItemValue,
+  });
+}
+
 export type DndSelectLabelProps = {
   name: string;
   accept: DndItemType | DndItemType[];
@@ -41,10 +78,14 @@ export type DndSelectLabelProps = {
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   canDropValue?: (value: DndItemValue) => boolean;
   onDropValue?: (value: DndItemValue) => void;
+  onDropFolder?: (items: DatasourcePanelDndItem[]) => void;
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
   onClickGhostButton: () => void;
   isLoading?: boolean;
+  // For sortable items - the type string and count to generate sortable IDs
+  sortableType?: string;
+  itemCount?: number;
 };
 
 export default function DndSelectLabel({
@@ -52,10 +93,17 @@ export default function DndSelectLabel({
   accept,
   valuesRenderer,
   isLoading,
+  sortableType,
+  itemCount = 0,
   ...props
 }: DndSelectLabelProps) {
   const canDropProp = props.canDrop;
   const canDropValueProp = props.canDropValue;
+
+  const acceptTypes = useMemo(
+    () => (Array.isArray(accept) ? accept : [accept]),
+    [accept],
+  );
 
   const dropValidator = useCallback(
     (item: DatasourcePanelDndItem) =>
@@ -63,24 +111,32 @@ export default function DndSelectLabel({
     [canDropProp, canDropValueProp],
   );
 
-  const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
-    accept: isLoading ? [] : accept,
-
-    drop: (item: DatasourcePanelDndItem) => {
-      props.onDrop(item);
-      props.onDropValue?.(item.value);
+  const { setNodeRef, isOver, active } = useDroppable({
+    id: `dropzone-${props.name}`,
+    disabled: isLoading,
+    data: {
+      accept: acceptTypes,
+      // Mirrors react-dnd's `canDrop`: the drop only fires when this returns
+      // true, so duplicate/selection gating is preserved post-migration.
+      canDrop: dropValidator,
+      onDrop: props.onDrop,
+      onDropValue: props.onDropValue,
+      onDropFolder: props.onDropFolder,
     },
-
-    canDrop: dropValidator,
-
-    collect: monitor => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-      type: monitor.getItemType(),
-    }),
   });
 
-  const dispatch = useContext(DropzoneContext)[1];
+  // Check if the active dragged item can be dropped here
+  const canDrop = useMemo(
+    () =>
+      resolveCanDrop(
+        active?.data.current as ActiveDragData | undefined,
+        acceptTypes,
+        dropValidator,
+      ),
+    [active, acceptTypes, dropValidator],
+  );
+
+  const [, dispatch] = useContext(DropzoneContext);
 
   useEffect(() => {
     dispatch({ key: props.name, canDrop: dropValidator });
@@ -92,6 +148,15 @@ export default function DndSelectLabel({
   const isDragging = useContext(DraggingContext);
 
   const values = useMemo(() => valuesRenderer(), [valuesRenderer]);
+
+  // Generate sortable item IDs for SortableContext
+  const sortableItemIds = useMemo(() => {
+    if (!sortableType || itemCount === 0) return [];
+    return Array.from(
+      { length: itemCount },
+      (_, i) => `sortable-${sortableType}-${i}`,
+    );
+  }, [sortableType, itemCount]);
 
   function renderGhostButton() {
     return (
@@ -105,8 +170,25 @@ export default function DndSelectLabel({
     );
   }
 
+  // The actual drop is handled in ExploreDndContext's onDragEnd.
+
+  // Wrap values in SortableContext if sortable
+  const renderSortableValues = () => {
+    if (sortableItemIds.length > 0) {
+      return (
+        <SortableContext
+          items={sortableItemIds}
+          strategy={verticalListSortingStrategy}
+        >
+          {values}
+        </SortableContext>
+      );
+    }
+    return values;
+  };
+
   return (
-    <div ref={datasourcePanelDrop}>
+    <div ref={setNodeRef}>
       <HeaderContainer>
         <ControlHeader {...props} />
       </HeaderContainer>
@@ -117,7 +199,7 @@ export default function DndSelectLabel({
         isDragging={isDragging}
         isLoading={isLoading}
       >
-        {values}
+        {renderSortableValues()}
         {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
     </div>

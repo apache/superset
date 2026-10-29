@@ -86,11 +86,13 @@ describe('SupersetThemeProvider', () => {
       clearLocalOverrides: jest.fn(),
       getCurrentCrudThemeId: jest.fn().mockReturnValue(null),
       hasDevOverride: jest.fn().mockReturnValue(false),
+      hasThemeConfigOverride: jest.fn().mockReturnValue(false),
       canSetMode: jest.fn().mockReturnValue(true),
       canSetTheme: jest.fn().mockReturnValue(true),
       canDetectOSPreference: jest.fn().mockReturnValue(true),
       createDashboardThemeProvider: jest.fn(),
       getAppliedThemeId: jest.fn().mockReturnValue(null),
+      refreshSystemThemes: jest.fn().mockResolvedValue(undefined),
       destroy: jest.fn(),
     } as unknown as jest.Mocked<ThemeController>;
 
@@ -130,6 +132,20 @@ describe('SupersetThemeProvider', () => {
       expect(mockThemeController.getCurrentMode).toHaveBeenCalled();
       expect(result.current.theme).toBe(mockTheme);
       expect(result.current.themeMode).toBe(ThemeMode.DEFAULT);
+    });
+
+    test('exposes refreshSystemThemes and delegates to the controller', async () => {
+      const wrapper = createWrapper(mockThemeController);
+
+      const { result } = renderHook((): ThemeContextType => useThemeContext(), {
+        wrapper,
+      });
+
+      await act(async () => {
+        await result.current.refreshSystemThemes();
+      });
+
+      expect(mockThemeController.refreshSystemThemes).toHaveBeenCalledTimes(1);
     });
 
     test('should register onChange listener on mount', () => {

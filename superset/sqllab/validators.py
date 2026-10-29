@@ -30,4 +30,8 @@ class CanAccessQueryValidatorImpl(CanAccessQueryValidator):
     def validate(
         self, query: Query, template_params: Optional[dict[str, Any]] = None
     ) -> None:
-        security_manager.raise_for_access(query=query, template_params=template_params)
+        security_manager.raise_for_access(
+            query=query,
+            template_params=template_params,
+            force_dataset_match=True,
+        )

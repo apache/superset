@@ -25,6 +25,7 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -70,6 +71,17 @@ test('renders Tabs', async () => {
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
 });
 
+test('recommends a registered client route for the default URL', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+
+  expect(await screen.findByText('/dashboard/{id}/')).toBeInTheDocument();
+  expect(
+    screen.queryByText('/superset/dashboard/{id}/'),
+  ).not.toBeInTheDocument();
+});
+
 test('can sync columns from source', async () => {
   const testProps = createProps();
   await asyncRender({
@@ -78,7 +90,7 @@ test('can sync columns from source', async () => {
   });
 
   const columnsTab = screen.getByTestId('collection-tab-Columns');
-  userEvent.click(columnsTab);
+  await userEvent.click(columnsTab);
 
   const syncButton = screen.getByText(/sync columns from source/i);
   expect(syncButton).toBeInTheDocument();
@@ -96,7 +108,7 @@ test('can sync columns from source', async () => {
     );
   });
 
-  userEvent.click(syncButton);
+  await userEvent.click(syncButton);
 
   // Wait for the fetch to be called
   const url = await fetchPromise;
@@ -264,6 +276,37 @@ test('renders isSqla fields', async () => {
   expect(screen.getByText(/template parameters/i)).toBeInTheDocument();
 });
 
+test('hides Normalize column names for virtual datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      table_name: 'Vehicle Sales +',
+      type: DatasourceType.Query,
+      sql: 'SELECT * FROM users',
+    },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.queryByText(/normalize column names/i)).not.toBeInTheDocument();
+});
+
+test('shows Normalize column names for physical datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.getByText(/normalize column names/i)).toBeInTheDocument();
+});
+
 test('Source Tab: edit mode', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 
@@ -337,7 +380,8 @@ test('calls onChange with empty SQL when switching to physical dataset', async (
 
   // Assert that the latest onChange call has empty SQL
   expect(testProps.onChange).toHaveBeenCalled();
-  const updatedDatasource = testProps.onChange.mock.calls[0];
+  const lastCallIndex = testProps.onChange.mock.calls.length - 1;
+  const updatedDatasource = testProps.onChange.mock.calls[lastCallIndex];
   expect(updatedDatasource[0].sql).toBe('');
 });
 
@@ -408,7 +452,7 @@ test('shows the default datetime column in dropdown', async () => {
 
   // Verify the current value is 'ds' (from main_dttm_col in props)
   const selectedValue = await screen.findByText('ds', {
-    selector: '.ant-select-selection-item',
+    selector: '.ant-select-content-has-value, .ant-select-selection-item',
   });
   expect(selectedValue).toBeInTheDocument();
 });
@@ -529,7 +573,7 @@ test('fetchUsageData rethrows AbortError without updating state', async () => {
 
   // Navigate to Usage tab to trigger fetchUsageData
   const usageTab = screen.getByRole('tab', { name: /usage/i });
-  userEvent.click(usageTab);
+  await userEvent.click(usageTab);
 
   // Unmount immediately
   unmount();
@@ -820,4 +864,136 @@ test('calculated column search is case-insensitive', async () => {
   await waitFor(() => {
     expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
   });
+});
+
+test('Open in SQL lab href is single-prefixed under subdirectory deployment', () => {
+  // The Open-in-SQL-Lab link's href is produced by `getSQLLabUrl()`:
+  //   return makeUrl(`/sqllab/?${queryParams.toString()}`);
+  // `makeUrl` is the idempotent app-root prefix helper from
+  // `src/utils/navigationUtils`. Rendering the link requires both the
+  // virtual datasourceType state AND a populated Redux `database.queryResult`
+  // slice (which is not part of the default test reducer tree). Calling
+  // `makeUrl` directly with a `/superset` mock exercises the exact path the
+  // component takes and pins the dedupe invariant for the underlying helper.
+  const applicationRootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/superset');
+  try {
+    const { makeUrl } = jest.requireActual('src/utils/navigationUtils');
+    const queryParams = new URLSearchParams({
+      dbid: '1',
+      sql: 'SELECT * FROM users',
+      name: 'Vehicle Sales',
+      schema: 'public',
+      autorun: 'true',
+      isDataset: 'true',
+    });
+    const url = makeUrl(`/sqllab/?${queryParams.toString()}`);
+    expect(url).toMatch(/^\/superset\/sqllab\/\?/);
+    expect(url).not.toMatch(/\/superset\/superset\//);
+  } finally {
+    applicationRootSpy.mockRestore();
+  }
+});
+
+test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + openInNewTab helpers', () => {
+  // Source-pin: lock the exact two-line shape the runtime behaviour depends
+  // on. `getSQLLabUrl` MUST wrap its `/sqllab/?...` path in `makeUrl` so the
+  // Layer-2 idempotent prefix runs at the click boundary; `openOnSqlLab`
+  // MUST delegate to `openInNewTab` so `ensureAppRoot` runs again (idempotent
+  // dedupe, see `navigationUtils.appRoot.test.tsx`). A refactor that drops
+  // either layer would let a doubled-prefix URL escape into a new tab.
+  // eslint-disable-next-line global-require
+  const { readFileSync } = require('fs');
+  // eslint-disable-next-line global-require
+  const { join } = require('path');
+  const src = readFileSync(
+    join(__dirname, '..', 'DatasourceEditor.tsx'),
+    'utf8',
+  );
+  expect(src).toMatch(
+    /return makeUrl\(`\/sqllab\/\?\$\{queryParams\.toString\(\)\}`\);/,
+  );
+  expect(src).toMatch(/openInNewTab\(getSQLLabUrl\(\)\);/);
+  expect(src).toMatch(
+    /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
+  );
+});
+
+const renderWithOneColumn = async () => {
+  const baseProps = createProps();
+  const limitedProps = {
+    ...baseProps,
+    onChange: jest.fn(),
+    datasource: {
+      ...baseProps.datasource,
+      table_name: 'Vehicle Sales +',
+      columns: baseProps.datasource.columns
+        .slice(0, 1)
+        .map(column => ({ ...column })),
+    },
+  };
+  fastRender(limitedProps);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  return limitedProps;
+};
+
+const syncColumnsFromSource = async (
+  testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
+) => {
+  const [{ column_name, type, is_dttm }] = testProps.datasource.columns;
+  fetchMock.removeRoute(DATASOURCE_ENDPOINT);
+  fetchMock.get(DATASOURCE_ENDPOINT, [{ column_name, type, is_dttm }], {
+    name: DATASOURCE_ENDPOINT,
+  });
+  testProps.onChange.mockClear();
+  await userEvent.click(screen.getByText(/sync columns from source/i));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(DATASOURCE_ENDPOINT)).toBe(true),
+  );
+  await waitFor(() => expect(testProps.onChange).toHaveBeenCalled());
+  return testProps.onChange.mock.lastCall![0].columns;
+};
+
+test('syncing columns keeps column edits made in the session', async () => {
+  const testProps = await renderWithOneColumn();
+  const [toggle] = await screen.findAllByRole('button', {
+    name: /expand row/i,
+  });
+  await userEvent.click(toggle);
+  fireEvent.change(screen.getByPlaceholderText('Label'), {
+    target: { value: 'edited_label' },
+  });
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns[0].verbose_name).toBe(
+      'edited_label',
+    ),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, verbose_name: 'edited_label' });
+});
+
+test('syncing restores a column deleted in the session as its saved row', async () => {
+  const testProps = await renderWithOneColumn();
+  const columnsPanel = within(
+    await screen.findByRole('tabpanel', { name: /columns/i }),
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /expand row/i }))[0],
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /delete item/i }))[0],
+  );
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns).toHaveLength(0),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
 });

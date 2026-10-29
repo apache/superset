@@ -19,10 +19,21 @@
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch, AnyAction } from 'redux';
 
+import { selectAsyncModeOverride } from 'src/utils/asyncMode';
+import type { StateWithAsyncModeOverride } from 'src/utils/asyncMode';
 import * as actions from './chartAction';
 import { logEvent } from '../../logger/actions';
 import Chart from './Chart';
 import { updateDataMask } from '../../dataMask/actions';
+
+// Read the per-dashboard `async_mode` override here (the connected boundary) so
+// the presentational Chart/ChartRenderer stay store-agnostic. Undefined outside a
+// dashboard (e.g. Explore), which resolves to the deployment default. This lets
+// self-contained charts (StatefulChart / the Matrixify path) honor the override
+// the Redux chart path already applies.
+function mapStateToProps(state: StateWithAsyncModeOverride) {
+  return { asyncModeOverride: selectAsyncModeOverride(state) };
+}
 
 function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   return {
@@ -37,4 +48,4 @@ function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   };
 }
 
-export default connect(null, mapDispatchToProps)(Chart);
+export default connect(mapStateToProps, mapDispatchToProps)(Chart);

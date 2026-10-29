@@ -44,6 +44,7 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
@@ -62,24 +63,29 @@ export function formatLabel({
   params: CallbackDataParams;
   labelType: EchartsRadarLabelType;
   numberFormatter: NumberFormatter;
-  getDenormalizedSeriesValue: (seriesName: string, value: string) => number;
+  getDenormalizedSeriesValue: (
+    seriesName: string,
+    value: string,
+  ) => number | null;
   metricsWithCustomBounds: Set<string>;
   metricLabels: string[];
 }): string {
   const { name = '', value, dimensionIndex = 0 } = params;
   const metricLabel = metricLabels[dimensionIndex];
 
-  const formattedValue = numberFormatter(
-    metricsWithCustomBounds.has(metricLabel)
-      ? (value as number)
-      : (getDenormalizedSeriesValue(name, String(value)) as number),
-  );
+  const rawValue = metricsWithCustomBounds.has(metricLabel)
+    ? (value as number | null)
+    : getDenormalizedSeriesValue(name, String(value));
+
+  // A missing metric is preserved as null so it renders as a gap; skip
+  // formatting it into a misleading "NaN" label.
+  const formattedValue = rawValue == null ? '' : numberFormatter(rawValue);
 
   switch (labelType) {
     case EchartsRadarLabelType.Value:
       return formattedValue;
     case EchartsRadarLabelType.KeyValue:
-      return `${name}: ${formattedValue}`;
+      return formattedValue ? `${name}: ${formattedValue}` : name;
     default:
       return name;
   }
@@ -98,6 +104,8 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    legendState,
+    legendIndex,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -117,6 +125,7 @@ export default function transformProps(
     dateFormat,
     showLabels,
     showLegend,
+    showSelectorLegend,
     legendSort,
     isCircle,
     columnConfig,
@@ -126,7 +135,12 @@ export default function transformProps(
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks ?? {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
@@ -134,13 +148,24 @@ export default function transformProps(
   const getDenormalizedSeriesValue = (
     seriesName: string,
     normalizedValue: string,
-  ): number =>
-    denormalizedSeriesValues?.[seriesName]?.[normalizedValue] ??
-    Number(normalizedValue);
+  ): number | null => {
+    const seriesMap = denormalizedSeriesValues?.[seriesName];
+    // A missing metric is recorded explicitly as `null`, so use
+    // `hasOwnProperty` rather than `??`/`?.` to distinguish "recorded as
+    // null" from "never recorded" (which falls back to parsing the raw
+    // normalized value).
+    if (
+      seriesMap &&
+      Object.prototype.hasOwnProperty.call(seriesMap, normalizedValue)
+    ) {
+      return seriesMap[normalizedValue];
+    }
+    return Number(normalizedValue);
+  };
 
   const metricLabels = metrics.map(getMetricLabel);
 
-  const metricsWithCustomBounds = new Set(
+  const metricsWithCustomBounds = new Set<string>(
     metricLabels.filter(metricLabel => {
       const config = columnConfig?.[metricLabel];
       const hasMax = !!isDefined(config?.radarMetricMaxValue);
@@ -254,15 +279,36 @@ export default function transformProps(
     {},
   );
 
-  const normalizeArray = (arr: number[], decimals = 10, seriesName: string) =>
+  const normalizeArray = (
+    arr: (number | null)[],
+    decimals = 10,
+    seriesName: string,
+  ): (number | null)[] =>
     arr.map((value, index) => {
       const metricLabel = metricLabels[index];
       if (metricsWithCustomBounds.has(metricLabel)) {
         return value;
       }
 
-      const max = Math.max(...arr);
-      const normalizedValue = Number((value / max).toFixed(decimals));
+      // Preserve missing (null/undefined) metric values so they render as a
+      // gap. Dividing null/undefined by max coerces it to 0, which would plot
+      // the point at the center of the radar as if it were a real zero.
+      // Explicitly record the denormalized entry as null (rather than
+      // leaving it unset) so downstream label/tooltip lookups can tell a
+      // recorded gap apart from an unrecorded value and skip formatting it.
+      if (value == null || !Number.isFinite(value)) {
+        denormalizedSeriesValues[seriesName][String(null)] = null;
+        return null;
+      }
+
+      const max = Math.max(
+        ...arr.filter((v): v is number => v != null && Number.isFinite(v)),
+      );
+      // A series whose only finite value is a real 0 has max === 0, and
+      // dividing by it turns that 0 into NaN. Pass the value through
+      // unscaled instead so the lone zero still plots at the center.
+      const normalizedValue =
+        max === 0 ? value : Number((value / max).toFixed(decimals));
 
       denormalizedSeriesValues[seriesName][String(normalizedValue)] = value;
       return normalizedValue;
@@ -276,7 +322,11 @@ export default function transformProps(
 
       return {
         ...series,
-        value: normalizeArray(series.value as number[], 10, seriesName),
+        value: normalizeArray(
+          series.value as (number | null)[],
+          10,
+          seriesName,
+        ),
       };
     }
     return series;
@@ -327,14 +377,21 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
 
+  const chartPadding = getChartPadding(
+    showLegend,
+    legendOrientation,
+    effectiveLegendMargin,
+  );
+
   const series: RadarSeriesOption[] = [
     {
       type: 'radar',
-      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
+      ...chartPadding,
       animation: false,
       emphasis: {
         label: {
@@ -350,7 +407,7 @@ export default function transformProps(
     params: CallbackDataParams & {
       color: string;
       name: string;
-      value: number[];
+      value: (number | null)[];
     },
   ) =>
     renderNormalizedTooltip(
@@ -358,7 +415,17 @@ export default function transformProps(
       metricLabels,
       getDenormalizedSeriesValue,
       metricsWithCustomBounds,
+      numberFormatter,
     );
+
+  const centerX = width
+    ? ((width + chartPadding.left - chartPadding.right) / 2 / width) * 100
+    : 50;
+  const centerY = height
+    ? ((height + chartPadding.top - chartPadding.bottom) / 2 / height) * 100
+    : 50;
+
+  const radarCenter: [string, string] = [`${centerX}%`, `${centerY}%`];
 
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -376,7 +443,11 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series,
@@ -389,6 +460,7 @@ export default function transformProps(
           color: theme.colorSplit,
         },
       },
+      center: radarCenter,
       splitArea: {
         show: true,
         areaStyle: {
@@ -414,6 +486,8 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
     refs,
     coltypeMapping,
   };

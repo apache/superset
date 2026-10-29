@@ -33,47 +33,39 @@ The List component from Superset's UI library.
 <StoryWithControls
   component="List"
   props={{
-  bordered: false,
-  split: true,
-  size: "default",
-  loading: false,
-  dataSource: [
-    "Dashboard Analytics",
-    "User Management",
-    "Data Sources"
-  ]
-}}
+    bordered: false,
+    split: true,
+    size: 'default',
+    loading: false,
+    dataSource: ['Dashboard Analytics', 'User Management', 'Data Sources'],
+  }}
   controls={[
-  {
-    name: "bordered",
-    label: "Bordered",
-    type: "boolean",
-    description: "Whether to show a border around the list."
-  },
-  {
-    name: "split",
-    label: "Split",
-    type: "boolean",
-    description: "Whether to show a divider between items."
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "default",
-      "small",
-      "large"
-    ],
-    description: "Size of the list."
-  },
-  {
-    name: "loading",
-    label: "Loading",
-    type: "boolean",
-    description: "Whether to show a loading indicator."
-  }
-]}
+    {
+      name: 'bordered',
+      label: 'Bordered',
+      type: 'boolean',
+      description: 'Whether to show a border around the list.',
+    },
+    {
+      name: 'split',
+      label: 'Split',
+      type: 'boolean',
+      description: 'Whether to show a divider between items.',
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['default', 'small', 'large'],
+      description: 'Size of the list.',
+    },
+    {
+      name: 'loading',
+      label: 'Loading',
+      type: 'boolean',
+      description: 'Whether to show a loading indicator.',
+    },
+  ]}
 />
 
 ## Try It
@@ -87,7 +79,7 @@ function Demo() {
     <List
       bordered
       dataSource={data}
-      renderItem={(item) => <List.Item>{item}</List.Item>}
+      renderItem={item => <List.Item>{item}</List.Item>}
     />
   );
 }
@@ -95,13 +87,13 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `bordered` | `boolean` | `false` | Whether to show a border around the list. |
-| `split` | `boolean` | `true` | Whether to show a divider between items. |
-| `size` | `string` | `"default"` | Size of the list. |
-| `loading` | `boolean` | `false` | Whether to show a loading indicator. |
-| `dataSource` | `any` | `["Dashboard Analytics","User Management","Data Sources"]` | - |
+| Prop         | Type      | Default                                                    | Description                               |
+| ------------ | --------- | ---------------------------------------------------------- | ----------------------------------------- |
+| `bordered`   | `boolean` | `false`                                                    | Whether to show a border around the list. |
+| `split`      | `boolean` | `true`                                                     | Whether to show a divider between items.  |
+| `size`       | `string`  | `"default"`                                                | Size of the list.                         |
+| `loading`    | `boolean` | `false`                                                    | Whether to show a loading indicator.      |
+| `dataSource` | `any`     | `["Dashboard Analytics","User Management","Data Sources"]` | -                                         |
 
 ## Import
 

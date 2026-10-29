@@ -117,6 +117,50 @@ test('formatColumnValue with AUTO mode normalizes currency codes', () => {
   expect(result2).toContain('£');
 });
 
+test('formatColumnValue falls back to raw value when formatter throws', () => {
+  const column: DataColumnMeta = {
+    key: 'pct',
+    label: 'Pct',
+    dataType: GenericDataType.Numeric,
+    formatter: (() => {
+      throw new Error('boom');
+    }) as unknown as DataColumnMeta['formatter'],
+    isNumeric: true,
+  };
+
+  const [isHtml, result] = formatColumnValue(column, -0.00001229);
+
+  expect(isHtml).toBe(false);
+  expect(result).toBe('-0.00001229');
+});
+
+test('formatColumnValue falls back to raw value when CurrencyFormatter throws', () => {
+  const formatter = new CurrencyFormatter({
+    d3Format: ',.2f',
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+  });
+  formatter.format = () => {
+    throw new Error('boom');
+  };
+
+  const column: DataColumnMeta = {
+    key: 'revenue',
+    label: 'Revenue',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    currencyCodeColumn: 'currency_code',
+  };
+
+  const [isHtml, result] = formatColumnValue(column, 1000, {
+    revenue: 1000,
+    currency_code: 'EUR',
+  });
+
+  expect(isHtml).toBe(false);
+  expect(result).toBe('1000');
+});
+
 test('formatColumnValue handles null values', () => {
   const column: DataColumnMeta = {
     key: 'revenue',
@@ -128,6 +172,96 @@ test('formatColumnValue handles null values', () => {
 
   const [, nullResult] = formatColumnValue(column, null);
   expect(nullResult).toBe('N/A');
+});
+
+test('formatColumnValue preserves percentage format for small numbers when d3SmallNumberFormat is null', () => {
+  const formatter = getNumberFormatter('.8%');
+  const column: DataColumnMeta = {
+    key: 'pct',
+    label: 'Percentage',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    config: { d3SmallNumberFormat: null },
+  };
+
+  const [, result] = formatColumnValue(column, -0.00001229);
+  expect(result).toBe('-0.00122900%');
+});
+
+test('formatColumnValue preserves percentage format for small numbers when d3SmallNumberFormat is empty string', () => {
+  const formatter = getNumberFormatter('.8%');
+  const column: DataColumnMeta = {
+    key: 'pct',
+    label: 'Percentage',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    config: { d3SmallNumberFormat: '' },
+  };
+
+  const [, result] = formatColumnValue(column, -0.00001229);
+  expect(result).toBe('-0.00122900%');
+});
+
+test('formatColumnValue preserves percentage format for small numbers when config has no d3SmallNumberFormat', () => {
+  const formatter = getNumberFormatter('.8%');
+  const column: DataColumnMeta = {
+    key: 'pct',
+    label: 'Percentage',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    config: {},
+  };
+
+  const [, result] = formatColumnValue(column, -0.00001229);
+  expect(result).toBe('-0.00122900%');
+});
+
+test('formatColumnValue uses default formatter for value exactly 1 (boundary)', () => {
+  const formatter = getNumberFormatter(',.2f');
+  const column: DataColumnMeta = {
+    key: 'val',
+    label: 'Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    config: { d3SmallNumberFormat: null },
+  };
+
+  const [, result] = formatColumnValue(column, 1);
+  expect(result).toBe('1.00');
+});
+
+test('formatColumnValue uses default formatter for value exactly -1 (boundary)', () => {
+  const formatter = getNumberFormatter(',.2f');
+  const column: DataColumnMeta = {
+    key: 'val',
+    label: 'Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    config: { d3SmallNumberFormat: null },
+  };
+
+  const [, result] = formatColumnValue(column, -1);
+  expect(result).toBe('-1.00');
+});
+
+test('formatColumnValue uses small number formatter for value 0', () => {
+  const formatter = getNumberFormatter('.8%');
+  const column: DataColumnMeta = {
+    key: 'pct',
+    label: 'Percentage',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+    config: { d3SmallNumberFormat: null },
+  };
+
+  const [, result] = formatColumnValue(column, 0);
+  expect(result).toBe('0.00000000%');
 });
 
 test('formatColumnValue with small number format and currency', () => {

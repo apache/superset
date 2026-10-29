@@ -17,16 +17,24 @@
  * under the License.
  */
 
-import { MemoryRouter } from 'react-router-dom';
-import {
-  JsonResponse,
-  SupersetClient,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { createMemoryHistory, type Update } from 'history';
+import { MemoryRouter, Router } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { isFeatureEnabled } from '@superset-ui/core';
 
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import { SubjectType } from 'src/types/Subject';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 import DashboardCard from './DashboardCard';
+
+const aliceEditor = { id: 1, label: 'Alice Doe', type: SubjectType.User };
+const bobEditor = { id: 2, label: 'Bob Smith', type: SubjectType.User };
 
 const mockDashboard = {
   id: 1,
@@ -35,14 +43,11 @@ const mockDashboard = {
   certification_details: 'Certified on 2022-01-01',
   published: true,
   url: '/dashboard/1',
-  thumbnail_url: '/thumbnails/1.png',
+  changed_on_utc: '2024-01-01T00:00:00',
   changed_on_delta_humanized: '2 days ago',
-  owners: [
-    { id: 1, name: 'Alice', first_name: 'Alice', last_name: 'Doe' },
-    { id: 2, name: 'Bob', first_name: 'Bob', last_name: 'Smith' },
-  ],
   changed_by_name: 'John Doe',
   changed_by: 'john.doe@example.com',
+  editors: [aliceEditor, bobEditor],
 };
 
 const mockHasPerm = jest.fn().mockReturnValue(true);
@@ -50,6 +55,17 @@ const mockOpenDashboardEditModal = jest.fn();
 const mockSaveFavoriteStatus = jest.fn();
 const mockHandleBulkDashboardExport = jest.fn();
 const mockOnDelete = jest.fn();
+const nonEditorUser: UserWithPermissionsAndRoles = {
+  userId: 9,
+  firstName: 'Other',
+  lastName: 'User',
+  username: 'other',
+  isActive: true,
+  isAnonymous: false,
+  permissions: {},
+  roles: { Alpha: [] },
+  groups: [],
+};
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -58,12 +74,16 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-beforeAll(() => {
+beforeEach(() => {
   mockedIsFeatureEnabled.mockReturnValue(true);
 });
 
 afterAll(() => {
   mockedIsFeatureEnabled.mockClear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 beforeEach(() => {
@@ -89,6 +109,55 @@ test('Renders the dashboard title', () => {
   expect(titleElement).toBeInTheDocument();
 });
 
+test.each([
+  [true, 'archive'],
+  [false, 'delete'],
+])(
+  'soft delete %s uses the dashboard card permission hint for %s',
+  async (enabled, verb) => {
+    mockedIsFeatureEnabled.mockReturnValue(enabled);
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardCard
+          dashboard={mockDashboard}
+          hasPerm={mockHasPerm}
+          bulkSelectEnabled={false}
+          loading={false}
+          saveFavoriteStatus={mockSaveFavoriteStatus}
+          favoriteStatus={false}
+          handleBulkDashboardExport={mockHandleBulkDashboardExport}
+          onDelete={mockOnDelete}
+          openDashboardEditModal={mockOpenDashboardEditModal}
+          user={nonEditorUser}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(within(container).getByTestId('dashboard-card-menu'));
+    await userEvent.hover(
+      screen.getByTestId('dashboard-card-option-delete-button'),
+    );
+    const archiveButton = screen.getByTestId(
+      'dashboard-card-option-delete-button',
+    );
+    expect(archiveButton).toBeDisabled();
+    const editButton = screen.getByTestId('dashboard-card-option-edit-button');
+    expect(editButton).toBeDisabled();
+    expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
+    expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
+    expect(archiveButton).toHaveStyleRule('color', 'inherit');
+    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
+    fireEvent.click(archiveButton);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `You must be a dashboard editor in order to ${verb}.`,
+    );
+  },
+);
+
 test('Renders the certification details', () => {
   const certificationDetailsElement = screen.getByLabelText(/certified/i);
   expect(certificationDetailsElement).toBeInTheDocument();
@@ -104,57 +173,118 @@ test('Renders the modified date', () => {
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-test('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
-  const mockGet = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-    json: { result: { thumbnail_url: '/new-thumbnail.png' } },
-  } as unknown as JsonResponse);
-
-  const { rerender } = render(
-    <DashboardCard
-      dashboard={{
-        id: 1,
-        thumbnail_url: '',
-        changed_by_name: '',
-        changed_by: '',
-        dashboard_title: '',
-        published: false,
-        url: '',
-        owners: [],
-      }}
-      hasPerm={() => true}
-      bulkSelectEnabled={false}
-      loading={false}
-      saveFavoriteStatus={() => {}}
-      favoriteStatus={false}
-      handleBulkDashboardExport={() => {}}
-      onDelete={() => {}}
-    />,
-  );
-  await waitFor(() => {
-    expect(mockGet).toHaveBeenCalledWith({
-      endpoint: '/api/v1/dashboard/1',
-    });
+test('clicking the thumbnail navigates to the dashboard exactly once', () => {
+  // The cover is a router link and the whole card is clickable, so a click on
+  // the cover used to be handled twice and pushed two identical entries, which
+  // left the Back button popping the duplicate rather than returning the user
+  // to the page they came from.
+  jest.spyOn(global, 'fetch').mockResolvedValue({
+    blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+  } as Response);
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/welcome/'],
   });
-  rerender(
-    <DashboardCard
-      dashboard={{
-        id: 1,
-        thumbnail_url: '/new-thumbnail.png',
-        changed_by_name: '',
-        changed_by: '',
-        dashboard_title: '',
-        published: false,
-        url: '',
-        owners: [],
-      }}
-      hasPerm={() => true}
-      bulkSelectEnabled={false}
-      loading={false}
-      saveFavoriteStatus={() => {}}
-      favoriteStatus={false}
-      handleBulkDashboardExport={() => {}}
-      onDelete={() => {}}
-    />,
+  const { container } = render(
+    <Router history={history}>
+      <DashboardCard
+        dashboard={mockDashboard}
+        hasPerm={mockHasPerm}
+        bulkSelectEnabled={false}
+        loading={false}
+        showThumbnails
+        openDashboardEditModal={mockOpenDashboardEditModal}
+        saveFavoriteStatus={mockSaveFavoriteStatus}
+        favoriteStatus={false}
+        handleBulkDashboardExport={mockHandleBulkDashboardExport}
+        onDelete={mockOnDelete}
+      />
+    </Router>,
   );
-  mockGet.mockRestore();
+  const navigations: string[] = [];
+  history.listen(({ action, location }: Update) =>
+    navigations.push(`${action} ${location.pathname}`),
+  );
+
+  fireEvent.click(within(container).getByRole('link'));
+
+  expect(navigations).toEqual(['PUSH /dashboard/1']);
+});
+
+describe('thumbnail URL construction', () => {
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
+    } as Response);
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
+  });
+
+  const renderCard = (dashboard: object) =>
+    render(
+      <MemoryRouter>
+        <DashboardCard
+          dashboard={dashboard as any}
+          hasPerm={() => true}
+          bulkSelectEnabled={false}
+          loading={false}
+          showThumbnails
+          saveFavoriteStatus={() => {}}
+          favoriteStatus={false}
+          handleBulkDashboardExport={() => {}}
+          onDelete={() => {}}
+        />
+      </MemoryRouter>,
+    );
+
+  test('constructs thumbnail URL from dashboard id and changed_on_utc', () => {
+    renderCard({
+      id: 2,
+      changed_by_name: '',
+      changed_by: '',
+      dashboard_title: 'UTC Dashboard',
+      published: false,
+      url: '/dashboard/2',
+      editors: [aliceEditor, bobEditor],
+      changed_on_utc: '2024-01-01T00:00:00',
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+    );
+  });
+
+  test('falls back to changed_on when changed_on_utc is absent', () => {
+    renderCard({
+      id: 3,
+      changed_by_name: '',
+      changed_by: '',
+      dashboard_title: 'Fallback Dashboard',
+      published: false,
+      url: '/dashboard/3',
+      editors: [aliceEditor, bobEditor],
+      changed_on: '2024-06-01T12:00:00',
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/dashboard/3/thumbnail/2024-06-01T12%3A00%3A00/',
+    );
+  });
+
+  test('renders no thumbnail when both changed_on_utc and changed_on are absent', () => {
+    renderCard({
+      id: 4,
+      changed_by_name: '',
+      changed_by: '',
+      dashboard_title: 'No Timestamp Dashboard',
+      published: false,
+      url: '/dashboard/4',
+      editors: [aliceEditor, bobEditor],
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

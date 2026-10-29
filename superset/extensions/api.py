@@ -20,15 +20,16 @@ from typing import Any
 
 from flask import send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
+from superset.views.base_api import BaseSupersetApi
 
 
-class ExtensionsRestApi(BaseApi):
+class ExtensionsRestApi(BaseSupersetApi):
     allow_browser_login = True
     resource_name = "extensions"
 
@@ -74,7 +75,7 @@ class ExtensionsRestApi(BaseApi):
     def get_list(self, **kwargs: Any) -> Response:
         """List all enabled extensions.
         ---
-        get_list:
+        get:
           summary: List all enabled extensions.
           responses:
             200:
@@ -89,8 +90,6 @@ class ExtensionsRestApi(BaseApi):
                             items:
                               type: object
                               properties:
-                                remoteEntry:
-                                  type: string
                                 remoteEntry:
                                   type: string
             400:
@@ -141,14 +140,10 @@ class ExtensionsRestApi(BaseApi):
                     type: object
                     properties:
                         result:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                remoteEntry:
-                                  type: string
-                                remoteEntry:
-                                  type: string
+                            type: object
+                            properties:
+                              remoteEntry:
+                                type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -169,7 +164,7 @@ class ExtensionsRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/<publisher>/<name>/<file>", methods=("GET",))
+    @expose("/<publisher>/<name>/<path:file>", methods=("GET",))
     def content(self, publisher: str, name: str, file: str) -> Response:
         """Get a frontend chunk of an extension.
         ---
@@ -193,14 +188,13 @@ class ExtensionsRestApi(BaseApi):
             description: name of the requested chunk
           responses:
             200:
-              description: Extension import result
+              description: The chunk's bytes. The media type follows the
+                file's extension, falling back to application/octet-stream.
               content:
-                application/json:
+                application/octet-stream:
                   schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
+                    type: string
+                    format: binary
             400:
               $ref: '#/components/responses/400'
             401:

@@ -54,6 +54,11 @@ logger = logging.getLogger("alembic.env")
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
 
+def is_mysql() -> bool:
+    """Return whether the migration connection uses MySQL or MariaDB."""
+    return isinstance(op.get_bind().dialect, MySQLDialect)
+
+
 def get_table_column(
     table_name: str,
     column_name: str,
@@ -130,7 +135,9 @@ def assign_uuids(
     for dialect, sql in uuid_by_dialect.items():
         if isinstance(bind.dialect, dialect):
             op.execute(
-                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
+                text(
+                    f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
+                )
             )
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
@@ -142,7 +149,7 @@ def assign_uuids(
         ),
         batch_size=batch_size,
     ):
-        obj.uuid = uuid4
+        obj.uuid = uuid4()
     print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
 
 

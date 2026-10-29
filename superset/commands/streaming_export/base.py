@@ -18,21 +18,60 @@
 
 from __future__ import annotations
 
+import codecs
 import csv
 import io
 import logging
 import time
 from abc import abstractmethod
 from contextlib import contextmanager
-from typing import Any, Callable, Generator
+from decimal import Decimal
+from numbers import Real
+from typing import Any, Callable, Generator, Iterable
 
 from flask import current_app as app, g, has_app_context
 from sqlalchemy import text
+from werkzeug.local import LocalProxy
 
 from superset import db
 from superset.commands.base import BaseCommand
+from superset.utils.csv import escape_value, format_decimal
 
 logger = logging.getLogger(__name__)
+
+
+def capture_g_context() -> dict[str, Any]:
+    """
+    Snapshot ``flask.g`` so a streaming generator can replay it later.
+
+    Values held on ``g`` may be request-bound ``LocalProxy`` objects rather
+    than plain values. The most important one is ``g.user``, which
+    Flask-AppBuilder's ``before_request`` sets to Flask-Login's
+    ``current_user``: that proxy resolves through ``has_request_context()``
+    and therefore evaluates to ``None`` once the request context is gone,
+    which is exactly the situation the generator runs in.
+
+    Copying such a proxy verbatim would hand the generator a ``g.user`` that
+    silently resolves to nobody, so resolve each proxy to the concrete object
+    it currently points at while the request context is still around.
+
+    Returns:
+        Dictionary of g attributes, with request-bound proxies resolved
+    """
+    if not has_app_context():
+        return {}
+
+    captured: dict[str, Any] = {}
+    for key, value in g._get_current_object().__dict__.items():
+        if isinstance(value, LocalProxy):
+            try:
+                value = value._get_current_object()
+            except RuntimeError:
+                # Nothing is bound to the proxy, so there is no value worth
+                # carrying into the generator.
+                continue
+        captured[key] = value
+    return captured
 
 
 @contextmanager
@@ -46,11 +85,37 @@ def preserve_g_context(
     app context but needs access to request-scoped data from the original request.
 
     Args:
-        captured_g: Dictionary of g attributes captured before context switch
+        captured_g: Dictionary of g attributes captured by capture_g_context()
     """
     for key, value in captured_g.items():
         setattr(g, key, value)
     yield
+
+
+def encode_csv_stream(
+    chunks: Iterable[str], encoding: str
+) -> Generator[bytes, None, None]:
+    """
+    Encode streamed CSV chunks with the configured CSV_EXPORT encoding.
+
+    Werkzeug encodes ``str`` chunks of a response body as plain UTF-8, which
+    ignores the configured encoding. An incremental encoder is used so that
+    codecs with a preamble, such as the default "utf-8-sig", write the byte
+    order mark once at the start of the file rather than once per chunk.
+
+    Args:
+        chunks: CSV data chunks as strings
+        encoding: Name of the codec to encode the chunks with
+
+    Yields:
+        Encoded CSV data chunks
+    """
+    encoder = codecs.getincrementalencoder(encoding)()
+    for chunk in chunks:
+        if data := encoder.encode(chunk):
+            yield data
+    if data := encoder.encode("", final=True):
+        yield data
 
 
 class BaseStreamingCSVExportCommand(BaseCommand):
@@ -83,6 +148,14 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         Get the SQL query, database, catalog, and schema for execution.
 
+        The returned SQL is expected to already carry any
+        ``is_split=False`` mutation applied upstream (e.g. by
+        ``get_query_str_extended`` for charts, or SQL Lab's stored
+        ``executed_sql``); ``run()`` applies the complementary
+        ``is_split=True`` mutation exactly once before execution, so the
+        mutator fires once total under either ``MUTATE_AFTER_SPLIT``
+        setting.
+
         Returns:
             Tuple of (sql_query, database_object, catalog, schema)
         """
@@ -100,12 +173,69 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         self, columns: list[str], csv_writer: Any, buffer: io.StringIO
     ) -> tuple[str, int]:
         """Write CSV header and return header data with byte count."""
-        csv_writer.writerow(columns)
+        # Mirror the non-streaming export path (df_to_escaped_csv): header
+        # cells can carry attacker-influenced labels, so neutralize
+        # spreadsheet formula prefixes here too.
+        csv_writer.writerow(
+            [
+                escape_value(column) if isinstance(column, str) else column
+                for column in columns
+            ]
+        )
         header_data = buffer.getvalue()
         total_bytes = len(header_data.encode("utf-8"))
         buffer.seek(0)
         buffer.truncate()
         return header_data, total_bytes
+
+    def _format_row_values(
+        self, row: tuple[Any, ...], decimal_separator: str | None
+    ) -> list[Any]:
+        """
+        Format row values: escape string cells against CSV formula injection
+        and apply the custom decimal separator if specified.
+
+        Args:
+            row: Database row as a tuple
+            decimal_separator: Custom decimal separator (e.g., ",") or None
+
+        Returns:
+            List of formatted values
+        """
+        active_decimal_separator = (
+            decimal_separator
+            if decimal_separator and decimal_separator != "."
+            else None
+        )
+
+        formatted: list[Any] = []
+        for value in row:
+            # Escape string cells so spreadsheet formula prefixes (= + - @ |,
+            # leading tab/CR) are neutralized, mirroring the non-streaming
+            # CSV path (superset.utils.csv.df_to_escaped_csv).
+            if isinstance(value, str):
+                formatted.append(escape_value(value))
+            # Apply the custom decimal separator to any real numeric value
+            # (float, decimal.Decimal, numpy numeric types, ...). Booleans are
+            # technically a numeric type in Python but should never be rewritten
+            # as numbers in CSV output.
+            elif isinstance(value, Decimal):
+                decimal_value = format_decimal(value)
+                if active_decimal_separator is not None:
+                    decimal_value = str(decimal_value).replace(
+                        ".", active_decimal_separator
+                    )
+                formatted.append(decimal_value)
+            elif isinstance(value, bool):
+                formatted.append(value)
+            elif active_decimal_separator is not None and isinstance(
+                value, (float, Real)
+            ):
+                # Format numeric values with custom decimal separator
+                formatted.append(str(value).replace(".", active_decimal_separator))
+            else:
+                formatted.append(value)
+        return formatted
 
     def _process_rows(
         self,
@@ -113,9 +243,17 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         csv_writer: Any,
         buffer: io.StringIO,
         limit: int | None,
+        decimal_separator: str | None = None,
     ) -> Generator[tuple[str, int, int], None, None]:
         """
         Process database rows and yield CSV data chunks.
+
+        Args:
+            result_proxy: SQLAlchemy result proxy
+            csv_writer: CSV writer instance
+            buffer: StringIO buffer for CSV data
+            limit: Maximum number of rows to process, or None for unlimited
+            decimal_separator: Custom decimal separator (e.g., ",") or None
 
         Yields tuples of (data_chunk, row_count, byte_count).
         """
@@ -128,7 +266,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 if limit is not None and row_count >= limit:
                     break
 
-                csv_writer.writerow(row)
+                # Format values with custom decimal separator if needed
+                formatted_row = self._format_row_values(row, decimal_separator)
+                csv_writer.writerow(formatted_row)
                 row_count += 1
 
                 # Check buffer size and flush if needed
@@ -161,9 +301,39 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         start_time = time.time()
         total_bytes = 0
 
+        # Get CSV export configuration. CSV_EXPORT has an explicit default in
+        # config.py, so index directly rather than using .get() with a hardcoded
+        # fallback that would silently mask a misconfiguration removing the key.
+        #
+        # The streaming path only honors the `sep` and `decimal` keys from
+        # CSV_EXPORT. Unlike the non-streaming path in
+        # superset.charts.client_processing (which builds the whole file with a
+        # single DataFrame.to_csv(**CSV_EXPORT) call), this path writes rows
+        # incrementally via csv.writer, so the remaining pandas to_csv kwargs
+        # (e.g. quotechar, lineterminator) do not map onto it and are
+        # intentionally not applied here. The `encoding` key is applied by the
+        # API layer when it encodes the streamed chunks (see encode_csv_stream).
+        csv_export_config = app.config["CSV_EXPORT"]
+        delimiter = csv_export_config.get("sep", ",")
+        decimal_separator = csv_export_config.get("decimal", ".")
+
         with db.session() as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
+
+            # `is_split=True` mirrors the non-streaming download path exactly:
+            # Database.get_df() -> _execute_sql_with_mutation_and_logging()
+            # always calls mutate_sql_based_on_config(..., is_split=True) on
+            # SQL Lab's stored select_sql/executed_sql, and the chart query
+            # path applies its own mutation upstream (in
+            # get_query_str_extended, with is_split=False) before landing
+            # here. Since `is_split` and `MUTATE_AFTER_SPLIT` are compared
+            # for equality, `is_split=True` is the complement of that
+            # upstream chart mutation -- together they mutate the SQL
+            # exactly once for either MUTATE_AFTER_SPLIT setting, instead of
+            # double-mutating when it's False and never mutating when it's
+            # True.
+            mutated_sql = merged_database.mutate_sql_based_on_config(sql, is_split=True)
 
             with merged_database.get_sqla_engine(
                 catalog=catalog, schema=schema
@@ -171,13 +341,16 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
                         stream_results=True
-                    ).execute(text(sql))
+                    ).execute(text(mutated_sql))
 
                     columns = list(result_proxy.keys())
 
                     # Use StringIO with csv.writer for proper escaping
+                    # Apply delimiter from CSV_EXPORT config
                     buffer = io.StringIO()
-                    csv_writer = csv.writer(buffer, quoting=csv.QUOTE_MINIMAL)
+                    csv_writer = csv.writer(
+                        buffer, delimiter=delimiter, quoting=csv.QUOTE_MINIMAL
+                    )
 
                     # Write CSV header
                     header_data, header_bytes = self._write_csv_header(
@@ -189,7 +362,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     # Process rows and yield chunks
                     row_count = 0
                     for data_chunk, rows_processed, chunk_bytes in self._process_rows(
-                        result_proxy, csv_writer, buffer, limit
+                        result_proxy, csv_writer, buffer, limit, decimal_separator
                     ):
                         total_bytes += chunk_bytes
                         row_count = rows_processed
@@ -219,9 +392,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         limit = self._get_row_limit()
         # Capture flask.g attributes to preserve request-scoped data
         # when the streaming generator runs in a new app context.
-        captured_g = (
-            g._get_current_object().__dict__.copy() if has_app_context() else {}
-        )
+        captured_g = capture_g_context()
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""

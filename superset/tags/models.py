@@ -18,21 +18,13 @@
 from __future__ import annotations
 
 import enum
+import logging
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
-from sqlalchemy import (
-    Column,
-    Enum,
-    exists,
-    ForeignKey,
-    Integer,
-    orm,
-    String,
-    Table,
-    Text,
-)
+from sqlalchemy import Column, Enum, ForeignKey, Integer, orm, String, Table, Text
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
@@ -43,12 +35,12 @@ from superset.models.helpers import AuditMixinNullable
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
 
 Session = sessionmaker()
+logger: logging.Logger = logging.getLogger(__name__)
 
 user_favorite_tag_table = Table(
     "user_favorite_tag",
@@ -62,18 +54,23 @@ class TagType(enum.Enum):
     """
     Types for tags.
 
-    Objects (queries, charts, dashboards, and datasets) will have with implicit tags based
-    on metadata: types, owners and who favorited them. This way, user "alice"
-    can find all their objects by querying for the tag `owner:alice`.
-    """  # noqa: E501
+    ``type``, ``editor``, and ``favorited_by`` are no longer generated: Superset
+    used to auto-tag every query, chart, dashboard, and dataset with implicit
+    tags based on metadata (object type, editors, and who favorited them), but
+    nothing ever surfaced them to the user, so the generation was removed. The
+    values are kept, and rows of these types are still recognized (e.g. exempt
+    from bulk deletion) and filterable via the API, so upgraded deployments that
+    already have such tags, or MCP tooling that queries by tag type, keep
+    working.
+    """
 
     # pylint: disable=invalid-name
     # explicit tags, added manually by the owner
     custom = 1
 
-    # implicit tags, generated automatically
+    # legacy implicit tag types; no longer generated (see docstring above)
     type = 2
-    owner = 3
+    editor = 3
     favorited_by = 4
 
 
@@ -97,7 +94,10 @@ class Tag(CoreTag, AuditMixinNullable):
     description = Column(Text)
 
     objects = relationship(
-        "TaggedObject", back_populates="tag", overlaps="objects,tags"
+        "TaggedObject",
+        back_populates="tag",
+        cascade_backrefs=False,
+        overlaps="objects,tags",
     )
 
     users_favorited = relationship(
@@ -111,15 +111,22 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(
-        Integer,
-        ForeignKey("dashboards.id"),
-        ForeignKey("slices.id"),
-        ForeignKey("saved_query.id"),
-    )
+    # ``object_id`` is a polymorphic reference disambiguated by ``object_type``;
+    # the same value can point at a dashboard, chart or saved query. It must not
+    # carry a foreign key to any single table: declaring FKs to dashboards,
+    # slices and saved_query at once is unsatisfiable (a row would have to exist
+    # in all three) and breaks tagging, e.g. tagging a dashboard fails the
+    # slices FK. The original migration (c82ee8a39623) defined no FK here. See
+    # issue #35941.
+    object_id = Column(Integer)
     object_type = Column(Enum(ObjectType))
 
-    tag = relationship("Tag", back_populates="objects", overlaps="tags")
+    tag = relationship(
+        "Tag",
+        back_populates="objects",
+        cascade_backrefs=False,
+        overlaps="tags",
+    )
     __table_args__ = (
         UniqueConstraint(
             "tag_id", "object_id", "object_type", name="uix_tagged_object"
@@ -130,159 +137,84 @@ class TaggedObject(Model, AuditMixinNullable):
         return f"<TaggedObject: {self.object_type}:{self.object_id} TAG:{self.tag_id}>"
 
 
+def _insert_in_savepoint(
+    session: orm.Session,  # pylint: disable=disallowed-name
+    record: Tag | TaggedObject,
+) -> None:
+    """Isolate a candidate insert without committing the caller's work."""
+    connection: Connection = session.connection()
+    if (
+        connection.dialect.name == "sqlite"
+        and not connection.connection.dbapi_connection.in_transaction
+    ):
+        # Pysqlite's legacy mode does not BEGIN for SELECT or SAVEPOINT;
+        # releasing a first-write savepoint must not commit the tag.
+        connection.exec_driver_sql("BEGIN")
+    with session.begin_nested():
+        session.add(record)
+        session.flush()
+
+
 def get_tag(
     name: str,
     session: orm.Session,  # pylint: disable=disallowed-name
     type_: TagType,
 ) -> Tag:
-    tag_name = name.strip()
-    tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
+    """Get or create a tag, reusing the winner of a concurrent insert."""
+    tag_name: str = name.strip()
+    query: orm.Query = session.query(Tag).filter_by(name=tag_name, type=type_)
+    tag: Tag | None = query.one_or_none()
     if tag is None:
         tag = Tag(name=tag_name, type=type_)
-        session.add(tag)
-        session.commit()
+        try:
+            _insert_in_savepoint(session, tag)
+        except IntegrityError:
+            # begin_nested flushes pending work before opening its savepoint.
+            # Such failures are not recoverable tag conflicts.
+            if not session.is_active:
+                raise
+            # Recovery assumes the default READ COMMITTED isolation.
+            # A locking read does not prevent MySQL REPEATABLE READ deadlocks.
+            tag = query.with_for_update(read=True).one_or_none()
+            if tag is None:
+                conflicting_tag: Tag | None = (
+                    session.query(Tag)
+                    .filter_by(name=tag_name)
+                    .with_for_update(read=True)
+                    .one_or_none()
+                )
+                if conflicting_tag is not None and conflicting_tag.type != type_:
+                    logger.error(
+                        "Tag name %r is already used by a different tag type "
+                        "(%s; requested %s)",
+                        tag_name,
+                        conflicting_tag.type,
+                        type_,
+                    )
+                raise
     return tag
 
 
-def get_object_type(class_name: str) -> ObjectType:
-    mapping = {
-        "slice": ObjectType.chart,
-        "dashboard": ObjectType.dashboard,
-        "query": ObjectType.query,
-        "dataset": ObjectType.dataset,
-    }
-    try:
-        return mapping[class_name.lower()]
-    except KeyError as ex:
-        raise Exception(  # pylint: disable=broad-exception-raised
-            f"No mapping found for {class_name}"
-        ) from ex
-
-
 class ObjectUpdater:
+    """Cleans up ``tagged_object`` rows when a tagged object is deleted.
+
+    ``TaggedObject.object_id`` is a polymorphic reference with no foreign key
+    (see the comment on that column), so nothing at the database level removes
+    a tag association when the dashboard/chart/query/dataset it points at is
+    deleted. This listener does that cleanup for every tag on the object
+    (custom tags included), independent of how the tag was created.
+    """
+
     object_type: str = "default"
-
-    @classmethod
-    def get_owners_ids(
-        cls, target: Dashboard | FavStar | Slice | Query | SqlaTable
-    ) -> list[int]:
-        raise NotImplementedError("Subclass should implement `get_owners_ids`")
-
-    @classmethod
-    def get_owner_tag_ids(
-        cls,
-        session: orm.Session,  # pylint: disable=disallowed-name
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> set[int]:
-        tag_ids = set()
-        for owner_id in cls.get_owners_ids(target):
-            name = f"owner:{owner_id}"
-            tag = get_tag(name, session, TagType.owner)
-            tag_ids.add(tag.id)
-        return tag_ids
-
-    @classmethod
-    def _add_owners(
-        cls,
-        session: orm.Session,  # pylint: disable=disallowed-name
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> None:
-        for owner_id in cls.get_owners_ids(target):
-            name: str = f"owner:{owner_id}"
-            tag = get_tag(name, session, TagType.owner)
-            cls.add_tag_object_if_not_tagged(
-                session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
-            )
-
-    @classmethod
-    def add_tag_object_if_not_tagged(
-        cls,
-        session: orm.Session,  # pylint: disable=disallowed-name
-        tag_id: int,
-        object_id: int,
-        object_type: str,
-    ) -> None:
-        # Check if the object is already tagged
-        exists_query = exists().where(
-            TaggedObject.tag_id == tag_id,
-            TaggedObject.object_id == object_id,
-            TaggedObject.object_type == object_type,
-        )
-        already_tagged = session.query(exists_query).scalar()
-
-        # Add TaggedObject to the session if it isn't already tagged
-        if not already_tagged:
-            tagged_object = TaggedObject(
-                tag_id=tag_id, object_id=object_id, object_type=object_type
-            )
-            session.add(tagged_object)
-
-    @classmethod
-    def after_insert(
-        cls,
-        _mapper: Mapper,
-        connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # add `owner:` tags
-            cls._add_owners(session, target)
-
-            # add `type:` tags
-            tag = get_tag(f"type:{cls.object_type}", session, TagType.type)
-            cls.add_tag_object_if_not_tagged(
-                session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
-            )
-            session.commit()
-
-    @classmethod
-    def after_update(
-        cls,
-        _mapper: Mapper,
-        connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # Fetch current owner tags
-            existing_tags = (
-                session.query(TaggedObject)
-                .join(Tag)
-                .filter(
-                    TaggedObject.object_type == cls.object_type,
-                    TaggedObject.object_id == target.id,
-                    Tag.type == TagType.owner,
-                )
-                .all()
-            )
-            existing_owner_tag_ids = {tag.tag_id for tag in existing_tags}
-
-            # Determine new owner IDs
-            new_owner_tag_ids = cls.get_owner_tag_ids(session, target)
-
-            # Add missing tags
-            for owner_tag_id in new_owner_tag_ids - existing_owner_tag_ids:
-                tagged_object = TaggedObject(
-                    tag_id=owner_tag_id,
-                    object_id=target.id,
-                    object_type=cls.object_type,
-                )
-                session.add(tagged_object)
-
-            # Remove unnecessary tags
-            for tag in existing_tags:
-                if tag.tag_id not in new_owner_tag_ids:
-                    session.delete(tag)
-            session.commit()
 
     @classmethod
     def after_delete(
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | Slice | Query | SqlaTable,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # delete row from `tagged_objects`
             session.query(TaggedObject).filter(
                 TaggedObject.object_type == cls.object_type,
                 TaggedObject.object_id == target.id,
@@ -294,69 +226,14 @@ class ObjectUpdater:
 class ChartUpdater(ObjectUpdater):
     object_type = "chart"
 
-    @classmethod
-    def get_owners_ids(cls, target: Slice) -> list[int]:
-        return [owner.id for owner in target.owners]
-
 
 class DashboardUpdater(ObjectUpdater):
     object_type = "dashboard"
-
-    @classmethod
-    def get_owners_ids(cls, target: Dashboard) -> list[int]:
-        return [owner.id for owner in target.owners]
 
 
 class QueryUpdater(ObjectUpdater):
     object_type = "query"
 
-    @classmethod
-    def get_owners_ids(cls, target: Query) -> list[int]:
-        return [target.user_id]
-
 
 class DatasetUpdater(ObjectUpdater):
     object_type = "dataset"
-
-    @classmethod
-    def get_owners_ids(cls, target: SqlaTable) -> list[int]:
-        return [owner.id for owner in target.owners]
-
-
-class FavStarUpdater:
-    @classmethod
-    def after_insert(
-        cls, _mapper: Mapper, connection: Connection, target: FavStar
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            name = f"favorited_by:{target.user_id}"
-            tag = get_tag(name, session, TagType.favorited_by)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=target.obj_id,
-                object_type=get_object_type(target.class_name),
-            )
-            session.add(tagged_object)
-            session.commit()
-
-    @classmethod
-    def after_delete(
-        cls, _mapper: Mapper, connection: Connection, target: FavStar
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            name = f"favorited_by:{target.user_id}"
-            query = (
-                session.query(TaggedObject.id)
-                .join(Tag)
-                .filter(
-                    TaggedObject.object_id == target.obj_id,
-                    Tag.type == TagType.favorited_by,
-                    Tag.name == name,
-                )
-            )
-            ids = [row[0] for row in query]
-            session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False
-            )
-
-            session.commit()

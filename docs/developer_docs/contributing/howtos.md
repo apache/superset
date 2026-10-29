@@ -68,11 +68,13 @@ Visualization plugins allow you to add custom chart types to Superset. They are 
 ### Creating a simple Hello World viz plugin
 
 1. **Install the Superset Yeoman generator**:
+
 ```bash
 npm install -g @superset-ui/generator-superset
 ```
 
 2. **Create a new plugin**:
+
 ```bash
 mkdir superset-plugin-chart-hello-world
 cd superset-plugin-chart-hello-world
@@ -80,19 +82,22 @@ yo @superset-ui/superset
 ```
 
 3. **Follow the prompts**:
+
 - Package name: `superset-plugin-chart-hello-world`
 - Chart type: Choose your preferred type
 - Include storybook: Yes (recommended for development)
 
 4. **Develop your plugin**:
-The generator creates a complete plugin structure with TypeScript, React components, and build configuration.
+   The generator creates a complete plugin structure with TypeScript, React components, and build configuration.
 
 5. **Test your plugin locally**:
+
 ```bash
 npm run dev
 ```
 
 6. **Link to your local Superset**:
+
 ```bash
 npm link
 # In your Superset frontend directory:
@@ -100,7 +105,18 @@ npm link superset-plugin-chart-hello-world
 ```
 
 7. **Import and register in Superset**:
-Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
+   Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
+
+### Sharing colors in composed charts
+
+`ChartProps.colorScale` accepts an optional `CategoricalColorScale`. A parent
+visualization can pass the same scale to its child chart transforms so categories
+use consistent colors across the composition. Create a fresh scale for each parent
+transformation using the selected color scheme. Child plugins must explicitly use
+the supplied scale, falling back to their own scale when it is absent.
+
+Cartodiagram uses this contract with Pie charts to coordinate category colors
+across map locations in Explore.
 
 ## Testing
 
@@ -121,7 +137,7 @@ pytest --cov=superset
 # Run only unit tests
 pytest tests/unit_tests
 
-# Run only integration tests  
+# Run only integration tests
 pytest tests/integration_tests
 ```
 
@@ -157,15 +173,16 @@ npm run test -- --watch
 
 # Run specific test file
 npm run test -- MyComponent.test.tsx
+
+# Cap the worker pool (default is 80% of cores) on a shared or busy machine
+JEST_MAX_WORKERS=2 npm run test -- MyComponent.test.tsx
 ```
 
 ### E2E Integration Testing
 
-We support both Playwright (recommended) and Cypress for end-to-end testing.
+We use Playwright for end-to-end testing.
 
-#### Playwright (Recommended - NEW)
-
-Playwright is our new E2E testing framework, gradually replacing Cypress.
+#### Playwright
 
 ```bash
 # Navigate to frontend directory
@@ -194,30 +211,6 @@ npm run playwright:debug tests/auth/login.spec.ts
 npm run playwright:report
 ```
 
-#### Cypress (DEPRECATED - will be removed)
-
-Cypress is being phased out in favor of Playwright but is still available:
-
-```bash
-# Set base URL for Cypress
-export CYPRESS_BASE_URL='http://localhost:8088'
-export CYPRESS_DATABASE=test
-export CYPRESS_USERNAME=admin
-export CYPRESS_PASSWORD=admin
-
-# Navigate to Cypress directory
-cd superset-frontend/cypress-base
-
-# Run interactively
-npm run cypress-debug
-
-# Run headless (like CI)
-npm run cypress-run-chrome
-
-# Run specific file
-npm run cypress-run-chrome -- --spec "cypress/e2e/dashboard/dashboard.test.ts"
-```
-
 ### Debugging Server App
 
 For debugging the Flask backend:
@@ -234,6 +227,7 @@ For debugging the Flask backend:
 #### Using VS Code
 
 1. Add to `.vscode/launch.json`:
+
 ```json
 {
   "version": "0.2.0",
@@ -261,9 +255,9 @@ For debugging the Flask backend:
 To debug Flask running in a POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_PTRACE` capability. These settings should not be used in production environments.
 
 ```yaml
-  securityContext:
-    capabilities:
-      add: ["SYS_PTRACE"]
+securityContext:
+  capabilities:
+    add: ['SYS_PTRACE']
 ```
 
 See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
@@ -310,19 +304,92 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l d
 ### Extracting new strings for translation
 
 ```bash
-# Extract Python strings
-pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gettext superset
-
-# Extract JavaScript strings
-npm run build-translation
+# Extract backend and frontend strings into messages.pot, then update every
+# language catalog from it
+./scripts/translations/babel_update.sh
 ```
+
+Run the script rather than `pybabel extract` directly. It passes the keywords
+the frontend uses (`t`, `tn`, `tct`), extracts `i18n:` translator comments,
+and stamps do-not-translate markers. A bare
+`pybabel extract` does none of these. CI's template drift check
+(`scripts/translations/check_pot_drift.py`) fails when the template's strings
+differ from what the script's extraction finds.
+
+### Adding context for translators
+
+A translatable string arrives in a catalog with no surrounding code, so a term
+that is unambiguous in context can be guessed wrong in isolation. Shipped
+examples include `Slug` rendered as the animal, `Host` as a guest, and `Backend`
+as a driver.
+
+To attach context, put a comment tagged `i18n:` on the line directly above the
+call:
+
+```python
+# i18n: the short identifier in a dashboard's URL, not the animal
+"slug": _("Slug"),
+```
+
+```tsx
+// i18n: the kind of system behind a connection: a database engine
+// (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
+Header: t('Backend'),
+```
+
+`babel_update.sh` extracts these with `--add-comments=i18n:`, so they land on the
+entry in `messages.pot` as `#. i18n: ...` and `pybabel update` propagates them
+into every language catalog, the same way the do-not-translate marker described
+below does:
+
+```
+#. i18n: the short identifier in a dashboard's URL, not the animal
+msgid "Slug"
+msgstr ""
+```
+
+Where the comment goes decides whether it is extracted:
+
+- A blank line between the comment and the call drops the comment.
+- A comment inside the call's parentheses is dropped.
+- In Python, the comment is dropped when the string starts on the line after
+  `_(` and only a comment, such as `# noqa: E501`, or nothing follows the
+  string. Put the string on the same line as `_(`, or follow it with a comma.
+  A wrapped `t(` call in TypeScript keeps the comment.
+- When two calls are on one line, only the first call gets the comment. Put
+  each call on its own line.
+- Every comment line between the `i18n:` line and the call is published with
+  the note. Put lint directives and other comments above the `i18n:` line.
+
+A dropped comment raises no error, and the drift check cannot see it. After
+`babel_update.sh`, confirm the note is on its entry, for example with
+`grep -B3 'msgid "Slug"' superset/translations/messages.pot`.
+
+Write the comment for someone who cannot see the code: say what the term refers
+to, and where a translation would plausibly go wrong. A note only guides the
+translation; to keep a string untranslated, add it to the do-not-translate
+registry described below.
+
+For terms that apply to a whole language, see the
+[Translation Guide](./translation-guide.md).
+
+`scripts/translations/backfill_po.py` also sends the comment to the model as a
+developer note. In a live run, the note did not change the model's choice when
+every reference translation used another sense, so review machine translations
+of noted strings. After changing a comment, re-run `babel_update.sh`: CI's
+template drift check fails when a string's `i18n:` comment in source no longer
+matches `messages.pot`.
+
+Per-string context disambiguates one entry. It does not enforce consistency
+across entries — one term used for two concepts across a catalog is a
+catalog-wide problem and needs a per-language terminology decision instead.
 
 ### Updating language files
 
-```bash
-# Update all language files with new strings
-pybabel update -i superset/translations/messages.pot -d superset/translations
-```
+`babel_update.sh` updates every language catalog from `messages.pot`. Do not
+run `pybabel update` on its own: babel adds a `python-format` flag to labels
+such as `% calculation`, and `msgfmt` then rejects their translations. The
+script removes that flag after its update pass.
 
 ### Applying translations
 
@@ -332,15 +399,40 @@ cd superset-frontend
 npm run build-translation
 
 # Backend
-pybabel compile -d superset/translations
+pybabel compile --use-fuzzy -d superset/translations
 ```
+
+`--use-fuzzy` includes `#, fuzzy` entries in the compiled `.mo` files. Superset
+serves fuzzy translations on purpose: the frontend build (`npm run
+build-translation`, via `scripts/po2json.js`) already includes them,
+`flask fab babel-compile` (used by the release images)
+compiles with `-f`, and the production `Dockerfile` compiles with `--use-fuzzy`
+as well. This keeps machine-generated (and other draft) translations visible in
+the UI rather than falling back to English while they await review.
 
 ### Backfilling missing translations with AI
 
 For languages with many untranslated strings, the repo includes a script that
 uses Claude AI to generate draft translations for any missing entries. All
 AI-generated strings are marked `#, fuzzy` and tagged with an attribution
-comment so that human reviewers know they need to be checked before merging.
+comment so that human reviewers know they need to be checked.
+
+Note that `#, fuzzy` marks a translation as _needing review_, not as _withheld_:
+both the frontend and backend builds serve fuzzy entries (see [Applying
+translations](#applying-translations) above), so an AI-generated string is shown
+in the UI as soon as it is built and deployed. Reviewers should verify each
+entry and remove the `#, fuzzy` flag to promote it to a confirmed translation.
+
+The script never touches entries that must stay literal — icon names, enum
+values, SQL keywords, API field names, and example placeholders. These are
+registered in `superset/translations/do-not-translate.txt`;
+`scripts/translations/apply_do_not_translate.py` stamps them in `messages.pot`
+with a `#. do-not-translate` extracted comment (run automatically
+from `babel_update.sh`), which `pybabel update` then propagates to every
+catalog. To mark a new string do-not-translate, add its msgid to the registry.
+The backfill also honors that marker and any legacy do-not-translate translator
+comment (e.g. the `ru` catalog's `# Не переводить`), leaving such entries
+untranslated so they fall back to the source token.
 
 #### Prerequisites
 
@@ -371,6 +463,7 @@ python scripts/translations/backfill_po.py --lang fr --limit 20 --dry-run
 ```
 
 Output shows each string, its translation, and a context tag:
+
 - No tag — 3+ reference languages available (high confidence)
 - `[ctx:N]` — only N other languages have this string (lower confidence)
 - `[ctx:0]` — no other language has this string yet; English alone used
@@ -383,15 +476,15 @@ python scripts/translations/backfill_po.py --lang fr
 
 Options:
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--lang LANG` | required | ISO language code (`fr`, `de`, `ja`, …) |
-| `--batch-size N` | 50 | Strings per Claude request |
-| `--limit N` | unlimited | Stop after N entries |
-| `--min-context N` | 0 | Skip entries with fewer than N reference translations |
-| `--model MODEL` | `claude-sonnet-4-6` | Claude model to use |
-| `--dry-run` | off | Print without writing |
-| `--no-fuzzy` | off | Don't mark entries as fuzzy |
+| Flag              | Default             | Description                                           |
+| ----------------- | ------------------- | ----------------------------------------------------- |
+| `--lang LANG`     | required            | ISO language code (`fr`, `de`, `ja`, …)               |
+| `--batch-size N`  | 50                  | Strings per Claude request                            |
+| `--limit N`       | unlimited           | Stop after N entries                                  |
+| `--min-context N` | 0                   | Skip entries with fewer than N reference translations |
+| `--model MODEL`   | `claude-sonnet-4-6` | Claude model to use                                   |
+| `--dry-run`       | off                 | Print without writing                                 |
+| `--no-fuzzy`      | off                 | Don't mark entries as fuzzy                           |
 
 Use `--min-context 2` to skip strings that have fewer than 2 reference
 translations in other languages. Those strings are more likely to be ambiguous
@@ -464,8 +557,8 @@ npm run check:custom-rules
 # Run tsc (typescript) checks
 npm run type
 
-# Format with Prettier
-npm run prettier
+# Format with Oxfmt
+npm run format
 ```
 
 #### Architecture
@@ -495,6 +588,7 @@ The linting system consists of two components:
 **"Plugin 'basic-custom-plugin' not found" Error**
 
 Ensure you're using the explicit config:
+
 ```bash
 npx oxlint --config oxlint.json
 ```
@@ -502,6 +596,7 @@ npx oxlint --config oxlint.json
 **Custom Rules Not Running**
 
 Verify the AST parsing dependencies are installed:
+
 ```bash
 npm ls @babel/parser @babel/traverse glob
 ```
@@ -520,6 +615,7 @@ For every PR, an ephemeral environment is automatically deployed for testing.
 Access pattern: `https://pr-{PR_NUMBER}.superset.apache.org`
 
 Features:
+
 - Automatically deployed on PR creation/update
 - Includes sample data
 - Destroyed when PR is closed
@@ -549,6 +645,7 @@ docker compose up
 **Frontend**: Webpack dev server provides hot module replacement automatically.
 
 **Backend**: Use Flask debug mode:
+
 ```bash
 FLASK_ENV=development superset run -p 8088 --with-threads --reload
 ```
@@ -556,12 +653,14 @@ FLASK_ENV=development superset run -p 8088 --with-threads --reload
 ### Performance Profiling
 
 For Python profiling:
+
 ```python
 # In superset_config.py
 PROFILING = True
 ```
 
 For React profiling:
+
 - Use React DevTools Profiler
 - Enable performance marks in Chrome DevTools
 
@@ -659,6 +758,7 @@ To do this, you'll need to:
   ```
 
 Note that:
+
 - for changes that affect the worker logic, you'll have to restart the `celery worker` process for the changes to be reflected.
 - The message queue used is a `sqlite` database using the `SQLAlchemy` experimental broker. Ok for testing, but not recommended in production
 - In some cases, you may want to create a context that is more aligned to your production environment, and use the similar broker as well as results backend configuration

@@ -21,7 +21,9 @@ import type {
   ColorFormatters,
   CustomFormatter,
   DataColumnMeta,
+  HeaderGroupConfig,
   TableColumnConfig,
+  TotalsAggregate,
 } from '@superset-ui/chart-controls';
 import {
   NumberFormatter,
@@ -39,6 +41,7 @@ import {
   JsonObject,
   Metric,
   AgGridChartState,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 import {
   ColDef,
@@ -81,6 +84,11 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  allow_render_html?: boolean;
+  json_in_cell?: boolean;
+  show_numbered_column?: boolean;
+  header_groups?: HeaderGroupConfig[];
+  zebra_striping?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -108,6 +116,7 @@ export interface AgGridTableChartTransformedProps<
   emitCrossFilters?: boolean;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
+  jsonInCell: boolean;
   slice_id: number;
   serverPagination: boolean;
   rowCount: number;
@@ -123,14 +132,24 @@ export interface AgGridTableChartTransformedProps<
   isUsingTimeComparison: boolean;
   colorPositiveNegative: boolean;
   totals: DataRecord | undefined;
+  totalsAggregate: TotalsAggregate;
   showTotals: boolean;
   columnColorFormatters: ColorFormatters;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
   metricSqlExpressions: Record<string, string>;
+  rawSummaryColumns: string[];
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
+  showNumberedColumn: boolean;
+  headerGroups?: HeaderGroupConfig[];
+  zebraStriping: boolean;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
 }
 
 export interface SortState {
@@ -192,6 +211,8 @@ export interface InputColumn {
     | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
+  currencyCodeColumn?: string;
 }
 
 export type ValueRange = [number, number] | null;
@@ -206,6 +227,7 @@ export type CellRendererProps = CustomCellRendererProps & {
   alignPositiveNegative: boolean;
   colorPositiveNegative: boolean;
   allowRenderHtml: boolean;
+  jsonInCell: boolean;
   columns: InputColumn[];
 };
 
@@ -222,7 +244,7 @@ export type Dataset = {
   created_on_humanized: string;
   description: string;
   table_name: string;
-  owners: {
+  editors: {
     first_name: string;
     last_name: string;
   }[];
@@ -230,5 +252,3 @@ export type Dataset = {
   metrics?: Metric[];
   verbose_map?: Record<string, string>;
 };
-
-export default {};
