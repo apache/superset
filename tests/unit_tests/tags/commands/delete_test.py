@@ -17,6 +17,7 @@
 from unittest.mock import PropertyMock
 
 import pytest
+from jinja2.exceptions import TemplateSyntaxError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -196,3 +197,106 @@ def test_delete_tags_command_not_found_reports_normalized_messages(
     messages = excinfo.value.normalized_messages()
     assert "tags" in messages
     assert "not found" in messages["tags"][0]
+
+
+@pytest.fixture
+def session_with_data(session: Session):
+    from superset.models.core import Database
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import ObjectType, Tag, TaggedObject
+
+    engine = session.get_bind()
+    Tag.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="postgresql://")
+
+    saved_query = SavedQuery(
+        id=1, label="test_query", database=database, sql="select {{ unclosed"
+    )
+
+    tag = Tag(name="test_name", description="test_description")
+
+    session.add(database)
+    session.add(saved_query)
+    session.add(tag)
+    session.commit()
+
+    session.add(
+        TaggedObject(object_id=saved_query.id, object_type=ObjectType.query, tag=tag)
+    )
+    session.commit()
+
+    return session
+
+
+def test_delete_command_query_template_error_becomes_validation_error(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """Regression test: a Jinja ``TemplateError`` raised while authorizing a
+    query must surface as ``TagInvalidError`` (422), not an opaque 500 -- and
+    it must be composited as a ``ValidationError`` so ``normalized_messages()``
+    (called by the single-object DELETE route) aggregates it instead of raising
+    ``AttributeError``.
+
+    ``raise_for_access`` is mocked directly so the test stays hermetic and does
+    not depend on a live database to reach ``process_jinja_sql``.
+    """
+    from superset.commands.tag.delete import DeleteTaggedObjectCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import ObjectType
+
+    query = session_with_data.query(SavedQuery).first()
+
+    template_error_message = "unexpected end of template"
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.raise_for_access",
+        side_effect=TemplateSyntaxError(template_error_message, lineno=1),
+    )
+
+    with pytest.raises(TagInvalidError) as excinfo:
+        DeleteTaggedObjectCommand(
+            object_type=ObjectType.query,
+            object_id=query.id,
+            tag="test_name",
+        ).validate()
+
+    # Must aggregate via the public accessor (proves it is a ValidationError),
+    # and the real template error text must be preserved for server-side debugging.
+    messages = excinfo.value.normalized_messages()
+    assert "tags" in messages
+    assert template_error_message in " ".join(messages["tags"])
+
+
+def test_delete_command_query_parse_error_becomes_validation_error(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """A ``SupersetParseError`` (unresolvable partition macro) raised from the
+    same ``raise_for_access`` call is a ``SupersetErrorException`` sibling --
+    not a ``TemplateError`` -- so it was previously uncaught and swallowed into
+    a 500. It must be caught alongside ``TemplateError`` and surfaced as a 422.
+    """
+    from superset.commands.tag.delete import DeleteTaggedObjectCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.exceptions import SupersetParseError
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import ObjectType
+
+    query = session_with_data.query(SavedQuery).first()
+
+    parse_error_message = "cannot statically determine table for partition macro"
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.raise_for_access",
+        side_effect=SupersetParseError(sql="SELECT 1", message=parse_error_message),
+    )
+
+    with pytest.raises(TagInvalidError) as excinfo:
+        DeleteTaggedObjectCommand(
+            object_type=ObjectType.query,
+            object_id=query.id,
+            tag="test_name",
+        ).validate()
+
+    messages = excinfo.value.normalized_messages()
+    assert "tags" in messages
+    assert parse_error_message in " ".join(messages["tags"])

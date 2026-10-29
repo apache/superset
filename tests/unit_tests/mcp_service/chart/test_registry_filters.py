@@ -17,10 +17,12 @@
 
 """Tests for registry plugin filtering (configure / is_enabled / get / all_types)."""
 
+from unittest.mock import Mock
+
 import pytest
 
 import superset.mcp_service.chart.registry as registry_module
-from superset.mcp_service.chart.plugin import BaseChartPlugin
+from superset.mcp_service.chart.plugin import BaseChartPlugin, ChartTypePlugin
 from superset.mcp_service.chart.registry import (
     _PluginFilterConfig,
     all_types,
@@ -63,6 +65,17 @@ class _BetaPlugin(BaseChartPlugin):
 def test_get_returns_plugin_when_enabled():
     assert get("alpha") is not None
     assert get("beta") is not None
+
+
+def test_plugin_without_optional_availability_hook_remains_enabled():
+    """Plugins implementing the original protocol remain backward compatible."""
+    legacy_plugin = Mock(spec=ChartTypePlugin)
+    legacy_plugin.chart_type = "legacy"
+    legacy_plugin.display_name = "Legacy"
+    legacy_plugin.native_viz_types = {"legacy_viz": "Legacy"}
+    register(legacy_plugin)
+
+    assert get("legacy") is legacy_plugin
 
 
 def test_get_returns_none_for_disabled_plugin():
@@ -220,3 +233,12 @@ def test_reconfigure_with_func_then_none_falls_back_to_deny_list():
     configure(disabled={"beta"}, enabled_func=None)
     assert get("alpha") is not None
     assert get("beta") is None
+
+
+def test_disabled_plugin_can_be_looked_up_for_updates() -> None:
+    """Saved updates retain contracts without enabling chart creation."""
+    configure(disabled={"alpha"})
+    assert get("alpha") is None
+    assert isinstance(get("alpha", include_disabled=True), _AlphaPlugin)
+    assert get("unknown", include_disabled=True) is None
+    assert not is_enabled("alpha")

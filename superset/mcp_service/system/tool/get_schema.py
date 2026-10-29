@@ -201,6 +201,7 @@ _MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
         title="Get schema",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_schema(
@@ -220,10 +221,13 @@ async def get_schema(
     Column metadata is extracted dynamically from SQLAlchemy models.
 
     Args:
-        model_type: One of "chart", "dataset", "dashboard", "database", or "report"
+        request (GetSchemaRequest): Request schema for unified get_schema tool. Its
+            model_type is one of "chart", "dataset", "dashboard", "database" or
+            "report".
 
     Returns:
-        Comprehensive schema information for the requested model type
+        (GetSchemaResponse | PrivacyError): Comprehensive schema information for
+            the requested model type.
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
 

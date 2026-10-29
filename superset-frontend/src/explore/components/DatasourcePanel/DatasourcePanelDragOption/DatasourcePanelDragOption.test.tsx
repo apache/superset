@@ -34,3 +34,77 @@ test('should render', async () => {
   ).toBeInTheDocument();
   expect(screen.getByText('test')).toBeInTheDocument();
 });
+
+test('prevents dragging a metric absent from a verified compatibility result', async () => {
+  render(
+    <DatasourcePanelDragOption
+      value={{ metric_name: 'test', uuid: '1' }}
+      type={DndItemType.Metric}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: {
+        explore: {
+          compatibility: {
+            status: 'verified',
+            metrics: ['other_metric'],
+            dimensions: [],
+          },
+        },
+      },
+    },
+  );
+
+  expect(await screen.findByTestId('DatasourcePanelDragOption')).toHaveStyle({
+    cursor: 'not-allowed',
+  });
+});
+
+test('keeps a column draggable when it appears in the verified dimensions', async () => {
+  render(
+    <DatasourcePanelDragOption
+      value={{ column_name: 'd1' }}
+      type={DndItemType.Column}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: {
+        explore: {
+          compatibility: {
+            status: 'verified',
+            metrics: [],
+            dimensions: ['d1'],
+          },
+        },
+      },
+    },
+  );
+
+  expect(
+    await screen.findByTestId('DatasourcePanelDragOption'),
+  ).not.toHaveStyle({ cursor: 'not-allowed' });
+});
+
+test.each([
+  [{ status: 'idle' }],
+  [{ status: 'loading' }],
+  [{ status: 'failed' }],
+])('applies no filtering for the %o compatibility state', async state => {
+  render(
+    <DatasourcePanelDragOption
+      value={{ metric_name: 'test', uuid: '1' }}
+      type={DndItemType.Metric}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: { explore: { compatibility: state } },
+    },
+  );
+
+  expect(
+    await screen.findByTestId('DatasourcePanelDragOption'),
+  ).not.toHaveStyle({ cursor: 'not-allowed' });
+});

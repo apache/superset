@@ -23,6 +23,7 @@ from re import Pattern
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
@@ -34,9 +35,10 @@ from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
+from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
@@ -94,8 +96,9 @@ class CustomSnowflakeAuthErrorMeta(type):
         if isinstance(instance, SqlalchemyDatabaseError):
             orig = cast(SqlalchemyDatabaseError, instance).orig
 
-        return isinstance(orig, DatabaseError) and "Invalid OAuth access token" in str(
-            orig
+        return isinstance(orig, DatabaseError) and (
+            getattr(orig, "errno", None) == 390303
+            or "Invalid OAuth access token" in str(orig)
         )
 
 
@@ -140,13 +143,32 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
-    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
-    # is verified against real Postgres behavior, not Snowflake's; disable it here
-    # until someone confirms the same expressions against a live Snowflake instance.
-    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+    # Snowflake documents native MEDIAN/STDDEV_SAMP/VAR_SAMP aggregate functions
+    # (docs.snowflake.com/en/sql-reference/functions/{median,stddev_samp,var_samp}),
+    # confirmed against that reference, not a live Snowflake instance. STDDEV_SAMP/
+    # VAR_SAMP are plain function calls, same spelling as inherited from
+    # `PostgresBaseEngineSpec`, so those are reused directly. MEDIAN is overridden:
+    # Snowflake's own `MEDIAN(x)` is a plain function call, unlike Postgres's
+    # `percentile_cont(0.5) WITHIN GROUP (ORDER BY x)` (Postgres has no native
+    # MEDIAN), so there is no reason to compile the more complex inherited form.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": PostgresBaseEngineSpec._extended_aggregations["STDDEV_SAMP"],
+        "VAR_SAMP": PostgresBaseEngineSpec._extended_aggregations["VAR_SAMP"],
+    }
 
     # Snowflake doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
+
+    # Snowflake defines its own time grain templates with uppercase DATE_TRUNC
+    # units, so the lowercase normalization inherited from
+    # PostgresBaseEngineSpec does not apply.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Leave custom metric SQL unchanged; Snowflake grains are uppercase."""
+        return expression
 
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
@@ -155,6 +177,17 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
     supports_grouping_sets = True
+
+    @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """Preserve exact-case physical identifiers when columns are not normalized."""
+        if normalize_columns:
+            return name
+        return quoted_name(name, quote=True)
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",
@@ -330,10 +363,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                         # leaving the default/service-account username paired
                         # with this user's OAuth token. Use it as given.
                         url = url.set(username=username)
-                    else:
-                        user = security_manager.find_user(username=username)
-                        if user and user.email:
-                            url = url.set(username=user.email)
+                    elif email := database.get_impersonation_email(url):
+                        url = url.set(username=email)
 
                 url = url.update_query_dict({"token": user_token})
 
@@ -350,6 +381,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Return URI for initial OAuth2 request.
         """
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         # When calling the Snowflake OAuth authorization endpoint for a custom client,
         # specify only the query parameters documented in the URL below.
         # Adding unsupported parameters
@@ -420,6 +452,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Return the configured schema.
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         database = sqlalchemy_uri.database.strip("/")
 
         if "/" not in database:
@@ -460,6 +495,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return "DATEADD(US, {col}, '1970-01-01')"
 
     @classmethod
     def convert_dttm(

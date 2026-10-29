@@ -403,6 +403,27 @@ def test_get_masked_fields(
     assert sorted(masked) == sorted(expected_result)
 
 
+def test_reveal_sensitive_missing_in_old_payload() -> None:
+    """
+    Test that a masked value with no counterpart in the old payload is passed
+    through, matching what engine specs that do not list the path already do.
+    """
+    old_payload = {"foo": "bar"}
+    new_payload = {
+        "foo": "bar",
+        "oauth2_client_info": {"secret": PASSWORD_MASK},
+    }
+
+    assert json.reveal_sensitive(
+        old_payload,
+        new_payload,
+        {"$.oauth2_client_info.secret"},
+    ) == {
+        "foo": "bar",
+        "oauth2_client_info": {"secret": PASSWORD_MASK},
+    }
+
+
 def test_format_timedelta():
     assert json.format_timedelta(timedelta(0)) == "0:00:00"
     assert json.format_timedelta(timedelta(days=1)) == "1 day, 0:00:00"

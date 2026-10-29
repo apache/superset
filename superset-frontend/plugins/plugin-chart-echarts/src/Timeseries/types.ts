@@ -32,7 +32,9 @@ import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
+  LabelPositionEnum,
   LegendFormData,
+  LegendOrientation,
   StackType,
   TitleFormData,
 } from '../types';
@@ -50,6 +52,14 @@ export enum EchartsTimeseriesSeriesType {
   Start = 'start',
   Middle = 'middle',
   End = 'end',
+}
+
+export enum BarValueLabelPosition {
+  Auto = 'auto',
+  InsideEnd = 'insideEnd',
+  OutsideEnd = 'outsideEnd',
+  InsideCenter = 'insideCenter',
+  InsideBase = 'insideBase',
 }
 
 export type EchartsTimeseriesFormData = QueryFormData & {
@@ -72,6 +82,9 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
   minorTicks: boolean;
+  gridlines: boolean;
+  axisTicks: boolean;
+  valueAxisLabels: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
@@ -92,6 +105,8 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisNumberFormat?: string;
   timeGrainSqla?: TimeGranularity;
   forceMaxInterval?: boolean;
+  xAxisMinInterval?: number | string | null;
+  yAxisMinInterval?: number | string | null;
   xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
@@ -99,6 +114,17 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisLabelRotation: number;
   xAxisLabelInterval: number | string;
   showValue: boolean;
+  valueLabelPosition: BarValueLabelPosition;
+  /**
+   * Where the data label sits relative to its data point, applied when
+   * `showValue` is on.
+   *
+   * `'auto'` keeps the orientation-aware default the chart used before this
+   * control existed: `Right` for a horizontal chart, `Top` otherwise. It is
+   * also the value every chart saved before then resolves to, so the default
+   * must stay `'auto'` for those to keep rendering as they did.
+   */
+  labelPosition?: LabelPositionEnum | 'auto';
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
@@ -111,10 +137,28 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
   formData: EchartsTimeseriesFormData;
 }
 
+export type TimeseriesLegendItem = {
+  color: string;
+  interactive: boolean;
+  name: string;
+  selected: boolean;
+};
+
+export type TimeseriesCustomLegend = {
+  grid: {
+    bottom: number | string;
+    top: number | string;
+  };
+  items: TimeseriesLegendItem[];
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  showSelectors: boolean;
+};
+
 export type TimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsTimeseriesFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
+      customLegend?: TimeseriesCustomLegend;
       legendData?: OptionName[];
       isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;

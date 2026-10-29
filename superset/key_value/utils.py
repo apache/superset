@@ -91,7 +91,11 @@ def _uuid_namespace_from_md5(seed: str) -> UUID:
     generated before SHA-256 became the default. It is deprecated and should not
     be selected for new deployments; prefer the SHA-256 generator instead.
     """
-    logger.warning(
+    # Hit on every fallback lookup for a not-yet-migrated legacy entry
+    # (HASH_ALGORITHM_FALLBACKS default) -- an indefinite repeat with nothing
+    # new to report each time until the entry is migrated, so info not warning.
+    # Same rationale as query_object.py's deprecated-field logging (#43520).
+    logger.info(
         "The 'md5' HASH_ALGORITHM is deprecated and retained only for "
         "backwards compatibility; prefer 'sha256' for namespace generation."
     )

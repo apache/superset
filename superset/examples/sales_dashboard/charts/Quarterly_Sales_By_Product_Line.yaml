@@ -27,7 +27,7 @@ params:
   color_scheme: supersetColors
   comparison_type: null
   datasource: 23__table
-  granularity_sqla: order_date
+  x_axis: order_date
   groupby:
   - product_line
   label_colors:

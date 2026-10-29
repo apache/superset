@@ -18,13 +18,14 @@
 """
 Get dashboard datasets FastMCP tool
 
-Returns the datasets used by a dashboard's charts, including columns and
+Returns the datasets and semantic views used by a dashboard's charts, with columns and
 metrics. This is the prerequisite context an agent needs before configuring
 native filters on a dashboard (e.g. picking filter target columns).
 """
 
 import logging
 from datetime import datetime, timezone
+from functools import partial
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -54,6 +55,7 @@ logger = logging.getLogger(__name__)
         title="Get dashboard datasets",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access
@@ -61,7 +63,12 @@ async def get_dashboard_datasets(
     request: GetDashboardDatasetsRequest, ctx: Context
 ) -> DashboardDatasets | DashboardError:
     """
-    List the datasets used by a dashboard's charts, by ID, UUID, or slug.
+    List the datasets and semantic views used by a dashboard's charts.
+
+    Look up the dashboard by ID, UUID, or slug. Each entry's datasource_type
+    distinguishes a table from a semantic_view, and name is its display name.
+    Views include semantic_layer (uuid, name), with table_name, schema and database
+    set to null.
 
     Each dataset includes its table name, schema, database connection
     (id, name, backend), columns (name, type, is_dttm, verbose_name) and
@@ -69,10 +76,15 @@ async def get_dashboard_datasets(
     columns and metrics are available before configuring native filters or
     analyzing a dashboard's data model.
 
-    Datasets the current user cannot access are excluded from the response
-    and reported via inaccessible_dataset_count. Column and metric lists are
+    Datasets the current user cannot access, or whose semantic provider metadata
+    cannot be loaded, are excluded and reported via inaccessible_dataset_count.
+    Provider failures are logged. Column and metric lists are
     capped per dataset; when truncated, columns_truncated/metrics_truncated
-    are set and total counts are reported.
+    are set and total counts are reported. Columns and metrics are sorted by
+    name before capping. Set max_columns (0-100, default 100) and max_metrics
+    (0-50, default 50) to reduce details per dataset. Use max_columns=0 and
+    max_metrics=0 to list datasets with counts only, then get_dataset_info for
+    individual dataset details.
 
     Requires data-model metadata permission (same as the dataset tools); a
     dashboard-only viewer without that permission receives a structured
@@ -103,15 +115,20 @@ async def get_dashboard_datasets(
         from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
+        from superset.semantic_layers.models import SemanticView
 
         # Eager load slices and each slice's dataset columns/metrics/database to
         # avoid N+1 queries: the serializer groups slices by datasource and reads
-        # columns, metrics, and database off every dataset.
+        # columns, metrics, and database off every dataset. Semantic views need
+        # their layer for access checks and the serialized layer identity.
         slice_dataset = subqueryload(Dashboard.slices).subqueryload(Slice.table)
         eager_options = [
             slice_dataset.subqueryload(SqlaTable.columns),
             slice_dataset.subqueryload(SqlaTable.metrics),
             slice_dataset.joinedload(SqlaTable.database),
+            subqueryload(Dashboard.slices)
+            .subqueryload(Slice.semantic_view)
+            .joinedload(SemanticView.semantic_layer),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_datasets.lookup"):
@@ -119,7 +136,11 @@ async def get_dashboard_datasets(
                 dao_class=DashboardDAO,
                 output_schema=DashboardDatasets,
                 error_schema=DashboardError,
-                serializer=dashboard_datasets_serializer,
+                serializer=partial(
+                    dashboard_datasets_serializer,
+                    max_columns=request.max_columns,
+                    max_metrics=request.max_metrics,
+                ),
                 supports_slug=True,
                 logger=logger,
                 query_options=eager_options,

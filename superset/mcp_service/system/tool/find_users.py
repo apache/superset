@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
         title="Find users",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersResponse:

@@ -17,7 +17,10 @@
 """Integration tests for dataset soft-delete and restore."""
 
 from datetime import datetime
+from typing import cast
+from unittest.mock import patch
 
+from flask import Response
 from flask_appbuilder.security.sqla.models import User
 
 from superset import security_manager
@@ -755,7 +758,28 @@ class TestDatasetArchiveListing(SupersetTestCase):
         db.session.commit()
 
         self.login(ADMIN_USERNAME)
-        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/purge")
+        impact_rv: Response = self.client.get(
+            f"/api/v1/dataset/{dataset_uuid}/purge-impact"
+        )
+        assert impact_rv.status_code == 200, impact_rv.data
+        impact: dict[str, object] = json.loads(impact_rv.data)
+        assert impact["charts"] == {
+            "count": 0,
+            "restricted_count": 0,
+            "result": [],
+        }
+        assert impact["dashboards"] == {
+            "count": 0,
+            "restricted_count": 0,
+            "result": [],
+        }
+        impact_token: str = str(impact["impact_token"])
+        assert impact_token.startswith("v1:")
+
+        rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge",
+            json={"confirmed_impact_token": impact_token},
+        )
         assert rv.status_code == 200, rv.data
 
         row = (
@@ -769,6 +793,141 @@ class TestDatasetArchiveListing(SupersetTestCase):
         # The dataset is purged; clean up its database row.
         db.session.delete(database)
         db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_dataset_purge_rejects_missing_confirmation_token(self) -> None:
+        """A malformed client request cannot bypass impact confirmation."""
+        created: tuple[SqlaTable, Database] = self._make("arch_purge_missing_token")
+        dataset: SqlaTable = created[0]
+        database: Database = created[1]
+        dataset_id: int = dataset.id
+        dataset_uuid: str = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge", json={}
+        )
+
+        assert rv.status_code == 400, rv.data
+        assert (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+            is not None
+        )
+        self._cleanup(dataset_id, database)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_dataset_purge_requires_reconfirmation_when_impact_changes(self) -> None:
+        """A stale token returns refreshed impact without mutating the dataset."""
+        created: tuple[SqlaTable, Database] = self._make("arch_purge_stale_token")
+        dataset: SqlaTable = created[0]
+        database: Database = created[1]
+        dataset_id: int = dataset.id
+        dataset_uuid: str = str(dataset.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        preview_rv: Response = self.client.get(
+            f"/api/v1/dataset/{dataset_uuid}/purge-impact"
+        )
+        preview: dict[str, object] = json.loads(preview_rv.data)
+        stale_token: str = str(preview["impact_token"])
+
+        chart: Slice = Slice(
+            slice_name="new impact chart",
+            datasource_id=dataset_id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        db.session.commit()
+
+        stale_rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge",
+            json={"confirmed_impact_token": stale_token},
+        )
+        stale_payload: dict[str, object] = json.loads(stale_rv.data)
+
+        assert stale_rv.status_code == 409, stale_rv.data
+        assert stale_payload["reason"] == "purge_impact_changed"
+        refreshed: dict[str, object] = cast(dict[str, object], stale_payload["impact"])
+        refreshed_charts: dict[str, object] = cast(
+            dict[str, object], refreshed["charts"]
+        )
+        assert refreshed_charts["count"] == 1
+        assert db.session.get(SqlaTable, dataset_id) is not None
+        assert db.session.get(Slice, chart.id) is not None
+
+        refreshed_token: str = str(refreshed["impact_token"])
+        confirmed_rv: Response = self.client.post(
+            f"/api/v1/dataset/{dataset_uuid}/purge",
+            json={"confirmed_impact_token": refreshed_token},
+        )
+        assert confirmed_rv.status_code == 200, confirmed_rv.data
+        assert db.session.get(SqlaTable, dataset_id) is None
+
+        db.session.delete(chart)
+        db.session.delete(database)
+        db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_purge_impact_redacts_restricted_chart_for_non_admin_editor(
+        self,
+    ) -> None:
+        """Dataset editorship exposes impact cardinality, not object details."""
+        alpha: User = self.get_user(ALPHA_USERNAME)
+        database: Database = Database(
+            database_name="db_arch_impact_redaction", sqlalchemy_uri="sqlite://"
+        )
+        db.session.add(database)
+        db.session.flush()
+        dataset: SqlaTable = SqlaTable(
+            table_name="arch_impact_redaction",
+            database=database,
+            editors=[_user_subject(alpha)],
+        )
+        db.session.add(dataset)
+        db.session.flush()
+        chart: Slice = Slice(
+            slice_name="restricted impact chart",
+            datasource_id=dataset.id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        db.session.commit()
+        dataset_id: int = dataset.id
+        dataset_uuid: str = str(dataset.uuid)
+        chart_uuid: str = str(chart.uuid)
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        try:
+            self.login(ALPHA_USERNAME)
+            with patch.object(security_manager, "can_access_chart", return_value=False):
+                rv: Response = self.client.get(
+                    f"/api/v1/dataset/{dataset_uuid}/purge-impact"
+                )
+
+            assert rv.status_code == 200, rv.data
+            payload: dict[str, object] = json.loads(rv.data)
+            assert payload["charts"] == {
+                "count": 1,
+                "restricted_count": 1,
+                "result": [],
+            }
+            serialized_payload: str = rv.data.decode()
+            assert chart_uuid not in serialized_payload
+            assert "restricted impact chart" not in serialized_payload
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+            self._cleanup(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
     def test_purge_blocked_for_non_owner(self) -> None:

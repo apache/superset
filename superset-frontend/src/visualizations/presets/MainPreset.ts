@@ -40,6 +40,7 @@ import {
   BigNumberTotalChartPlugin,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
+  EchartsCandlestickChartPlugin,
   EchartsAreaChartPlugin,
   EchartsTimeseriesChartPlugin,
   EchartsTimeseriesBarChartPlugin,
@@ -65,6 +66,7 @@ import {
   EchartsRoseChartPlugin,
   EchartsTimePivotChartPlugin,
   EchartsBulletChartPlugin,
+  EchartsButterflyChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -110,6 +112,9 @@ export default class MainPreset extends Preset {
           key: VizType.BigNumberTotal,
         }),
         new EchartsBoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
+        new EchartsCandlestickChartPlugin().configure({
+          key: VizType.Candlestick,
+        }),
         new EchartsBulletChartPlugin().configure({ key: VizType.Bullet }),
         new CalendarChartPlugin().configure({ key: VizType.Calendar }),
         new ChordChartPlugin().configure({ key: VizType.Chord }),
@@ -162,6 +167,9 @@ export default class MainPreset extends Preset {
         }),
         new EchartsWaterfallChartPlugin().configure({
           key: VizType.Waterfall,
+        }),
+        new EchartsButterflyChartPlugin().configure({
+          key: VizType.Butterfly,
         }),
         new EchartsHeatmapChartPlugin().configure({ key: VizType.Heatmap }),
         new EchartsHistogramChartPlugin().configure({ key: VizType.Histogram }),

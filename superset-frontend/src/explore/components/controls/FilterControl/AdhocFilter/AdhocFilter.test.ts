@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
@@ -205,6 +206,38 @@ describe('AdhocFilter', () => {
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter10.isValid()).toBe(true);
+  });
+
+  test('is invalid when a comparator-taking operator has no comparator', () => {
+    // A comparator that was never set, or that was cleared through the value
+    // Select's clear affordance, is `undefined` rather than `null` or `[]`.
+    const adhocFilter1 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: 'IN',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter1.isValid()).toBe(false);
+
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: undefined,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter2.isValid()).toBe(false);
+
+    // `false` is a legitimate boolean comparator, not a missing value
+    const adhocFilter3 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'is_intro',
+      operator: '==',
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter3.isValid()).toBe(true);
   });
 
   test('can translate from simple expressions to sql expressions', () => {
@@ -398,4 +431,47 @@ describe('AdhocFilter', () => {
     expect(adhocFilter.getDefaultLabel([])).toBe('num > 500');
     expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
   });
+});
+
+test('Explore filter duplicates preserve grains but bucket edits clear them', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({})).toMatchObject({
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({ comparator: '2026-09-01' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.equals(filter.duplicateWith({ timeGrain: TimeGranularity.YEAR })),
+  ).toBe(false);
+  expect(filter.duplicateWith({ subject: 'category' })).not.toHaveProperty(
+    'timeGrain',
+    'P1M',
+  );
+});
+
+test('a grained drill filter displays its grain and drops it on operator or SQL edits', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.getDefaultLabel()).toContain('[P1M]');
+  expect(filter.getTooltipTitle()).toContain('[P1M]');
+  expect(filter.duplicateWith({ operator: '>' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.duplicateWith({ expressionType: ExpressionTypes.Sql }),
+  ).not.toHaveProperty('timeGrain', TimeGranularity.MONTH);
 });
