@@ -287,8 +287,16 @@ def test_preview_rejects_an_operator_that_can_never_mirror(
     assert response.status_code == 400
 
 
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value",
+        "extract(epoch from cast(:value as timestamp)",
+        "lower(:value), 'x'",
+    ],
+)
 def test_preview_reports_a_parse_error_without_touching_the_engine(
-    client: Any, full_api_access: None, dataset: Any
+    transform: str, client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
     Validate first, probe second. A half-typed transform is by definition
@@ -299,7 +307,7 @@ def test_preview_reports_a_parse_error_without_touching_the_engine(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
-                "value_transform": "unix_timestamp(:value",
+                "value_transform": transform,
                 "sample_values": ["2026-01-15 00:00:00"],
             },
         )
@@ -370,6 +378,7 @@ def test_preview_refuses_a_transform_whose_result_the_key_cannot_hold(
     assert result["valid"] is False
     assert result["reason"] == "type"
     assert "dt_epoch" in result["error"]
+    assert "CAST" in result["error"]
     assert result["sample_input"] == "event_time == '2026-01-15 00:00:00'"
 
 
@@ -651,28 +660,30 @@ def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
     assert response.status_code == 200
 
 
+@pytest.mark.parametrize("values", [[None], [None, 1]])
 def test_a_probe_that_returns_null_reports_a_reason_not_a_predicate(
-    client: Any, full_api_access: None, dataset: Any
+    values: list[Any], client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
     A transform returns NULL for an input it cannot convert. A NULL bound would
     make the mirrored comparison NULL for every row, so no predicate is emitted
     at all -- and the editor is told why rather than shown `dt_epoch >= None`.
     """
-    with patch(PROBE, return_value=[None]):
+    with patch(PROBE, return_value=values):
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "country",
                 "value_transform": "unix_timestamp(:value)",
-                "sample_values": ["not a date"],
+                "sample_values": ["not a date"] * len(values),
+                "operator": "IN",
             },
         )
 
     assert response.status_code == 200
     result = response.json["result"]
     assert result["valid"] is False
-    assert result["reason"] == "engine"
+    assert result["reason"] == "null_result"
     assert "emitted_predicate" not in result
     assert "None" not in result["sample_input"]
 

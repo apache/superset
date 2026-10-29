@@ -1455,3 +1455,121 @@ test('the unsaved notice is not reported as a failed verdict', async () => {
   ).toBeInTheDocument();
   expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
 });
+
+test.each([429, 500])(
+  'an unavailable preview (%s) is not a failed mapping verdict and can be retried',
+  async status => {
+    let calls = 0;
+    fetchMock.post(PREVIEW_URL, () => {
+      calls += 1;
+      return calls === 1
+        ? { status, body: { message: 'Preview request failed' } }
+        : {
+            body: {
+              result: { valid: true, emitted_predicate: 'dt_epoch = 1' },
+            },
+          };
+    });
+    const onPreviewVerdict = jest.fn();
+    render(
+      <PartitionMappingSection
+        item={{ column_name: 'event_time', is_dttm: true }}
+        value="unix_timestamp(:value)"
+        datasource={{
+          id: 1,
+          main_dttm_col: 'event_time',
+          partition_column: 'dt_epoch',
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+        onPreviewVerdict={onPreviewVerdict}
+      />,
+    );
+    expect(
+      await screen.findByText('Preview temporarily unavailable'),
+    ).toBeVisible();
+    if (status === 429) {
+      expect(
+        screen.getByText(
+          'Too many preview requests. Wait a moment and try again.',
+        ),
+      ).toBeVisible();
+    }
+    expect(
+      screen.queryByText('Filters will not be mirrored'),
+    ).not.toBeInTheDocument();
+    expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('dt_epoch = 1')).toBeVisible();
+    expect(onPreviewVerdict).toHaveBeenLastCalledWith(true);
+    expect(calls).toBe(2);
+  },
+);
+
+test('a missing placeholder has a field-associated explanation without a preview request', async () => {
+  const props = {
+    item: { column_name: 'event_time', is_dttm: true },
+    datasource: { main_dttm_col: 'event_time', partition_column: 'dt_epoch' },
+    onMoveMappingHere: jest.fn(),
+    onRemoveMapping: jest.fn(),
+    onMonotonicChange: jest.fn(),
+  };
+  const { rerender } = render(
+    <PartitionMappingSection {...props} value="unix_timestamp(event_time)" />,
+  );
+  expect(
+    screen.getByRole('textbox', { name: 'Value transform' }),
+  ).toHaveAccessibleDescription(
+    'Include :value in the transform to represent the filter value.',
+  );
+  rerender(
+    <PartitionMappingSection {...props} value="unix_timestamp(:value)" />,
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByText(
+        'Include :value in the transform to represent the filter value.',
+      ),
+    ).not.toBeInTheDocument(),
+  );
+});
+
+test.each(['{Enter}', ' '])(
+  'moving a mapping with %s transfers focus to its transform',
+  async key => {
+    const onMoveMappingHere = jest.fn();
+    const props = {
+      item: { column_name: 'country', type: 'TEXT' },
+      value: '',
+      datasource: { main_dttm_col: 'event_time', partition_column: 'dt_epoch' },
+      onMoveMappingHere,
+      onRemoveMapping: jest.fn(),
+      onMonotonicChange: jest.fn(),
+    };
+    const { rerender } = render(<PartitionMappingSection {...props} />);
+    screen
+      .getByRole('button', { name: 'Move mapping to this column →' })
+      .focus();
+    await userEvent.keyboard(key);
+    expect(onMoveMappingHere).toHaveBeenCalledWith('country');
+    rerender(
+      <PartitionMappingSection
+        {...props}
+        datasource={{ ...props.datasource, partition_mapped_column: 'country' }}
+      />,
+    );
+    const input = screen.getByRole('textbox', { name: 'Value transform' });
+    expect(input).toHaveFocus();
+    await userEvent.keyboard(':value');
+    expect(input).toHaveValue(':value');
+    screen.getByRole('checkbox').focus();
+    rerender(
+      <PartitionMappingSection
+        {...props}
+        datasource={{ ...props.datasource, partition_mapped_column: 'country' }}
+      />,
+    );
+    expect(screen.getByRole('checkbox')).toHaveFocus();
+  },
+);

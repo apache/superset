@@ -582,3 +582,18 @@ test.each([
     postFormSpy.mockRestore();
   },
 );
+
+test('drill detail renders a readable Hive strict-mode error', async () => {
+  jest
+    .spyOn(SupersetClient, 'post')
+    .mockRejectedValue(
+      new Error(
+        'Hive requires a partition filter for this table. Add a filter and try again.',
+      ),
+    );
+  await waitForRender();
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Hive requires a partition filter',
+  );
+  expect(screen.queryByText(/TExecuteStatementResp/)).not.toBeInTheDocument();
+});
