@@ -378,9 +378,16 @@ class TestSupersetAppInitializer:
     def test_host_tools_quietly_skipped_without_fastmcp(self, mock_logger):
         """Without the optional fastmcp dependency, host-tool registration is a
         quiet skip (no ERROR log, no service app import), like the decorators."""
+        import superset.mcp_service
         from superset.core.mcp import core_mcp_injection
 
         saved = sys.modules.pop("superset.mcp_service.app", None)
+        # The package caches the submodule as an attribute, so
+        # ``from superset.mcp_service import app`` would succeed without touching
+        # sys.modules. Clear it too so the import only happens if the guard fails.
+        saved_attr = getattr(superset.mcp_service, "app", None)
+        if hasattr(superset.mcp_service, "app"):
+            delattr(superset.mcp_service, "app")
         try:
             with patch.object(
                 core_mcp_injection, "_fastmcp_available", return_value=False
@@ -388,10 +395,16 @@ class TestSupersetAppInitializer:
                 core_mcp_injection.initialize_core_mcp_dependencies()
 
             assert "superset.mcp_service.app" not in sys.modules
+            assert not hasattr(superset.mcp_service, "app")
             mock_logger.error.assert_not_called()
+            mock_logger.debug.assert_any_call(
+                "fastmcp is not installed, skipping MCP host tool registration"
+            )
         finally:
             if saved is not None:
                 sys.modules["superset.mcp_service.app"] = saved
+            if saved_attr is not None:
+                superset.mcp_service.app = saved_attr
 
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""
