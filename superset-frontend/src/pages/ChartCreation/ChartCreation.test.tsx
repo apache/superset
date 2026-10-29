@@ -344,6 +344,17 @@ test('ignores the removed dataset name parameter', async () => {
   locationSpy.mockRestore();
 });
 
+test('renders the picker without a spinner when dataset_id is empty', async () => {
+  const locationSpy = mockSearchLocation('?dataset_id=');
+
+  await renderComponent();
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+
+  locationSpy.mockRestore();
+});
+
 test('does not toast on load, so hand-built dataset_id links stay quiet', async () => {
   fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
   const store = createStore({}, reducerIndex);

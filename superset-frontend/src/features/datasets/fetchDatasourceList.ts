@@ -90,7 +90,7 @@ export const fetchDatasetById = (
   { get = SupersetClient.get }: FetchDatasourceListOptions = {},
 ): Promise<Dataset> => {
   const query = rison.encode({ columns: DATASET_LIST_COLUMNS });
-  return get({ endpoint: `/api/v1/dataset/${id}?q=${query}` }).then(
-    (response: JsonResponse) => response.json.result as Dataset,
-  );
+  return get({
+    endpoint: `/api/v1/dataset/${encodeURIComponent(String(id))}?q=${query}`,
+  }).then((response: JsonResponse) => response.json.result as Dataset);
 };

@@ -66,6 +66,15 @@ test('fetchDatasetById requests the dataset by ID with a column selection', asyn
   );
 });
 
+test('fetchDatasetById encodes the ID as a single path segment', async () => {
+  const get = jest.fn().mockResolvedValue({ json: { result: {} } });
+
+  await fetchDatasetById('1/../2', { get });
+
+  const { endpoint } = get.mock.calls[0][0];
+  expect(endpoint).toContain('/api/v1/dataset/1%2F..%2F2?q=');
+});
+
 test('fetchDatasetById rejects when the dataset is missing', async () => {
   fetchMock.removeRoutes();
   fetchMock.get('glob:*/api/v1/dataset/999?q=*', 404);

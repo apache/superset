@@ -238,8 +238,8 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
     [user.roles],
   );
 
-  const hasDatasetParam = useMemo(
-    () => new URLSearchParams(window.location.search).has('dataset_id'),
+  const hasDatasetId = useMemo(
+    () => !!new URLSearchParams(window.location.search).get('dataset_id'),
     [],
   );
 
@@ -247,7 +247,7 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
     SelectedDatasource | undefined
   >();
   const [vizType, setVizType] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(hasDatasetParam);
+  const [loading, setLoading] = useState<boolean>(hasDatasetId);
 
   const exploreUrl = useCallback(() => {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
