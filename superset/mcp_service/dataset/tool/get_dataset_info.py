@@ -31,6 +31,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.dataset.dataset_utils import SQL_DATASET_SOURCE_GUIDANCE
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetInfo,
@@ -61,7 +62,9 @@ logger = logging.getLogger(__name__)
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
-    """Get dataset metadata by ID or UUID.
+    """Get metadata by ID or UUID for SQL datasets only.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
 
     Returns columns, metrics, and schema details.
 
@@ -180,6 +183,8 @@ async def get_dataset_info(
                     ),
                 )
         else:
+            if isinstance(result, DatasetError) and result.error_type == "not_found":
+                result.error = f"{result.error}. {SQL_DATASET_SOURCE_GUIDANCE}"
             await ctx.warning(
                 "Dataset retrieval failed: error_type=%s, error=%s"
                 % (result.error_type, result.error)

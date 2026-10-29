@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { useHistory } from 'react-router-dom';
 import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -181,7 +182,7 @@ async function resolveSnapshotTheme(
  * and re-hydrates the live dashboard when the preview is closed.
  */
 export function useDashboardVersionPreview(uuid: string | undefined) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const store = useStore<RootState>();
   const history = useHistory();
   const { addDangerToast } = useToasts();

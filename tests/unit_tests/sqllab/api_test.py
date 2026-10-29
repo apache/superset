@@ -16,10 +16,12 @@
 # under the License.
 from __future__ import annotations
 
+import codecs
 import re
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
 
@@ -38,7 +40,7 @@ def _disposition_filename(form_filename: str | None) -> str:
         patch("superset.sqllab.api.StreamingSqlResultExportCommand") as command_cls,
     ):
         command = command_cls.return_value
-        command.run.return_value = lambda: iter([b""])
+        command.run.return_value = lambda: iter([""])
         response = SqlLabRestApi._create_streaming_csv_response(
             MagicMock(), client_id="abc123", filename=form_filename
         )
@@ -67,6 +69,27 @@ def test_streaming_csv_falls_back_when_filename_empty() -> None:
 
     assert filename.startswith("sqllab_abc123_")
     assert filename.endswith(".csv")
+
+
+def test_streaming_csv_body_uses_csv_export_encoding() -> None:
+    """The streamed body honors CSV_EXPORT encoding, writing the BOM once."""
+    from superset.sqllab.api import SqlLabRestApi
+
+    chunks = ["name;city\r\n", "Müller;Köln\r\n"]
+    app = Flask(__name__)
+    app.config["CSV_EXPORT"] = {"encoding": "utf-8-sig", "sep": ";"}
+    with (
+        app.app_context(),
+        patch("superset.sqllab.api.StreamingSqlResultExportCommand") as command_cls,
+    ):
+        command = command_cls.return_value
+        command.run.return_value = lambda: iter(chunks)
+        response = SqlLabRestApi._create_streaming_csv_response(
+            MagicMock(), client_id="abc123", filename="results.csv"
+        )
+        body = b"".join(response.iter_encoded())
+
+    assert body == codecs.BOM_UTF8 + "".join(chunks).encode("utf-8")
 
 
 def test_format_sql_checks_access_before_rendering(
@@ -107,4 +130,48 @@ def test_format_sql_checks_access_before_rendering(
 
     assert response.status_code == 403
     raise_for_access.assert_called_once()
+    get_template_processor.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "template_params",
+    [
+        "[1, 2]",
+        "5",
+        '"abc"',
+        "true",
+        "null",
+    ],
+)
+def test_format_sql_non_dict_template_params(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    template_params: str,
+) -> None:
+    """Non-dict JSON template_params must not cause a 500 TypeError."""
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "presto"
+    mocker.patch(
+        "superset.sqllab.api.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    raise_for_access = mocker.patch(
+        "superset.sqllab.api.security_manager.raise_for_access",
+    )
+    get_template_processor = mocker.patch(
+        "superset.sqllab.api.get_template_processor",
+    )
+
+    response = client.post(
+        "/api/v1/sqllab/format_sql/",
+        json={
+            "sql": "SELECT 1",
+            "database_id": 1,
+            "template_params": template_params,
+        },
+    )
+
+    assert response.status_code == 200
+    raise_for_access.assert_not_called()
     get_template_processor.assert_not_called()
