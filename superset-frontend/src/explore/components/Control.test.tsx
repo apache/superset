@@ -23,6 +23,8 @@ import {
   userEvent,
   fireEvent,
 } from 'spec/helpers/testing-library';
+import { CustomControlItem } from '@superset-ui/chart-controls';
+import sunburstPanel from '../../../plugins/plugin-chart-echarts/src/Sunburst/controlPanel';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
 const defaultProps: ControlProps = {
@@ -36,11 +38,18 @@ const defaultProps: ControlProps = {
 
 const setup = (overrides = {}) => <Control {...defaultProps} {...overrides} />;
 
-test('render a control', () => {
-  render(setup());
+test('forwards child control changes through setControlValue', async () => {
+  const setControlValue = jest.fn();
+  render(setup({ actions: { setControlValue } }));
 
-  const checkbox = screen.getByRole('checkbox');
-  expect(checkbox).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('checkbox'));
+
+  expect(setControlValue).toHaveBeenCalledWith(
+    'checkbox',
+    false,
+    undefined,
+    undefined,
+  );
 });
 
 test('render null if type is not exit', () => {
@@ -70,21 +79,34 @@ test('render null if isVisible is false', () => {
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });
 
-test('call setControlValue if isVisible is false', async () => {
+test('marks hiding a control as a programmatic value reset', async () => {
+  const setControlValue = jest.fn();
   const { rerender } = render(
     setup({
+      actions: { setControlValue },
       isVisible: true,
+      value: true,
       default: false,
     }),
   );
-  expect(defaultProps.actions.setControlValue).not.toHaveBeenCalled();
-  rerender(setup({ isVisible: false, default: false }));
+
+  expect(setControlValue).not.toHaveBeenCalled();
+  rerender(
+    setup({
+      actions: { setControlValue },
+      isVisible: false,
+      value: true,
+      default: false,
+    }),
+  );
   await waitFor(() =>
-    expect(defaultProps.actions.setControlValue).toHaveBeenCalled(),
+    expect(setControlValue).toHaveBeenCalledWith('checkbox', false, undefined, {
+      programmatic: true,
+    }),
   );
 });
 
-test('shows the description icon while the control is hovered', async () => {
+test('keeps description help available before and after hover', async () => {
   render(
     setup({
       label: 'My checkbox',
@@ -93,8 +115,8 @@ test('shows the description icon while the control is hovered', async () => {
   );
 
   expect(
-    screen.queryByRole('button', { name: 'Show info tooltip' }),
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
 
   await userEvent.hover(screen.getByTestId('checkbox'));
   expect(
@@ -103,11 +125,11 @@ test('shows the description icon while the control is hovered', async () => {
 
   await userEvent.unhover(screen.getByTestId('checkbox'));
   expect(
-    screen.queryByRole('button', { name: 'Show info tooltip' }),
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
 });
 
-test('shows the description icon while the control has keyboard focus', () => {
+test('keeps description help available across input and help focus', () => {
   render(
     setup({
       label: 'My checkbox',
@@ -116,8 +138,8 @@ test('shows the description icon while the control has keyboard focus', () => {
   );
 
   expect(
-    screen.queryByRole('button', { name: 'Show info tooltip' }),
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
 
   fireEvent.focus(screen.getByRole('checkbox'));
   const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
@@ -130,8 +152,8 @@ test('shows the description icon while the control has keyboard focus', () => {
 
   fireEvent.blur(infoIcon, { relatedTarget: document.body });
   expect(
-    screen.queryByRole('button', { name: 'Show info tooltip' }),
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
 });
 
 test('keeps the description icon visible when the pointer leaves a focused control', () => {
@@ -151,4 +173,35 @@ test('keeps the description icon visible when the pointer leaves a focused contr
   expect(
     screen.getByRole('button', { name: 'Show info tooltip' }),
   ).toBeInTheDocument();
+});
+
+test('hiding the Sunburst grain control clears the saved grain', async () => {
+  const grain = sunburstPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item => (item as CustomControlItem)?.name === 'time_grain_sqla',
+    ) as CustomControlItem;
+  const setControlValue = jest.fn();
+  const control = (isVisible: boolean) => (
+    <Control
+      {...defaultProps}
+      name="time_grain_sqla"
+      type="TextControl"
+      value="P1M"
+      default={grain.config.default}
+      isVisible={isVisible}
+      actions={{ setControlValue }}
+    />
+  );
+  const { rerender } = render(control(true));
+  rerender(control(false));
+  await waitFor(() =>
+    expect(setControlValue).toHaveBeenCalledWith(
+      'time_grain_sqla',
+      null,
+      undefined,
+      { programmatic: true },
+    ),
+  );
 });

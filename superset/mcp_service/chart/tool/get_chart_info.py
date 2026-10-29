@@ -20,10 +20,11 @@ MCP tool: get_chart_info
 """
 
 import logging
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 from fastmcp import Context
 from marshmallow import ValidationError
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -42,7 +43,11 @@ from superset.mcp_service.chart.chart_helpers import (
     ChartNotOnDashboardError,
     get_cached_form_data,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+    validate_chart_semantic_view,
+)
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartFiltersInfo,
@@ -163,8 +168,8 @@ def _permalink_form_data(permalink: ExplorePermalinkValue) -> dict[str, Any]:
 
 def _permalink_datasource(
     permalink: ExplorePermalinkValue,
-) -> tuple[str | None, str | None]:
-    """Return the (name, type) of the datasource a permalink was built on.
+) -> tuple[int | None, str | None, str | None]:
+    """Return the (id, name, type) of the datasource a permalink was built on.
 
     A permalink's form_data carries the datasource as an opaque "<id>__<type>"
     string, so the name has to be resolved from the ids the permalink stores
@@ -174,7 +179,7 @@ def _permalink_datasource(
     datasource_type = permalink.get("datasourceType") or DatasourceType.TABLE.value
     datasource_id = permalink.get("datasourceId") or permalink.get("datasetId")
     if not datasource_id:
-        return None, str(datasource_type)
+        return None, None, str(datasource_type)
     try:
         from superset.daos.datasource import DatasourceDAO
 
@@ -190,21 +195,27 @@ def _permalink_datasource(
             datasource_id,
             datasource_type,
         )
-        return None, str(datasource_type)
+        return None, None, str(datasource_type)
     # A SQL Lab query labels itself with ``name``; datasets use
     # ``datasource_name``.
     name = getattr(datasource, "datasource_name", None) or getattr(
         datasource, "name", None
     )
-    return name, str(datasource_type)
+    resolved_id = getattr(datasource, "id", None)
+    return (
+        resolved_id if isinstance(resolved_id, int) else None,
+        name,
+        str(datasource_type),
+    )
 
 
 def _build_permalink_chart_info(
     permalink_key: str, permalink: ExplorePermalinkValue, form_data: dict[str, Any]
 ) -> ChartInfo:
     """Build a ChartInfo from a permalink that is not tied to a saved chart."""
-    datasource_name, datasource_type = _permalink_datasource(permalink)
+    datasource_id, datasource_name, datasource_type = _permalink_datasource(permalink)
     result = ChartInfo(
+        datasource_id=datasource_id,
         datasource_name=datasource_name,
         datasource_type=datasource_type,
         form_data=form_data,
@@ -234,7 +245,11 @@ async def _validate_chart_dataset_access(
     chart = ChartDAO.find_by_id(result.id)
     if not chart:
         return None
-    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
+    validation_result: DatasetValidationResult = (
+        validate_chart_semantic_view(chart.datasource_id)
+        if chart.datasource_type == DatasourceType.SEMANTIC_VIEW.value
+        else validate_chart_dataset(chart.datasource_id, check_access=True)
+    )
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)
@@ -271,7 +286,13 @@ async def _attach_dashboard_filters(
             await ctx.warning("Dashboard not accessible: %s" % (str(exc),))
             return ChartError(error=str(exc), error_type="DashboardNotAccessible")
 
-        if dashboard_filters:
+        if dashboard_filters is None:
+            await ctx.warning(
+                "Dashboard %s filter configuration or layout is malformed; "
+                "dashboard filters applied to this chart could not be resolved."
+                % (dashboard_id,)
+            )
+        elif dashboard_filters:
             if result.filters is None:
                 result.filters = ChartFiltersInfo(dashboard_filters=dashboard_filters)
             else:
@@ -438,7 +459,18 @@ def _dump_chart_info(
     ),
 )
 async def get_chart_info(  # noqa: C901
-    request: GetChartInfoRequest, ctx: Context
+    request: Annotated[
+        GetChartInfoRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {"identifier": 123}}. '
+                "Use ID/UUID, NOT chart name; discover IDs with list_charts. "
+                "form_data_key reads unsaved state; permalink_key reads shared "
+                "Explore state and makes identifier optional."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 

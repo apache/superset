@@ -126,7 +126,7 @@ function mergeAttributeDefinitions(
 export function getOverrideHtmlSchema(
   originalSchema: typeof defaultSchema,
   htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
-) {
+): typeof defaultSchema {
   // Merge into a fresh clone: mergeWith mutates its first argument, so
   // merging into the shared defaultSchema import would progressively widen
   // the sanitization allowlist for every SafeMarkdown instance app-wide.

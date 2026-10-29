@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import hashlib
 import re
 
 from werkzeug.utils import secure_filename
+
+from superset.utils.hashing import hash_from_str
 
 # All C0 (U+0000–U+001F) and C1 (U+007F–U+009F) control characters.
 # Stripping every control char (including tab, LF, CR) keeps titles safe for
@@ -50,7 +51,7 @@ def sanitize_title(title: str) -> str:
 
 
 def _name_hash(slug: str) -> str:
-    return hashlib.sha256(slug.encode()).hexdigest()[:_HASH_LENGTH]
+    return hash_from_str(slug)[:_HASH_LENGTH]
 
 
 def get_filename(
