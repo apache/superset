@@ -2822,10 +2822,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Only a warehouse failure is attributed to the mirror: a raw driver
         error, or a ``SupersetDBAPIError`` an engine spec mapped one into.
-        Everything else Superset raises on this path -- timeouts, security,
-        cancellation, validation, OAuth -- is control flow and is never retried.
-        The error must also name an identifier the mirror emitted, so a timeout
-        or a resource limit is not run a second time without the pruning.
+        Everything else Superset raises on this path -- its own timeouts,
+        security, cancellation, validation and OAuth errors -- is control flow
+        and is never retried, as is a ``BaseException`` such as a worker
+        deadline. A warehouse failure is retried when its message names an
+        identifier the mirror emitted, whatever the underlying cause: a driver
+        timeout, a resource limit or a permission error whose message does not
+        mention those identifiers is left alone, but one that does -- by
+        echoing the SQL, say -- also gets the unpruned run.
 
         Never raises: anything that goes wrong while deciding leaves the
         original failure to surface.

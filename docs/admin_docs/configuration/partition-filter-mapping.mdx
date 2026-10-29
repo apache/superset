@@ -270,18 +270,31 @@ column that is dropped or renamed in the warehouse is still mirrored until the d
 columns are refreshed. A column that a calculated partition column's expression reads counts
 the same way.
 
-When the warehouse rejects a query because of that column, Superset runs the query once more
-without the mirrored predicate. The rows returned are the same; the query is slower, because
-it reads every partition. Each affected query therefore costs one rejected statement followed
-by the unpruned run, and the unpruned result is cached like any other.
+When the warehouse rejects a chart query because of that column, Superset runs the query once
+more without the mirrored predicate. The rows returned are the same; the query is slower,
+because it reads every partition. The unpruned result is cached like any other.
 
-Three limits apply:
+This applies to chart queries run through the normal chart path, and the cost depends on the
+query:
 
-- The retry only happens when the warehouse's error message names the column. A message that
-  does not (for instance one that names only a function in the expression), a timeout, and a
-  permission error are not retried, and the chart fails as it would without this recovery.
-- A chart or table that itself selects the missing column cannot be rescued. Both attempts
-  fail and the warehouse's error is shown.
+- A simple query makes two attempts: the rejected one and the unpruned run.
+- A chart with a series limit that runs its ranking as a separate query can make more attempts
+  (up to three times as many statements in the worst case), and a time comparison repeats the
+  rejected attempt and the retry for each comparison period.
+- Streaming exports and the cursor-paginated Samples pages do not use this recovery.
+
+Limits:
+
+- The retry happens when the warehouse's error message names the column, or a column the
+  calculated expression reads, whatever the underlying cause. A message that names neither
+  (for instance one that names only a function in the expression) is not retried, and the
+  chart fails as it would without this recovery. Conversely, an error that merely echoes the
+  column, such as a driver timeout that repeats the SQL, can also trigger the unpruned run.
+  Errors raised by Superset itself, such as its own timeouts, permission checks, and
+  cancellations, are never retried.
+- A query that selects the missing column itself cannot be rescued: both attempts fail and
+  the warehouse's error is shown. This includes Samples and Drill to detail, which select every
+  column of the dataset, and any chart or table that uses the column.
 - The pruning indicator in the dataset editor and on filters stays on, because it reads the
   stored column list rather than the warehouse.
 
