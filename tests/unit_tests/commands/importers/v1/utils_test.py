@@ -815,3 +815,26 @@ def test_get_contents_from_bundle_unsafe_zip(
     assert excinfo.value.status == 422
     assert excinfo.value.message == message
     assert isinstance(excinfo.value.__cause__, SupersetException)
+
+
+def test_get_contents_from_bundle_non_utf8_member() -> None:
+    """
+    A config member that is not valid UTF-8 must raise ``IncorrectFormatError``
+    instead of a raw ``UnicodeDecodeError``.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", b"\xff\xfe\x00bad")
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(io.BytesIO(buf.getvalue())) as bundle:
+            get_contents_from_bundle(bundle)
+
+    assert excinfo.value.message == "File metadata.yaml is not valid UTF-8"
+    assert isinstance(excinfo.value.__cause__, UnicodeDecodeError)

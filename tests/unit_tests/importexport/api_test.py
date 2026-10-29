@@ -342,6 +342,31 @@ def test_import_assets_unsafe_zip(
     }
 
 
+def test_import_assets_non_utf8_member(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP with a config member that is not valid UTF-8 returns a 422,
+    not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", b"\xff\xfe\x00bad")
+    buf.seek(0)
+    form_data = {
+        "bundle": (buf, "bundle.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json["errors"][0]["message"] == (
+        "File metadata.yaml is not valid UTF-8"
+    )
+
+
 def test_import_assets_no_form_data(
     mocker: MockerFixture,
     client: Any,
@@ -393,6 +418,36 @@ def test_import_assets_incorrect_form_data(
     )
     assert response.status_code == 400
     assert response.json == {"message": "Arguments are not correct"}
+
+
+def test_import_assets_malformed_json_form_field(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a malformed JSON form field returns a 400 instead of a 500.
+    """
+    ImportAssetsCommand = mocker.patch("superset.importexport.api.ImportAssetsCommand")  # noqa: N806
+
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        with bundle.open("assets_export/metadata.yaml", "w") as fp:
+            fp.write(b"version: 1.0.0\ntype: assets\n")
+    buf.seek(0)
+
+    form_data = {
+        "bundle": (buf, "assets_export.zip"),
+        "encrypted_extra_secrets": "{not json",
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 400
+    assert response.json["errors"][0]["message"] == (
+        "Form field 'encrypted_extra_secrets' is not valid JSON"
+    )
+    ImportAssetsCommand.assert_not_called()
 
 
 def test_import_assets_no_contents(

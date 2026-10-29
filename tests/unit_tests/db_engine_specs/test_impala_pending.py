@@ -92,7 +92,9 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
     mocker.patch(
         "superset.sql_lab.event_logger.log_context", return_value=nullcontext()
     )
-    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
+    post = mocker.patch(
+        "superset.db_engine_specs.impala.get_ssrf_safe_requester"
+    ).return_value.post
 
     with pytest.raises(SqlLabQueryStoppedException):
         execute_query(query, cursor)
@@ -166,11 +168,11 @@ def test_stop_running_query_uses_live_cursor(use_executor: bool) -> None:
         query.extra[key] = value
 
     query.set_extra_json_key.side_effect = set_extra_json_key
-    post: MagicMock
+    requester: MagicMock
     with (
         app.app_context(),
         patch("superset.db_engine_specs.impala.db") as db,
-        patch("superset.db_engine_specs.impala.requests.post") as post,
+        patch("superset.db_engine_specs.impala.get_ssrf_safe_requester") as requester,
     ):
         if use_executor:
             assert SQLExecutor._cancel_query(query.database, query)
@@ -183,7 +185,7 @@ def test_stop_running_query_uses_live_cursor(use_executor: bool) -> None:
         ImpalaEngineSpec.handle_cursor(cursor, query)
 
     assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
-    post.assert_not_called()
+    requester.return_value.post.assert_not_called()
     cursor.get_log.assert_not_called()
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
@@ -249,11 +251,11 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
         query.extra[key] = value
 
     query.set_extra_json_key.side_effect = set_extra_json_key
-    post: MagicMock
+    requester: MagicMock
     with (
         app.app_context(),
         patch("superset.db_engine_specs.impala.db") as db,
-        patch("superset.db_engine_specs.impala.requests.post") as post,
+        patch("superset.db_engine_specs.impala.get_ssrf_safe_requester") as requester,
     ):
         if use_executor:
             assert SQLExecutor._cancel_query(query.database, query)
@@ -267,7 +269,7 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
         ImpalaEngineSpec.handle_cursor(cursor, query)
 
     assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
-    post.assert_not_called()
+    requester.return_value.post.assert_not_called()
     cursor.cancel_operation.assert_called_once_with()
 
 
