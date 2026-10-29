@@ -333,3 +333,37 @@ def test_fetch_data_cancels_the_operation_on_time_limit(
         spec.fetch_data(cursor)
     cursor.cancel_operation.assert_called_once_with()
     cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "cancel_timeout_type", [SoftTimeLimitExceeded, SupersetTimeoutException]
+)
+@patch("superset.db_engine_specs.impala.time.sleep")
+def test_fetch_data_propagates_time_limit_during_cancel(
+    sleep_mock: Mock,
+    cancel_timeout_type: type[Exception],
+    app_context: None,
+    impala_errors: None,
+) -> None:
+    """A second time limit in cancellation must replace the original time limit."""
+    original_timeout = SoftTimeLimitExceeded("waiting")
+    cancel_timeout: Exception
+    if cancel_timeout_type is SupersetTimeoutException:
+        cancel_timeout = SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Timed out during cancellation",
+            level=ErrorLevel.ERROR,
+        )
+    else:
+        cancel_timeout = cancel_timeout_type("cancelling")
+    sleep_mock.side_effect = original_timeout
+    cursor = Mock()
+    cursor.is_executing.return_value = True
+    cursor.cancel_operation.side_effect = cancel_timeout
+
+    with pytest.raises(cancel_timeout_type) as raised:
+        spec.fetch_data(cursor)
+
+    assert raised.value is cancel_timeout
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.fetchall.assert_not_called()

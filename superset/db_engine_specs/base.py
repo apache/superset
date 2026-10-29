@@ -136,10 +136,11 @@ logger = logging.getLogger()
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
 
-# SQL Lab's time limits are raised into whatever the worker is executing: the
-# Celery soft limit for asynchronous runs and the ``SQLLAB_TIMEOUT`` alarm for
-# synchronous ones. Each fires once, so a handler that swallows it leaves the
-# query running with nothing left to stop it.
+# SQL Lab's Celery soft limit for asynchronous runs and ``SQLLAB_TIMEOUT``
+# SIGALRM for main-thread synchronous runs reach the cancellation handlers.
+# The alarm is main-thread only: threaded synchronous requests are not covered
+# by this change. Each limit fires once, so swallowing it leaves the query running
+# with nothing left to stop it.
 TIME_LIMIT_EXCEPTIONS = (SoftTimeLimitExceeded, SupersetTimeoutException)
 
 
