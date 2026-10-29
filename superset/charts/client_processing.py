@@ -1524,10 +1524,6 @@ def table(
     return df
 
 
-# The viz type whose report attachments are left as they arrive; see the
-# serialization branch in ``apply_client_processing``.
-AG_GRID_TABLE_VIZ_TYPE = "ag-grid-table"
-
 post_processors = {
     "pivot_table_v2": pivot_table_v2,
     "table": table,
@@ -1540,7 +1536,7 @@ post_processors = {
     # calls the column's own formatter; ``formatColumnValue`` only labels
     # drill-to-detail. The query-building side pairs the two viz types the same
     # way.
-    AG_GRID_TABLE_VIZ_TYPE: table,
+    AG_GRID_TABLE: table,
 }
 
 
@@ -1721,7 +1717,7 @@ def apply_client_processing(  # noqa: C901
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
-        elif viz_type == AG_GRID_TABLE_VIZ_TYPE:
+        elif viz_type == AG_GRID_TABLE:
             # ``table`` only formats numbers, and ``apply_number_format`` is
             # false for every format but JSON, so the frame handed back here is
             # the frame that went in. Writing it out again would be a round trip
