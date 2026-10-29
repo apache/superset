@@ -27,7 +27,7 @@ import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import { makeUrl } from './utils/navigationUtils';
-import './hooks/useLocale';
+import { DAYJS_LOCALE_MAPPING } from './hooks/useLocale';
 
 // Import dayjs plugin types for global TypeScript support
 import 'dayjs/plugin/utc';
@@ -64,6 +64,13 @@ export default function initPreamble(): Promise<void> {
     // Setup SupersetClient early so we can fetch language pack
     setupClient({ appRoot: applicationRoot() });
 
+    // Initialize feature flags before the first await below. Not every
+    // entry point awaits initPreamble() before importing plugins (see
+    // webpack.config.js's addPreamble()), and plugin modules can call
+    // isFeatureEnabled() during import, which would see stale/missing
+    // flags if this ran after the language-pack fetch instead. See #37310.
+    initFeatureFlags(bootstrapData.common.feature_flags);
+
     // Load language pack before rendering.
     // Prefer the pack already on hand: either an operator-supplied
     // common.language_pack (COMMON_BOOTSTRAP_OVERRIDES_FUNC) or the
@@ -82,7 +89,7 @@ export default function initPreamble(): Promise<void> {
           : undefined);
       if (bootstrapPack) {
         configure({ languagePack: bootstrapPack });
-        dayjs.locale(lang);
+        dayjs.locale(DAYJS_LOCALE_MAPPING[lang] ?? lang);
       } else {
         const abortController = new AbortController();
         const timeoutId = window.setTimeout(() => {
@@ -102,7 +109,7 @@ export default function initPreamble(): Promise<void> {
           if (typeof window !== 'undefined') {
             window.__SUPERSET_LANGUAGE_PACK__ = json as LanguagePack;
           }
-          dayjs.locale(lang);
+          dayjs.locale(DAYJS_LOCALE_MAPPING[lang] ?? lang);
         } catch (err) {
           logging.warn(
             'Failed to fetch language pack, falling back to default.',
@@ -115,9 +122,6 @@ export default function initPreamble(): Promise<void> {
         }
       }
     }
-
-    // Continue with rest of setup
-    initFeatureFlags(bootstrapData.common.feature_flags);
 
     setupColors(
       bootstrapData.common.extra_categorical_color_schemes,

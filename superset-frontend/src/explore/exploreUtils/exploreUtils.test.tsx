@@ -23,15 +23,48 @@ import {
   getExploreUrl,
   getSimpleSQLExpression,
   getQuerySettings,
+  mountExploreUrl,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
+  getChartBuildQueryRegistry,
   QueryFormData,
   SupersetClient,
 } from '@superset-ui/core';
+import { buildQuery as buildTableQuery } from '../../../plugins/plugin-chart-table/src/buildQuery';
+
+test('shared chart request producer rebuilds saved semantic Table without saving', async () => {
+  const viz = 'semantic_table_dormant_grain_test';
+  const registry = getChartBuildQueryRegistry();
+  registry.registerValue(viz, buildTableQuery);
+  const post = jest.spyOn(SupersetClient, 'post');
+  const put = jest.spyOn(SupersetClient, 'put');
+  const formData = Object.freeze({
+    viz_type: viz,
+    datasource: '2__semantic_view',
+    slice_id: 17,
+    metrics: ['orders'],
+    groupby: [],
+    time_grain_sqla: 'P1D',
+    extra_form_data: Object.freeze({ time_grain_sqla: 'P1M' }),
+  });
+  try {
+    const payload = await buildV1ChartDataPayload({ formData });
+    expect(payload.queries[0].extras).not.toHaveProperty('time_grain_sqla');
+    expect(payload.form_data).toMatchObject(formData);
+    expect(formData.time_grain_sqla).toBe('P1D');
+    expect(formData.extra_form_data.time_grain_sqla).toBe('P1M');
+    expect(post).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  } finally {
+    post.mockRestore();
+    put.mockRestore();
+    registry.remove(viz);
+  }
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('exploreUtils', () => {
@@ -270,6 +303,30 @@ describe('exploreUtils', () => {
 
       exploreChart({ ...formData, viz_type: 'my_custom_viz' });
       expect(postFormSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('.mountExploreUrl() standalone mode', () => {
+    // Explore calls history.replace with this URL after interactions. Writing
+    // HideNav unconditionally downgraded mode 2 to mode 1 on the first click,
+    // collapsing the editor to a bare chart.
+    test('preserves a caller-supplied mode 2', () => {
+      expect(mountExploreUrl('standalone', { standalone: 2 })).toContain(
+        'standalone=2',
+      );
+    });
+
+    test('keeps mode 1 as mode 1', () => {
+      expect(mountExploreUrl('standalone', { standalone: 1 })).toContain(
+        'standalone=1',
+      );
+    });
+
+    test('falls back to HideNav when the caller supplies nothing', () => {
+      expect(mountExploreUrl('standalone')).toContain(
+        `standalone=${DashboardStandaloneMode.HideNav}`,
+      );
     });
   });
 });

@@ -23,8 +23,56 @@ import {
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import type { ActivityRecord, SaveGroup } from './types';
+import type { ActivityRecord, SaveGroup, VersionedEntityType } from './types';
 import SaveGroupItem, { SaveGroupItemProps } from './SaveGroupItem';
+import ActionRow from './ActionRow';
+
+test.each(['chart', 'field'])(
+  '%s activity without a snapshot is inert and explains why',
+  async kind => {
+    const record: ActivityRecord = {
+      version_uuid: null,
+      entity_kind: 'dashboard',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'Dashboard',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind,
+      operation: 'add',
+      path: [],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const onPreview = jest.fn();
+    render(
+      <ActionRow
+        record={record}
+        isHighlighted={false}
+        isLast
+        onPreview={onPreview}
+      />,
+    );
+    const row = screen.getByTestId('version-history-action-row');
+    expect(row).not.toHaveAttribute('role');
+    expect(row).not.toHaveAttribute('tabindex');
+    expect(row).toHaveStyle({ cursor: 'default' });
+    expect(row).not.toHaveStyleRule('background-color', expect.any(String), {
+      target: ':hover',
+    });
+    expect(screen.getByText('No saved version to preview')).toBeVisible();
+    await userEvent.click(row);
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onPreview).not.toHaveBeenCalled();
+  },
+);
 
 const makeGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup => ({
   type: 'group',
@@ -45,6 +93,7 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       isCurrent={false}
       canRestore
       isHighlighted={false}
+      marksCurrentState={false}
       onPreview={jest.fn()}
       onExitPreview={jest.fn()}
       onRestore={jest.fn()}
@@ -57,6 +106,24 @@ const groupBackground = (root: HTMLElement) =>
   getComputedStyle(within(root).getByTestId('version-history-save-group'))
     .backgroundColor;
 
+test.each<VersionedEntityType>(['chart', 'dashboard'])(
+  '%s saves without snapshots omit the creation preview and version menu',
+  entityType => {
+    renderItem({
+      entityType,
+      group: makeGroup({ versionUuid: null, creationKind: 'created' }),
+    });
+    expect(screen.getByTestId('version-history-save-group')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /preview/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'More actions' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+  },
+);
+
 test('a highlighted group carries the active treatment; a resting one does not', () => {
   // Which single group is highlighted is the panel's decision (see the
   // exclusivity test in VersionHistoryPanel.test.tsx); this component's
@@ -67,23 +134,30 @@ test('a highlighted group carries the active treatment; a resting one does not',
   expect(groupBackground(highlighted)).not.toBe(groupBackground(resting));
 });
 
-test('group icons are semantic: check-circle for current, save for history', () => {
+test('every dated save uses the save icon and no Current tag, the live one included', () => {
   const { container: current } = renderItem({ isCurrent: true });
   const { container: historical } = renderItem();
 
-  expect(
-    within(current).getByRole('img', { name: 'check-circle' }),
-  ).toBeInTheDocument();
-  expect(
-    within(current).queryByRole('img', { name: 'save' }),
-  ).not.toBeInTheDocument();
+  for (const container of [current, historical]) {
+    expect(within(container).getByRole('img', { name: 'save' })).toBeVisible();
+    expect(
+      within(container).queryByRole('img', { name: 'check-circle' }),
+    ).not.toBeInTheDocument();
+    expect(within(container).queryByText('Current')).not.toBeInTheDocument();
+  }
+});
 
-  expect(
-    within(historical).getByRole('img', { name: 'save' }),
-  ).toBeInTheDocument();
-  expect(
-    within(historical).queryByRole('img', { name: 'check-circle' }),
-  ).not.toBeInTheDocument();
+test('a latest save with no records has a text label without a focusable no-op header', () => {
+  const { container } = renderItem({
+    isCurrent: true,
+    marksCurrentState: true,
+  });
+
+  expect(within(container).getByText('Latest save')).toBeVisible();
+  expect(within(container).getAllByRole('button')).toEqual([
+    within(container).getByRole('button', { name: 'More actions' }),
+  ]);
+  expect(container.querySelector('[aria-current]')).not.toBeInTheDocument();
 });
 
 test('rows of the highlighted group show the active timeline dot', () => {
@@ -218,3 +292,147 @@ test('an empty group with no creationKind gets no preview affordance', () => {
     screen.queryByRole('button', { name: 'Preview this version' }),
   ).not.toBeInTheDocument();
 });
+
+test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
+  { entityType: 'chart', isCurrent: false },
+  { entityType: 'chart', isCurrent: true },
+  { entityType: 'dashboard', isCurrent: false },
+  { entityType: 'dashboard', isCurrent: true },
+])(
+  '$entityType change rows preview without duplicating group actions (current: $isCurrent)',
+  async ({ entityType, isCurrent }) => {
+    const records: ActivityRecord[] = ['metrics', 'filters'].map(kind => ({
+      version_uuid: 'version-uuid',
+      entity_kind: entityType,
+      entity_uuid: 'entity-uuid',
+      entity_name: 'Example',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind,
+      operation: 'update',
+      path: [kind],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    }));
+    const group = makeGroup({ records });
+    const onPreview = jest.fn();
+    const onExitPreview = jest.fn();
+    const onOpenAsNew = jest.fn();
+    const onRestore = jest.fn();
+    renderItem({
+      entityType,
+      isCurrent,
+      group,
+      onPreview,
+      onExitPreview,
+      onOpenAsNew,
+      onRestore,
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Aug 31, 2026/ }));
+    const rows = screen.getAllByTestId('version-history-action-row');
+    expect(rows).toHaveLength(2);
+    rows.forEach(row => {
+      expect(
+        within(row).queryByRole('button', { name: 'More actions' }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getAllByRole('button', { name: 'More actions' }),
+    ).toHaveLength(1);
+
+    await userEvent.click(rows[0]);
+    rows[1].focus();
+    fireEvent.keyDown(rows[1], { key: 'Enter' });
+    fireEvent.keyDown(rows[1], { key: ' ' });
+    if (isCurrent) {
+      expect(onExitPreview).toHaveBeenCalledTimes(3);
+      expect(onPreview).not.toHaveBeenCalled();
+    } else {
+      expect(onPreview).toHaveBeenCalledTimes(3);
+      expect(onPreview).toHaveBeenLastCalledWith(group);
+      expect(onExitPreview).not.toHaveBeenCalled();
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    if (isCurrent) {
+      expect(
+        screen.queryByRole('menuitem', { name: 'Restore this version' }),
+      ).not.toBeInTheDocument();
+    } else {
+      expect(
+        screen.getByRole('menuitem', { name: 'Restore this version' }),
+      ).toBeInTheDocument();
+    }
+    await userEvent.click(
+      screen.getByRole('menuitem', { name: `Open as new ${entityType}` }),
+    );
+    expect(onOpenAsNew).toHaveBeenCalledTimes(1);
+    expect(onOpenAsNew).toHaveBeenCalledWith(group);
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(onPreview).toHaveBeenCalledTimes(isCurrent ? 0 : 3);
+    expect(onExitPreview).toHaveBeenCalledTimes(isCurrent ? 3 : 0);
+    expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(2);
+  },
+);
+
+test.each([false, true])(
+  'latest-save metadata describes its header independently of aria-current (%s)',
+  marksCurrentState => {
+    const record: ActivityRecord = {
+      version_uuid: 'version-uuid',
+      entity_kind: 'chart',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'My chart',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind: 'metrics',
+      operation: 'update',
+      path: ['metrics'],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const group = makeGroup({
+      records: [record],
+      changedBy: { id: 1, first_name: 'Ada', last_name: 'Lovelace' },
+    });
+    const { container: latest } = renderItem({
+      group,
+      isCurrent: true,
+      marksCurrentState,
+    });
+    const { container: historical } = renderItem({ group });
+    const latestHeader = within(latest).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+    const historicalHeader = within(historical).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+
+    expect(latestHeader).toHaveAccessibleDescription(
+      /Latest save · Ada Lovelace · 8\/31\/2026/,
+    );
+    expect(historicalHeader).toHaveAccessibleDescription(
+      /^Ada Lovelace · 8\/31\/2026/,
+    );
+    if (marksCurrentState) {
+      expect(latestHeader).toHaveAttribute('aria-current', 'true');
+    } else {
+      expect(latestHeader).not.toHaveAttribute('aria-current');
+    }
+  },
+);
