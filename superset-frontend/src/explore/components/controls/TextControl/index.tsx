@@ -122,9 +122,13 @@ function TextControl<T extends InputValueType = InputValueType>({
   const latestTypedRef = useRef<string | null>(null);
   const debouncedEmitRef = useRef(
     debounce((inputValue: string) => {
-      if (latestTypedRef.current === inputValue) {
-        latestTypedRef.current = null;
+      // A newer keystroke (or an external reset) has superseded this value;
+      // emitting it would echo back through the prop-sync branch and wipe the
+      // newer text.
+      if (latestTypedRef.current !== inputValue) {
+        return;
       }
+      latestTypedRef.current = null;
       handleChangeRef.current(inputValue);
     }, Constants.FAST_DEBOUNCE),
   );

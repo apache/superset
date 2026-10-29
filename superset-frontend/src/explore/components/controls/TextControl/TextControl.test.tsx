@@ -27,6 +27,23 @@ import {
 } from 'spec/helpers/testing-library';
 import TextControl from '.';
 
+// Lets a test hold `useDeferredValue` at a fixed value to reproduce the
+// deferred render lagging behind the raw input.
+const mockDeferred: { held: boolean; value: unknown } = {
+  held: false,
+  value: null,
+};
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useDeferredValue: (value: unknown) =>
+    mockDeferred.held ? mockDeferred.value : value,
+}));
+
+afterEach(() => {
+  mockDeferred.held = false;
+  mockDeferred.value = null;
+});
+
 const mockedProps = {
   disabled: false,
   isFloat: false,
@@ -173,10 +190,13 @@ test('should coalesce a burst of keystrokes into one onChange with the settled v
   expect(onChange).toHaveBeenCalledWith('120', []);
 });
 
-test('should flush the latest typed value on blur before the debounce fires', () => {
+test('should flush the latest typed value on blur while the deferred value lags', () => {
   jest.useFakeTimers();
   try {
     const onChange = jest.fn();
+    // the deferred value never catches up with the raw input
+    mockDeferred.held = true;
+    mockDeferred.value = null;
     render(<TextControl {...mockedProps} value="" onChange={onChange} />);
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'abc' } });
@@ -188,6 +208,37 @@ test('should flush the latest typed value on blur before the debounce fires', ()
       jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
     });
     expect(onChange).toHaveBeenCalledTimes(1);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('should not emit a superseded value when a newer keystroke lands before the timer fires', () => {
+  jest.useFakeTimers();
+  try {
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <TextControl {...mockedProps} value="" onChange={onChange} />,
+    );
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: '1' } });
+    // the deferred render for '12' has not committed when the timer fires
+    mockDeferred.held = true;
+    mockDeferred.value = '1';
+    fireEvent.change(input, { target: { value: '12' } });
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
+    });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('12')).toBeInTheDocument();
+
+    mockDeferred.held = false;
+    rerender(<TextControl {...mockedProps} value="" onChange={onChange} />);
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE * 2);
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('12', []);
   } finally {
     jest.useRealTimers();
   }
@@ -221,6 +272,10 @@ test('should not flush a stale edit on blur after an external reset', () => {
     );
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: '12' } });
+    // hold the deferred value at '12' across the reset so the deferred-null
+    // effect cannot cancel the queued edit; only blur/the emit guard can
+    mockDeferred.held = true;
+    mockDeferred.value = '12';
     rerender(<TextControl {...mockedProps} value="9" onChange={onChange} />);
     fireEvent.blur(input);
     act(() => {
