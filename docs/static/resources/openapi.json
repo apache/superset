@@ -95,6 +95,7 @@
                           "UNKNOWN_DATASOURCE_TYPE_ERROR",
                           "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
                           "TABLE_SECURITY_ACCESS_ERROR",
+                          "SEMANTIC_EXECUTION_REFUSED_ERROR",
                           "DATASOURCE_SECURITY_ACCESS_ERROR",
                           "DATABASE_SECURITY_ACCESS_ERROR",
                           "QUERY_SECURITY_ACCESS_ERROR",
@@ -1245,6 +1246,11 @@
             ],
             "type": "string"
           },
+          "semantic_selection_version": {
+            "description": "Identity encoding used for semantic member selections.",
+            "nullable": true,
+            "type": "string"
+          },
           "time_grain_sqla": {
             "description": "To what level of granularity should the temporal column be aggregated. Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
@@ -1986,6 +1992,17 @@
             "description": "Amount of rows in result set",
             "type": "integer"
           },
+          "semantic_cache_status": {
+            "description": "Semantic containment cache provenance of this query: HIT when every semantic query behind it was served from containment, MISS when none was, MIXED when only some were (for example a time-comparison offset).",
+            "enum": [
+              "HIT",
+              "MISS",
+              "MIXED",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "stacktrace": {
             "description": "Stacktrace if there was an error",
             "nullable": true,
@@ -2398,8 +2415,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2439,8 +2484,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2513,8 +2586,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2591,8 +2692,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3305,8 +3434,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3346,8 +3503,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3420,8 +3605,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3498,8 +3711,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3686,7 +3927,7 @@
       "CurrentUserPutSchema": {
         "properties": {
           "current_password": {
-            "description": "The current user's existing password",
+            "description": "The current user's existing password; required when the account has one",
             "type": "string",
             "writeOnly": true
           },
@@ -3703,7 +3944,7 @@
             "type": "string"
           },
           "password": {
-            "description": "The current user's password for authentication",
+            "description": "The current user's new password; requires current_password when the account already has one",
             "type": "string"
           }
         },
@@ -3824,6 +4065,11 @@
           "json_metadata": {
             "description": "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter  specific parameters.",
             "type": "string"
+          },
+          "replace_metadata": {
+            "default": false,
+            "description": "Use json_metadata as the complete copy settings instead of merging with the source dashboard's settings. Defaults to false. Chart-specific settings are pruned and remapped in both modes.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3838,6 +4084,16 @@
           },
           "cache_timeout": {
             "type": "integer"
+          },
+          "chart_display_labels": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "description": "Display labels keyed by member chart ID, then by the raw column or metric ID that chart uses. Only charts the caller can access and labels configured for their saved dimensions and metrics are included; omitted for semantic views, when there are none, or when the caller has datasource access and already receives verbose_map.",
+            "type": "object"
           },
           "column_formats": {
             "type": "object"
@@ -3911,6 +4167,10 @@
           "main_dttm_col": {
             "type": "string"
           },
+          "metadata_error": {
+            "description": "Validation error for this dataset only.",
+            "type": "string"
+          },
           "metrics": {
             "items": {
               "type": "object"
@@ -3940,6 +4200,18 @@
           },
           "parent": {
             "type": "object"
+          },
+          "partition_column": {
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_filter_mapping": {
+            "nullable": true,
+            "type": "object"
+          },
+          "partition_mapped_column": {
+            "nullable": true,
+            "type": "string"
           },
           "perm": {
             "type": "string"
@@ -4460,8 +4732,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the dashboard.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the dashboard.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4504,8 +4804,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the dashboard.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the dashboard.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           }
@@ -4543,9 +4871,37 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the dashboard.",
+              "description": "Subject IDs or explicit principal references that can alter the dashboard.",
               "nullable": true,
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4599,9 +4955,37 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the dashboard.",
+              "description": "Subject IDs or explicit principal references that can view the dashboard.",
               "nullable": true,
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           }
@@ -4807,6 +5191,93 @@
         },
         "type": "object"
       },
+      "DatabaseOAuth2TokensDeleteSchema": {
+        "properties": {
+          "token_ids": {
+            "items": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "token_ids"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get_list": {
+        "properties": {
+          "access_token_expiration": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DatabaseOAuth2TokensRestApi.get_list.User"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get_list.User": {
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.put": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "DatabaseRelatedChart": {
         "properties": {
           "id": {
@@ -4870,6 +5341,36 @@
         },
         "type": "object"
       },
+      "DatabaseRelatedDataset": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseRelatedDatasets": {
+        "properties": {
+          "count": {
+            "description": "Dataset count",
+            "type": "integer"
+          },
+          "result": {
+            "description": "A list of datasets",
+            "items": {
+              "$ref": "#/components/schemas/DatabaseRelatedDataset"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "DatabaseRelatedObjectsResponse": {
         "properties": {
           "charts": {
@@ -4877,6 +5378,9 @@
           },
           "dashboards": {
             "$ref": "#/components/schemas/DatabaseRelatedDashboards"
+          },
+          "datasets": {
+            "$ref": "#/components/schemas/DatabaseRelatedDatasets"
           }
         },
         "type": "object"
@@ -5804,6 +6308,14 @@
             "nullable": true,
             "type": "string"
           },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "column_name": {
             "maxLength": 255,
             "minLength": 1,
@@ -5840,9 +6352,24 @@
             "nullable": true,
             "type": "boolean"
           },
+          "is_certified": {
+            "nullable": true,
+            "type": "boolean"
+          },
           "is_dttm": {
             "nullable": true,
             "type": "boolean"
+          },
+          "partition_transform_is_monotonic": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "partition_value_transform": {
+            "description": "SQL expression containing a :value placeholder. Filters on this column are mirrored onto the dataset's partition column with the value passed through this transform.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
           },
           "python_date_format": {
             "maxLength": 255,
@@ -5860,6 +6387,10 @@
             "type": "string"
           },
           "verbose_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_markdown": {
             "nullable": true,
             "type": "string"
           }
@@ -5967,6 +6498,14 @@
       },
       "DatasetMetricsPut": {
         "properties": {
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "currency": {
             "allOf": [
               {
@@ -5995,6 +6534,10 @@
           "id": {
             "type": "integer"
           },
+          "is_certified": {
+            "nullable": true,
+            "type": "boolean"
+          },
           "metric_name": {
             "maxLength": 255,
             "minLength": 1,
@@ -6012,6 +6555,10 @@
             "type": "string"
           },
           "verbose_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_markdown": {
             "nullable": true,
             "type": "string"
           },
@@ -6317,6 +6864,22 @@
           "order_by_choices": {
             "readOnly": true
           },
+          "partition_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_filter_mapping": {
+            "readOnly": true
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_value_transform_default": {
+            "readOnly": true
+          },
           "schema": {
             "maxLength": 255,
             "nullable": true,
@@ -6545,6 +7108,14 @@
             "nullable": true,
             "type": "boolean"
           },
+          "partition_transform_is_monotonic": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "partition_value_transform": {
+            "nullable": true,
+            "type": "string"
+          },
           "python_date_format": {
             "maxLength": 255,
             "nullable": true,
@@ -6769,7 +7340,35 @@
           },
           "editors": {
             "items": {
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -6784,6 +7383,18 @@
           "normalize_columns": {
             "default": false,
             "type": "boolean"
+          },
+          "partition_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           },
           "schema": {
             "maxLength": 250,
@@ -6857,7 +7468,35 @@
           },
           "editors": {
             "items": {
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -6910,6 +7549,18 @@
           "offset": {
             "nullable": true,
             "type": "integer"
+          },
+          "partition_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           },
           "schema": {
             "maxLength": 255,
@@ -7054,6 +7705,12 @@
               "arrow"
             ]
           },
+          "semantic_selection_version": {
+            "default": null,
+            "description": "Identity version from datasource metadata, after selecting its current metric and dimension IDs. Never infer legacy IDs.",
+            "nullable": true,
+            "type": "string"
+          },
           "time_column": {
             "default": null,
             "description": "Temporal column the time range applies to. Inferred from the datasource when omitted.",
@@ -7190,6 +7847,10 @@
               }
             ],
             "description": "Characters used to quote identifiers for this dialect"
+          },
+          "oauth2_enabled": {
+            "description": "OAuth2 authentication is enabled on this connection",
+            "type": "boolean"
           },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
@@ -7829,6 +8490,98 @@
             "nullable": true
           }
         },
+        "type": "object"
+      },
+      "PartitionMappingPreviewSchema": {
+        "properties": {
+          "is_monotonic": {
+            "default": false,
+            "description": "Whether the owner has declared the transform order-preserving. Range operators only mirror when they have.",
+            "type": "boolean"
+          },
+          "mapped_column": {
+            "description": "Column whose filters would be mirrored",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operator": {
+            "default": "==",
+            "description": "Filter operator being mirrored. Only operators the preview can construct are accepted: TEMPORAL_RANGE is mirrored by the query path as two bounds decomposed from a since/until pair, which this request has no way to express.",
+            "enum": [
+              "<",
+              "<=",
+              "==",
+              ">",
+              ">=",
+              "IN"
+            ],
+            "type": "string"
+          },
+          "partition_column": {
+            "default": null,
+            "description": "Candidate partition column. The editor previews a mapping before it is saved, so this overrides the stored value; omitted, the stored one is used.",
+            "maxLength": 250,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "sample_values": {
+            "description": "Values to evaluate the transform at. A comparison operator takes one; IN takes the whole list.",
+            "items": {
+              "maxLength": 250,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          },
+          "value_transform": {
+            "description": "SQL expression containing a :value placeholder",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mapped_column",
+          "sample_values",
+          "value_transform"
+        ],
+        "type": "object"
+      },
+      "PasswordRecoveryRequestSchema": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "PasswordRecoveryResetSchema": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "token"
+        ],
         "type": "object"
       },
       "PermissionApi.get": {
@@ -8506,6 +9259,74 @@
         },
         "type": "object"
       },
+      "ReportConfigImpactedSchema": {
+        "properties": {
+          "detail": {
+            "description": "The offending e-mail address or crontab",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "description": "Either 'recipient' or 'frequency'",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReportConfigurationSchema": {
+        "properties": {
+          "alert_minimum_interval": {
+            "description": "Minimum interval between alert executions, in seconds. Values below 120 do not restrict schedules. Falls back to ALERT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "alerts_attach_reports": {
+            "description": "Whether alerts deliver their attachment (screenshot, PDF, CSV or XLSX). When disabled, alerts only send the message and link. Falls back to the FF until a row has first been saved.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "allowed_email_domains": {
+            "description": "E-mail domains accepted as recipients. An empty list allows any domain.",
+            "example": [
+              "example.com",
+              "superset.com"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "date_format_in_email_subject": {
+            "description": "Render strftime date placeholders in email subjects. Falls back to the DATE_FORMAT_IN_EMAIL_SUBJECT FF until first saved.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "limit_recipients_to_users": {
+            "description": "When enabled, only e-mail addresses of existing active users are accepted as recipients.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "report_minimum_interval": {
+            "description": "Minimum interval between report executions, in seconds. Values below 120 do not restrict schedules. Falls back to REPORT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ReportExecutionLogRestApi.get": {
         "properties": {
           "end_dttm": {
@@ -8765,6 +9586,22 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_alert_query_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User"
+          },
+          "run_alert_query_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User1"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -8886,6 +9723,46 @@
         ],
         "type": "object"
       },
+      "ReportScheduleRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "ReportScheduleRestApi.get_list": {
         "properties": {
           "active": {
@@ -8984,6 +9861,14 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -9072,6 +9957,14 @@
         ],
         "type": "object"
       },
+      "ReportScheduleRestApi.get_list.User2": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ReportScheduleRestApi.post": {
         "properties": {
           "active": {
@@ -9122,8 +10015,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the report.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the report.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -9170,12 +10091,14 @@
             "type": "array"
           },
           "report_format": {
+            "description": "Attachment format. NONE disables attachments for alerts and makes chart/dashboard optional. Omitted attachment settings are preserved on update.",
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "XLSX",
-              "TEXT"
+              "TEXT",
+              "NONE"
             ],
             "type": "string"
           },
@@ -9201,6 +10124,34 @@
             "default": false,
             "description": "Enable automatic retries on report failure",
             "type": "boolean"
+          },
+          "run_alert_query_as": {
+            "description": "ID of the user whose credentials are used when running the alert condition SQL query, useful when the audience of the alert does not have access to the database. Null inherits the content executor at execution time.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_alert_query_as_type": {
+            "description": "Alert query executor type; null inherits run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "description": "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) are used when rendering the content (screenshot, PDF, CSV, XLSX or text). Admins can set any active user; non-admins can only set themselves. Onlyhonored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_as_type": {
+            "description": "Explicit executor type; fixed_user requires run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "send_failed_reports": {
             "default": false,
@@ -9900,8 +10851,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the report.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the report.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -9947,12 +10926,14 @@
             "type": "array"
           },
           "report_format": {
+            "description": "Attachment format. NONE disables attachments for alerts and makes chart/dashboard optional. Omitted attachment settings are preserved on update.",
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "XLSX",
-              "TEXT"
+              "TEXT",
+              "NONE"
             ],
             "type": "string"
           },
@@ -9974,6 +10955,34 @@
           "retry_on_failure": {
             "description": "Enable automatic retries on report failure",
             "type": "boolean"
+          },
+          "run_alert_query_as": {
+            "description": "ID of the user whose credentials are used when running the alert condition SQL query, useful when the audience of the alert does not have access to the database. Null inherits the content executor at execution time.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_alert_query_as_type": {
+            "description": "Alert query executor type; null inherits run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "description": "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) are used when rendering the content (screenshot, PDF, CSV, XLSX or text). Admins can set any active user; non-admins can only set themselves. Onlyhonored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_as_type": {
+            "description": "Explicit executor type; fixed_user requires run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "send_failed_reports": {
             "description": "Send the failed report to all recipients after retries are exhausted",
@@ -11263,6 +12272,43 @@
         },
         "type": "object"
       },
+      "SemanticViewRestApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.put": {
+        "properties": {
+          "cache_timeout": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Slice": {
         "properties": {
           "cache_timeout": {
@@ -11386,6 +12432,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "SubjectResponse": {
@@ -18901,6 +19950,7 @@
     },
     "/api/v1/dashboard/{id_or_slug}/copy/": {
       "post": {
+        "description": "Settings merge with the source by default. Set replace_metadata to true to use json_metadata as complete settings, as for a version fork. Chart-specific settings are pruned and remapped in both modes.",
         "parameters": [
           {
             "description": "The dashboard id or slug",
@@ -18952,6 +20002,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -19699,7 +20752,7 @@
     },
     "/api/v1/dashboard/{pk}/export_as_example/": {
       "get": {
-        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files.",
+        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files. Charts and native-filter targets that use semantic views are not supported.",
         "parameters": [
           {
             "description": "The dashboard id",
@@ -19748,6 +20801,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "The dashboard contains unsupported semantic-view assets"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -21039,6 +22095,21 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A chart the restore was linking or unlinking was permanently deleted while the restore ran. Nothing was changed; retry the same request."
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -22300,6 +23371,186 @@
           }
         ],
         "summary": "Get function names supported by a database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "items": {
+                        "$ref": "#/components/schemas/DatabaseOAuth2TokensRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Paginated OAuth2 credential metadata"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List OAuth2 credential metadata for a database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/all/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All OAuth2 credentials deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete all OAuth2 access and refresh tokens  for a DB connection.",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/delete/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatabaseOAuth2TokensDeleteSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth2 credentials deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete OAuth2 access and refresh tokens for a DB connection.",
         "tags": [
           "Database"
         ]
@@ -24533,6 +25784,121 @@
         ]
       }
     },
+    "/api/v1/dataset/{pk}/partition_mapping/preview/": {
+      "post": {
+        "description": "Evaluate a partition value transform at sample values and return the predicate that would be appended to queries. The predicate is built by the same code the query path uses, so the preview cannot drift from what a chart emits. Parse and denylist checks run before anything reaches the engine, so an unparseable transform costs no query.",
+        "parameters": [
+          {
+            "description": "The dataset ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartitionMappingPreviewSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "emitted_predicate": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "description": "Why the mapping is not valid. Absent when it is. The editor branches on this to decide how to present the failure.",
+                          "enum": [
+                            "unconfigured",
+                            "validation",
+                            "parse",
+                            "operator",
+                            "resolution",
+                            "offset",
+                            "escaping",
+                            "transform_escaping",
+                            "engine",
+                            "type"
+                          ],
+                          "type": "string"
+                        },
+                        "sample_input": {
+                          "type": "string"
+                        },
+                        "valid": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Preview result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many preview requests for this dataset"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Preview a partition filter mapping",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
     "/api/v1/dataset/{pk}/refresh": {
       "put": {
         "parameters": [
@@ -25258,9 +26624,17 @@
             }
           },
           {
-            "description": "Optional case-insensitive substring; only values containing it are returned. Lets the client search the full column rather than the truncated first page.",
+            "description": "Optional substring search for SQL dataset columns and text semantic dimensions. Semantic non-text dimensions return the bounded page without server-side search. Case sensitivity follows the datasource or semantic provider.",
             "in": "query",
             "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Identity version from the saved or explicitly initialized field selections. Required for versioned semantic views; never infer it from current datasource metadata for legacy selections.",
+            "in": "query",
+            "name": "semantic_selection_version",
             "schema": {
               "type": "string"
             }
@@ -25293,6 +26667,13 @@
                         ]
                       },
                       "type": "array"
+                    },
+                    "suggestions_status": {
+                      "description": "Selection provenance is missing or stale for this versioned semantic view; reselect fields or enter values manually.",
+                      "enum": [
+                        "unavailable_versioned_view"
+                      ],
+                      "type": "string"
                     }
                   },
                   "type": "object"
@@ -26998,6 +28379,9 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "422": {
+            "description": "Query already finished or target transaction committed; includes the recorded query\\n"
+          },
           "500": {
             "$ref": "#/components/responses/500"
           }
@@ -27501,6 +28885,125 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+        "tags": [
+          "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/report/configuration/": {
+      "get": {
+        "description": "Returns the values in effect for every setting: the stored value when an admin saved one, otherwise the legacy application config or feature flag fallback.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReportConfigurationSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Alerts & Reports configuration"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the global Alerts & Reports configuration",
+        "tags": [
+          "Report Schedules"
+        ]
+      },
+      "put": {
+        "description": "Admin only. Absent fields keep their value and ``null`` clears a field without restoring its legacy fallback. Recipient restrictions and minimum intervals are validated against existing alerts/reports. When any conflicts, the configuration is not saved and the impacted schedules are returned.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportConfigurationSchema"
+              }
+            }
+          },
+          "description": "Alerts & Reports configuration",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReportConfigurationSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Configuration updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "impacted_schedules": {
+                      "items": {
+                        "$ref": "#/components/schemas/ReportConfigImpactedSchema"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Existing schedules conflict with the configuration"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update the global Alerts & Reports configuration",
         "tags": [
           "Report Schedules"
         ]
@@ -30162,6 +31665,110 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/": {
+      "post": {
+        "description": "Emails a single-use password reset link if the address belongs to an active account with a local password. The response is the same whether or not it does.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryRequestSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request accepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Request a password reset link",
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/reset/": {
+      "post": {
+        "description": "Consumes the single-use token from a password reset link and sets the account's new password. Every existing browser session for the account is signed out.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryResetSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Password reset"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The new password was rejected (``message.password``) or the token is invalid, expired or already used (``message.token``)"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Reset a password with a recovery token",
         "tags": [
           "Security"
         ]
@@ -33431,6 +35038,975 @@
         ],
         "tags": [
           "Security Users"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "A list of semantic layers"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List all semantic layers",
+        "tags": [
+          "Semantic Layers"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cache_timeout": {
+                    "type": "integer"
+                  },
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Semantic layer created"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/connections/": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Combined list of databases and semantic layers"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List databases and semantic layers combined",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/schema/configuration": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration JSON Schema"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get configuration schema for a semantic layer type",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/types": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "A list of semantic layer types"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List available semantic layer types",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Semantic layer deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count",
+                    "archived_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic layer has dependent assets"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A semantic layer"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a semantic layer by UUID",
+        "tags": [
+          "Semantic Layers"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cache_timeout": {
+                    "type": "integer"
+                  },
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Semantic layer updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/clear_cache": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cache cleared; reload to fetch metadata"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Clear a semantic layer's cache",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/schema/runtime": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_data": {
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Runtime JSON Schema"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get runtime schema for a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/views": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_data": {
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Available views"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List available views from a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_view/": {
+      "delete": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic views deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count",
+                    "archived_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A semantic view has dependent assets"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Bulk delete semantic views",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "views": {
+                    "description": "At most SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS views. Views not validated within SEMANTIC_VIEW_BULK_CREATE_TIMEOUT seconds are reported with error_type TIMEOUT.",
+                    "items": {
+                      "properties": {
+                        "cache_timeout": {
+                          "type": "integer"
+                        },
+                        "configuration": {
+                          "type": "object"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "semantic_layer_uuid": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Semantic views created"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create semantic views",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      }
+    },
+    "/api/v1/semantic_view/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Semantic view deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count",
+                    "archived_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view has dependent assets"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a semantic view",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SemanticViewRestApi.put"
+              }
+            }
+          },
+          "description": "Semantic view schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SemanticViewRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a semantic view",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      }
+    },
+    "/api/v1/semantic_view/{pk}/structure": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Semantic view structure"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get semantic view structure",
+        "tags": [
+          "SemanticViewRestApi"
         ]
       }
     },

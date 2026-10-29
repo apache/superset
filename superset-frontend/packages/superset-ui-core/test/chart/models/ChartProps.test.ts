@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Behavior, ChartProps } from '@superset-ui/core';
+import { Behavior, CategoricalColorScale, ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 
 const RAW_FORM_DATA = {
@@ -149,4 +149,39 @@ describe('ChartProps', () => {
       expect(props1).toBe(props3);
     });
   });
+});
+
+test('preserves an optional shared color scale through construction and selector updates', () => {
+  const colorScale = new CategoricalColorScale(['#112233', '#445566']);
+  const config = { theme: supersetTheme, colorScale };
+  expect(new ChartProps(config).colorScale).toBe(colorScale);
+  expect(new ChartProps({ theme: supersetTheme }).colorScale).toBeUndefined();
+
+  const selector = ChartProps.createSelector();
+  const first = selector(config);
+  expect(first.colorScale).toBe(colorScale);
+  expect(selector({ ...config })).toBe(first);
+
+  const replacement = new CategoricalColorScale(['#778899']);
+  const next = selector({ ...config, colorScale: replacement });
+  expect(next).not.toBe(first);
+  expect(next.colorScale).toBe(replacement);
+  expect(
+    selector({ ...config, colorScale: undefined }).colorScale,
+  ).toBeUndefined();
+});
+
+test('camelizes chart display labels only at the datasource top level', () => {
+  const chartDisplayLabels = {
+    '12': { country_name: 'Country', sum__SP_POP_TOTL: 'Population' },
+  };
+  const datasource = { chart_display_labels: chartDisplayLabels };
+  const props = new ChartProps({ datasource, theme: supersetTheme });
+
+  expect(props.datasource.chartDisplayLabels).toBe(chartDisplayLabels);
+  expect(props.datasource.chartDisplayLabels?.['12']).toEqual({
+    country_name: 'Country',
+    sum__SP_POP_TOTL: 'Population',
+  });
+  expect(props.rawDatasource).toBe(datasource);
 });

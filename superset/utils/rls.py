@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-import hashlib
+from collections.abc import Callable
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
@@ -27,6 +27,7 @@ from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
 from superset.utils import json
 from superset.utils.core import get_user_id, remove_duplicates
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -47,11 +48,33 @@ def _get_cache_identity() -> str:
     """
     if guest_user := security_manager.get_current_guest_user_if_guest():
         rls_rules = guest_user.guest_token.get("rls_rules", [])
-        digest = hashlib.sha256(
-            json.dumps(rls_rules, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        digest = hash_from_str(
+            json.dumps(rls_rules, sort_keys=True), algorithm="sha256"
+        )
         return f"guest-{digest}"
     return str(get_user_id())
+
+
+def get_rls_schema(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    sql: str,
+    template_params: dict[str, Any] | None = None,
+) -> str:
+    """Qualify RLS tables with the execution schema, retaining unknown defaults.
+
+    Only dynamic-schema engines apply a query's schema to the connection. Other
+    engines discover it from connection parameters or the inspector. When discovery
+    returns no schema, keep the configured schema rather than losing its RLS rules.
+    """
+    if database.db_engine_spec.supports_dynamic_schema:
+        return schema or database.get_default_schema(catalog) or ""
+    return (
+        database.resolve_query_default_schema(sql, schema, catalog, template_params)
+        or schema
+        or ""
+    )
 
 
 def apply_rls(
@@ -69,11 +92,16 @@ def apply_rls(
         pass the virtual dataset's id here so its own RLS isn't injected again
         on top of the outer-WHERE application (avoids double-apply when the
         virtual dataset's table_name collides with a table in its own SQL — for
-        example, after converting a physical dataset with RLS to virtual).
+        example, after converting a physical dataset with RLS to virtual). Like
+        global guest rules, its RLS is still injected into tables read inside an
+        uncorrelated sub-query, which the outer query does not constrain.
     :param include_global_guest_rls: Also inject global (unscoped) guest RLS
         rules. Pass False only for a virtual dataset's inner SQL, whose outer
-        query already applies them. Any other statement, such as a SQL Lab query
-        or an adhoc sub-query, is not constrained by such an outer query.
+        query already applies them to the rows the inner SQL returns. They are
+        still injected into tables read inside an uncorrelated sub-query there,
+        since the outer query does not constrain those. Any other statement, such
+        as a SQL Lab query or an adhoc sub-query, is not constrained by such an
+        outer query.
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
@@ -81,26 +109,100 @@ def apply_rls(
     # safer, but not supported in all databases.
     method = database.db_engine_spec.get_rls_method()
 
-    # collect all RLS predicates for all tables in the query
-    default_catalog = database.get_default_catalog()
-    predicates: dict[Table, list[Any]] = {}
-    for table in parsed_statement.tables:
-        table = table.qualify(catalog=catalog, schema=schema)
-        predicates[table] = [
-            parsed_statement.parse_predicate(predicate)
-            for predicate in get_predicates_for_table(
+    predicates, subquery_predicates = get_rls_predicates(
+        database,
+        catalog,
+        schema,
+        parsed_statement,
+        database.get_default_catalog(),
+        exclude_dataset_id=exclude_dataset_id,
+        include_global_guest_rls=include_global_guest_rls,
+    )
+
+    def parse(rules: dict[Table, list[str]]) -> dict[Table, list[Any]]:
+        return {
+            table: [
+                parsed_statement.parse_predicate(predicate)
+                for predicate in table_predicates
+                if predicate
+            ]
+            for table, table_predicates in rules.items()
+        }
+
+    return parsed_statement.apply_rls(
+        catalog,
+        schema,
+        parse(predicates),
+        method,
+        None if subquery_predicates is None else parse(subquery_predicates),
+    )
+
+
+def get_rls_predicates(
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    parsed_statement: BaseSQLStatement[Any],
+    default_catalog: str | None,
+    exclude_dataset_id: int | None = None,
+    include_global_guest_rls: bool = True,
+) -> tuple[dict[Table, list[str]], dict[Table, list[str]] | None]:
+    """
+    The RLS predicates ``apply_rls`` injects into a statement, per qualified table.
+
+    Shared by ``apply_rls`` and the cache-key collector so a cached result is keyed
+    on exactly the rules its execution applied.
+
+    :returns: The rules for the statement's table reads, and the rules for reads
+        inside an uncorrelated sub-query when those differ (``None`` otherwise,
+        meaning sub-query reads get the first set). See ``apply_rls`` for the
+        parameters.
+    """
+
+    def collect_predicates(
+        include_global: bool, exclude_id: int | None
+    ) -> dict[Table, list[str]]:
+        predicates: dict[Table, list[str]] = {}
+        for table in parsed_statement.tables:
+            table = table.qualify(catalog=catalog, schema=schema)
+            predicates[table] = get_predicates_for_table(
                 table,
                 database,
                 default_catalog,
-                exclude_dataset_id=exclude_dataset_id,
-                include_global_guest_rls=include_global_guest_rls,
+                exclude_dataset_id=exclude_id,
+                include_global_guest_rls=include_global,
             )
-            if predicate
-        ]
+        return predicates
 
-    has_predicates = any(predicates.values())
-    parsed_statement.apply_rls(catalog, schema, predicates, method)
-    return has_predicates
+    predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)
+    # The outer query only constrains the rows that reach it, so a table read
+    # inside an uncorrelated sub-query still gets the rules left to the outer
+    # query: the global guest rules and the excluded dataset's own RLS. The
+    # second lookup is skipped when neither applies: only a guest token carries
+    # global guest rules, and most virtual datasets have no RLS of their own.
+    needs_subquery_predicates = parsed_statement.has_subquery() and (
+        (
+            not include_global_guest_rls
+            and security_manager.get_current_guest_user_if_guest() is not None
+        )
+        or (exclude_dataset_id is not None and _dataset_has_rls(exclude_dataset_id))
+    )
+    subquery_predicates = (
+        collect_predicates(True, None) if needs_subquery_predicates else None
+    )
+    return predicates, subquery_predicates
+
+
+def _dataset_has_rls(dataset_id: int) -> bool:
+    """
+    Does the dataset have RLS predicates for the current user?
+
+    :param dataset_id: The dataset's id
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    dataset = db.session.get(SqlaTable, dataset_id)
+    return dataset is not None and bool(dataset.get_sqla_row_level_filters())
 
 
 def _identifier_predicate(column: Any, value: str | None, fold: bool) -> Any:
@@ -121,7 +223,7 @@ def _identifiers_match(left: str | None, right: str | None, fold: bool) -> bool:
     return left == right
 
 
-def _find_datasets(
+def find_datasets(
     table: Table,
     database: Database,
     default_catalog: str | None,
@@ -204,7 +306,7 @@ def get_predicates_for_table(
     :param include_global_guest_rls: Also return global (unscoped) guest RLS rules.
         See ``apply_rls``.
     """
-    datasets = _find_datasets(
+    datasets = find_datasets(
         table,
         database,
         default_catalog,
@@ -228,8 +330,9 @@ def get_predicates_for_table(
     # For a virtual dataset's inner SQL, callers exclude global (unscoped) guest
     # RLS to prevent double application. Global guest rules will be applied to
     # the outer query via get_sqla_row_level_filters() on the virtual dataset
-    # itself. Dataset-scoped guest rules are still included here because they
-    # target this specific physical dataset and won't match on the outer query.
+    # itself; apply_rls() still includes them for tables read in sub-queries.
+    # Dataset-scoped guest rules are still included here because they target
+    # this specific physical dataset and won't match on the outer query.
     # A folded match can resolve to several datasets naming the same physical
     # table, in which case every one's predicates apply; deduplicated because a
     # single RLS rule can be attached to more than one of them.
@@ -247,14 +350,20 @@ def collect_rls_predicates_for_sql(
     sql: str,
     database: Database,
     catalog: str | None,
-    schema: str,
+    schema: str | None,
     exclude_dataset_id: int | None = None,
+    *,
+    include_global_guest_rls: bool = True,
+    resolve_catalog: Callable[[], str | None] | None = None,
+    resolve_schema: Callable[[], str] | None = None,
 ) -> list[str]:
     """
     Collect all RLS predicates that would be applied to tables in the given SQL.
 
     This is used for cache key generation for virtual datasets to ensure that
-    different users with different RLS rules get different cache keys.
+    different users with different RLS rules get different cache keys. Each
+    predicate is tagged with its qualified table so exchanging rules between
+    tables cannot collapse distinct scopes into the same unordered key set.
 
     :param sql: The SQL query to analyze
     :param database: The database the query runs against
@@ -263,32 +372,66 @@ def collect_rls_predicates_for_sql(
     :param exclude_dataset_id: Mirror of the same parameter on apply_rls — pass
         the virtual dataset's id so its self-match is excluded from the cache key
         (kept consistent with what's actually applied at query time).
-    :return: List of RLS predicate strings that would be applied
+    :param include_global_guest_rls: Mirror of the same parameter on apply_rls,
+        so the key carries the global guest rules wherever execution injects
+        them. Rules injected only into tables read inside a sub-query are tagged
+        separately, since execution leaves the same table's other reads unfiltered.
+    :param resolve_catalog: Optional memoized resolver shared by cache-key collectors,
+        including engines that require a connection to discover the default catalog.
+    :param resolve_schema: Resolve the execution schema inside the failure guard.
+    :return: Table-tagged RLS predicate strings that would be applied
     """
     from superset.sql.parse import SQLScript
 
     try:
-        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
-        tables = {
-            table.qualify(catalog=catalog, schema=schema)
-            for statement in parsed_script.statements
-            for table in statement.tables
-        }
-        default_catalog = database.get_default_catalog()
-        return sorted(
-            {
-                predicate
-                for table in tables
-                for predicate in get_predicates_for_table(
-                    table,
-                    database,
-                    default_catalog,
-                    exclude_dataset_id=exclude_dataset_id,
-                    include_global_guest_rls=False,
-                )
-            }
+        # Schema discovery can connect to the database, so failures must use
+        # the same viewer-scoped fallback as predicate collection failures.
+        schema = (
+            resolve_schema()
+            if resolve_schema is not None
+            else (
+                schema
+                if schema is not None
+                else database.get_default_schema(catalog) or ""
+            )
         )
+        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
+        default_catalog = (resolve_catalog or database.get_default_catalog)()
+        keys: set[str] = set()
+        for statement in parsed_script.statements:
+            predicates, subquery_predicates = get_rls_predicates(
+                database,
+                catalog,
+                schema,
+                statement,
+                default_catalog,
+                exclude_dataset_id=exclude_dataset_id,
+                include_global_guest_rls=include_global_guest_rls,
+            )
+            for tag, rules in (
+                ("rls", predicates),
+                ("rls-subquery", subquery_predicates or {}),
+            ):
+                keys.update(
+                    json.dumps([tag, table.catalog, table.schema, table.table, rule])
+                    for table, table_rules in rules.items()
+                    for rule in table_rules
+                )
+        return sorted(keys)
     except Exception:
+        # The block above is not only SQL parsing: `get_predicates_for_table`
+        # queries `db.session` and `get_default_catalog()` builds an engine, so
+        # a caught DB error can leave db.session in "pending rollback" state,
+        # which would poison unrelated queries later in this request.
+        #
+        # Unconditional, like the RLS handler in `models/helpers.py`: the DB
+        # work above can poison the session and then a different, non-DB error
+        # can surface -- building the engine raises `SupersetErrorException`
+        # when the impersonated user cannot be resolved, for instance -- so
+        # keying the rollback on the exception type would miss exactly the
+        # cases that need it.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+
         # If we can't parse the SQL, we can't tell which (if any) RLS
         # predicates would apply, so we can't contribute a meaningful cache
         # key component. Returning an empty list here would make every

@@ -17,12 +17,16 @@
 
 import logging
 import uuid
+from datetime import datetime
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 from flask import current_app
 from parameterized import parameterized
+from sqlalchemy.orm.session import Session
 
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import Database
 from superset.models.slice import id_or_uuid_filter, set_related_perm, Slice
 
 
@@ -81,6 +85,10 @@ class TestSlice:
             ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
             ("invalid_string", "not-a-number"),
             ("integer_id", 123),
+            # str.isdigit() is True for "²" (superscript 2) but int()
+            # rejects it; must not raise and must fall through to the uuid
+            # branch instead of the int(id_or_uuid) branch.
+            ("non_decimal_digit", "²"),
         ]
     )
     def test_id_or_uuid_filter(self, test_name, input_value):
@@ -386,3 +394,152 @@ def test_set_related_perm_known_type_denormalizes_perms_from_datasource() -> Non
     assert target.perm == "[db].[table](id:5)"
     assert target.catalog_perm == "[db].[catalog]"
     assert target.schema_perm == "[db].[schema]"
+
+
+def _slice_with_stale_perms(datasource_id: int | None) -> Slice:
+    """A known-type chart still carrying perms denormalized from its dataset."""
+    target: Slice = Slice(
+        slice_name="table chart",
+        datasource_id=datasource_id,
+        datasource_type="table",
+    )
+    target.perm = "[db].[old_table](id:9)"
+    target.catalog_perm = "[db].[catalog]"
+    target.schema_perm = "[db].[schema]"
+    return target
+
+
+def test_set_related_perm_missing_dataset_fails_closed(
+    session: Session, app_context: None
+) -> None:
+    """sc-119912: a known-type chart whose dataset row no longer exists has its
+    perm columns cleared, rather than keeping access through the stale perm."""
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    target: Slice = _slice_with_stale_perms(datasource_id=9)
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+def test_set_related_perm_without_datasource_id_fails_closed() -> None:
+    """sc-119912: a known-type chart with no ``datasource_id`` cannot resolve a
+    datasource, so its stale perm columns are cleared."""
+    target: Slice = _slice_with_stale_perms(datasource_id=None)
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+def test_set_related_perm_resolves_soft_deleted_dataset(
+    session: Session, app_context: None
+) -> None:
+    """A soft-deleted dataset is restorable, not missing: its charts keep the
+    dataset's perms instead of being failed closed by the visibility filter."""
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database: Database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(table_name="trashed", database=database)
+    session.add(dataset)
+    session.flush()
+    dataset.deleted_at = datetime(2026, 1, 1)
+    session.flush()
+    target: Slice = _slice_with_stale_perms(datasource_id=dataset.id)
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert dataset.perm
+    assert target.perm == dataset.perm
+    assert target.catalog_perm == dataset.catalog_perm
+    assert target.schema_perm == dataset.schema_perm
+
+
+def test_get_query_context_returns_none_without_stored_context() -> None:
+    """No query_context stored: return None without touching the factory."""
+    slc = Slice(slice_name="no context", query_context=None)
+    assert slc.get_query_context() is None
+
+
+def test_get_query_context_returns_none_on_malformed_json(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Malformed JSON is logged and returns None rather than raising."""
+    slc = Slice(slice_name="malformed", query_context="{not valid json")
+    with caplog.at_level(logging.ERROR, logger="superset.models.slice"):
+        assert slc.get_query_context() is None
+    assert "Malformed json" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        '{"queries": [{"metrics": ["count"]}]}',  # missing datasource
+        '{"datasource": {"id": 1, "type": "table"}}',  # missing queries
+    ],
+)
+def test_get_query_context_returns_none_when_metadata_incomplete(
+    query_context: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """apache/superset#35774: a stored query_context missing 'datasource' or
+    'queries' must not reach QueryContextFactory.create() -- it requires both
+    as keyword-only arguments and would raise a raw TypeError. The chart
+    should fail closed (None) with a clear log message instead, so a legacy
+    row saved before the ChartPostSchema/ChartPutSchema validation existed
+    degrades gracefully rather than crashing every read."""
+    slc = Slice(slice_name="incomplete", query_context=query_context)
+    slc.id = 7
+    slc.query_context_factory = MagicMock()
+
+    with caplog.at_level(logging.ERROR, logger="superset.models.slice"):
+        result = slc.get_query_context()
+
+    assert result is None
+    slc.query_context_factory.create.assert_not_called()
+    assert "missing required" in caplog.text
+
+
+def test_get_query_context_calls_factory_with_complete_metadata() -> None:
+    """A complete query_context is passed through to the factory, with
+    current_slice bound in."""
+    slc = Slice(
+        slice_name="complete",
+        query_context=(
+            '{"datasource": {"id": 1, "type": "table"}, '
+            '"queries": [{"metrics": ["count"]}]}'
+        ),
+    )
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+
+    result = slc.get_query_context()
+
+    assert result is mock_factory.create.return_value
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[{"metrics": ["count"]}],
+        current_slice=slc,
+    )
+
+
+def test_get_query_context_calls_factory_with_empty_queries() -> None:
+    """An empty 'queries' list is a complete, valid query_context -- it must
+    still reach the factory rather than being treated as missing."""
+    slc = Slice(
+        slice_name="empty-queries",
+        query_context='{"datasource": {"id": 1, "type": "table"}, "queries": []}',
+    )
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+
+    result = slc.get_query_context()
+
+    assert result is mock_factory.create.return_value
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[],
+        current_slice=slc,
+    )

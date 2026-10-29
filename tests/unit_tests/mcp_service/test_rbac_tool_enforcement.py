@@ -111,8 +111,26 @@ _MUTATING_TOOLS: list[tuple[str, dict[str, Any], str, str]] = [
         "Dataset",
     ),
     (
+        "update_dataset",
+        {"dataset_id": 1, "description": "denied"},
+        "write",
+        "Dataset",
+    ),
+    (
         "create_dataset_metric",
         {"dataset_id": 1, "metric_name": "count", "expression": "COUNT(*)"},
+        "write",
+        "Dataset",
+    ),
+    (
+        "delete_dataset",
+        {"identifier": 1},
+        "write",
+        "Dataset",
+    ),
+    (
+        "restore_dataset",
+        {"identifier": 1},
         "write",
         "Dataset",
     ),

@@ -50,6 +50,8 @@ const DatasourceEditor = AsyncEsmComponent(
 );
 
 const MODAL_HEIGHT_VH = 90;
+const MODAL_WIDTH_VW = 90;
+const MODAL_MAX_WIDTH = 1600;
 const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
 
 const StyledDatasourceModal = styled(Modal)`
@@ -57,15 +59,20 @@ const StyledDatasourceModal = styled(Modal)`
   padding-bottom: 0;
 
   && .ant-modal-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
-    min-height: 500px;
-    min-width: 500px;
+    min-height: min(500px, ${MODAL_HEIGHT_VH}vh);
+    min-width: min(500px, ${MODAL_WIDTH_VW}vw);
   }
 
   && .ant-modal-body {
     flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
     display: flex;
     flex-direction: column;
   }
@@ -183,6 +190,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
+      partition_column: datasource.partition_column ?? null,
+      partition_mapped_column: datasource.partition_mapped_column ?? null,
       offset: datasource.offset,
       default_endpoint: datasource.default_endpoint,
       cache_timeout:
@@ -231,6 +240,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           is_active: column.is_active,
           is_dttm: column.is_dttm,
           python_date_format: column.python_date_format || null,
+          partition_value_transform: column.partition_value_transform || null,
+          partition_transform_is_monotonic: Boolean(
+            column.partition_transform_is_monotonic,
+          ),
           uuid: column.uuid,
           extra: buildExtraJsonObject(column),
         }),
@@ -400,6 +413,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     <StyledDatasourceModal
       show={show}
       onHide={onHide}
+      width={`${MODAL_WIDTH_VW}vw`}
+      maxWidth={`${MODAL_MAX_WIDTH}px`}
       title={
         <span>
           <Icons.EditOutlined
@@ -452,7 +467,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       responsive
       resizable
       resizableConfig={{
-        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        defaultSize: {
+          width: `${MODAL_WIDTH_VW}vw`,
+          height: `${MODAL_HEIGHT_VH}vh`,
+        },
+        maxWidth: `${MODAL_MAX_WIDTH}px`,
         maxHeight: `${MODAL_HEIGHT_VH}vh`,
       }}
       draggable
