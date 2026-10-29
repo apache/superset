@@ -3218,6 +3218,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return json.dumps(new_config)
 
     @classmethod
+    def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
+        """
+        Return the destination a stored credential is sent to, for checks that
+        decide whether the credential may be reused on an edited connection.
+        """
+        return uri
+
+    @classmethod
     def get_parameters_from_database(
         cls,
         database: Database,

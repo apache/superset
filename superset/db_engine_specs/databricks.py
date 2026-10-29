@@ -925,6 +925,24 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         return parameters
 
     @classmethod
+    def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
+        """
+        Describe legacy connect_args and native query settings identically.
+
+        Mirrors ``adjust_engine_params``: query settings take precedence over
+        connect_args, and the URI path is the schema when neither sets one.
+        """
+        query: dict[str, str | tuple[str, ...]] = {
+            key: str(connect_args[key])
+            for key in ("http_path", "catalog", "schema")
+            if key in connect_args
+        }
+        query.update(uri.query)
+        if "schema" not in query and uri.database:
+            query["schema"] = uri.database
+        return uri._replace(database=None).set(query=query)
+
+    @classmethod
     def get_default_catalog(
         cls,
         database: Database,

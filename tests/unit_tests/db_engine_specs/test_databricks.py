@@ -1728,3 +1728,30 @@ def test_native_form_save_preserves_masked_token_and_updates_legacy_settings() -
     )
     assert "http_path" not in args
     assert "catalog" not in args
+
+
+def test_connection_identity_matches_legacy_settings_and_native_query() -> None:
+    """Legacy connect_args and native query settings name the same destination."""
+    legacy = DatabricksPythonConnectorEngineSpec.get_connection_identity(
+        make_url("databricks://token@host:443/default"),
+        {"http_path": "/legacy", "catalog": "main"},
+    )
+    native = DatabricksPythonConnectorEngineSpec.get_connection_identity(
+        make_url(
+            "databricks://token@host:443"
+            "?catalog=main&http_path=%2Flegacy&schema=default"
+        ),
+        {"http_path": "/legacy", "catalog": "main"},
+    )
+    other_warehouse = DatabricksPythonConnectorEngineSpec.get_connection_identity(
+        make_url(
+            "databricks://token@host:443?catalog=main&http_path=%2Fother&schema=default"
+        ),
+        {"http_path": "/legacy", "catalog": "main"},
+    )
+
+    assert legacy == native
+    assert native != other_warehouse
+    assert BaseEngineSpec.get_connection_identity(
+        make_url("postgresql://u@host/db"), {"host": "other"}
+    ) == make_url("postgresql://u@host/db")
