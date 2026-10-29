@@ -125,6 +125,7 @@ export default function transformProps(
     dateFormat,
     showLabels,
     showLegend,
+    showSelectorLegend,
     legendSort,
     isCircle,
     columnConfig,
@@ -376,6 +377,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -441,6 +443,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

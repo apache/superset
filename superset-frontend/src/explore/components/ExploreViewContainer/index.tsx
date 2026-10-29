@@ -20,7 +20,6 @@
 import {
   ComponentType,
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -28,6 +27,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect, shallowEqual, useSelector } from 'react-redux';
 import {
@@ -113,10 +113,10 @@ import ExploreContainer from '../ExploreContainer';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
-const ExploreVersionHistory = lazy(
+const ExploreVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/ExploreVersionHistory'),
 );
-const ChartVersionPreview = lazy(
+const ChartVersionPreview = lazyWithRetry(
   () => import('src/features/versionHistory/ChartVersionPreview'),
 );
 
@@ -441,9 +441,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
 
   const theme = useTheme();
 
-  // Capture original title before any effects run
-  const originalTitle = useMemo(() => document.title, []);
-
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
@@ -451,16 +448,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     }
   }, [props.sliceName]);
 
-  // Restore original title on unmount
+  // Restore the app title on unmount. The title at mount is not a usable
+  // fallback: a direct page load already has the server-rendered name in it.
   useEffect(
     () => () => {
-      document.title =
-        originalTitle ||
-        theme?.brandAppName ||
-        theme?.brandLogoAlt ||
-        'Superset';
+      document.title = theme?.brandAppName || theme?.brandLogoAlt || 'Superset';
     },
-    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+    [theme?.brandAppName, theme?.brandLogoAlt],
   );
 
   // M3 + M4: fire compatibility check on mount and whenever the metric /
@@ -544,6 +538,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     ],
   );
 
+  const hasControlErrors = useMemo(
+    () =>
+      Object.values(props.controls).some(
+        control =>
+          control.validationErrors && control.validationErrors.length > 0,
+      ),
+    [props.controls],
+  );
+  const isChartLoading = props.chart.chartStatus === 'loading';
+
   const onQuery = useCallback(() => {
     if (isChartVersionPreviewActive) {
       return;
@@ -580,14 +584,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
         const isEnter = event.key === 'Enter' || event.keyCode === 13;
-        if (isEnter) {
+        // Match the Run button, which is disabled while any control has
+        // validation errors and swapped for Stop while the chart is loading
+        if (isEnter && !hasControlErrors && !isChartLoading) {
           onQuery();
         }
         // Note: Ctrl+S save functionality removed due to type incompatibilities
         // between Slice types. Use the save button instead.
       }
     },
-    [onQuery],
+    [onQuery, hasControlErrors, isChartLoading],
   );
 
   function onStop() {
@@ -639,11 +645,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   }, [isDynamicPluginLoading]);
 
   useEffect(() => {
-    const hasError = Object.values(props.controls).some(
-      control =>
-        control.validationErrors && control.validationErrors.length > 0,
-    );
-    if (!hasError) {
+    if (!hasControlErrors) {
       props.actions.triggerQuery(true, props.chart.id);
     }
   }, []);
@@ -704,8 +706,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         (previousControls.datasource == null ||
           props.controls.datasource.value !== previousControls.datasource.value)
       ) {
-        // this should really be handled by actions
-        fetchDatasourceMetadata(props.form_data.datasource);
+        Promise.resolve()
+          .then(() =>
+            props.actions.fetchDatasourceMetadata(props.form_data.datasource),
+          )
+          .catch(() => {
+            props.addDangerToast(t('Failed to load datasource metadata'));
+          });
       }
 
       const changedControlKeys = Object.keys(props.controls).filter(
@@ -1421,6 +1428,7 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
     ...saveModalActions,
     ...chartActions,
     ...logActions,
+    fetchDatasourceMetadata,
   };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Action modules export mixed types (creators + constants)

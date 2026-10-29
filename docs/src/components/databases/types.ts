@@ -83,6 +83,7 @@ export interface CompatibleDatabase {
   name: string;
   description?: string;
   logo?: string;
+  logo_dark?: string;
   homepage_url?: string;
   categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
@@ -108,6 +109,7 @@ export interface CustomError {
 export interface DatabaseDocumentation {
   description?: string;
   logo?: string;
+  logo_dark?: string;
   homepage_url?: string;
   categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
@@ -168,6 +170,12 @@ export interface DatabaseInfo {
 
   // Diagnostics from lib.py diagnose() function
   time_grains: TimeGrains;
+  // MEDIAN/STDDEV_SAMP/VAR_SAMP: engines not covered by the generic
+  // aggregate mapping opt in individually, verified per engine (see
+  // `BaseEngineSpec.get_extended_aggregation_func`). Does not cover the 6
+  // base aggregates (SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT), which every
+  // engine spec already supports unconditionally.
+  extended_aggregations?: Record<string, boolean>;
   score: number;
   max_score: number;
 

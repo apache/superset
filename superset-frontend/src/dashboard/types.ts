@@ -208,6 +208,19 @@ export type DashboardInfo = {
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
+  semanticDatasets?: {
+    dashboardId: number;
+    datasets: Pick<Datasource, 'uid' | 'type' | 'columns'>[];
+  } | null;
+  semanticDatasetsRequestId?: string;
+  semanticDatasetRequests?: Record<string, string>;
+  semanticDatasetOverrides?: Record<
+    string,
+    Pick<Datasource, 'uid' | 'type' | 'columns'> | null
+  >;
+  semanticDatasetsGeneration?: number;
+  semanticDatasetsSaveGeneration?: number;
+  semanticDatasetMutationGenerations?: Record<string, number>;
   theme?: {
     id: number;
     theme_name: string;
@@ -215,7 +228,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
@@ -230,6 +243,7 @@ export type ChartsState = { [key: string]: Chart };
 
 export type Datasource = Dataset & {
   uid: string;
+  chart_display_labels?: Record<string, Record<string, string>>;
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;

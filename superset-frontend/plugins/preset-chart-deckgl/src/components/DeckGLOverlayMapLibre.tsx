@@ -17,11 +17,11 @@
  * under the License.
  */
 import { useControl } from 'react-map-gl/maplibre';
-import { MapboxOverlay } from '@deck.gl/mapbox';
-import type { MapboxOverlayProps } from '@deck.gl/mapbox';
+import { MapLibreOverlay } from '@deck.gl/maplibre';
+import type { MapLibreOverlayProps } from '@deck.gl/maplibre';
 
-export default function DeckGLOverlayMapLibre(props: MapboxOverlayProps) {
-  const overlay = useControl<MapboxOverlay>(() => new MapboxOverlay(props));
+export default function DeckGLOverlayMapLibre(props: MapLibreOverlayProps) {
+  const overlay = useControl<MapLibreOverlay>(() => new MapLibreOverlay(props));
   overlay.setProps(props);
   return null;
 }
