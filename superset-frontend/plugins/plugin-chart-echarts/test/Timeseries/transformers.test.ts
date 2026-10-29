@@ -17,7 +17,11 @@
  * under the License.
  */
 import {
+  AnnotationSourceType,
+  AnnotationStyle,
+  AnnotationType,
   CategoricalColorScale,
+  FormulaAnnotationLayer,
   ChartProps,
   NumberFormatter,
   TimeGranularity,
@@ -42,6 +46,7 @@ import {
   transformNegativeLabelsPosition,
   getAutoBarLabelLayout,
   getPadding,
+  transformFormulaAnnotation,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
 import * as seriesUtils from '../../src/utils/series';
@@ -1333,4 +1338,28 @@ test('only-total labels are unaffected by the zero-height guard', () => {
       totalStackedValues: [32],
     }),
   ).toBe('32');
+});
+
+test('formula annotation lines do not get a z above the chart series (#45479)', () => {
+  const layer = {
+    name: 'threshold',
+    annotationType: AnnotationType.Formula,
+    sourceType: AnnotationSourceType.Undefined,
+    value: '50',
+    style: AnnotationStyle.Dashed,
+    show: true,
+  } as unknown as FormulaAnnotationLayer;
+  const result = transformFormulaAnnotation(
+    layer,
+    [
+      { __timestamp: 1, sales: 10 },
+      { __timestamp: 2, sales: 20 },
+    ],
+    '__timestamp',
+    'time' as never,
+    mockColorScale,
+  );
+  // Line series default to z 2; a higher z draws the line over the
+  // markers and data labels of the chart series.
+  expect(result.z ?? 2).toBeLessThanOrEqual(2);
 });
