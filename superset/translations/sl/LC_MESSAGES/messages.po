@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -4046,6 +4046,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "Položaj podrejene oznake"
 
@@ -5024,6 +5029,9 @@ msgstr "Kopiraj z glavami"
 msgid "Corner Radius"
 msgstr "Radij kota"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korelacija"
 
@@ -5688,6 +5696,12 @@ msgstr "Podatki osveženi"
 
 msgid "Data type"
 msgstr "Tip podatka"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame vsebuje vsaj eno serijo"
@@ -7422,6 +7436,9 @@ msgstr "Vnesite najmanjšo in največjo vrednost za filter obsega"
 msgid "Enter report name"
 msgstr "Vnesite naslov poročila"
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -7706,6 +7723,12 @@ msgstr "Obstoječ podatkovni set"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7898,6 +7921,9 @@ msgstr "Izraz"
 
 msgid "Expression cannot be empty"
 msgstr "Izraz ne sme biti prazen"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10439,6 +10465,10 @@ msgstr "Uskladi barvo časovnega premika z izvorno serijo"
 msgid "Match type"
 msgstr "Vrsta ujemanja"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Matrixify"
@@ -12170,6 +12200,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12917,6 +12950,12 @@ msgstr "Rangiranje"
 
 msgid "Ratio"
 msgstr "Razmerje"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Surovi podatki"
@@ -15499,6 +15538,9 @@ msgstr "Nekaterih skupin ni bilo mogoče razrešiti in so prikazane kot ID-ji."
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Some permissions could not be resolved and are shown as IDs."
@@ -15691,6 +15733,10 @@ msgstr "Kategorija izvora"
 
 msgid "Source location"
 msgstr "Lokacija vira"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Hitri grafikon"
@@ -17549,6 +17595,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17556,6 +17605,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -19873,11 +19925,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Uporabi prvih 25 vrednosti, če jih ima dimenzija več."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Veljaven izraz SQL"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "Preveri poizvedbo"
@@ -19895,6 +19947,9 @@ msgstr "Preverjanje povezljivosti za %s"
 
 msgid "Validating..."
 msgstr "Preverjanje ..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Vrednost"

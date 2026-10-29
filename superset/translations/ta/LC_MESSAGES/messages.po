@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -3943,6 +3943,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "துணைக் குறிச்சொல் (Child label) நிலை"
 
@@ -4918,6 +4923,9 @@ msgstr "தலைப்புகளுடன் நகலெடு"
 msgid "Corner Radius"
 msgstr "மூலை ஆரம் (Corner Radius)"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "ஒட்டுறவு (Correlation)"
 
@@ -5569,6 +5577,12 @@ msgstr "தரவு புதுப்பிக்கப்பட்டது"
 
 msgid "Data type"
 msgstr "தரவு வகை"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "டேட்டாஃபிரேமில் குறைந்தபட்சம் ஒரு வரிசை இருக்க வேண்டும்"
@@ -7251,6 +7265,9 @@ msgstr ""
 msgid "Enter report name"
 msgstr "அறிக்கை பெயரை உள்ளிடவும்"
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -7525,6 +7542,12 @@ msgstr "ஏற்கனவே உள்ள தரவுத்தொகுப்�
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7715,6 +7738,9 @@ msgstr "SQL கோவை (expression)"
 
 msgid "Expression cannot be empty"
 msgstr "கோவை (Expression) காலியாக இருக்கக்கூடாது"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10176,6 +10202,10 @@ msgstr "நேர மாற்ற நிறத்தை அசல் தொட�
 msgid "Match type"
 msgstr "தரவு வகை"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 msgid "Matrixify"
 msgstr "மேட்ரிசிஃபை (Matrixify)"
 
@@ -11818,6 +11848,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12541,6 +12574,12 @@ msgstr "தரவரிசை (Ranking)"
 
 msgid "Ratio"
 msgstr "விகிதம் (Ratio)"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "மூலப் பதிவுகள் (Raw records)"
@@ -15014,6 +15053,9 @@ msgstr ""
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
@@ -15205,6 +15247,10 @@ msgstr "மூல வகை"
 #, fuzzy
 msgid "Source location"
 msgstr "மூல வகை"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "ஸ்பார்க்லைன்"
@@ -16912,6 +16958,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -16919,6 +16968,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -19097,11 +19149,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "சரியான SQL வெளிப்பாடு"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "வினவலைச் சரிபார்க்கவும்"
@@ -19115,6 +19167,9 @@ msgstr "%s க்கான இணைப்பைச் சரிபார்க�
 
 msgid "Validating..."
 msgstr "சரிபார்க்கிறது..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "மதிப்பு"

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -4748,6 +4748,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Child label position"
 msgstr "Pozicija podređene oznake"
@@ -5919,6 +5924,9 @@ msgstr "Kopiraj sa zaglavljima"
 msgid "Corner Radius"
 msgstr "Radijus ugla"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Correlation"
 msgstr "Korelacija"
@@ -6719,6 +6727,12 @@ msgstr "Podaci ažurirani"
 # zh_TW]
 msgid "Data type"
 msgstr "Tip podataka"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -8826,6 +8840,9 @@ msgstr "Unesite minimalnu i maksimalnu vrednost za filter opsega"
 msgid "Enter report name"
 msgstr "Unesite naziv izveštaja"
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -9168,6 +9185,12 @@ msgstr "Postojeći skup podataka"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -9394,6 +9417,9 @@ msgstr "Izraz"
 # uk]
 msgid "Expression cannot be empty"
 msgstr "Izraz ne može biti prazan"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12398,6 +12424,10 @@ msgstr "Uskladi boju vremenskog pomaka sa originalnom serijom"
 msgid "Match type"
 msgstr "Tip podudaranja"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -14475,6 +14505,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -15389,6 +15422,12 @@ msgstr "Rangiranje"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Ratio"
 msgstr "Odnos"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Raw records"
@@ -18430,6 +18469,9 @@ msgstr "Neke grupe nisu mogle biti razrešene i prikazane su kao ID-ovi."
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr "Neke dozvole nisu mogle biti razrešene i prikazane su kao ID-ovi."
 
@@ -18663,6 +18705,10 @@ msgstr "Kategorija izvora"
 
 msgid "Source location"
 msgstr "Lokacija izvora"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Sparkline"
@@ -20799,6 +20845,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -20806,6 +20855,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -23449,12 +23501,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Koristi prvih 25 vrednosti ako dimenzija sadrži više."
 
-msgid "Valid"
-msgstr ""
-
 # uk]
 msgid "Valid SQL expression"
 msgstr "Važeći SQL izraz"
+
+msgid "Validate against data"
+msgstr ""
 
 # uk]
 msgid "Validate query"
@@ -23472,6 +23524,9 @@ msgstr "Provera povezivosti za %s"
 # uk]
 msgid "Validating..."
 msgstr "Provera u toku..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]

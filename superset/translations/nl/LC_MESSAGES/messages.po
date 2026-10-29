@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -4223,6 +4223,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "Onderliggend label positie"
 
@@ -5290,6 +5295,9 @@ msgstr "Met een ondertitel"
 msgid "Corner Radius"
 msgstr "Inner Radius"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Correlatie"
 
@@ -6009,6 +6017,12 @@ msgstr "Gegevens verversen"
 
 msgid "Data type"
 msgstr "Data type"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame bevat ten minste één reeks"
@@ -7855,6 +7869,9 @@ msgstr "Voer minimale en maximale waarden in voor het bereikfilter"
 msgid "Enter report name"
 msgstr "Naam rapport"
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -8169,6 +8186,12 @@ msgstr "Bestaande dataset"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8375,6 +8398,9 @@ msgstr "SQL expressie"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "mag niet leeg zijn"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -11128,6 +11154,10 @@ msgstr "Kleur van tijdsverschuiving afstemmen op de originele reeks"
 msgid "Match type"
 msgstr "Data type"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -12960,6 +12990,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13763,6 +13796,12 @@ msgstr "Ranglijst"
 
 msgid "Ratio"
 msgstr "Verhouding"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Ruwe records"
@@ -16538,6 +16577,9 @@ msgstr "Sommige groepen konden niet worden omgezet en worden weergegeven als ID'
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -16748,6 +16790,10 @@ msgstr "Bron categorie"
 #, fuzzy
 msgid "Source location"
 msgstr "Bron categorie"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Sparkline"
@@ -18770,6 +18816,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18777,6 +18826,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -21269,12 +21321,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Gebruikt de eerste 25 waarden als de dimensie er meer heeft."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "SQL expressie"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -21293,6 +21345,9 @@ msgstr "Connectiviteit valideren voor %s"
 #, fuzzy
 msgid "Validating..."
 msgstr "Bezig met laden…"
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Waarde"

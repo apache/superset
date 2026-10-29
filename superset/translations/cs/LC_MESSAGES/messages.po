@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -4026,6 +4026,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "Pozice popisku podřízené položky"
 
@@ -5008,6 +5013,9 @@ msgstr "Kopírovat s hlavičkami"
 msgid "Corner Radius"
 msgstr "Poloměr rohu"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korelace"
 
@@ -5678,6 +5686,12 @@ msgstr "Data obnovena"
 
 msgid "Data type"
 msgstr "Datový typ"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "Datový rámec musí obsahovat alespoň jednu sérii"
@@ -7442,6 +7456,9 @@ msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
 msgid "Enter report name"
 msgstr "Zadejte název reportu"
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -7727,6 +7744,12 @@ msgstr "Existující sada dat"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7927,6 +7950,9 @@ msgstr "SQL výraz"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "Výraz nesmí být prázdný"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10487,6 +10513,10 @@ msgstr "Sladit barvu časového posunu s původní sérií"
 msgid "Match type"
 msgstr "Datový typ"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 msgid "Matrixify"
 msgstr "Matrixify"
 
@@ -12234,6 +12264,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12989,6 +13022,12 @@ msgstr "Pořadí"
 
 msgid "Ratio"
 msgstr "Poměr"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
@@ -15623,6 +15662,9 @@ msgstr "Některé skupiny nebylo možné rozlišit a zobrazují se jako ID."
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15824,6 +15866,10 @@ msgstr "Zdrojová kategorie"
 #, fuzzy
 msgid "Source location"
 msgstr "Zdrojová kategorie"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Minigraf"
@@ -17674,6 +17720,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17681,6 +17730,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -20012,12 +20064,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Použije prvních 25 hodnot, pokud dimenze obsahuje více."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "Platný SQL výraz"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -20034,6 +20086,9 @@ msgstr "Ověřuje se konektivita pro %s"
 #, fuzzy
 msgid "Validating..."
 msgstr "Ověřování..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Hodnota"

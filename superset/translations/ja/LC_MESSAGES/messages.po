@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -3672,6 +3672,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr "子ラベルの位置"
 
@@ -4578,6 +4583,9 @@ msgstr "ヘッダー付きでコピー"
 msgid "Corner Radius"
 msgstr "角の丸み"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "相関"
 
@@ -5197,6 +5205,12 @@ msgstr "データを更新しました"
 
 msgid "Data type"
 msgstr "データ型"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "データフレームには少なくとも1つの系列が必要です"
@@ -6750,6 +6764,9 @@ msgstr "範囲フィルターの最小値と最大値を入力してください
 msgid "Enter report name"
 msgstr "レポート名を入力"
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -7020,6 +7037,12 @@ msgstr "既存のデータセット"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7204,6 +7227,9 @@ msgstr "式"
 
 msgid "Expression cannot be empty"
 msgstr "式を空にすることはできません"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9584,6 +9610,10 @@ msgstr "タイムシフト(比較用)の色を元の系列に合わせる"
 msgid "Match type"
 msgstr "一致種類"
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 msgid "Matrixify"
 msgstr "マトリックス化"
 
@@ -11197,6 +11227,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -11894,6 +11927,12 @@ msgstr "ランキング"
 
 msgid "Ratio"
 msgstr "比率"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "未加工レコード"
@@ -14274,6 +14313,9 @@ msgstr "一部のグループを解決できなかったため、IDとして表�
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr "一部の権限を解決できなかったため、IDとして表示されています。"
 
@@ -14451,6 +14493,10 @@ msgstr "ソースカテゴリ"
 #, fuzzy
 msgid "Source location"
 msgstr "ソースの場所"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "スパークライン"
@@ -16090,6 +16136,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -16097,6 +16146,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18177,11 +18229,11 @@ msgstr "円を用いてシステム内の異なるステージを通るデータ
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "ディメンションに値が25件以上ある場合、最初の25件の値を使用します。"
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "有効なSQL式"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "クエリを検証"
@@ -18195,6 +18247,9 @@ msgstr "%s の接続を確認中"
 
 msgid "Validating..."
 msgstr "検証中..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "値"

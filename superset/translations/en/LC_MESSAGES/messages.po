@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-10-29 14:01+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -3649,6 +3649,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 msgid "Child label position"
 msgstr ""
 
@@ -4553,6 +4558,9 @@ msgstr ""
 msgid "Corner Radius"
 msgstr ""
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
 msgid "Correlation"
 msgstr ""
 
@@ -5170,6 +5178,12 @@ msgid "Data refreshed"
 msgstr ""
 
 msgid "Data type"
+msgstr ""
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
 msgstr ""
 
 msgid "DataFrame include at least one series"
@@ -6741,6 +6755,9 @@ msgstr ""
 msgid "Enter report name"
 msgstr ""
 
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
+
 msgid ""
 "Enter the email address of your account and we will send you a link to "
 "reset your password."
@@ -7011,6 +7028,12 @@ msgstr ""
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7192,6 +7215,9 @@ msgid "Expression"
 msgstr ""
 
 msgid "Expression cannot be empty"
+msgstr ""
+
+msgid "Expression evaluated — data not checked"
 msgstr ""
 
 #, python-format
@@ -9563,6 +9589,10 @@ msgstr ""
 msgid "Match type"
 msgstr ""
 
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr ""
+
 msgid "Matrixify"
 msgstr ""
 
@@ -11177,6 +11207,9 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition mismatch found"
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -11872,6 +11905,12 @@ msgid "Ranking"
 msgstr ""
 
 msgid "Ratio"
+msgstr ""
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
 msgstr ""
 
 msgid "Raw records"
@@ -14249,6 +14288,9 @@ msgstr ""
 msgid "Some layers could not be loaded"
 msgstr ""
 
+msgid "Some partitions had no checkable rows, or the query or transform failed."
+msgstr ""
+
 msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
@@ -14424,6 +14466,10 @@ msgid "Source category"
 msgstr ""
 
 msgid "Source location"
+msgstr ""
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
 msgstr ""
 
 msgid "Sparkline"
@@ -16024,6 +16070,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -16031,6 +16080,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18089,10 +18141,10 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
-msgid "Valid"
+msgid "Valid SQL expression"
 msgstr ""
 
-msgid "Valid SQL expression"
+msgid "Validate against data"
 msgstr ""
 
 msgid "Validate query"
@@ -18106,6 +18158,9 @@ msgid "Validating connectivity for %s"
 msgstr ""
 
 msgid "Validating..."
+msgstr ""
+
+msgid "Validation inconclusive"
 msgstr ""
 
 msgid "Value"
