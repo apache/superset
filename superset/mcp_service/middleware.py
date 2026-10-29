@@ -33,6 +33,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
+from superset.change_management import is_review_signal
 from superset.commands.exceptions import (
     CommandInvalidError,
     ForbiddenError,
@@ -467,6 +468,12 @@ def _is_user_error(error: Exception) -> bool:
     System errors are unexpected — database down, unexpected exceptions,
     infrastructure failures. These are 500-class and should be logged at ERROR.
     """
+    if is_review_signal(error):
+        # A captured write is the feature working, not a fault. It is not a
+        # user error either, but this is the switch that decides WARNING
+        # over ERROR and whether MCP_ERROR_HOOK fires, and a draft being
+        # made must not page anyone (QA-13).
+        return True
     if isinstance(error, _USER_ERROR_TYPES):
         return True
     # SupersetException and CommandException have a .status attribute.
@@ -1502,6 +1509,15 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"underlying datasource failed ({reason}). The tool name and "
                 f"arguments were valid — the datasource, table, or column it "
                 f"reads may be missing, renamed, or unreachable."
+            ) from error
+        elif is_review_signal(error):
+            # Not a failure: change management captured the write and it is
+            # waiting on a reviewer. Saying "Internal error" (which a 500
+            # status made this say) tells an agent to retry or escalate
+            # something that in fact worked (QA-13).
+            raise ToolError(
+                f"Held for review in {tool_name}: "
+                f"{_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, SupersetException):
             # Other Superset errors — .status determines severity (already

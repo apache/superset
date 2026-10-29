@@ -110,6 +110,24 @@ def unenforced_message() -> dict[str, Any]:
     }
 
 
+def is_review_signal(error: BaseException) -> bool:
+    """Whether an exception is "this write was captured", not "this failed".
+
+    The gate lives in an extension, so core cannot name its exception type.
+    It can recognise the shape: a capture carries ``review_required`` and a
+    2xx ``status``, because the write was accepted and is waiting on a
+    second person rather than having gone wrong.
+
+    Callers that classify by status alone read the capture as a server
+    fault -- which is how a held MCP write came back as "Internal error"
+    and paged whoever owns ``MCP_ERROR_HOOK`` (QA-13).
+    """
+    if getattr(error, "review_required", False) is not True:
+        return False
+    status = getattr(error, "status", None)
+    return isinstance(status, int) and 200 <= status < 300
+
+
 def install_fail_closed_guard(app: Flask) -> None:
     """Refuse writes while review is promised and unenforced."""
 

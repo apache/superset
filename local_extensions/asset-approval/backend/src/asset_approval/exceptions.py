@@ -42,7 +42,23 @@ class ChangeRequestCreated(ChangeManagementException):
 
     Any command gated this way must therefore keep ``on_error``'s
     ``catches`` narrow enough not to swallow this type.
+
+    ``status`` is 202 and not the inherited 500. It is the only gate signal
+    that never set one, and callers that read the status off the exception
+    rather than off the response -- the MCP middleware is the one that
+    matters -- therefore classified a captured write as a server fault:
+    the caller was told "Internal error", the line was logged at ERROR, and
+    ``MCP_ERROR_HOOK`` fired as though the deployment had broken. It had
+    not; a draft was made, which is the feature working (QA-13).
     """
+
+    #: What the HTTP layer answers with. ``http.CAPTURED_STATUS`` reads it
+    #: from here so the two cannot drift again.
+    status = 202
+
+    #: Duck-typed by ``superset.change_management.is_review_signal`` so core
+    #: can recognise a capture without importing the extension.
+    review_required = True
 
     def __init__(
         self,
@@ -77,10 +93,12 @@ class ChangeRequestCreated(ChangeManagementException):
         #: anything saying so (QA-03).
         self.replaced_edit = replaced_edit
         super().__init__(
-            f"Changes to {count} {asset_type}(s) were submitted for review."
+            f"Changes to {count} {asset_type}(s) were held for review as "
+            f"drafts. Request review on each when you are ready."
             if count > 1
-            else f"Changes to {asset_type} {asset_id} were submitted for review "
-            f"as change request {change_request_id}."
+            else f"Changes to {asset_type} {asset_id} were held for review as "
+            f"draft change request {change_request_id}. Request review when "
+            f"you are ready."
         )
 
 
@@ -228,6 +246,35 @@ class ReviewedVersionStaleError(ChangeManagementException):
         super().__init__(
             "This change was updated after you opened it. Review the new "
             "version before approving."
+        )
+
+
+class AuthorNoLongerEditorError(ChangeManagementException):
+    """Approving a change whose author has since lost edit access.
+
+    The replay runs the author's command as the author, so the host's own
+    ``raise_for_editorship`` re-checks them -- and failed with the command's
+    own "You don't have the rights to alter ...", addressed to the approver,
+    who has the rights and cannot tell what went wrong. Worse, that check
+    treats an administrator as an editor of everything, so an admin author
+    removed from an asset was replayed anyway: the admin bypass the review
+    model refuses, arriving through the author's identity rather than the
+    approver's (QA-07).
+
+    Checked here, on the merits and with no administrator shortcut, so the
+    answer names the real reason and holds for every author alike.
+    """
+
+    #: A conflict, not a bad request: the call was fine, access moved.
+    status = 409
+
+    def __init__(self, author: str | None = None) -> None:
+        self.author = author
+        who = f"{author} no longer has" if author else "The author no longer has"
+        super().__init__(
+            f"{who} edit access to this asset, so this change cannot be "
+            "published as their work. Discard it, or restore their access "
+            "and approve again."
         )
 
 

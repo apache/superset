@@ -137,12 +137,18 @@ export function deleteReviewMessage(responseBody: unknown): string | null {
   if (responseBody.message) {
     return responseBody.message;
   }
+  // A captured delete is a draft, not a submission: no approver sees it
+  // until the author requests review. Saying it was submitted described a
+  // state it is not in (QA-05). The server says the same thing; this is
+  // only the fallback for when it says nothing.
   return (responseBody.count ?? 1) > 1
     ? t(
-        '%s deletes submitted for review. Nothing has been removed.',
+        '%s deletes saved as drafts. Nothing has been removed. Request review on each when you are ready.',
         responseBody.count,
       )
-    : t('Delete submitted for review. Nothing has been removed.');
+    : t(
+        'Delete saved as a draft. Nothing has been removed. Request review when you are ready.',
+      );
 }
 
 /**

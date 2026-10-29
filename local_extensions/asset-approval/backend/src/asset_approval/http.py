@@ -36,20 +36,28 @@ from asset_approval.exceptions import (
 
 #: A capture is not a failure and not a plain success: the request was
 #: accepted, and it takes a second person before it takes effect.
-CAPTURED_STATUS = 202
+#: Read off the exception rather than written twice -- the two disagreeing
+#: is what left MCP callers reading "Internal error" (QA-13).
+CAPTURED_STATUS = ChangeRequestCreated.status
 
 #: SOW 5.3: only one set of changes may be open on an asset at a time.
 LOCKED_STATUS = 409
 
 SAVED_MESSAGE = "Changes saved. Viewers still see the live version."
 UPDATED_MESSAGE = "Changes updated in your existing draft."
-BULK_MESSAGE = "%s changes waiting for review."
-DELETE_MESSAGE = "Delete submitted for review. Nothing has been removed."
-DELETE_REPLACED_MESSAGE = (
-    "Delete submitted for review. Nothing has been removed, and it replaced "
-    "the edit you had waiting."
+BULK_MESSAGE = "%s changes saved as drafts. Viewers still see the live versions."
+DELETE_MESSAGE = (
+    "Delete saved as a draft. Nothing has been removed. Request review when "
+    "you are ready."
 )
-BULK_DELETE_MESSAGE = "%s deletes waiting for review. Nothing has been removed."
+DELETE_REPLACED_MESSAGE = (
+    "Delete saved as a draft. Nothing has been removed, and it replaced the "
+    "edit you had waiting. Request review when you are ready."
+)
+BULK_DELETE_MESSAGE = (
+    "%s deletes saved as drafts. Nothing has been removed. Request review on "
+    "each when you are ready."
+)
 
 
 def captured_response(api: Any, ex: ChangeRequestCreated) -> Response:

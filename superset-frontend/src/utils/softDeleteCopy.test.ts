@@ -153,9 +153,20 @@ test('deleteReviewMessage returns the server message for a gated delete', () => 
 
 test('deleteReviewMessage falls back to copy that says nothing was removed', () => {
   expect(deleteReviewMessage({ id: 1, review_required: true })).toBe(
-    'Delete submitted for review. Nothing has been removed.',
+    'Delete saved as a draft. Nothing has been removed. Request review when you are ready.',
   );
   expect(deleteReviewMessage({ id: 1, count: 3, review_required: true })).toBe(
-    '3 deletes submitted for review. Nothing has been removed.',
+    '3 deletes saved as drafts. Nothing has been removed. Request review on each when you are ready.',
   );
+});
+
+test('the fallback does not claim a draft was submitted', () => {
+  // QA-05: the delete lands as a DRAFT that no approver sees until the
+  // author requests review, so neither branch may say "submitted".
+  expect(deleteReviewMessage({ id: 1, review_required: true })).not.toMatch(
+    /submitted/i,
+  );
+  expect(
+    deleteReviewMessage({ id: 1, count: 3, review_required: true }),
+  ).not.toMatch(/submitted/i);
 });
