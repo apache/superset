@@ -319,7 +319,7 @@ function ReportModal({
                   'You are already subscribed to this dashboard. Your existing report has been opened for editing.',
                 ),
           );
-          setCurrentReport({ isSubmitting: false });
+          setCurrentReport({ isSubmitting: false, custom_width: undefined });
           return;
         }
       }

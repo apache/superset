@@ -937,17 +937,26 @@ test('duplicate subscription opens the existing report for editing', async () =>
   });
   const onHide = jest.fn();
   const store = createStore({}, reducerIndex);
-  render(<ReportModal {...defaultProps} onHide={onHide} />, {
+  render(<ReportModal {...defaultProps} chart={undefined} onHide={onHide} />, {
     useRedux: true,
     store,
   });
 
+  // A width typed into the abandoned create form must not carry over onto
+  // the existing report, since the list endpoint does not return custom_width.
+  await userEvent.type(
+    screen.getByPlaceholderText('Input custom width in pixels'),
+    '1200',
+  );
   await userEvent.click(screen.getByRole('button', { name: 'Add' }));
 
   expect(await screen.findByText('Edit email report')).toBeInTheDocument();
   expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
     'My existing report',
   );
+  expect(
+    screen.getByPlaceholderText('Input custom width in pixels'),
+  ).toHaveDisplayValue('');
   const toasts = (store.getState() as any).messageToasts;
   expect(
     toasts.some((toast: { text: string }) =>
