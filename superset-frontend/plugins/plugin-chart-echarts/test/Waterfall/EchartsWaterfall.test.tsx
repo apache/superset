@@ -332,7 +332,5 @@ test('keeps an adhoc temporal axis in the drill-by scope', () => {
     expect.objectContaining(axisFilter),
   ]);
   expect(payload.drillBy.filters).toEqual([]);
-  expect(payload.drillToDetail).toEqual([
-    expect.objectContaining(axisFilter),
-  ]);
+  expect(payload.drillToDetail).toEqual([expect.objectContaining(axisFilter)]);
 });
