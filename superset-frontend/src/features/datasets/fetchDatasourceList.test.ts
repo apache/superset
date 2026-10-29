@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import { isFeatureEnabled } from '@superset-ui/core';
-import { fetchDatasourceList } from './fetchDatasourceList';
+import { fetchDatasetById, fetchDatasourceList } from './fetchDatasourceList';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -51,25 +51,24 @@ test('uses the combined endpoint when the flag is on and the dataset endpoint wh
   expect(urls[1]).toContain('/api/v1/dataset/');
 });
 
-test('exactMatch with datasetsOnly stays on the dataset endpoint with an eq filter', async () => {
-  mockIsFeatureEnabled.mockReturnValue(true);
-  await fetchDatasourceList('orders', 0, 1, {
-    exactMatch: true,
-    datasetsOnly: true,
+test('fetchDatasetById requests the dataset by ID with a column selection', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/dataset/42?q=*', {
+    result: { id: 42, table_name: 'foo' },
   });
 
-  const urls = requestedUrls();
-  expect(urls[0]).toContain('/api/v1/dataset/');
-  expect(urls[0]).toContain('opr:eq');
+  await expect(fetchDatasetById(42)).resolves.toEqual({
+    id: 42,
+    table_name: 'foo',
+  });
+  expect(requestedUrls()[0]).toContain(
+    '/api/v1/dataset/42?q=(columns:!(id,table_name,datasource_type,database.database_name,schema))',
+  );
 });
 
-test('exactMatch without datasetsOnly is refused, not silently unfiltered', async () => {
-  // The combined endpoint's filter parser honours only substring (ct) name
-  // filters; an eq filter is dropped and the page comes back unfiltered.
-  mockIsFeatureEnabled.mockReturnValue(true);
-  expect(() =>
-    // @ts-expect-error deliberately violating the option coupling
-    fetchDatasourceList('orders', 0, 1, { exactMatch: true }),
-  ).toThrow(/exactMatch requires datasetsOnly/);
-  expect(requestedUrls()).toHaveLength(0);
+test('fetchDatasetById rejects when the dataset is missing', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/dataset/999?q=*', 404);
+
+  await expect(fetchDatasetById(999)).rejects.toBeDefined();
 });

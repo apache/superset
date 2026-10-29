@@ -31,7 +31,6 @@ import {
   Tag,
 } from '@superset-ui/core/components';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
-import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
@@ -55,7 +54,6 @@ import {
 
 export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
-  addSuccessToast: (arg: string) => void;
 }
 
 type DatasourceOption = {
@@ -230,10 +228,7 @@ const createDatasourceOption = (
   };
 };
 
-export const ChartCreation = ({
-  user,
-  addSuccessToast,
-}: ChartCreationProps) => {
+export const ChartCreation = ({ user }: ChartCreationProps) => {
   const theme = useTheme();
   const history = useHistory();
   const semanticLayersEnabled = isFeatureEnabled(FeatureFlag.SemanticLayers);
@@ -243,10 +238,10 @@ export const ChartCreation = ({
     [user.roles],
   );
 
-  const hasDatasetParam = useMemo(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    return searchParams.has('dataset_id') || searchParams.has('dataset');
-  }, []);
+  const hasDatasetParam = useMemo(
+    () => new URLSearchParams(window.location.search).has('dataset_id'),
+    [],
+  );
 
   const [datasource, setDatasource] = useState<
     SelectedDatasource | undefined
@@ -306,32 +301,20 @@ export const ChartCreation = ({
   );
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const datasetId = searchParams.get('dataset_id');
-    const datasetName = searchParams.get('dataset');
-    if (!datasetId && !datasetName) {
+    const datasetId = new URLSearchParams(window.location.search).get(
+      'dataset_id',
+    );
+    if (!datasetId) {
       return;
     }
-    // The URL identifies a dataset that was just saved, so resolve it against
-    // datasets only: a semantic view with the same name must not win. An ID is
-    // unambiguous, whereas a name can match datasets in other schemas,
-    // catalogs or databases, so the ID takes precedence.
-    const lookup = datasetId
-      ? fetchDatasetById(datasetId)
-      : fetchDatasourceList(datasetName as string, 0, 1, {
-          exactMatch: true,
-          datasetsOnly: true,
-        }).then(({ result }) => result[0]);
-    lookup
-      .then(dataset => {
-        setDatasource(dataset && toDatasourceOption(dataset));
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-    addSuccessToast(t('The dataset has been saved'));
-  }, [toDatasourceOption, addSuccessToast]);
+    // Resolve against datasets only: an ID is unambiguous, whereas a semantic
+    // view can share the same numeric ID. A missing or inaccessible dataset
+    // simply leaves the picker empty.
+    fetchDatasetById(datasetId)
+      .then(dataset => setDatasource(toDatasourceOption(dataset)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [toDatasourceOption]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
@@ -440,4 +423,4 @@ export const ChartCreation = ({
   );
 };
 
-export default withToasts(ChartCreation);
+export default ChartCreation;

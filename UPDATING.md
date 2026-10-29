@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **`/chart/add` no longer preselects a dataset from `?dataset=<name>`.** Use
+  `?dataset_id=<id>` instead. Dataset names are only unique per database,
+  catalog and schema, so a name could select the wrong dataset. Links built with
+  the `dataset` parameter now open the page with no dataset selected.
+
 - Webhook alerts/reports and the Impala `cancel_query` call now share
   `get_ssrf_safe_requester`, whose session sets `trust_env=False`. Unless
   `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS` / `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS`

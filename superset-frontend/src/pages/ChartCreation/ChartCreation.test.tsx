@@ -18,12 +18,14 @@
  */
 
 import {
+  createStore,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -136,13 +138,10 @@ jest.mock('react-router-dom', () => ({
 
 async function renderComponent(user = mockUser) {
   mockHistoryPush.mockClear();
-  const rendered = render(
-    <ChartCreation user={user} addSuccessToast={() => null} />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
-  );
+  const rendered = render(<ChartCreation user={user} />, {
+    useRedux: true,
+    useRouter: true,
+  });
   await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
   return rendered;
 }
@@ -287,58 +286,25 @@ test('dropdown displays matching datasets when user types a search term', async 
   expect(screen.getByText('flights_delayed')).toBeInTheDocument();
 });
 
-test('handles special characters in dataset name from URL parameter', async () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: {
-      result: [
-        {
-          id: 'special_1',
-          table_name: 'flightsÆ test',
-          datasource_type: 'table',
-          database: { database_name: 'test_db' },
-          schema: 'public',
-        },
-      ],
-      count: 1,
-    },
-    status: 200,
-  });
+const flightsDataset = {
+  id: 42,
+  table_name: 'flights',
+  datasource_type: 'table',
+  database: { database_name: 'examples' },
+  schema: 'public',
+};
 
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+const datasetByIdUrl = /\/api\/v1\/dataset\/42\?q=.*/;
+
+const mockSearchLocation = (search: string) =>
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
-    search: '?dataset=flights%C3%86%20test',
+    search,
   } as Location);
 
-  await renderComponent();
-
-  expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
-
-  locationSpy.mockRestore();
-});
-
-test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: {
-      result: [
-        {
-          id: 'flights_123',
-          table_name: 'flights',
-          datasource_type: 'table',
-          database: { database_name: 'examples' },
-          schema: 'public',
-        },
-      ],
-      count: 1,
-    },
-    status: 200,
-  });
-
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=flights',
-  } as Location);
+test('pre-selects the dataset from dataset_id and shows it in dropdown', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
   await renderComponent();
 
@@ -347,37 +313,63 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
   locationSpy.mockRestore();
 });
 
-test('shows loading spinner when dataset parameter is present in URL', async () => {
-  fetchMock.clearHistory().removeRoutes();
+test('fetches the dataset directly by ID with a column selection', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const locationSpy = mockSearchLocation('?dataset_id=42');
+
+  await renderComponent();
+  await screen.findByText('flights');
+
+  const urls = fetchMock.callHistory
+    .calls()
+    .map(call => decodeURIComponent(call.url));
+  expect(urls).toHaveLength(1);
+  expect(urls[0]).toContain('/api/v1/dataset/42?q=');
+  expect(urls[0]).toContain(
+    'columns:!(id,table_name,datasource_type,database.database_name,schema)',
+  );
+
+  locationSpy.mockRestore();
+});
+
+test('ignores the removed dataset name parameter', async () => {
+  const locationSpy = mockSearchLocation('?dataset=flights');
+
+  await renderComponent();
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  expect(screen.queryByText('flights')).not.toBeInTheDocument();
+
+  locationSpy.mockRestore();
+});
+
+test('does not toast on load, so hand-built dataset_id links stay quiet', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const store = createStore({}, reducerIndex);
+  const locationSpy = mockSearchLocation('?dataset_id=42');
+
+  render(<ChartCreation user={mockUser} />, { store, useRouter: true });
+  await screen.findByText('flights');
+
+  expect(
+    (store.getState() as unknown as { messageToasts: unknown }).messageToasts,
+  ).toEqual([]);
+
+  locationSpy.mockRestore();
+});
+
+test('shows loading spinner while the dataset_id lookup is pending', async () => {
   let resolveRequest: (value: unknown) => void;
   const requestPromise = new Promise(resolve => {
     resolveRequest = resolve;
   });
-
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, () =>
-    requestPromise.then(() => ({
-      body: {
-        result: [
-          {
-            id: 'flights_1',
-            table_name: 'flights',
-            datasource_type: 'table',
-            database: { database_name: 'examples' },
-            schema: 'public',
-          },
-        ],
-        count: 1,
-      },
-      status: 200,
-    })),
+  fetchMock.get(datasetByIdUrl, () =>
+    requestPromise.then(() => ({ body: { result: flightsDataset } })),
   );
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=flights',
-  } as Location);
-
-  render(<ChartCreation user={mockUser} addSuccessToast={() => null} />, {
+  render(<ChartCreation user={mockUser} />, {
     useRedux: true,
     useRouter: true,
   });
@@ -450,63 +442,6 @@ test('dataset dropdown sorts options alphabetically by table name regardless of 
   expect(
     mango.compareDocumentPosition(zebra) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-});
-
-test('shows only exact match when loading dataset from URL, not partial matches', async () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, ({ url }) => {
-    if (url.includes('opr:eq')) {
-      return {
-        body: {
-          result: [
-            {
-              id: 'flights_1',
-              table_name: 'flights',
-              datasource_type: 'table',
-              database: { database_name: 'examples' },
-              schema: 'public',
-            },
-          ],
-          count: 1,
-        },
-        status: 200,
-      };
-    }
-    return {
-      body: {
-        result: [
-          {
-            id: 'flights_1',
-            table_name: 'flights',
-            datasource_type: 'table',
-            database: { database_name: 'examples' },
-            schema: 'public',
-          },
-          {
-            id: 'flights_delayed_2',
-            table_name: 'flights_delayed',
-            datasource_type: 'table',
-            database: { database_name: 'examples' },
-            schema: 'public',
-          },
-        ],
-        count: 2,
-      },
-      status: 200,
-    };
-  });
-
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=flights',
-  } as Location);
-
-  await renderComponent();
-
-  await screen.findByText('flights');
-  expect(screen.queryByText('flights_delayed')).not.toBeInTheDocument();
-
-  locationSpy.mockRestore();
 });
 
 test('lists a same-named dataset and semantic view as distinct, typed options', async () => {
@@ -752,18 +687,12 @@ test('keeps the legacy no-options state when semantic layers are disabled', asyn
   expect(screen.queryByText('Semantic View')).not.toBeInTheDocument();
 });
 
-test('uses the exact dataset endpoint for URL preload with semantic layers enabled', async () => {
+test('preloads dataset_id from the dataset endpoint with semantic layers enabled', async () => {
   enableSemanticLayers();
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
-    body: { result: legacyDatasetFixtures, count: 1 },
-    status: 200,
+  fetchMock.get(datasetByIdUrl, {
+    body: { result: legacyDatasetFixtures[0] },
   });
-
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=shared_source',
-  } as Location);
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
   await renderComponent();
 
@@ -773,16 +702,6 @@ test('uses the exact dataset endpoint for URL preload with semantic layers enabl
     screen.getByText('Dataset', { selector: '.ant-tag' }),
   ).toBeInTheDocument();
   expect(
-    fetchMock.callHistory.calls().some(call => {
-      const decodedUrl = decodeURIComponent(call.url);
-      return (
-        decodedUrl.includes('/api/v1/dataset/') &&
-        decodedUrl.includes('opr:eq') &&
-        decodedUrl.includes('shared_source')
-      );
-    }),
-  ).toBe(true);
-  expect(
     fetchMock.callHistory
       .calls()
       .some(call => call.url.includes('/api/v1/datasource/')),
@@ -790,37 +709,6 @@ test('uses the exact dataset endpoint for URL preload with semantic layers enabl
 
   locationSpy.mockRestore();
 });
-
-const sameNameDatasets = [
-  {
-    id: 7,
-    table_name: 'foo',
-    datasource_type: 'table',
-    database: { database_name: 'old_db' },
-    schema: 'schema_a',
-  },
-  {
-    id: 42,
-    table_name: 'foo',
-    datasource_type: 'table',
-    database: { database_name: 'new_db' },
-    schema: 'schema_b',
-  },
-];
-
-// A lookup by name is ambiguous and resolves to the first match (id 7); a
-// lookup by id resolves to exactly the requested dataset.
-const mockSameNameDatasets = () => {
-  fetchMock.clearHistory().removeRoutes();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, ({ url }) => {
-    const decoded = decodeURIComponent(url);
-    const idMatch = decoded.match(/col:id,opr:eq,value:(\d+)/);
-    const result = idMatch
-      ? sameNameDatasets.filter(d => d.id === Number(idMatch[1]))
-      : sameNameDatasets;
-    return { body: { result, count: result.length }, status: 200 };
-  });
-};
 
 // Opens the chart with the preselected dataset and returns the explore URL.
 const openChartWithPreselectedDataset = async () => {
@@ -830,12 +718,9 @@ const openChartWithPreselectedDataset = async () => {
   return mockHistoryPush.mock.calls[0][0] as string;
 };
 
-test('pre-selects the dataset identified by dataset_id over a same-named dataset', async () => {
-  mockSameNameDatasets();
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset=foo&dataset_id=42',
-  } as Location);
+test('builds the Explore URL from the dataset_id selection', async () => {
+  fetchMock.get(datasetByIdUrl, { body: { result: flightsDataset } });
+  const locationSpy = mockSearchLocation('?dataset_id=42');
 
   await renderComponent();
 
@@ -846,34 +731,32 @@ test('pre-selects the dataset identified by dataset_id over a same-named dataset
   locationSpy.mockRestore();
 });
 
-test('pre-selects the dataset from dataset_id alone', async () => {
-  mockSameNameDatasets();
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset_id=42',
-  } as Location);
+test.each([
+  ['a missing dataset', 404],
+  ['a server error', 500],
+])('leaves the selection empty without a toast on %s', async (_, status) => {
+  fetchMock.get(/\/api\/v1\/dataset\/999\?q=.*/, {
+    status,
+    body: { message: 'nope' },
+  });
+  mockHistoryPush.mockClear();
+  const store = createStore({}, reducerIndex);
+  const locationSpy = mockSearchLocation('?dataset_id=999');
 
-  await renderComponent();
-
-  expect(await openChartWithPreselectedDataset()).toContain(
-    'datasource=42__table',
+  render(<ChartCreation user={mockUser} />, {
+    store,
+    useRouter: true,
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole('status')).not.toBeInTheDocument(),
   );
-
-  locationSpy.mockRestore();
-});
-
-test('leaves the selection empty when dataset_id matches no dataset', async () => {
-  mockSameNameDatasets();
-  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    search: '?dataset_id=999',
-  } as Location);
-
-  await renderComponent();
 
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
   await userEvent.dblClick(await screen.findByText('Table'));
   expect(mockHistoryPush).not.toHaveBeenCalled();
+  expect(
+    (store.getState() as unknown as { messageToasts: unknown }).messageToasts,
+  ).toEqual([]);
 
   locationSpy.mockRestore();
 });
