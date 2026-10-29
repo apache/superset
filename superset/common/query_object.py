@@ -44,6 +44,7 @@ from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
+    format_list,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
@@ -95,10 +96,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     annotation_layers: list[dict[str, Any]]
     applied_time_extras: dict[str, str]
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     datasource: BaseDatasource | None
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     grouping_sets: list[list[str]]
@@ -128,10 +131,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         annotation_layers: list[dict[str, Any]] | None = None,
         applied_time_extras: dict[str, str] | None = None,
         apply_fetch_values_predicate: bool = False,
+        cache_timeout: int | None = None,
         columns: list[Column] | None = None,
         datasource: BaseDatasource | None = None,
         extras: dict[str, Any] | None = None,
         filters: list[QueryObjectFilterClause] | None = None,
+        force_query: bool = False,
         granularity: str | None = None,
         is_rowcount: bool = False,
         is_timeseries: bool | None = None,
@@ -153,10 +158,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._set_annotation_layers(annotation_layers)
         self.applied_time_extras = applied_time_extras or {}
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
+        # Resolved chart/custom/datasource cache timeout; None until the query
+        # context processor resolves it.
+        self.cache_timeout = cache_timeout
         self.columns = columns or []
         self.datasource = datasource
         self.extras = extras or {}
         self.filter = filters or []
+        self.force_query = force_query
         self.granularity = granularity
         self.is_rowcount = is_rowcount
         self._set_is_timeseries(is_timeseries)
@@ -445,6 +454,29 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                             "datasource metadata or MCP list_metrics."
                         )
                     ) from ex
+                if self.filter:
+                    # Validate before result-cache access, including old entries
+                    # computed while non-dimension predicates were discarded.
+                    # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.exceptions import (
+                        discover_dimensions,
+                        discover_metrics,
+                        DiscoveryTarget,
+                    )
+                    from superset.semantic_layers.mapper import validate_filter_columns
+
+                    target: DiscoveryTarget = DiscoveryTarget.of(self.datasource)
+                    dimension_names: set[str] = {
+                        dimension.name
+                        for dimension in discover_dimensions(
+                            lambda: implementation, target
+                        )
+                    }
+                    metric_names: set[str] = {
+                        metric.name
+                        for metric in discover_metrics(lambda: implementation, target)
+                    }
+                    validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()
@@ -477,7 +509,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "Duplicate column/metric labels: %(labels)s. Please make "
                     "sure all columns and metrics have a unique label.",
-                    labels=", ".join(f'"{x}"' for x in dup_labels),
+                    labels=format_list(dup_labels),
                 )
             )
 
@@ -560,16 +592,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 _(
                     "The following entries in `series_columns` are missing "
                     "in `columns`: %(columns)s. ",
-                    columns=", ".join(f'"{x}"' for x in missing_series),
+                    columns=format_list([str(col) for col in missing_series]),
                 )
             )
 
     def to_dict(self) -> QueryObjectDict:
         query_object_dict: QueryObjectDict = {
             "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
+            "cache_timeout": self.cache_timeout,
             "columns": self.columns,
             "extras": self.extras,
             "filter": self.filter,
+            "force_query": self.force_query,
             "from_dttm": self.from_dttm,
             "granularity": self.granularity,
             "inner_from_dttm": self.inner_from_dttm,
@@ -628,6 +662,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 cache_dict["extra_cache_keys"],
                 key=lambda value: (type(value).__name__, str(value)),
             )
+
+        # Force refresh and timeout control cache reads and retention, not the
+        # logical result identity.
+        cache_dict.pop("force_query", None)
+        cache_dict.pop("cache_timeout", None)
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously

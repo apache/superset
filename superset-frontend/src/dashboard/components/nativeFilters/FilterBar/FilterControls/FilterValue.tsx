@@ -61,6 +61,7 @@ import {
   unsetHoveredChartCustomization,
 } from 'src/dashboard/actions/nativeFilters';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -161,7 +162,13 @@ const FilterValue: FC<FilterValueProps> = ({
     inView: false,
   });
   const [ownState, setOwnState] = useState<JsonObject>({});
-  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
+  const isRequiredFirst =
+    'requiredFirst' in filter &&
+    filter.requiredFirst === true &&
+    filter.filterType !== 'filter_time';
+  const [inViewFirstTime, setInViewFirstTime] = useState(
+    inView || isRequiredFirst,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets || [];
   const {
@@ -196,10 +203,10 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [hasDeps]);
 
   useEffect(() => {
-    if (!inViewFirstTime && inView) {
+    if (!inViewFirstTime && (inView || isRequiredFirst)) {
       setInViewFirstTime(true);
     }
-  }, [inView, inViewFirstTime, setInViewFirstTime]);
+  }, [inView, inViewFirstTime, setInViewFirstTime, isRequiredFirst]);
 
   useEffect(() => {
     if (!inViewFirstTime) {
@@ -286,12 +293,15 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      requestChartDataResolved({
-        formData: newFormData,
-        force: shouldRefresh,
-        ownState: filterOwnState,
-        requestParams: { async_mode_override: asyncModeOverride },
-      })
+      const query = isSemanticRange(newFormData)
+        ? Promise.resolve(queriesDataPlaceholder)
+        : requestChartDataResolved({
+            formData: newFormData,
+            force: shouldRefresh,
+            ownState: filterOwnState,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
         .then(queriesResponse => {
           setState(queriesResponse as ChartDataResponseResult[]);
           setError(undefined);

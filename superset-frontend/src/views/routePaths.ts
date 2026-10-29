@@ -19,6 +19,8 @@
 
 export const RoutePaths = {
   REDIRECT: '/redirect/',
+  FORGOT_PASSWORD: '/login/forgot_password/',
+  RESET_PASSWORD: '/login/reset_password/',
   LOGIN: '/login/',
   REGISTER_ACTIVATION: '/register/activation/:activationHash',
   REGISTER: '/register/',

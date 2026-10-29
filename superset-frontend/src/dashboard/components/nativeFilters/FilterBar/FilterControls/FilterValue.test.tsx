@@ -135,6 +135,29 @@ beforeEach(() => {
   );
 });
 
+test('semantic range renders without fetching bounds', async () => {
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({});
+  mockRequestChartData.mockResolvedValue([{ data: [{ min: 1, max: 2 }] }]);
+  renderFilterValue({
+    filter: createMockFilter({
+      filterType: 'filter_range',
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.age' },
+        },
+      ],
+    }),
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
 test('renders loading spinner when filter has a data source', () => {
   mockRequestChartData.mockReturnValue(new Promise(() => {}));
 
@@ -259,6 +282,26 @@ test.each([
 
 test('does not fetch data when filter has not been in view', () => {
   renderFilterValue({ inView: false });
+
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
+test('fetches data when inView is false if filter has requiredFirst', () => {
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
+  const requiredFirstFilter = createMockFilter({
+    requiredFirst: true,
+  });
+  renderFilterValue({ filter: requiredFirstFilter, inView: false });
+
+  expect(mockRequestChartData).toHaveBeenCalled();
+});
+
+test('does not fetch data when inView is false if filter is filter_time even with requiredFirst', () => {
+  const requiredFirstTimeFilter = createMockFilter({
+    requiredFirst: true,
+    filterType: 'filter_time',
+  });
+  renderFilterValue({ filter: requiredFirstTimeFilter, inView: false });
 
   expect(mockRequestChartData).not.toHaveBeenCalled();
 });
@@ -446,4 +489,34 @@ test('legacy permalink values require an explicit reset before the plugin can em
       ],
     },
   });
+});
+
+test('semantic select still requests chart data for its options', async () => {
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({});
+  mockRequestChartData.mockResolvedValue([
+    { data: [{ 'Orders.status': 'Open' }] },
+  ]);
+  renderFilterValue({
+    filter: createMockFilter({
+      filterType: 'filter_select',
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+        },
+      ],
+    }),
+  });
+  await waitFor(() => expect(mockRequestChartData).toHaveBeenCalled());
+  expect(mockRequestChartData.mock.calls[0][0].formData).toEqual(
+    expect.objectContaining({
+      datasource: '3__semantic_view',
+      viz_type: 'filter_select',
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
 });

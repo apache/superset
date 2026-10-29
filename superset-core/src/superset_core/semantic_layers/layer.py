@@ -17,48 +17,119 @@
 
 from __future__ import annotations
 
+import enum
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Generic, TypeVar
+from dataclasses import dataclass
+from typing import Any, ClassVar, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
+from superset_core.semantic_layers.context import (
+    ExecutionMethod,
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
 SemanticViewT = TypeVar("SemanticViewT", bound="SemanticView")
 
 
+class SemanticCacheResponsibility(str, enum.Enum):
+    """Component responsible for caching semantic provider results."""
+
+    PROVIDER = "provider"
+    SUPERSET = "superset"
+
+
+class SemanticCacheScope(str, enum.Enum):
+    """Execution scope in which a semantic result may be reused."""
+
+    EXECUTION_CONTEXT = "execution_context"
+    GLOBAL = "global"
+
+
+@dataclass(frozen=True)
+class SemanticCacheCapabilities:
+    """Provider guarantees for equivalent cached post-processing semantics."""
+
+    comparisons: bool = False
+    membership: bool = False
+    nulls: bool = False
+    pattern_escape: str | None = None
+
+
+@dataclass(frozen=True)
+class SemanticCacheExecutionContext:
+    """Typed host principal context offered to provider identity policy."""
+
+    principal_id: str | None
+    role_ids: tuple[str, ...]
+    host_identity: str
+
+
+@dataclass(frozen=True)
+class SemanticCacheIdentityMaterial:
+    """Explicit secret-free, result-affecting provider identity material."""
+
+    values: Mapping[str, object]
+
+
 class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
     Abstract base class for semantic layers.
+
+    Providers store the parsed configuration instance on the writable
+    ``self.configuration`` attribute. Assigning a raw dictionary is a type error
+    by design; exposing configuration as a read-only property is not supported.
     """
 
+    # Parsed settings read by the host when requesting the runtime schema.
+    # Providers supply this instance attribute; the SDK does not initialize it.
+    configuration: ConfigT
     configuration_class: type[BaseModel]
+    semantic_cache_responsibility: SemanticCacheResponsibility = (
+        SemanticCacheResponsibility.PROVIDER
+    )
+    semantic_cache_scope: SemanticCacheScope = SemanticCacheScope.EXECUTION_CONTEXT
+    supported_execution_methods: ClassVar[frozenset[ExecutionMethod]] = frozenset(
+        {ExecutionMethod.CONNECTION}
+    )
+    semantic_cache_capabilities: SemanticCacheCapabilities = SemanticCacheCapabilities()
+
+    def get_semantic_cache_provider_identity(
+        self,
+    ) -> SemanticCacheIdentityMaterial | None:
+        """Return explicit secret-free provider identity, or bypass containment."""
+        return None
+
+    def get_semantic_cache_context_identity(
+        self,
+        context: SemanticCacheExecutionContext,
+    ) -> SemanticCacheIdentityMaterial | None:
+        """Return complete request-context identity, or bypass containment."""
+        return None
+
     # Opt in only when all result methods enforce the advertised guarantee.
     # None preserves legacy result-cache keys without constructing the provider.
     result_cache_version: ClassVar[str | None] = None
-
-    @classmethod
-    def from_configuration_with_cache_token(
-        cls, configuration: dict[str, Any], *, cache_token: str
-    ) -> SemanticLayer[ConfigT, SemanticViewT]:
-        """Construct with the host's metadata generation before any discovery.
-
-        ``cache_token`` is an opaque generation that changes when the layer's
-        metadata is reloaded. Providers with local metadata caches override this
-        factory to include it in their keys before construction or lookup. Legacy
-        providers retain their ordinary construction behavior.
-        """
-        return cls.from_configuration(configuration)
 
     @classmethod
     @abstractmethod
     def from_configuration(
         cls,
         configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
     ) -> SemanticLayer[ConfigT, SemanticViewT]:
-        """
-        Create a semantic layer from its configuration.
+        """Bind this layer and its views to one host execution identity.
+
+        Under CONNECTION, results and catalogs must not depend on the context.
+        Store the supplied context and cache_token; partition provider caches on
+        cache_token, never secrets. Non-connection credentials arrive exclusively
+        through credentials; never fall back to connection credentials.
         """
         raise NotImplementedError(
             "Semantic layers must implement the from_configuration method"
@@ -72,6 +143,11 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
+
+        Calling with no arguments (or ``None``) must return a static schema
+        without I/O: no connections, network discovery or credential lookup.
+        The host uses this form before configuration exists, including for
+        secret masking. It must not require a constructed provider instance.
 
         A partial configuration `configuration` can be sent to improve the schema,
         allowing for progressive validation and better UX. For example, a semantic

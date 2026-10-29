@@ -56,15 +56,46 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Only these built-ins preserve input rows. Aggregate, boxplot, histogram,
+# pivot, resample and rolling can reduce them; prophet rebuilds the time index.
+# Unknown/custom operations are conservative by default, including future additions.
+_ROW_PRESERVING_OPERATIONS = {
+    "compare",
+    "contribution",
+    "cum",
+    "diff",
+    "flatten",
+    "geodetic_parse",
+    "geohash_decode",
+    "geohash_encode",
+    "rank",
+    "rename",
+    "select",
+    "sort",
+}
+
+
+def _may_collapse_rows(operations: list[str]) -> bool:
+    """Whether output counts cannot establish input retrieval coverage."""
+    return any(operation not in _ROW_PRESERVING_OPERATIONS for operation in operations)
+
+
 def _completeness(
-    row_count: int, source_total: int | None, limit: int
+    row_count: int,
+    source_total: int | None,
+    limit: int,
+    operations: list[str] | None = None,
 ) -> tuple[int | None, bool]:
     """Resolve (total_rows, truncated) for a query result. A source total is only
     authoritative when it exceeds the returned count; a total equal to a capped
     fetch is just the cap (the upstream rowcount is the length of the already
     limited dataframe), so treat it as unknown (None). Truncated means fewer rows
-    were returned than exist.
+    were returned than exist, or input coverage is unverified because executed
+    post-processing can reduce rows before these counts are measured.
     """
+    if _may_collapse_rows(operations or []):
+        # Both counts describe post-processed output, not the capped input.
+        return None, True
     if source_total is not None and source_total > row_count:
         return source_total, True
     if row_count >= limit:
@@ -96,27 +127,67 @@ def _summarize_chart_data(
     multi-query charts."""
     layers = result.query_results or []
     primary = next((q for q in layers if q.data), layers[0] if layers else None)
-    limit = request.fetch_row_limit
+
+    def query_limit(query_index: int) -> int:
+        """Use the executed server-capped limit, falling back for older metadata."""
+        limits = result._query_row_limits
+        return (
+            limits[query_index] or request.fetch_row_limit
+            if query_index < len(limits)
+            else request.fetch_row_limit
+        )
+
+    limit = query_limit(primary.query_index if primary is not None else 0)
+
+    def operations(query_index: int) -> list[str]:
+        """Match metadata by query position, including empty leading layers."""
+        metadata = result._query_post_processing
+        if query_index < len(metadata):
+            return metadata[query_index]
+        # Older responses lack operations; distribution output cannot prove coverage.
+        return (
+            ["unknown_distribution"]
+            if result.chart_type in {"histogram", "histogram_v2", "box_plot"}
+            else []
+        )
+
+    has_collapsing_operations = any(
+        _may_collapse_rows(operations(index))
+        for index in range(max(len(result._query_post_processing), 1))
+    )
     if primary is not None:
         columns = primary.columns
         sample_data = primary.data[: request.sample_rows]
         row_count = primary.row_count
-        total_rows, _ = _completeness(row_count, primary.total_rows, limit)
-        # A chart is incomplete if any layer returned fewer than its total.
+        total_rows, _ = _completeness(
+            row_count, primary.total_rows, limit, operations(primary.query_index)
+        )
+        # Any capped or unverified layer makes chart coverage unverified.
         truncated = any(
-            _completeness(lyr.row_count, lyr.total_rows, limit)[1] for lyr in layers
+            _completeness(
+                lyr.row_count,
+                lyr.total_rows,
+                query_limit(lyr.query_index),
+                operations(lyr.query_index),
+            )[1]
+            for lyr in layers
         )
     else:
         columns = [column.name for column in result.columns]
         sample_data = result.data[: request.sample_rows]
         row_count = result.row_count
-        total_rows, truncated = _completeness(row_count, result.total_rows, limit)
+        total_rows, truncated = _completeness(
+            row_count, result.total_rows, limit, operations(0)
+        )
     queries: list[DashboardChartQueryData] | None = None
     if len(layers) > 1:
         queries = []
         for layer in layers:
             l_total, l_truncated = _completeness(
-                layer.row_count, layer.total_rows, limit
+                layer.row_count,
+                layer.total_rows,
+                query_limit(layer.query_index),
+                operations(layer.query_index),
             )
             queries.append(
                 DashboardChartQueryData(
@@ -132,6 +203,15 @@ def _summarize_chart_data(
         chart_id=result.chart_id,
         chart_name=result.chart_name,
         chart_type=result.chart_type,
+        fetch_row_limit=limit,
+        sample_rows_limit=request.sample_rows,
+        completeness_note=(
+            "After post-processing, input coverage is unverified; "
+            "check fetch_row_limit and dashboard completeness_note."
+            if has_collapsing_operations
+            else "sample_data contains example rows only; use row_count, total_rows "
+            "and truncated to assess retrieval coverage."
+        ),
         columns=columns,
         sample_data=sample_data,
         row_count=row_count,

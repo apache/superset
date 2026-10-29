@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from copy import deepcopy
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
@@ -81,6 +82,7 @@ def test_table_inherited_offset_survives_filter_preparation(
     }
     if not saved_viz:
         form_data.pop("viz_type")
+    original_form_data = deepcopy(form_data)
     with patch(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         return_value="base",
@@ -95,7 +97,7 @@ def test_table_inherited_offset_survives_filter_preparation(
             else None,
         )[0]
     offset = request_offset or "1 year ago"
-    assert "extra_form_data" not in form_data
+    assert form_data == original_form_data
     assert query["time_offsets"] == [offset]
     assert query["post_processing"][0]["options"]["compare_columns"] == [
         f"revenue__{offset}"
@@ -238,6 +240,98 @@ def test_wide_preview_fold_does_not_overwrite_the_axis(x_axis: str) -> None:
     assert spec["encoding"]["x"]["field"] == x_axis
 
 
+@pytest.mark.parametrize(
+    ("stack", "expected"),
+    [
+        (None, None),
+        (False, None),
+        ("Stack", "zero"),
+        (True, "zero"),
+        ("Expand", "normalize"),
+    ],
+)
+def test_wide_preview_fold_follows_the_saved_stack_control(
+    stack: Any, expected: str | None
+) -> None:
+    """An unstacked grouped bar chart previews separate bars, not one stack."""
+    form_data: dict[str, Any] = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    if stack is not None:
+        form_data["stack"] = stack
+    result = _generate_vega_lite_preview_from_data(
+        [{"ds": "2026-01-01", "revenue, East": 10, "revenue, West": 20}],
+        form_data,
+    )
+    assert isinstance(result, VegaLitePreview)
+    spec = result.specification
+    assert spec["transform"][0]["fold"] == ["revenue, East", "revenue, West"]
+    assert "stack" in spec["encoding"]["y"]
+    assert spec["encoding"]["y"]["stack"] == expected
+
+
+@pytest.mark.parametrize(
+    ("viz_type", "stack", "offset"),
+    [
+        ("echarts_timeseries_bar", None, True),
+        ("echarts_timeseries_bar", "Stack", False),
+        ("echarts_timeseries_line", None, False),
+    ],
+)
+def test_wide_preview_unstacked_bars_are_offset_side_by_side(
+    viz_type: str, stack: str | None, offset: bool
+) -> None:
+    """Unstacked folded bars get a series offset instead of overlapping."""
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    if stack is not None:
+        form_data["stack"] = stack
+    result = _generate_vega_lite_preview_from_data(
+        [{"ds": "2026-01-01", "revenue, East": 10, "revenue, West": 20}],
+        form_data,
+    )
+    assert isinstance(result, VegaLitePreview)
+    encoding = result.specification["encoding"]
+    series_field = result.specification["transform"][0]["as"][0]
+    if offset:
+        assert encoding["xOffset"] == {"field": series_field, "type": "nominal"}
+        assert encoding["x"]["type"] == "ordinal"
+        assert (
+            encoding["x"]["timeUnit"] == "yearmonthdatehoursminutessecondsmilliseconds"
+        )
+    else:
+        assert "xOffset" not in encoding
+        assert encoding["x"]["type"] == "temporal"
+
+
+def test_wide_preview_unstacked_bars_keep_sub_second_timestamps_distinct() -> None:
+    """Sub-second timestamps must not share an x band and hide a bar."""
+    result = _generate_vega_lite_preview_from_data(
+        [
+            {"ds": "2026-01-01T12:00:00.100", "revenue, East": 10},
+            {"ds": "2026-01-01T12:00:00.900", "revenue, East": 20},
+        ],
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "ds",
+            "metrics": ["revenue"],
+            "groupby": ["region"],
+        },
+    )
+    assert isinstance(result, VegaLitePreview)
+    time_unit = result.specification["encoding"]["x"]["timeUnit"]
+    # Vega-Lite only keeps milliseconds when the unit includes them; any
+    # coarser unit puts both rows in the same band.
+    assert time_unit.endswith("milliseconds")
+
+
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize("saved_viz", [True, False])
 @pytest.mark.parametrize("request_offset", [None, "2 weeks ago", "3 weeks ago"])
@@ -257,6 +351,7 @@ def test_table_inherited_custom_offset_preserves_other_comparisons(
     }
     if not saved_viz:
         form_data.pop("viz_type")
+    original_form_data = deepcopy(form_data)
     with patch(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         return_value="base",
@@ -275,7 +370,7 @@ def test_table_inherited_custom_offset_preserves_other_comparisons(
         if request_offset == "3 weeks ago"
         else ["1 year ago", "2 weeks ago"]
     )
-    assert "extra_form_data" not in form_data
+    assert form_data == original_form_data
     assert query["time_offsets"] == offsets
     assert query["post_processing"][0]["options"]["compare_columns"] == [
         f"revenue__{offset}" for offset in offsets
