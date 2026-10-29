@@ -1077,7 +1077,7 @@ def _route_x_axis_key(data: Any, column_keys: tuple[str, ...]) -> Any:
             "Pass the column once, and use 'x_axis' only for axis styling "
             "(title, scale, format)."
         )
-    data["x"] = column
+    data["x"] = {"name": column} if isinstance(column, str) else column
     return data
 
 
