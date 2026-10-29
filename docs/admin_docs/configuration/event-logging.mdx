@@ -81,3 +81,50 @@ STATS_LOGGER = StatsdStatsLogger(
 
 Note that it’s also possible to implement your own logger by deriving
 `superset.stats_logger.BaseStatsLogger`.
+
+### Chart data latency metrics
+
+The chart data API (`/api/v1/chart/data` and `/api/v1/chart/<pk>/data/`) emits
+timers (in milliseconds) and counters that break a request down by phase, so
+dashboard latency can be attributed to Superset processing, the results cache,
+or the database. Keys are static; the only dimension encoded in a key is the
+database engine name, a bounded set.
+
+The endpoint as a whole is timed by the generic REST API timers
+`ChartDataRestApi.data.time` and `ChartDataRestApi.get_data.time`. Phases nest,
+so durations from different levels overlap and should not be summed across
+levels.
+
+| Metric | Type | Measures |
+| --- | --- | --- |
+| `chart_data.auth` | timer | Authentication and permission checks (`@protect`) before the handler runs |
+| `chart_data.chart_lookup` | timer | Loading the saved chart (`GET /chart/<pk>/data/` only) |
+| `chart_data.dashboard_filters` | timer | Resolving dashboard filter context (`filters_dashboard_id` only) |
+| `chart_data.query_context.build` | timer | Parsing the request into a query context, including loading the datasource |
+| `chart_data.query_context.validate` | timer | Object-level access checks on the query context |
+| `chart_data.async.submit` | timer | Scheduling async query tasks (when the request returns 202) |
+| `chart_data.command.execute` | timer | Running every query of the request (synchronous path) |
+| `chart_data.totals` | timer | Contribution totals query, when a chart needs one |
+| `chart_data.query.total` | timer | One query from validation through payload assembly |
+| `chart_data.query.planning` | timer | Query validation, cache key and force resolution |
+| `chart_data.cache.key` | timer | Computing the results cache key (includes template rendering for extra cache keys) |
+| `chart_data.cache.get` | timer | Reading the results cache backend, including deserialization |
+| `chart_data.cache.hit` / `.miss` / `.bypass` | counter | Results cache outcome; `bypass` is a forced refresh or a disabled cache |
+| `chart_data.query.data_acquisition` | timer | Fetching data from the datasource on a cache miss or bypass |
+| `chart_data.query.annotations` | timer | Loading annotation layer data on a cache miss or bypass |
+| `chart_data.cache.set` | timer | Serializing and writing a fresh result to the results cache |
+| `chart_data.query.payload_assembly` | timer | Building the per-query response payload |
+| `chart_data.response.serialize` | timer | JSON-encoding the response body |
+| `datasource.query.sql_generation` | timer | Building and rendering the SQL for a query |
+| `datasource.query.normalize` | timer | Normalizing temporal and metric columns of the result |
+| `datasource.query.time_offsets` | timer | Time comparison queries and joins |
+| `datasource.query.post_processing` | timer | Pandas post-processing operations |
+| `database.connect.<engine>` | timer | Opening a database connection |
+| `database.execute.<engine>` | timer | Driver `execute` call for one statement; with drivers whose `execute` blocks until the query completes, this includes database queueing and execution |
+| `database.fetch.<engine>` | timer | Fetching result rows from the driver |
+| `database.dataframe.<engine>` | timer | Building the pandas DataFrame from fetched rows |
+
+The `datasource.*` and `database.*` timers are emitted by shared query
+execution code, so they also cover other features that query datasources
+through the same path. Async chart queries emit the `chart_data.query.*`,
+`chart_data.cache.*`, `datasource.*` and `database.*` metrics from the worker.
