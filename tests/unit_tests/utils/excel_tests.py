@@ -98,7 +98,7 @@ def test_quote_formulas_with_leading_whitespace() -> None:
         {"formula": [" =1+1", "\t=1+1", "\n=1+1", "  @SUM(A1)", "normal"]}
     )
     contents = df_to_excel(df)
-    assert pd.read_excel(contents)["formula"].tolist() == [
+    assert pd.read_excel(io.BytesIO(contents))["formula"].tolist() == [
         "' =1+1",
         "'\t=1+1",
         "'\n=1+1",
