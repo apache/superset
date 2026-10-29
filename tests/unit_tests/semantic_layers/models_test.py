@@ -3352,3 +3352,21 @@ def test_values_rejection_logs_view_and_dimension(
     assert "INVALID_FILTER" in caplog.text
     assert "private-search" not in caplog.text
     mock_implementation.get_values.assert_called_once()
+
+
+
+def test_personal_results_have_distinct_query_cache_keys() -> None:
+    """Two users cannot reuse each other's provider data or shared query task."""
+    from superset.common.query_object import QueryObject
+
+    view = SemanticView(id=1)
+    view.__dict__["implementation"] = MagicMock()
+    view.implementation.uid.return_value = "semantic-view-1"
+    query = QueryObject(datasource=view, columns=["country"])
+    with patch("superset.semantic_layers.models.get_user_id", return_value=42):
+        first = query.cache_key(extra_cache_keys=view.get_extra_cache_keys({}))
+        repeated = query.cache_key(extra_cache_keys=view.get_extra_cache_keys({}))
+    with patch("superset.semantic_layers.models.get_user_id", return_value=43):
+        second = query.cache_key(extra_cache_keys=view.get_extra_cache_keys({}))
+    assert first == repeated
+    assert first != second

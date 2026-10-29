@@ -155,7 +155,12 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         configuration: ConfigT | None,
         return_url: str | None = None,
     ) -> SemanticLayerActionResult:
-        """Start an action and return the URL to which the user should navigate."""
+        """Start a personal action and return its authorization URL.
+
+        Preserve the host-supplied ``return_url`` in server-side OAuth state.
+        After validating the callback and durably storing tokens, redirect there
+        to notify the initiating tab. Never include credentials in the result.
+        """
         raise ValueError(f"Unknown semantic layer action: {action_id}")
 
     @classmethod

@@ -57,6 +57,7 @@ from superset.common.query_object import QueryObject
 from superset.common.utils.dataframe_utils import df_columns_to_num
 from superset.exceptions import (
     InvalidPostProcessingError,
+    OAuth2RedirectError,
     QueryObjectValidationError,
 )
 from superset.explorables.base import TimeGrainDict
@@ -87,7 +88,7 @@ from superset.semantic_layers.registry import (
     semantic_layer_context,
 )
 from superset.utils import json
-from superset.utils.core import GenericDataType, TIME_COMPARISON
+from superset.utils.core import GenericDataType, get_user_id, TIME_COMPARISON
 
 if TYPE_CHECKING:
     from superset.superset_typing import ExplorableData, QueryObjectDict
@@ -909,6 +910,7 @@ class SemanticView(AuditMixinNullable, Model):
         keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
+        keys.append(("semantic_layer_user", get_user_id()))
         return keys
 
     @property

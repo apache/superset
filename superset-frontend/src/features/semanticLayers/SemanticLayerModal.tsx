@@ -33,6 +33,7 @@ import {
   MODAL_MEDIUM_WIDTH,
 } from 'src/components/Modal';
 import { styled } from '@apache-superset/core/theme';
+import useOAuth2Completion from 'src/hooks/useOAuth2Completion';
 import {
   renderers,
   sanitizeSchema,
@@ -144,7 +145,8 @@ export default function SemanticLayerModal({
     useState<ValidationMode>('ValidateAndHide');
   const errorsRef = useRef<ErrorObject[]>([]);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const oauthFocusListenerRef = useRef<(() => void) | null>(null);
+  const [oauthTabId, setOauthTabId] = useState<string>();
+  const oauthPopupRef = useRef<Window | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
   const schemaRequestRef = useRef(0);
@@ -265,12 +267,8 @@ export default function SemanticLayerModal({
         fetchTypes();
       }
     } else {
-  useEffect(
-    () => () => {
-      if (oauthFocusListenerRef.current) {
-        window.removeEventListener('focus', oauthFocusListenerRef.current);
-        oauthFocusListenerRef.current = null;
-      }
+      setOauthTabId(undefined);
+      oauthPopupRef.current = null;
       setStep('type');
       setName('');
       setSelectedType(null);
@@ -329,12 +327,24 @@ export default function SemanticLayerModal({
   };
 
 
-      if (oauthFocusListenerRef.current) {
-        window.removeEventListener('focus', oauthFocusListenerRef.current);
+  useOAuth2Completion(oauthTabId, () => {
+    setOauthTabId(undefined);
+    setRunningActionId(null);
+    oauthPopupRef.current = null;
+    if (selectedType) fetchConfigSchema(selectedType, formData);
+  });
+
+  useEffect(() => {
+    if (!oauthTabId) return undefined;
+    const timer = window.setInterval(() => {
+      if (oauthPopupRef.current?.closed) {
+        setOauthTabId(undefined);
+        setRunningActionId(null);
+        oauthPopupRef.current = null;
       }
-    },
-    [],
-  );
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [oauthTabId]);
 
   const handleStepAdvance = () => {
     if (selectedType) {
@@ -415,7 +425,6 @@ export default function SemanticLayerModal({
         )}/actions/${encodeURIComponent(action.id)}`,
         jsonPayload: {
           configuration: formData,
-          return_url: window.location.href,
           ...(semanticLayerUuid
             ? { semantic_layer_uuid: semanticLayerUuid }
             : {}),
@@ -425,18 +434,13 @@ export default function SemanticLayerModal({
       if (typeof redirectUrl !== 'string') {
         throw new Error(t('The connection action did not return a URL'));
       }
-      popup.location.href = redirectUrl;
-
-      const refreshAfterOAuth = () => {
-        window.removeEventListener('focus', refreshAfterOAuth);
-        oauthFocusListenerRef.current = null;
-        fetchConfigSchema(selectedType, formData);
-      };
-      if (oauthFocusListenerRef.current) {
-        window.removeEventListener('focus', oauthFocusListenerRef.current);
+      const tabId = json.result?.tab_id;
+      if (typeof tabId !== 'string') {
+        throw new Error(t('The connection action did not return a tab ID'));
       }
-      oauthFocusListenerRef.current = refreshAfterOAuth;
-      window.addEventListener('focus', refreshAfterOAuth);
+      oauthPopupRef.current = popup;
+      setOauthTabId(tabId);
+      popup.location.href = redirectUrl;
     } catch (error) {
       popup.close();
       const clientError = await getClientErrorObject(error);
@@ -446,7 +450,6 @@ export default function SemanticLayerModal({
             ? error.message
             : t('An error occurred while starting the connection')),
       );
-    } finally {
       setRunningActionId(null);
     }
   };

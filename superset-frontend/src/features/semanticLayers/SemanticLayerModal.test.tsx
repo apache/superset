@@ -763,7 +763,10 @@ test('starts a required semantic layer configuration action', async () => {
     })
     .mockResolvedValueOnce({
       json: {
-        result: { redirect_url: 'https://auth.example.test/authorize' },
+        result: {
+          redirect_url: 'https://auth.example.test/authorize',
+          tab_id: 'oauth-tab',
+        },
       },
     });
   const popup = {
@@ -785,7 +788,6 @@ test('starts a required semantic layer configuration action', async () => {
       endpoint: '/api/v1/semantic_layer/type/snowflake/actions/oauth2',
       jsonPayload: {
         configuration: expect.any(Object),
-        return_url: window.location.href,
         semantic_layer_uuid: props.semanticLayerUuid,
       },
     });
@@ -797,5 +799,67 @@ test('starts a required semantic layer configuration action', async () => {
     expect(popup.location.href).toBe('https://auth.example.test/authorize');
   });
 
+  const callsBeforeCompletion = mockedPost.mock.calls.length;
+  fireEvent.focus(window);
+  expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion);
+  fireEvent(
+    window,
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: 'unrelated-flow' }),
+    }),
+  );
+  expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion);
+  fireEvent(
+    window,
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: 'oauth-tab' }),
+    }),
+  );
+  await waitFor(() =>
+    expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion + 1),
+  );
+  open.mockRestore();
+});
+
+test('allows another connection attempt after the popup is cancelled', async () => {
+  mockedPost
+    .mockResolvedValueOnce({
+      json: {
+        result: schemaWithExternalDeps,
+        actions: [
+          {
+            id: 'oauth2',
+            label: 'Connect',
+            status: 'required',
+            required: true,
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          redirect_url: 'https://auth.example.test/authorize',
+          tab_id: 'cancelled-flow',
+        },
+      },
+    });
+  const popup = { close: jest.fn(), closed: false, location: { href: '' } };
+  const open = jest
+    .spyOn(window, 'open')
+    .mockReturnValue(popup as unknown as Window);
+  render(<SemanticLayerModal {...props} />);
+  const connect = await screen.findByRole('button', { name: 'Connect' });
+  fireEvent.click(connect);
+  await waitFor(() => expect(popup.location.href).toContain('/authorize'));
+  expect(connect).toBeDisabled();
+  popup.closed = true;
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+  });
+  expect(connect).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   open.mockRestore();
 });

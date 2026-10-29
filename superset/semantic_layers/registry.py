@@ -27,6 +27,7 @@ from superset.extensions.context import (
     extension_context,
     get_current_extension_context,
 )
+from superset.semantic_layers.oauth2 import check_for_oauth2
 from superset.utils.core import get_user_id
 
 registry: dict[str, type[SemanticLayer[Any, Any]]] = {}
@@ -53,7 +54,11 @@ def unregister_semantic_layer(semantic_layer_id: str) -> None:
 
 
 @contextmanager
-def semantic_layer_context(semantic_layer_id: str) -> Iterator[None]:
+def semantic_layer_context(
+    semantic_layer_id: str,
+    layer_uuid: str | None = None,
+    view_uuid: str | None = None,
+) -> Iterator[None]:
     """Run provider code in its owning extension and principal context."""
     manifest = _extension_manifests.get(semantic_layer_id)
     current_context = get_current_extension_context()
@@ -67,43 +72,65 @@ def semantic_layer_context(semantic_layer_id: str) -> Iterator[None]:
         if manifest is not None
         else nullcontext()
     )
-    with context:
+    with check_for_oauth2(layer_uuid, view_uuid), context:
         yield
 
 
 class ContextualSemanticView:
     """Forward semantic view operations inside their extension context."""
 
-    def __init__(self, semantic_layer_id: str, implementation: Any):
+    def __init__(
+        self,
+        semantic_layer_id: str,
+        implementation: Any,
+        layer_uuid: str | None = None,
+        view_uuid: str | None = None,
+    ):
         self._semantic_layer_id = semantic_layer_id
         self._implementation = implementation
+        self._layer_uuid = layer_uuid
+        self._view_uuid = view_uuid
 
     def __getattr__(self, name: str) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return getattr(self._implementation, name)
 
     def uid(self) -> str:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.uid()
 
     def get_dimensions(self) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_dimensions()
 
     def get_metrics(self) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_metrics()
 
     def get_values(self, dimension: Any, filters: Any = None) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_values(dimension, filters)
 
     def get_table(self, query: Any) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_table(query)
 
     def get_row_count(self, query: Any) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_row_count(query)
 
     def get_compatible_metrics(
@@ -111,7 +138,9 @@ class ContextualSemanticView:
         selected_metrics: Any,
         selected_dimensions: Any,
     ) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_compatible_metrics(
                 selected_metrics,
                 selected_dimensions,
@@ -122,7 +151,9 @@ class ContextualSemanticView:
         selected_metrics: Any,
         selected_dimensions: Any,
     ) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return self._implementation.get_compatible_dimensions(
                 selected_metrics,
                 selected_dimensions,
@@ -132,37 +163,62 @@ class ContextualSemanticView:
 class ContextualSemanticLayer:
     """Forward semantic layer operations inside their extension context."""
 
-    def __init__(self, semantic_layer_id: str, implementation: Any):
+    def __init__(
+        self,
+        semantic_layer_id: str,
+        implementation: Any,
+        layer_uuid: str | None = None,
+        view_uuid: str | None = None,
+    ):
         self._semantic_layer_id = semantic_layer_id
         self._implementation = implementation
+        self._layer_uuid = layer_uuid
+        self._view_uuid = view_uuid
 
     def __getattr__(self, name: str) -> Any:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             return getattr(self._implementation, name)
 
     def get_semantic_views(self, runtime_configuration: dict[str, Any]) -> set[Any]:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             views = self._implementation.get_semantic_views(runtime_configuration)
-        return {ContextualSemanticView(self._semantic_layer_id, view) for view in views}
+        return {
+            ContextualSemanticView(
+                self._semantic_layer_id, view, self._layer_uuid, self._view_uuid
+            )
+            for view in views
+        }
 
     def get_semantic_view(
         self,
         name: str,
         additional_configuration: dict[str, Any],
     ) -> ContextualSemanticView:
-        with semantic_layer_context(self._semantic_layer_id):
+        with semantic_layer_context(
+            self._semantic_layer_id, self._layer_uuid, self._view_uuid
+        ):
             view = self._implementation.get_semantic_view(
                 name,
                 additional_configuration,
             )
-        return ContextualSemanticView(self._semantic_layer_id, view)
+        return ContextualSemanticView(
+            self._semantic_layer_id, view, self._layer_uuid, self._view_uuid
+        )
 
 
 def contextualize_semantic_layer(
     semantic_layer_id: str,
     implementation: Any,
+    layer_uuid: str | None = None,
+    view_uuid: str | None = None,
 ) -> Any:
-    """Wrap extension providers while leaving host providers unchanged."""
-    if semantic_layer_id not in _extension_manifests:
+    """Wrap providers to preserve extension and OAuth resource context."""
+    if semantic_layer_id not in _extension_manifests and layer_uuid is None:
         return implementation
-    return ContextualSemanticLayer(semantic_layer_id, implementation)
+    return ContextualSemanticLayer(
+        semantic_layer_id, implementation, layer_uuid, view_uuid
+    )

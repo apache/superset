@@ -37,6 +37,8 @@ import {
   FeatureFlag,
   makeApi,
   SupersetClient,
+  ErrorTypeEnum,
+  SupersetError,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
