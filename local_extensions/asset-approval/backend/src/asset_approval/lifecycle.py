@@ -149,7 +149,6 @@ def submit(
     return change_request
 
 
-@transaction()
 def _author_name(change_request: ChangeRequest) -> str | None:
     """The author's display name, for the refusal message."""
     author = getattr(change_request, "author", None)
@@ -161,6 +160,7 @@ def _author_name(change_request: ChangeRequest) -> str | None:
     return full or getattr(author, "username", None)
 
 
+@transaction()
 def approve(
     change_request_id: int,
     note: str | None = None,
