@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
+from jinja2.exceptions import TemplateError
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
@@ -26,11 +27,36 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
+from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.sql.parse import Table
+
+#: Errors from rendering a virtual dataset's Jinja SQL with its template params
+#: -- the set ``get_rendered_sql`` reports as a query error at execution. A
+#: define/repoint path that renders the SQL to authorize it reports these as
+#: invalid input rather than letting them surface as a 500.
+TEMPLATE_RENDER_ERRORS: tuple[type[Exception], ...] = (
+    TemplateError,
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+    TypeError,
+)
+
+
+def get_template_render_error_msg(ex: Exception) -> str:
+    """The message ``get_rendered_sql`` would report for a render error."""
+    if isinstance(ex, TemplateError):
+        detail = ex.message or str(ex)
+    elif isinstance(ex, SupersetSyntaxErrorException):
+        detail = str(ex.errors[0].message if ex.errors else ex)
+    else:
+        detail = str(ex)
+    return str(_("Error while rendering virtual dataset query: %(msg)s", msg=detail))
 
 
 def get_dataset_exist_error_msg(table: Table) -> str:
-    return _("Dataset %(table)s already exists", table=table)
+    """Render a readable display name, not the URL-encoded Table identity."""
+    name = ".".join(part for part in (table.catalog, table.schema, table.table) if part)
+    return str(_("Dataset %(table)s already exists", table=name))
 
 
 class MultiCatalogDisabledValidationError(ValidationError):
@@ -43,6 +69,28 @@ class MultiCatalogDisabledValidationError(ValidationError):
             [_("Only the default catalog is supported for this connection")],
             field_name="catalog",
         )
+
+
+class TemplateParamsInvalidValidationError(ValidationError):
+    """
+    Marshmallow validation error for template params that are not a JSON object
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [_("Template parameters must be a valid JSON object.")],
+            field_name="template_params",
+        )
+
+
+class DatasetSqlRenderValidationError(ValidationError):
+    """
+    Marshmallow validation error for SQL that cannot be rendered with its
+    template params, and so cannot be access-checked
+    """
+
+    def __init__(self, ex: Exception) -> None:
+        super().__init__([get_template_render_error_msg(ex)], field_name="sql")
 
 
 class DatabaseNotFoundValidationError(ValidationError):
