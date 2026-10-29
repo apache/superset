@@ -35,6 +35,46 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Master (and each release branch) gets frequent, sometimes bursty pushes,
+  # and docker-build's per-preset concurrency groups below are keyed on the
+  # branch, not the run: with cancel-in-progress: false, a burst queues
+  # several runs behind each other in the same group, and GitHub
+  # force-cancels all but the newest queued one regardless of
+  # cancel-in-progress — that shows up as a failing "Cancelled" check on an
+  # otherwise-fine commit instead of a clean "Skipped" one. Check up front
+  # whether this run is still building its branch's current tip and, if
+  # not, skip the whole matrix cleanly before it ever joins that queue.
+  # Deliberately outside any concurrency group so it runs immediately for
+  # every trigger without blocking or being blocked by anything. Mirrors
+  # check-freshness in superset-docs-deploy.yml, which hit the same
+  # cancelled-vs-skipped problem first.
+  check-freshness:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    outputs:
+      is-current: ${{ steps.check.outputs.is-current }}
+    steps:
+      # Sparse checkout: this job's only job is to be fast, so it fetches
+      # nothing but the freshness-check script itself.
+      - name: Checkout freshness-check script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/workflows/scripts
+          sparse-checkout-cone-mode: false
+      - name: "Check whether this is still the branch's current commit"
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          OUTPUT_NAME: is-current
+          FAIL_OPEN: "true"
+        run: .github/workflows/scripts/check-branch-freshness.sh
+
   setup_matrix:
     runs-on: ubuntu-slim
     timeout-minutes: 5
@@ -142,7 +182,9 @@ jobs:
             local preset="$1" expected="$2" extra_flags command
             extra_flags="$(scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(docker_command "$preset" "$extra_flags")"
-            if ! grep -Fq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected" <<<"$command"; then
+            # Match the whole flag, so a ref with extra trailing text (e.g. a
+            # digest) doesn't pass on its prefix.
+            if ! grep -oE -- '--cache-from=[^[:space:]]+' <<<"$command" | grep -Fxq -- "--cache-from=type=registry,ref=apache/superset-cache:$expected"; then
               echo "::error::preset '$preset' expected cache-from apache/superset-cache:$expected (full command: $command)"
               exit 1
             fi
@@ -196,7 +238,7 @@ jobs:
             load_build_plan push refs/heads/master master
             extra_flags="$(PUBLISH_DOCKER_CACHE=true DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
-            if ! grep -Fq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected" <<<"$command"; then
+            if ! grep -oE -- '--cache-to=[^[:space:]]+' <<<"$command" | grep -Fxq -- "--cache-to=type=registry,mode=max,ref=apache/superset-cache:$expected"; then
               echo "::error::preset '$preset' expected cache-to apache/superset-cache:$expected for master publish (full command: $command)"
               exit 1
             fi
@@ -255,8 +297,16 @@ jobs:
           assert_publish_guard push refs/heads/7.0 aaaa111 bbbb222 true
           assert_publish_guard pull_request refs/pull/44250/merge aaaa111 bbbb222 true
           assert_supersetbot_exports_cache_with_token superset
+          # The default presets must pass the Dockerfile's digest-pinned PY_VER
+          # (tag@sha256:...) through unchanged; read it the way
+          # docker-build-extra-flags.sh does so digest bumps need no edit here.
+          default_py_ver="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
+          if [[ "$default_py_ver" != *@sha256:* ]]; then
+            echo "::error::Dockerfile ARG PY_VER must pin a digest (tag@sha256:...), got: ${default_py_ver:-<none>}"
+            exit 1
+          fi
           for preset in superset dev lean; do
-            assert_effective_py_ver "$preset" "3.11-slim-trixie"
+            assert_effective_py_ver "$preset" "$default_py_ver"
             expected_cache="3.11-slim-trixie"
             if [ "$preset" != "superset" ]; then
               expected_cache="${expected_cache}-${preset}"
@@ -290,13 +340,18 @@ jobs:
 
   docker-build:
     name: docker-build
-    needs: [setup_matrix, changes]
+    needs: [setup_matrix, changes, check-freshness]
     # Only master pushes publish images (see scripts/docker-build-plan.sh).
     # Without the Docker Hub credentials (e.g. on a fork or mirror) they can
     # publish nothing, so they are skipped there. Version-branch pushes and
     # pull_request builds only load the image to validate that it builds, so
-    # they run everywhere.
+    # they run everywhere. check-freshness.outputs.is-current is always
+    # 'true' for pull_request (it bypasses the check there — a PR build has
+    # no branch tip to race against, and staleness is instead handled by
+    # this job's own cancel-in-progress: true below), so this only narrows
+    # push triggers superseded by a newer commit on the same branch.
     if: >-
+      needs.check-freshness.outputs.is-current == 'true' &&
       (github.event_name != 'push' ||
        github.ref != 'refs/heads/master' ||
        needs.setup_matrix.outputs.has-secrets) &&
@@ -501,7 +556,7 @@ jobs:
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
           # Both `superset` and `lean` are scanned now; without a distinct
