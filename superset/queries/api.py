@@ -26,6 +26,7 @@ from flask_appbuilder.api import (
     safe,
 )
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 
 from superset import db, event_logger
 from superset.common.db_query_status import QueryStatus
@@ -293,5 +294,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
                     query=query.to_dict(),
                 )
             return self.response(200, result="OK")
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)

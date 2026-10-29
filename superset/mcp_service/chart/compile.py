@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
@@ -216,10 +217,12 @@ def _compile_chart(  # noqa: C901
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
-        if (
-            datasource_type == DatasourceType.TABLE.value
-            and _classify_as_database_error(exc, dataset_id)
-        ):
+        database_failure = (
+            _classify_as_database_error(exc, form_data, dataset_id)
+            if datasource_type == DatasourceType.TABLE.value
+            else None
+        )
+        if database_failure is not None:
             logger.warning(
                 "Database connection error during chart compile check: %s: %s",
                 type(exc).__name__,
@@ -230,7 +233,9 @@ def _compile_chart(  # noqa: C901
                 error=f"Database connection error: {exc}",
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
-                error_obj=_build_database_error(str(exc)),
+                error_obj=_build_database_error(
+                    str(exc), annotation=database_failure == "annotation"
+                ),
             )
         return CompileResult(
             success=False,
@@ -404,43 +409,166 @@ def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:
-    """Use the dataset's DB engine spec to classify the error.
+@dataclass(frozen=True)
+class _DatabaseFailure:
+    """A database failure found in an exception's ``__cause__`` chain."""
 
-    Walks the ``__cause__`` chain for direct ``SQLAlchemyError`` instances,
-    then falls back to the engine spec's ``extract_errors`` regex patterns —
-    the same classification the Superset UI uses.
+    error: BaseException
+    # SQLAlchemy errors are database failures without engine pattern matching.
+    typed: bool
+    # Found beneath a validation wrapper, as annotation query failures are.
+    wrapped: bool
+
+
+def _find_database_failure(exc: BaseException) -> _DatabaseFailure | None:
+    """Find the deepest database failure in *exc*'s ``__cause__`` chain.
+
+    Validation wrappers can carry an annotation chart's database failure, so
+    they are walked through but never classified themselves.
     """
-    # Direct SQLAlchemy errors (unwrapped or in cause chain)
+    from superset.commands.chart.exceptions import (
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+    from superset.db_engine_specs.exceptions import SupersetDBAPIError
+
+    # A non-validation outer error (e.g. a cache load failure) keeps the engine
+    # pattern fallback even when no typed database error is in its chain.
+    failure = (
+        None
+        if isinstance(exc, (ChartDataQueryValidationError, QueryObjectValidationError))
+        else _DatabaseFailure(exc, typed=False, wrapped=False)
+    )
+    wrapped = False
+    seen: set[int] = set()
     current: BaseException | None = exc
-    while current is not None:
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
         if isinstance(current, SQLAlchemyError):
-            return True
+            return _DatabaseFailure(current, typed=True, wrapped=wrapped)
+        if isinstance(
+            current, (ChartDataQueryValidationError, QueryObjectValidationError)
+        ):
+            wrapped = True
+        elif isinstance(current, (ChartDataQueryFailedError, SupersetDBAPIError)):
+            failure = _DatabaseFailure(current, typed=False, wrapped=wrapped)
         current = current.__cause__
+    return failure
 
-    # Use the dataset's engine spec to classify (same as the UI)
+
+def _chart_annotation_layers(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect chart-backed annotation layers from both Mixed Timeseries queries."""
+    from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+
+    return [
+        layer
+        for key in ("annotation_layers", "annotation_layers_b")
+        if isinstance(layers := form_data.get(key), list)
+        for layer in layers
+        if isinstance(layer, dict)
+        and layer.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+    ]
+
+
+def _annotation_engine_specs(form_data: dict[str, Any]) -> tuple[list[Any], bool]:
+    """Return the engine specs of the charts the annotation layers query.
+
+    The flag is True when the failing layer's engine is certain: every chart
+    layer resolved to the same engine. The exception does not name the layer
+    that raised it, so with several engines (or an unresolved chart) any of
+    them could be the failing one.
+    """
+    from superset.daos.chart import ChartDAO
+
+    specs: list[Any] = []
+    unresolved = False
+    for layer in _chart_annotation_layers(form_data):
+        if not isinstance(chart_id := layer.get("value"), (int, str)):
+            continue
+        chart = ChartDAO.find_by_id(chart_id)
+        database = getattr(getattr(chart, "datasource", None), "database", None)
+        spec = getattr(database, "db_engine_spec", None)
+        if spec is None:
+            unresolved = True
+        elif spec not in specs:
+            specs.append(spec)
+    return specs, len(specs) == 1 and not unresolved
+
+
+def _has_chart_annotation_layers(form_data: dict[str, Any]) -> bool:
+    """Whether the chart runs annotation queries against other charts."""
+    return bool(_chart_annotation_layers(form_data))
+
+
+def _classify_as_database_error(
+    exc: BaseException, form_data: dict[str, Any], dataset_id: int
+) -> Literal["dataset", "annotation"] | None:
+    """Classify *exc* as a database connection failure, or return None.
+
+    Returns whether the failure came from the chart's own dataset or from an
+    annotation layer's chart. Walks the ``__cause__`` chain for typed database
+    errors, then falls back to the engine spec's ``extract_errors`` regex
+    patterns, the same classification the Superset UI uses. An annotation
+    failure is matched against the annotation charts' engines. Unless a single
+    engine is certain to be the failing one, only specific connection patterns
+    count: an engine's generic fallback would turn any error into a connection
+    failure.
+    """
+    failure = _find_database_failure(exc)
+    if failure is None:
+        return None
+    source: Literal["dataset", "annotation"] = (
+        "annotation"
+        if failure.wrapped and _has_chart_annotation_layers(form_data)
+        else "dataset"
+    )
+    if failure.typed:
+        return source
+    if not isinstance(failure.error, Exception):
+        return None
+
     try:
-        from superset.daos.dataset import DatasetDAO
+        specs: list[Any] = []
+        exact = source != "annotation"
+        if source == "annotation":
+            specs, exact = _annotation_engine_specs(form_data)
+        if not specs:
+            from superset.daos.dataset import DatasetDAO
 
-        dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset and dataset.database and isinstance(exc, Exception):
-            errors = dataset.database.db_engine_spec.extract_errors(exc)
-            return any(e.error_type in CONNECTION_ERROR_TYPES for e in errors)
+            dataset = DatasetDAO.find_by_id(dataset_id)
+            if dataset and dataset.database:
+                specs = [dataset.database.db_engine_spec]
+        for spec in specs:
+            errors = spec.extract_errors(failure.error)
+            if any(
+                e.error_type in CONNECTION_ERROR_TYPES
+                and (exact or e.error_type != SupersetErrorType.GENERIC_DB_ENGINE_ERROR)
+                for e in errors
+            ):
+                return source
     except Exception:  # pylint: disable=broad-except
         logger.debug(
-            "Failed to classify error via engine spec for dataset %s: %s",
+            "Failed to classify %s error via candidate engine specs "
+            "(main dataset %s): %s",
+            source,
             dataset_id,
             exc,
         )
 
-    return False
+    return None
 
 
-def _build_database_error(message: str) -> ChartGenerationError:
+def _build_database_error(
+    message: str, *, annotation: bool = False
+) -> ChartGenerationError:
     """Wrap a database connection failure in the structured response envelope."""
     return ChartGenerationError(
         error_type="database_connection_error",
-        message="Unable to connect to the database.",
+        message=(
+            "Unable to connect to the database of an annotation layer's chart."
+            if annotation
+            else "Unable to connect to the database."
+        ),
         details=message or "",
         suggestions=[
             "Check that the database is online and reachable",

@@ -69,6 +69,11 @@ test('RowCountLabel uses a caller-provided limitReachedMessage instead of the de
   expect(tooltip).not.toHaveTextContent('The row limit set for the chart');
 });
 
+test('RowCountLabel marks a lower-bound count with a plus', () => {
+  render(<RowCountLabel rowcount={1000} isLowerBound />);
+  expect(screen.getByText('1k+ rows')).toBeInTheDocument();
+});
+
 test('RowCountLabel renders loading', async () => {
   render(<RowCountLabel loading />);
   const expectedText = 'Loading...';
