@@ -292,6 +292,7 @@ const ExtraOptions = ({
                     key={`${db?.id}-${db?.backend || db?.engine}`}
                     extra={extraJson}
                     metric={db?.engine_information?.query_cost_warning_metric}
+                    supported={db?.engine_information?.query_warning_supported}
                     onChange={rule =>
                       onExtraEditorChange({
                         name: 'query_cost_warning',

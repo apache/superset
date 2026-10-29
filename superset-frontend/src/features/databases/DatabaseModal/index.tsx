@@ -680,6 +680,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const queryCostWarningHasError = !!getQueryCostWarningError(
     getQueryCostWarning(JSON.parse(db?.extra || '{}')),
     db?.engine_information?.query_cost_warning_metric,
+    db?.engine_information?.query_warning_supported,
   );
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [

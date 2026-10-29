@@ -91,9 +91,7 @@ test.each([
     await userEvent.click(await screen.findByText('SQL Lab'));
     const amount = await screen.findByLabelText(label);
     fireEvent.change(amount, { target: { value: input } });
-    await userEvent.click(
-      screen.getByLabelText('Enable pre-run cost warnings'),
-    );
+    await userEvent.click(screen.getByLabelText('Enable pre-run warnings'));
     await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() =>
       expect(fetchMock.callHistory.calls('database-update')).toHaveLength(1),
@@ -114,9 +112,7 @@ test.each([
     await userEvent.click(await screen.findByRole('tab', { name: 'Advanced' }));
     await userEvent.click(await screen.findByText('SQL Lab'));
     expect(await screen.findByLabelText(label)).toHaveValue(reopened);
-    expect(
-      screen.getByLabelText('Enable pre-run cost warnings'),
-    ).not.toBeChecked();
+    expect(screen.getByLabelText('Enable pre-run warnings')).not.toBeChecked();
   },
 );
 
@@ -200,9 +196,7 @@ test('saving untouched settings leaves an absent warning rule absent', async () 
   });
   await userEvent.click(await screen.findByRole('tab', { name: 'Advanced' }));
   await userEvent.click(await screen.findByText('SQL Lab'));
-  expect(
-    screen.getByLabelText('Enable pre-run cost warnings'),
-  ).not.toBeChecked();
+  expect(screen.getByLabelText('Enable pre-run warnings')).not.toBeChecked();
   await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
   await waitFor(() =>
     expect(fetchMock.callHistory.calls('database-update')).toHaveLength(1),

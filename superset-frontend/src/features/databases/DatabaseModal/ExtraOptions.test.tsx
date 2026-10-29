@@ -139,7 +139,7 @@ describe('ExtraOptions Component', () => {
     });
     fireEvent.click(screen.getByText('SQL Lab'));
     const checkbox = screen.getByRole('checkbox', {
-      name: 'Enable pre-run cost warnings',
+      name: 'Enable pre-run warnings',
     });
     expect(checkbox).not.toBeChecked();
     expect(checkbox).toBeDisabled();
@@ -160,7 +160,7 @@ describe('ExtraOptions Component', () => {
     });
     fireEvent.click(screen.getByText('SQL Lab'));
     const checkbox = screen.getByRole('checkbox', {
-      name: 'Enable pre-run cost warnings',
+      name: 'Enable pre-run warnings',
     });
     expect(checkbox).not.toBeChecked();
     expect(checkbox).toBeEnabled();
@@ -191,7 +191,7 @@ describe('ExtraOptions Component', () => {
       }),
     });
     fireEvent.click(screen.getByText('SQL Lab'));
-    const checkbox = screen.getByLabelText('Enable pre-run cost warnings');
+    const checkbox = screen.getByLabelText('Enable pre-run warnings');
     expect(checkbox).toBeEnabled();
     expect(checkbox).toBeChecked();
     expect(
@@ -218,9 +218,7 @@ describe('ExtraOptions Component', () => {
       },
     });
     fireEvent.click(screen.getByText('SQL Lab'));
-    expect(
-      screen.getByLabelText('Enable pre-run cost warnings'),
-    ).toBeDisabled();
+    expect(screen.getByLabelText('Enable pre-run warnings')).toBeDisabled();
     expect(
       screen.getByText(/SQLLAB_QUERY_COST_WARNINGS is off/),
     ).toBeInTheDocument();
@@ -237,9 +235,7 @@ describe('ExtraOptions Component', () => {
       extra: JSON.stringify({ cost_estimate_enabled: true }),
     });
     fireEvent.click(screen.getByText('SQL Lab'));
-    expect(
-      screen.getByLabelText('Enable pre-run cost warnings'),
-    ).toBeDisabled();
+    expect(screen.getByLabelText('Enable pre-run warnings')).toBeDisabled();
   });
 
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {

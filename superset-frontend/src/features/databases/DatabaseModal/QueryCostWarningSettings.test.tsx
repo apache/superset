@@ -38,26 +38,33 @@ function SettingsHarness({
   extra,
   metric = 'bytes_processed',
   engine = 'bigquery',
+  supported = metric != null,
 }: {
   extra: ExtraJson;
   metric?: QueryCostWarningMetric | null;
   engine?: string;
+  supported?: boolean;
 }) {
   const [db, dispatch] = useReducer(dbReducer, {
     backend: engine,
-    engine_information: { query_cost_warning_metric: metric },
+    engine_information: {
+      query_cost_warning_metric: metric,
+      query_warning_supported: supported,
+    },
     extra: JSON.stringify(extra),
   });
   const currentExtra: ExtraJson = JSON.parse(db?.extra || '{}');
   const hasError = !!getQueryCostWarningError(
     getQueryCostWarning(currentExtra),
     metric,
+    supported,
   );
   return (
     <>
       <QueryCostWarningSettings
         extra={currentExtra}
         metric={metric}
+        supported={supported}
         onChange={rule =>
           dispatch({
             type: ActionType.ExtraEditorChange,
@@ -124,7 +131,7 @@ test('unit changes preserve bytes and disabled values survive reopening', async 
   await selectOption('GB', 'Threshold size unit');
   fireEvent.change(amount, { target: { value: '1.25' } });
   expect(savedExtra().query_cost_warning?.threshold).toBe(1250000000);
-  await userEvent.click(screen.getByLabelText('Enable pre-run cost warnings'));
+  await userEvent.click(screen.getByLabelText('Enable pre-run warnings'));
   expect(amount).toHaveValue(1.25);
   expect(amount).toBeDisabled();
   const saved = savedExtra();
@@ -138,9 +145,7 @@ test('unit changes preserve bytes and disabled values survive reopening', async 
   });
   view.unmount();
   render(<SettingsHarness extra={saved} />);
-  expect(
-    screen.getByLabelText('Enable pre-run cost warnings'),
-  ).not.toBeChecked();
+  expect(screen.getByLabelText('Enable pre-run warnings')).not.toBeChecked();
   expect(
     screen.getByLabelText('Warning threshold (bytes processed)'),
   ).toHaveValue(1250);
@@ -216,7 +221,7 @@ test('turning connection estimation off retains the complete warning rule', asyn
   );
   expect(screen.getByText(/Saved settings are retained/)).toBeInTheDocument();
   expect(savedExtra().query_cost_warning).toEqual(rule);
-  expect(screen.getByLabelText('Enable pre-run cost warnings')).toBeChecked();
+  expect(screen.getByLabelText('Enable pre-run warnings')).toBeChecked();
   expect(
     screen.getByLabelText('Warning threshold (bytes processed)'),
   ).toBeDisabled();
@@ -257,7 +262,7 @@ test.each([
   expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   fireEvent.click(
     rule?.enabled === true
-      ? screen.getByLabelText('Enable pre-run cost warnings')
+      ? screen.getByLabelText('Enable pre-run warnings')
       : screen.getByRole('button', { name: 'Disable saved rule' }),
   );
   expect(savedExtra().query_cost_warning?.enabled).toBe(false);
@@ -279,7 +284,7 @@ test('a no-longer-supported saved rule can be disabled while preserving its valu
     />,
   );
   expect(screen.getByText(/This engine does not support/)).toBeInTheDocument();
-  fireEvent.click(screen.getByLabelText('Enable pre-run cost warnings'));
+  fireEvent.click(screen.getByLabelText('Enable pre-run warnings'));
   expect(savedExtra().query_cost_warning).toEqual({
     enabled: false,
     metric: 'bytes_processed',
@@ -304,7 +309,7 @@ test.each([
         }}
       />,
     );
-    fireEvent.click(screen.getByLabelText('Enable pre-run cost warnings'));
+    fireEvent.click(screen.getByLabelText('Enable pre-run warnings'));
     expect(savedExtra().query_cost_warning).toEqual({
       enabled: true,
       metric: 'total_cost',
@@ -312,3 +317,46 @@ test.each([
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   },
 );
+
+test('message-only opt-in preserves check fields and needs no estimation or threshold', async () => {
+  window.featureFlags = {
+    [FeatureFlag.SqlLabQueryCostWarnings]: true,
+    [FeatureFlag.EstimateQueryCost]: false,
+  };
+  const rule = {
+    enabled: false,
+    notice: 'Review this query',
+    options: { mode: 'notice' },
+  };
+  render(
+    <SettingsHarness
+      metric={null}
+      supported
+      extra={{
+        cost_estimate_enabled: false,
+        query_cost_warning: rule,
+        metadata_params: {},
+      }}
+    />,
+  );
+  const checkbox = screen.getByLabelText('Enable pre-run warnings');
+  expect(checkbox).toBeEnabled();
+  expect(checkbox).not.toBeChecked();
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+  await userEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+  expect(savedExtra()).toEqual({
+    cost_estimate_enabled: false,
+    metadata_params: {},
+    query_cost_warning: { ...rule, enabled: true },
+  });
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await userEvent.click(checkbox);
+  expect(checkbox).not.toBeChecked();
+  expect(savedExtra()).toEqual({
+    cost_estimate_enabled: false,
+    metadata_params: {},
+    query_cost_warning: rule,
+  });
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});

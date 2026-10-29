@@ -49,10 +49,12 @@ import { no_margin_bottom, StyledInputContainer } from './styles';
 export default function QueryCostWarningSettings({
   extra,
   metric,
+  supported = isQueryCostWarningMetric(metric),
   onChange,
 }: {
   extra: ExtraJson;
   metric?: QueryCostWarningMetric | null;
+  supported?: boolean;
   onChange: (rule: Record<string, unknown>) => void;
 }) {
   const theme = useTheme();
@@ -65,9 +67,8 @@ export default function QueryCostWarningSettings({
   const estimationFlag = isFeatureEnabled(FeatureFlag.EstimateQueryCost);
   const active =
     flagsEnabled &&
-    estimationFlag &&
-    extra.cost_estimate_enabled === true &&
-    !!definition;
+    supported &&
+    (!definition || (estimationFlag && extra.cost_estimate_enabled === true));
   const [unit, setUnit] = useState<CostWarningUnit>(() =>
     getCostWarningUnit(rule.threshold),
   );
@@ -99,9 +100,13 @@ export default function QueryCostWarningSettings({
           'Enter an amount that equals positive whole bytes, no greater than 9,007,199,254,740,991.',
         )
       : t('Enter a positive, finite warning threshold.')
-    : getQueryCostWarningError(rule, metric);
+    : getQueryCostWarningError(rule, metric, supported);
   const setEnabled = (event: CheckboxChangeEvent) => {
     setDraft(undefined);
+    if (supported && !definition) {
+      onChange({ ...rule, enabled: event.target.checked });
+      return;
+    }
     onChange(
       event.target.checked
         ? {
@@ -128,13 +133,13 @@ export default function QueryCostWarningSettings({
     }
     onChange(updatedRule);
   };
-  const inactiveReason = !definition
+  const inactiveReason = !supported
     ? t('This engine does not support pre-run warnings.')
     : !flagsEnabled
       ? t('Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off.')
-      : !estimationFlag
+      : definition && !estimationFlag
         ? t('Warnings are inactive because ESTIMATE_QUERY_COST is off.')
-        : extra.cost_estimate_enabled !== true
+        : definition && extra.cost_estimate_enabled !== true
           ? t(
               'Enable query cost estimation to activate pre-run warnings. Saved settings are retained.',
             )
@@ -150,7 +155,7 @@ export default function QueryCostWarningSettings({
           disabled={!active && !enabled}
           onChange={setEnabled}
         >
-          {t('Enable pre-run cost warnings')}
+          {t('Enable pre-run warnings')}
         </Checkbox>
       </div>
       <Flex
@@ -216,7 +221,11 @@ export default function QueryCostWarningSettings({
             buttonSize="small"
             onClick={() => {
               setDraft(undefined);
-              onChange(disableQueryCostWarning(rule));
+              onChange(
+                supported && !definition
+                  ? { ...rule, enabled: false }
+                  : disableQueryCostWarning(rule),
+              );
             }}
           >
             {t('Disable saved rule')}

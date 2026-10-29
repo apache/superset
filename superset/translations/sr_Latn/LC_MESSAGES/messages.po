@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-29 13:19-0400\n"
+"POT-Creation-Date: 2026-10-29 13:22-0400\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -8442,7 +8442,7 @@ msgstr "Omogući matrixify"
 msgid "Enable node dragging"
 msgstr "Omogući prevlačenje čvorova"
 
-msgid "Enable pre-run cost warnings"
+msgid "Enable pre-run warnings"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

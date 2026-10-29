@@ -135,7 +135,15 @@ export function parseWarningBytes(
 export function getQueryCostWarningError(
   rule: Record<string, unknown>,
   metric: QueryCostWarningMetric | null | undefined,
+  supported = isQueryCostWarningMetric(metric),
 ): string | undefined {
+  if (supported && metric == null) {
+    return typeof rule.enabled === 'boolean'
+      ? undefined
+      : t(
+          'Saved warning settings are invalid. Turn warnings off to clear invalid fields.',
+        );
+  }
   if (
     typeof rule.enabled !== 'boolean' ||
     ('metric' in rule && typeof rule.metric !== 'string')
@@ -161,7 +169,11 @@ export function getQueryCostWarningError(
     return t('Enter whole bytes, no greater than 9,007,199,254,740,991.');
   }
   if (rule.enabled) {
-    if (!isQueryCostWarningMetric(metric) || rule.metric !== metric) {
+    if (
+      !supported ||
+      !isQueryCostWarningMetric(metric) ||
+      rule.metric !== metric
+    ) {
       return t(
         'The saved warning metric is not supported by this engine. Turn warnings off or enter a new threshold.',
       );
