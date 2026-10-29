@@ -290,12 +290,12 @@ class UpdateDatabaseCommand(BaseCommand):
         """Validate replacement or retained settings without adding omitted extra."""
         assert self._model
         serialized_extra = self._properties.get("extra", self._model.extra) or "{}"
-        if "query_cost_warning" not in serialized_extra:
-            return
         try:
             extra = json.loads(serialized_extra)
         except json.JSONDecodeError as ex:
             raise DatabaseInvalidError(exceptions=[ValidationError(str(ex))]) from ex
+        if "query_cost_warning" not in extra:
+            return
         uri = self._properties.get("sqlalchemy_uri") or self._model.sqlalchemy_uri
         try:
             validated_extra = normalize_query_cost_warning(extra, uri)

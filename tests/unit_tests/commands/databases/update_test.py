@@ -206,6 +206,7 @@ def test_rename_with_catalog(
     been renamed from `my_db` to `my_other_db`.
     """
     original_database = mocker.MagicMock()
+    original_database.extra = "{}"
     original_database.database_name = "my_db"
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = original_database
@@ -308,6 +309,7 @@ def test_rename_without_catalog(
     """  # noqa: E501
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     original_database = mocker.MagicMock()
+    original_database.extra = "{}"
     original_database.database_name = "my_db"
     database_without_catalog.database_name = "my_other_db"
     database_dao.update.return_value = database_without_catalog
@@ -356,6 +358,7 @@ def test_rename_without_catalog_with_assets(
     """
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     original_database = mocker.MagicMock()
+    original_database.extra = "{}"
     original_database.database_name = "my_db"
     database_without_catalog.database_name = "my_other_db"
     database_without_catalog.get_all_schema_names.return_value = ["schema1"]
@@ -660,7 +663,7 @@ def test_update_broken_connection(mocker: MockerFixture) -> None:
     Test that updating a database with a broken connection works
     even if it has to run a query to get the default catalog.
     """
-    database = mocker.MagicMock()
+    database = mocker.MagicMock(extra="{}")
     database.get_default_catalog.side_effect = Exception("Broken connection")
     database.id = 1
     new_db = mocker.MagicMock()
@@ -831,7 +834,12 @@ def test_update_unreachable_database_invalid_json_fails(
     rollback = mocker.patch.object(db.session, "rollback")
     commit = mocker.patch.object(db.session, "commit")
 
-    with pytest.raises(DatabaseConnectionFailedError):
+    error = (
+        DatabaseInvalidError
+        if field == "extra" and not invalid_original
+        else DatabaseConnectionFailedError
+    )
+    with pytest.raises(error):
         UpdateDatabaseCommand(1, properties).run()
 
     rollback.assert_called_once()
@@ -1440,3 +1448,35 @@ def test_warning_update_preserves_rule_without_resubmitting_extra(
     command.validate()
     assert "extra" not in command._properties
     assert json.loads(database.extra) == extra
+
+
+@pytest.mark.parametrize("submitted", [True, False])
+@pytest.mark.parametrize(
+    "metric,threshold", [("bytes_processed", -1), ("total_cost", 100)]
+)
+def test_warning_update_validates_json_escaped_key(
+    mocker: MockerFixture, submitted: bool, metric: str, threshold: int
+) -> None:
+    """Escaped keys cannot bypass engine validation for submitted or retained rules."""
+    extra = json.dumps(
+        {
+            "query_cost_warning": {
+                "enabled": True,
+                "metric": metric,
+                "threshold": threshold,
+            }
+        }
+    ).replace("query_cost_warning", r"\u0071uery_cost_warning")
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra="{}" if submitted else extra,
+    )
+    properties = {"extra": extra} if submitted else {}
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    rebind = mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    with pytest.raises(DatabaseInvalidError):
+        command.validate()
+    rebind.assert_not_called()
+    assert command._properties == properties
