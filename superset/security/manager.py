@@ -3959,6 +3959,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_db_view_menu = self._find_view_menu_on_sqla_event(
             connection, new_view_menu_name
         )
+        if not new_db_view_menu:
+            return None
 
         self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         return new_db_view_menu
@@ -4041,6 +4043,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     connection,
                     new_dataset_vm_name,
                 )
+                if not new_dataset_view_menu:
+                    # The rename above matched no row: the dataset had no
+                    # permission under the old database name, so create one.
+                    logger.warning(
+                        "Could not find previous dataset permission %s",
+                        old_dataset_vm_name,
+                    )
+                    self._insert_pvm_on_sqla_event(
+                        mapper,
+                        connection,
+                        "datasource_access",
+                        new_dataset_vm_name,
+                    )
+                    continue
                 self.on_view_menu_after_update(
                     mapper,
                     connection,
@@ -4859,7 +4875,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _find_permission_on_sqla_event(
         self, connection: Connection, name: str
-    ) -> Permission:
+    ) -> Optional[Permission]:
         """
         Find a FAB Permission using a SQLA connection.
 
@@ -4868,13 +4884,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param connection: SQLAlchemy connection
         :param name: The permission name (it's unique)
-        :return: Permission
+        :return: Permission, or None if no row has that name
         """
         permission_table = self.permission_model.__table__  # pylint: disable=no-member
 
         permission_ = connection.execute(
             permission_table.select().where(permission_table.c.name == name)
         ).fetchone()
+        if permission_ is None:
+            return None
         permission = Permission()
         # ensures this object is never persisted
         permission.metadata = None
@@ -4884,7 +4902,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _find_view_menu_on_sqla_event(
         self, connection: Connection, name: str
-    ) -> ViewMenu:
+    ) -> Optional[ViewMenu]:
         """
         Find a FAB ViewMenu using a SQLA connection.
 
@@ -4893,13 +4911,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param connection: SQLAlchemy connection
         :param name: The ViewMenu name (it's unique)
-        :return: ViewMenu
+        :return: ViewMenu, or None if no row has that name
         """
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
 
         view_menu_ = connection.execute(
             view_menu_table.select().where(view_menu_table.c.name == name)
         ).fetchone()
+        if view_menu_ is None:
+            return None
         view_menu = ViewMenu()
         # ensures this object is never persisted
         view_menu.metadata = None
@@ -4943,10 +4963,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission = self._find_permission_on_sqla_event(
                 connection, permission_name
             )
+            if not permission:
+                logger.warning(
+                    "Could not read back inserted permission %s", permission_name
+                )
+                return
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
             _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
             view_menu = self._find_view_menu_on_sqla_event(connection, view_menu_name)
+            if not view_menu:
+                logger.warning(
+                    "Could not read back inserted view menu %s", view_menu_name
+                )
+                return
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
@@ -4959,6 +4989,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 permission_view_table.c.view_menu_id == view_menu.id,
             )
         ).fetchone()
+        if permission_view is None:
+            logger.warning(
+                "Could not read back inserted permission view %s on %s",
+                permission_name,
+                view_menu_name,
+            )
+            return
         permission_view_model = PermissionView()
         permission_view_model.metadata = None
         permission_view_model.id = permission_view.id
