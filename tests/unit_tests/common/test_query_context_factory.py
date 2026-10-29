@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
@@ -378,6 +379,45 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert len(query_object.filter) == 0
+
+    @pytest.mark.parametrize("x_axis", [None, "ds"])
+    @pytest.mark.parametrize("temporal_binding", [False, True])
+    @pytest.mark.parametrize("granularity", ["ds", "other_date"])
+    def test_apply_granularity_keeps_simple_filters(
+        self,
+        x_axis: str | None,
+        temporal_binding: bool,
+        granularity: str,
+    ) -> None:
+        """Keep comparisons unless replacing a different temporal column."""
+        query_object = QueryObject(
+            granularity=granularity,
+            columns=["ds"],
+            filters=[
+                {"col": "ds", "op": ">=", "val": "2026-01-01"},
+                {"col": "ds", "op": "<", "val": "2027-01-01"},
+                {"col": "category", "op": "==", "val": "active"},
+                {"col": "other_date", "op": ">=", "val": "2025-01-01"},
+            ],
+        )
+        expected_filters = list(query_object.filter)
+        if temporal_binding:
+            query_object.filter.append(
+                {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}
+            )
+        datasource = SimpleNamespace(
+            columns=[
+                SimpleNamespace(column_name="ds", is_dttm=True),
+                SimpleNamespace(column_name="other_date", is_dttm=True),
+            ]
+        )
+
+        self.factory._apply_granularity(query_object, {"x_axis": x_axis}, datasource)
+
+        if (temporal_binding or x_axis == "ds") and granularity != "ds":
+            # A different Time Column replaces stale predicates on the old axis.
+            expected_filters = [f for f in expected_filters if f["col"] != "ds"]
+        assert query_object.filter == expected_filters
 
     def test_apply_granularity_with_granularity_in_temporal_filters(self):
         """Test _apply_granularity when granularity is already in temporal filters"""

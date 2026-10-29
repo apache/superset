@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -410,6 +410,10 @@ msgstr "Особистий ключ тунелю SSH %s"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "Пароль особистого ключа тунелю SSH %s"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -5260,6 +5264,9 @@ msgstr "Нетипові показники вимкнено для цього �
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Поля з користувацьким SQL неможливо розібрати як один SQL-вираз."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Нетипові поля запиту не можуть містити підзапити."
@@ -6054,6 +6061,18 @@ msgid "Delete %s"
 msgstr "Вилучено %s"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "Вилучити %s?"
 
@@ -6065,6 +6084,13 @@ msgstr "Вилучити групу?"
 
 msgid "Delete Layer?"
 msgstr "Вилучити шар?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "Вилучити запит?"
@@ -6092,8 +6118,25 @@ msgstr "Вилучити тему?"
 msgid "Delete User?"
 msgstr "Вилучити користувача?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
 msgid "Delete all Really?"
 msgstr "Справді вилучити все?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "Вилучити анотацію"
@@ -6130,6 +6173,9 @@ msgstr ""
 
 msgid "Delete role"
 msgstr "Вилучити роль"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "Вилучити шаблон"
@@ -6286,6 +6332,12 @@ msgid ""
 msgstr ""
 "Вилучення вкладки зітре весь вміст всередині неї. Ви все ще можете "
 "змінити цю дію за допомогою"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -7619,6 +7671,9 @@ msgstr "Експериментальне"
 msgid "Expired"
 msgstr "Дослідити"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -7864,6 +7919,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -7886,6 +7944,9 @@ msgstr "Не вдалося створити посилання для реда�
 
 #, python-format
 msgid "Failed to generate download: %s"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -10115,6 +10176,13 @@ msgstr ""
 msgid "Manage"
 msgstr "Налаштувати"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "Керувати редакторами дашборда та правами доступу"
 
@@ -11437,6 +11505,14 @@ msgstr "Числовий діапазон"
 msgid "OAuth2 client information"
 msgstr "Відомості про клієнт OAuth2"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "жовт"
 
@@ -11492,6 +11568,9 @@ msgstr "Один або кілька параметрів для перетво�
 
 msgid "One or many metrics to display"
 msgstr "Які показники показувати"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 msgid "One or more annotation layers failed loading."
 msgstr "Не вдалося завантажити один або кілька шарів анотацій."
@@ -13900,6 +13979,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "Пошук показників та стовпців"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -13921,6 +14003,9 @@ msgstr "Поле пошуку"
 
 msgid "Search by query text"
 msgstr "Пошук за текстом у запитах"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 #, fuzzy
 msgid "Search calculated columns by name"
@@ -17271,15 +17356,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Одиниця часу, що використовується для групування блоків"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -17292,6 +17368,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -18630,6 +18715,9 @@ msgstr "Час очікування"
 
 msgid "Timestamp format"
 msgstr "Формат часової мітки"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Часовий пояс"

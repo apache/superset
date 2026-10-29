@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -369,6 +369,10 @@ msgstr "%s SSHトンネル 秘密鍵"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SSHトンネル 秘密鍵パスワード"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -4860,6 +4864,9 @@ msgstr "このデータセットではカスタムSQLアドホックメトリッ
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "カスタムSQLフィールドは単一のSQLステートメントとして解析できません。"
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "カスタムSQLフィールドに集合演算を含めることはできません。"
 
@@ -5578,6 +5585,15 @@ msgid "Delete %s"
 msgstr "%s を削除"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "%s を削除しますか？"
 
@@ -5589,6 +5605,13 @@ msgstr "グループを削除しますか？"
 
 msgid "Delete Layer?"
 msgstr "レイヤーを削除しますか？"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "クエリを削除しますか？"
@@ -5614,8 +5637,22 @@ msgstr "テーマを削除しますか？"
 msgid "Delete User?"
 msgstr "ユーザーを削除しますか？"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+
 msgid "Delete all Really?"
 msgstr "本当にすべて削除しますか？"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "注釈を削除"
@@ -5652,6 +5689,9 @@ msgstr "クエリを削除"
 
 msgid "Delete role"
 msgstr "ロールを削除"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "テンプレートを削除"
@@ -5773,6 +5813,12 @@ msgid ""
 "Deleting a tab will remove all content within it and will deactivate any "
 "related alerts or reports. You may still reverse this action with the"
 msgstr "タブを削除するとタブ内のすべての内容が失われ、関連するアラートやレポートが無効化されます。この操作は以下の方法で元に戻せます"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -7026,6 +7072,9 @@ msgstr "試験的"
 msgid "Expired"
 msgstr "期限切れ"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -7261,6 +7310,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -7283,6 +7335,9 @@ msgstr "チャート編集用URLの生成に失敗しました"
 #, python-format
 msgid "Failed to generate download: %s"
 msgstr "ダウンロードの生成に失敗しました: %s"
+
+msgid "Failed to load OAuth2 tokens."
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "チャートデータの読み込みに失敗しました"
@@ -9415,6 +9470,13 @@ msgstr "リクエスト形式が不正です。slice_id、または table_name �
 msgid "Manage"
 msgstr "管理"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "ダッシュボード編集者とアクセス権限を管理"
 
@@ -10661,6 +10723,14 @@ msgstr "数値範囲"
 msgid "OAuth2 client information"
 msgstr "OAuth2クライアント情報"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "10月"
 
@@ -10711,6 +10781,9 @@ msgstr "列としてピボット表示する1つまたは複数のコントロ�
 
 msgid "One or many metrics to display"
 msgstr "表示する1つまたは複数のメトリック"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 msgid "One or more annotation layers failed loading."
 msgstr "1つ以上の注釈レイヤーの読み込みに失敗しました。"
@@ -12989,6 +13062,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "メトリックと列を検索"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr "チャンネル名を検索するか、チャンネルIDを貼り付けてください"
 
@@ -13009,6 +13085,9 @@ msgstr "検索条件"
 
 msgid "Search by query text"
 msgstr "クエリテキストで検索"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 msgid "Search calculated columns by name"
 msgstr "計算列を名前で検索"
@@ -15992,15 +16071,6 @@ msgstr "各ブロックの時間単位。domain_granularity より小さく、�
 msgid "The time unit used for the grouping of blocks"
 msgstr "ブロックのグループ化に使用される時間単位"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -16013,6 +16083,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -17229,6 +17308,9 @@ msgstr "タイムアウトエラー"
 
 msgid "Timestamp format"
 msgstr "タイムスタンプ形式"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "タイムゾーン"

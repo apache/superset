@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -416,6 +416,10 @@ msgstr "%s SSH TUNNEL KĪMATAWHĀ"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s SSH TUNNEL KUPUHIPA KĪMATAWHĀ"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 #, python-format
 msgid "%s Selected"
@@ -5432,6 +5436,9 @@ msgstr "Kāore i whakahohengia ngā ine ad-hoc SQL Ritenga mō tēnei rārangi r
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Kāore e taea ngā āpure SQL whakaahuatia te tatau hei tauākī SQL kotahi."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Kāore e taea e ngā āpure SQL Ritenga te whai i ngā pātai-iti."
@@ -6270,6 +6277,16 @@ msgid "Delete %s"
 msgstr "Kua Mukua %s"
 
 #, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Delete %s?"
 msgstr "Muku %s?"
 
@@ -6282,6 +6299,13 @@ msgstr "Muku Tūranga?"
 
 msgid "Delete Layer?"
 msgstr "Muku Papa?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 msgid "Delete Query?"
 msgstr "Muku Pātai?"
@@ -6310,8 +6334,23 @@ msgstr "Muku Tauira?"
 msgid "Delete User?"
 msgstr "Muku Kaiwhakamahi?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Delete all Really?"
 msgstr "Muku katoa Tino hiahia?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 msgid "Delete annotation"
 msgstr "Muku tohu"
@@ -6350,6 +6389,9 @@ msgstr ""
 
 msgid "Delete role"
 msgstr "Muku tūranga"
+
+msgid "Delete selected"
+msgstr ""
 
 msgid "Delete template"
 msgstr "Muku tauira"
@@ -6487,6 +6529,12 @@ msgstr ""
 "Mā te muku i tētahi ripa ka tangohia ngā ihirangi katoa i roto, ā, ka "
 "whakakore i ngā matohi, i ngā pūrongo hāngai rānei. Ka taea tonu e koe te"
 " whakahoki i tēnei mahi mā te"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -7905,6 +7953,9 @@ msgstr "Whakamātautau"
 msgid "Expired"
 msgstr "Tūhura"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -8166,6 +8217,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -8188,6 +8242,9 @@ msgstr "I rahua te hanga i te URL whakatika kauwhata"
 
 #, python-format
 msgid "Failed to generate download: %s"
+msgstr ""
+
+msgid "Failed to load OAuth2 tokens."
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -10579,6 +10636,13 @@ msgstr "Tono hē. E tūmanakohia ana ngā tākupu slice_id, table_name me db_nam
 msgid "Manage"
 msgstr "Whakahaere"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "Whakahaere i ngā kaiwhakatika papatohu me ngā whakaaetanga urunga"
 
@@ -11951,6 +12015,14 @@ msgstr "Awhe tau"
 msgid "OAuth2 client information"
 msgstr "Mōhiohio taketake"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 msgid "OCT"
 msgstr "OKO"
 
@@ -12007,6 +12079,9 @@ msgstr "Kōwhiringa kotahi, nui ake rānei hei hurihuri hei tīwae"
 
 msgid "One or many metrics to display"
 msgstr "Ine kotahi, nui ake rānei hei whakaatu"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 msgid "One or more annotation layers failed loading."
 msgstr "I rahua te utanga o tētahi, nui ake rānei papa tohu."
@@ -14504,6 +14579,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "Rapu Ine me ngā Tīwae"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -14526,6 +14604,9 @@ msgstr "Pouaka rapu"
 
 msgid "Search by query text"
 msgstr "Rapu mā te kupu pātai"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 #, fuzzy
 msgid "Search calculated columns by name"
@@ -18056,15 +18137,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Te waeine wā ka whakamahia mō te rōpūtanga o ngā poraka"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -18077,6 +18149,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -19498,6 +19579,9 @@ msgstr "Hapa wā-pau"
 
 msgid "Timestamp format"
 msgstr "Hōputu waitohu"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Rohe wā"

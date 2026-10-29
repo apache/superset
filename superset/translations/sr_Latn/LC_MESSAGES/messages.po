@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 16:33+0000\n"
+"POT-Creation-Date: 2026-10-27 21:53-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -444,6 +444,10 @@ msgstr "%s PRIVATNI KLJUČ SSH TUNELA"
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
 msgstr "%s LOZINKA PRIVATNOG KLJUČA SSH TUNELA"
+
+#, python-format
+msgid "%s Select"
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -6275,6 +6279,9 @@ msgstr "Prilagođene ad-hoc SQL metrike nisu omogućene za ovaj skup podataka"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr "Prilagođena SQL polja se ne mogu protumačiti kao jedna SQL izjava."
 
+msgid "Custom SQL fields cannot be safely rewritten with RLS filters."
+msgstr ""
+
 msgid "Custom SQL fields cannot contain set operations."
 msgstr "Prilagođena SQL polja ne mogu sadržati operacije nad skupovima."
 
@@ -7268,6 +7275,17 @@ msgstr "Obriši"
 msgid "Delete %s"
 msgstr "Obriši %s"
 
+#, python-format
+msgid ""
+"Delete %s stored credential pair for \"%s\"? Affected users must "
+"authorize this connection again."
+msgid_plural ""
+"Delete %s stored credential pairs for \"%s\"? Affected users must "
+"authorize this connection again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, python-format
@@ -7287,6 +7305,13 @@ msgstr "Obrisati grupu?"
 # zh, zh_TW]
 msgid "Delete Layer?"
 msgstr "Obrisati sloj?"
+
+#, python-format
+msgid "Delete OAuth2 tokens for %s"
+msgstr ""
+
+msgid "Delete OAuth2 tokens?"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -7320,10 +7345,26 @@ msgstr "Obrisati temu?"
 msgid "Delete User?"
 msgstr "Obrisati korisnika?"
 
+#, python-format
+msgid ""
+"Delete all %s stored credential pair for \"%s\", including users outside "
+"this page and search? Affected users must authorize this connection "
+"again."
+msgid_plural ""
+"Delete all %s stored credential pairs for \"%s\", including users outside"
+" this page and search? Affected users must authorize this connection "
+"again."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Delete all Really?"
 msgstr "Stvarno obrisati sve?"
+
+msgid "Delete all tokens"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -7368,6 +7409,9 @@ msgstr ""
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Delete role"
 msgstr "Obriši ulogu"
+
+msgid "Delete selected"
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -7542,6 +7586,12 @@ msgid ""
 msgstr ""
 "Brisanjem kartice uklonićete sav njen sadržaj i deaktivirati sva povezana"
 " upozorenja ili izveštaje. Ovu radnju još uvek možete poništiti pomoću"
+
+msgid ""
+"Deleting credentials removes both access and refresh tokens from "
+"Superset. Affected users must authorize this connection again. Tokens are"
+" not revoked at the OAuth2 provider."
+msgstr ""
 
 msgid ""
 "Deleting this dataset is permanent. The affected charts and dashboards "
@@ -9180,6 +9230,9 @@ msgstr "Eksperimentalno"
 msgid "Expired"
 msgstr "Isteklo"
 
+msgid "Expires on"
+msgstr ""
+
 msgid ""
 "Explicit formats validate all values against bundled boundaries. "
 "Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
@@ -9468,6 +9521,9 @@ msgstr ""
 msgid "Failed to delete %(name)s: %(errMsg)s"
 msgstr ""
 
+msgid "Failed to delete OAuth2 tokens. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
 msgstr ""
@@ -9492,6 +9548,9 @@ msgstr "Neuspelo generisanje URL-a za izmenu grafikona"
 #, python-format
 msgid "Failed to generate download: %s"
 msgstr "Neuspelo generisanje preuzimanja: %s"
+
+msgid "Failed to load OAuth2 tokens."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Failed to load chart data"
@@ -12203,6 +12262,13 @@ msgstr "Loš zahtev. Očekuju se argumenti slice_id ili table_name i db_name"
 msgid "Manage"
 msgstr "Upravljaj"
 
+msgid "Manage OAuth2 tokens"
+msgstr ""
+
+#, python-format
+msgid "Manage OAuth2 tokens: %s"
+msgstr ""
+
 msgid "Manage dashboard editors and access permissions"
 msgstr "Upravljaj urednicima kontrolne table i dozvolama pristupa"
 
@@ -13788,6 +13854,14 @@ msgstr "Brojevni opseg"
 msgid "OAuth2 client information"
 msgstr "Informacije o OAuth2 klijentu"
 
+msgid "OAuth2 tokens could not be deleted."
+msgstr ""
+
+msgid ""
+"OAuth2 tokens deleted. Affected users must authorize this connection "
+"again."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "OCT"
 msgstr "OKT"
@@ -13856,6 +13930,9 @@ msgstr "Jedna ili više kontrola za pretvaranje u kolone"
 # zh_TW]
 msgid "One or many metrics to display"
 msgstr "Jedna ili više metrika za prikaz"
+
+msgid "One or more OAuth2 tokens were not found for this database."
+msgstr ""
 
 # ja, lv, mi, ru, sk, sl, uk]
 msgid "One or more annotation layers failed loading."
@@ -16788,6 +16865,9 @@ msgstr ""
 msgid "Search Metrics & Columns"
 msgstr "Pretraži mere i kolone"
 
+msgid "Search OAuth2 tokens"
+msgstr ""
+
 msgid "Search a channel by name, or paste a channel ID"
 msgstr ""
 
@@ -16812,6 +16892,9 @@ msgstr "Pretraži po"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Search by query text"
 msgstr "Pretraži po tekstu upita"
+
+msgid "Search by username, name, or email"
+msgstr ""
 
 msgid "Search calculated columns by name"
 msgstr "Pretraži izračunate kolone po imenu"
@@ -20697,15 +20780,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Vremenska jedinica koja se koristi za grupisanje blokova"
 
-#, python-format
-msgid ""
-"The transform answered %(typed)s for a timestamp but could not read the "
-"same instant written as text, which a filter typed as text sends. Without"
-" that answer the timestamp's cannot be checked, so filters on this "
-"mapping will not be mirrored. Write the transform so it reads :value both"
-" as a timestamp and as text."
-msgstr ""
-
 msgid ""
 "The transform answered with a value the driver and the database do not "
 "agree on how to write into a query, so the mirrored predicate would ask "
@@ -20718,6 +20792,15 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform could not read %(value)s written as text, which a filter "
+"typed as text sends, so its answer for the timestamp can only be checked "
+"by being a date or timestamp within a year of it. It answered %(typed)s, "
+"so filters on this mapping will not be mirrored. Write the transform so "
+"it reads :value both as a timestamp and as text."
 msgstr ""
 
 #, python-format
@@ -22258,6 +22341,9 @@ msgstr "Greška usled prekoračenja vremena"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Timestamp format"
 msgstr "Format vremenske oznake"
+
+msgid "Timestamps are shown in server time."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Timezone"
