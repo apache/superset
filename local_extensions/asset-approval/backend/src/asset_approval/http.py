@@ -26,8 +26,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import Response
-
 from asset_approval.exceptions import (
     AssetLockedError,
     ChangeManagementException,
@@ -60,56 +58,33 @@ BULK_DELETE_MESSAGE = (
 )
 
 
-def captured_response(api: Any, ex: ChangeRequestCreated) -> Response:
-    """Answer a write that was captured for review."""
-    deleting = ex.operation == "delete"
+def captured_message(ex: ChangeRequestCreated) -> str:
+    """What a captured write tells the caller it did.
+
+    One function because there is one answer. This used to be decided twice
+    -- once here for a response built off the API object, once again inside
+    ``signal_response`` -- and the second copy knew only about deletes, so
+    ``DELETE_REPLACED_MESSAGE`` and ``UPDATED_MESSAGE`` were written,
+    tested, and then never reached a caller.
+    """
+    deleting = getattr(ex, "operation", "update") == "delete"
     if ex.count > 1:
         # A bulk delete or an import captures several assets, each reviewed
         # on its own, so the count is the useful thing to say (SOW 5.1).
-        message = (BULK_DELETE_MESSAGE if deleting else BULK_MESSAGE) % ex.count
-    elif deleting:
+        return (BULK_DELETE_MESSAGE if deleting else BULK_MESSAGE) % ex.count
+    if deleting:
         # Never "Changes saved" for a delete: the asset is untouched and
         # saying it was saved describes the wrong act entirely. And where
         # the delete took the place of an edit, say so -- the dialogs warn
         # first, but a caller that never saw one otherwise loses the edit
         # with nothing in the answer to show for it (QA-03).
-        message = DELETE_REPLACED_MESSAGE if ex.replaced_edit else DELETE_MESSAGE
-    elif ex.updated_existing:
-        message = UPDATED_MESSAGE
-    else:
-        message = SAVED_MESSAGE
-    return api.response(
-        CAPTURED_STATUS,
-        id=ex.change_request_id,
-        ids=ex.change_request_ids,
-        count=ex.count,
-        asset_type=ex.asset_type,
-        asset_id=ex.asset_id,
-        review_required=True,
-        message=message,
-    )
-
-
-def locked_response(api: Any, ex: AssetLockedError) -> Response:
-    """Answer a write refused because another editor holds the asset."""
-    return api.response(
-        LOCKED_STATUS,
-        asset_type=ex.asset_type,
-        asset_id=ex.asset_id,
-        author=ex.author,
-        message=str(ex),
-    )
-
-
-def refused_response(api: Any, ex: ChangeManagementException) -> Response:
-    """Answer a write the gate refused outright rather than captured.
-
-    Imports that would overwrite and writes with nothing replayable (see
-    ``UnreviewableWriteRefusedError``). The body is a plain ``message``,
-    which is what the import modal and the API clients show verbatim; the
-    status comes from the exception so every caller answers alike.
-    """
-    return api.response(ex.status, message=str(ex))
+        return DELETE_REPLACED_MESSAGE if ex.replaced_edit else DELETE_MESSAGE
+    if ex.updated_existing:
+        # A second save by the same author folds into the draft they already
+        # have. "Changes saved" again reads as though a new one was made
+        # and leaves them looking for it (QA-11).
+        return UPDATED_MESSAGE
+    return SAVED_MESSAGE
 
 
 def signal_response(ex: ChangeManagementException) -> tuple[dict[str, Any], int]:
@@ -123,11 +98,6 @@ def signal_response(ex: ChangeManagementException) -> tuple[dict[str, Any], int]
     from here so the two paths cannot drift.
     """
     if isinstance(ex, ChangeRequestCreated):
-        deleting = getattr(ex, "operation", "update") == "delete"
-        if ex.count > 1:
-            message = (BULK_DELETE_MESSAGE if deleting else BULK_MESSAGE) % ex.count
-        else:
-            message = DELETE_MESSAGE if deleting else SAVED_MESSAGE
         return (
             {
                 "id": ex.change_request_id,
@@ -136,7 +106,7 @@ def signal_response(ex: ChangeManagementException) -> tuple[dict[str, Any], int]
                 "asset_type": ex.asset_type,
                 "asset_id": ex.asset_id,
                 "review_required": True,
-                "message": message,
+                "message": captured_message(ex),
             },
             CAPTURED_STATUS,
         )

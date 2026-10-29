@@ -29,17 +29,11 @@ from typing import Any
 
 from asset_approval.exceptions import ChangeRequestCreated
 from asset_approval.http import (
-    captured_response,
+    CAPTURED_STATUS,
     DELETE_MESSAGE,
     DELETE_REPLACED_MESSAGE,
+    signal_response,
 )
-
-
-class _Api:
-    """Stands in for the FAB view, capturing what it was asked to answer."""
-
-    def response(self, status: int, **payload: Any) -> SimpleNamespace:
-        return SimpleNamespace(status=status, payload=payload)
 
 
 def _captured(**over: Any) -> ChangeRequestCreated:
@@ -54,16 +48,17 @@ def _captured(**over: Any) -> ChangeRequestCreated:
 
 
 def test_a_delete_that_replaced_an_edit_says_so() -> None:
-    answer = captured_response(_Api(), _captured(replaced_edit=True))
+    body, status = signal_response(_captured(replaced_edit=True))
 
-    assert answer.payload["message"] == DELETE_REPLACED_MESSAGE
-    assert "replaced the edit you had waiting" in answer.payload["message"]
+    assert status == CAPTURED_STATUS
+    assert body["message"] == DELETE_REPLACED_MESSAGE
+    assert "replaced the edit you had waiting" in body["message"]
 
 
 def test_a_plain_delete_is_unchanged() -> None:
-    answer = captured_response(_Api(), _captured())
+    body, _ = signal_response(_captured())
 
-    assert answer.payload["message"] == DELETE_MESSAGE
+    assert body["message"] == DELETE_MESSAGE
 
 
 def test_the_flag_defaults_to_false() -> None:
@@ -73,11 +68,11 @@ def test_the_flag_defaults_to_false() -> None:
 
 def test_a_bulk_delete_still_counts_rather_than_explains() -> None:
     """One sentence cannot describe four assets, so the count wins."""
-    answer = captured_response(
-        _Api(), _captured(count=4, change_request_ids=[5, 6, 7, 8], replaced_edit=True)
+    body, _ = signal_response(
+        _captured(count=4, change_request_ids=[5, 6, 7, 8], replaced_edit=True)
     )
 
-    assert "4" in answer.payload["message"]
+    assert "4" in body["message"]
 
 
 def test_the_gate_reports_a_replaced_edit(mocker: Any) -> None:
