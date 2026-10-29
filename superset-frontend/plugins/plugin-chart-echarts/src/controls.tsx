@@ -37,8 +37,13 @@ import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { BarValueLabelPosition } from './Timeseries/types';
 import { defaultXAxis } from './defaults';
 
-const { legendMargin, legendOrientation, legendType, showLegend } =
-  DEFAULT_LEGEND_FORM_DATA;
+const {
+  legendMargin,
+  legendOrientation,
+  legendType,
+  showLegend,
+  showSelectorLegend,
+} = DEFAULT_LEGEND_FORM_DATA;
 
 export const showLegendControl: ControlSetItem = {
   name: 'show_legend',
@@ -48,6 +53,21 @@ export const showLegendControl: ControlSetItem = {
     renderTrigger: true,
     default: showLegend,
     description: t('Whether to display a legend for the chart'),
+  },
+};
+
+export const showSelectorLegendControl: ControlSetItem = {
+  name: 'show_selector_legend',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show All/Invert buttons in legend'),
+    renderTrigger: true,
+    default: showSelectorLegend,
+    description: t(
+      'Toggle to show/hide the "All/Invert" buttons in the legend.',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
   },
 };
 
@@ -124,6 +144,7 @@ export const legendSortControl: ControlSetItem = {
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
+  [showSelectorLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
@@ -476,6 +497,36 @@ export const forceMaxInterval = {
   },
 };
 
+export const xAxisMinInterval = {
+  name: 'x_axis_min_interval',
+  config: {
+    type: 'TextControl',
+    label: t('X Axis Minimum Interval'),
+    renderTrigger: true,
+    isFloat: true,
+    default: null,
+    description: t(
+      'Minimum gap between two axis ticks. Only applies to numeric and time ' +
+        'axes, where time is expressed in milliseconds. Leave empty for automatic.',
+    ),
+  },
+};
+
+export const yAxisMinInterval = {
+  name: 'y_axis_min_interval',
+  config: {
+    type: 'TextControl',
+    label: t('Y Axis Minimum Interval'),
+    renderTrigger: true,
+    isFloat: true,
+    default: null,
+    description: t(
+      'Minimum gap between two axis ticks. Useful to avoid fractional ticks ' +
+        'on integer metrics. Leave empty for automatic.',
+    ),
+  },
+};
+
 export const seriesOrderSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
   [sortSeriesType],
@@ -543,6 +594,17 @@ export const gridlines: ControlSetItem = {
     default: true,
     renderTrigger: true,
     description: t('Draw split lines for the main value axis ticks.'),
+  },
+};
+
+export const valueAxisLabels: ControlSetItem = {
+  name: 'valueAxisLabels',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Value axis labels'),
+    default: true,
+    renderTrigger: true,
+    description: t('Show the numbers along the value axis.'),
   },
 };
 

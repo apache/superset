@@ -34,7 +34,7 @@ test('renders the "Altered" label', () => {
   expect(alteredLabel).toBeInTheDocument();
 });
 
-test('opens the modal on click', () => {
+test('opens the modal on click', async () => {
   render(
     <AlteredSliceTag
       origFormData={defaultProps.origFormData}
@@ -44,14 +44,14 @@ test('opens the modal on click', () => {
   );
 
   const alteredLabel: HTMLElement = screen.getByText('Altered');
-  userEvent.click(alteredLabel);
+  await userEvent.click(alteredLabel);
 
   const modalTitle: HTMLElement = screen.getByText('Chart changes');
 
   expect(modalTitle).toBeInTheDocument();
 });
 
-test('displays the differences in the modal', () => {
+test('displays the differences in the modal', async () => {
   render(
     <AlteredSliceTag
       origFormData={defaultProps.origFormData}
@@ -61,7 +61,7 @@ test('displays the differences in the modal', () => {
   );
 
   const alteredLabel: HTMLElement = screen.getByText('Altered');
-  userEvent.click(alteredLabel);
+  await userEvent.click(alteredLabel);
 
   const beforeValue: HTMLElement = screen.getByText('1, 2, 3, 4');
   const afterValue: HTMLElement = screen.getByText('a, b, c, d');

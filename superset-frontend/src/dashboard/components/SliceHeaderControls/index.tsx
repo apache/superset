@@ -53,6 +53,7 @@ import {
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import isImageOnlyExportViz from 'src/utils/isImageOnlyExportViz';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
@@ -142,6 +143,7 @@ export interface SliceHeaderControlsProps {
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
+  addWarningToast?: (message: string) => void;
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
@@ -196,13 +198,22 @@ const SliceHeaderControls = (
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
-  const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+  const { canDrillToDetail, canGetDrillInfo, canViewQuery, canViewTable } =
+    usePermissions();
 
+  // Single predicate for the "View as table" entry, so the fetch that feeds its
+  // column headers cannot drift from the set of users who can open it.
+  const canViewResultsTable = canExplore || canViewTable;
+
+  // The dataset's verbose map resolves friendly Labels for both the drill-to-detail
+  // pane and the results grid, and those are separate permissions — so fetch it for
+  // either one, as long as the drill_info endpoint itself is readable (it is gated
+  // by `can_get_drill_info` on Dataset).
   const datasetResource = useDatasetDrillInfo(
     props.slice.datasource,
     props.dashboardId,
     props.formData,
-    !canDrillToDetail,
+    !canGetDrillInfo || !(canDrillToDetail || canViewResultsTable),
   );
 
   const datasetWithVerboseMap =
@@ -324,6 +335,8 @@ const SliceHeaderControls = (
             props.slice.slice_name,
             true,
             theme,
+            undefined,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -355,6 +368,7 @@ const SliceHeaderControls = (
             true,
             theme,
             { format: 'png', backgroundType },
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -382,6 +396,7 @@ const SliceHeaderControls = (
             getScreenshotNodeSelector(props.slice.slice_id),
             props.slice.slice_name,
             true,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -442,8 +457,10 @@ const SliceHeaderControls = (
     supersetCanShare = false,
     isCached = [],
   } = props;
-  const isTable = slice.viz_type === VizType.Table;
+  const isTable =
+    slice.viz_type === VizType.Table || slice.viz_type === VizType.TableAgGrid;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
+  const isImageOnlyExport = isImageOnlyExportViz(slice.viz_type);
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
@@ -581,6 +598,7 @@ const SliceHeaderControls = (
           modalTitle={t('View query')}
           modalBody={
             <ViewQueryModal
+              chartId={props.slice.slice_id}
               latestQueryFormData={props.formData}
               ownState={props.ownState}
             />
@@ -594,7 +612,7 @@ const SliceHeaderControls = (
     });
   }
 
-  if (canExplore || canViewTable) {
+  if (canViewResultsTable) {
     newMenuItems.push({
       key: MenuKeys.ViewResults,
       label: (
@@ -662,11 +680,15 @@ const SliceHeaderControls = (
       key: MenuKeys.Download,
       label: t('Download'),
       children: [
-        {
-          key: MenuKeys.ExportCsv,
-          label: t('Export to .CSV'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.ExportCsv,
+                label: t('Export to .CSV'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
         ...(isPivotTable
           ? [
               {
@@ -681,11 +703,15 @@ const SliceHeaderControls = (
               },
             ]
           : []),
-        {
-          key: MenuKeys.ExportXlsx,
-          label: t('Export to Excel'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.ExportXlsx,
+                label: t('Export to Excel'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
         props.supersetCanDownload &&
         isTable
@@ -723,11 +749,15 @@ const SliceHeaderControls = (
             },
           ],
         },
-        {
-          key: MenuKeys.DownloadAsPdf,
-          label: t('Export as PDF'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
-        },
+        ...(isImageOnlyExport
+          ? []
+          : [
+              {
+                key: MenuKeys.DownloadAsPdf,
+                label: t('Export as PDF'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+            ]),
       ],
     });
   }

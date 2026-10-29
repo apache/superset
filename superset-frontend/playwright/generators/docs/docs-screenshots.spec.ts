@@ -39,6 +39,9 @@ import path from 'path';
 import { Page, test, expect } from '@playwright/test';
 import { URL } from '../../utils/urls';
 import { apiDelete, apiGet } from '../../helpers/api/requests';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DOCS_STATIC = path.resolve(__dirname, '../../../../docs/static/img');
 const SCREENSHOTS_DIR = path.join(DOCS_STATIC, 'screenshots');

@@ -104,6 +104,7 @@ export interface BrandProps {
 }
 
 export interface NavBarProps {
+  can_access_recently_archived?: boolean;
   show_watermark: boolean;
   bug_report_url?: string;
   bug_report_text?: string;
@@ -181,7 +182,11 @@ export interface CommonBootstrapData {
 export interface BootstrapData {
   user?: BootstrapUser;
   common: CommonBootstrapData;
-  config?: any;
+  auth_messages?: [string, string][];
+  config?: {
+    GUEST_TOKEN_HEADER_NAME?: string;
+    GUEST_TOKEN_HEADER_MAX_BYTES?: number | null;
+  };
   embedded?: {
     dashboard_id: string;
     // Domains allowed to embed this dashboard. An empty/undefined list means

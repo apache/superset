@@ -76,6 +76,57 @@ def test_common_bootstrap_payload_handles_none_locale(
     mock_cached.assert_called_once_with(1, None)
 
 
+def test_common_bootstrap_payload_masks_websocket_without_realtime_permission(
+    app_context: None,
+) -> None:
+    from superset.views.base import common_bootstrap_payload
+
+    cached = {
+        "conf": {
+            "WEBSOCKET_ENABLE": True,
+            "WEBSOCKET_URL": "ws://localhost:8080/",
+        }
+    }
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value=cached,
+        ),
+        patch(
+            "superset.views.base.can_access_realtime_notifications",
+            return_value=False,
+        ),
+        patch("superset.views.base.utils.get_user_id", return_value=None),
+        patch("superset.views.base.get_locale", return_value=None),
+    ):
+        result = common_bootstrap_payload()
+
+    assert result["conf"]["WEBSOCKET_ENABLE"] is False
+    assert cached["conf"]["WEBSOCKET_ENABLE"] is True
+
+
+def test_common_bootstrap_payload_exposes_websocket_with_realtime_permission(
+    app_context: None,
+) -> None:
+    from superset.views.base import common_bootstrap_payload
+
+    with (
+        patch(
+            "superset.views.base.cached_common_bootstrap_data",
+            return_value={"conf": {"WEBSOCKET_ENABLE": True}},
+        ),
+        patch(
+            "superset.views.base.can_access_realtime_notifications",
+            return_value=True,
+        ),
+        patch("superset.views.base.utils.get_user_id", return_value=1),
+        patch("superset.views.base.get_locale", return_value=None),
+    ):
+        result = common_bootstrap_payload()
+
+    assert result["conf"]["WEBSOCKET_ENABLE"] is True
+
+
 def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
     from superset.views.base import FRONTEND_CONF_KEYS
 
@@ -246,6 +297,78 @@ def test_api_query_returns_json_content_type() -> None:
 
     assert response.mimetype == "application/json"
     assert response.content_type.startswith("application/json")
+
+
+def _run_api_query(*, is_guest: bool) -> list[dict[str, Any]]:
+    """Run the ``Api.query`` handler body for a payload that carries the
+    generated SQL, a stacktrace and a raw driver error, and return the parsed
+    response as a guest without "can view query on Dashboard" or as a regular
+    user."""
+    from flask import current_app
+
+    from superset.utils import json
+    from superset.views.api import Api
+
+    handler = Api.query
+    while hasattr(handler, "__wrapped__"):
+        handler = handler.__wrapped__
+
+    query_context = MagicMock()
+    query_context.get_payload.return_value = {
+        "queries": [
+            {
+                "data": [{"a": 1}],
+                "query": "SELECT secret_col FROM private_table",
+                "stacktrace": "Traceback (most recent call last): ...",
+                "error": "relation private_table does not exist",
+            }
+        ]
+    }
+    factory = MagicMock()
+    factory.create.return_value = query_context
+    api_view = Api()
+
+    with (
+        patch.object(api_view, "get_query_context_factory", return_value=factory),
+        patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=is_guest,
+        ),
+        patch(
+            "superset.security.SupersetSecurityManager.can_access",
+            return_value=False,
+        ),
+        current_app.test_request_context(
+            data={"query_context": '{"datasource": {"id": 1}}'}
+        ),
+    ):
+        response = handler(api_view)
+
+    return json.loads(response.get_data(as_text=True))
+
+
+def test_api_query_redacts_generated_sql_for_guests() -> None:
+    """``Api.query`` returns the same query-context payloads as chart data, so
+    an embedded guest without "can view query on Dashboard" gets the generated
+    SQL and stacktrace removed and the driver error replaced, while the data is
+    preserved."""
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    (result,) = _run_api_query(is_guest=True)
+
+    assert "query" not in result
+    assert "stacktrace" not in result
+    assert result["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert result["data"] == [{"a": 1}]
+
+
+def test_api_query_keeps_payload_for_regular_users() -> None:
+    """The redaction is scoped to guests: a regular user keeps the generated
+    SQL and the driver error."""
+    (result,) = _run_api_query(is_guest=False)
+
+    assert result["query"] == "SELECT secret_col FROM private_table"
+    assert result["error"] == "relation private_table does not exist"
 
 
 @pytest.mark.parametrize(

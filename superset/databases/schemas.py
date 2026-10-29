@@ -245,11 +245,21 @@ def encrypted_extra_validator(value: str | None) -> None:
     """
     if value:
         try:
-            json.loads(value)
+            encrypted_extra = json.loads(value)
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(encrypted_extra, dict):
+            raise ValidationError(
+                [
+                    _(
+                        "Encrypted extra field must be a mapping"
+                        " from string keys to values."
+                    )
+                ]
+            )
 
 
 def masked_encrypted_extra_validator(value: str) -> None:
@@ -261,7 +271,7 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
-def extra_validator(value: str) -> str:
+def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
     keys are on the call signature for SQLAlchemy Metadata
@@ -273,6 +283,11 @@ def extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(extra_, dict):
+            raise ValidationError(
+                [_("Extra field must be a mapping from string keys to values.")]
+            )
 
         metadata_signature = inspect.signature(MetaData)
         for key in extra_.get("metadata_params", {}):
@@ -929,9 +944,24 @@ class DatabaseRelatedDashboards(Schema):
     )
 
 
+class DatabaseRelatedDataset(Schema):
+    id = fields.Integer()
+    table_name = fields.String()
+    schema = fields.String()
+
+
+class DatabaseRelatedDatasets(Schema):
+    count = fields.Integer(metadata={"description": "Dataset count"})
+    result = fields.List(
+        fields.Nested(DatabaseRelatedDataset),
+        metadata={"description": "A list of datasets"},
+    )
+
+
 class DatabaseRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatabaseRelatedCharts)
     dashboards = fields.Nested(DatabaseRelatedDashboards)
+    datasets = fields.Nested(DatabaseRelatedDatasets)
 
 
 class DatabaseFunctionNamesResponse(Schema):
@@ -1191,6 +1221,9 @@ class IdentifierQuoteSchema(Schema):
 
 
 class EngineInformationSchema(Schema):
+    oauth2_enabled = fields.Boolean(
+        metadata={"description": "OAuth2 authentication is enabled on this connection"}
+    )
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
     )
@@ -1603,4 +1636,14 @@ class QualifiedTableSchema(Schema):
         required=False,
         load_default=None,
         metadata={"description": "The table catalog"},
+    )
+
+
+class DatabaseOAuth2TokensDeleteSchema(Schema):
+    """Require a nonempty list of credential IDs for selected deletion."""
+
+    token_ids = fields.List(
+        fields.Integer(strict=True, validate=Range(min=1)),
+        required=True,
+        validate=Length(min=1, max=100),
     )

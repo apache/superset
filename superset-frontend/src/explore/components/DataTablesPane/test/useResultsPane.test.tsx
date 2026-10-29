@@ -163,7 +163,7 @@ describe('useResultsPane query data reuse', () => {
     expect(screen.getByText('2 rows')).toBeVisible();
     expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 
-    userEvent.hover(screen.getByText('2 rows'));
+    await userEvent.hover(screen.getByText('2 rows'));
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       'The row limit set for the chart was reached',
     );
@@ -192,7 +192,7 @@ describe('useResultsPane query data reuse', () => {
     const rowCountLabel = await screen.findByTestId('row-count-label');
     expect(rowCountLabel).toHaveTextContent('1k rows');
 
-    userEvent.hover(rowCountLabel);
+    await userEvent.hover(rowCountLabel);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toHaveTextContent(
       'The row limit selected for this pane was reached',
@@ -239,4 +239,22 @@ describe('useResultsPane query data reuse', () => {
     await waitFor(() => expect(setForceQuery).toHaveBeenCalledWith(false));
     expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
   });
+});
+
+test('preserves multiline formatting in results errors', async () => {
+  mockedGetChartDataRequest.mockRejectedValue(
+    new Error('Query failed\nCheck the datasource'),
+  );
+  const props = createResultsPaneOnDashboardProps({ sliceId: 208 });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('Failed to load results')).toBeVisible();
+  const errorDescription = screen.getByText(
+    'Query failed Check the datasource',
+  );
+  expect(errorDescription.textContent).toBe(
+    'Query failed\nCheck the datasource',
+  );
+  expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
 });

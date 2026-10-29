@@ -1,0 +1,80 @@
+---
+title: Semantic layer connections
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+## Provider-defined connection forms
+
+Installed semantic-layer extensions supply their connection fields and help text.
+Required fields are marked with an asterisk. Examples in empty fields are placeholders,
+not selected values. Follow the provider's field help for optional and conditionally
+required settings.
+
+A nullable password is displayed as one optional password input. Leaving an untouched
+null value blank preserves it; clearing a value sends an empty string. Providers decide
+how these values are interpreted.
+
+Providers can mark a private-key field with `x-input-type: pem` to request a multiline
+editor. Paste the whole key, including matching BEGIN and END lines. The inline check
+only checks the private-key envelope, not cryptographic validity. Password-protected
+keys also need their passphrase. The hint is for private keys, not certificates.
+
+Automatic metadata discovery is debounced. Discovery failures do not prevent entering
+manual values when suggestions are unavailable. Discovery errors use fixed messages
+rather than displaying provider exceptions. Save displays the server's sanitized
+validation reason, such as a duplicate name or missing configuration field, with a
+generic fallback when no reason is available. Saved secrets remain masked while
+editing; configuration changes may require re-entering masked values, as explained
+by the server's validation message. Changing connection dependencies can clear
+dependent selections, so check those fields before saving.
+
+## Dependent source selectors
+
+In **Add Semantic View**, changing a selected Database makes its dependent
+Schema choices unavailable while fresh options load, including the debounce
+interval. A matching response preserves selections that remain valid and clears
+those no longer offered. If loading fails, the form retains your selections but
+keeps stale choices unavailable; a later form edit can retry once for that
+dependency state. Changing the Database requests choices for the new state.
+After a failed refresh, saving stays blocked only while a single-choice dependent
+field has choices loaded.
+If no dependent field has its prerequisites filled, clearing a required source
+keeps dependent choices unavailable until that source is filled. Clearing an
+optional dependency can load choices for the empty state instead. Semantic
+views listed for an earlier dependency are discarded, and views cannot be added
+while dependent choices are loading.
+
+When adding a semantic view, Superset asks the provider to look up its name with
+the submitted configuration before saving it. If lookup fails or returns no view,
+the API reports that the view may not exist or the semantic layer may be
+unreachable, and does not add it. Other valid views in the same request can still
+be added. This check does not guarantee that later queries will succeed.
+
+One request can add at most `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (100 by
+default); larger requests are refused before any lookup. Lookups for one request
+share a time budget, `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` (30 seconds by default).
+The budget is checked before each lookup, so a lookup already running is limited
+only by the semantic layer's own timeouts; keep the budget well below the web
+server and proxy timeouts so the response arrives. Views not checked in time are reported
+with the `TIMEOUT` error type and can be retried in another request; views added
+before the budget ran out stay added. Views that already exist are refused before
+their lookup, so resending the whole request spends the budget only on the views
+that are still missing.

@@ -49,12 +49,45 @@ function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
   return newFormatter;
 }
 
+// Sub-minute durations render as the seconds unit with up to one decimal
+// ("0.3s", "37.5s") — enough precision for a quick query without ms/μs noise.
+const secondsFormatters = new Map<string, Intl.NumberFormat>();
+
+function getCachedSecondsFormatter(locale?: string): Intl.NumberFormat {
+  const key = locale ?? '';
+  const cached = secondsFormatters.get(key);
+  if (cached) {
+    return cached;
+  }
+  const options: Intl.NumberFormatOptions = {
+    style: 'unit',
+    unit: 'second',
+    unitDisplay: 'narrow',
+    maximumFractionDigits: 1,
+  };
+  let formatter: Intl.NumberFormat;
+  try {
+    formatter = new Intl.NumberFormat(
+      (locale ?? 'en').replace(/_/g, '-'),
+      options,
+    );
+  } catch {
+    formatter = new Intl.NumberFormat('en', options);
+  }
+  secondsFormatters.set(key, formatter);
+  return formatter;
+}
+
 /**
  * Format a duration in seconds to a human-readable string.
  *
+ * Under a minute it shows the seconds unit with up to one decimal ("0.3s",
+ * "37.5s"); a minute or longer shows the two highest *adjacent* whole units
+ * ("1m 30s", "2h 15m", "1d 2h") — never sub-second (ms/μs/ns) noise.
+ *
  * @param seconds - Duration in seconds
  * @param locale - Current locale
- * @returns Formatted string like "1m 30s" or "2h 15m", or null if invalid
+ * @returns Formatted string like "0.3s", "1m 30s", or "2h 15m", or null if invalid
  */
 export function formatDuration(
   seconds: number | null | undefined,
@@ -64,20 +97,20 @@ export function formatDuration(
     return null;
   }
 
-  const durObject = parseMilliseconds(seconds * 1000);
-  const unitOrder = [
-    'years',
-    'days',
-    'hours',
-    'minutes',
-    'seconds',
-    'milliseconds',
-    'microseconds',
-    'nanoseconds',
-  ] as const;
+  // Under a minute: seconds with up to one decimal.
+  if (seconds < 60) {
+    return getCachedSecondsFormatter(locale).format(seconds);
+  }
+
+  // A minute or longer: the two highest *adjacent* whole units (never skipping a
+  // zero middle unit, so an exact "1h 0m 5s" reads "1h", not "1h 5s"). Round to
+  // whole seconds so no ms/μs/ns units are ever emitted.
+  const durObject = parseMilliseconds(Math.round(seconds) * 1000);
+  const unitOrder = ['years', 'days', 'hours', 'minutes', 'seconds'] as const;
+  const firstIdx = unitOrder.findIndex(unit => durObject[unit] > 0);
   const nonZeroUnits = unitOrder
+    .slice(firstIdx, firstIdx + 2)
     .filter(unit => durObject[unit] > 0)
-    .slice(0, 2)
     .reduce(
       (obj, unit) => {
         obj[unit] = durObject[unit];

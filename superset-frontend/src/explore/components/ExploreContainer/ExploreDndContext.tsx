@@ -23,6 +23,7 @@ import {
   useCallback,
   FC,
   Dispatch,
+  ReactNode,
   useReducer,
 } from 'react';
 import {
@@ -42,6 +43,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { css, styled } from '@apache-superset/core/theme';
+import { tn } from '@apache-superset/core/translation';
 import {
   ColumnOptionProps,
   MetricOptionProps,
@@ -62,6 +64,12 @@ export interface ActiveDragData {
   type: string;
   value?: unknown;
   dragIndex?: number;
+  // For a folder drag (DndItemType.Folder): the columns/metrics it holds, the
+  // folder's display name (shown in the drag overlay), and the ids of the
+  // folder and its subfolders (used to fade every row of the folder in flight).
+  items?: DatasourcePanelDndItem[];
+  name?: string;
+  folderIds?: string[];
   // For sortable items - callback to handle reorder
   onShiftOptions?: (dragIndex: number, hoverIndex: number) => void;
   onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
@@ -89,6 +97,30 @@ const DragOverlayContainer = styled(Flex)`
       min-width: 0;
       margin-right: ${theme.sizeUnit * 2}px;
     }
+  `}
+`;
+
+/**
+ * Folder-specific overlay container. The folder drag is now activated from a
+ * small dedicated handle (not the full-width header row)
+ */
+const FolderDragOverlayContainer = styled(DragOverlayContainer)`
+  width: max-content;
+  min-width: 220px;
+`;
+
+/**
+ * Pill shown in the folder drag overlay with the count of items in flight.
+ */
+const FolderDragBadge = styled.span`
+  ${({ theme }) => css`
+    flex-shrink: 0;
+    padding: 0 ${theme.sizeUnit}px;
+    border-radius: ${theme.borderRadius}px;
+    background-color: ${theme.colorPrimary};
+    color: ${theme.colorTextLightSolid};
+    font-size: ${theme.fontSizeSM}px;
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
@@ -138,6 +170,10 @@ export interface DroppableData {
   canDrop?: (item: DatasourcePanelDndItem) => boolean;
   onDrop?: (item: DatasourcePanelDndItem) => void;
   onDropValue?: (value: DatasourcePanelDndItem['value']) => void;
+  // Bulk handler for a folder drop. A control opts into folder drops by
+  // exposing this; it receives the folder's items already filtered to those
+  // this control accepts and that pass `canDrop` (e.g. not already selected).
+  onDropFolder?: (items: DatasourcePanelDndItem[]) => void;
 }
 
 /**
@@ -174,6 +210,29 @@ export function resolveDragEnd(
   ) {
     const reorderCallback = activeData.onShiftOptions || activeData.onMoveLabel;
     reorderCallback?.(activeData.dragIndex, overData.dragIndex);
+    return;
+  }
+
+  // Folder drop: expand the folder into its individual columns/metrics and
+  // hand the accepted subset to the droppable's bulk handler. Only controls
+  // that opt in via `onDropFolder` react (filters, for instance, don't). Each
+  // item is gated by the droppable's own `accept`/`canDrop`, so duplicates and
+  // unsupported types are dropped — satisfying "only add columns not already
+  // present".
+  if (activeData?.type === DndItemType.Folder) {
+    const onDropFolder = overData?.onDropFolder;
+    const items = Array.isArray(activeData.items) ? activeData.items : [];
+    if (!onDropFolder || items.length === 0) {
+      return;
+    }
+    const { accept, canDrop } = overData;
+    const accepted = items.filter(folderItem => {
+      const typeAccepted = !accept || accept.includes(folderItem.type);
+      return typeAccepted && (canDrop?.(folderItem) ?? true);
+    });
+    if (accepted.length > 0) {
+      onDropFolder(accepted);
+    }
     return;
   }
 
@@ -278,6 +337,57 @@ export const exploreCollisionDetection: CollisionDetection = args => {
     : rectIntersection({ ...args, droppableContainers: dropzoneContainers });
 };
 
+/**
+ * Content shown in the drag preview that follows the cursor. Extracted as a
+ * pure function (rather than inlined JSX) so it can be unit-tested directly:
+ * @dnd-kit's PointerSensor only reacts to real pointer events, which jsdom
+ * cannot meaningfully dispatch, so a real drag can't be simulated to reach it.
+ * Reorder drags leave activeData null on purpose, so only external
+ * DatasourcePanel drags (which carry a value, or a folder's items) get a
+ * preview.
+ */
+export function renderDragOverlayContent(
+  activeData: ActiveDragData | null,
+): ReactNode {
+  if (activeData?.type === DndItemType.Folder) {
+    return (
+      <FolderDragOverlayContainer align="center" justify="space-between">
+        <Flex align="center" gap={4}>
+          <Icons.FolderOutlined iconSize="l" />
+          <span>{activeData.name}</span>
+        </Flex>
+        <FolderDragBadge>
+          {tn(
+            '%s field',
+            '%s fields',
+            activeData.items?.length ?? 0,
+            activeData.items?.length ?? 0,
+          )}
+        </FolderDragBadge>
+      </FolderDragOverlayContainer>
+    );
+  }
+  if (activeData?.value) {
+    return (
+      <DragOverlayContainer align="center" justify="space-between">
+        {activeData.type === DndItemType.Column ? (
+          <StyledColumnOption
+            column={activeData.value as ColumnOptionProps['column']}
+            showType
+          />
+        ) : (
+          <StyledMetricOption
+            metric={activeData.value as MetricOptionProps['metric']}
+            showType
+          />
+        )}
+        <Icons.Drag iconSize="xl" />
+      </DragOverlayContainer>
+    );
+  }
+  return null;
+}
+
 interface ExploreDndContextProps {
   children: React.ReactNode;
 }
@@ -359,26 +469,9 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
       {/*
         @dnd-kit has no native drag image (unlike react-dnd's HTML5 backend),
         so the item following the cursor must be rendered explicitly here.
-        Reorder drags leave activeData null on purpose, so only external
-        DatasourcePanel drags (which carry a value) get a preview.
       */}
       <DragOverlay dropAnimation={null}>
-        {activeData?.value ? (
-          <DragOverlayContainer align="center" justify="space-between">
-            {activeData.type === DndItemType.Column ? (
-              <StyledColumnOption
-                column={activeData.value as ColumnOptionProps['column']}
-                showType
-              />
-            ) : (
-              <StyledMetricOption
-                metric={activeData.value as MetricOptionProps['metric']}
-                showType
-              />
-            )}
-            <Icons.Drag iconSize="xl" />
-          </DragOverlayContainer>
-        ) : null}
+        {renderDragOverlayContent(activeData)}
       </DragOverlay>
     </DndContext>
   );

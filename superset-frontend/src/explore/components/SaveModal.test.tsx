@@ -104,6 +104,7 @@ const initialState = {
     isVisible: true,
   },
   explore: {
+    can_add: true,
     datasource: {},
     slice: {
       slice_id: 1,
@@ -159,8 +160,9 @@ const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
 
 const registerDefaultRoutes = () => {
   fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  // GET /api/v1/dashboard/<id> returns a single object, not a list.
   fetchMock.get(fetchDashboardEndpoint, {
-    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+    result: { id: mockEvent.value, dashboard_title: 'dashboard title' },
   });
 };
 
@@ -554,8 +556,17 @@ test('updates slice name and selected dashboard', async () => {
   );
   expect(createSlice).toHaveBeenCalledWith(
     mockEvent.target.value,
+    [dashboardId],
     expect.anything(),
-    expect.anything(),
+  );
+  // The form data is persisted before the Query is converted into a dataset,
+  // so changeDatasource's rewrite is the last write to the store.
+  expect(setFormData).toHaveBeenCalledTimes(1);
+  expect(setFormData.mock.invocationCallOrder[0]).toBeLessThan(
+    saveDataset.mock.invocationCallOrder[0],
+  );
+  expect(setFormData).toHaveBeenCalledWith(
+    expect.not.objectContaining({ url_params: expect.anything() }),
   );
 });
 
@@ -897,3 +908,57 @@ test('addChartToDashboard handles empty position_json', async () => {
     mockNanoid.mockRestore();
   }
 });
+
+test.each([
+  {
+    name: 'explicit editor',
+    editors: [{ id: 1 }],
+    extraEditors: [],
+    canWrite: false,
+  },
+  {
+    name: 'explicit editor',
+    editors: [{ id: 1 }],
+    extraEditors: [],
+    canWrite: true,
+  },
+  { name: 'extra editor', editors: [], extraEditors: [1], canWrite: false },
+  { name: 'extra editor', editors: [], extraEditors: [1], canWrite: true },
+])(
+  '$name overwrite requires Chart write permission ($canWrite)',
+  ({ editors, extraEditors, canWrite }) => {
+    const { getByRole, getByText } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        explore: {
+          ...initialState.explore,
+          can_add: canWrite,
+          can_overwrite: false,
+          slice: {
+            ...initialState.explore.slice,
+            editors,
+            extra_editors: extraEditors,
+          },
+        },
+        user: {
+          userId: 1,
+          username: 'Gamma',
+          roles: { Gamma: [] },
+          permissions: {},
+        },
+      }),
+    );
+    const overwrite = getByRole('radio', { name: 'Save (Overwrite)' });
+    if (canWrite) {
+      expect(overwrite).toBeEnabled();
+      expect(overwrite).toBeChecked();
+    } else {
+      expect(overwrite).toBeDisabled();
+      expect(getByRole('radio', { name: 'Save as...' })).toBeChecked();
+      expect(
+        getByText('You do not have permission to edit this chart'),
+      ).toBeInTheDocument();
+    }
+  },
+);

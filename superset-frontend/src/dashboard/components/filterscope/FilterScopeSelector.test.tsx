@@ -213,19 +213,19 @@ test('does not render FilterFieldTree or FilterScopeTree when no filters exist',
   expect(screen.queryByTestId('filter-scope-tree')).not.toBeInTheDocument();
 });
 
-test('calls onCloseModal when Close button is clicked', () => {
+test('calls onCloseModal when Close button is clicked', async () => {
   const onCloseModal = jest.fn();
   render(
     <FilterScopeSelector {...defaultProps} onCloseModal={onCloseModal} />,
     { useRedux: true },
   );
 
-  userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   expect(onCloseModal).toHaveBeenCalledTimes(1);
 });
 
-test('calls updateDashboardFiltersScope, setUnsavedChanges, and onCloseModal when Save is clicked', () => {
+test('calls updateDashboardFiltersScope, setUnsavedChanges, and onCloseModal when Save is clicked', async () => {
   const updateDashboardFiltersScope = jest.fn();
   const setUnsavedChanges = jest.fn();
   const onCloseModal = jest.fn();
@@ -240,7 +240,7 @@ test('calls updateDashboardFiltersScope, setUnsavedChanges, and onCloseModal whe
     { useRedux: true },
   );
 
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(updateDashboardFiltersScope).toHaveBeenCalledTimes(1);
   expect(setUnsavedChanges).toHaveBeenCalledWith(true);
@@ -255,11 +255,11 @@ test('renders the editing filters name section with "Editing 1 filter:" label', 
   expect(screen.getByText('Filter B')).toBeInTheDocument();
 });
 
-test('updates search text when typing in the search input', () => {
+test('updates search text when typing in the search input', async () => {
   render(<FilterScopeSelector {...defaultProps} />, { useRedux: true });
 
   const searchInput = screen.getByPlaceholderText('Search...');
-  userEvent.type(searchInput, 'Chart');
+  await userEvent.type(searchInput, 'Chart');
 
   expect(searchInput).toHaveValue('Chart');
 });

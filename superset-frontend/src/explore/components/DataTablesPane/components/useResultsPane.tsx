@@ -30,6 +30,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
@@ -216,7 +217,11 @@ export const useResultsPane = ({
             type="error"
             showIcon
             message={t('Failed to load results')}
-            description={responseError}
+            description={
+              <PreformattedErrorDescription>
+                {responseError}
+              </PreformattedErrorDescription>
+            }
           />
         </ErrorAlertWrapper>
       </>
