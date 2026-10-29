@@ -17,6 +17,7 @@
 """Unit tests for the export number-format helper and its feature flag."""
 
 from decimal import Decimal
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -248,3 +249,32 @@ def test_ag_grid_table_skips_small_number_format() -> None:
     # The small-number format (",.1%" -> "12.5%") is ignored; the main format
     # (",.0f" -> "0") applies to the sub-one value instead.
     assert result["amount"].tolist() == ["0"]
+
+
+# @AC-FR002-01
+def test_auto_currency_resolves_from_row_context() -> None:
+    # An AUTO currency resolves to the row's currency symbol the way table()
+    # does (via the datasource currency-code column), instead of exporting no
+    # symbol. Without the row currency context "1,234.50" would ship bare.
+    datasource = MagicMock()
+    datasource.data = {"currency_code_column": "currency"}
+    df = pd.DataFrame({"amount": [1234.5], "currency": ["USD"]})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {"d3NumberFormat": ",.2f", "currencyFormat": {"symbol": "AUTO"}}
+        },
+    }
+
+    result = apply_export_number_formats(
+        df,
+        [GenericDataType.NUMERIC, GenericDataType.STRING],
+        form_data,
+        cast(Any, datasource),
+    )
+
+    value = result["amount"].tolist()[0]
+    assert isinstance(value, str)
+    # The USD symbol is resolved from the row context, not dropped.
+    assert "$" in value
+    assert value != "1234.5"

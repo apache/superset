@@ -49,6 +49,10 @@ from superset.utils.core import (
     get_metric_name,
     get_metric_names,
 )
+from superset.utils.currency import (
+    detect_currency_from_df,
+    has_auto_currency_in_column_config,
+)
 from superset.utils.number_format import (
     AUTO_CURRENCY,
     format_number_with_config,
@@ -1298,6 +1302,33 @@ def apply_export_number_formats(
     # for it -- mirroring ``table()``'s own ``applies_small_number_format``.
     applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
 
+    # Resolve an AUTO currency the way ``table()`` does: a per-row currency
+    # context drawn from the datasource's currency-code column drives each
+    # cell's symbol, with the query-wide single currency as the fallback.
+    # Without these an AUTO currency would export no symbol while the live
+    # chart shows one (e.g. ``1,234.50`` instead of ``$1,234.50``).
+    currency_column = get_datasource_currency_column(datasource, df)
+    row_currency_context = (
+        df[currency_column].map(currency_context_value) if currency_column else None
+    )
+    # The query-wide single currency backs an AUTO format whose per-row context
+    # is empty. It is detected from the frame already in hand (no extra query is
+    # issued here), and only when an AUTO currency is configured, mirroring
+    # ``_detect_currency``'s own gating.
+    top_level_currency = form_data.get("currency_format") or {}
+    top_level_auto = (
+        isinstance(top_level_currency, dict)
+        and top_level_currency.get("symbol") == AUTO_CURRENCY
+    )
+    auto_currency_configured = top_level_auto or has_auto_currency_in_column_config(
+        form_data
+    )
+    detected_currency = (
+        detect_currency_from_df(df, currency_column)
+        if auto_currency_configured and currency_column
+        else None
+    )
+
     numeric_columns = {
         column
         for column, coltype in zip(df.columns, coltypes, strict=True)
@@ -1338,6 +1369,7 @@ def apply_export_number_formats(
                 column,
                 number_format or PERCENT_3_POINT,
                 {},
+                currency_context=row_currency_context,
                 small_d3_format=small_number_format,
                 small_currency=small_currency,
             )
@@ -1347,6 +1379,9 @@ def apply_export_number_formats(
                 column,
                 number_format,
                 currency,
+                detected_currency,
+                row_currency_context,
+                fallback_to_detected=False,
                 small_d3_format=small_number_format,
                 small_currency=small_currency,
             )

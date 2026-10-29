@@ -434,12 +434,16 @@ def test_small_number_format_forwarded_to_export(app_context: None) -> None:
 # @AC-FR001-01
 @with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
 def test_post_processed_export_skips_pre_pivot_formatting(app_context: None) -> None:
-    # A POST_PROCESSED export is re-parsed and pivoted by apply_client_processing,
-    # so get_data must leave the raw numbers here to avoid turning a formatted
-    # thousands string into NaN; formatting happens after post-processing.
+    # A POST_PROCESSED export for a post-processor viz_type (table/pivot_table_v2)
+    # is re-parsed and pivoted by apply_client_processing, so get_data must leave
+    # the raw numbers here to avoid turning a formatted thousands string into NaN;
+    # formatting happens after post-processing.
     processor = _make_processor(
         ChartDataResultFormat.CSV,
-        {"column_config": {"amount": {"d3NumberFormat": ",.1f"}}},
+        {
+            "viz_type": "pivot_table_v2",
+            "column_config": {"amount": {"d3NumberFormat": ",.1f"}},
+        },
         result_type=ChartDataResultType.POST_PROCESSED,
     )
     df = pd.DataFrame({"amount": [19.7999992]})
@@ -450,3 +454,62 @@ def test_post_processed_export_skips_pre_pivot_formatting(app_context: None) -> 
     # Raw value survives: the pre-pivot formatting stage was skipped.
     assert "19.7999992" in text
     assert "19.8" not in text
+
+
+# @AC-FR001-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_post_processed_export_without_post_processor_is_formatted(
+    app_context: None,
+) -> None:
+    # A POST_PROCESSED export for a viz_type with no post-processor (e.g.
+    # ag-grid-table, as scheduled reports/alerts request) is returned unchanged
+    # by apply_client_processing, so get_data must still format it here.
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {
+            "viz_type": "ag-grid-table",
+            "column_config": {"amount": {"d3NumberFormat": ",.1f"}},
+        },
+        result_type=ChartDataResultType.POST_PROCESSED,
+    )
+    df = pd.DataFrame({"amount": [19.7999992]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    text = _csv_text(result)
+    assert "19.8" in text
+    assert "19.7999992" not in text
+
+
+# @AC-FR001-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_post_processed_export_formatted_by_client_processing(
+    app_context: None,
+) -> None:
+    # Round trip: get_data skips the pre-pivot stage for a post-processor
+    # viz_type, so the numbers must be formatted by apply_client_processing after
+    # the pivot/table arithmetic. This fails if that post-processing formatting
+    # branch regresses -- get_data alone would ship an unformatted aggregate.
+    from superset.charts.client_processing import apply_client_processing
+
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"amount": {"d3NumberFormat": ",.2f"}},
+    }
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        form_data,
+        result_type=ChartDataResultType.POST_PROCESSED,
+    )
+    df = pd.DataFrame({"amount": [2234.5]})
+
+    raw = processor.get_data(df, [GenericDataType.NUMERIC])
+    # Pre-pivot formatting was skipped: the aggregate is still unformatted here.
+    assert "2,234.50" not in _csv_text(raw)
+
+    result = {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": raw}],
+    }
+    processed = apply_client_processing(result, form_data, None)
+
+    assert "2,234.50" in processed["queries"][0]["data"]
