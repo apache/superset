@@ -52,7 +52,7 @@ export const supersetClientQuery: BaseQueryFn<
 ) =>
   SupersetClient.request({
     ...rest,
-    endpoint: `${endpoint}${urlParams ? `?q=${rison.encode(urlParams)}` : ''}`,
+    endpoint: `${endpoint}${urlParams ? `?q=${encodeURIComponent(rison.encode(urlParams))}` : ''}`,
     method,
     parseMethod,
     signal: api.signal,
