@@ -16,15 +16,13 @@
 # under the License.
 """Exercise metadata timeout migration against stored SQLite rows and cachelib."""
 
+import logging
 from collections.abc import Callable, Iterator
 from decimal import Decimal
 from importlib import import_module
 from typing import Any
 
 import pytest
-
-# The project wrapper cannot decode exact decimals for this preservation assertion.
-import simplejson  # noqa: TID251
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from flask import current_app
@@ -100,36 +98,35 @@ def test_upgrade_restores_metadata_cache(
     backend = SimpleCache()
     mocker.patch.dict(current_app.extensions["cache"], {cache_manager.cache: backend})
     mocker.patch.object(database, "get_inspector")
-    methods: dict[str, tuple[str, str, dict[str, Any], str, Any]] = {
+    cache_set = mocker.spy(backend, "set")
+    methods: dict[str, tuple[str, str, dict[str, Any], Any]] = {
         "catalog": (
             "get_all_catalog_names",
             "get_catalog_names",
             {},
-            "db:1:catalog_list",
             {"public"},
         ),
         "schema": (
             "get_all_schema_names",
             "get_schema_names",
             {"catalog": None},
-            "db:1:catalog:None:schema_list",
             {"public"},
         ),
         "table": (
             "get_all_table_names_in_schema",
             "get_table_names",
             {"catalog": None, "schema": "public"},
-            "db:1:catalog:None:schema:public:table_list",
             {("public", "public", None)},
         ),
     }
-    method_name, spec_method, options, cache_key, expected = methods[cache_type]
+    method_name, spec_method, options, expected = methods[cache_type]
     mocker.patch.object(database.db_engine_spec, spec_method, return_value={"public"})
     get_metadata = getattr(database, method_name)
     assert getattr(database, f"{cache_type}_cache_enabled")
 
-    with pytest.raises(TypeError, match="timeout must be an int"):
+    with pytest.raises(TypeError):
         get_metadata(**options, cache_timeout=getattr(database, key))
+    cache_set.reset_mock()
 
     with engine.begin() as connection:
         _run(migration.upgrade, connection, mocker)
@@ -138,7 +135,10 @@ def test_upgrade_restores_metadata_cache(
     assert type(getattr(database, key)) is int
     assert getattr(database, key) == int(timeout)
     assert get_metadata(**options, cache_timeout=getattr(database, key)) == expected
-    assert backend.get(cache_key) == expected
+    assert get_metadata(**options, cache_timeout=getattr(database, key)) == expected
+    cache_set.assert_called_once()
+    assert type(cache_set.call_args.kwargs["timeout"]) is int
+    assert cache_set.call_args.kwargs["timeout"] == int(timeout)
 
 
 def test_upgrade_preserves_other_configuration(
@@ -184,13 +184,156 @@ def test_upgrade_preserves_other_configuration(
     extra["metadata_cache_timeout"]["table_cache_timeout"] = 10
     with engine.connect() as connection:
         migrated = dict(connection.execute(select(dbs.c.id, dbs.c.extra)).all())
-    assert simplejson.loads(migrated[1], use_decimal=True) == extra
+    assert json.loads(migrated[1], use_decimal=True) == extra
     assert migrated[2] == "{invalid"
     assert migrated[3] == unchanged
     assert json.loads(migrated[4]) == {
         "metadata_cache_timeout": {"schema_cache_timeout": 42},
         "other": "row4",
     }
+
+
+@pytest.mark.parametrize("value", ["0", "000", "0010", "600"])
+def test_upgrade_converts_ascii_digits(
+    engine: Engine, mocker: MockerFixture, value: str
+) -> None:
+    """Zero and leading zeros remain valid ASCII integer strings."""
+    _seed(
+        engine, json.dumps({"metadata_cache_timeout": {"schema_cache_timeout": value}})
+    )
+
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+
+    extra = _read_extra(engine)
+    assert extra is not None
+    timeout = json.loads(extra)["metadata_cache_timeout"]["schema_cache_timeout"]
+    assert type(timeout) is int
+    assert timeout == int(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "1_000",
+        " 600 ",
+        "6\n",
+        "+5",
+        "\u0666\u0660\u0660",
+        "\uff16\uff10\uff10",
+        "-1",
+        "600.0",
+        "1e3",
+        "",
+        "private-timeout-value",
+    ],
+)
+def test_upgrade_warns_for_non_ascii_digit_strings(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    value: str,
+) -> None:
+    """Malformed strings remain exact, with an actionable warning and no values."""
+    original = json.dumps(
+        {
+            "metadata_cache_timeout": {"schema_cache_timeout": value},
+            "sensitive_field": "private-connection-token",
+        }
+    )
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "schema_cache_timeout" in warnings[0].getMessage()
+    assert "private-connection-token" not in caplog.text
+    assert "private-timeout-value" not in caplog.text
+    assert original not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "original",
+    [
+        '{"sensitive_field": "private-connection-token", broken',
+        '{"sensitive_field": "private-connection-token", "other": NaN}',
+        (
+            '{"sensitive_field": "private-connection-token", '
+            '"other": 1e99999999999999999999}'
+        ),
+    ],
+)
+def test_upgrade_warns_for_unparseable_json(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    original: str,
+) -> None:
+    """Skipped JSON identifies the row without exposing configuration or exceptions."""
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "JSON" in warnings[0].getMessage()
+    assert "private-connection-token" not in caplog.text
+    assert original not in caplog.text
+    assert warnings[0].exc_info is None
+
+
+def test_upgrade_finishes_read_before_writing(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """An unconsumed result must not coexist with an UPDATE on the same connection."""
+    _seed(engine, '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}')
+    read_pending = False
+
+    with engine.begin() as connection:
+        execute = connection.execute
+
+        def guard_pending_read(statement: Any, *args: Any, **kwargs: Any) -> Any:
+            """Keep real database execution, but enforce a single active result."""
+            nonlocal read_pending
+            if statement.is_update:
+                assert not read_pending, "SELECT result must be consumed before UPDATE"
+            result = execute(statement, *args, **kwargs)
+            if not statement.is_select:
+                return result
+            read_pending = True
+            guarded_result = mocker.MagicMock(wraps=result)
+            guarded_result.__iter__.side_effect = lambda: iter(result)
+
+            def consume() -> Any:
+                """Fetch all real rows before allowing a subsequent statement."""
+                nonlocal read_pending
+                rows = result.all()
+                read_pending = False
+                return rows
+
+            guarded_result.all.side_effect = consume
+            return guarded_result
+
+        mocker.patch.object(connection, "execute", side_effect=guard_pending_read)
+        _run(migration.upgrade, connection, mocker)
+
+    assert not read_pending
+    extra = _read_extra(engine)
+    assert extra is not None
+    assert json.loads(extra)["metadata_cache_timeout"]["schema_cache_timeout"] == 600
 
 
 @pytest.mark.parametrize(

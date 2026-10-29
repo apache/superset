@@ -17,7 +17,7 @@
 """Normalize legacy database metadata cache timeouts.
 
 Older database forms stored metadata cache timeouts as strings. Convert only
-recognized non-negative integer strings, preserving malformed configurations
+ASCII digit strings, preserving malformed configurations
 and unrelated fields instead of guessing at their intended values.
 
 Revision ID: 9670ab7f6bc6
@@ -25,10 +25,9 @@ Revises: f72b6e9c104a
 Create Date: 2026-10-27 00:00:00.000000
 """
 
+import logging
 from decimal import InvalidOperation
 
-# The shared JSON wrapper cannot decode decimals without losing stored precision.
-import simplejson  # noqa: TID251
 from alembic import op
 from sqlalchemy import column, Integer, select, table, Text
 
@@ -36,6 +35,8 @@ from superset.utils import json
 
 revision = "9670ab7f6bc6"
 down_revision = "f72b6e9c104a"
+
+logger = logging.getLogger(__name__)
 
 _DATABASES = table("dbs", column("id", Integer), column("extra", Text))
 _TIMEOUT_KEYS = (
@@ -46,14 +47,20 @@ _TIMEOUT_KEYS = (
 
 
 def upgrade() -> None:
-    """Convert legacy non-negative integer strings to integer timeouts."""
+    """Convert legacy ASCII digit strings to integer timeouts."""
     connection = op.get_bind()
-    for database_id, raw_extra in connection.execute(
+    rows = connection.execute(
         select(_DATABASES.c.id, _DATABASES.c.extra).with_for_update()
-    ):
+    ).all()
+    for database_id, raw_extra in rows:
         try:
-            extra = simplejson.loads(raw_extra, use_decimal=True)
+            extra = json.loads(raw_extra, use_decimal=True)
         except (TypeError, ValueError, InvalidOperation):
+            logger.warning(
+                "Database %s: skipping metadata cache timeouts; "
+                "invalid or unrepresentable JSON",
+                database_id,
+            )
             continue
         if not isinstance(extra, dict) or not isinstance(
             extra.get("metadata_cache_timeout"), dict
@@ -66,11 +73,23 @@ def upgrade() -> None:
             value = timeouts.get(key)
             if not isinstance(value, str):
                 continue
+            if not (value.isascii() and value.isdigit()):
+                logger.warning(
+                    "Database %s: leaving metadata_cache_timeout.%s unchanged; "
+                    "expected an ASCII digit string",
+                    database_id,
+                    key,
+                )
+                continue
             try:
                 timeout = int(value)
             except ValueError:
-                continue
-            if timeout < 0:
+                logger.warning(
+                    "Database %s: leaving metadata_cache_timeout.%s unchanged; "
+                    "cannot parse integer string",
+                    database_id,
+                    key,
+                )
                 continue
             timeouts[key] = timeout
             changed = True
