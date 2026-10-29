@@ -47,7 +47,9 @@ import { createEchartsTimeseriesTestChartProps } from '../../helpers';
 
 function createTestQueryData(
   data: DataRecord[],
-  overrides?: Partial<ChartDataResponseResult>,
+  overrides?: Partial<ChartDataResponseResult> & {
+    label_map?: Record<string, string[]>;
+  },
 ): ChartDataResponseResult {
   return {
     annotation_data: null,
@@ -1127,6 +1129,103 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(renderedYAxis.type).toBe('category');
       expect(renderedYAxis.name).toBe('My X Axis');
       expect(renderedXAxis.name).toBe('My Y Axis');
+    });
+  });
+
+  describe('Regression test for Issue #33882 — stackDimension label grouping', () => {
+    // Two metrics (count, sum), two groupby columns (region, size).
+    // stackDimension = 'size' (the SECOND groupby), so the correct label-map
+    // tuple index is 1 (metric prefix) + 1 (indexOf 'size') = 2.
+    // Before the fix, idxSelectedDimension was hard-coded to 1 for multi-metric
+    // charts, which always picked 'region' (the first groupby) as the stack
+    // discriminator and caused all Only-Total labels to render on a single bar.
+    const stackDimensionData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          {
+            __timestamp: 1609459200000,
+            'count, East, Large': 10,
+            'revenue, East, Large': 100,
+            'count, East, Small': 5,
+            'revenue, East, Small': 50,
+            'count, West, Large': 8,
+            'revenue, West, Large': 80,
+            'count, West, Small': 4,
+            'revenue, West, Small': 40,
+          },
+        ],
+        {
+          colnames: [
+            '__timestamp',
+            'count, East, Large',
+            'revenue, East, Large',
+            'count, East, Small',
+            'revenue, East, Small',
+            'count, West, Large',
+            'revenue, West, Large',
+            'count, West, Small',
+            'revenue, West, Small',
+          ],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          label_map: {
+            'count, East, Large': ['count', 'East', 'Large'],
+            'revenue, East, Large': ['revenue', 'East', 'Large'],
+            'count, East, Small': ['count', 'East', 'Small'],
+            'revenue, East, Small': ['revenue', 'East', 'Small'],
+            'count, West, Large': ['count', 'West', 'Large'],
+            'revenue, West, Large': ['revenue', 'West', 'Large'],
+            'count, West, Small': ['count', 'West', 'Small'],
+            'revenue, West, Small': ['revenue', 'West', 'Small'],
+          },
+        },
+      ),
+    ];
+
+    const stackDimensionFormData: EchartsTimeseriesFormData = {
+      ...(baseFormData as EchartsTimeseriesFormData),
+      x_axis: 'region',
+      metric: ['count', 'revenue'],
+      metrics: ['count', 'revenue'],
+      groupby: ['region', 'size'],
+      stack: StackControlsValue.Stack,
+      stackDimension: 'size',
+      showValue: true,
+      onlyTotal: true,
+    };
+
+    test('each size stack group gets its own Only-Total label', () => {
+      const chartProps = createEchartsTimeseriesTestChartProps<
+        EchartsTimeseriesFormData,
+        EchartsTimeseriesChartProps
+      >({
+        defaultFormData: stackDimensionFormData,
+        defaultVizType: 'echarts_timeseries_bar',
+        defaultQueriesData: stackDimensionData,
+      });
+
+      const { echartOptions } = transformProps(chartProps);
+      const series = echartOptions.series as any[];
+
+      const stackedSeries = series.filter(s => s.stack !== undefined);
+      expect(stackedSeries.length).toBeGreaterThan(0);
+
+      const stackKeys = new Set(stackedSeries.map((s: any) => s.stack));
+      expect(stackKeys.has('Large')).toBe(true);
+      expect(stackKeys.has('Small')).toBe(true);
+
+      // There must be at least two distinct stack groups — one per size value —
+      // so that Only-Total can render a separate label on each.
+      expect(stackKeys.size).toBeGreaterThanOrEqual(2);
     });
   });
 });

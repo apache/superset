@@ -18,6 +18,7 @@
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import {
+  ErrorTypeEnum,
   FeatureFlag,
   isDefined,
   SupersetClient,
@@ -798,6 +799,39 @@ export function exploreJSON(
     dispatch: ChartThunkDispatch,
     getState: () => RootState,
   ): Promise<unknown[]> => {
+    // A saved chart with no datasource has no definition to query. This is how
+    // a chart the viewer may not read reaches the dashboard: the API withholds
+    // its form_data, leaving only the chart id. Fail it with an access error
+    // rather than let query building throw after the chart is marked as
+    // loading, which would leave it spinning forever.
+    if (isDefined(formData.slice_id) && !formData.datasource) {
+      // Cancel a query already running for this chart, so its late response
+      // cannot replace the error below with stale data.
+      if (key != null) {
+        getState().charts?.[key]?.queryController?.abort();
+      }
+      const message = t("You don't have access to this chart.");
+      dispatch(
+        chartUpdateFailed(
+          [
+            {
+              error: message,
+              errors: [
+                {
+                  error_type: ErrorTypeEnum.CHART_SECURITY_ACCESS_ERROR,
+                  message,
+                  level: 'warning',
+                  extra: {},
+                },
+              ],
+            },
+          ],
+          key as string | number,
+        ),
+      );
+      return [];
+    }
+
     const state = getState();
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();

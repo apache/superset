@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { KeyboardEvent, useState } from 'react';
+import { KeyboardEvent, useId, useState } from 'react';
 import { t, tn } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import { Button, Dropdown, Icons, Tag } from '@superset-ui/core/components';
+import { Button, Dropdown, Icons } from '@superset-ui/core/components';
 import type { SaveGroup, VersionedEntityType } from './types';
 import {
   formatAuthor,
@@ -38,9 +38,7 @@ const VISIBLE_RECORD_LIMIT = 10;
 
 // The highlighted container gains inner padding but extends outward by
 // the same amount (negative margin) so its text stays column-aligned
-// with non-highlighted neighbors. The current (live) version carries the
-// highlight at rest — the design's "you are here" state — and a previewed
-// historical version carries it while previewed.
+// with non-highlighted neighbors.
 const Container = styled.div<{ isHighlighted: boolean }>`
   ${({ theme, isHighlighted }) => {
     const inset = isHighlighted ? theme.sizeUnit * 3 : 0;
@@ -74,15 +72,6 @@ const HeaderText = styled.div`
   `}
 `;
 
-const HeadlineRow = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    align-items: center;
-    gap: ${theme.sizeUnit * 2}px;
-    min-width: 0;
-  `}
-`;
-
 const Headline = styled.div`
   ${({ theme }) => `
     font-size: ${theme.fontSize}px;
@@ -104,11 +93,10 @@ const Meta = styled.div`
 
 // Icons and trailing controls center within the first text line (one
 // line-height tall) so they track the headline, not the middle of a
-// two-line header block. The current version's icon takes the brand
-// accent to match its highlighted "you are here" state.
-const IconWrapper = styled.span<{ isCurrent?: boolean }>`
-  ${({ theme, isCurrent }) => `
-    color: ${isCurrent ? theme.colorPrimary : theme.colorTextSecondary};
+// two-line header block.
+const IconWrapper = styled.span`
+  ${({ theme }) => `
+    color: ${theme.colorTextSecondary};
     display: flex;
     align-items: center;
     height: ${theme.fontSize * theme.lineHeight}px;
@@ -158,12 +146,13 @@ export interface SaveGroupItemProps {
   /** The newest self save: it IS the live state, not a historical one. */
   isCurrent: boolean;
   canRestore: boolean;
-  /**
-   * Whether this group carries the active "you are here" treatment. The
-   * panel derives it so exactly one group is highlighted at a time: the
-   * previewed group while a preview is open, else the current group.
-   */
+  /** Whether this group carries the active "you are here" treatment. */
   isHighlighted: boolean;
+  /**
+   * Whether this row is where the list marks the current state, exposed to
+   * assistive technology since no visible label says so.
+   */
+  marksCurrentState: boolean;
   onPreview: (group: SaveGroup) => void;
   /** Leave an active historical preview (back to the live version). */
   onExitPreview?: () => void;
@@ -259,11 +248,13 @@ export default function SaveGroupItem({
   isCurrent,
   canRestore,
   isHighlighted,
+  marksCurrentState,
   onPreview,
   onExitPreview,
   onRestore,
   onOpenAsNew,
 }: SaveGroupItemProps) {
+  const metadataId = useId();
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const headline = groupHeadline(group);
@@ -294,8 +285,6 @@ export default function SaveGroupItem({
         handler();
       }
     };
-
-  const currentTag = isCurrent ? <Tag>{t('Current')}</Tag> : null;
 
   const hasRecords = group.records.length > 0;
   const toggleExpanded = () => {
@@ -336,23 +325,24 @@ export default function SaveGroupItem({
         onKeyDown={hasRecords ? activate(toggleExpanded) : undefined}
         aria-expanded={hasRecords ? expanded : undefined}
         aria-label={hasRecords ? headline : undefined}
+        aria-describedby={hasRecords ? metadataId : undefined}
+        aria-current={hasRecords && marksCurrentState ? 'true' : undefined}
         hasRecords={hasRecords}
       >
-        <IconWrapper isCurrent={isCurrent}>
-          {/* Semantic group icons per the design: the current (live)
-              version is a check-circle, saved snapshots a save icon. */}
-          {isCurrent ? (
-            <Icons.CheckCircleOutlined iconSize="l" />
-          ) : (
-            <Icons.SaveOutlined iconSize="l" />
-          )}
+        <IconWrapper>
+          <Icons.SaveOutlined iconSize="l" />
         </IconWrapper>
         <HeaderText>
-          <HeadlineRow>
-            <Headline title={headline}>{headline}</Headline>
-            {currentTag}
-          </HeadlineRow>
-          <Meta>{meta}</Meta>
+          <Headline title={headline}>{headline}</Headline>
+          <Meta id={metadataId}>
+            {isCurrent && (
+              <>
+                <span>{t('Latest save')}</span>
+                {' · '}
+              </>
+            )}
+            {meta}
+          </Meta>
         </HeaderText>
         {showCreationPreview && (
           <Button
@@ -396,15 +386,10 @@ export default function SaveGroupItem({
               key={`${record.kind}-${record.operation}-${JSON.stringify(
                 record.path,
               )}-${index}`}
-              entityType={entityType}
               record={record}
-              showRestore={canRestore && !isCurrent}
-              showActions={group.versionUuid != null}
               isHighlighted={isHighlighted}
               isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
               onPreview={previewIntent}
-              onRestore={() => onRestore(group)}
-              onOpenAsNew={() => onOpenAsNew(group)}
             />
           ))}
           {hiddenCount > 0 && (
