@@ -61,6 +61,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
 
     def __init__(self, model_uuid: str) -> None:
         self._model_uuid = model_uuid
+        self.warnings: list[str] = []
 
     def run(self) -> None:
         # Build the transactional wrapper at call time so ``on_error`` can
@@ -68,10 +69,14 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         # that isn't available when this method is defined on the base.
         @transaction(on_error=partial(on_error, reraise=self.restore_failed_exc))
         def _perform() -> None:
-            model = self.validate()
+            model: T = self.validate()
+            self.prepare_restore(model)
             model.restore()
 
         _perform()
+
+    def prepare_restore(self, model: T) -> None:
+        """Repair entity dependencies after validation, in the restore transaction."""
 
     def validate(self) -> T:  # type: ignore[override]
         # Both bypasses are deliberate. ``skip_visibility_filter`` lets the

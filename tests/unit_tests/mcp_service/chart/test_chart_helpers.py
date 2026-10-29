@@ -15,17 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm.session import Session
 
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
     _resolve_deck_gl_metrics,
+    _resolve_x_axis_sort_target,
     apply_form_data_filters_to_query,
+    build_applied_dashboard_filters,
     build_query_dicts_from_form_data,
+    build_single_query_dict,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
@@ -37,6 +42,9 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
+from superset.semantic_layers.mapper import validate_filter_columns
+from superset.utils import json
+from superset.utils.core import QueryObjectFilterClause
 
 
 def test_extract_form_data_key_from_url_with_key():
@@ -197,8 +205,8 @@ def test_prepare_form_data_for_query_merges_cached_and_request_extra_form_data(
     apply_form_data_filters_to_query(query, form_data)
 
     assert query["filters"] == [
-        {"col": "country", "op": "==", "val": "US"},
-        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "country", "op": "==", "val": "US", "isExtra": True},
+        {"col": "gender", "op": "==", "val": "boy", "isExtra": True},
     ]
     assert query["time_range"] == "No filter"
 
@@ -362,13 +370,96 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
 
     assert query["filters"] == [
         {"col": "country", "op": "==", "val": "US"},
-        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "gender", "op": "==", "val": "boy", "isExtra": True},
     ]
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
     # The grain belongs in extras: a top-level time_grain_sqla is dropped by
     # ChartDataQueryObjectSchema (unknown = EXCLUDE) and never reaches the query.
     assert query["extras"]["time_grain_sqla"] == "P1D"
+
+
+@pytest.mark.parametrize("path", ["saved", "table", "echarts_timeseries_bar"])
+def test_mcp_extra_filters_keep_dashboard_provenance(
+    monkeypatch: pytest.MonkeyPatch, app_context: None, path: str
+) -> None:
+    """A dashboard filter on a metric name is reported; a chart-owned one is refused."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    extra_form_data: dict[str, Any] = {
+        "filters": [{"col": "total_amount", "op": "IN", "val": [1]}]
+    }
+    dashboard_filter: QueryObjectFilterClause = {
+        "col": "total_amount",
+        "op": "IN",
+        "val": [1],
+        "isExtra": True,
+    }
+    chart_owned: QueryObjectFilterClause = {
+        "col": "total_amount",
+        "op": "IN",
+        "val": [2],
+    }
+    filters: list[QueryObjectFilterClause]
+    if path == "saved":
+        query: dict[str, Any] = {"filters": []}
+        merge_extra_form_data_filters_into_query(
+            query, extra_form_data, 1, "semantic_view"
+        )
+        filters = query["filters"]
+        assert filters == [dashboard_filter]
+    else:
+        form_data: dict[str, Any] = {
+            "viz_type": path,
+            "datasource": "1__semantic_view",
+            "metrics": ["total_amount"],
+            "groupby": ["category"],
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "total_amount",
+                    "operator": "IN",
+                    "comparator": [2],
+                }
+            ],
+        }
+        queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+            form_data, 1, "semantic_view", extra_form_data=extra_form_data
+        )
+        filters = queries[0]["filters"]
+        assert filters == [chart_owned, dashboard_filter]
+
+    validate_filter_columns([dashboard_filter], {"category"}, {"total_amount"})
+    with pytest.raises(QueryObjectValidationError, match="total_amount"):
+        validate_filter_columns([chart_owned], {"category"}, {"total_amount"})
+
+
+def test_merge_extra_time_range_marks_only_unbounded_saved_ranges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A request range is dashboard provenance over unbounded saved ranges only."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    unbounded: dict[str, Any] = {"col": "ds", "op": "TEMPORAL_RANGE", "val": None}
+    bounded: dict[str, Any] = {
+        "col": "ds",
+        "op": "TEMPORAL_RANGE",
+        "val": "2024-01-01 : 2024-06-01",
+    }
+    query: dict[str, Any] = {"filters": [unbounded, bounded, None]}
+
+    merge_extra_form_data_filters_into_query(
+        query, {"time_range": "Last week"}, 1, "table"
+    )
+
+    assert query["time_range"] == "Last week"
+    assert unbounded["isExtra"] is True
+    assert "isExtra" not in bounded
 
 
 def test_merge_extra_form_data_time_grain_override_lands_in_extras(monkeypatch):
@@ -1515,6 +1606,278 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     assert form_data["orderby"] == [["count", True]]
 
 
+def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
+    """
+    Verify build_single_query_dict maps x_axis_sort metric label to
+    query orderby.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], [metric])
+    assert qd["orderby"] == [(metric, False)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
+    """
+    Verify build_single_query_dict matches x_axis_sort column name to
+    metric dict.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": True,
+    }
+    qd = build_single_query_dict(form_data, ["category"], [metric])
+    assert qd["orderby"] == [(metric, True)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_saved_metric() -> None:
+    """Verify build_single_query_dict handles saved string metric in x_axis_sort."""
+    form_data = {
+        "x_axis_sort": "revenue",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], ["revenue"])
+    assert qd["orderby"] == [("revenue", False)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_dimension_column() -> None:
+    """Verify build_single_query_dict preserves dimension column sort."""
+    form_data = {
+        "x_axis_sort": "category",
+        "x_axis_sort_asc": True,
+    }
+    qd = build_single_query_dict(form_data, ["category"], ["revenue"])
+    assert qd["orderby"] == [("category", True)]
+
+
+def test_build_single_query_dict_prefers_existing_orderby() -> None:
+    """Verify explicit orderby in form_data takes precedence over x_axis_sort."""
+    form_data = {
+        "orderby": [["count", True]],
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], ["sales"])
+    assert qd["orderby"] == [["count", True]]
+
+
+def test_build_single_query_dict_temporal_chart_guards_against_x_axis_sort() -> None:
+    """
+    Verify temporal charts do not override chronological order with
+    x_axis_sort.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    # Case 1: is_timeseries flag passed
+    form_data = {
+        "x_axis": "order_date",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(
+        form_data, ["order_date"], [metric], is_timeseries=True
+    )
+    assert "orderby" not in qd
+
+    # Case 2: granularity_sqla present indicates temporal chart
+    form_data_temporal = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "order_date",
+        "granularity_sqla": "order_date",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd_temporal = build_single_query_dict(form_data_temporal, ["order_date"], [metric])
+    assert "orderby" not in qd_temporal
+
+    # Case 3: time_grain_sqla indicates temporal chart
+    form_data_grain = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "order_date",
+        "granularity_sqla": "order_date",
+        "time_grain_sqla": "P1D",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd_grain = build_single_query_dict(form_data_grain, ["order_date"], [metric])
+    assert "orderby" not in qd_grain
+
+
+def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
+    """
+    Verify build_query_dicts_from_form_data sets orderby for categorical
+    xy bar chart.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "category",
+        "metrics": [metric],
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    col = queries[0]["columns"][0]
+    assert (
+        col if isinstance(col, str) else col.get("sqlExpression") or col.get("label")
+    ) == "category"
+    assert queries[0]["metrics"] == [metric]
+    assert queries[0]["orderby"] == [[metric, False]]
+
+
+def test_resolve_x_axis_sort_target_case_insensitive_label() -> None:
+    """Verify _resolve_x_axis_sort_target matches metric label case-insensitively."""
+    metric = {
+        "label": "Total Sales",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    resolved = _resolve_x_axis_sort_target("total sales", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_case_insensitive_column() -> None:
+    """
+    Verify _resolve_x_axis_sort_target matches metric column name
+    case-insensitively.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "Sales"},
+    }
+    resolved = _resolve_x_axis_sort_target("sales", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_sql_expression() -> None:
+    """Verify _resolve_x_axis_sort_target matches adhoc SQL expression metric."""
+    metric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(DISTINCT user_id)",
+        "label": "unique_users",
+    }
+    resolved = _resolve_x_axis_sort_target("count(distinct user_id)", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_string_metric_case_insensitive() -> None:
+    """
+    Verify _resolve_x_axis_sort_target matches bare string metric
+    case-insensitively.
+    """
+    resolved = _resolve_x_axis_sort_target("totalsales", ["TotalSales"])
+    assert resolved == "TotalSales"
+
+
+def test_build_single_query_dict_x_axis_sort_ignores_unmatched_series_sort() -> None:
+    """
+    Verify build_single_query_dict does not set orderby when x_axis_sort
+    contains a series-sort value (like 'sum' or 'max') that is neither
+    a metric nor a column, preventing 'Unknown column used in orderby: sum'.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "sum",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], [metric])
+    assert "orderby" not in qd
+
+    # Also test with 'max'
+    form_data_max = {
+        "x_axis_sort": "max",
+        "x_axis_sort_asc": True,
+    }
+    qd_max = build_single_query_dict(form_data_max, ["category"], [metric])
+    assert "orderby" not in qd_max
+
+
+def test_build_query_dicts_from_form_data_xy_bar_explore_default_grain() -> None:
+    """
+    Verify explore default time_grain_sqla ('P1D') on categorical bar chart
+    (without granularity_sqla) does not cause x_axis_sort to be dropped.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "category",
+        "time_grain_sqla": "P1D",
+        "metrics": [metric],
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    col = queries[0]["columns"][0]
+    assert (col if isinstance(col, str) else col.get("label")) == "category"
+    assert queries[0]["metrics"] == [metric]
+    sort_op = {"operation": "sort", "options": {"ascending": False, "by": "SUM(sales)"}}
+    assert sort_op in queries[0]["post_processing"]
+
+
+def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
+    """
+    Verify build_single_query_dict does not set orderby from x_axis_sort
+    when form_data has groupby set (multi-series chart).
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+        "groupby": ["region"],
+    }
+    qd = build_single_query_dict(
+        form_data,
+        columns=["category", "region"],
+        metrics=[metric],
+    )
+    assert "orderby" not in qd
+
+
 def test_resolve_deck_gl_columns_ignores_cross_filter_column():
     form_data = {
         "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
@@ -1834,3 +2197,160 @@ def test_deck_path_metric_keeps_canonical_path_grouping(
     sql = table.get_query_str(query_object.to_dict())
     assert "GROUP BY path" in sql, sql
     assert "COUNT(*)" in sql, sql
+
+
+def _setup_dashboard_mock(mock_db, json_metadata, position_json="{}", chart_id=1):
+    """Wire a mock db to return a Dashboard with the given fields."""
+    dashboard = MagicMock()
+    dashboard.json_metadata = json_metadata
+    dashboard.position_json = position_json
+    slc = MagicMock()
+    slc.id = chart_id
+    dashboard.slices = [slc]
+    query_chain = mock_db.session.query.return_value
+    query_chain.filter_by.return_value.one_or_none.return_value = dashboard
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_malformed_json_metadata(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata="not valid json {{{")
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_json_metadata_is_array(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata="[1, 2, 3]")
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_json_metadata_is_string(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata='"just a string"')
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_null_native_filter_configuration(
+    mock_db,
+):
+    _setup_dashboard_mock(
+        mock_db, json_metadata='{"native_filter_configuration": null}'
+    )
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result == []
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_non_list_native_filter_configuration(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata='{"native_filter_configuration": {}}')
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_malformed_position_json(
+    mock_db,
+):
+    native_filter = {
+        "id": "NATIVE_FILTER-1",
+        "name": "Country",
+        "type": "NATIVE_FILTER",
+        "filterType": "filter_select",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        "targets": [{"column": {"name": "country"}, "datasetId": 7}],
+    }
+    _setup_dashboard_mock(
+        mock_db,
+        json_metadata=json.dumps({"native_filter_configuration": [native_filter]}),
+        position_json="not valid json {{{",
+    )
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"scope": None},
+        {"defaultDataMask": None},
+        {"targets": [None]},
+    ],
+)
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_null_filter_subfield(mock_db, overrides):
+    native_filter = {
+        "id": "NATIVE_FILTER-1",
+        "name": "Country",
+        "type": "NATIVE_FILTER",
+        "filterType": "filter_select",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        "targets": [{"column": {"name": "country"}, "datasetId": 7}],
+        "defaultDataMask": {},
+        **overrides,
+    }
+    _setup_dashboard_mock(
+        mock_db,
+        json_metadata=json.dumps({"native_filter_configuration": [native_filter]}),
+    )
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+def test_build_query_dicts_from_form_data_passes_enum_values_as_strings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Enum members in form_data reach the query as plain strings.
+
+    Template rendering rejects non-primitive context values, so an enum a mapper
+    forgets to unwrap must not leak into queries. Caller-owned data is preserved.
+    """
+    from copy import deepcopy
+    from enum import Enum
+
+    from superset.constants import TimeGrain
+
+    class _FutureEnum(Enum):
+        VALUE = "future"
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["state"],
+        "metrics": ["count"],
+        "adhoc_filters": [],
+        "granularity_sqla": "ds",
+        "time_grain_sqla": TimeGrain.MONTH,
+        "future_option": [{"nested": _FutureEnum.VALUE}],
+    }
+
+    original_form_data = deepcopy(form_data)
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert form_data == original_form_data
+    grain = queries[0]["extras"]["time_grain_sqla"]
+    assert grain == "P1M"
+    assert type(grain) is str
+    assert form_data["time_grain_sqla"] is TimeGrain.MONTH
+    assert form_data["future_option"][0]["nested"] is _FutureEnum.VALUE

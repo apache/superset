@@ -79,7 +79,8 @@ class ResetSupersetCommand(BaseCommand):
         db.session.query(Slice).delete()
         config_uuid = FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG]
         db.session.query(KeyValueEntry).filter(
-            KeyValueEntry.uuid.is_(None) | (KeyValueEntry.uuid != config_uuid)
+            KeyValueEntry.uuid.is_(None)  # type: ignore[union-attr]
+            | (KeyValueEntry.uuid != config_uuid)
         ).delete()
         # Non-admins will be deleted, so clean up ``created_by_fk`` and ``changed_by_fk`
         _clear_preserved_config_audit_fields()

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.form_data_query_context import (
     adhoc_filters_to_query_filters,
@@ -23,6 +24,7 @@ from superset.common.form_data_query_context import (
     FORM_DATA_QUERY_FIELD_ALIASES,
     query_fields_from_form_data,
 )
+from superset.utils.core import QueryObjectFilterClause
 
 DATASOURCE = {"id": 7, "type": "table"}
 
@@ -865,3 +867,102 @@ def test_big_number_saved_axis_keeps_monthly_range_binding(
     assert query["columns"][0]["timeGrain"] == "P1M"
     pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
     assert pivot["options"]["index"] == ["ds"]
+
+
+@pytest.mark.parametrize("viz_type", ["pivot_table_v2", "ag-grid-pivot-table"])
+def test_temporal_lookup_non_mapping_on_pivot_siblings(viz_type: str) -> None:
+    """Sibling pivot adapters ignore malformed temporal metadata like Sunburst."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    [query] = build_query_objects_from_form_data(
+        {
+            "viz_type": viz_type,
+            "groupbyRows": ["ts"],
+            "groupbyColumns": [],
+            "groupby": ["ts"],
+            "metrics": ["count"],
+            "time_grain_sqla": "P1M",
+            "temporal_columns_lookup": ["ts"],
+        }
+    )
+    assert query["columns"] == ["ts"]
+
+
+@pytest.mark.parametrize("entry_point", ["common", "mcp-normalizer", "legacy-to-adhoc"])
+def test_temporal_drill_grain_survives_adhoc_adapters(entry_point: str) -> None:
+    """A modal filter retains its grain through every server filter adapter."""
+    from superset.utils.core import (
+        simple_filter_to_adhoc,
+        split_adhoc_filters_into_base_filters,
+    )
+
+    expected: QueryObjectFilterClause = {
+        "col": "ts",
+        "op": "==",
+        "val": 1785542400000,
+        "grain": "P1M",
+    }
+    adhoc = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "ts",
+        "operator": "==",
+        "comparator": 1785542400000,
+        "timeGrain": "P1M",
+    }
+    if entry_point == "common":
+        assert adhoc_filters_to_query_filters([adhoc]) == [expected]
+    elif entry_point == "mcp-normalizer":
+        form_data = {"adhoc_filters": [adhoc]}
+        split_adhoc_filters_into_base_filters(form_data)
+        assert form_data["filters"] == [expected]
+    else:
+        assert simple_filter_to_adhoc(expected)["timeGrain"] == "P1M"
+
+
+@pytest.mark.parametrize(
+    "metadata", [{}, {"temporal_columns_lookup": None}, {"temporal_columns_lookup": {}}]
+)
+@pytest.mark.parametrize("entrypoint", ["shared", "export", "mcp"])
+def test_legacy_sunburst_dashboard_grain_without_lookup(
+    metadata: dict[str, object], entrypoint: str, mocker: MockerFixture
+) -> None:
+    """Unknown temporal metadata preserves the semantic mapper's grain fallback."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    form_data = {
+        "viz_type": "sunburst_v2",
+        "columns": ["order_date", "category"],
+        "metric": "total_sales",
+        "time_grain_sqla": "P1M",
+        **metadata,
+    }
+    if entrypoint == "export":
+        [query] = build_query_context_from_form_data(
+            form_data, {"id": 7, "type": "semantic_view"}
+        )["queries"]
+    elif entrypoint == "mcp":
+        mocker.patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value=None,
+        )
+        [query] = build_query_dicts_from_form_data(
+            {**form_data, "time_grain_sqla": "P1D"},
+            7,
+            "semantic_view",
+            extra_form_data={"time_grain_sqla": "P1M"},
+        )
+    else:
+        [query] = build_query_objects_from_form_data(form_data)
+    assert query["columns"] == ["order_date", "category"]
+    if metadata.get("temporal_columns_lookup") is None:
+        assert query.get("extras", {}).get("time_grain_sqla") == "P1M"
+    else:
+        assert "time_grain_sqla" not in query.get("extras", {})

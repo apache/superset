@@ -23,11 +23,14 @@ its on-disk path, matching ``check_translation_regression_test.py``.
 
 import importlib.util
 import io
+import shlex
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from babel.messages.pofile import read_po
 
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4]
@@ -42,19 +45,27 @@ check_pot_drift = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(check_pot_drift)
 
 
+_HEADER = 'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+
+
 def _pot(*msgids: str) -> str:
-    header = 'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
     entries = "\n".join(f'msgid "{msgid}"\nmsgstr ""\n' for msgid in msgids)
-    return header + entries
+    return _HEADER + entries
 
 
-def _fake_extract(fresh_msgids: tuple[str, ...]):
+def _fake_extract_text(pot_text: str) -> Callable[..., MagicMock]:
+    """Stand-in for ``pybabel extract`` that writes ``pot_text`` to its ``-o`` path."""
+
     def run(args: list[str], **_kwargs: object) -> MagicMock:
-        output_path = Path(args[args.index("-o") + 1])
-        output_path.write_text(_pot(*fresh_msgids), encoding="utf-8")
+        Path(args[args.index("-o") + 1]).write_text(pot_text, encoding="utf-8")
         return MagicMock(returncode=0)
 
     return run
+
+
+def _fake_extract(fresh_msgids: tuple[str, ...]) -> Callable[..., MagicMock]:
+    """Stand-in for ``pybabel extract`` whose template holds ``fresh_msgids``."""
+    return _fake_extract_text(_pot(*fresh_msgids))
 
 
 def test_diff_reports_missing_and_stale(tmp_path: Path) -> None:
@@ -66,7 +77,7 @@ def test_diff_reports_missing_and_stale(tmp_path: Path) -> None:
         "run",
         side_effect=_fake_extract(("Kept", "New in source")),
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == {"New in source"}
     assert stale == {"Removed from source"}
@@ -79,7 +90,7 @@ def test_diff_is_empty_when_in_sync(tmp_path: Path) -> None:
     with patch.object(
         check_pot_drift.subprocess, "run", side_effect=_fake_extract(("A", "B"))
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == set()
     assert stale == set()
@@ -100,7 +111,7 @@ def test_diff_ignores_line_wrapping(tmp_path: Path) -> None:
         "run",
         side_effect=_fake_extract(("A long wrapped string",)),
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == set()
     assert stale == set()
@@ -116,14 +127,16 @@ def test_diff_reports_a_whitespace_only_reword(tmp_path: Path) -> None:
     with patch.object(
         check_pot_drift.subprocess, "run", side_effect=_fake_extract(("Save chart",))
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == {"Save chart"}
     assert stale == {"Save  chart"}
 
 
 def test_main_exits_zero_when_in_sync(capsys: pytest.CaptureFixture[str]) -> None:
-    with patch.object(check_pot_drift, "diff", return_value=(set(), set())):
+    with patch.object(
+        check_pot_drift, "diff", return_value=check_pot_drift.Drift(set(), set(), set())
+    ):
         assert check_pot_drift.main() == 0
 
     assert "matches a fresh extraction" in capsys.readouterr().out
@@ -133,7 +146,9 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with patch.object(
-        check_pot_drift, "diff", return_value=({"Missing one"}, {"Stale one"})
+        check_pot_drift,
+        "diff",
+        return_value=check_pot_drift.Drift({"Missing one"}, {"Stale one"}, set()),
     ):
         assert check_pot_drift.main() == 1
 
@@ -141,6 +156,122 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     assert "'Missing one'" in out
     assert "'Stale one'" in out
     assert "babel_update.sh" in out
+
+
+def _drift(
+    tmp_path: Path, committed_text: str, fresh_text: str
+) -> tuple[set[str], set[str], set[str]]:
+    """Run ``diff`` with ``fresh_text`` standing in for a fresh extraction.
+
+    Returns the missing, stale and comment-changed msgids. Stubs
+    ``extract_fresh`` itself, so no git snapshot of the repository runs; the
+    extraction path has its own tests above.
+    """
+    committed = tmp_path / "messages.pot"
+    committed.write_text(_HEADER + committed_text, encoding="utf-8")
+
+    def write_fresh(path: Path) -> None:
+        path.write_text(_HEADER + fresh_text, encoding="utf-8")
+
+    with patch.object(check_pot_drift, "extract_fresh", side_effect=write_fresh):
+        result = check_pot_drift.diff(committed)
+    return result.missing, result.stale, result.context_changed
+
+
+def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[str]:
+    """Run ``diff`` on two templates with the same msgids; return comment drift."""
+    missing, stale, context_changed = _drift(tmp_path, committed_text, fresh_text)
+    assert missing == set()
+    assert stale == set()
+    return context_changed
+
+
+def test_diff_reports_a_new_noted_string_as_missing_only(tmp_path: Path) -> None:
+    """A noted string absent from the template is missing, not comment drift."""
+    missing, _stale, context_changed = _drift(
+        tmp_path,
+        'msgid "Host"\nmsgstr ""\n',
+        'msgid "Host"\nmsgstr ""\n\n'
+        '#. i18n: a URL identifier\nmsgid "Slug"\nmsgstr ""\n',
+    )
+    assert missing == {"Slug"}
+    assert context_changed == set()
+
+
+def test_diff_reports_a_reworded_i18n_comment(tmp_path: Path) -> None:
+    """Rewording an ``i18n:`` comment is drift even when the msgid is unchanged."""
+    changed = _context_drift(
+        tmp_path,
+        '#. i18n: a URL identifier\nmsgid "Slug"\nmsgstr ""\n',
+        "#. i18n: the short identifier in a URL, not the animal\n"
+        'msgid "Slug"\nmsgstr ""\n',
+    )
+    assert changed == {"Slug"}
+
+
+def test_diff_reports_an_added_and_a_removed_i18n_comment(tmp_path: Path) -> None:
+    """A comment that appears in source, or disappears from it, is drift."""
+    changed = _context_drift(
+        tmp_path,
+        'msgid "Host"\nmsgstr ""\n\n#. i18n: old context\nmsgid "Slug"\nmsgstr ""\n',
+        '#. i18n: the database server\nmsgid "Host"\nmsgstr ""\n\n'
+        'msgid "Slug"\nmsgstr ""\n',
+    )
+    assert changed == {"Host", "Slug"}
+
+
+def test_diff_ignores_rewrapping_an_i18n_comment(tmp_path: Path) -> None:
+    """Comments compare word by word, so a different line wrap is not drift."""
+    changed = _context_drift(
+        tmp_path,
+        "#. i18n: the database engine behind a connection,\n"
+        '#. not a server tier\nmsgid "Backend"\nmsgstr ""\n',
+        "#. i18n: the database engine behind a connection, not a server tier\n"
+        'msgid "Backend"\nmsgstr ""\n',
+    )
+    assert changed == set()
+
+
+def test_diff_ignores_the_stamped_do_not_translate_marker(tmp_path: Path) -> None:
+    """The ``do-not-translate`` marker is excluded from the comparison.
+
+    babel_update.sh stamps the marker after extraction, so the committed
+    template carries it and a fresh extraction never does.
+    """
+    changed = _context_drift(
+        tmp_path,
+        '#. do-not-translate\nmsgid "XLSX"\nmsgstr ""\n\n'
+        '#. i18n: kept\n#. do-not-translate\nmsgid "SQL"\nmsgstr ""\n',
+        'msgid "XLSX"\nmsgstr ""\n\n#. i18n: kept\nmsgid "SQL"\nmsgstr ""\n',
+    )
+    assert changed == set()
+
+
+def test_stamped_comments_match_apply_do_not_translate_marker() -> None:
+    """``STAMPED_COMMENTS`` stays in step with the marker the stamping script writes."""
+    path = _SCRIPT_PATH.parent / "apply_do_not_translate.py"
+    spec = importlib.util.spec_from_file_location("apply_do_not_translate", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert {module.MARKER} == check_pot_drift.STAMPED_COMMENTS
+
+
+def test_main_exits_one_and_lists_changed_i18n_comments(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """``main`` fails on comment drift alone and lists the strings with ``~``."""
+    with patch.object(
+        check_pot_drift,
+        "diff",
+        return_value=check_pot_drift.Drift(set(), set(), {"Slug"}),
+    ):
+        assert check_pot_drift.main() == 1
+
+    out = capsys.readouterr().out
+    assert "1 string(s) have changed i18n: comments" in out
+    assert "  ~ 'Slug'" in out
 
 
 class _FakeArchiveProcess:
@@ -233,6 +364,66 @@ def test_committed_template_matches_a_fresh_extraction() -> None:
     bug this module fixes: RED before the template is regenerated, GREEN
     after.
     """
-    missing, stale = check_pot_drift.diff()
+    missing, stale, context_changed = check_pot_drift.diff()
     assert not missing, f"{len(missing)} string(s) in source missing from messages.pot"
     assert not stale, f"{len(stale)} string(s) in messages.pot no longer in source"
+    assert not context_changed, (
+        f"{len(context_changed)} string(s) in messages.pot carry out-of-date i18n: "
+        f"comments: {sorted(context_changed, key=str)}"
+    )
+
+
+def test_extract_flags_match_babel_update_sh() -> None:
+    """``EXTRACT_FLAGS`` mirrors the ``pybabel extract`` call in babel_update.sh.
+
+    Only ``-F`` and ``-o`` differ, since the drift check writes to a temporary
+    path. Any other flag added to one invocation and not the other fails here.
+    """
+    script = (_SCRIPT_PATH.parent / "babel_update.sh").read_text(encoding="utf-8")
+    command = script[script.index("\npybabel extract") :]
+    command = command[: command.index(" .\n") + 2].replace("\\\n", " ")
+    args = shlex.split(command)[2:]
+    for flag in ("-F", "-o"):
+        del args[args.index(flag) : args.index(flag) + 2]
+    assert args == check_pot_drift.EXTRACT_FLAGS
+
+
+def test_extraction_carries_i18n_comments_to_the_template(tmp_path: Path) -> None:
+    """An ``i18n:`` comment above a string lands on its template entry.
+
+    Runs the real ``pybabel extract`` with ``EXTRACT_FLAGS`` (which
+    ``test_extract_flags_match_babel_update_sh`` ties to babel_update.sh) over
+    a Python and a TypeScript source. Dropping ``--add-comments=i18n:`` from
+    both invocations passes the flag-parity and msgid-only drift checks, but
+    fails here. Untagged comments must stay out of the template.
+    """
+    (tmp_path / "babel.cfg").write_text(
+        "[python: **.py]\n[javascript: **.ts]\n", encoding="utf-8"
+    )
+    (tmp_path / "views.py").write_text(
+        "# i18n: the short identifier in a dashboard's URL, not the animal\n"
+        '_("Slug")\n'
+        "# an ordinary code comment\n"
+        '_("Owner")\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "list.ts").write_text(
+        "// i18n: the database engine behind a connection\nt('Backend');\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "messages.pot"
+    subprocess.run(  # noqa: S603
+        ["pybabel", "extract", "-F", "babel.cfg", "-o", str(output)]  # noqa: S607
+        + check_pot_drift.EXTRACT_FLAGS,
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+    with output.open("rb") as pot:
+        comments = {m.id: m.auto_comments for m in read_po(pot) if m.id}
+    assert comments == {
+        "Slug": ["i18n: the short identifier in a dashboard's URL, not the animal"],
+        "Owner": [],
+        "Backend": ["i18n: the database engine behind a connection"],
+    }

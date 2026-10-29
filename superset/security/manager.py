@@ -69,13 +69,21 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
+from sqlalchemy import (
+    and_,
+    false,
+    func as sa_func,
+    inspect,
+    or_,
+    select,
+    Table as SQLATable,
+)
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
-from sqlalchemy.sql import exists
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
@@ -503,6 +511,46 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
 
+class UserSearchFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    ILIKE search across the columns a user can be recognized by.
+
+    The frontend labels user options with the full name, falling back to the
+    username, so a free-text search has to match either one. The full name is
+    matched as a whole so that a search such as "Jane Sm" still finds the user
+    labelled "Jane Smith". Email is included because single sign-on usernames
+    are frequently opaque identifiers.
+    """
+
+    name = _("All Text")
+    arg_name = "user_all_text"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.base import _escape_like
+
+        # Mirror the DAO LIKE operators: ``x ILIKE NULL`` matches no rows, so
+        # a ``None`` value must never degrade into a match-everything pattern.
+        if value is None:
+            return query.filter(false())
+        # Surrounding whitespace is never meaningful in a name search, and the
+        # ListView filter path sends the raw input, so trim it here. LIKE
+        # metacharacters (percent, underscore, backslash) are escaped so they
+        # match literally instead of acting as wildcards.
+        ilike_value = f"%{_escape_like(str(value).strip())}%"
+        return query.filter(
+            or_(
+                User.username.ilike(ilike_value, escape="\\"),
+                User.first_name.ilike(ilike_value, escape="\\"),
+                User.last_name.ilike(ilike_value, escape="\\"),
+                (User.first_name + " " + User.last_name).ilike(
+                    ilike_value, escape="\\"
+                ),
+                User.email.ilike(ilike_value, escape="\\"),
+            )
+        )
+
+
 class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to sync Subject rows, filter excluded users,
@@ -530,6 +578,7 @@ class SupersetUserApi(UserApi):
         "created_on",
         "changed_on",
     ]
+    search_filters = {"username": [UserSearchFilter]}
 
     def pre_add(self, item: Model) -> None:
         """Hash the password (FAB's own ``pre_add``), then sync the user's
@@ -2156,6 +2205,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "can_manage_oauth2_tokens",
         "update_roles_users",
         "list_roles",
         "can_update_role",
@@ -2756,6 +2806,67 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
+    def can_access_dashboard_chart_labels(
+        self,
+        dashboard: "Dashboard",
+        chart: "Slice",
+        *,
+        guest_dashboard_access: bool | None = None,
+        datasource_access: bool | None = None,
+    ) -> bool:
+        """Authorize a member chart's configured display labels.
+
+        Guests must hold a grant for this exact dashboard and satisfy their
+        token's dataset allowlist. With the built-in chart checks these imply
+        the embedded-chart grant, avoiding per-chart metadata queries. Existing
+        custom chart-access overrides still run and may restrict that grant.
+        For non-guests without datasource access, the built-in chart checks
+        need only the chart's prefetched editors and viewers. Custom checks and
+        configured access bypasses retain the full chart authorization path.
+
+        :param dashboard: The dashboard whose member chart supplies the labels
+        :param chart: A member chart on its matching SQLAlchemy dataset
+        :param guest_dashboard_access: Request-local result of has_guest_access;
+            callers may supply it to reuse the same dashboard decision
+        :param datasource_access: Request-local result of can_access_datasource
+            for this chart's dataset; False avoids repeating a failed check
+        :returns: Whether the caller may receive the chart's display labels
+        """
+        if (
+            chart.datasource_type != DatasourceType.TABLE
+            or chart not in dashboard.slices
+        ):
+            return False
+
+        stock_chart_access = (
+            getattr(self.can_access_chart, "__func__", None) is STOCK_CAN_ACCESS_CHART
+            and getattr(self.raise_for_access, "__func__", None)
+            is STOCK_RAISE_FOR_ACCESS
+        )
+        if not self.is_guest_user():
+            if (
+                datasource_access is False
+                and stock_chart_access
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+            ):
+                return (
+                    self.is_admin()
+                    or self.is_editor(chart)
+                    or (bool(chart.viewers) and self.is_viewer(chart))
+                )
+            return self.can_access_chart(chart)
+
+        if guest_dashboard_access is None:
+            guest_dashboard_access = self.has_guest_access(dashboard)
+        if not guest_dashboard_access or not self._guest_token_allows_dataset(
+            chart.datasource_id
+        ):
+            return False
+
+        if stock_chart_access:
+            return True
+        return self.can_access_chart(chart)
+
     def get_dashboard_access_error_object(  # pylint: disable=invalid-name
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
@@ -2991,22 +3102,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not g.user.is_anonymous:
             user_id = get_user_id()
 
-            user_roles_filter = or_(
-                exists().where(
-                    (assoc_user_role.c.user_id == user_id)
-                    & (assoc_user_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
-                exists().where(
-                    (assoc_user_group.c.user_id == user_id)
-                    & (assoc_user_group.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
+            # The user's effective roles: granted directly, or via a group.
+            #
+            # Filtering on this (small) set of role ids rather than on an OR of
+            # two correlated EXISTS lets the planner drive the join from
+            # ab_permission_view_role(role_id). With the EXISTS form the
+            # permission name is trapped inside both branches of the OR, so it
+            # cannot restrict the join, and the whole of
+            # ab_permission_view_role is scanned and filtered on every call.
+            # The cost then scales with the total number of permissions on the
+            # instance instead of with the number of roles the user holds.
+            user_role_ids = (
+                select(assoc_user_role.c.role_id)
+                .where(assoc_user_role.c.user_id == user_id)
+                .union(
+                    select(assoc_group_role.c.role_id)
+                    .select_from(
+                        assoc_user_group.join(
+                            assoc_group_role,
+                            assoc_group_role.c.group_id == assoc_user_group.c.group_id,
+                        )
+                    )
+                    .where(assoc_user_group.c.user_id == user_id)
+                )
             )
 
-            view_menu_names = base_query.filter(user_roles_filter).all()
+            view_menu_names = (
+                base_query.filter(self.permission_model.name == permission_name).filter(
+                    self.role_model.id.in_(user_role_ids)
+                )
+            ).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
@@ -4019,7 +4144,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Handles permissions update when a dataset is deleted.
         Triggered by a SQLAlchemy after_delete event.
 
-        Retain the datasource_access PVM if a semantic view still owns the
+        Retain the datasource_access PVM if another datasource still owns the
         same permission name.
 
         :param mapper: The SQLA mapper
@@ -4027,17 +4152,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        dataset_vm_name = self.get_dataset_perm(
+        dataset_vm_name: str | None = target.perm or self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
-            SemanticView,
-        )
-
-        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
-        if connection.execute(
-            select(sv_table.c.id).where(sv_table.c.perm == dataset_vm_name).limit(1)
-        ).first():
+        if dataset_vm_name and self._datasource_perm_owned_elsewhere(
+            connection, dataset_vm_name, None
+        ):
             return
         self._delete_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_vm_name
@@ -4421,14 +4541,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         view_perms: set[str] = {
             perm
             for perm in connection.execute(
-                select(sv_table.c.perm).where(
-                    sv_table.c.semantic_layer_uuid == target.uuid
-                )
+                select(sv_table.c.perm)
+                .where(sv_table.c.semantic_layer_uuid == target.uuid)
+                .order_by(sv_table.c.id)
+                .with_for_update()
             ).scalars()
             if perm
         }
         if not view_perms:
             return
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return
+
+        # Lock child views before permission rows, matching direct view deletion.
+        # Otherwise its after_delete hook can wait on us while our cascade waits
+        # on its view row. Unloaded views have no ORM after_delete hook.
+        self._lock_datasource_perms(connection, view_perms)
 
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4464,18 +4592,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 mapper, connection, "datasource_access", view_perm
             )
 
-    def _semantic_view_perm_owned_elsewhere(
+    def _datasource_perm_owned_elsewhere(
         self,
         connection: Connection,
         perm: str,
-        deleted_view_id: int,
+        deleted_view_id: int | None,
     ) -> bool:
         """
-        Whether a live resource other than the deleted view owns *perm*.
+        Whether cleanup must retain *perm* for another owner or unsafe isolation.
 
-        A deleted view's permission is removed only when no dataset and no
-        other semantic view still uses the same permission name; removing it
-        would otherwise revoke that resource's grants.
+        Pass the deleted view's ID when checking its delete event. Pass None
+        after dataset deletion, when every remaining view is a possible owner.
+        The dataset query includes soft-deleted rows by using the Core table.
+
+        Lock the shared permission row before checking either owner table. Two
+        transactions deleting the final owners of one permission then make
+        their decisions in commit order rather than both retaining the PVM
+        because each still sees the other's uncommitted owner row.
+        Treat an untrusted MySQL snapshot as possibly owned rather than revoking
+        a permission that another datasource may still use.
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4484,20 +4619,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SemanticView,
         )
 
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return True
+
+        self._lock_datasource_perms(connection, {perm})
+
+        # These unindexed probes run per delete. LIMIT 1 bounds returned rows,
+        # not scan work; a large purge backlog can require repeated catalog scans.
         table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
         if connection.execute(
             table.select().where(table.c.perm == perm).limit(1)
         ).first():
             return True
         sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_predicate: ColumnElement[bool] = sv_table.c.perm == perm
+        if deleted_view_id is not None:
+            view_predicate = and_(view_predicate, sv_table.c.id != deleted_view_id)
         return (
-            connection.execute(
-                sv_table.select()
-                .where(sv_table.c.perm == perm, sv_table.c.id != deleted_view_id)
-                .limit(1)
-            ).first()
+            connection.execute(sv_table.select().where(view_predicate).limit(1)).first()
             is not None
         )
+
+    def _retain_shared_datasource_perm_for_isolation(
+        self, connection: Connection
+    ) -> bool:
+        """Fail safe when a MySQL owner probe cannot use a fresh snapshot."""
+        if connection.dialect.name not in ("mysql", "mariadb"):
+            return False
+        try:
+            isolation_level: str | None = connection.get_isolation_level()
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation "
+                "could not be verified (%s)",
+                type(ex).__name__,
+            )
+            return True
+        if isolation_level != "READ COMMITTED":
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation is %s",
+                isolation_level,
+            )
+            return True
+        return False
+
+    def _lock_datasource_perms(
+        self, connection: Connection, perms: AbstractSet[str]
+    ) -> None:
+        """Serialize owner checks sharing datasource permission names."""
+        view_menu_table: SQLATable = self.viewmenu_model.__table__  # pylint: disable=no-member
+        connection.execute(
+            select(view_menu_table.c.id)
+            .where(view_menu_table.c.name.in_(perms))
+            .order_by(view_menu_table.c.name)
+            .with_for_update()
+        ).all()
 
     def semantic_layer_after_delete(
         self,
@@ -4629,7 +4805,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Removes the datasource_access PVM unless another live resource still
         owns the same permission name.
         """
-        if target.perm and not self._semantic_view_perm_owned_elsewhere(
+        if target.perm and not self._datasource_perm_owned_elsewhere(
             connection, target.perm, target.id
         ):
             self._delete_pvm_on_sqla_event(
@@ -4920,6 +5096,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
+        allow_editorship: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -4937,11 +5114,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ``catalog_access`` / ``schema_access`` fallthroughs in the
             database+table / query branch are bypassed and every referenced
             table must resolve to a registered Superset dataset the user
-            has ``datasource_access`` on (or owns). Call sites that execute
-            or return raw row data (SQL Lab, MetaDB) set this to True.
+            has ``datasource_access`` on; editorship/ownership of the
+            dataset is not sufficient here (it is accepted only on the
+            non-strict path). Call sites that execute or return raw row
+            data (SQL Lab, MetaDB, MCP ``execute_sql``, alert/report
+            queries) set this to True.
             The default (False) preserves the historical semantics for
-            chart-data, dataset CRUD, ``/table_metadata/``, and
-            ``/select_star/``.
+            chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
+            create/update/import additionally opt out of the editorship accept
+            via ``allow_editorship`` below).
         :param allow_query_authorship_bypass: When True, a SQL Lab query's
             own author is granted access to that exact, already-succeeded
             query without an additional dataset-level ``datasource_access``
@@ -4954,6 +5135,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             access, and a query's SQL may be templated such that the
             tables actually touched depend on parameters supplied at
             request time.
+        :param allow_editorship: When False, editorship/ownership of a
+            registered dataset no longer counts as access to the underlying
+            table (in both the database+table / query branch and the
+            datasource / query_context branch; the ``catalog_access`` /
+            ``schema_access`` / ``datasource_access`` checks still apply).
+            The paths that define or repoint a dataset over a table -- dataset
+            create, update, v1 import, and the legacy ``/datasource/save/``
+            repoint -- and the SQL Lab query paths (query-backed chart-data,
+            the Explore GET and the explore form-data step) set this to False
+            so that binding a dataset to (or reading a stored query against) a
+            table requires real data access to that table, not editorship of a
+            same-named dataset -- otherwise a no-table decoy dataset named
+            after the table would let its editor define a second dataset that
+            reads it. Unlike ``force_dataset_match`` this keeps the
+            catalog/schema fallthroughs, so ``schema_access`` still authorizes
+            defining a dataset. Ignored when ``force_dataset_match`` is True
+            (editorship is already excluded there).
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5311,10 +5509,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     catalog=effective_catalog,
                 )
                 for datasource_ in datasources:
+                    # ``datasource_access`` on a registered dataset is always
+                    # sufficient. Editorship of the dataset is accepted only on
+                    # the non-strict path (chart-data, ``/table_metadata/``,
+                    # ``/select_star/``), where it is the dataset-owner
+                    # "explore your own dataset" grant from #20382.
+                    #
+                    # It is excluded on two kinds of call:
+                    #   * strict scoping (``force_dataset_match``) -- SQL Lab
+                    #     raw queries, MetaDB, MCP ``execute_sql`` and
+                    #     alert/report queries -- which return raw rows and
+                    #     also drop the catalog/schema fallthroughs;
+                    #   * ``allow_editorship=False`` -- the paths that define
+                    #     or repoint a dataset over a table (create, update, v1
+                    #     import, and the legacy ``/datasource/save/`` repoint)
+                    #     and the SQL Lab query paths (query-backed
+                    #     chart-data, Explore) -- which keep the catalog/schema
+                    #     fallthroughs but refuse editorship.
+                    # Both must follow the user's live data-access grants, not
+                    # editorship of a same-named dataset: any principal able to
+                    # create a dataset can make themselves an editor of one
+                    # named after an arbitrary table, so accepting editorship
+                    # here would let dataset creation stand in for data access
+                    # and would outlive revocation of every real grant.
                     if self.can_access(
                         "datasource_access",
                         datasource_.perm or "",
-                    ) or self.is_editor(datasource_):
+                    ) or (
+                        not force_dataset_match
+                        and allow_editorship
+                        and self.is_editor(datasource_)
+                    ):
                         # access to any datasource is sufficient
                         break
                 else:
@@ -5379,7 +5604,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # A grant on a semantic view's parent layer covers the view,
                 # matching SemanticView.raise_for_access (sc-119501).
                 or self._semantic_layer_grant_allows(datasource)
-                or self.is_editor(datasource)
+                # ``allow_editorship`` is honored here too so a caller that opts
+                # out of the editorship accept (e.g. dataset define/repoint
+                # validation) gets consistent behavior across both branches,
+                # rather than the flag silently applying only to the
+                # database+table / query branch above.
+                or (allow_editorship and self.is_editor(datasource))
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
@@ -6734,3 +6964,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "User Registrations",
                 ]:
                     security_menu.childs.remove(item)
+
+
+# Keep original function identities before operator configuration can replace them.
+STOCK_RAISE_FOR_ACCESS: Callable[..., None] = SupersetSecurityManager.raise_for_access
+STOCK_CAN_ACCESS_CHART: Callable[..., bool] = SupersetSecurityManager.can_access_chart

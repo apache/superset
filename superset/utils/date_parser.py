@@ -490,6 +490,11 @@ def get_default_bound_for_shorthand(time_range: str) -> str:
     return get_relative_base(match.group(1)) if match else "today"
 
 
+def is_no_time_range(time_range: str | None) -> bool:
+    """Recognize the canonical or request-localized unbounded time range."""
+    return time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE)
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -526,7 +531,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     separator = " : "
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
+    if is_no_time_range(time_range):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -687,6 +692,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
         _since, _until = map(datetime_eval, since_and_until)
     else:
+        # Only an omitted time_range may use the legacy separate bounds.
+        # Explicit values must resolve through the range grammar above.
+        if time_range is not None:
+            raise TimeRangeParseFailError(time_range)
         since = since or ""
         if since:
             since = add_ago_to_since(since)
