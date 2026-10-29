@@ -315,6 +315,10 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
               type: string
             name: key
             description: The value key.
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           responses:
             200:
               description: Deleted the stored value.

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import io
 import json  # noqa: TID251
 import time
 from datetime import datetime, timedelta
@@ -26,6 +27,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
+from PIL import Image, ImageDraw
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
@@ -82,6 +84,7 @@ from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.subjects.types import SubjectType
 from superset.utils.core import HeaderDataType
 from superset.utils.report_execution import (
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
@@ -370,6 +373,47 @@ def test_old_retry_is_discarded_before_state_machine(
     machine.assert_not_called()
 
 
+@pytest.mark.parametrize("content_user_present", [False, True])
+def test_attachment_free_alert_skips_permalink_precommit(
+    mocker: MockerFixture, app_context: None, content_user_present: bool
+) -> None:
+    """An alert query must not depend on its optional dashboard permalink."""
+    from superset.commands.report.execution_claim import ExecutionClaim
+
+    command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
+    command._model = ReportSchedule(
+        id=11,
+        name="query-only alert",
+        type=ReportScheduleType.ALERT,
+        report_format=ReportDataFormat.NONE,
+        dashboard_id=7,
+        last_state=ReportState.NOOP,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute._should_build_execution_context",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(mocker.Mock() if content_user_present else None, "executor"),
+    )
+    permalink = mocker.patch.object(BaseReportState, "get_dashboard_urls")
+    claim = mocker.patch(
+        "superset.commands.report.execute.claim_execution",
+        return_value=ExecutionClaim(ReportState.NOOP),
+    )
+    machine = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    )
+
+    command.run()
+
+    permalink.assert_not_called()
+    claim.assert_called_once()
+    machine.return_value.run.assert_called_once()
+
+
 @pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
 def test_partial_delivery_does_not_retry_whole_execution(
     mocker: MockerFixture, schedule_type: ReportScheduleType
@@ -446,7 +490,7 @@ def test_fenced_worker_cannot_start_delivery(mocker: MockerFixture) -> None:
     content = NotificationContent(
         name="report",
         header_data=state._get_log_data(),
-        screenshots=[b"captured image"],
+        screenshots=[_valid_png()],
     )
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state._send(content, [mocker.Mock(spec=ReportRecipients)])
@@ -574,6 +618,291 @@ def test_match_slack_channel_rejects_ambiguous_casefolded_names() -> None:
 
     with pytest.raises(NotificationParamException, match="ambiguous"):
         _match_slack_channel("PRIVATE-CHANNEL", channels)
+
+
+def _valid_png() -> bytes:
+    """Use decodable content so delivery tests exercise the intended boundary."""
+    output = io.BytesIO()
+    image = Image.new("RGB", (100, 100), "white")
+    ImageDraw.Draw(image).rectangle((20, 20, 80, 80), fill="navy")
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+@pytest.mark.parametrize("pdf", [False, True])
+def test_delivery_requires_validated_artifact_bytes(mocker, pdf):
+    state = _make_state_instance(mocker, BaseReportState)
+    state._report_execution_context = ReportExecutionContext(
+        execution_id=uuid4(),
+        report_schedule_id=1,
+        deadline=ReportExecutionDeadline(total_seconds=540),
+    )
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
+    content = NotificationContent(
+        name="Report",
+        header_data={},
+        pdf=b"unvalidated PDF" if pdf else None,
+        screenshots=None if pdf else [output.getvalue()],
+    )
+    notify = mocker.patch("superset.commands.report.execute.create_notification")
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._send(content, [mocker.Mock(spec=ReportRecipients)])
+    assert state._report_execution_context.capture_was_rejected
+    notify.assert_not_called()
+
+
+def test_pdf_assembly_validates_sources_and_binds_exact_output(
+    mocker: MockerFixture,
+) -> None:
+    """Only the PDF assembled from validated screenshots is accepted for delivery."""
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PDF)
+    context = _active_report_context()
+    state._report_execution_context = context
+    mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
+    pdf = state._get_pdf()
+    assert pdf.startswith(b"%PDF")
+    assert context.artifact_was_validated(pdf, ReportArtifactKind.PDF)
+    content = NotificationContent(
+        name="report", header_data=state._get_log_data(), pdf=pdf
+    )
+    state._assert_rendered_delivery_allowed(content)
+    content.pdf = pdf + b"altered"
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._assert_rendered_delivery_allowed(content)
+    assert "unvalidated_pdf" in context.capture_rejection_reasons
+
+
+def test_pdf_assembly_rejects_invalid_source_before_conversion(
+    mocker: MockerFixture,
+) -> None:
+    """A caller returning undecodable screenshot bytes cannot obtain PDF approval."""
+    from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
+
+    state = _make_notification_state(mocker, report_format=ReportDataFormat.PDF)
+    state._report_execution_context = _active_report_context()
+    mocker.patch.object(state, "_get_screenshots", return_value=[b"invalid"])
+    convert = mocker.patch(
+        "superset.commands.report.execute.build_pdf_from_screenshots"
+    )
+    with pytest.raises(ScreenshotBlankCaptureError):
+        state._get_pdf()
+    convert.assert_not_called()
+    assert state._report_execution_context.capture_was_rejected
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize("pdf", [False, True])
+@pytest.mark.parametrize("direct", [False, True])
+def test_rendered_delivery_without_context_is_blocked(
+    mocker: MockerFixture, schedule_type: ReportScheduleType, pdf: bool, direct: bool
+) -> None:
+    """Both delivery entry points require context for alert/report attachments."""
+    state = _make_notification_state(mocker, schedule_type=schedule_type)
+    state._report_execution_context = None
+    content = NotificationContent(
+        name="report",
+        header_data=_make_notification_header(),
+        pdf=b"%PDF" if pdf else None,
+        screenshots=None if pdf else [_valid_png()],
+    )
+    notify = mocker.patch("superset.commands.report.execute.create_notification")
+    recipient = mocker.Mock(spec=ReportRecipients)
+    if direct:
+        with pytest.raises(ReportScheduleScreenshotFailedError):
+            state._send_notification(content, recipient)
+    else:
+        with pytest.raises(ReportScheduleScreenshotFailedError):
+            state._send(content, [recipient])
+    notify.assert_not_called()
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize("color", ["white", "#1b1b2e", "gray", "lightblue"])
+def test_uniform_attachment_is_not_delivered(
+    mocker: MockerFixture, schedule_type: ReportScheduleType, color: str
+) -> None:
+    """Theme-independent rejection applies equally to alerts and reports."""
+    state = _make_notification_state(mocker, schedule_type=schedule_type)
+    state._report_execution_context = _active_report_context()
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), color).save(output, format="PNG")
+    notify = mocker.patch("superset.commands.report.execute.create_notification")
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._send(
+            NotificationContent(
+                name="report",
+                header_data=_make_notification_header(),
+                screenshots=[output.getvalue()],
+            ),
+            [mocker.Mock(spec=ReportRecipients)],
+        )
+    notify.assert_not_called()
+    assert state._report_execution_context.capture_was_rejected
+
+
+@pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
+@pytest.mark.parametrize(
+    "report_format",
+    [ReportDataFormat.CSV, ReportDataFormat.XLSX, ReportDataFormat.TEXT],
+)
+def test_data_export_ignores_blank_query_context_image(
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    report_format: ReportDataFormat,
+) -> None:
+    """Run the real bootstrap/data path without validating discarded image bytes."""
+    import pandas as pd
+
+    from superset.utils.screenshot_utils import validate_report_screenshot
+
+    schedule = create_report_schedule(mocker)
+    schedule.type = schedule_type
+    schedule.report_format = report_format
+    schedule.chart.query_context = None
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    state._report_execution_context = _active_report_context()
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch("superset.commands.report.execute.db.session.refresh")
+    mocker.patch.object(state, "_get_url", return_value="https://example.com/chart")
+    mocker.patch.object(state, "_get_chart_data_request_payload", return_value={})
+    mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/data",
+    )
+    mocker.patch("superset.commands.report.execute.machine_auth_provider_factory")
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
+    blank = output.getvalue()
+
+    def capture(**kwargs: Any) -> bytes:
+        capture_context = kwargs["report_execution_context"]
+        if schedule_type == ReportScheduleType.ALERT:
+            assert capture_context is None
+        else:
+            assert capture_context.deadline is state._report_execution_context.deadline
+            assert capture_context.validate_for_delivery is False
+        assert state._report_execution_context.validate_for_delivery is True
+        schedule.chart.query_context = "{}"
+        return blank
+
+    capture_mock = mocker.patch(
+        "superset.commands.report.execute.ChartScreenshot"
+    ).return_value.get_screenshot
+    capture_mock.side_effect = capture
+    validate = mocker.patch(
+        "superset.commands.report.execute.validate_report_screenshot",
+        wraps=validate_report_screenshot,
+    )
+    if report_format == ReportDataFormat.TEXT:
+        expected = pd.DataFrame({"value": [42]})
+        mocker.patch.object(state, "_post_chart_data", return_value=b"chart data")
+        mocker.patch(
+            "superset.commands.report.execute.chart_data_to_dataframe",
+            return_value=expected,
+        )
+        assert state._get_embedded_data() is expected
+    else:
+        mocker.patch.object(state, "_post_chart_data", return_value=b"exported data")
+        result_format = (
+            ChartDataResultFormat.XLSX
+            if report_format == ReportDataFormat.XLSX
+            else ChartDataResultFormat.CSV
+        )
+        assert state._get_data(result_format) == b"exported data"
+    capture_mock.assert_called_once()
+    validate.assert_not_called()
+    assert not state._report_execution_context.capture_was_rejected
+    assert not state._report_execution_context.artifact_was_validated(
+        blank,
+        ReportArtifactKind.SCREENSHOT,
+    )
+    # Discarded bootstrap bytes do not gain permission for rendered delivery.
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._assert_rendered_delivery_allowed(
+            NotificationContent(
+                name="report",
+                header_data=_make_notification_header(),
+                screenshots=[blank],
+            )
+        )
+
+
+@pytest.mark.parametrize("pdf", [False, True])
+def test_repeated_delivery_checks_analyze_identical_image_once(
+    mocker: MockerFixture, pdf: bool
+) -> None:
+    """Hash checks retain per-recipient protection without repeated pixel scans."""
+    from superset.utils import screenshot_utils
+
+    state = _make_notification_state(mocker)
+    context = _active_report_context()
+    state._report_execution_context = context
+    image = _valid_png()
+    metrics = mocker.spy(screenshot_utils, "get_screenshot_blankness_metrics")
+    state._validate_screenshot(image)
+    mocker.patch.object(state, "_get_screenshots", return_value=[image])
+    content = NotificationContent(
+        name="report",
+        header_data=_make_notification_header(),
+        pdf=state._get_pdf() if pdf else None,
+        screenshots=None if pdf else [image],
+    )
+    for _ in range(3):
+        state._assert_rendered_delivery_allowed(content)
+    metrics.assert_called_once()
+    context.reject_capture("later_stage_failed")
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state._assert_rendered_delivery_allowed(content)
+
+
+def test_changed_png_is_revalidated_between_recipients(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """Caching cannot authorize substituted image bytes for a later recipient."""
+    from superset.utils import screenshot_utils
+
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    state = _make_notification_state(mocker)
+    state._report_execution_context = _active_report_context()
+    content = NotificationContent(
+        name="report",
+        header_data=_make_notification_header(),
+        screenshots=[_valid_png()],
+    )
+    output = io.BytesIO()
+    Image.new("RGB", (800, 1000), "white").save(output, format="PNG")
+    metrics = mocker.spy(screenshot_utils, "get_screenshot_blankness_metrics")
+    notification = mocker.patch("superset.commands.report.execute.create_notification")
+
+    def substitute() -> None:
+        content.screenshots = [output.getvalue()]
+
+    notification.return_value.send.side_effect = substitute
+    with pytest.raises(ReportScheduleSystemErrorsException, match="perceptually blank"):
+        state._send(content, [mocker.Mock(spec=ReportRecipients) for _ in range(2)])
+    notification.assert_called_once()
+    notification.return_value.send.assert_called_once()
+    assert metrics.call_count == 2
+    assert state._report_execution_context.capture_was_rejected
+
+
+def test_validation_cache_does_not_clear_prior_rejection() -> None:
+    """Even an approved image cannot clear rejection recorded by another stage."""
+    from superset.utils.screenshot_utils import (
+        ScreenshotBlankCaptureError,
+        validate_report_screenshot,
+    )
+
+    context = _active_report_context()
+    image = _valid_png()
+    validate_report_screenshot(image, context)
+    context.reject_capture("another_tile_failed")
+    with pytest.raises(ScreenshotBlankCaptureError, match="already rejected"):
+        validate_report_screenshot(image, context)
 
 
 def _make_mock_editors(mocker: MockerFixture, user_ids: list[int]) -> list[Mock]:
@@ -814,21 +1143,21 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "dashboard/p/url1/",
-                "dashboard/p/url2/",
+                "dashboard/p/url1/?force=false",
+                "dashboard/p/url2/?force=false",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["dashboard/p/url1/"],
+            ["dashboard/p/url1/?force=false"],
         ),
         # Test JSON scalar string anchor falls back to single tab
         (
             json.dumps("mock_tab_anchor_1"),
             ["url1"],
-            ["dashboard/p/url1/"],
+            ["dashboard/p/url1/?force=false"],
         ),
     ],
 )
@@ -843,6 +1172,7 @@ def test_get_dashboard_urls_with_multiple_tabs(
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
@@ -1005,6 +1335,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
@@ -1043,8 +1374,8 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
-        urllib.parse.urljoin(base_url, "dashboard/p/key2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/?force=false"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key2/?force=false"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 2
@@ -1167,6 +1498,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
@@ -1205,7 +1537,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/?force=false"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 1
@@ -1326,6 +1658,7 @@ def test_get_tab_urls(
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -1338,8 +1671,8 @@ def test_get_tab_urls(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "dashboard/p/uri1/"),
-        urllib.parse.urljoin(base_url, "dashboard/p/uri2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri1/?force=false"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri2/?force=false"),
     ]
 
 
@@ -1412,6 +1745,7 @@ def test_get_tab_url(
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -1428,7 +1762,81 @@ def test_get_tab_url(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=false")
+
+
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_propagates_force_screenshot(
+    mock_run,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """``_get_tab_url`` must propagate ``force_screenshot`` the same way
+    ``_get_url`` already does for chart and plain-dashboard reports, so
+    "Ignore cache when generating report" also bypasses cache on the
+    dashboard-tab permalink path (#38672)."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = True
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+    result: str = class_instance._get_tab_url(dashboard_state)
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=true")
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+def test_get_tab_url_strips_stale_force_urlparam(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """A stale ``force`` entry already stored in ``urlParams`` (e.g. carried
+    over from a previously-saved dashboard state) must not shadow the
+    report's own ``force`` query param: ``Superset.dashboard_permalink``
+    appends stored ``urlParams`` before its own query string, and
+    ``request.args.get`` reads the first match, so a leftover
+    ``force=false`` would silently defeat ``force_screenshot=True``."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = True
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_permalink_cls.return_value.run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=[["force", "false"], ["standalone", "true"]],
+    )
+    result: str = class_instance._get_tab_url(dashboard_state)
+
+    # The stale "force" entry is dropped from the state passed to the
+    # permalink command; other params are preserved.
+    persisted_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert persisted_state["urlParams"] == [["standalone", "true"]]
+
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=true")
 
 
 @patch("superset.commands.report.execute.db.session")
@@ -1591,11 +1999,17 @@ def create_report_schedule(
     return schedule
 
 
+@pytest.mark.parametrize("row_limit", [500000, "250000"])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
 def test_get_chart_data_request_payload_prepares_server_paginated_export(
     mocker: MockerFixture,
+    row_limit: int | str,
+    result_format: ChartDataResultFormat,
 ) -> None:
     """Server-paginated exports should use the configured row limit."""
-    report_state = BaseReportState(
+    report_state: BaseReportState = BaseReportState(
         create_report_schedule(mocker),
         "January 1, 2021",
         "execution_id_example",
@@ -1611,24 +2025,26 @@ def test_get_chart_data_request_payload_prepares_server_paginated_export(
             "form_data": {
                 "server_pagination": True,
                 "server_page_length": 25,
-                "row_limit": 1000,
+                "row_limit": row_limit,
             },
             "result_format": "json",
             "result_type": "full",
         }
     )
 
-    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        result_format
+    )
 
-    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_format"] == result_format.value
     assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
     assert payload["force"] is True
-    assert payload["queries"][0]["row_limit"] == 1000
+    assert payload["queries"][0]["row_limit"] == row_limit
     assert payload["queries"][0]["row_offset"] == 0
     assert len(payload["queries"]) == 2
     assert all(not query.get("is_rowcount") for query in payload["queries"])
     assert payload["queries"][1]["metrics"] == ["count"]
-    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["form_data"]["result_format"] == result_format.value
     assert (
         payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
     )
@@ -2090,10 +2506,12 @@ def test_screenshot_width_calculation(
         execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
     )
 
+    report_state._report_execution_context = _active_report_context()
+
     # Mock security manager and screenshot
     with (
         patch(
-            "superset.commands.report.execute.security_manager"
+            "superset.commands.report.execute.security_manager", new_callable=MagicMock
         ) as mock_security_manager,
         patch(
             "superset.utils.screenshots.ChartScreenshot.get_screenshot"
@@ -2102,7 +2520,7 @@ def test_screenshot_width_calculation(
         # Mock user
         mock_user = mocker.MagicMock()
         mock_security_manager.find_user.return_value = mock_user
-        mock_get_screenshot.return_value = b"screenshot bytes"
+        mock_get_screenshot.return_value = _valid_png()
 
         # Mock get_executor to avoid database lookups
         with patch(
@@ -2287,13 +2705,11 @@ def test_blank_capture_prevents_pdf_generation_and_delivery(
 
 def test_executor_not_found_error_message_without_username() -> None:
     """
-    When no username is available, the message falls back to ``(unknown)``
-    rather than leaving a double space ("...executor user  was not found.").
+    When no username is available, explain that no executor was resolved.
     """
     message = str(ReportScheduleExecutorNotFoundError().message)
 
-    assert "(unknown)" in message
-    assert "user  was" not in message
+    assert message == "Scheduled task executor not found"
 
 
 def test_executor_not_found_error_status_is_server_error() -> None:
@@ -3355,7 +3771,7 @@ def test_send_malformed_slack_recipient_does_not_suppress_later_recipient(
 @pytest.mark.parametrize(
     "attachment",
     [
-        {"screenshots": [b"screenshot"]},
+        {"screenshots": [_valid_png()]},
         {"xlsx": b"xlsx_content"},
     ],
     ids=["screenshot", "xlsx"],
@@ -3475,7 +3891,7 @@ def test_send_classifies_probe_failure_for_file_reports(
             "slack_channels": ["private-channel"],
             "execution_id": "execution_id_example",
         },
-        screenshots=[b"screenshot"],
+        screenshots=[_valid_png()],
         description="File-bearing report",
         url="https://superset.example/report",
     )
@@ -3525,7 +3941,7 @@ def test_send_classifies_malformed_file_recipient_as_client_error(
             "slack_channels": [],
             "execution_id": "execution_id_example",
         },
-        screenshots=[b"screenshot"],
+        screenshots=[_valid_png()],
         description="File-bearing report",
         url="https://superset.example/report",
     )
@@ -3581,7 +3997,7 @@ def test_send_does_not_fall_back_to_slack_v1_for_file_uploads(
             "slack_channels": ["private-channel"],
             "execution_id": "execution_id_example",
         },
-        screenshots=[b"screenshot"],
+        screenshots=[_valid_png()],
         description="File-bearing report",
         url="https://superset.example/report",
     )
@@ -3766,7 +4182,7 @@ def test_slack_retry_deadline_flows_from_report_state_to_transport(
     app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     state = _make_notification_state(mocker, report_format=ReportDataFormat.PNG)
     state._report_execution_context = _active_report_context()
-    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
+    mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
     deadline_factory = mocker.patch(
         "superset.commands.report.execute.get_slack_send_retry_deadline",
         return_value=123.0,
@@ -4013,6 +4429,33 @@ def test_get_notification_content_text_format(mock_ff, mocker: MockerFixture) ->
     assert list(content.embedded_data.columns) == ["a"]
 
 
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_text_alert_skips_embedded_table_with_attachments_disabled(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    """A condition-only alert does not fetch chart data for an inline TEXT table."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker,
+        report_format=ReportDataFormat.TEXT,
+        schedule_type=ReportScheduleType.ALERT,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
+    get_embedded_data = mocker.patch.object(state, "_get_embedded_data")
+    resolve_executor = mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user"
+    )
+
+    content = state._get_notification_content()
+
+    get_embedded_data.assert_not_called()
+    resolve_executor.assert_not_called()
+    assert content.embedded_data is None
+
+
 @pytest.mark.parametrize(
     "email_subject,has_chart,expected_name",
     [
@@ -4038,7 +4481,7 @@ def test_get_notification_content_name(
         email_subject=email_subject,
         has_chart=has_chart,
     )
-    mocker.patch.object(state, "_get_screenshots", return_value=[b"img"])
+    mocker.patch.object(state, "_get_screenshots", return_value=[_valid_png()])
 
     content = state._get_notification_content()
     assert content.name == expected_name
@@ -4476,6 +4919,10 @@ def test_get_notification_content_alert_no_flag_skips_attachment(
         has_chart=True,
     )
     mock_screenshots = mocker.patch.object(state, "_get_screenshots")
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
 
     content = state._get_notification_content()
 
@@ -4615,7 +5062,9 @@ def test_unlimited_alert_data_transport(
                 else ChartDataResultFormat.CSV
             )
             assert state._get_data(result_format) == payload
-        assert requests == ["POST" if route.endswith("post") else "GET"]
+        assert requests == [
+            "POST" if route.endswith("post") or route == "text" else "GET"
+        ]
     finally:
         server.shutdown()
         server.server_close()
@@ -4705,8 +5154,10 @@ def test_alert_bootstrap_retains_original_capture_contract(
     screenshot = mocker.patch(
         "superset.commands.report.execute.ChartScreenshot"
     ).return_value.get_screenshot
-    screenshot.return_value = b"discarded capture"
-    assert state._get_screenshots() == [b"discarded capture"]
+    for_delivery = report_format == ReportDataFormat.PNG
+    image = _valid_png() if for_delivery else b"discarded capture"
+    screenshot.return_value = image
+    assert state._get_screenshots(for_delivery=for_delivery) == [image]
     capture_context = screenshot.call_args.kwargs["report_execution_context"]
     if report_format == ReportDataFormat.PNG:
         assert capture_context is not None
@@ -5130,7 +5581,12 @@ def test_delivery_budget_exhaustion_does_not_send_notification(
     ).return_value
 
     with pytest.raises(ReportExecutionBudgetExceededError):
-        state._send(mocker.Mock(), [recipient])
+        state._send(
+            NotificationContent(
+                name="report", header_data=state._get_log_data(), text="text"
+            ),
+            [recipient],
+        )
 
     notification.send.assert_not_called()
 
@@ -5603,3 +6059,171 @@ def test_chart_data_http_failure_does_not_expose_request(
     opener.open.assert_called_once()
     assert "SECRET" not in caplog.text + str(exc.value)
     assert "SECRET" not in "".join(traceback.format_exception(exc.value))
+
+
+@pytest.mark.parametrize(
+    "row_limit, expected_limit",
+    [
+        (100, 100),
+        (0, 150),
+        (None, 150),
+        (500000, 150),
+        ("15", 15),
+        ("250000", 150),
+        ("0", 150),
+        ("15.0", 15),
+        ("-5", 150),
+        (-5, 150),
+        ("invalid", 150),
+        ("NaN", 150),
+        ("Infinity", 150),
+        ("", 150),
+    ],
+)
+@pytest.mark.parametrize("server_pagination", [True, False])
+@pytest.mark.parametrize(
+    ("stored_form_data", "params"),
+    [
+        ("current", "current"),
+        ("missing", "current"),
+        ("stale", "current"),
+        ("current", None),
+        ("current", "{}"),
+        ("current", "[]"),
+        ("current", "invalid"),
+    ],
+)
+def test_embedded_data_uses_export_pagination(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    row_limit: int | str | None,
+    expected_limit: int,
+    server_pagination: bool,
+    stored_form_data: str,
+    params: str | None,
+) -> None:
+    """Embedded tables request all configured rows, not the saved page."""
+    from urllib.parse import parse_qs
+    from urllib.request import Request
+
+    import pandas as pd
+
+    mocker.patch.dict(app.config, {"SQL_MAX_ROW": 150})
+    schedule: ReportSchedule = create_report_schedule(mocker)
+    schedule.force_screenshot = True
+    schedule.chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [
+                {"row_limit": 20, "row_offset": 20},
+                {"is_rowcount": True},
+            ],
+            "form_data": {
+                "viz_type": "table",
+                "server_pagination": server_pagination,
+                "row_limit": row_limit,
+            },
+        }
+    )
+    context: dict[str, Any] = json.loads(schedule.chart.query_context)
+    schedule.chart.params = json.dumps(context["form_data"])
+    if params != "current":
+        schedule.chart.params = params
+    if stored_form_data == "missing":
+        context.pop("form_data")
+    elif stored_form_data == "stale":
+        context["form_data"] = {"viz_type": "pie", "server_pagination": False}
+    schedule.chart.query_context = json.dumps(context)
+    saved_context: str = schedule.chart.query_context
+    state: BaseReportState = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    mocker.patch.object(
+        state, "_get_url", return_value="https://example.com/chart/1/data"
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="https://example.com/api/v1/chart/data",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    provider: MagicMock = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    provider.instance.get_auth_cookies.return_value = {"session": "executor-cookie"}
+    requested: list[Request | str] = []
+
+    def serve(request: Request | str, timeout: float | None) -> MagicMock:
+        """Model the chart endpoint returning the requested limit and offset."""
+        requested.append(request)
+        query: dict[str, Any] = {"row_limit": 20, "row_offset": 20}
+        if isinstance(request, Request):
+            assert isinstance(request.data, bytes)
+            payload: dict[str, Any] = json.loads(
+                parse_qs(request.data.decode())["form_data"][0]
+            )
+            query = payload["queries"][0]
+        count: int = query["row_limit"] or 50
+        offset: int = query["row_offset"]
+        response: MagicMock = mocker.MagicMock()
+        response.getcode.return_value = 200
+        response.read.return_value = json.dumps(
+            {
+                "result": [
+                    {
+                        "data": [{"value": i} for i in range(offset, offset + count)],
+                        "coltypes": [0],
+                        "colnames": ["value"],
+                        "indexnames": list(range(count)),
+                    }
+                ]
+            }
+        ).encode()
+        assert timeout == app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"]
+        return response
+
+    mocker.patch("urllib.request.build_opener").return_value.open.side_effect = serve
+    frame: pd.DataFrame = state._get_embedded_data()
+    assert len(frame) == (expected_limit if server_pagination else 20)
+    assert frame.iloc[0, 0] == (0 if server_pagination else 20)
+    assert len(requested) == 1
+    request: Request | str = requested[0]
+    assert isinstance(request, Request)
+    assert request.get_method() == "POST"
+    assert request.get_header("Cookie") == "session=executor-cookie"
+    assert isinstance(request.data, bytes)
+    payload: dict[str, Any] = json.loads(
+        parse_qs(request.data.decode())["form_data"][0]
+    )
+    assert payload["queries"] == (
+        [{"row_limit": expected_limit, "row_offset": 0}]
+        if server_pagination
+        else [{"row_limit": 20, "row_offset": 20}, {"is_rowcount": True}]
+    )
+    assert payload["form_data"]["viz_type"] == "table"
+    assert payload["form_data"]["server_pagination"] is server_pagination
+    assert payload["result_format"] == "json"
+    assert payload["result_type"] == "post_processed"
+    assert payload["force"] is True
+    assert payload["datasource"] == {"id": 1, "type": "table"}
+    assert schedule.chart.query_context == saved_context
+
+
+def test_embedded_data_keeps_get_fallback_without_saved_context(
+    mocker: MockerFixture,
+) -> None:
+    """A chart still missing context after bootstrap keeps the legacy GET path."""
+    import pandas as pd
+
+    state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), datetime.utcnow(), uuid4()
+    )
+    _mock_xlsx_chart_data_dependencies(mocker, state)
+    expected: pd.DataFrame = pd.DataFrame({"value": [42]})
+    get_frame: MagicMock = mocker.patch(
+        "superset.commands.report.execute.get_chart_dataframe", return_value=expected
+    )
+    post: MagicMock = mocker.patch.object(state, "_post_chart_data")
+    assert state._get_embedded_data() is expected
+    get_frame.assert_called_once()
+    post.assert_not_called()

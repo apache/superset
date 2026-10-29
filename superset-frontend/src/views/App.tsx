@@ -146,8 +146,15 @@ const lockedShellCss = css`
   overflow: hidden;
 `;
 
-const pageScrollShellCss = css`
-  min-height: 100vh;
+// Fill the height #app grants instead of claiming a whole viewport. When a host
+// page injects content above #app, a 100vh shell overflows the now-shorter #app,
+// and routes that hide body overflow (Explore, SQL Lab) clip that overflow with
+// no way to scroll to it (#44867). Content taller than #app still grows the
+// shell, so page scrolling is unchanged. Exported for App.test.tsx: jest omits
+// emotion's babel plugin, so a css prop cannot be read back off the DOM.
+export const pageScrollShellCss = css`
+  flex: 1 1 auto;
+  min-height: 0;
 `;
 
 const pageScrollContentCss = css`
@@ -169,6 +176,17 @@ const AppContent = ({
   const { open: panelOpen, mode, chat } = useChat();
   const hasChatExtension = chatExtensionsEnabled && !!chat;
   const isPanelOpen = hasChatExtension && mode === 'panel' && panelOpen;
+  // Keep the provider mounted while its DOM moves between display modes.
+  const chatPortalNode = useMemo(
+    () =>
+      createHtmlPortalNode({
+        attributes: {
+          style:
+            'display: flex; flex-direction: column; height: 100%; min-height: 0;',
+        },
+      }),
+    [],
+  );
 
   const [storedWidth, setStoredWidth] = useStoredSidebarWidth(
     'chat:panel',
@@ -214,13 +232,17 @@ const AppContent = ({
     >
       <Splitter.Panel>{layoutContent}</Splitter.Panel>
       <Splitter.Panel size={storedWidth} min={CHAT_PANEL_MIN_WIDTH}>
-        <ChatPanelHost />
+        <OutPortal node={chatPortalNode} />
       </Splitter.Panel>
     </Splitter>
   ) : (
     <>
       {layoutContent}
-      {hasChatExtension && <ChatFloatingHost />}
+      {hasChatExtension && (
+        <ChatFloatingHost>
+          <OutPortal node={chatPortalNode} />
+        </ChatFloatingHost>
+      )}
     </>
   );
 
@@ -230,7 +252,14 @@ const AppContent = ({
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
       />
-      <ExtensionsStartup>{content}</ExtensionsStartup>
+      <ExtensionsStartup>
+        {hasChatExtension && panelOpen && (
+          <InPortal node={chatPortalNode}>
+            <ChatPanelHost />
+          </InPortal>
+        )}
+        {content}
+      </ExtensionsStartup>
     </Flex>
   );
 };

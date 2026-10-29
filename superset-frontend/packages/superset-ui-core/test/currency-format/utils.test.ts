@@ -30,6 +30,7 @@ import {
 import {
   analyzeCurrencyInData,
   resolveAutoCurrency,
+  resolveDetectedCurrency,
 } from '../../src/currency-format/utils';
 
 test('buildCustomFormatters without saved metrics returns empty object', () => {
@@ -411,4 +412,36 @@ test('getValueFormatter returns NumberFormatter via line 205 when AUTO resolves 
     undefined, // no data → else branch → resolvedCurrencyFormat = null
   );
   expect(formatter).toBeInstanceOf(NumberFormatter);
+});
+
+test('resolveDetectedCurrency uses the detected currency when the currency column is not in the results', () => {
+  expect(
+    resolveDetectedCurrency(
+      { symbol: 'AUTO', symbolPosition: 'prefix' },
+      'gbp',
+      'currency_code',
+      ['metric'],
+    ),
+  ).toEqual({ symbol: 'GBP', symbolPosition: 'prefix' });
+});
+
+test('resolveDetectedCurrency keeps AUTO when the currency column is in the results', () => {
+  const currency: Currency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+  expect(
+    resolveDetectedCurrency(currency, 'GBP', 'currency_code', [
+      'metric',
+      'currency_code',
+    ]),
+  ).toBe(currency);
+});
+
+test('resolveDetectedCurrency leaves non-AUTO and unresolvable currencies untouched', () => {
+  const usd: Currency = { symbol: 'USD', symbolPosition: 'prefix' };
+  const auto: Currency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+  expect(resolveDetectedCurrency(usd, 'GBP', 'currency_code', [])).toBe(usd);
+  expect(resolveDetectedCurrency(auto, null, 'currency_code', [])).toBe(auto);
+  expect(resolveDetectedCurrency(auto, 'nope', 'currency_code', [])).toBe(auto);
+  expect(resolveDetectedCurrency(undefined, 'GBP', undefined, [])).toBe(
+    undefined,
+  );
 });

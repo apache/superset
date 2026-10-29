@@ -29,6 +29,7 @@ from marshmallow import (
     Schema,
     validate,
     validates,
+    validates_schema,
     ValidationError,
 )
 from marshmallow.validate import Length, NoneOf, Range
@@ -36,8 +37,10 @@ from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
+from superset.constants import SemanticCacheStatus
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.subjects.schemas import SubjectResponseSchema
+from superset.semantic_layers.bundle_schemas import SemanticViewReferenceSchema
+from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -198,10 +201,10 @@ slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
 editors_description = (
-    "A list of subject IDs (users, roles, or groups) that can alter the chart."
+    "Subject IDs or explicit principal references that can alter the chart."
 )
 viewers_description = (
-    "A list of subject IDs (users, roles, or groups) that can view the chart."
+    "Subject IDs or explicit principal references that can view the chart."
 )
 params_description = (
     "Parameters are generated dynamically when clicking the save "
@@ -308,8 +311,12 @@ class ChartPostSchema(Schema):
         },
         validate=Length(0, 250),
     )
-    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
-    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    editors = fields.List(
+        SubjectReferenceField(metadata={"description": editors_description})
+    )
+    viewers = fields.List(
+        SubjectReferenceField(metadata={"description": viewers_description})
+    )
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -318,7 +325,7 @@ class ChartPostSchema(Schema):
     query_context = fields.String(
         metadata={"description": query_context_description},
         allow_none=True,
-        validate=utils.validate_json,
+        validate=utils.validate_query_context_metadata,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
@@ -372,8 +379,12 @@ class ChartPutSchema(utils.DiscardIsManagedExternallyMixin, Schema):
         allow_none=True,
         validate=Length(0, 250),
     )
-    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
-    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    editors = fields.List(
+        SubjectReferenceField(metadata={"description": editors_description})
+    )
+    viewers = fields.List(
+        SubjectReferenceField(metadata={"description": viewers_description})
+    )
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -382,7 +393,7 @@ class ChartPutSchema(utils.DiscardIsManagedExternallyMixin, Schema):
     query_context = fields.String(
         metadata={"description": query_context_description},
         allow_none=True,
-        validate=utils.validate_json,
+        validate=utils.validate_query_context_metadata,
     )
     query_context_generation = fields.Boolean(
         metadata={"description": query_context_generation_description}, allow_none=True
@@ -592,15 +603,17 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
     Aggregate operation config.
     """
 
-    groupby = (
-        fields.List(
-            fields.String(
-                allow_none=False,
-                metadata={"description": "Columns by which to group by"},
-            ),
-            metadata={"minLength": 1},
-            required=True,
+    groupby = fields.List(
+        fields.String(
+            allow_none=False,
+            metadata={"description": "Columns by which to group by"},
         ),
+        # No lower bound: `aggregate()` reads an empty `groupby` as the
+        # global-aggregation case, grouping the frame as a whole, and the
+        # frontend's `aggregateOperator` emits exactly `groupby: []` for it.
+        # A `minItems` constraint here would document that request as invalid.
+        # The parameter has no default, though, so it is still required.
+        required=True,
     )
     aggregates = ChartDataAggregateConfigField()
 
@@ -610,17 +623,18 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     Rolling operation config.
     """
 
-    columns = (
-        fields.Dict(
-            metadata={
-                "description": "columns on which to perform rolling, mapping source "
-                "column to target column. For instance, `{'y': 'y'}` will replace the "
-                "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "  # noqa: E501
-                "a column `y2` based on rolling values calculated from `y`, leaving the "  # noqa: E501
-                "original column `y` unchanged.",
-                "example": {"weekly_rolling_sales": "sales"},
-            },
-        ),
+    columns = fields.Dict(
+        metadata={
+            "description": "columns on which to perform rolling, mapping source "
+            "column to target column. For instance, `{'y': 'y'}` will replace the "
+            "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "
+            "a column `y2` based on rolling values calculated from `y`, leaving the "
+            "original column `y` unchanged.",
+            "example": {"sales": "weekly_rolling_sales"},
+        },
+        # `rolling()` takes `columns` positionally with no default, exactly as
+        # it takes `rolling_type`, which this schema already marks required.
+        required=True,
     )
     rolling_type = fields.String(
         metadata={
@@ -960,15 +974,17 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     Pivot operation config.
     """
 
-    index = (
-        fields.List(
-            fields.String(allow_none=False),
-            metadata={
-                "description": "Columns to group by on the table index (=rows)",
-                "minLength": 1,
-            },
-            required=True,
-        ),
+    index = fields.List(
+        fields.String(allow_none=False),
+        metadata={
+            "description": "Columns to group by on the table index (=rows)",
+        },
+        # `pivot()` rejects an empty index ("Pivot operation requires at least
+        # one index"), so the schema has to say so. The previous `minLength`
+        # metadata did neither: it is not a validator, and arrays use
+        # `minItems` in OpenAPI.
+        validate=Length(min=1),
+        required=True,
     )
     columns = fields.List(
         fields.String(allow_none=False),
@@ -1176,6 +1192,12 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
+    semantic_selection_version: fields.String = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Identity encoding used for semantic member selections."
+        },
+    )
     relative_start = fields.String(
         metadata={
             "description": "Start time for relative time deltas. "
@@ -1825,6 +1847,17 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=None,
     )
+    semantic_cache_status: fields.String = fields.String(
+        metadata={
+            "description": "Semantic containment cache provenance of this "
+            "query: HIT when every semantic query behind it was served from "
+            "containment, MISS when none was, MIXED when only some were "
+            "(for example a time-comparison offset)."
+        },
+        validate=validate.OneOf([status.value for status in SemanticCacheStatus]),
+        required=False,
+        allow_none=True,
+    )
     query = fields.String(
         metadata={
             "description": "The executed query statement. May be absent when "
@@ -2015,11 +2048,22 @@ class ImportV1ChartSchema(Schema):
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
-    dataset_uuid = fields.UUID(required=True)
+    dataset_uuid: fields.UUID = fields.UUID()
+    datasource_ref: fields.Nested = fields.Nested(SemanticViewReferenceSchema)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
     extra = fields.Dict(allow_none=True, load_only=True)
+
+    @validates_schema
+    def validate_datasource_reference(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """Require exactly one legacy table or typed semantic reference."""
+        if ("dataset_uuid" in data) == ("datasource_ref" in data):
+            raise ValidationError(
+                "Specify exactly one of dataset_uuid and datasource_ref."
+            )
 
 
 class ChartCacheWarmUpRequestSchema(Schema):
