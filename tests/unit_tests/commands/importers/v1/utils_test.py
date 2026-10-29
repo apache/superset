@@ -23,7 +23,7 @@ import lzma
 import struct
 import zipfile
 import zlib
-from typing import Callable
+from typing import Any, Callable
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -748,3 +748,93 @@ def test_open_import_bundle_corrupt_member(
 
     assert excinfo.value.message == "Invalid or corrupted ZIP file"
     assert isinstance(excinfo.value.__cause__, cause)
+
+
+def _make_oversized_member_bundle() -> bytes:
+    """A bundle whose single member exceeds a lowered ZIPPED_FILE_MAX_SIZE."""
+    return _make_bundle()
+
+
+def _make_oversized_total_bundle() -> bytes:
+    """A bundle whose members together exceed a lowered ZIP_FILE_MAX_TOTAL_SIZE."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+        bundle.writestr("bundle/databases/db.yaml", "version: 1.0.0\n")
+    return buf.getvalue()
+
+
+def _make_high_ratio_bundle() -> bytes:
+    """A bundle whose compress ratio exceeds the default ZIP_FILE_MAX_COMPRESS_RATIO."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        bundle.writestr("bundle/metadata.yaml", "0" * 1024 * 1024)
+    return buf.getvalue()
+
+
+@pytest.mark.parametrize(
+    "make_bundle, config, message",
+    [
+        (
+            _make_oversized_member_bundle,
+            {"ZIPPED_FILE_MAX_SIZE": 10},
+            "Found file with size above allowed threshold",
+        ),
+        (
+            _make_oversized_total_bundle,
+            {"ZIP_FILE_MAX_TOTAL_SIZE": 20},
+            "Found total uncompressed size above allowed threshold",
+        ),
+        (
+            _make_high_ratio_bundle,
+            {},
+            "Zip compress ratio above allowed threshold",
+        ),
+    ],
+    ids=["member-size", "total-size", "compress-ratio"],
+)
+def test_get_contents_from_bundle_unsafe_zip(
+    app: Any,
+    make_bundle: Callable[[], bytes],
+    config: dict[str, Any],
+    message: str,
+) -> None:
+    """
+    A bundle that fails the ZIP safety checks is bad user input and must raise
+    ``IncorrectFormatError`` (422) instead of a bare ``SupersetException`` (500).
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import get_contents_from_bundle
+    from superset.exceptions import SupersetException
+
+    with patch.dict(app.config, config):
+        with zipfile.ZipFile(io.BytesIO(make_bundle())) as bundle:
+            with pytest.raises(IncorrectFormatError) as excinfo:
+                get_contents_from_bundle(bundle)
+
+    assert excinfo.value.status == 422
+    assert excinfo.value.message == message
+    assert isinstance(excinfo.value.__cause__, SupersetException)
+
+
+def test_get_contents_from_bundle_non_utf8_member() -> None:
+    """
+    A config member that is not valid UTF-8 must raise ``IncorrectFormatError``
+    instead of a raw ``UnicodeDecodeError``.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", b"\xff\xfe\x00bad")
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(io.BytesIO(buf.getvalue())) as bundle:
+            get_contents_from_bundle(bundle)
+
+    assert excinfo.value.message == "File metadata.yaml is not valid UTF-8"
+    assert isinstance(excinfo.value.__cause__, UnicodeDecodeError)
