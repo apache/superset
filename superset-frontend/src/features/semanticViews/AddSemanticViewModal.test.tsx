@@ -17,11 +17,14 @@
  * under the License.
  */
 import {
+  act,
+  fireEvent,
   render,
   screen,
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { StrictMode } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 
 import {
@@ -29,7 +32,10 @@ import {
   largeRuntimeSchema,
 } from 'src/features/semanticLayers/testFixtures';
 
-import AddSemanticViewModal from './AddSemanticViewModal';
+import AddSemanticViewModal, {
+  reconcileDynamicFieldValues,
+} from './AddSemanticViewModal';
+import { SCHEMA_REFRESH_DEBOUNCE_MS } from '../semanticLayers/jsonFormsHelpers';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -60,6 +66,10 @@ const selectOption = async (name: string, optionLabel: string) => {
 beforeEach(() => {
   mockedGet.mockReset();
   mockedPost.mockReset();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 test('loads layers on open and adds selected semantic views', async () => {
@@ -205,8 +215,252 @@ test('shows partial success feedback when only some semantic views are created',
       '1 semantic view(s) failed to add: customers',
     );
   });
-  expect(props.onSuccess).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'customers: create failed',
+  );
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  await selectOption('Semantic views', 'orders (already added)');
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
   expect(props.onHide).not.toHaveBeenCalled();
+  mockedPost.mockResolvedValueOnce({
+    json: { result: { created: [{ uuid: 'view-2', name: 'customers' }] } },
+  });
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  expect(mockedPost).toHaveBeenLastCalledWith({
+    endpoint: '/api/v1/semantic_view/',
+    jsonPayload: {
+      views: [
+        {
+          name: 'customers',
+          semantic_layer_uuid: 'layer-1',
+          configuration: {},
+        },
+      ],
+    },
+  });
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+});
+
+test.each([
+  [
+    'all failed',
+    {
+      result: {
+        created: [],
+        errors: [
+          { name: 'orders', error: 'Invalid <script>model</script>' },
+          { name: 'customers', error: { configuration: ['Missing field'] } },
+        ],
+      },
+    },
+    [
+      'Failed to add orders: Invalid <script>model</script>',
+      'Failed to add customers: configuration: Missing field',
+    ],
+  ],
+  [
+    'malformed',
+    { result: { errors: 'private provider details' } },
+    ['An error occurred while adding semantic views'],
+  ],
+  [
+    'malformed success',
+    { result: { created: [null], errors: [null] } },
+    ['An error occurred while adding semantic views'],
+  ],
+])(
+  'shows safe inline creation feedback for %s',
+  async (_label, body, messages) => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: {
+            result: [
+              { name: 'orders', already_added: false },
+              { name: 'customers', already_added: false },
+            ],
+          },
+        });
+      return _label === 'malformed success'
+        ? Promise.resolve({ json: body })
+        : Promise.reject({ status: 422, json: async () => body });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    );
+    const alert = await screen.findByRole('alert');
+    messages.forEach(message => expect(alert).toHaveTextContent(message));
+    expect(alert.querySelector('script')).toBeNull();
+    expect(alert).not.toHaveTextContent('private provider details');
+    if (_label.startsWith('malformed')) {
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        'An error occurred while adding semantic views',
+      );
+    }
+    expect(props.onHide).not.toHaveBeenCalled();
+    expect(props.onSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    ).toBeEnabled();
+  },
+);
+
+test('a creation response cannot update a closed and reopened modal', async () => {
+  let finishSave: (value: unknown) => void = () => {};
+  const pendingSave = new Promise(resolve => {
+    finishSave = resolve;
+  });
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({ json: { result: { properties: {} } } });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return pendingSave;
+  });
+  const props = createProps();
+  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  rerender(<AddSemanticViewModal {...props} show={false} />);
+  rerender(<AddSemanticViewModal {...props} />);
+  await act(async () => {
+    finishSave({
+      json: { result: { created: [{ uuid: 'view-1', name: 'orders' }] } },
+    });
+  });
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.addSuccessToast).toHaveBeenCalledWith(
+    '1 semantic view(s) added',
+  );
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test.each([1, 2, 100])(
+  'counts %s unnamed failures without a long toast',
+  async count => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: { result: [{ name: 'orders', already_added: false }] },
+        });
+      return Promise.resolve({
+        json: {
+          result: {
+            created: [],
+            errors: Array.from({ length: count }, (_, index) => ({
+              name: count === 2 && index === 0 ? 'orders' : null,
+              error: 'Invalid view',
+            })),
+          },
+        },
+      });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+    );
+    await waitFor(() =>
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        count === 2
+          ? '2 semantic view(s) failed to add: orders'
+          : `${count} semantic view(s) failed to add`,
+      ),
+    );
+  },
+);
+
+test('clears failures on a configuration change and bounds a large failure list', async () => {
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({
+        json: {
+          result: { properties: { note: { type: 'string', title: 'Note' } } },
+        },
+      });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return Promise.resolve({
+      json: {
+        result: {
+          created: [],
+          errors: Array.from({ length: 100 }, (_, index) => ({
+            name: `view-${index}`,
+            error: 'Invalid view',
+          })),
+        },
+      },
+    });
+  });
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Note' }), {
+    target: { value: 'schema' },
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic views' }),
+    ).toBeEnabled(),
+  );
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('view-99');
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    '100 semantic view(s) failed to add',
+  );
+  const region = screen.getByRole('region', {
+    name: 'Some semantic views could not be added',
+  });
+  expect(region).toHaveStyleRule('overflow-y', 'auto');
+  expect(region).toHaveStyleRule('max-height', '240px');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'another schema' },
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+  );
 });
 
 test('shows toast when loading semantic layers fails', async () => {
@@ -266,6 +520,11 @@ test('shows toast when add semantic views fails', async () => {
       'An error occurred while adding semantic views',
     );
   });
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'An error occurred while adding semantic views',
+  );
+  expect(screen.getByRole('alert')).not.toHaveTextContent('save failed');
+  expect(props.onHide).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
@@ -409,15 +668,26 @@ test('a const array default does not loop updates', async () => {
   }
 });
 
-test('a failed schema refresh surfaces a toast and preserves selections', async () => {
-  let refreshCount = 0;
-  mockLayerWithSchema(dynamicMetricsSchema, {
+test('a failed array-only refresh keeps views and Add usable with a bounded retry', async () => {
+  const schemaWithMode = {
+    ...dynamicMetricsSchema,
+    properties: {
+      ...dynamicMetricsSchema.properties,
+      mode: {
+        type: 'string',
+        title: 'Mode',
+        enum: ['full', 'cube'],
+        'x-dynamic': true,
+        'x-dependsOn': ['mode'],
+      },
+    },
+  };
+  mockLayerWithSchema(schemaWithMode, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
       if ((payload as { runtime_data?: unknown })?.runtime_data) {
-        refreshCount += 1;
         return Promise.reject(new Error('refresh boom'));
       }
-      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
+      return Promise.resolve({ json: { result: schemaWithMode } });
     },
   });
   const props = createProps();
@@ -433,9 +703,43 @@ test('a failed schema refresh surfaces a toast and preserves selections', async 
     },
     { timeout: 10000 },
   );
-  expect(refreshCount).toBeGreaterThanOrEqual(1);
+  await waitFor(
+    () =>
+      expect(mockedPost).toHaveBeenCalledWith({
+        endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+        jsonPayload: {
+          runtime_data: expect.objectContaining({
+            metrics: expect.arrayContaining(['m1']),
+          }),
+        },
+      }),
+    { timeout: 10000 },
+  );
   // The user's selection is untouched by the failure (spec FR-005).
   expect(selectedTag('m1')).toBeTruthy();
+  await waitFor(
+    () => {
+      expect(
+        screen.getByRole('combobox', { name: 'Semantic views' }),
+      ).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+  await selectOption('Semantic views', 'orders');
+  expect(screen.getByRole('button', { name: /Add 1 view/ })).toBeEnabled();
+  await pickFromSelect(/metrics/i, 'm2');
+  await waitFor(
+    () =>
+      expect(mockedPost).toHaveBeenCalledWith({
+        endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+        jsonPayload: {
+          runtime_data: expect.objectContaining({
+            metrics: expect.arrayContaining(['m2']),
+          }),
+        },
+      }),
+    { timeout: 10000 },
+  );
 });
 
 test('the save payload carries every selected metric', async () => {
@@ -458,6 +762,28 @@ test('the save payload carries every selected metric', async () => {
     },
     { timeout: 10000 },
   );
+  // Each metric pick schedules a debounced views refetch, and fetchViews()
+  // clears the current view selection before its response arrives. Waiting only
+  // for the combobox to enable leaves a later refetch in flight, which would
+  // drop the pick below and leave handleSave with nothing to create. Wait until
+  // the refetches have stopped before selecting.
+  const viewsFetchCount = () =>
+    mockedPost.mock.calls.filter(
+      ([{ endpoint }]) => endpoint === '/api/v1/semantic_layer/layer-1/views',
+    ).length;
+  let previousViewsFetches = -1;
+  await waitFor(
+    () => {
+      const current = viewsFetchCount();
+      const settled = current > 0 && current === previousViewsFetches;
+      previousViewsFetches = current;
+      if (!settled) {
+        throw new Error('views refetch still in flight');
+      }
+    },
+    { timeout: 15000, interval: 700 },
+  );
+
   await pickFromSelect(/semantic views/i, 'orders');
   await userEvent.click(
     screen.getByRole('button', { name: /add 1 view\(s\)/i }),
@@ -486,7 +812,20 @@ test('the save payload carries every selected metric', async () => {
 
 test('renders and selects within a 500-metric runtime schema', async () => {
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-  mockLayerWithSchema(largeRuntimeSchema as Record<string, unknown>);
+  let resolveSelectedRefresh: (() => void) | undefined;
+  mockLayerWithSchema(largeRuntimeSchema as Record<string, unknown>, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      const data = (payload as { runtime_data?: { metrics?: string[] } })
+        ?.runtime_data;
+      if (data?.metrics?.includes(largeMetricEnum[42])) {
+        return new Promise(resolve => {
+          resolveSelectedRefresh = () =>
+            resolve({ json: { result: largeRuntimeSchema } });
+        });
+      }
+      return Promise.resolve({ json: { result: largeRuntimeSchema } });
+    },
+  });
   render(<AddSemanticViewModal {...createProps()} />);
   await selectOption('Semantic layer', 'Snowflake SL');
 
@@ -503,20 +842,22 @@ test('renders and selects within a 500-metric runtime schema', async () => {
   await userEvent.click(option);
   expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
 
-  // largeRuntimeSchema's dimensions field depends on metrics, so the pick
-  // schedules a refresh — wait for it so the dedupe/apply path is exercised
-  // at 500-metric scale rather than ending before the debounce elapses.
-  await waitFor(
-    () => {
-      const refreshes = mockedPost.mock.calls.filter(
-        ([{ endpoint, jsonPayload }]) =>
-          endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime' &&
-          (jsonPayload as { runtime_data?: unknown })?.runtime_data,
-      );
-      expect(refreshes.length).toBeGreaterThanOrEqual(1);
-    },
-    { timeout: 10000 },
-  );
+  // Finish this metric's own refresh before unmounting; an earlier refresh
+  // for empty runtime data does not prove the selected metric was applied.
+  await waitFor(() => {
+    expect(mockedPost).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+      jsonPayload: {
+        runtime_data: expect.objectContaining({
+          metrics: [largeMetricEnum[42]],
+        }),
+      },
+    });
+    expect(resolveSelectedRefresh).toBeDefined();
+  });
+  await act(async () => {
+    resolveSelectedRefresh?.();
+  });
   expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
   expect(
     consoleErrorSpy.mock.calls.find(args =>
@@ -525,34 +866,785 @@ test('renders and selects within a 500-metric runtime schema', async () => {
   ).toBeUndefined();
 });
 
-test('a persistently failing refresh retries once, not on every edit', async () => {
-  let refreshCount = 0;
-  mockLayerWithSchema(dynamicMetricsSchema, {
+const databaseSchema = (schemas: string[]) => ({
+  type: 'object',
+  required: ['database', 'schema'],
+  properties: {
+    database: {
+      type: 'string',
+      title: 'Database',
+      enum: ['first', 'second', 'third'],
+      'x-enumNames': ['first', 'second', 'third'],
+    },
+    schema: {
+      type: 'string',
+      title: 'Schema',
+      enum: schemas,
+      'x-dynamic': true,
+      'x-dependsOn': ['database'],
+    },
+    note: { type: 'string', title: 'Note' },
+  },
+});
+
+type PendingSchema = {
+  resolve: (schema: Record<string, unknown> | null) => void;
+  reject: (error: Error) => void;
+};
+
+async function chooseDependentOption(name: string, value: string) {
+  fireEvent.mouseDown(await screen.findByRole('combobox', { name }));
+  const option = await waitFor(() => {
+    const item = document.querySelector(
+      `.ant-select-item-option[title="${value}"]`,
+    );
+    if (!item) throw new Error(`Missing option ${value}`);
+    return item;
+  });
+  fireEvent.click(option);
+  // JSON Forms emits onChange after its own 10 ms debounce; the modal's
+  // 500 ms schema-fetch debounce must not have elapsed at this point.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+}
+
+async function openDependentSchemaForm(
+  makeSchema: typeof databaseSchema = databaseSchema,
+  { strict = false }: { strict?: boolean } = {},
+) {
+  jest.useFakeTimers();
+  const pending: PendingSchema[] = [];
+  const initial = makeSchema(['shared', 'old_only']);
+  mockLayerWithSchema(initial, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
-      if ((payload as { runtime_data?: unknown })?.runtime_data) {
-        refreshCount += 1;
-        return Promise.reject(new Error('refresh boom'));
+      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
+        return Promise.resolve({ json: { result: initial } });
       }
-      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
+      return new Promise((resolve, reject) => {
+        pending.push({
+          resolve: schema => resolve({ json: { result: schema } }),
+          reject,
+        });
+      });
     },
   });
   const props = createProps();
-  render(<AddSemanticViewModal {...props} />);
-  await selectOption('Semantic layer', 'Snowflake SL');
-
-  await pickFromSelect(/metrics/i, 'm1');
-  await waitFor(() => expect(refreshCount).toBe(1), { timeout: 10000 });
-
-  // One bounded retry for this dependency state, then no further attempts
-  // however many more edits the user makes during the outage.
-  await pickFromSelect(/dimensions/i, 'd1');
-  await waitFor(() => expect(refreshCount).toBe(2), { timeout: 10000 });
-  await pickFromSelect(/dimensions/i, 'd2');
-  await new Promise(resolve => {
-    setTimeout(resolve, 1200);
+  const modal = <AddSemanticViewModal {...props} />;
+  const { rerender, unmount } = render(
+    strict ? <StrictMode>{modal}</StrictMode> : modal,
+  );
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  // Let JSON Forms emit its mount-time change before selecting a database.
+  // Otherwise that delayed event can reset the dependency snapshot mid-pick.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
   });
-  expect(refreshCount).toBe(2);
-  // And the user was told once, not once per attempt.
+  await chooseDependentOption('Database', 'first');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+  await act(async () => {
+    pending[0].resolve(initial);
+  });
+  return { pending, props, rerender, unmount };
+}
+
+const viewsRequests = () =>
+  mockedPost.mock.calls
+    .map(([request]) => request)
+    .filter(
+      ({ endpoint }: { endpoint: string }) =>
+        endpoint === '/api/v1/semantic_layer/layer-1/views',
+    );
+
+test.each(['shared', 'old_only'])(
+  'dependent options are unavailable through debounce/loading and validate selection %s',
+  async selection => {
+    const { pending } = await openDependentSchemaForm();
+    await chooseDependentOption('Schema', selection);
+    await chooseDependentOption('Database', 'second');
+    const schema = screen.getByRole('combobox', { name: 'Schema' });
+    expect(schema).toBeDisabled();
+    expect(pending).toHaveLength(1);
+    await act(async () => {
+      jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS - 1);
+    });
+    expect(schema).toBeDisabled();
+    expect(pending).toHaveLength(1);
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(pending).toHaveLength(2);
+    expect(schema).toBeDisabled();
+    await act(async () => {
+      pending[1].resolve(databaseSchema(['shared', 'new_only']));
+    });
+    await waitFor(() => expect(schema).toBeEnabled());
+    if (selection === 'shared') {
+      expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+    } else {
+      expect(selectedTag('old_only')).toBeNull();
+    }
+    fireEvent.mouseDown(schema);
+    expect(await screen.findByText('new_only')).toBeInTheDocument();
+    expect(
+      document.querySelector('.ant-select-item-option[title="old_only"]'),
+    ).toBeNull();
+  },
+);
+
+test('a debounced refresh scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Database', 'second');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  // A timer that outlives the modal posts on behalf of a component that is
+  // gone, and in this file it would land in the next test's mocks.
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('StrictMode remounting keeps dependency refreshes and views fetches working', async () => {
+  // StrictMode mounts, runs the unmount cleanup, then mounts again in
+  // development. The opening helper already requires the Database change to
+  // post a schema refresh, which a stale unmounted flag would swallow.
+  const { pending } = await openDependentSchemaForm(databaseSchema, {
+    strict: true,
+  });
+  expect(pending).toHaveLength(1);
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(viewsRequests().length).toBeGreaterThan(viewsBefore);
+});
+
+test('a views fetch scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  // A complete form queues a views fetch behind the modal's debounce.
+  await chooseDependentOption('Schema', 'shared');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('a runtime schema response delivered after unmount fetches no views', async () => {
+  let finishSchema: (() => void) | undefined;
+  mockLayerWithSchema(
+    {},
+    {
+      '/api/v1/semantic_layer/layer-1/schema/runtime': () =>
+        new Promise(resolve => {
+          finishSchema = () => resolve({ json: { result: {} } });
+        }),
+    },
+  );
+  const props = createProps();
+  const { unmount } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+  await waitFor(() => expect(finishSchema).toBeDefined());
+  unmount();
+  // A schema with no properties would otherwise fetch views right away.
+  await act(async () => {
+    finishSchema?.();
+  });
+  expect(viewsRequests()).toHaveLength(0);
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('a form change delivered after unmount schedules no refresh', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Database' }));
+  const option = await waitFor(() => {
+    const item = document.querySelector(
+      '.ant-select-item-option[title="second"]',
+    );
+    if (!item) throw new Error('Missing option second');
+    return item;
+  });
+  fireEvent.click(option);
+  // Unmount inside JSON Forms' own 10 ms change debounce, so its onChange
+  // reaches the modal only after the modal is gone.
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('dependent options ignore an older response while the latest refresh is pending', async () => {
+  const { pending } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await chooseDependentOption('Database', 'third');
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  await act(async () => {
+    pending[1].resolve(databaseSchema(['wrong_database']));
+  });
+  expect(schema).toBeDisabled();
+  expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+  await act(async () => {
+    pending[2].resolve(databaseSchema(['shared', 'third_only']));
+  });
+  await waitFor(() => expect(schema).toBeEnabled());
+  fireEvent.mouseDown(schema);
+  expect(await screen.findByText('third_only')).toBeInTheDocument();
+  expect(screen.queryByText('wrong_database')).not.toBeInTheDocument();
+  expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+});
+
+test('dependent options stay unavailable after an error and recover on the bounded retry', async () => {
+  const { pending, props } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await act(async () => {
+    pending[1].reject(new Error('offline'));
+  });
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    'An error occurred while refreshing the runtime schema',
+  );
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  expect(schema).toBeDisabled();
+  expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'retry' },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+  expect(schema).toBeDisabled();
+  await act(async () => {
+    pending[2].resolve(databaseSchema(['shared', 'recovered']));
+  });
+  await waitFor(() => expect(schema).toBeEnabled());
+  expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+  fireEvent.mouseDown(schema);
+  expect(await screen.findByText('recovered')).toBeInTheDocument();
+  expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+});
+
+test('failed scalar narrowing keeps Add and views unavailable until a matching response', async () => {
+  const { pending } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await chooseDependentOption('Semantic views', 'orders');
+  expect(screen.getByRole('button', { name: /Add 1 view/ })).toBeEnabled();
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await act(async () => {
+    pending[1].reject(new Error('offline'));
+  });
+  expect(
+    screen.getByRole('combobox', { name: 'Semantic views' }),
+  ).toBeDisabled();
+  const viewsBefore = viewsRequests().length;
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'retry' },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+  expect(
+    screen.getByRole('combobox', { name: 'Semantic views' }),
+  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+  await act(async () => {
+    pending[2].resolve(databaseSchema(['shared', 'new_only']));
+  });
+  expect(screen.getByRole('combobox', { name: 'Schema' })).toBeEnabled();
+});
+
+test('manual text entered while options are stale survives an empty-enum refresh', async () => {
+  const { pending } = await openDependentSchemaForm(() => ({
+    ...databaseSchema([]),
+    required: ['database'],
+  }));
+  await chooseDependentOption('Database', 'second');
+  const schema = screen.getByRole('textbox', { name: 'Schema' });
+  expect(schema).toBeEnabled();
+  fireEvent.change(schema, { target: { value: 'manual_schema' } });
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  expect(schema).toHaveValue('manual_schema');
+  await act(async () => {
+    pending[1].resolve({ ...databaseSchema([]), required: ['database'] });
+  });
+  expect(screen.getByRole('textbox', { name: 'Schema' })).toHaveValue(
+    'manual_schema',
+  );
+});
+
+test('reconciliation retains manual text for empty enums and clears old selections', () => {
+  const emptyEnum = databaseSchema([]);
+  expect(
+    reconcileDynamicFieldValues(
+      { database: 'second', schema: 'manual_schema' },
+      emptyEnum,
+      emptyEnum,
+    ),
+  ).toEqual({ database: 'second', schema: 'manual_schema' });
+  expect(
+    reconcileDynamicFieldValues(
+      { database: 'second', schema: 'old_only' },
+      databaseSchema(['old_only']),
+      emptyEnum,
+    ),
+  ).toEqual({ database: 'second' });
+  expect(
+    reconcileDynamicFieldValues(
+      { database: 'third', schema: 'manual_schema' },
+      emptyEnum,
+      databaseSchema(['third_only']),
+    ),
+  ).toEqual({ database: 'third' });
+});
+
+test('a refresh response without a schema reports failure and permits one retry', async () => {
+  const { pending, props } = await openDependentSchemaForm();
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await act(async () => {
+    pending[1].resolve(null);
+  });
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    'An error occurred while refreshing the runtime schema',
+  );
+  expect(screen.getByRole('combobox', { name: 'Schema' })).toBeDisabled();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'retry' },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+});
+
+test.each([{ values: ['new_only'] }, { values: [] }])(
+  'dependent selection is cleared against matching enum $values',
+  async ({ values }) => {
+    const consoleError = jest.spyOn(console, 'error');
+    const { pending } = await openDependentSchemaForm();
+    await chooseDependentOption('Schema', 'old_only');
+    await chooseDependentOption('Database', 'second');
+    await act(async () => {
+      jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+    });
+    await act(async () => {
+      pending[1].resolve(databaseSchema(values));
+    });
+    expect(selectedTag('old_only')).toBeNull();
+    if (values.length === 0)
+      expect(screen.getByRole('textbox', { name: 'Schema' })).toHaveValue('');
+    const hookOrderChanged = consoleError.mock.calls.some(args =>
+      String(args[0]).includes('change in the order of Hooks'),
+    );
+    consoleError.mockRestore();
+    expect(hookOrderChanged).toBe(false);
+  },
+);
+
+test('dependent options are unavailable when a dependency is cleared', async () => {
+  const { pending } = await openDependentSchemaForm();
+  const database = screen.getByRole('combobox', { name: 'Database' });
+  const clear = database
+    .closest('.ant-select')
+    ?.querySelector('.ant-select-clear');
+  expect(clear).toBeTruthy();
+  if (clear) fireEvent.click(clear);
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  expect(database.closest('.ant-select')).not.toHaveTextContent('first');
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  expect(schema).toBeDisabled();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+  expect(schema).toBeDisabled();
+  await chooseDependentOption('Database', 'third');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await act(async () => {
+    pending[1].resolve(databaseSchema(['third_only']));
+  });
+  await waitFor(() => expect(schema).toBeEnabled());
+});
+
+const optionalDatabaseSchema = (schemas: string[]) => ({
+  ...databaseSchema(schemas),
+  required: ['schema'],
+});
+
+test('clearing an optional dependency on a valid form refreshes options and fetches views', async () => {
+  const { pending } = await openDependentSchemaForm(optionalDatabaseSchema);
+  await chooseDependentOption('Schema', 'shared');
+  const database = screen.getByRole('combobox', { name: 'Database' });
+  const clear = database
+    .closest('.ant-select')
+    ?.querySelector('.ant-select-clear');
+  expect(clear).toBeTruthy();
+  if (clear) fireEvent.click(clear);
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  expect(schema).toBeDisabled();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  // The optional dependency is empty but the form is valid, so the options
+  // must be refreshed for that state rather than stay unavailable forever.
+  expect(pending).toHaveLength(2);
+  await act(async () => {
+    pending[1].resolve(optionalDatabaseSchema(['shared']));
+  });
+  await waitFor(() => expect(schema).toBeEnabled());
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await waitFor(() =>
+    expect(
+      viewsRequests().some(
+        ({ jsonPayload }: { jsonPayload: { runtime_data?: unknown } }) =>
+          (jsonPayload.runtime_data as Record<string, unknown> | undefined)
+            ?.database == null,
+      ),
+    ).toBe(true),
+  );
+});
+
+test('a dependency satisfied by its schema default refreshes dependent options', async () => {
+  jest.useFakeTimers();
+  const pending: PendingSchema[] = [];
+  const base = databaseSchema(['shared']);
+  const initial = {
+    ...base,
+    properties: {
+      ...base.properties,
+      database: { ...base.properties.database, default: 'first' },
+    },
+  };
+  mockLayerWithSchema(initial, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
+        return Promise.resolve({ json: { result: initial } });
+      }
+      return new Promise((resolve, reject) => {
+        pending.push({
+          resolve: schema => resolve({ json: { result: schema } }),
+          reject,
+        });
+      });
+    },
+  });
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+  // The default is not sent; the provider applies it for the absent key.
+  const refreshPayloads = mockedPost.mock.calls
+    .map(([request]) => request)
+    .filter(
+      ({ endpoint, jsonPayload }) =>
+        endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime' &&
+        jsonPayload?.runtime_data,
+    );
+  expect(refreshPayloads.at(-1).jsonPayload.runtime_data).toEqual({
+    schema: 'shared',
+  });
+  await act(async () => {
+    pending[0].resolve(initial);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('combobox', { name: 'Schema' })).toBeEnabled(),
+  );
+});
+
+test('an empty optional dependency does not block a required dependent field', async () => {
+  jest.useFakeTimers();
+  const pending: PendingSchema[] = [];
+  const initial = optionalDatabaseSchema(['shared']);
+  mockLayerWithSchema(initial, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
+        return Promise.resolve({ json: { result: initial } });
+      }
+      return new Promise((resolve, reject) => {
+        pending.push({
+          resolve: schema => resolve({ json: { result: schema } }),
+          reject,
+        });
+      });
+    },
+  });
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  // The only error is the required dependent field; the optional dependency
+  // is empty, so its options must still load instead of staying disabled.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+  await act(async () => {
+    pending[0].resolve(optionalDatabaseSchema(['no_database']));
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  await waitFor(() => expect(schema).toBeEnabled());
+  fireEvent.mouseDown(schema);
+  expect(await screen.findByText('no_database')).toBeInTheDocument();
+});
+
+test('a refresh that drops the dependent value keeps the new options available', async () => {
+  const { pending } = await openDependentSchemaForm(optionalDatabaseSchema);
+  await chooseDependentOption('Schema', 'old_only');
+  const database = screen.getByRole('combobox', { name: 'Database' });
+  const clear = database
+    .closest('.ant-select')
+    ?.querySelector('.ant-select-clear');
+  if (clear) fireEvent.click(clear);
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  await act(async () => {
+    pending[1].resolve(optionalDatabaseSchema(['no_database']));
+  });
+  // Reconcile drops old_only, leaving the required dependent field empty;
+  // that error must not hide the options the refresh just loaded.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  await waitFor(() => expect(schema).toBeEnabled());
+  expect(selectedTag('old_only')).toBeNull();
+});
+
+test('a self-dependent required field stays selectable when the form opens', async () => {
+  jest.useFakeTimers();
+  // MetricFlow's mode picker depends on its own value and is required.
+  const modeSchema = {
+    type: 'object',
+    required: ['mode'],
+    properties: {
+      mode: {
+        type: 'string',
+        title: 'Mode',
+        enum: ['full', 'cube'],
+        'x-enumNames': ['Full semantic layer', 'Cube'],
+        'x-dynamic': true,
+        'x-dependsOn': ['mode'],
+      },
+    },
+  };
+  mockLayerWithSchema(modeSchema);
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  const mode = await screen.findByRole('combobox', { name: 'Mode' });
+  expect(mode).toBeEnabled();
+  await chooseDependentOption('Mode', 'Full semantic layer');
+  expect(mode.closest('.ant-select')).toHaveTextContent('Full semantic layer');
+  expect(mode).toBeEnabled();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(mode).toBeEnabled();
+});
+
+test('a dependency change cancels views queued for the previous dependency state', async () => {
+  const { pending } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  // Views for {database: first, schema: shared} are queued but not yet sent.
+  await chooseDependentOption('Database', 'second');
+  const sentBefore = viewsRequests().length;
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  const staleViewRequests = viewsRequests()
+    .slice(sentBefore)
+    .filter(
+      ({ jsonPayload }: { jsonPayload: { runtime_data?: unknown } }) =>
+        (jsonPayload.runtime_data as Record<string, unknown>)?.database ===
+        'first',
+    );
+  expect(staleViewRequests).toHaveLength(0);
+  expect(pending).toHaveLength(2);
+});
+
+test('a dependency change discards an in-flight views response', async () => {
+  const { pending } = await openDependentSchemaForm();
+  const originalPost = mockedPost.getMockImplementation();
+  let finishViews: (() => void) | undefined;
+  let viewsCall = 0;
+  mockedPost.mockImplementation((request: { endpoint: string }) => {
+    if (request.endpoint === '/api/v1/semantic_layer/layer-1/views') {
+      viewsCall += 1;
+      if (viewsCall === 1) {
+        return Promise.resolve({
+          json: { result: [{ name: 'old_view', already_added: false }] },
+        });
+      }
+      return new Promise(resolve => {
+        finishViews = () =>
+          resolve({
+            json: { result: [{ name: 'old_view', already_added: false }] },
+          });
+      });
+    }
+    return originalPost?.(request);
+  });
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await chooseDependentOption('Semantic views', 'old_view');
+  expect(screen.getByRole('button', { name: /Add 1 view/ })).toBeEnabled();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'new request' },
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(viewsCall).toBe(2);
+  expect(finishViews).toBeDefined();
+  await chooseDependentOption('Database', 'second');
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+  await act(async () => {
+    finishViews?.();
+  });
+  expect(selectedTag('old_view')).toBeNull();
+  expect(
+    screen.getByRole('combobox', { name: 'Semantic views' }),
+  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+});
+
+test('closing and reopening clears stale dependent-option state', async () => {
+  const { props, rerender } = await openDependentSchemaForm();
+  await chooseDependentOption('Database', 'second');
+  expect(screen.getByRole('combobox', { name: 'Schema' })).toBeDisabled();
+  rerender(<AddSemanticViewModal {...props} show={false} />);
+  rerender(<AddSemanticViewModal {...props} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  expect(screen.getByRole('combobox', { name: 'Schema' })).toBeEnabled();
+});
+
+test('switching layers clears stale dependent-option state', async () => {
+  jest.useFakeTimers();
+  const schema = databaseSchema(['shared']);
+  mockLayerWithSchema(schema, {
+    '/api/v1/semantic_layer/layer-2/schema/runtime': () =>
+      Promise.resolve({ json: { result: schema } }),
+  });
+  mockedGet.mockResolvedValue({
+    json: {
+      result: [
+        { uuid: 'layer-1', name: 'Snowflake SL' },
+        { uuid: 'layer-2', name: 'Second SL' },
+      ],
+    },
+  });
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  await chooseDependentOption('Database', 'first');
+  expect(screen.getByRole('combobox', { name: 'Schema' })).toBeDisabled();
+  await chooseDependentOption('Semantic layer', 'Second SL');
+  expect(screen.getByRole('combobox', { name: 'Schema' })).toBeEnabled();
+});
+
+test('a persistently failing refresh retries once, not on every edit', async () => {
+  const { pending, props } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  await act(async () => {
+    pending[1].reject(new Error('refresh boom'));
+  });
+
+  const note = screen.getByRole('textbox', { name: 'Note' });
+  fireEvent.change(note, { target: { value: 'retry' } });
+  await act(async () => {
+    jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+  await act(async () => {
+    pending[2].reject(new Error('refresh boom'));
+  });
+
+  // More edits in the same dependency state must not schedule a third attempt
+  // or fetch views for the stale options.
+  const viewsBefore = viewsRequests().length;
+  fireEvent.change(note, { target: { value: 'another edit' } });
+  await act(async () => {
+    jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
   expect(
     props.addDangerToast.mock.calls.filter(([msg]) =>
       String(msg).includes('refreshing the runtime schema'),
@@ -560,48 +1652,28 @@ test('a persistently failing refresh retries once, not on every edit', async () 
   ).toHaveLength(1);
 });
 
-test('a superseded refresh response cannot toast or clobber a newer one', async () => {
-  // Exercises schemaRefreshGenRef: when two refreshes overlap and the older
-  // one settles last, its failure must be ignored — no error toast, and no
-  // rollback of the dependency snapshot the newer request committed.
-  let call = 0;
-  const resolvers: Array<() => void> = [];
-  mockLayerWithSchema(dynamicMetricsSchema, {
-    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
-      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
-        return Promise.resolve({ json: { result: dynamicMetricsSchema } });
-      }
-      call += 1;
-      if (call === 1) {
-        // First (soon-to-be superseded) refresh: fails, but only after the
-        // second one has already been issued.
-        return new Promise((_resolve, reject) => {
-          resolvers.push(() => reject(new Error('stale refresh boom')));
-        });
-      }
-      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
-    },
+test('a superseded refresh failure cannot toast or clobber a newer response', async () => {
+  const { pending, props } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
   });
-  const props = createProps();
-  render(<AddSemanticViewModal {...props} />);
-  await selectOption('Semantic layer', 'Snowflake SL');
-
-  await pickFromSelect(/metrics/i, 'm1');
-  await waitFor(() => expect(call).toBe(1), { timeout: 10000 });
-  // Second selection supersedes the in-flight refresh.
-  await pickFromSelect(/metrics/i, 'm2');
-  await waitFor(() => expect(call).toBe(2), { timeout: 10000 });
-  // Now let the stale first request fail, last.
-  resolvers.forEach(fn => fn());
-  await new Promise(resolve => {
-    setTimeout(resolve, 1000);
+  await chooseDependentOption('Database', 'third');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
   });
-
-  expect(
-    props.addDangerToast.mock.calls.filter(([msg]) =>
-      String(msg).includes('refreshing the runtime schema'),
-    ),
-  ).toHaveLength(0);
-  expect(selectedTag('m1')).toBeTruthy();
-  expect(selectedTag('m2')).toBeTruthy();
+  expect(pending).toHaveLength(3);
+  await act(async () => {
+    pending[2].resolve(databaseSchema(['shared', 'third_only']));
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+  await act(async () => {
+    pending[1].reject(new Error('stale refresh boom'));
+  });
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+  expect(schema.closest('.ant-select')).toHaveTextContent('shared');
+  fireEvent.mouseDown(schema);
+  expect(await screen.findByText('third_only')).toBeInTheDocument();
 });

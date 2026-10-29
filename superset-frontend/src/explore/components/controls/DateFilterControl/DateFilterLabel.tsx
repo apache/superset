@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { ReactNode, useState, useEffect, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   NO_TIME_RANGE,
@@ -35,8 +35,10 @@ import {
   Divider,
   Tooltip,
   Select,
+  Flex,
 } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
@@ -148,6 +150,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onClosePopover = noOp,
     isOverflowingFilterBar = false,
     hovered: isControlHovered = false,
+    displayFormat,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -165,6 +168,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+  // Separate per-effect: each only guards against a later request from the
+  // *same* effect. A shared counter would let effect 2's debounced draft
+  // fetch (which can still be pending/leftover after Apply) invalidate
+  // effect 1's Apply-triggered fetch purely because it started later,
+  // even though effect 1's result is the more relevant one.
+  const latestValueRequestId = useRef(0);
+  const latestDraftRequestId = useRef(0);
 
   useEffect(() => {
     if (!isControlHovered) {
@@ -179,45 +189,50 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       setValidTimeRange(true);
       return;
     }
-    fetchTimeRange(value).then(({ value: actualRange, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-        setTooltipTitle(t(value) || null);
-      } else {
-        /*
-          HRT == human readable text
-          ADR == actual datetime range
-          +--------------+------+----------+--------+----------+-----------+
-          |              | Last | Previous | Custom | Advanced | No Filter |
-          +--------------+------+----------+--------+----------+-----------+
-          | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
-          +--------------+------+----------+--------+----------+-----------+
-          | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
-          +--------------+------+----------+--------+----------+-----------+
-        */
-        if (
-          guessedFrame === 'Common' ||
-          guessedFrame === 'Calendar' ||
-          guessedFrame === 'Current' ||
-          guessedFrame === 'No filter'
-        ) {
-          setActualTimeRange(value);
-          setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, value, actualRange),
-          );
+    latestValueRequestId.current += 1;
+    const requestId = latestValueRequestId.current;
+    fetchTimeRange(value, 'col', undefined, displayFormat).then(
+      ({ value: actualRange, error }) => {
+        if (requestId !== latestValueRequestId.current) return;
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+          setTooltipTitle(t(value) || null);
         } else {
-          setActualTimeRange(actualRange || '');
-          setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, actualRange, value),
-          );
+          /*
+            HRT == human readable text
+            ADR == actual datetime range
+            +--------------+------+----------+--------+----------+-----------+
+            |              | Last | Previous | Custom | Advanced | No Filter |
+            +--------------+------+----------+--------+----------+-----------+
+            | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
+            +--------------+------+----------+--------+----------+-----------+
+            | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
+            +--------------+------+----------+--------+----------+-----------+
+          */
+          if (
+            guessedFrame === 'Common' ||
+            guessedFrame === 'Calendar' ||
+            guessedFrame === 'Current' ||
+            guessedFrame === 'No filter'
+          ) {
+            setActualTimeRange(value);
+            setTooltipTitle(
+              getTooltipTitle(labelIsTruncated, value, actualRange),
+            );
+          } else {
+            setActualTimeRange(actualRange || '');
+            setTooltipTitle(
+              getTooltipTitle(labelIsTruncated, actualRange, value),
+            );
+          }
+          setValidTimeRange(true);
         }
-        setValidTimeRange(true);
-      }
-      setLastFetchedTimeRange(value);
-      setEvalResponse(actualRange || value);
-    });
-  }, [guessedFrame, labelIsTruncated, labelRef, value]);
+        setLastFetchedTimeRange(value);
+        setEvalResponse(actualRange || value);
+      },
+    );
+  }, [displayFormat, guessedFrame, labelIsTruncated, labelRef, value]);
 
   useDebouncedEffect(
     () => {
@@ -228,20 +243,25 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
-          if (error) {
-            setEvalResponse(error || '');
-            setValidTimeRange(false);
-          } else {
-            setEvalResponse(actualRange || '');
-            setValidTimeRange(true);
-          }
-          setLastFetchedTimeRange(timeRangeValue);
-        });
+        latestDraftRequestId.current += 1;
+        const requestId = latestDraftRequestId.current;
+        fetchTimeRange(timeRangeValue, 'col', undefined, displayFormat).then(
+          ({ value: actualRange, error }) => {
+            if (requestId !== latestDraftRequestId.current) return;
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actualRange || '');
+              setValidTimeRange(true);
+            }
+            setLastFetchedTimeRange(timeRangeValue);
+          },
+        );
       }
     },
     Constants.SLOW_DEBOUNCE,
-    [timeRangeValue],
+    [displayFormat, timeRangeValue],
   );
 
   function onSave() {
@@ -402,7 +422,26 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         {...props}
         onDescriptionHoverChange={setIsDescriptionHovered}
       />
-      {popoverContent}
+      {/* The glyph sits outside the popover trigger so clicking it opens the
+          tooltip rather than the time-range editor. Only with a mapping: the
+          wrapper makes the trigger a flex item, so without one the markup stays
+          exactly what it was and the Time Range box keeps filling its
+          container. With one, the trigger is told to fill the row too. */}
+      {props.partitionMapping ? (
+        <Flex align="center" gap={theme.sizeUnit}>
+          <div
+            css={css`
+              flex: 1;
+              min-width: 0;
+            `}
+          >
+            {popoverContent}
+          </div>
+          <PartitionPruningIndicator mapping={props.partitionMapping} />
+        </Flex>
+      ) : (
+        popoverContent
+      )}
     </>
   );
 }

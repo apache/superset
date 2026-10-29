@@ -88,6 +88,19 @@ export default function getDropPosition(
     return null;
   }
 
+  // A container cannot receive itself. Dropping it into one of its own
+  // descendants (as a child, or as a sibling of one) makes reorderItem detach
+  // the subtree from its real parent and close a cycle between the two, which
+  // is unreachable from the root and so never repaired downstream.
+  const isSelfOrDescendant = (target?: LayoutItem) =>
+    !!target &&
+    (target.id === draggingItem.id ||
+      (target.parents || []).includes(draggingItem.id));
+
+  if (isSelfOrDescendant(component) || isSelfOrDescendant(parentComponent)) {
+    return DROP_FORBIDDEN;
+  }
+
   const validChild = isValidChild({
     parentType: component.type,
     parentDepth: componentDepth,

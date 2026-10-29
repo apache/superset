@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { useAppSelector } from 'src/views/store';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -179,6 +180,7 @@ function ArchivedListBody({
     state: { loading, resourceCount, resourceCollection },
     fetchData,
     refreshData,
+    hasPerm,
   } = useListViewResource<ArchivedItem>(
     config.resource,
     TYPE_LABELS[type](),
@@ -187,11 +189,13 @@ function ArchivedListBody({
     [],
     baseFilters,
   );
+  // Restore and purge both require the selected resource's write permission.
+  const canWrite = hasPerm('can_write');
 
   // Restore is immediate (no confirm dialog). On success, refetch the full page
   // so the server-side count/pagination stays consistent and the row drops out;
-  // on any error surface a danger toast and leave the row in place. The list
-  // read is already owner-scoped, so every visible row is restorable.
+  // on any error surface a danger toast and leave the row in place. List
+  // visibility does not imply write permission; the API also checks ownership.
   // A second activation while a request is in flight races the first: by the
   // time the retry lands the row is already restored (or purged), so the
   // server answers 404 and the user is shown a failure after a success. The
@@ -431,9 +435,18 @@ function ArchivedListBody({
           // error — the reader is shown what looks like an empty new chart
           // rather than told anything. Neither is a preview, and the silent
           // one is the worse of the two, so no row links out until the object
-          // is recovered.
+          // is recovered. Both audiences get told why: editors are prompted
+          // to recover; readers, who cannot recover, learn the precondition.
           return (
-            <Tooltip title={t('Recover this item to open it')}>
+            <Tooltip
+              title={
+                canWrite
+                  ? t('Recover this item to open it')
+                  : t(
+                      'Archived items must be recovered before they can be opened.',
+                    )
+              }
+            >
               <span>{name}</span>
             </Tooltip>
           );
@@ -490,12 +503,14 @@ function ArchivedListBody({
         ),
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canWrite,
         disableSortBy: true,
         size: 'sm',
       },
     ],
     [
       config.nameField,
+      canWrite,
       type,
       handleRestore,
       handlePurge,
@@ -600,6 +615,7 @@ function ArchivedListBody({
  */
 function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   const history = useHistory();
+  const location = useLocation();
   const roles = useAppSelector(
     state =>
       (state.user as UserWithPermissionsAndRoles | undefined)?.roles ??
@@ -639,11 +655,28 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   // SET_USER action exists precisely because that is not guaranteed). A
   // once-only useState initializer would leave a Select showing a value its
   // options no longer contain, fetching an API that answers 403.
-  const [chosenType, setType] = useState<ArchivedType | undefined>(undefined);
+  const chosenType = new URLSearchParams(location.search).get(
+    'type',
+  ) as ArchivedType | null;
+  const rememberedType = getItem(LocalStorageKeys.LastArchivedType, null);
+  const defaultType =
+    rememberedType && availableTypes.includes(rememberedType)
+      ? rememberedType
+      : availableTypes[0];
   const type =
     chosenType && availableTypes.includes(chosenType)
       ? chosenType
-      : availableTypes[0];
+      : chosenType
+        ? availableTypes[0]
+        : defaultType;
+
+  useEffect(() => {
+    if (chosenType && chosenType !== type && type) {
+      const params = new URLSearchParams(location.search);
+      params.set('type', type);
+      history.replace({ search: params.toString() });
+    }
+  }, [chosenType, type, location.search, history]);
 
   // ListView persists sort (`sortColumn`/`sortOrder`) and pagination
   // (`pageIndex`) in the shared URL and replays them on every mount. The
@@ -659,11 +692,11 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   const handleTypeChange = useCallback(
     (value: unknown) => {
       const params = new URLSearchParams(history.location.search);
+      params.set('type', String(value));
       params.delete('sortColumn');
       params.delete('sortOrder');
       params.delete('pageIndex');
       history.replace({ search: params.toString() });
-      setType(value as ArchivedType);
     },
     [history],
   );
@@ -676,7 +709,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   if (!type) {
     return (
       <>
-        <SubMenu name={t('Recently archived')} />
+        <SubMenu name={t('Recently Archived')} />
         <EmptyStateRow data-test="archived-no-readable-types">
           {t('You do not have permission to view any archived object types.')}
         </EmptyStateRow>
@@ -686,7 +719,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
 
   return (
     <>
-      <SubMenu name={t('Recently archived')} />
+      <SubMenu name={t('Recently Archived')} />
       <TypeSelectRow>
         <Select
           ariaLabel={t('Type')}

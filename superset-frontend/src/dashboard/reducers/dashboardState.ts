@@ -90,6 +90,7 @@ interface DashboardStateShape {
   hasUnsavedChanges?: boolean;
   dashboardIsSaving?: boolean;
   lastModifiedTime?: number;
+  versionHistoryRevision?: number;
   refreshFrequency?: number;
   shouldPersistRefreshFrequency?: boolean;
   isRefreshing?: boolean;
@@ -294,6 +295,7 @@ export default function dashboardStateReducer(
         updatedColorScheme: false,
         // server-side returns last_modified_time for latest change
         lastModifiedTime: action.lastModifiedTime,
+        versionHistoryRevision: (state.versionHistoryRevision ?? 0) + 1,
       };
     },
     [SET_UNSAVED_CHANGES](): DashboardStateShape {

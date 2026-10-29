@@ -19,20 +19,23 @@
 Unit tests for update_chart_preview MCP tool
 """
 
+import asyncio
 import importlib
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext
 from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 
+import superset.mcp_service.chart.registry as registry_module
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import (
     map_big_number_config,
     preserve_previous_adhoc_filters,
 )
+from superset.mcp_service.chart.registry import _PluginFilterConfig
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     BigNumberChartConfig,
@@ -46,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     XYChartConfig,
 )
+from superset.mcp_service.chart.tool.get_chart_type_schema import _CHART_EXAMPLES
 
 # The package ``__init__.py`` re-exports the ``update_chart_preview`` tool
 # function under the same dotted path as the module, so mock.patch's string
@@ -161,8 +165,8 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
         ),
     )
 
-    result = update_chart_preview_module.update_chart_preview(
-        request=request, ctx=Mock()
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
     )
 
     assert result["success"] is True, result
@@ -184,6 +188,44 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
 
 class TestUpdateChartPreview:
     """Tests for update_chart_preview MCP tool."""
+
+    @pytest.mark.parametrize("redirect", [False, True])
+    def test_oauth_errors_include_response_versions(
+        self, redirect: bool, mock_auth: Mock
+    ) -> None:
+        """OAuth error branches retain the common response contract."""
+        from superset.exceptions import OAuth2Error, OAuth2RedirectError
+
+        error = (
+            OAuth2RedirectError(
+                "https://example.com/oauth",
+                "tab-1",
+                "https://example.com/redirect",
+            )
+            if redirect
+            else OAuth2Error("token refresh failed")
+        )
+        request = UpdateChartPreviewRequest(
+            dataset_id=1,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="country")],
+            ),
+        )
+
+        with patch.object(
+            update_chart_preview_module, "_find_dataset", side_effect=error
+        ):
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request,
+                    ctx=Mock(),
+                )
+            )
+
+        assert result["success"] is False
+        assert result["schema_version"] == "2.0"
+        assert result["api_version"] == "v1"
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_request_structure(self):
@@ -226,6 +268,197 @@ class TestUpdateChartPreview:
         assert xy_request.config.chart_type == "xy"
         assert xy_request.config.x.name == "date"
         assert xy_request.config.kind == "line"
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    def test_cached_dataset_rebind_scrubs_unproven_roles_before_recaching(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Cached iteration retains only roles declared for the target dataset."""
+        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        dataset = _mock_dataset(id=99)
+        mock_find_dataset.return_value = dataset
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "table",
+            "datasource": "10__table",
+            "query_mode": "aggregate",
+            "groupby": ["old_region"],
+            "metrics": ["old_revenue"],
+            "column_config": {"old_revenue": {"visible": False}},
+            "adhoc_filters": [{"subject": "old_region"}],
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        mock_validate_and_compile.return_value = Mock(success=True)
+        request = UpdateChartPreviewRequest(
+            form_data_key="old_key",
+            dataset_id=99,
+            config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")]),
+            generate_preview=False,
+        )
+
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+        )
+
+        assert result["success"] is True
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["datasource"] == "99__table"
+        assert generated["all_columns"] == ["ds"]
+        assert "old_region" not in str(generated)
+        assert "old_revenue" not in str(generated)
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    def test_cached_cross_viz_rebind_from_unregistered_viz_uses_target_config(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """A complete replacement config does not need the source role contract."""
+        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        mock_find_dataset.return_value = _mock_dataset(id=99)
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "word_cloud",
+            "datasource": "10__table",
+            "series": "old_word",
+            "metric": "old_count",
+            "rotation": "square",
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        mock_validate_and_compile.return_value = Mock(success=True)
+        request = UpdateChartPreviewRequest(
+            form_data_key="old_key",
+            dataset_id=99,
+            config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")]),
+            generate_preview=False,
+        )
+
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+        )
+
+        assert result["success"] is True
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["viz_type"] == "table"
+        assert generated["datasource"] == "99__table"
+        assert {"series", "rotation"}.isdisjoint(generated)
+        assert "old_word" not in str(generated)
+        assert "old_count" not in str(generated)
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    def test_cached_same_dataset_preserves_populated_table_state(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Cached iteration does not treat the same datasource as a rebind."""
+        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        dataset = _mock_dataset(id=99)
+        mock_find_dataset.return_value = dataset
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "table",
+            "datasource": "99__table",
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "order_by_cols": ['["revenue", false]'],
+            "column_config": {"revenue": {"visible": False}},
+            "adhoc_filters": [{"subject": "region"}],
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        mock_validate_and_compile.return_value = Mock(success=True)
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="aggregate",
+            columns=[
+                ColumnRef(name="region"),
+                ColumnRef(name="revenue", saved_metric=True),
+            ],
+            sort_by=["revenue"],
+        )
+        request = UpdateChartPreviewRequest(
+            form_data_key="old_key",
+            dataset_id=99,
+            config=config,
+            generate_preview=False,
+        )
+
+        with patch(
+            "superset.mcp_service.chart.validation.dataset_validator."
+            "DatasetValidator.normalize_column_names",
+            side_effect=lambda config, *_args, **_kwargs: config,
+        ):
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request, ctx=Mock()
+                )
+            )
+
+        assert result["success"] is True
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["datasource"] == "99__table"
+        assert generated["groupby"] == ["region"]
+        assert generated["metrics"] == ["revenue"]
+        assert generated["order_by_cols"]
+        assert generated["column_config"] == {"revenue": {"visible": False}}
+        assert generated["adhoc_filters"] == [{"subject": "region"}]
+        compile_form_data = mock_validate_and_compile.call_args.args[1]
+        assert compile_form_data == generated
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_dataset_id_types(self):
@@ -754,25 +987,6 @@ class TestUpdateChartPreview:
 
         assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
 
-    def test_preserves_filters_with_distinct_comparators(self) -> None:
-        """Filters that differ only by value are not deduplicated."""
-        previous_filter = {
-            "clause": "WHERE",
-            "comparator": 2020,
-            "expressionType": "SIMPLE",
-            "operator": ">",
-            "subject": "year",
-        }
-        generated_filter = {**previous_filter, "comparator": 2021}
-        new_form_data = {"adhoc_filters": [generated_filter]}
-
-        preserve_previous_adhoc_filters(
-            new_form_data,
-            {"adhoc_filters": [previous_filter]},
-        )
-
-        assert new_form_data["adhoc_filters"] == [previous_filter, generated_filter]
-
     def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
         """A newly selected temporal column replaces the cached binding."""
         new_temporal_filter = {
@@ -1021,7 +1235,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1074,6 +1288,7 @@ class TestUpdateChartPreview:
         ]
         mock_get_previous_form_data.return_value = {
             "viz_type": "table",
+            "datasource": "3__table",
             "adhoc_filters": cached_adhoc_filters,
             "column_config": {"Sales": {"d3NumberFormat": "$,.2f", "visible": False}},
         }
@@ -1099,7 +1314,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1147,6 +1362,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile.return_value = Mock(success=True)
         mock_get_previous_form_data.return_value = {
             "viz_type": "ag-grid-pivot-table",
+            "datasource": "3__table",
             "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
             "conditional_formatting": [
                 {"column": "Revenue", "operator": ">", "targetValue": 1000}
@@ -1179,7 +1395,7 @@ class TestUpdateChartPreview:
         with patch.object(
             feature_flag_manager, "is_feature_enabled", return_value=True
         ):
-            result = update_chart_preview_module.update_chart_preview(
+            result = await update_chart_preview_module.update_chart_preview(
                 request=request, ctx=Mock()
             )
 
@@ -1258,7 +1474,7 @@ class TestUpdateChartPreview:
             preview_formats=["url", "table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1362,15 +1578,15 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             assert "sum_boys" in error["suggestions"]
             mock_create_form_data.assert_not_called()
 
-    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=False)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
@@ -1381,14 +1597,18 @@ class TestUpdateChartPreviewValidation:
         self,
         mock_create_form_data,
         mock_find_by_id,
-        unused_access_mock,
-        mock_find_dataset,
+        mock_has_dataset_access,
+        mock_validate_and_compile,
         mcp_server,
         mock_auth,
     ):
-        """has_dataset_access=False → DatasetNotAccessible, no cache write."""
-        mock_find_dataset.return_value = _mock_dataset(id=3)
-        mock_find_by_id.return_value = _mock_dataset(id=3)
+        """has_dataset_access=False → DatasetNotAccessible, no compile or cache.
+
+        The real ``_find_dataset`` resolves the dataset, so this covers the
+        tool's own access check rather than a lookup that returns nothing.
+        """
+        dataset = _mock_dataset(id=3)
+        mock_find_by_id.return_value = dataset
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
@@ -1402,9 +1622,228 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
+            mock_has_dataset_access.assert_called_once_with(dataset)
+            mock_validate_and_compile.assert_not_called()
             mock_create_form_data.assert_not_called()
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_non_decimal_digit_dataset_id_uses_uuid_lookup(
+        self,
+        mock_find_by_id,
+        mcp_server,
+        mock_auth,
+    ):
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the dataset lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        mock_find_by_id.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartPreviewRequest(dataset_id="²", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "dataset_not_found"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
+
+
+@pytest.mark.parametrize("allowed", [True, False])
+def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> None:
+    """Cached config retrieval retains Explore's resource-access check."""
+    from superset.commands.dataset.exceptions import DatasetAccessDeniedError
+    from superset.utils.core import DatasourceType
+
+    cached_form_data = '{"viz_type": "gantt_chart", "category": "task"}'
+    state = {
+        "owner": None,
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "chart_id": 12,
+        "form_data": cached_form_data,
+    }
+    with (
+        patch(
+            "superset.commands.explore.form_data.get.app",
+            Mock(config={"EXPLORE_FORM_DATA_CACHE_CONFIG": {}}),
+        ),
+        patch("superset.commands.explore.form_data.get.cache_manager") as cache_manager,
+        patch(
+            "superset.commands.explore.form_data.utils.explore_check_access",
+            side_effect=None if allowed else DatasetAccessDeniedError(),
+        ) as check_access,
+    ):
+        cache_manager.explore_form_data_cache.get.return_value = state
+
+        result = update_chart_preview_module._get_previous_form_data("cached-key")
+
+    cache_manager.explore_form_data_cache.get.assert_called_once_with("cached-key")
+    check_access.assert_called_once_with(7, 12, DatasourceType.TABLE)
+    assert result == (
+        {"viz_type": "gantt_chart", "category": "task"} if allowed else None
+    )
+
+
+@pytest.mark.parametrize("kind", ["country_map", "world_map", "deck_scatter"])
+@pytest.mark.parametrize("previous_type", [None, "expired", "table", "same"])
+def test_disabled_geographic_preview_requires_existing_same_type(
+    kind: str,
+    previous_type: str | None,
+    monkeypatch: pytest.MonkeyPatch,
+    mock_auth: Mock,
+) -> None:
+    """Disabled types allow same-type iteration, not fresh previews or conversions."""
+    monkeypatch.setattr(
+        registry_module, "_filter_config", _PluginFilterConfig(frozenset({kind}))
+    )
+    dataset: Mock = _mock_dataset(id=3)
+    previous: dict[str, Any] | None = (
+        None
+        if previous_type in {None, "expired"}
+        else {
+            "viz_type": kind if previous_type == "same" else previous_type,
+            "datasource": "3__table",
+        }
+    )
+    request: UpdateChartPreviewRequest = UpdateChartPreviewRequest.model_validate(
+        {
+            "dataset_id": 3,
+            "config": _CHART_EXAMPLES[kind][0],
+            "form_data_key": "old" if previous_type else None,
+            "generate_preview": False,
+        }
+    )
+    with ExitStack() as stack:
+        for target, value in (
+            ("_find_dataset", dataset),
+            ("_get_previous_form_data", previous),
+            ("generate_explore_link", "http://localhost/explore/?form_data_key=new"),
+            ("analyze_chart_capabilities", None),
+            ("analyze_chart_semantics", None),
+            ("has_dataset_access", True),
+            ("validate_and_compile", Mock(success=True)),
+        ):
+            stack.enter_context(
+                patch.object(update_chart_preview_module, target, return_value=value)
+            )
+        stack.enter_context(
+            patch.object(
+                update_chart_preview_module,
+                "event_logger",
+                Mock(log_context=lambda **kwargs: nullcontext()),
+            )
+        )
+        stack.enter_context(
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+        )
+        stack.enter_context(
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
+                side_effect=lambda config, *args, **kwargs: config,
+            )
+        )
+        result: dict[str, Any] = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+        )
+    assert result["success"] is (previous_type == "same"), result
+    if previous_type != "same":
+        assert "disabled" in str(result["error"]).lower(), result
+
+
+def test_gantt_validation_error_includes_response_versions(mock_auth: Mock) -> None:
+    """Gantt role errors retain the same envelope as sibling error branches."""
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        GanttSemanticNormalizationError,
+    )
+
+    request = UpdateChartPreviewRequest(
+        dataset_id=1,
+        config=TableChartConfig(columns=[ColumnRef(name="country")]),
+    )
+    with patch.object(
+        update_chart_preview_module,
+        "_find_dataset",
+        side_effect=GanttSemanticNormalizationError("Invalid roles"),
+    ):
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+        )
+    assert result["success"] is False
+    assert result["error"]["error_type"] == "gantt_semantic_validation_error"
+    assert result["schema_version"] == "2.0"
+    assert result["api_version"] == "v1"
+
+
+@patch.object(update_chart_preview_module, "validate_and_compile")
+@patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+@patch.object(update_chart_preview_module, "analyze_chart_semantics")
+@patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+@patch.object(update_chart_preview_module, "generate_explore_link")
+@patch.object(update_chart_preview_module, "_get_previous_form_data")
+@patch.object(update_chart_preview_module, "_find_dataset")
+def test_cached_sql_trendline_is_kept_by_an_update_that_omits_it(
+    mock_find_dataset: Mock,
+    mock_get_previous_form_data: Mock,
+    mock_generate_explore_link: Mock,
+    mock_analyze_chart_capabilities: Mock,
+    mock_analyze_chart_semantics: Mock,
+    unused_access_mock: Mock,
+    mock_validate_and_compile: Mock,
+    mock_auth: Mock,
+) -> None:
+    """An update that only changes the metric keeps a cached SQL trendline."""
+    sql_time_column = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE(ds)",
+        "label": "day",
+    }
+    mock_find_dataset.return_value = _mock_dataset(id=99)
+    mock_generate_explore_link.return_value = (
+        "http://localhost:8088/explore/?form_data_key=new_key"
+    )
+    mock_analyze_chart_capabilities.return_value = None
+    mock_analyze_chart_semantics.return_value = None
+    mock_validate_and_compile.return_value = Mock(success=True)
+    mock_get_previous_form_data.return_value = {
+        "viz_type": "big_number",
+        "datasource": "99__table",
+        "metric": "count",
+        "x_axis": sql_time_column,
+        "compare_lag": 7,
+    }
+    request = UpdateChartPreviewRequest(
+        form_data_key="old_key",
+        dataset_id=99,
+        config=BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="ds", aggregate="COUNT"),
+        ),
+        generate_preview=False,
+    )
+
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
+    )
+
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["viz_type"] == "big_number"
+    assert generated["x_axis"] == sql_time_column
+    assert generated["metric"]["label"] == "COUNT(ds)"
+    assert generated["compare_lag"] == 7

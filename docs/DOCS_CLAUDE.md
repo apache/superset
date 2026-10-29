@@ -304,11 +304,12 @@ import FeatureCard from '@site/src/components/FeatureCard';
 
 ### Internal Links
 
-Use relative paths for internal documentation:
+Use relative paths with explicit `.md` or `.mdx` extensions for internal
+documentation so Docusaurus can validate and resolve them:
 
 ```markdown
-[Installation Guide](./installation/docker-compose)
-[Configuration](../configuration/configuring-superset)
+[Installation Guide](./admin_docs/installation/docker-compose.mdx)
+[Configuration](./admin_docs/configuration/configuring-superset.mdx)
 ```
 
 ### External Links
@@ -587,11 +588,15 @@ FEATURE_FLAGS = {
 
 ### Cross-Referencing Pattern
 
+The following paths are relative to this guide (`docs/DOCS_CLAUDE.md`).
+Recalculate the prefix from the file being edited instead of copying it
+unchanged.
+
 ```mdx
 For detailed configuration options, see:
-- [Configuring Superset](./configuration/configuring-superset)
-- [Database Connections](./configuration/databases)
-- [Security Settings](./security/security)
+- [Configuring Superset](./admin_docs/configuration/configuring-superset.mdx)
+- [Database Connections](./docs/using-superset/creating-your-first-dashboard.mdx#connecting-to-a-new-database)
+- [Security Settings](./admin_docs/security/security.mdx)
 
 External resources:
 - [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)

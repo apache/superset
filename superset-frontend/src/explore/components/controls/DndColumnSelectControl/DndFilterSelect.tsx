@@ -70,6 +70,7 @@ const isDictionaryForAdhocFilter = (value: OptionValueType) =>
 export interface DndFilterSelectProps extends ControlComponentProps<
   OptionValueType[]
 > {
+  semanticSelectionVersion?: string;
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
@@ -100,6 +101,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     }
     return extra;
   }, [datasource?.extra]);
+
+  const { semanticSelectionVersion } = props;
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -363,6 +366,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
           adhocFilter={adhocFilter}
           options={options}
           datasource={datasource}
+          semanticSelectionVersion={semanticSelectionVersion}
           onFilterEdit={onFilterEdit}
           partitionColumn={partitionColumn}
           onClickClose={onClickClose}
@@ -376,6 +380,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       options,
       partitionColumn,
       datasource,
+      semanticSelectionVersion,
       values,
     ],
   );
@@ -463,6 +468,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         adhocFilter={adhocFilter}
         options={options}
         datasource={datasource}
+        semanticSelectionVersion={semanticSelectionVersion}
         onFilterEdit={onNewFilter}
         partitionColumn={partitionColumn}
         isControlledComponent

@@ -27,6 +27,7 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/theme';
+import { isEqual } from 'lodash-es';
 import { makeApi, SupersetClient } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
@@ -81,6 +82,12 @@ export class ThemeController {
   private defaultTheme: AnyThemeConfig | null;
 
   private darkTheme: AnyThemeConfig | null;
+
+  // Workspace default baseline for setThemeConfig's override check. Separate from
+  // the mutable defaultTheme/darkTheme slots, which setThemeConfig reassigns.
+  private workspaceDefaultTheme: AnyThemeConfig | null;
+
+  private workspaceDarkTheme: AnyThemeConfig | null;
 
   // The built-in/config fallback default theme captured at construction. Used
   // when no system default theme is set, so a live refresh reproduces the
@@ -154,6 +161,8 @@ export class ThemeController {
     this.defaultTheme =
       bootstrapDefaultTheme || this.builtInDefaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
+    this.workspaceDefaultTheme = this.defaultTheme;
+    this.workspaceDarkTheme = this.darkTheme;
     this.bootstrapDefaultMode = bootstrapDefaultMode;
 
     // Initialize system theme detection
@@ -554,9 +563,16 @@ export class ThemeController {
    * @param config - The complete theme configuration object
    */
   public setThemeConfig(config: SupersetThemeConfig): void {
+    // An override only when the config differs from the workspace default, so an
+    // auto-forwarded default does not suppress the dashboard theme. Compare against
+    // the retained baseline, not the slots reassigned just below.
+    const isExplicitOverride =
+      !isEqual(config.theme_default, this.workspaceDefaultTheme) ||
+      !isEqual(config.theme_dark || null, this.workspaceDarkTheme);
+
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
-    this.themeConfigOverride = true;
+    this.themeConfigOverride = isExplicitOverride;
 
     let newMode: ThemeMode;
     try {
@@ -631,6 +647,9 @@ export class ThemeController {
       this.defaultTheme =
         bootstrapDefaultTheme || this.builtInDefaultTheme || null;
       this.darkTheme = bootstrapDarkTheme;
+      // Keep the workspace baseline in sync with the live default.
+      this.workspaceDefaultTheme = this.defaultTheme;
+      this.workspaceDarkTheme = this.darkTheme;
       this.bootstrapDefaultMode = bootstrapDefaultMode;
 
       // Dark-theme availability may have changed (set or unset); re-sync the

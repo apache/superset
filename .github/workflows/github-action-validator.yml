@@ -32,7 +32,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
 
@@ -45,8 +45,22 @@ jobs:
       - name: Run Script
         run: bash .github/workflows/github-action-validator.sh
 
-      - name: Test docs-deploy freshness gate
-        run: bash .github/workflows/scripts/check-docs-deploy-freshness.test.sh
+      - name: Test branch freshness gate
+        run: bash .github/workflows/scripts/check-branch-freshness.test.sh
+
+      - name: Test code scanning availability check
+        run: bash .github/workflows/scripts/check-code-scanning-available.test.sh
+
+      # A repository without code scanning (e.g. a private fork or mirror
+      # without GitHub Code Security) rejects the SARIF upload. The audit
+      # still runs there; its findings are reported in the job log instead.
+      - name: Check code scanning availability
+        id: code-scanning
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/workflows/scripts/check-code-scanning-available.sh
 
       - name: Check for security issues on GHA workflows
-        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        with:
+          advanced-security: ${{ steps.code-scanning.outputs.available != 'false' }}
