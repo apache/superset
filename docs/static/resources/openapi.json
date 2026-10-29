@@ -8537,6 +8537,20 @@
             "minItems": 1,
             "type": "array"
           },
+          "validation_partition_values": {
+            "default": null,
+            "description": "One to three existing integer partition keys for explicit data validation",
+            "items": {
+              "maxLength": 21,
+              "minLength": 1,
+              "pattern": "^-?[0-9]+$",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
           "value_transform": {
             "description": "SQL expression containing a :value placeholder",
             "maxLength": 1024,
@@ -25816,6 +25830,56 @@
                   "properties": {
                     "result": {
                       "properties": {
+                        "data_validation": {
+                          "properties": {
+                            "checked_rows": {
+                              "type": "integer"
+                            },
+                            "examples": {
+                              "items": {
+                                "properties": {
+                                  "source_value": {
+                                    "type": "string"
+                                  },
+                                  "stored_key": {
+                                    "type": "string"
+                                  },
+                                  "transformed_value": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "mismatch_count": {
+                              "type": "integer"
+                            },
+                            "partitions_checked": {
+                              "type": "integer"
+                            },
+                            "partitions_requested": {
+                              "type": "integer"
+                            },
+                            "skipped_rows": {
+                              "type": "integer"
+                            },
+                            "status": {
+                              "enum": [
+                                "not_checked",
+                                "matched",
+                                "mismatch",
+                                "inconclusive"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "emitted_predicate": {
                           "type": "string"
                         },
@@ -25823,8 +25887,9 @@
                           "type": "string"
                         },
                         "reason": {
-                          "description": "Why the mapping is not valid. Absent when it is. The editor branches on this to decide how to present the failure.",
+                          "description": "Why predicate evaluation was declined. Absent on evaluation success. The editor branches on this to decide how to present the failure.",
                           "enum": [
+                            "unbucketed_epoch",
                             "unconfigured",
                             "validation",
                             "parse",
@@ -25842,6 +25907,7 @@
                           "type": "string"
                         },
                         "valid": {
+                          "description": "Expression/predicate evaluation succeeded; not a guarantee of partition correspondence.",
                           "type": "boolean"
                         }
                       },
