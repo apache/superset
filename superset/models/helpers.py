@@ -2258,13 +2258,42 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Optional[str]:
         return self._process_validated_sql_expression(expression, context)
 
+    @staticmethod
+    def _render_sql_expression_template(
+        expression: str,
+        template_processor: BaseTemplateProcessor,
+    ) -> str:
+        """Render Jinja in an adhoc SQL expression, mapping template failures
+        (e.g. ``UndefinedError``) to ``QueryObjectValidationError``."""
+        try:
+            return template_processor.process_template(expression)
+        except (
+            TemplateError,
+            SupersetSyntaxErrorException,
+            SupersetTemplateException,
+        ) as ex:
+            if isinstance(ex, TemplateError):
+                error_msg = ex.message
+            elif isinstance(ex, SupersetSyntaxErrorException):
+                error_msg = str(ex.errors[0].message if ex.errors else ex)
+            else:  # SupersetTemplateException
+                error_msg = str(ex)
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in adhoc SQL expression: %(msg)s",
+                    msg=error_msg,
+                )
+            ) from ex
+
     def _process_metric_sql_expression(
         self,
         expression: Optional[str],
         context: SqlExpressionContext,
     ) -> Optional[str]:
         if context.template_processor and expression:
-            expression = context.template_processor.process_template(expression)
+            expression = self._render_sql_expression_template(
+                expression, context.template_processor
+            )
         if not expression:
             return expression
 
@@ -2298,7 +2327,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         validate_subquery: bool = True,
     ) -> Optional[str]:
         if render_template and context.template_processor and expression:
-            expression = context.template_processor.process_template(expression)
+            expression = self._render_sql_expression_template(
+                expression, context.template_processor
+            )
         if expression:
             if validate_subquery:
                 expression = validate_adhoc_subquery(
