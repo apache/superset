@@ -600,6 +600,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       if (appSection === AppSection.FilterConfigModal) {
         return (trigger?.parentNode as HTMLElement) || document.body;
       }
+      // The mobile filters Drawer traps focus, and the horizontal bar's
+      // "More filters" popover closes on a click outside it, so a popup
+      // rendered outside of either gets closed as soon as it's used.
+      const overlay = trigger?.closest<HTMLElement>(
+        '.ant-drawer-body, .ant-popover',
+      );
+      if (overlay) {
+        return overlay;
+      }
       return document.body;
     },
     [appSection, parentRef, showOverflow],

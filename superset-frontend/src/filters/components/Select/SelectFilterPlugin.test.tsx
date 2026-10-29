@@ -34,6 +34,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
+import { Drawer, Popover } from '@superset-ui/core/components';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
 import {
@@ -2187,4 +2188,97 @@ test('renders dashboard select dropdown popup under document body', async () => 
   });
 
   expect(dropdown?.parentElement).toBe(document.body);
+});
+
+test('renders select dropdown popup inside the mobile filters drawer', async () => {
+  const setDataMask = jest.fn();
+  render(
+    <Drawer open title="Filters" placement="left">
+      <SelectFilterPlugin {...buildSelectFilterProps({ setDataMask })} />
+    </Drawer>,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: ['boy'] },
+          },
+        },
+      },
+    },
+  );
+
+  const [filterSelect] = screen.getAllByRole('combobox');
+  await userEvent.click(filterSelect);
+
+  let dropdown: Element | undefined;
+  await waitFor(() => {
+    dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    ).find(
+      element => !element.classList.contains('ant-select-dropdown-hidden'),
+    );
+    expect(dropdown).toBeDefined();
+  });
+
+  const drawerBody = document.querySelector('.ant-drawer-body');
+  expect(dropdown?.parentElement).toBe(drawerBody);
+
+  await userEvent.click(screen.getByTitle('girl'));
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: ['boy', 'girl'] }),
+    }),
+  );
+});
+
+test('renders select dropdown popup inside the "More filters" popover', async () => {
+  const setDataMask = jest.fn();
+  render(
+    <Popover
+      open
+      content={
+        <SelectFilterPlugin {...buildSelectFilterProps({ setDataMask })} />
+      }
+    >
+      <button type="button">More filters</button>
+    </Popover>,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: ['boy'] },
+          },
+        },
+      },
+    },
+  );
+
+  const [filterSelect] = screen.getAllByRole('combobox');
+  await userEvent.click(filterSelect);
+
+  let dropdown: Element | undefined;
+  await waitFor(() => {
+    dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    ).find(
+      element => !element.classList.contains('ant-select-dropdown-hidden'),
+    );
+    expect(dropdown).toBeDefined();
+  });
+
+  const popover = document.querySelector('.ant-popover');
+  expect(dropdown?.parentElement).toBe(popover);
+
+  await userEvent.click(screen.getByTitle('girl'));
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: ['boy', 'girl'] }),
+    }),
+  );
 });
