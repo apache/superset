@@ -1802,20 +1802,23 @@ export default function transformProps(
         : {}),
     },
     series: renderedSeries,
-    toolbox: {
-      show: zoomable,
-      top: TIMESERIES_CONSTANTS.toolboxTop,
-      right: TIMESERIES_CONSTANTS.toolboxRight,
-      feature: {
-        dataZoom: {
-          ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
-          title: {
-            zoom: t('zoom area'),
-            back: t('restore zoom'),
+    // A hidden toolbox still registers its dataZoom feature, which filters
+    // out points (e.g. wide confidence bands) even when zooming is disabled.
+    toolbox: zoomable
+      ? {
+          top: TIMESERIES_CONSTANTS.toolboxTop,
+          right: TIMESERIES_CONSTANTS.toolboxRight,
+          feature: {
+            dataZoom: {
+              ...(stack ? { yAxisIndex: false } : {}), // disable y-axis zoom for stacked charts
+              title: {
+                zoom: t('zoom area'),
+                back: t('restore zoom'),
+              },
+            },
           },
-        },
-      },
-    },
+        }
+      : undefined,
     dataZoom: zoomable
       ? [
           {
