@@ -3177,3 +3177,84 @@ def test_turning_impersonation_off_while_clearing_the_credential_is_allowed(
     assert stored is not None
     assert stored.impersonate_user is False
     assert "embedded_credentials" not in json.loads(stored.encrypted_extra)
+
+
+def _fallback_off(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": False, "EMBEDDED_SUPERSET": True},
+    )
+
+
+def test_a_credential_is_refused_while_the_fallback_is_off(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    sc-130270: with the fallback off, a credential PUT on a non-impersonating
+    connection used to be stored unchecked and go live when the flag came on.
+    """
+    from superset.models.core import Database
+
+    _fallback_off(mocker)
+    database_id = _stored_embedded_connection(
+        mocker, session, {}, impersonate_user=False
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": {"username": "EMBED_VIEWER"}}
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert "can't be added or changed" in str(response.json)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == {}
+
+
+@pytest.mark.parametrize("rename", [False, True])
+def test_a_stored_credential_round_trips_while_the_fallback_is_off(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    rename: bool,
+) -> None:
+    """
+    OEF-REG-07: re-saving what the dialog loaded, with its masked secrets, is not
+    a change, and the stored credential survives for when the flag returns.
+    """
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+
+    _fallback_off(mocker)
+    # The Snowflake override lists specific paths; the base default masks `$.*`.
+    mocker.patch.object(SqliteEngineSpec, "encrypted_extra_sensitive_fields", set())
+    stored_extra = {
+        "oauth2_client_info": _EMBEDDED_CLIENT,
+        "embedded_credentials": _EMBEDDED_CREDENTIALS,
+    }
+    database_id = _stored_embedded_connection(mocker, session, stored_extra)
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    masked = json.loads(loaded["masked_encrypted_extra"])
+    assert masked["embedded_credentials"]["password"] == PASSWORD_MASK
+    payload = {"masked_encrypted_extra": loaded["masked_encrypted_extra"]}
+    if rename:
+        payload["database_name"] = "renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == stored_extra

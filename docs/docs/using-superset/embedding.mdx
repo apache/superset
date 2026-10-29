@@ -191,7 +191,7 @@ is otherwise disabled.
 
 - Both `EMBEDDED_SUPERSET` and `EMBEDDED_CREDENTIAL_FALLBACK` must be enabled. While
   either is off, a stored credential is preserved, unused, and does not block unrelated
-  edits.
+  edits, but a new or changed credential is refused.
 - The connection needs an OAuth2 client — per-connection **OAuth2 client information**
   or a deployment-wide `DATABASE_OAUTH2_CLIENTS` entry — and **Impersonate logged in
   user** must be on. Superset refuses to save a credential otherwise, and it never

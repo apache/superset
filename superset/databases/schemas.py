@@ -52,7 +52,11 @@ from superset.databases.types import (  # pylint:disable=unused-import
     EncryptedDict,  # noqa: F401
     EncryptedString,  # noqa: F401
 )
-from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
+from superset.databases.utils import (
+    embedded_credentials_incomplete,
+    embedded_credentials_present,
+    make_url_safe,
+)
 from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -367,6 +371,9 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     """
 
     database_id: int | None = None
+    # Whether loading the schema stores the connection. A connection test carries
+    # the submitted Secure Extra but never saves it.
+    saves_connection = False
 
     engine = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
@@ -464,13 +471,10 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
             and is_feature_enabled("EMBEDDED_SUPERSET")
         ):
+            self._refuse_embedded_credentials_while_disabled(data)
             return
 
-        stored = (
-            db.session.get(Database, self.database_id)
-            if self.database_id is not None
-            else None
-        )
+        stored = self._stored_database()
         if "masked_encrypted_extra" in data:
             encrypted_extra = _json_object(data["masked_encrypted_extra"])
             from_stored = False
@@ -528,6 +532,53 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 'use OAuth2 with "Impersonate logged in user" turned on. '
                 "Configure OAuth2 client information and turn on "
                 "impersonation, or clear the embedded credentials."
+            ),
+            field_name="masked_encrypted_extra",
+        )
+
+    def _stored_database(self) -> Database | None:
+        """The connection an update applies to; ``None`` when creating one."""
+        if self.database_id is None:
+            return None
+        return db.session.get(Database, self.database_id)
+
+    def _refuse_embedded_credentials_while_disabled(self, data: dict[str, Any]) -> None:
+        """
+        Refuse a new or changed credential while the fallback is off.
+
+        Nothing validates a credential while the fallback is off, and one saved then
+        goes live, unchecked, the moment the fallback is turned on. A stored
+        credential is left as it is, so it works again when the fallback returns:
+        re-saving it unchanged (masked secrets included) is accepted, and so is
+        clearing it.
+        """
+        if not self.saves_connection or not data.get("masked_encrypted_extra"):
+            return
+
+        submitted = data["masked_encrypted_extra"]
+        credentials = _json_object(submitted).get(EMBEDDED_CREDENTIALS_KEY)
+        if not embedded_credentials_present(credentials):
+            return
+
+        stored = self._stored_database()
+        if stored is not None and stored.encrypted_extra:
+            stored_extra = _json_object(stored.encrypted_extra)
+            # The update command reveals masked secrets the same way.
+            revealed = _json_object(
+                stored.db_engine_spec.unmask_encrypted_extra(
+                    stored.encrypted_extra, submitted
+                )
+            )
+            if revealed.get(EMBEDDED_CREDENTIALS_KEY) == stored_extra.get(
+                EMBEDDED_CREDENTIALS_KEY
+            ):
+                return
+
+        raise ValidationError(
+            _(
+                "Embedded guest credentials can't be added or changed while the "
+                "embedded credential fallback is turned off. Leave the stored "
+                "credentials unchanged or clear them."
             ),
             field_name="masked_encrypted_extra",
         )
@@ -741,6 +792,8 @@ class DatabaseSSHTunnel(Schema):
 
 
 class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
+    saves_connection = True
+
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -800,6 +853,8 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
 
 
 class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
+    saves_connection = True
+
     def __init__(self, *, database_id: int | None = None, **kwargs: Any) -> None:
         """Keep the existing connection identity for updates without a URI."""
         super().__init__(**kwargs)

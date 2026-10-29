@@ -42,7 +42,8 @@ assists people when migrating to a new version.
   ignored while both embedding flags are enabled; asset import is unchanged. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An update that would turn
-  impersonation off while a credential is stored is refused. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
+  impersonation off while a credential is stored is refused. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  and refuses new or changed credentials until both flags are on again. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the

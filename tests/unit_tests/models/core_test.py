@@ -3984,3 +3984,28 @@ def test_a_rejection_reported_by_two_paths_is_logged_once(
 
     warning.assert_called_once()
     assert warning.call_args.args[3] == "OperationalError"
+
+
+def test_a_credential_kept_while_the_fallback_was_off_applies_when_it_returns(
+    mocker: MockerFixture,
+) -> None:
+    """
+    sc-130270 / OEF-REG-07: turning the fallback off leaves a stored credential
+    inert, not deleted, so turning it back on restores it unchanged.
+    """
+    flags = {"EMBEDDED_CREDENTIAL_FALLBACK": False, "EMBEDDED_SUPERSET": True}
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: flags.get(name, False),
+    )
+    _become_guest(mocker)
+    database = _embedded_snowflake_database()
+
+    assert database.get_embedded_fallback_credentials() is None
+
+    flags["EMBEDDED_CREDENTIAL_FALLBACK"] = True
+
+    assert database.get_embedded_fallback_credentials() == {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
