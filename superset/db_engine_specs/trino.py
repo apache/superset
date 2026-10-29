@@ -21,7 +21,9 @@ import logging
 import math
 import threading
 import time
-from typing import Any, TYPE_CHECKING
+from collections.abc import Sequence
+from decimal import Decimal
+from typing import Any, Callable, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
@@ -29,8 +31,9 @@ from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.types import DECIMAL, TypeEngine
 
-from superset import db
+from superset import cache_manager, db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import (
@@ -50,6 +53,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
+from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -70,6 +74,36 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
+    # The client sets queryId after its first request, then blocks in
+    # execute() until rows arrive or the query ends.
+    has_query_id_during_execute = True
+
+    encrypted_extra_sensitive_fields = {
+        **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
+    # Trino's DBAPI driver can return DECIMAL columns as plain strings
+    # (e.g. when a value's precision/scale can't be inferred from the
+    # column type alone), which later breaks numeric post-processing
+    # (e.g. pivot with a mean aggregate). Coerce them back to Decimal.
+    column_type_mutators: dict[TypeEngine, Callable[[Any], Any]] = {
+        **PrestoBaseEngineSpec.column_type_mutators,
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val,
+    }
+
+    # The full set of columns Trino's "<table>$partitions" exposes for an
+    # Iceberg table. The real partition keys are nested in the "partition" ROW,
+    # so none of these are user partition columns.
+    iceberg_partitions_metadata_columns = frozenset(
+        {"partition", "record_count", "file_count", "total_size", "data"}
+    )
+    # Always present for Iceberg; used as the positive signal so we don't act on
+    # a table that merely happens to share one of the names above.
+    iceberg_partitions_signature_columns = frozenset(
+        {"record_count", "file_count", "total_size"}
+    )
 
     metadata = {
         "description": (
@@ -167,6 +201,37 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         )
 
     @classmethod
+    def _filter_iceberg_partition_indexes(
+        cls,
+        indexes: list[dict[str, Any]] | None,
+    ) -> list[dict[str, Any]]:
+        """
+        Drop Iceberg "$partitions" metadata indexes.
+
+        A partition index is recognized as Iceberg metadata only when it carries
+        the signature columns *and* every one of its columns is a known metadata
+        field. Requiring the latter means an index with any real partition key
+        (e.g. a Hive table partitioned on "ds" that also has a column named
+        "record_count") is left untouched. Such an index has no real partition
+        keys, so it's dropped entirely; all other indexes pass through unchanged.
+
+        :param indexes: the indexes associated with a table
+        :returns: the indexes with Iceberg metadata indexes removed
+        """
+        filtered_indexes = []
+        for index in indexes or []:
+            column_names = set(index.get("column_names") or [])
+            is_iceberg_metadata = (
+                index.get("name") == "partition"
+                and cls.iceberg_partitions_signature_columns <= column_names
+                and column_names <= cls.iceberg_partitions_metadata_columns
+            )
+            if not is_iceberg_metadata:
+                filtered_indexes.append(index)
+
+        return filtered_indexes
+
+    @classmethod
     def get_extra_table_metadata(
         cls,
         database: Database,
@@ -174,7 +239,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table):
+        if indexes := cls._filter_iceberg_partition_indexes(
+            database.get_indexes(table)
+        ):
             col_names, latest_parts = cls.latest_partition(
                 database,
                 table,
@@ -182,8 +249,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 indexes=indexes,
             )
 
-            if not latest_parts:
-                latest_parts = tuple([None] * len(col_names))
+            partition_values: Sequence[str | None]
+            if latest_parts:
+                partition_values = latest_parts
+            else:
+                partition_values = [None] * len(col_names)
 
             metadata["partitions"] = {
                 "cols": sorted(  # noqa: C414
@@ -196,7 +266,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         }
                     )
                 ),
-                "latest": dict(zip(col_names, latest_parts, strict=False)),
+                "latest": dict(zip(col_names, partition_values, strict=False)),
                 "partitionQuery": cls._partition_query(
                     table=table,
                     indexes=indexes,
@@ -235,6 +305,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             if user_token is not None:
                 http_session = requests.Session()
                 http_session.headers.update({"Authorization": f"Bearer {user_token}"})
+                # Persists `verify` to the new `http_session`
+                if "verify" in connect_args:
+                    http_session.verify = connect_args["verify"]
                 connect_args["http_session"] = http_session
 
         return url, engine_kwargs
@@ -303,11 +376,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 QueryStatus.STOPPED,
                 QueryStatus.TIMED_OUT,
             ]:
-                cls.cancel_query(
-                    cursor=cursor,
-                    query=query,
-                    cancel_query_id=cancel_query_id,
-                )
+                cls._cancel_requested_query(cursor, query, cancel_query_id)
                 break
 
             needs_commit = False
@@ -332,6 +401,32 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
             time.sleep(poll_interval)
+
+    @classmethod
+    def _cancel_requested_query(
+        cls, cursor: Cursor, query: Query, cancel_query_id: str
+    ) -> None:
+        """
+        Kill a query whose stop or timeout ``handle_cursor`` observed.
+
+        A stop requested before the query ID was published only left the
+        early-cancel flag, and this kill is what carries it out. STOPPED is
+        recorded before the killed statement raises, so the error handler keeps
+        it instead of writing FAILED. Nothing is recorded if the kill failed.
+        """
+        cancelled = cls.cancel_query(
+            cursor=cursor,
+            query=query,
+            cancel_query_id=cancel_query_id,
+        )
+        if cancelled and query.status not in (
+            QueryStatus.STOPPED,
+            QueryStatus.TIMED_OUT,
+        ):
+            query.status = QueryStatus.STOPPED
+            if not query.end_time:
+                query.end_time = now_as_float()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def execute_with_cursor(
@@ -414,10 +509,25 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise err
 
     @classmethod
+    def get_cancel_query_id(cls, cursor: Cursor, query: Query) -> str | None:
+        """
+        Return the Trino queryId of the cursor's running query.
+
+        It is ``None`` until execution has started, so callers that ask before
+        executing (SQL Lab, chart-data tasks) record nothing and keep using
+        ``handle_cursor``. Another thread can read it while ``execute`` blocks.
+
+        :param cursor: Trino DB-API cursor
+        :param query: Query instance (unused)
+        :return: Trino queryId, or None before execution
+        """
+        return cursor.query_id
+
+    @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
+        """Stage early-cancel intent for the caller's guarded stop transaction."""
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
@@ -553,7 +663,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         Expanded columns are named foo.bar.baz and we provide a query_as property to
         instruct the base engine spec how to correctly query them: instead of quoting
         the whole string they have to be quoted like "foo"."bar"."baz" and we then
-        alias them to the full dotted string for ease of reference.
+        alias them to the full dotted string for ease of reference. We also provide
+        an `expression` property with the same correctly quoted path (without the
+        alias), so that a physical `TableColumn` created from this metadata selects
+        the column correctly instead of quoting the whole dotted name as a single
+        (invalid) identifier.
         """
         # pylint: disable=import-outside-toplevel
         from trino.sqlalchemy import datatype
@@ -576,6 +690,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 column_name=name,
                 type=inner_type,
                 is_dttm=is_dttm,
+                expression=query_name,
                 query_as=f'{query_name} AS "{name}"',
             )
             cols.extend(cls._expand_columns(inner_col))
@@ -631,3 +746,66 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []
+
+    @classmethod
+    @cache_manager.data_cache.memoize(timeout=60)
+    def latest_partition(
+        cls,
+        database: Database,
+        table: Table,
+        show_first: bool = False,
+        indexes: list[dict[str, Any]] | None = None,
+    ) -> tuple[list[str], list[str] | None]:
+        """
+        Return the latest partition for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so we
+        never build a latest-partition query against them. Memoized like the
+        base implementation so the index lookup is not repeated on cache hits.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param show_first: return the value for the first partitioning key when
+            there are several
+        :param indexes: the indexes associated with the table
+        :returns: the column names and the latest partition values
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_partition(
+            database,
+            table,
+            show_first=show_first,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+        )
+
+    @classmethod
+    def latest_sub_partition(
+        cls,
+        database: Database,
+        table: Table,
+        indexes: list[dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Return the latest sub-partition value for a table.
+
+        Iceberg "$partitions" metadata fields are filtered out first, so the
+        ``latest_sub_partition`` macro never builds a query against them.
+
+        :param database: the database the query will be run against
+        :param table: the table instance
+        :param indexes: the indexes associated with the table
+        :param kwargs: filtering criteria on the partition list
+        :returns: the latest sub-partition value
+        """
+        if indexes is None:
+            indexes = database.get_indexes(table)
+
+        return super().latest_sub_partition(
+            database,
+            table,
+            indexes=cls._filter_iceberg_partition_indexes(indexes),
+            **kwargs,
+        )

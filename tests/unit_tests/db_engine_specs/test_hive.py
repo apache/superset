@@ -24,6 +24,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
+from superset.constants import TimeGrain
 from superset.sql.parse import Table
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -50,6 +51,80 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+@pytest.mark.parametrize(
+    ("grain", "expected_expression"),
+    [
+        (
+            TimeGrain.WEEK,
+            "date_format(date_sub(my_col, "
+            "CAST(from_unixtime(unix_timestamp(my_col),'u') as int)-1), "
+            "'yyyy-MM-dd 00:00:00')",
+        ),
+    ],
+)
+def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> None:
+    """
+    Test that time grain expressions generate the expected SQL.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    actual = HiveEngineSpec._time_grain_expressions[grain].format(col="my_col")
+    assert actual == expected_expression
+
+
+def test_week_time_grain_buckets_to_monday() -> None:
+    """
+    Evaluate the Hive ``WEEK`` grain expression and check that every day of a
+    week maps to that week's Monday.
+
+    The expression runs on SQLite with Python stand-ins for the Hive functions
+    it uses, following Hive's semantics (``'u'`` is the ISO day of week).
+    """
+    import sqlite3
+    from datetime import date, timedelta, timezone
+
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    def unix_timestamp(value: str) -> int:
+        day = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+        return int(day.timestamp())
+
+    def from_unixtime(seconds: int, fmt: str) -> str:
+        # Assumes Java SimpleDateFormat semantics for ``'u'`` (ISO day of week,
+        # Monday=1 ... Sunday=7), as used by Hive 2.x/3.x ``from_unixtime``.
+        # Hive versions that format ``'u'`` differently are not covered here.
+        assert fmt == "u"
+        return str(datetime.fromtimestamp(seconds, timezone.utc).isoweekday())
+
+    def date_sub(value: str, days: int) -> str:
+        return (date.fromisoformat(value[:10]) - timedelta(days=days)).isoformat()
+
+    def date_format(value: str, fmt: str) -> str:
+        day = date.fromisoformat(value[:10])
+        return (
+            fmt.replace("yyyy", f"{day.year:04d}")
+            .replace("MM", f"{day.month:02d}")
+            .replace("dd", f"{day.day:02d}")
+        )
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("unix_timestamp", 1, unix_timestamp)
+    connection.create_function("from_unixtime", 2, from_unixtime)
+    connection.create_function("date_sub", 2, date_sub)
+    connection.create_function("date_format", 2, date_format)
+
+    expression = HiveEngineSpec._time_grain_expressions[TimeGrain.WEEK].format(col="d")
+    monday = date(2025, 1, 6)
+    for offset in range(14):
+        day = monday + timedelta(days=offset)
+        (bucket,) = connection.execute(
+            f"SELECT {expression} FROM (SELECT ? AS d)",  # noqa: S608
+            (day.isoformat(),),
+        ).fetchone()
+        expected = monday + timedelta(days=(offset // 7) * 7)
+        assert bucket == f"{expected.isoformat()} 00:00:00", day
+
+
 def test_get_schema_from_engine_params() -> None:
     """
     Test the ``get_schema_from_engine_params`` method.
@@ -61,6 +136,74 @@ def test_get_schema_from_engine_params() -> None:
             make_url("hive://localhost:10000/default"), {}
         )
         == "default"
+    )
+
+
+@pytest.mark.parametrize(
+    "catalog,schema",
+    [
+        (None, None),
+        (None, "new_schema"),
+        ("catalog", None),
+        ("catalog", "new_schema"),
+    ],
+)
+def test_adjust_engine_params(catalog: Optional[str], schema: Optional[str]) -> None:
+    """
+    Test that ``adjust_engine_params`` leaves the URI untouched.
+
+    The URI database must not be rewritten to the selected schema: PyHive runs
+    ``USE`` on it at connect time, and on Spark Thrift Server it can select a
+    catalog, so overwriting it with the schema breaks table resolution (see
+    issue #30208). Schema selection happens via ``get_prequeries`` instead.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    uri = make_url("hive://localhost:10000/default")
+    connect_args = {"foo": "bar"}
+
+    adjusted_uri, adjusted_connect_args = HiveEngineSpec.adjust_engine_params(
+        uri,
+        connect_args,
+        catalog=catalog,
+        schema=schema,
+    )
+    assert adjusted_uri is uri
+    assert adjusted_connect_args is connect_args
+    assert connect_args == {"foo": "bar"}
+
+
+@pytest.mark.parametrize(
+    "catalog,schema,expected",
+    [
+        (None, None, []),
+        ("catalog", None, []),
+        (None, "new_schema", ["USE `new_schema`"]),
+        ("catalog", "new_schema", ["USE `new_schema`"]),
+        (None, "evil`schema", ["USE `evil``schema`"]),
+    ],
+)
+def test_get_prequeries(
+    mocker: MockerFixture,
+    catalog: Optional[str],
+    schema: Optional[str],
+    expected: list[str],
+) -> None:
+    """
+    Test that ``get_prequeries`` selects the schema with a ``USE`` statement.
+
+    Together with ``supports_dynamic_schema`` this implements per-query schema
+    selection, so unqualified table names resolve in the schema Superset
+    attributes the query to.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.supports_dynamic_schema
+
+    database = mocker.MagicMock()
+    assert (
+        HiveEngineSpec.get_prequeries(database, catalog=catalog, schema=schema)
+        == expected
     )
 
 
@@ -183,3 +326,50 @@ def test_partition_query_escapes_identifiers() -> None:
         database=None,  # type: ignore
     )
     assert result == "SHOW PARTITIONS `no_schema_tbl`"
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """HiveQL/Spark SQL quote identifiers with backticks, not ANSI double
+    quotes, unlike the PrestoEngineSpec parent class it otherwise reuses."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_spark_identifier_quote_uses_backticks() -> None:
+    """SparkEngineSpec inherits the backtick quoting from HiveEngineSpec."""
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert SparkEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_the_partition_transform_default_is_hive_syntax() -> None:
+    """
+    `unix_timestamp(:value)` only belongs on engines where it parses. The
+    one-argument form takes the bound being mirrored; the zero-argument form
+    means "now" on Hive and is rejected at save time.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert HiveEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    # Spark SQL inherits from Hive and shares the syntax.
+    assert SparkEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+
+
+def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
+    """
+    HiveEngineSpec extends PrestoEngineSpec, so pin that the default did not
+    travel up: Presto has no `unix_timestamp`.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.partition_value_transform_default is None

@@ -25,7 +25,6 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app
 from flask.cli import with_appcontext
-from flask_appbuilder import Model
 from flask_appbuilder.api import BaseApi
 from flask_appbuilder.api.manager import resolver
 
@@ -39,34 +38,18 @@ logger = logging.getLogger(__name__)
 @click.command()
 @with_appcontext
 @transaction()
-@click.option("--database_name", "-d", help="Database name to change")
-@click.option("--uri", "-u", help="Database URI to change")
+@click.option("--database_name", "-d", required=True, help="Database name to change")
+@click.option("--uri", "-u", required=True, help="Database URI to change")
 @click.option(
     "--skip_create",
     "-s",
     is_flag=True,
     default=False,
-    help="Create the DB if it doesn't exist",
+    help="Don't create the DB if it doesn't exist",
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
     """Updates a database connection URI"""
     database_utils.get_or_create_db(database_name, uri, not skip_create)
-
-
-@click.command()
-@with_appcontext
-@transaction()
-def sync_tags() -> None:
-    """Rebuilds special tags (owner, type, favorited by)."""
-    # pylint: disable=no-member
-    metadata = Model.metadata
-
-    # pylint: disable=import-outside-toplevel
-    from superset.common.tags import add_favorites, add_owners, add_types
-
-    add_types(metadata)
-    add_owners(metadata)
-    add_favorites(metadata)
 
 
 @click.command()
@@ -92,13 +75,16 @@ def update_api_docs() -> None:
         if isinstance(base_api, BaseApi) and base_api.version == api_version:
             base_api.add_api_spec(api_spec)
             version_found = True
-    if version_found:
-        click.secho("Generating openapi.json", fg="green")
-        with open(openapi_json, "w") as outfile:
-            json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
-            outfile.write("\n")
-    else:
-        click.secho("API version not found", err=True)
+    if not version_found:
+        # Exiting zero here would leave the stale file in place and report
+        # success, which reads as "the spec is current" to any caller diffing
+        # the result.
+        raise click.ClickException(f"No {api_version} API found to document")
+
+    click.secho("Generating openapi.json", fg="green")
+    with open(openapi_json, "w") as outfile:
+        json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
+        outfile.write("\n")
 
 
 @click.command()

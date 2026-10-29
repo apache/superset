@@ -58,21 +58,25 @@ superset-frontend/src/components
 **Reference naming:** Use `PascalCase` for React components and `camelCase` for component instances
 
 **BAD:**
+
 ```jsx
 import mainNav from './MainNav';
 ```
 
 **GOOD:**
+
 ```jsx
 import MainNav from './MainNav';
 ```
 
 **BAD:**
+
 ```jsx
 const NavItem = <MainNav />;
 ```
 
 **GOOD:**
+
 ```jsx
 const navItem = <MainNav />;
 ```
@@ -80,11 +84,13 @@ const navItem = <MainNav />;
 **Component naming:** Use the file name as the component name
 
 **BAD:**
+
 ```jsx
 import MainNav from './MainNav/index';
 ```
 
 **GOOD:**
+
 ```jsx
 import MainNav from './MainNav';
 ```
@@ -92,11 +98,13 @@ import MainNav from './MainNav';
 **Props naming:** Do not use DOM related props for different purposes
 
 **BAD:**
+
 ```jsx
 <MainNav style="big" />
 ```
 
 **GOOD:**
+
 ```jsx
 <MainNav variant="big" />
 ```
@@ -104,23 +112,27 @@ import MainNav from './MainNav';
 **Importing dependencies:** Only import what you need
 
 **BAD:**
+
 ```jsx
-import * as React from "react";
+import * as React from 'react';
 ```
 
 **GOOD:**
+
 ```jsx
-import React, { useState } from "react";
+import React, { useState } from 'react';
 ```
 
 **Default VS named exports:** As recommended by [TypeScript](https://www.typescriptlang.org/docs/handbook/modules.html), "If a module's primary purpose is to house one specific export, then you should consider exporting it as a default export. This makes both importing and actually using the import a little easier". If you're exporting multiple objects, use named exports instead.
 
 _As a default export_
+
 ```jsx
 import MainNav from './MainNav';
 ```
 
 _As a named export_
+
 ```jsx
 import { MainNav, SecondaryNav } from './Navbars';
 ```
@@ -138,10 +150,10 @@ Validate all props with the correct types. This replaces the need for a run-time
 ```tsx
 type HeadingProps = {
   param: string;
-}
+};
 
 export default function Heading({ children }: HeadingProps) {
-  return <h2>{children}</h2>
+  return <h2>{children}</h2>;
 }
 ```
 
@@ -152,7 +164,8 @@ Use `type` for your component props and state. Use `interface` when you want to 
 In order to improve the readability of your code and reduce assumptions, always add default values for non required props, when applicable, for example:
 
 ```tsx
-const applyDiscount = (price: number, discount = 0.05) => price * (1 - discount);
+const applyDiscount = (price: number, discount = 0.05) =>
+  price * (1 - discount);
 ```
 
 ## Functional components and Hooks

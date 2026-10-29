@@ -19,6 +19,8 @@
 
 export { default as NumberFormats } from './NumberFormats';
 export { default as NumberFormatter, PREVIEW_VALUE } from './NumberFormatter';
+export { formatSpecifier } from 'd3-format';
+export type { FormatLocaleDefinition } from 'd3-format';
 export { DEFAULT_D3_FORMAT } from './D3FormatConfig';
 
 export {
@@ -34,3 +36,6 @@ export { default as createDurationFormatter } from './factories/createDurationFo
 export { default as createMemoryFormatter } from './factories/createMemoryFormatter';
 export { default as createSiAtMostNDigitFormatter } from './factories/createSiAtMostNDigitFormatter';
 export { default as createSmartNumberFormatter } from './factories/createSmartNumberFormatter';
+export { default as getSmallNumberFormatter } from './getSmallNumberFormatter';
+export { default as createLengthFormatter } from './factories/createLengthFormatter';
+export { default as createThroughputFormatter } from './factories/createThroughputFormatter';

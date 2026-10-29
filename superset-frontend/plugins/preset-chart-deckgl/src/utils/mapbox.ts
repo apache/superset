@@ -20,6 +20,7 @@
 import {
   getMapboxApiKeyFromBootstrap,
   hasMapboxApiKey as hasBootstrapMapboxApiKey,
+  getDeckMultiMaxSlices as getBootstrapDeckMultiMaxSlices,
 } from '@superset-ui/core/utils/mapStyles';
 
 export function getMapboxApiKey(): string {
@@ -28,4 +29,8 @@ export function getMapboxApiKey(): string {
 
 export function hasMapboxApiKey(): boolean {
   return hasBootstrapMapboxApiKey();
+}
+
+export function getDeckMultiMaxSlices(): number {
+  return getBootstrapDeckMultiMaxSlices();
 }

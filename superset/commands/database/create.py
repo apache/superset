@@ -33,6 +33,7 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
     SSHTunnelDatabasePortError,
+    SSHTunnelHostKeyVerificationError,
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
 )
@@ -75,6 +76,7 @@ class CreateDatabaseCommand(BaseCommand):
             SupersetErrorsException,
             SSHTunnelingNotEnabledError,
             SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
         ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",

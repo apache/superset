@@ -58,6 +58,7 @@ import {
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   DropdownContainer,
+  type DropdownItem,
   type DropdownRef as DropdownContainerRef,
   Typography,
 } from '@superset-ui/core/components';
@@ -100,11 +101,13 @@ type FilterControlsProps = {
   hideHeader?: boolean;
 };
 
-const SectionContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-`;
-
-const SectionHeader = styled.div`
+const SectionHeader = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -279,7 +282,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
 
   const customizationRenderer = useCallback(
-    (item: ChartCustomization | ChartCustomizationDivider, index: number) => {
+    (item: ChartCustomization | ChartCustomizationDivider, _index: number) => {
       if (isChartCustomizationDivider(item)) {
         return (
           <FilterDivider
@@ -314,18 +317,12 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <>
         {filtersInScope.length > 0 && (
-          <SectionContainer>
+          <div>
             {!hideHeader && (
               <SectionHeader
+                type="button"
+                aria-expanded={sectionsOpen.filters}
                 onClick={() => toggleSection('filters')}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleSection('filters');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
               >
                 <Title
                   level={5}
@@ -346,7 +343,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               <SectionContent>{filtersInScope.map(renderer)}</SectionContent>
             )}
             {(hideHeader || sectionsOpen.filters) && <StyledDivider />}
-          </SectionContainer>
+          </div>
         )}
 
         {showFiltersOutOfScope && (
@@ -358,18 +355,12 @@ const FilterControls: FC<FilterControlsProps> = ({
         )}
 
         {customizationsInScope.length > 0 && (
-          <SectionContainer>
+          <div>
             {!hideHeader && (
               <SectionHeader
+                type="button"
+                aria-expanded={sectionsOpen.chartCustomization}
                 onClick={() => toggleSection('chartCustomization')}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleSection('chartCustomization');
-                  }
-                }}
-                role="button"
-                tabIndex={0}
               >
                 <Title
                   level={5}
@@ -401,7 +392,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             {(hideHeader || sectionsOpen.chartCustomization) && (
               <StyledDivider />
             )}
-          </SectionContainer>
+          </div>
         )}
 
         {showCustomizationCollapsePanel &&
@@ -428,8 +419,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       toggleSection,
       theme,
       hideHeader,
-      handleChartCustomizationChange,
-      dataMaskSelected,
     ],
   );
 
@@ -452,6 +441,14 @@ const FilterControls: FC<FilterControlsProps> = ({
     );
     return [...activeOverflowedFilters, ...overflowedCrossFilters];
   }, [overflowedCrossFilters, overflowedFiltersInScope]);
+
+  const overflowedCustomizationsInScope = useMemo(
+    () =>
+      customizationsInScope.filter(({ id }) =>
+        overflowedIds?.includes(`chart-customization-${id}`),
+      ),
+    [customizationsInScope, overflowedIds],
+  );
 
   const rendererCrossFilter = useCallback(
     (
@@ -616,31 +613,59 @@ const FilterControls: FC<FilterControlsProps> = ({
           dropdownContent={
             overflowedFiltersInScope.length ||
             overflowedCrossFilters.length ||
+            overflowedCustomizationsInScope.length ||
             (filtersOutOfScope.length && showCollapsePanel) ||
             (customizationsOutOfScope.length && showCustomizationCollapsePanel)
-              ? () => (
-                  <>
-                    <FiltersDropdownContent
-                      overflowedCrossFilters={overflowedCrossFilters}
-                      filtersInScope={overflowedFiltersInScope}
-                      filtersOutOfScope={filtersOutOfScope}
-                      renderer={renderer}
-                      rendererCrossFilter={rendererCrossFilter}
-                      showCollapsePanel={showCollapsePanel}
-                      forceRenderOutOfScope={hasRequiredFirst}
-                    />
-                    {showCustomizationCollapsePanel && (
-                      <CustomizationsOutOfScopeCollapsible
-                        customizationsOutOfScope={customizationsOutOfScope}
-                        renderer={customizationRenderer}
-                        forceRender={false}
+              ? (overflowedItems: DropdownItem[]) => {
+                  // Which ids are overflowed comes from DropdownContainer's own
+                  // fresh, synchronous partition of `items` (the argument it
+                  // passes here), not from `overflowedIds` state — that state
+                  // only updates one render later via onOverflowingStateChange,
+                  // so using it here could show a filter here that
+                  // DropdownContainer's *own* main row, computed this same
+                  // render, has already stopped excluding (duplicate chip).
+                  const overflowedItemIds = new Set(
+                    overflowedItems.map(item => item.id),
+                  );
+                  const freshOverflowedFiltersInScope = filtersInScope.filter(
+                    ({ id }) => overflowedItemIds.has(id),
+                  );
+                  const freshOverflowedCrossFilters =
+                    selectedCrossFilters.filter(({ emitterId, name }) =>
+                      overflowedItemIds.has(`${name}${emitterId}`),
+                    );
+                  const freshOverflowedCustomizationsInScope =
+                    customizationsInScope.filter(({ id }) =>
+                      overflowedItemIds.has(`chart-customization-${id}`),
+                    );
+                  return (
+                    <>
+                      <FiltersDropdownContent
+                        overflowedCrossFilters={freshOverflowedCrossFilters}
+                        filtersInScope={freshOverflowedFiltersInScope}
+                        filtersOutOfScope={filtersOutOfScope}
+                        overflowedCustomizationsInScope={
+                          freshOverflowedCustomizationsInScope
+                        }
+                        renderer={renderer}
+                        rendererCrossFilter={rendererCrossFilter}
+                        customizationRenderer={customizationRenderer}
+                        showCollapsePanel={showCollapsePanel}
+                        // Out-of-scope collapsible panels inside opened dropdown content
+                        forceRenderOutOfScope={hasRequiredFirst}
                       />
-                    )}
-                  </>
-                )
+                      {showCustomizationCollapsePanel && (
+                        <CustomizationsOutOfScopeCollapsible
+                          customizationsOutOfScope={customizationsOutOfScope}
+                          renderer={customizationRenderer}
+                          forceRender={false}
+                        />
+                      )}
+                    </>
+                  );
+                }
               : undefined
           }
-          forceRender={hasRequiredFirst}
           ref={popoverRef}
           onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
             if (
@@ -661,6 +686,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       activeOverflowedFiltersInScope,
       overflowedFiltersInScope,
       overflowedCrossFilters,
+      overflowedCustomizationsInScope,
+      filtersInScope,
+      selectedCrossFilters,
+      customizationsInScope,
       filtersOutOfScope,
       showCollapsePanel,
       customizationsOutOfScope,

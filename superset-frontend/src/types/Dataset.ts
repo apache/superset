@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from './Owner';
+import Subject from './Subject';
 
 export default interface Dataset {
   changed_by_name: string;
@@ -30,7 +30,7 @@ export default interface Dataset {
   source_type?: 'database' | 'semantic_layer';
   explore_url: string;
   id: number;
-  owners: Array<Owner>;
+  editors?: Subject[];
   schema: string | null;
   catalog?: string | null;
   table_name: string;

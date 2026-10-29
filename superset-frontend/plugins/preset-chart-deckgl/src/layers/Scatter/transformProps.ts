@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { processSpatialData, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
@@ -26,7 +27,12 @@ import {
   addPropertiesToFeature,
 } from '../transformUtils';
 import { DeckScatterFormData } from './buildQuery';
-import { isFixedValue, getFixedValue } from '../utils/metricUtils';
+import {
+  isFixedValue,
+  getFixedValue,
+  getTypedFixedRadius,
+} from '../utils/metricUtils';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ScatterPoint {
   position: [number, number];
@@ -38,12 +44,63 @@ interface ScatterPoint {
   [key: string]: unknown;
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * Keep only typed geographic points that can be drawn: numeric, in-range
+ * latitude/longitude and, for a metric radius, a finite nonnegative radius.
+ * Other spatial formats use the native decoder after Explore format changes.
+ *
+ * The MCP data and export contract rejects such rows outright; the render
+ * layer skips them so one sparse row does not blank the whole map, and logs
+ * how many points were skipped so the loss is diagnosable.
+ */
+export function filterDrawableGeographicPoints(
+  records: DataRecord[],
+  spatial: DeckScatterFormData['spatial'],
+  radiusMetricLabel?: string,
+): DataRecord[] {
+  const coordinateColumns = [
+    [spatial?.latCol, 90],
+    [spatial?.lonCol, 180],
+  ] as const;
+  const reservedMetricLabel =
+    radiusMetricLabel !== undefined &&
+    ['position', 'weight', 'extraProps'].includes(radiusMetricLabel);
+  const drawable = records.filter(record => {
+    // Explore can change a metric label after MCP schema validation.
+    if (reservedMetricLabel) {
+      return false;
+    }
+    const validCoordinates =
+      spatial?.type !== 'latlong' ||
+      coordinateColumns.every(([column, bound]) => {
+        const value = column ? record[column] : undefined;
+        return isFiniteNumber(value) && Math.abs(value) <= bound;
+      });
+    if (!validCoordinates || !radiusMetricLabel) {
+      return validCoordinates;
+    }
+    const radius = record[radiusMetricLabel];
+    return isFiniteNumber(radius) && radius >= 0;
+  });
+  const skipped = records.length - drawable.length;
+  if (skipped > 0) {
+    logging.warn(
+      `Skipped ${skipped} of ${records.length} geographic points with ` +
+        'missing or out-of-range coordinates or radius',
+    );
+  }
+  return drawable;
+}
+
 function processScatterData(
   records: DataRecord[],
   spatial: DeckScatterFormData['spatial'],
   radiusMetricLabel?: string,
   categoryColumn?: string,
-  jsColumns?: string[],
   fixedRadiusValue?: number | string | null,
 ): ScatterPoint[] {
   if (!spatial || !records.length) {
@@ -65,8 +122,9 @@ function processScatterData(
       : []),
     radiusMetricLabel,
     categoryColumn,
-    ...(jsColumns || []),
   ]);
+
+  const parsedFixedRadius = parseMetricValue(fixedRadiusValue);
 
   return spatialFeatures.map(feature => {
     let scatterPoint: ScatterPoint = {
@@ -74,24 +132,28 @@ function processScatterData(
       extraProps: feature.extraProps || {},
     };
 
+    // Reserved source columns live in extraProps to protect computed geometry.
+    const getSourceValue = (column?: string): unknown =>
+      column
+        ? feature.extraProps &&
+          Object.prototype.hasOwnProperty.call(feature.extraProps, column)
+          ? feature.extraProps[column]
+          : feature[column]
+        : undefined;
+
     // Handle radius: either from metric or fixed value
     if (fixedRadiusValue != null) {
       // Use fixed radius value for all points
-      const parsedFixedRadius = parseMetricValue(fixedRadiusValue);
       if (parsedFixedRadius !== undefined) {
         scatterPoint.radius = parsedFixedRadius;
       }
-    } else if (radiusMetricLabel && feature[radiusMetricLabel] != null) {
+    } else if (radiusMetricLabel) {
       // Use metric value for radius
-      const radiusValue = parseMetricValue(feature[radiusMetricLabel]);
+      const radiusValue = parseMetricValue(getSourceValue(radiusMetricLabel));
       if (radiusValue !== undefined) {
         scatterPoint.radius = radiusValue;
         scatterPoint.metric = radiusValue;
       }
-    }
-
-    if (categoryColumn && feature[categoryColumn] != null) {
-      scatterPoint.cat_color = String(feature[categoryColumn]);
     }
 
     scatterPoint = addPropertiesToFeature(
@@ -99,29 +161,46 @@ function processScatterData(
       feature as DataRecord,
       excludeKeys,
     );
+
+    // Assigned after the property copy so a column named `cat_color` cannot
+    // overwrite the selected dimension's category.
+    if (categoryColumn) {
+      const categoryValue = getSourceValue(categoryColumn);
+      scatterPoint.cat_color =
+        categoryValue != null ? String(categoryValue) : NULL_CATEGORY_KEY;
+    }
     return scatterPoint;
   });
 }
 
 export default function transformProps(chartProps: ChartProps) {
   const { rawFormData: formData } = chartProps;
-  const { spatial, point_radius_fixed, dimension, js_columns } =
+  const { spatial, point_radius_fixed, dimension } =
     formData as DeckScatterFormData;
 
-  // Check if this is a fixed value or metric
-  const fixedRadiusValue = isFixedValue(point_radius_fixed)
-    ? getFixedValue(point_radius_fixed)
-    : null;
+  const legacyFixedRadius = getTypedFixedRadius(
+    formData as DeckScatterFormData,
+  );
+  const fixedRadiusValue =
+    legacyFixedRadius ??
+    (isFixedValue(point_radius_fixed)
+      ? getFixedValue(point_radius_fixed)
+      : null);
 
-  const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
+  const radiusMetricLabel =
+    legacyFixedRadius !== null
+      ? undefined
+      : getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
 
+  const displayRecords = formData.mcp_geographic
+    ? filterDrawableGeographicPoints(records, spatial, radiusMetricLabel)
+    : records;
   const features = processScatterData(
-    records,
+    displayRecords,
     spatial,
     radiusMetricLabel,
     dimension,
-    js_columns,
     fixedRadiusValue,
   );
 

@@ -22,13 +22,77 @@ import {
   clearPermissionSearchCache,
   fetchGroupOptions,
   fetchPermissionOptions,
+  formatPermissionLabel,
 } from './utils';
 
 const getMock = jest.spyOn(SupersetClient, 'get');
+const decodeQuery = (endpoint: string) =>
+  rison.decode(
+    new URL(endpoint, 'http://localhost').searchParams.get('q') ?? '',
+  );
 
 afterEach(() => {
   getMock.mockReset();
   clearPermissionSearchCache();
+});
+
+test('formatPermissionLabel displays encoded dots without decoding other characters', () => {
+  expect(
+    formatPermissionLabel(
+      'catalog_access',
+      '[database].[demo%2Emetrics%2emain%2Fbranch]',
+    ),
+  ).toBe('catalog access [database].[demo.metrics.main%2Fbranch]');
+});
+
+test('fetchPermissionOptions displays encoded dots and preserves permission IDs', async () => {
+  getMock.mockResolvedValue({
+    json: {
+      count: 1,
+      result: [
+        {
+          id: 42,
+          permission: { name: 'catalog_access' },
+          view_menu: { name: '[database].[demo%2Emetrics]' },
+        },
+      ],
+    },
+  } as any);
+
+  expect(await fetchPermissionOptions('', 0, 100, jest.fn())).toEqual({
+    data: [{ value: 42, label: 'catalog access [database].[demo.metrics]' }],
+    totalCount: 1,
+  });
+});
+
+test('fetchPermissionOptions finds encoded names using their displayed dots', async () => {
+  getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    const query = decodeQuery(endpoint) as {
+      filters: { value: string }[];
+    };
+    const result = ['demo%2Emetrics', '[database].[demo%2Emetrics]'].includes(
+      query.filters[0].value,
+    )
+      ? [
+          {
+            id: 42,
+            permission: { name: 'catalog_access' },
+            view_menu: { name: '[database].[demo%2Emetrics]' },
+          },
+        ]
+      : [];
+    return Promise.resolve({
+      json: { count: result.length, result },
+    } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  });
+
+  for (const search of ['demo.metrics', '[database].[demo.metrics]']) {
+    expect(await fetchPermissionOptions(search, 0, 100, jest.fn())).toEqual({
+      data: [{ value: 42, label: 'catalog access [database].[demo.metrics]' }],
+      totalCount: 1,
+    });
+  }
+  expect(getMock).toHaveBeenCalledTimes(6);
 });
 
 test('fetchPermissionOptions fetches all results on page 0 with large page_size', async () => {
@@ -52,18 +116,22 @@ test('fetchPermissionOptions fetches all results on page 0 with large page_size'
   expect(getMock).toHaveBeenCalledTimes(2);
 
   const calls = getMock.mock.calls.map(
-    ([call]) => (call as { endpoint: string }).endpoint,
+    (call: unknown[]) => (call[0] as { endpoint: string }).endpoint,
   );
-  const queries = calls.map(ep => rison.decode(ep.split('?q=')[1]));
+  const queries = calls.map(decodeQuery);
 
   expect(queries).toContainEqual({
     page: 0,
     page_size: 1000,
+    order_column: 'id',
+    order_direction: 'asc',
     filters: [{ col: 'view_menu.name', opr: 'ct', value: 'dataset' }],
   });
   expect(queries).toContainEqual({
     page: 0,
     page_size: 1000,
+    order_column: 'id',
+    order_direction: 'asc',
     filters: [{ col: 'permission.name', opr: 'ct', value: 'dataset' }],
   });
 
@@ -121,10 +189,11 @@ test('fetchPermissionOptions makes single request when search term is empty', as
 
   expect(getMock).toHaveBeenCalledTimes(1);
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
-  const queryString = endpoint.split('?q=')[1];
-  expect(rison.decode(queryString)).toEqual({
+  expect(decodeQuery(endpoint)).toEqual({
     page: 0,
     page_size: 100,
+    order_column: 'id',
+    order_direction: 'asc',
   });
 });
 
@@ -232,10 +301,11 @@ test('fetchGroupOptions sends filters array with search term', async () => {
 
   expect(getMock).toHaveBeenCalledTimes(1);
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
-  const queryString = endpoint.split('?q=')[1];
-  expect(rison.decode(queryString)).toEqual({
+  expect(decodeQuery(endpoint)).toEqual({
     page: 1,
     page_size: 25,
+    order_column: 'name',
+    order_direction: 'asc',
     filters: [{ col: 'name', opr: 'ct', value: 'eng' }],
   });
   expect(result).toEqual({
@@ -257,10 +327,11 @@ test('fetchGroupOptions omits filters when search term is empty', async () => {
   await fetchGroupOptions('', 0, 100, addDangerToast);
 
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
-  const queryString = endpoint.split('?q=')[1];
-  expect(rison.decode(queryString)).toEqual({
+  expect(decodeQuery(endpoint)).toEqual({
     page: 0,
     page_size: 100,
+    order_column: 'name',
+    order_direction: 'asc',
   });
 });
 
@@ -291,10 +362,7 @@ test('fetchPermissionOptions fetches multiple pages when results exceed PAGE_SIZ
   }));
 
   getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
-    const query = rison.decode(endpoint.split('?q=')[1]) as Record<
-      string,
-      unknown
-    >;
+    const query = decodeQuery(endpoint) as Record<string, unknown>;
     if (query.page === 0) {
       return Promise.resolve({
         json: { count: totalCount, result: page0Items },
@@ -328,10 +396,7 @@ test('fetchPermissionOptions handles backend capping page_size below requested',
     }));
 
   getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
-    const query = rison.decode(endpoint.split('?q=')[1]) as Record<
-      string,
-      unknown
-    >;
+    const query = decodeQuery(endpoint) as Record<string, unknown>;
     const page = query.page as number;
     let items: ReturnType<typeof makeItems>;
     if (page === 0) {
@@ -385,7 +450,9 @@ test('fetchPermissionOptions shares cache across case variants', async () => {
 
 test('fetchPermissionOptions evicts oldest cache entry when MAX_CACHE_ENTRIES is reached', async () => {
   getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
-    const query = rison.decode(endpoint.split('?q=')[1]) as Record<string, any>;
+    const query = decodeQuery(endpoint) as {
+      filters?: { value?: string }[];
+    };
     const searchVal = query.filters?.[0]?.value || 'unknown';
     return Promise.resolve({
       json: {
@@ -430,10 +497,7 @@ test('fetchPermissionOptions handles variable page sizes from backend', async ()
   const pageSizes = [500, 300, 400];
 
   getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
-    const query = rison.decode(endpoint.split('?q=')[1]) as Record<
-      string,
-      unknown
-    >;
+    const query = decodeQuery(endpoint) as Record<string, unknown>;
     const page = query.page as number;
     const size = page < pageSizes.length ? pageSizes[page] : 0;
     const start = pageSizes.slice(0, page).reduce((a, b) => a + b, 0);
@@ -466,10 +530,7 @@ test('fetchPermissionOptions respects concurrency limit for parallel page fetche
   }> = [];
 
   getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
-    const query = rison.decode(endpoint.split('?q=')[1]) as Record<
-      string,
-      unknown
-    >;
+    const query = decodeQuery(endpoint) as Record<string, unknown>;
     const page = query.page as number;
 
     return new Promise(resolve => {

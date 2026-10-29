@@ -36,5 +36,3 @@ export type TimeColumnConfigKey =
 export type AppliedTimeExtras = Partial<
   Record<TimeColumnConfigKey, keyof QueryObject>
 >;
-
-export default {};

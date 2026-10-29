@@ -15,29 +15,58 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+import threading
+from typing import Any, Callable
 
-from flask import current_app, request, Response
+from flask import after_this_request, current_app, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
-from flask_appbuilder.security.decorators import permission_name, protect
+from flask_appbuilder.security.decorators import limit, permission_name, protect
+from flask_appbuilder.security.sqla.apis.user.validator import (
+    PasswordComplexityValidator,
+)
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
+from flask_babel import gettext as _
 from flask_wtf.csrf import generate_csrf
-from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    RAISE,
+    Schema,
+    validate,
+    ValidationError,
+)
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import selectinload
 
 from superset.commands.dashboard.embedded.exceptions import (
+    EmbeddedDashboardAccessDeniedError,
     EmbeddedDashboardNotFoundError,
 )
 from superset.commands.exceptions import ForbiddenError
+from superset.commands.security.exceptions import (
+    PasswordRecoveryFailedError,
+    PasswordRecoveryInvalidTokenError,
+)
+from superset.commands.security.password_recovery import (
+    RequestPasswordRecoveryCommand,
+    ResetPasswordWithTokenCommand,
+)
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security import password_recovery
+from superset.security.guest_token import (
+    build_guest_token_audit_payload,
+    GuestTokenResourceType,
+)
+from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
+    requires_json,
     statsd_metrics,
 )
 
@@ -57,6 +86,9 @@ class UserSchema(PermissiveSchema):
     username = fields.String()
     first_name = fields.String()
     last_name = fields.String()
+    attributes = fields.Dict(
+        keys=fields.String(), values=fields.Raw(allow_none=True), allow_none=True
+    )
 
 
 class ResourceSchema(PermissiveSchema):
@@ -74,8 +106,33 @@ class ResourceSchema(PermissiveSchema):
         return data
 
 
-class RlsRuleSchema(PermissiveSchema):
-    dataset = fields.Integer()
+class RlsRuleSchema(Schema):
+    """
+    Schema for a single row-level security rule attached to a guest token.
+
+    Unlike the other guest-token schemas, this one rejects unknown fields
+    instead of silently dropping them. A rule is scoped to a dataset only when
+    it carries a valid positive integer ``dataset`` key; a rule with no
+    ``dataset`` is treated as global and its ``clause`` is applied to every
+    dataset the embedded resource can reach (see ``get_guest_rls_filters``).
+    Silently excluding an unexpected field -- most commonly a mistyped or
+    legacy scope key such as ``datasource`` -- would therefore turn an intended
+    dataset-scoped rule into a global one without any feedback to the caller.
+    Raising on unknown fields surfaces the mistake as an HTTP 400 before a
+    token is ever issued and keeps the accepted payload aligned with the
+    documented ``RlsRule`` contract (``dataset`` and ``clause``).
+
+    For the same reason ``dataset`` is constrained to strict, positive
+    integers: a falsy value such as ``0`` (or ``false``, which marshmallow
+    coerces to ``0``) would pass a bare ``Integer`` field but then read as
+    falsy in ``get_guest_rls_filters``, silently widening a scoped rule to
+    every dataset.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = RAISE
+
+    dataset = fields.Integer(strict=True, validate=validate.Range(min=1))
     clause = fields.String(required=True)  # todo other options?
 
 
@@ -182,7 +239,9 @@ class SecurityRestApi(BaseSupersetApi):
         """
         try:
             body = guest_token_create_schema.load(request.json)
-            self.appbuilder.sm.validate_guest_token_resources(body["resources"])
+            self.appbuilder.sm.validate_guest_token_resources(
+                body["resources"], datasets=body.get("datasets")
+            )
             guest_token_validator_hook = current_app.config.get(
                 "GUEST_TOKEN_VALIDATOR_HOOK"
             )
@@ -204,9 +263,34 @@ class SecurityRestApi(BaseSupersetApi):
                 body["rls"],
                 **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
+            audit_payload = build_guest_token_audit_payload(
+                issuer_user_id=get_user_id(),
+                source_ip=request.remote_addr,
+                body=body,
+                token=token,
+                header_name=current_app.config["GUEST_TOKEN_HEADER_NAME"],
+                header_budget_bytes=current_app.config["GUEST_TOKEN_HEADER_MAX_BYTES"],
+            )
+            logger.info("Guest token issued: %s", audit_payload)
+            if audit_payload["header_budget_exceeded"]:
+                logger.warning(
+                    "Guest token exceeds configured request-header budget: "
+                    "token_bytes=%s header_bytes=%s header_budget_bytes=%s",
+                    audit_payload["token_bytes"],
+                    audit_payload["header_bytes"],
+                    audit_payload["header_budget_bytes"],
+                )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
             return self.response_400(message=error.message)
+        except EmbeddedDashboardAccessDeniedError as error:
+            # The minting principal is not entitled to the dashboard being
+            # scoped (see validate_guest_token_resources): an authorization
+            # denial, not a server fault, so answer 403 rather than letting
+            # @safe turn it into a logged 500.
+            # FAB 5.x: response_403() takes no message argument (unlike
+            # response_400), so build the 403 explicitly.
+            return self.response(403, message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
@@ -358,8 +442,12 @@ class RoleRestAPI(BaseSupersetApi):
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
+        except Exception:
+            # Log the full error server-side for operator visibility, but return
+            # a generic message so internal details (ORM/driver error text, SQL
+            # fragments, schema names) are not echoed back to the caller.
+            logger.exception("Unexpected error in RoleRestAPI.get_list")
+            return self.response_500(message="An unexpected error occurred")
 
 
 class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
@@ -370,6 +458,20 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # POST/PUT are intentionally excluded: restricting the exposed routes
+    # keeps the FAB default create/update handlers from ever being
+    # registered, so a mis-granted role cannot silently alter a pending
+    # registration. DELETE is kept: the User Registrations admin page
+    # deletes pending registrations through this route, and the class is
+    # gated Admin-only via ADMIN_ONLY_VIEW_MENUS (keyed on the view-menu
+    # name, i.e. every permission on this class, not just specific ones),
+    # so exposing it does not grant non-Admin roles anything.
+    include_route_methods = {
+        RouteMethod.GET,
+        RouteMethod.GET_LIST,
+        RouteMethod.INFO,
+        RouteMethod.DELETE,
+    }
     # NOTE: registration_hash is intentionally excluded from both list_columns
     # and search_columns. It is a bearer token for the
     # /register/activation/<hash> flow; exposing it in API responses (and thus
@@ -390,3 +492,196 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "last_name",
         "registration_date",
     ]
+
+
+class PasswordRecoveryRequestSchema(Schema):
+    email = fields.Email(required=True, validate=validate.Length(1, 320))
+
+
+class PasswordRecoveryResetSchema(Schema):
+    token = fields.String(required=True, validate=validate.Length(1, 256))
+    password = fields.String(
+        required=True,
+        validate=[validate.Length(min=1), PasswordComplexityValidator()],
+    )
+
+
+#: Name of the thread that delivers a recovery email.
+RECOVERY_EMAIL_THREAD_NAME = "password-recovery-email"
+
+
+def _defer_until_response_closed(task: Callable[[], None]) -> None:
+    """Run ``task`` on its own thread once the response has been handed over.
+
+    Keeps SMTP latency out of everything the client can time, so timing does
+    not reveal whether the address matched an account. Running the send inside
+    ``call_on_close`` itself would not be enough: the server only closes the
+    connection, and the worker only takes its next request, once that callback
+    returns. Failures are logged, never surfaced: the client has already been
+    answered.
+
+    The thread is deliberately not a daemon. By the time it runs, the token and
+    the resend cooldown are committed, so a lost email locks the user out of
+    another link until the cooldown ends. Python waits for non-daemon threads
+    before the process exits, so a worker that stops right after answering
+    (``max_requests``, a graceful restart) finishes the send first, within the
+    server's own shutdown timeout. A worker killed outright still loses it.
+    """
+    app = current_app._get_current_object()  # pylint: disable=protected-access
+
+    def _run() -> None:
+        with app.app_context():
+            try:
+                task()
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Failed to send password recovery email", exc_info=True)
+
+    @after_this_request
+    def _register(response: Response) -> Response:
+        response.call_on_close(
+            threading.Thread(
+                target=_run, name=RECOVERY_EMAIL_THREAD_NAME, daemon=False
+            ).start
+        )
+        return response
+
+
+class PasswordRecoveryRestApi(BaseSupersetApi):
+    """Self-service password recovery for ``AUTH_DB`` accounts.
+
+    Both endpoints are anonymous on purpose (no ``@protect``): they are used by
+    people who cannot sign in. They are CSRF-protected like any other Superset
+    API and rate limited per client address through FAB's limiter. They are
+    deliberately not wrapped in ``event_logger.log_this``, which would copy the
+    request body (the token and the new password) into the logs table; the
+    commands write curated audit events instead.
+    """
+
+    resource_name = "security"
+    route_base = "/api/v1/security/password_recovery"
+    openapi_spec_tag = "Security"
+    openapi_spec_component_schemas = (
+        PasswordRecoveryRequestSchema,
+        PasswordRecoveryResetSchema,
+    )
+
+    request_schema = PasswordRecoveryRequestSchema()
+    reset_schema = PasswordRecoveryResetSchema()
+
+    @expose("/", methods=("POST",))
+    @limit(password_recovery.rate_limit, methods=["POST"])
+    @safe
+    @statsd_metrics
+    @requires_json
+    def request_recovery(self) -> Response:
+        """Request a password reset link by email.
+        ---
+        post:
+          summary: Request a password reset link
+          description: >-
+            Emails a single-use password reset link if the address belongs to an
+            active account with a local password. The response is the same
+            whether or not it does.
+          security: []
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PasswordRecoveryRequestSchema'
+          responses:
+            200:
+              description: Request accepted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              description: Too many requests
+        """
+        if not password_recovery.is_enabled():
+            return self.response_404()
+        try:
+            data = self.request_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        RequestPasswordRecoveryCommand(
+            data["email"], dispatch=_defer_until_response_closed
+        ).run()
+        return self.response(
+            200,
+            message=_(
+                "If an account with that email exists, a password reset link "
+                "has been sent."
+            ),
+        )
+
+    @expose("/reset/", methods=("POST",))
+    @limit(password_recovery.rate_limit, methods=["POST"])
+    @safe
+    @statsd_metrics
+    @requires_json
+    def reset(self) -> Response:
+        """Set a new password using a reset link token.
+        ---
+        post:
+          summary: Reset a password with a recovery token
+          description: >-
+            Consumes the single-use token from a password reset link and sets the
+            account's new password. Every existing browser session for the
+            account is signed out.
+          security: []
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PasswordRecoveryResetSchema'
+          responses:
+            200:
+              description: Password reset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              description: >-
+                The new password was rejected (``message.password``) or the
+                token is invalid, expired or already used (``message.token``)
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: object
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              description: Too many requests
+        """
+        if not password_recovery.is_enabled():
+            return self.response_404()
+        try:
+            data = self.reset_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            ResetPasswordWithTokenCommand(data["token"], data["password"]).run()
+        except PasswordRecoveryInvalidTokenError as ex:
+            return self.response_400(message={"token": [str(ex.message)]})
+        except PasswordRecoveryFailedError as ex:
+            return self.response(500, message=str(ex.message))
+        return self.response(200, message=_("Your password has been reset."))

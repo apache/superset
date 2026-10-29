@@ -31,7 +31,12 @@ import {
 import { Group, Role, UserObject } from 'src/pages/UsersList/types';
 import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
-import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';
+import {
+  createUser,
+  updateUser,
+  atLeastOneRoleOrGroup,
+  handleUserError,
+} from './utils';
 
 export interface UserModalProps extends BaseUserListModalProps {
   roles: Role[];
@@ -51,36 +56,6 @@ function UserListModal({
 }: UserModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const handleFormSubmit = async (values: FormValues) => {
-    const handleError = async (
-      err: any,
-      action: Actions.CREATE | Actions.UPDATE,
-    ) => {
-      let errorMessage =
-        action === Actions.CREATE
-          ? t('There was an error creating the user. Please, try again.')
-          : t('There was an error updating the user. Please, try again.');
-
-      if (err.status === 422) {
-        const errorData = await err.json();
-        const detail = errorData?.message || '';
-
-        if (detail.includes('duplicate key value')) {
-          if (detail.includes('ab_user_username_key')) {
-            errorMessage = t(
-              'This username is already taken. Please choose another one.',
-            );
-          } else if (detail.includes('ab_user_email_key')) {
-            errorMessage = t(
-              'This email is already associated with an account. Please choose another one.',
-            );
-          }
-        }
-      }
-
-      addDangerToast(errorMessage);
-      throw err;
-    };
-
     if (isEditMode) {
       if (!user) {
         throw new Error('User is required in edit mode');
@@ -89,14 +64,14 @@ function UserListModal({
         await updateUser(user.id, values);
         addSuccessToast(t('The user has been updated successfully.'));
       } catch (err) {
-        await handleError(err, Actions.UPDATE);
+        await handleUserError(err as Response, Actions.UPDATE, addDangerToast);
       }
     } else {
       try {
         await createUser(values);
         addSuccessToast(t('The user has been created successfully.'));
       } catch (err) {
-        await handleError(err, Actions.CREATE);
+        await handleUserError(err as Response, Actions.CREATE, addDangerToast);
       }
     }
   };
@@ -202,7 +177,7 @@ function UserListModal({
                   label: role.name,
                 }))}
                 getPopupContainer={trigger =>
-                  trigger.closest('.ant-modal-content')
+                  trigger.closest('.ant-modal-container')
                 }
               />
             </FormItem>
@@ -221,52 +196,76 @@ function UserListModal({
                   label: group.name,
                 }))}
                 getPopupContainer={trigger =>
-                  trigger.closest('.ant-modal-content')
+                  trigger.closest('.ant-modal-container')
                 }
               />
             </FormItem>
-            {!isEditMode && (
-              <>
-                <FormItem
-                  name="password"
-                  label={t('Password')}
-                  rules={[
-                    { required: true, message: t('Password is required') },
-                  ]}
-                >
-                  <Input.Password
-                    name="password"
-                    placeholder={t("Enter the user's password")}
-                  />
-                </FormItem>
-                <FormItem
-                  name="confirmPassword"
-                  label={t('Confirm Password')}
-                  dependencies={['password']}
-                  rules={[
-                    {
-                      required: true,
-                      message: t('Please confirm your password'),
-                    },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (!value || getFieldValue('password') === value) {
-                          return Promise.resolve();
-                        }
-                        return Promise.reject(
-                          new Error(t('Passwords do not match!')),
-                        );
-                      },
-                    }),
-                  ]}
-                >
-                  <Input.Password
-                    name="confirmPassword"
-                    placeholder={t("Confirm the user's password")}
-                  />
-                </FormItem>
-              </>
-            )}
+            <FormItem
+              name="password"
+              label={isEditMode ? t('New password') : t('Password')}
+              extra={
+                isEditMode
+                  ? t('Leave blank to keep the current password')
+                  : undefined
+              }
+              rules={[
+                { required: !isEditMode, message: t('Password is required') },
+              ]}
+            >
+              <Input.Password
+                name="password"
+                placeholder={
+                  isEditMode
+                    ? t('Enter a new password')
+                    : t("Enter the user's password")
+                }
+              />
+            </FormItem>
+            <FormItem
+              name="confirmPassword"
+              label={
+                isEditMode ? t('Confirm new password') : t('Confirm Password')
+              }
+              dependencies={['password']}
+              required={!isEditMode}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    const password = getFieldValue('password');
+                    // In edit mode the password is optional: both fields
+                    // empty means "keep the current password".
+                    if (isEditMode && !password && !value) {
+                      return Promise.resolve();
+                    }
+                    if (isEditMode && !password && value) {
+                      return Promise.reject(
+                        new Error(t('Please enter a new password')),
+                      );
+                    }
+                    if (!value) {
+                      return Promise.reject(
+                        new Error(t('Please confirm your password')),
+                      );
+                    }
+                    if (password === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(
+                      new Error(t('Passwords do not match!')),
+                    );
+                  },
+                }),
+              ]}
+            >
+              <Input.Password
+                name="confirmPassword"
+                placeholder={
+                  isEditMode
+                    ? t('Confirm the new password')
+                    : t("Confirm the user's password")
+                }
+              />
+            </FormItem>
           </>
         )) as unknown as ReactNode
       }

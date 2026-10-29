@@ -34,9 +34,6 @@ if TYPE_CHECKING:
     from superset_core.rest_api.api import RestApi
 
 
-__all__ = ["initialize_core_api_dependencies"]
-
-
 def inject_dao_implementations() -> None:
     """
     Replace abstract DAO classes in superset_core common/queries/tasks daos with
@@ -50,11 +47,14 @@ def inject_dao_implementations() -> None:
     from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
     from superset.daos.database import DatabaseDAO as HostDatabaseDAO
     from superset.daos.dataset import DatasetDAO as HostDatasetDAO
+    from superset.daos.group import GroupDAO as HostGroupDAO
     from superset.daos.key_value import KeyValueDAO as HostKeyValueDAO
     from superset.daos.query import (
         QueryDAO as HostQueryDAO,
         SavedQueryDAO as HostSavedQueryDAO,
     )
+    from superset.daos.role import RoleDAO as HostRoleDAO
+    from superset.daos.subject import SubjectDAO as HostSubjectDAO
     from superset.daos.tag import TagDAO as HostTagDAO
     from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
@@ -65,8 +65,11 @@ def inject_dao_implementations() -> None:
     core_common_dao_module.ChartDAO = HostChartDAO  # type: ignore[assignment,misc]
     core_common_dao_module.DashboardDAO = HostDashboardDAO  # type: ignore[assignment,misc]
     core_common_dao_module.UserDAO = HostUserDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.RoleDAO = HostRoleDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.GroupDAO = HostGroupDAO  # type: ignore[assignment,misc]
     core_common_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
     core_common_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.SubjectDAO = HostSubjectDAO  # type: ignore[assignment,misc]
 
     # Replace abstract classes in queries.daos
     core_queries_dao_module.QueryDAO = HostQueryDAO  # type: ignore[assignment,misc]
@@ -86,7 +89,11 @@ def inject_model_implementations() -> None:
     import superset_core.common.models as core_common_models_module
     import superset_core.queries.models as core_queries_models_module
     import superset_core.tasks.models as core_tasks_models_module
-    from flask_appbuilder.security.sqla.models import User as HostUser
+    from flask_appbuilder.security.sqla.models import (
+        Group as HostGroup,
+        Role as HostRole,
+        User as HostUser,
+    )
 
     from superset.connectors.sqla.models import SqlaTable as HostDataset
     from superset.key_value.models import KeyValueEntry as HostKeyValue
@@ -95,6 +102,7 @@ def inject_model_implementations() -> None:
     from superset.models.slice import Slice as HostChart
     from superset.models.sql_lab import Query as HostQuery, SavedQuery as HostSavedQuery
     from superset.models.tasks import Task as HostTask
+    from superset.subjects.models import Subject as HostSubject
     from superset.tags.models import Tag as HostTag
 
     # In-place replacement in common.models
@@ -103,8 +111,11 @@ def inject_model_implementations() -> None:
     core_common_models_module.Chart = HostChart  # type: ignore[misc]
     core_common_models_module.Dashboard = HostDashboard  # type: ignore[misc]
     core_common_models_module.User = HostUser  # type: ignore[misc]
+    core_common_models_module.Role = HostRole  # type: ignore[misc]
+    core_common_models_module.Group = HostGroup  # type: ignore[misc]
     core_common_models_module.Tag = HostTag  # type: ignore[misc]
     core_common_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+    core_common_models_module.Subject = HostSubject  # type: ignore[misc]
 
     # In-place replacement in queries.models
     core_queries_models_module.Query = HostQuery  # type: ignore[misc]
@@ -177,9 +188,14 @@ def inject_rest_api_implementations() -> None:
 
             if context:
                 # EXTENSION CONTEXT
-                manifest = context.manifest
-                base_path = f"/extensions/{manifest.publisher}/{manifest.name}"
-                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+                base_path = (
+                    f"/extensions/{context.extension.publisher}/"
+                    f"{context.extension.name}"
+                )
+                prefixed_id = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{id}"
+                )
 
             else:
                 # HOST CONTEXT
@@ -247,8 +263,10 @@ def inject_semantic_layer_implementations() -> None:
     ) -> Callable[[Any], Any]:
         def decorator(cls: Any) -> Any:
             if context := context_module.get_current_extension_context():
-                manifest = context.manifest
-                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+                prefixed_id = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{id}"
+                )
             else:
                 prefixed_id = id
 
@@ -261,6 +279,40 @@ def inject_semantic_layer_implementations() -> None:
         return decorator
 
     core_sl_module.semantic_layer = semantic_layer_impl  # type: ignore[assignment]
+
+
+def inject_storage_implementations() -> None:
+    """
+    Replace abstract storage classes in superset_core.extensions.storage with concrete
+    implementations from Superset.
+    """
+    import superset_core.extensions.storage.dao as core_storage_dao
+    import superset_core.extensions.storage.ephemeral as core_ephemeral_state
+    import superset_core.extensions.storage.models as core_storage_models
+    import superset_core.extensions.storage.persistent as core_persistent_state
+
+    from superset.extensions.storage.ephemeral import EphemeralState
+    from superset.extensions.storage.persistent import PersistentState
+    from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
+    from superset.extensions.storage.persistent_model import ExtensionStorage
+
+    # Replace abstract classes with concrete implementations
+    core_ephemeral_state.EphemeralState = EphemeralState  # type: ignore[misc,assignment]
+    core_persistent_state.PersistentState = PersistentState  # type: ignore[misc,assignment]
+    core_storage_models.ExtensionStorageEntry = ExtensionStorage  # type: ignore[misc,assignment]
+    core_storage_dao.ExtensionStorageDAO = ExtensionStorageDAO  # type: ignore[misc,assignment]
+
+
+def inject_extension_context() -> None:
+    """
+    Replace abstract get_context in superset_core.extensions.context
+    with concrete implementation from Superset.
+    """
+    import superset_core.extensions.context as core_context
+
+    from superset.extensions.context import get_context
+
+    core_context.get_context = get_context
 
 
 def initialize_core_api_dependencies() -> None:
@@ -277,3 +329,5 @@ def initialize_core_api_dependencies() -> None:
     inject_task_implementations()
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
+    inject_storage_implementations()
+    inject_extension_context()

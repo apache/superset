@@ -23,16 +23,17 @@ import time
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
-import requests
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
-from superset.utils.network import is_safe_host
+from superset.utils.core import QueryStatus
+from superset.utils.network import get_ssrf_safe_requester, is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -47,6 +48,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
+
+    # Epoch-integer partition keys are the common Impala layout, and the
+    # one-argument form takes the bound being mirrored rather than "now".
+    partition_value_transform_default = "unix_timestamp(:value)"
 
     metadata = {
         "description": (
@@ -96,22 +104,20 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> set[str]:
-        return {
-            row[0]
-            for row in inspector.engine.execute("SHOW SCHEMAS")
-            if not row[0].startswith("_")
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                row[0]
+                for row in conn.execute(text("SHOW SCHEMAS"))
+                if not row[0].startswith("_")
+            }
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
         """
-        Return True if the live cursor handles the implicit cancelation of the query,
-        False otherwise.
-
-        :return: Whether the live cursor implicitly cancels the query
-        :see: handle_cursor
+        Keep the HTTP cancel available to callers without a polling loop, such as
+        chart and MCP cancellation. SQL Lab stops are routed to the live cursor by
+        ``prepare_cancel_query``.
         """
-
         return False
 
     @classmethod
@@ -128,59 +134,147 @@ class ImpalaEngineSpec(BaseEngineSpec):
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """Wait for asynchronous operations using the public cursor API."""
+        if callable(getattr(cursor, "execute_async", None)):
+            from impala.error import Error
+
+            deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
+            try:
+                while cursor.is_executing():
+                    if time.monotonic() >= deadline:
+                        cursor.cancel_operation()
+                        raise TimeoutError("Timed out waiting for the Impala operation")
+                    time.sleep(0.1)
+                if cursor.execution_failed():
+                    # Fetching surfaces the driver's detailed asynchronous error,
+                    # including errors on statements that produce no result set.
+                    cursor.fetchall()
+            except Error as ex:
+                raise cls.get_dbapi_mapped_exception(ex) from ex
+        return super().fetch_data(cursor, limit)
+
+    @classmethod
+    def _cancel_operation(cls, cursor: Any, query_id: int) -> None:
+        """Cancel the live operation and release its handles."""
+        try:
+            cursor.cancel_operation()
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Query %s: cancel_operation() failed", query_id)
+        # The handles are released even when the cancel RPC failed, so a stopped
+        # query does not leave an operation open on the coordinator for the rest
+        # of the connection's life.
+        try:
+            cursor.close_operation()
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Query %s: close_operation() failed", query_id)
+        try:
+            cursor.close()
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Query %s: close() failed", query_id)
+
+    @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
         query_id = query.id
         unfinished_states = (
+            "PENDING_STATE",
             "INITIALIZED_STATE",
             "RUNNING_STATE",
         )
+        # An operation waiting for admission often starts within moments, so it
+        # is polled with a short interval that backs off to the configured one,
+        # rather than holding a short query back for a full poll interval.
+        pending_sleep_interval = 0.1
 
         try:
             status = cursor.status()
             while status in unfinished_states:
+                # End the read transaction first. Under REPEATABLE READ, refreshing
+                # inside one long transaction keeps returning the first snapshot,
+                # so a Stop committed by another request would never be seen.
+                db.session.commit()  # pylint: disable=consider-using-transaction
                 db.session.refresh(query)
-                query = db.session.query(Query).filter_by(id=query_id).one()
-                # if query cancelation was requested prior to the handle_cursor call, but  # noqa: E501
-                # the query was still executed
-                # modified in stop_query in views / core.py is reflected  here.
-                # stop query
-                if query.extra.get(QUERY_EARLY_CANCEL_KEY):
-                    cursor.cancel_operation()
-                    cursor.close_operation()
-                    cursor.close()
+                # Stop was requested: either before a cancel handle was published
+                # (early-cancel flag) or through SQL Lab's stop, which persists
+                # STOPPED once cancel_query() succeeds.
+                if (
+                    query.extra.get(QUERY_EARLY_CANCEL_KEY)
+                    or query.status == QueryStatus.STOPPED
+                ):
+                    cls._cancel_operation(cursor, query_id)
                     break
 
-                #  updates progress info by log
-                try:
-                    log = cursor.get_log() or ""
-                except Exception:  # pylint: disable=broad-except
-                    logger.warning("Call to GetLog() failed")
-                    log = ""
-
-                if log:
-                    match = QUERY_PROGRESS_REGEX.match(log)
-                    if match:
-                        progress = int(match.groupdict()["query_progress"])
-                    logger.debug(
-                        "Query %s: Progress total: %s", str(query_id), str(progress)
-                    )
-                    needs_commit = False
-                    if progress > query.progress:
-                        query.progress = progress
-                        needs_commit = True
-
-                    if needs_commit:
-                        db.session.commit()  # pylint: disable=consider-using-transaction
                 sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
+                # Pending/initialized operations have no execution progress yet.
+                if status == "RUNNING_STATE":
+                    try:
+                        log = cursor.get_log() or ""
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning("Call to GetLog() failed")
+                        log = ""
+
+                    if match := QUERY_PROGRESS_REGEX.match(log):
+                        progress = int(match.groupdict()["query_progress"])
+                        logger.debug("Query %s: Progress total: %s", query_id, progress)
+                        if progress > query.progress:
+                            query.progress = progress
+                            db.session.commit()  # pylint: disable=consider-using-transaction
+                else:
+                    sleep_interval = min(pending_sleep_interval, sleep_interval)
+                    pending_sleep_interval *= 2
                 time.sleep(sleep_interval)
                 status = cursor.status()
+        except SoftTimeLimitExceeded:
+            # SQL Lab's own handler marks the query TIMED_OUT once this propagates;
+            # the operation is cancelled first so it does not keep running on the
+            # coordinator while fetch_data() waits on it.
+            cls._cancel_operation(cursor, query_id)
+            raise
         except Exception:  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
             return
+
+    @classmethod
+    def prepare_cancel_query(cls, query: Query) -> None:
+        """
+        Route a SQL Lab stop to the live cursor, whether or not the operation's
+        cancel handle has been published.
+
+        The early-cancel flag lets the stop succeed, and ``handle_cursor`` cancels
+        the operation with ``cancel_operation()`` as soon as it polls. Cancelling
+        through the coordinator's HTTP endpoint instead would invalidate the
+        handle the worker is still polling, so the run fails with an unknown
+        query handle error rather than ending as stopped.
+
+        The stop caller commits STOPPED before preparing engine cancellation,
+        and persists this flag afterwards through the guarded-stop protocol.
+        Preparation must not commit or claim the stop a second time.
+
+        Known gap: the stop only reaches Impala while a worker is polling the
+        operation in ``handle_cursor``. The query is marked stopped, but Impala
+        keeps running it and holds its admission slot until it finishes or
+        Impala closes it on its own, when:
+
+        - the worker has died or restarted;
+        - the stop lands after polling ended, while ``fetch_data`` is reading
+          results;
+        - polling ended early because ``cursor.status()`` raised.
+
+        Hive and Presto stop SQL Lab queries the same way. Chart and MCP
+        cancellation still use the coordinator's HTTP endpoint through
+        ``cancel_query``.
+        """
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
@@ -235,7 +329,15 @@ class ImpalaEngineSpec(BaseEngineSpec):
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             # Do not follow redirects: a validated host could otherwise 30x the
             # request to an internal target, bypassing the is_safe_host check.
-            response = requests.post(url, timeout=3, allow_redirects=False)
+            # get_ssrf_safe_requester also re-validates the actually-connected
+            # peer on this request, closing the DNS-rebinding/TOCTOU gap the
+            # upfront is_safe_host check alone leaves open.
+            requester = get_ssrf_safe_requester(
+                allow_unsafe_hosts=app.config[
+                    "IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"
+                ]
+            )
+            response = requester.post(url, timeout=3, allow_redirects=False)
         except Exception:  # pylint: disable=broad-except
             return False
 

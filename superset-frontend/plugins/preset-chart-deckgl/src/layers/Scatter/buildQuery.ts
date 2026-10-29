@@ -23,7 +23,6 @@ import {
   QueryFormMetric,
   QueryFormOrderBy,
   SqlaFormData,
-  QueryFormColumn,
   QueryObject,
 } from '@superset-ui/core';
 import {
@@ -31,11 +30,8 @@ import {
   addSpatialNullFilters,
   SpatialFormData,
 } from '../spatialUtils';
-import {
-  addJsColumnsToColumns,
-  addTooltipColumnsToQuery,
-} from '../buildQueryUtils';
-import { isMetricValue } from '../utils/metricUtils';
+import { addTooltipColumnsToQuery } from '../buildQueryUtils';
+import { getTypedFixedRadius, isMetricValue } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
@@ -52,16 +48,11 @@ export interface DeckScatterFormData
   max_radius?: number;
   color_picker?: { r: number; g: number; b: number; a: number };
   dimension?: string;
+  mcp_geographic?: boolean;
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
-  const {
-    spatial,
-    point_radius_fixed,
-    dimension,
-    js_columns,
-    tooltip_contents,
-  } = formData;
+  const { spatial, point_radius_fixed, dimension, tooltip_contents } = formData;
 
   if (!spatial) {
     throw new Error('Spatial configuration is required for Scatter charts');
@@ -76,16 +67,12 @@ export default function buildQuery(formData: DeckScatterFormData) {
         columns.push(dimension);
       }
 
-      const columnStrings = columns.map(col =>
-        typeof col === 'string' ? col : col.label || col.sqlExpression || '',
-      );
-      const withJsColumns = addJsColumnsToColumns(columnStrings, js_columns);
-
-      columns = withJsColumns as QueryFormColumn[];
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       // Only add metric if point_radius_fixed is a metric type
-      const isMetric = isMetricValue(point_radius_fixed);
+      const isMetric =
+        getTypedFixedRadius(formData) === null &&
+        isMetricValue(point_radius_fixed);
       // Extract metric value: legacy string format or object with metric value
       const rawValue =
         typeof point_radius_fixed === 'string'

@@ -32,7 +32,7 @@ const CONFIG_FILE = path.join(__dirname, '..', 'versions-config.json');
 // Parse command line arguments
 const rawArgs = process.argv.slice(2);
 const skipGenerate = rawArgs.includes('--skip-generate');
-const args = rawArgs.filter((a) => a !== '--skip-generate');
+const args = rawArgs.filter(a => a !== '--skip-generate');
 const command = args[0]; // 'add' or 'remove'
 const section = args[1]; // 'user_docs', 'admin_docs', 'developer_docs', or 'components'
 const version = args[2]; // version string like '1.2.0'
@@ -73,7 +73,8 @@ function freezeDataImports(section, version) {
   // Matches data file imports in two flavors:
   //   `from '../../foo/bar.json'`  (relative, must escape one or more dirs)
   //   `from '@site/static/foo.json'`  (Docusaurus site-root alias)
-  const dataImportRe = /(from\s+['"])((?:\.\.\/)+|@site\/)([^'"\s]+\.(?:json|ya?ml))(['"])/g;
+  const dataImportRe =
+    /(from\s+['"])((?:\.\.\/)+|@site\/)([^'"\s]+\.(?:json|ya?ml))(['"])/g;
 
   function freezeOne(fullPath, depth, prefix, pathSpec, importPath, suffix) {
     let resolvedSource;
@@ -87,7 +88,9 @@ function freezeDataImports(section, version) {
       const upCount = pathSpec.match(/\.\.\//g).length;
       if (upCount <= depth) return null;
       const relativeFromVersioned = path.relative(versionedDocsPath, fullPath);
-      const originalDir = path.dirname(path.join(sectionRoot, relativeFromVersioned));
+      const originalDir = path.dirname(
+        path.join(sectionRoot, relativeFromVersioned),
+      );
       resolvedSource = path.resolve(originalDir, pathSpec + importPath);
     }
     // Skip imports that land inside the section root — those get copied
@@ -105,7 +108,9 @@ function freezeDataImports(section, version) {
       .relative(path.dirname(fullPath), destPath)
       .split(path.sep)
       .join('/');
-    const finalImport = rewritten.startsWith('.') ? rewritten : `./${rewritten}`;
+    const finalImport = rewritten.startsWith('.')
+      ? rewritten
+      : `./${rewritten}`;
     return `${prefix}${finalImport}${suffix}`;
   }
 
@@ -119,19 +124,32 @@ function freezeDataImports(section, version) {
         const original = fs.readFileSync(fullPath, 'utf8');
         let inFence = false;
         let mutated = false;
-        const updated = original.split('\n').map(line => {
-          if (/^\s*(```|~~~)/.test(line)) {
-            inFence = !inFence;
-            return line;
-          }
-          if (inFence) return line;
-          return line.replace(dataImportRe, (match, prefix, pathSpec, importPath, suffix) => {
-            const rewritten = freezeOne(fullPath, depth, prefix, pathSpec, importPath, suffix);
-            if (rewritten === null) return match;
-            mutated = true;
-            return rewritten;
-          });
-        }).join('\n');
+        const updated = original
+          .split('\n')
+          .map(line => {
+            if (/^\s*(```|~~~)/.test(line)) {
+              inFence = !inFence;
+              return line;
+            }
+            if (inFence) return line;
+            return line.replace(
+              dataImportRe,
+              (match, prefix, pathSpec, importPath, suffix) => {
+                const rewritten = freezeOne(
+                  fullPath,
+                  depth,
+                  prefix,
+                  pathSpec,
+                  importPath,
+                  suffix,
+                );
+                if (rewritten === null) return match;
+                mutated = true;
+                return rewritten;
+              },
+            );
+          })
+          .join('\n');
         if (mutated) {
           fs.writeFileSync(fullPath, updated);
           const rel = path.relative(versionedDocsPath, fullPath);
@@ -171,20 +189,23 @@ function fixVersionedImports(section, version) {
         // Track fenced code blocks so we don't rewrite import samples inside
         // ```ts / ```js (etc.) blocks that are documentation, not real imports.
         let inFence = false;
-        const updated = original.split('\n').map(line => {
-          if (/^\s*(```|~~~)/.test(line)) {
-            inFence = !inFence;
-            return line;
-          }
-          if (inFence) return line;
-          return line.replace(
-            /(from\s+['"])((?:\.\.\/)+)/g,
-            (match, prefix, dots) => {
-              const upCount = dots.match(/\.\.\//g).length;
-              return upCount > depth ? `${prefix}../${dots}` : match;
-            },
-          );
-        }).join('\n');
+        const updated = original
+          .split('\n')
+          .map(line => {
+            if (/^\s*(```|~~~)/.test(line)) {
+              inFence = !inFence;
+              return line;
+            }
+            if (inFence) return line;
+            return line.replace(
+              /(from\s+['"])((?:\.\.\/)+)/g,
+              (match, prefix, dots) => {
+                const upCount = dots.match(/\.\.\//g).length;
+                return upCount > depth ? `${prefix}../${dots}` : match;
+              },
+            );
+          })
+          .join('\n');
         if (updated !== original) {
           fs.writeFileSync(fullPath, updated);
           const rel = path.relative(versionedDocsPath, fullPath);
@@ -254,14 +275,15 @@ function addVersion(section, version) {
 
   // Update config
   // Add to onlyIncludeVersions array (after 'current')
-  const versionIndex = config[section].onlyIncludeVersions.indexOf('current') + 1;
+  const versionIndex =
+    config[section].onlyIncludeVersions.indexOf('current') + 1;
   config[section].onlyIncludeVersions.splice(versionIndex, 0, version);
 
   // Add version metadata
   config[section].versions[version] = {
     label: version,
     path: version,
-    banner: 'none'
+    banner: 'none',
   };
 
   // Note: we deliberately do NOT auto-bump `lastVersion` to the new
@@ -334,7 +356,10 @@ function removeVersion(section, version) {
         fs.unlinkSync(versionsJsonPath);
         console.log(`  Removed empty ${versionsJsonFile}`);
       } else {
-        fs.writeFileSync(versionsJsonPath, JSON.stringify(versions, null, 2) + '\n');
+        fs.writeFileSync(
+          versionsJsonPath,
+          JSON.stringify(versions, null, 2) + '\n',
+        );
         console.log(`  Updated ${versionsJsonFile}`);
       }
     }
@@ -348,8 +373,11 @@ function removeVersion(section, version) {
   // Update lastVersion if needed
   if (config[section].lastVersion === version) {
     // Set to the next available version or 'current'
-    const remainingVersions = config[section].onlyIncludeVersions.filter(v => v !== 'current');
-    config[section].lastVersion = remainingVersions.length > 0 ? remainingVersions[0] : 'current';
+    const remainingVersions = config[section].onlyIncludeVersions.filter(
+      v => v !== 'current',
+    );
+    config[section].lastVersion =
+      remainingVersions.length > 0 ? remainingVersions[0] : 'current';
     console.log(`  Updated lastVersion to ${config[section].lastVersion}`);
   }
 

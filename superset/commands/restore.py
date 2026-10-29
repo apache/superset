@@ -37,7 +37,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
       - ``dao``: the DAO class (e.g. ``ChartDAO``)
       - ``not_found_exc``: raised when the row doesn't exist OR isn't
         soft-deleted
-      - ``forbidden_exc``: raised when the caller doesn't have ownership
+      - ``forbidden_exc``: raised when the caller doesn't have editorship
       - ``restore_failed_exc``: re-raised by the transactional wrapper
         when an underlying SQLAlchemy error aborts the commit
 
@@ -61,6 +61,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
 
     def __init__(self, model_uuid: str) -> None:
         self._model_uuid = model_uuid
+        self.warnings: list[str] = []
 
     def run(self) -> None:
         # Build the transactional wrapper at call time so ``on_error`` can
@@ -68,20 +69,29 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         # that isn't available when this method is defined on the base.
         @transaction(on_error=partial(on_error, reraise=self.restore_failed_exc))
         def _perform() -> None:
-            model = self.validate()
+            model: T = self.validate()
+            self.prepare_restore(model)
             model.restore()
 
         _perform()
 
+    def prepare_restore(self, model: T) -> None:
+        """Repair entity dependencies after validation, in the restore transaction."""
+
     def validate(self) -> T:  # type: ignore[override]
-        # ``skip_visibility_filter=True`` is the *only* bypass — the
-        # entity's RBAC ``base_filter`` stays in effect, matching the
-        # behavior of ``find_by_ids`` on the existing delete paths.
-        # Restore should not see rows the user cannot see in the live
-        # UI; ownership is then verified by ``raise_for_ownership``.
+        # Both bypasses are deliberate. ``skip_visibility_filter`` lets the
+        # lookup see the soft-deleted row at all. ``skip_base_filter`` keeps
+        # an editor's own trash reachable even when the entity's RBAC
+        # ``base_filter`` has no editorship leg (charts/datasets filter by
+        # datasource access): the security model's ``raise_for_access``
+        # counts editorship as datasource access, so a lost grant must not
+        # hide a row from the one audience that can restore it. The restore
+        # audience is enforced below by ``raise_for_editorship`` — editors or
+        # admin; anyone else holding a valid uuid gets 403.
         model = self.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
+            skip_base_filter=True,
             skip_visibility_filter=True,
         )
         if model is None:
@@ -92,7 +102,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
                 "nothing to restore"
             )
         try:
-            security_manager.raise_for_ownership(model)
+            security_manager.raise_for_editorship(model)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
         return model

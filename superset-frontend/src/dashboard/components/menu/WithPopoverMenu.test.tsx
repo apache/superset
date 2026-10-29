@@ -106,7 +106,9 @@ test('should unfocus when another component is clicked', async () => {
     <WithPopoverMenu
       {...props}
       editMode
-      shouldFocus={(event, container) => container?.contains(event.target)}
+      shouldFocus={(event, container, _menuRef) =>
+        container?.contains(event.target) ?? false
+      }
       onChangeFocus={onChangeFocusA}
     >
       <div id="child-a" />
@@ -117,7 +119,9 @@ test('should unfocus when another component is clicked', async () => {
     <WithPopoverMenu
       {...props}
       editMode
-      shouldFocus={(event, container) => container?.contains(event.target)}
+      shouldFocus={(event, container, _menuRef) =>
+        container?.contains(event.target) ?? false
+      }
       onChangeFocus={onChangeFocusB}
     >
       <div id="child-b" />

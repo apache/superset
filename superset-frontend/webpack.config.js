@@ -17,30 +17,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const fs = require('fs');
-const path = require('path');
-const webpack = require('webpack');
-
-const { ModuleFederationPlugin } = webpack.container;
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-const CopyPlugin = require('copy-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const LightningCSS = require('lightningcss');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const {
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import webpack from 'webpack';
+import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MinimizerPlugin from 'minimizer-webpack-plugin';
+import * as LightningCSS from 'lightningcss';
+import SpeedMeasurePlugin from 'speed-measure-webpack-plugin';
+import {
   WebpackManifestPlugin,
   getCompilerHooks,
-} = require('webpack-manifest-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const yargs = require('yargs');
-const { hideBin } = require('yargs/helpers');
-const Visualizer = require('webpack-visualizer-plugin2');
-const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package.json');
+} from 'webpack-manifest-plugin';
+import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import Visualizer from 'webpack-visualizer-plugin2';
+import getProxyConfig from './webpack.proxy-config.js';
+
+const { ModuleFederationPlugin } = webpack.container;
+const { BundleAnalyzerPlugin } = webpackBundleAnalyzer;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const resolveEsmModule = specifier =>
+  fileURLToPath(import.meta.resolve(specifier));
+
+const packageConfig = JSON.parse(
+  fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+);
 
 const parsedArgs = yargs(hideBin(process.argv)).parse();
 
@@ -71,9 +79,6 @@ const devserverHost =
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
-// TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 8192;
-
 const defaultEntryFilename = isDevMode
   ? '[name].[contenthash:8].entry.js'
   : nameChunks
@@ -97,6 +102,21 @@ const output = {
     pathData.chunk?.name === 'service-worker'
       ? '../service-worker.js'
       : defaultChunkFilename,
+  copy: [
+    'package.json',
+    { from: 'src/assets/images', to: 'images' },
+    // maplibre-gl 6's ESM-only build loads its worker from a real URL
+    // instead of an inlined blob (see MapLibre.tsx for the matching
+    // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+    // relative ESM import of its "shared" chunk, so both files must be
+    // copied verbatim, unhashed, into the same output directory.
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+    },
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+    },
+  ],
 };
 
 if (!isDevMode) {
@@ -106,7 +126,7 @@ if (!isDevMode) {
 const plugins = [
   new webpack.ProvidePlugin({
     process: 'process/browser.js',
-    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix plugin-chart-paired-t-test broken Story
   }),
 
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -151,14 +171,6 @@ const plugins = [
     'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
   }),
 
-  new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      { from: 'src/pwa-manifest.json', to: 'pwa-manifest.json' },
-    ],
-  }),
-
   // static pages
   new HtmlWebpackPlugin({
     template: './src/assets/staticPages/404.html',
@@ -189,6 +201,10 @@ const plugins = [
       antd: {
         singleton: true,
         requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+      '@apache-superset/core': {
+        singleton: true,
         eager: true,
       },
     },
@@ -227,40 +243,11 @@ if (!isDevMode) {
   );
 }
 
-// TypeScript type checking and .d.ts generation
-// SWC handles transpilation; this plugin handles type checking separately.
-// build: true enables project references so .d.ts files are auto-generated
-// across the monorepo when editing plugins/packages.
-// mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
-// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
-// Type errors are still caught by pre-commit and CI.
-const disableTsChecker = ['true', '1'].includes(
-  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
-);
-if (isDevMode && !disableTsChecker) {
-  plugins.push(
-    new ForkTsCheckerWebpackPlugin({
-      async: true,
-      typescript: {
-        build: true,
-        mode: 'write-references',
-        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-        configOverwrite: {
-          compilerOptions: {
-            skipLibCheck: true,
-            incremental: true,
-          },
-          exclude: [
-            'src/**/*.js',
-            'src/**/*.jsx',
-            '**/*.test.*',
-            '**/*.stories.*',
-          ],
-        },
-      },
-    }),
-  );
-}
+// Type checking does not run inside webpack: SWC only transpiles, and the
+// native TypeScript compiler is fast enough to run on its own. Use
+// `npm run type` (or `npm run type -- --watch`) for type errors, and
+// `npm run plugins:build` (or `npx tsc --build --watch`) to refresh the
+// packages' .d.ts output while editing plugins/packages.
 
 // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
 const PREAMBLE = isDevMode
@@ -430,20 +417,18 @@ const config = {
     },
     usedExports: 'global',
     minimizer: [
-      new CssMinimizerPlugin({
-        minify: CssMinimizerPlugin.lightningCssMinify,
+      new MinimizerPlugin({
+        test: /\.css(\?.*)?$/i,
+        minify: MinimizerPlugin.lightningCssMinify,
         minimizerOptions: {
-          targets: LightningCSS.browserslistToTargets([
-            'last 3 chrome versions',
-            'last 3 firefox versions',
-            'last 3 safari versions',
-            'last 3 edge versions',
-          ]),
+          targets: LightningCSS.browserslistToTargets(
+            packageConfig.browserslist,
+          ),
         },
       }),
-      new TerserPlugin({
-        minify: TerserPlugin.swcMinify,
-        terserOptions: {
+      new MinimizerPlugin({
+        minify: MinimizerPlugin.swcMinify,
+        minimizerOptions: {
           compress: {
             drop_console: false,
           },
@@ -479,10 +464,10 @@ const config = {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: require.resolve('vm-browserify'),
+      vm: false,
       path: false,
-      stream: require.resolve('stream-browserify'),
-      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+      stream: resolveEsmModule('stream-browserify'),
+      ...(isDevMode ? { buffer: resolveEsmModule('buffer/') } : {}), // Fix plugin-chart-paired-t-test broken Story
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -603,20 +588,6 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      // {
-      //   test: /\.mdx?$/,
-      //   use: [
-      //     {
-      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
-      //       options: {
-      //         skipCsf: false,
-      //         mdxCompileOptions: {
-      //           remarkPlugins: [remarkGfm],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // },
     ],
   },
   externals: {
@@ -639,7 +610,6 @@ const config = {
           '**/coverage',
           '**/*.test.*',
           '**/*.stories.*',
-          '**/cypress-base',
           '**/*.geojson',
         ],
         // Poll-based watching is needed in Docker/VM where native fs events
@@ -741,4 +711,14 @@ const smp = new SpeedMeasurePlugin({
   disable: !measure,
 });
 
-module.exports = smp.wrap(config);
+// Emits per-asset/entrypoint sizes via `--json` (the default `stats: 'minimal'`
+// above omits both). Not `normal`/`detailed` stats: those also serialize the
+// full ~15k-module dependency graph, which is hundreds of MB for this app --
+// large enough to exceed Node's max string length when read back with
+// `fs.readFileSync`. Used by scripts/bundle-size-summary.js in CI.
+// e.g. BUNDLE_SIZE_STATS=true npm run build -- --json=stats.json
+if (process.env.BUNDLE_SIZE_STATS) {
+  config.stats = { all: false, assets: true, entrypoints: true };
+}
+
+export default smp.wrap(config);

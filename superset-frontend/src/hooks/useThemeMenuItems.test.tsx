@@ -38,7 +38,6 @@ const TestComponent = (props: ThemeSubMenuProps) => {
   return <Menu items={[menuItem]} />;
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useThemeMenuItems', () => {
   const defaultProps = {
     allowOSPreference: true,
@@ -271,5 +270,15 @@ describe('useThemeMenuItems', () => {
     const divider = document.querySelector('.ant-menu-item-divider');
 
     expect(divider).toBeNull();
+  });
+
+  test('renders the down-chevron caret icon, not the caret glyph (regression #43531)', async () => {
+    renderThemeMenu();
+
+    const menuItem = await screen.findByRole('menuitem');
+    const caret = menuItem.querySelector('.ant-menu-item-icon');
+
+    expect(caret).toHaveClass('anticon-down');
+    expect(caret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
   });
 });

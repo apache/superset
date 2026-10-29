@@ -19,18 +19,24 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterable, Optional, TYPE_CHECKING
 
+import pandas as pd
 from flask import current_app as app
 
+from superset import is_feature_enabled
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
-from superset.utils.core import QueryStatus
-from superset.views.datasource.schemas import SamplesPayloadSchema
+from superset.utils.core import (
+    apply_max_row_limit,
+    extract_dataframe_dtypes,
+    QueryStatus,
+)
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.daos.datasource import Datasource
 
 logger = logging.getLogger(__name__)
@@ -43,9 +49,11 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, 
 
     if isinstance(page, int) and isinstance(per_page, int):
         limit = int(per_page)
-        if limit < 0 or limit > samples_row_limit:
+        if limit < 0:
             # reset limit value if input is invalid
             limit = samples_row_limit
+        elif limit:
+            limit = apply_max_row_limit(limit)
 
         offset = max((int(page) - 1) * limit, 0)
 
@@ -93,13 +101,34 @@ def replace_verbose_with_column(
             f["col"] = match
 
 
+def skips_count_star(datasource: Datasource) -> bool:
+    """
+    Whether Samples should skip its ``COUNT(*)`` for this datasource.
+
+    A dataset with a declared partition column is a partitioned warehouse table
+    (Impala/Hive in practice), often tens of billions of rows. The samples rows
+    query is bounded by its row limit, but the count is not: unless the request
+    happens to filter the mapped column, it is an unfiltered full-table scan,
+    which on those tables runs until it times out. For these datasets the total
+    is reported as a lower bound instead, derived from one extra probe row on
+    the bounded rows query, so Samples never issues a query that is both
+    unfiltered by partition and unbounded.
+
+    Gated on the feature flag like the rest of partition filter mapping, so a
+    deployment that never turned it on keeps the exact count.
+    """
+    return is_feature_enabled("PARTITION_FILTER_MAPPING") and bool(
+        getattr(datasource, "partition_column", None)
+    )
+
+
 def get_samples(  # pylint: disable=too-many-arguments
     datasource_type: str,
     datasource_id: int,
     force: bool = False,
     page: int = 1,
     per_page: int = 1000,
-    payload: SamplesPayloadSchema | None = None,
+    payload: dict[str, Any] | None = None,
     datasource: Datasource | None = None,
     dashboard_id: int | None = None,
 ) -> dict[str, Any]:
@@ -110,7 +139,23 @@ def get_samples(  # pylint: disable=too-many-arguments
         )
 
     form_data = {"dashboardId": dashboard_id} if dashboard_id else None
+    if payload and "viz_type" in payload:
+        payload = dict(payload)
+        viz_type = payload.pop("viz_type")
+        form_data = {**(form_data or {}), "viz_type": viz_type}
     limit_clause = get_limit_clause(page, per_page)
+    skip_count = skips_count_star(datasource)
+    # Without a count, one row past the page is what tells "there is another
+    # page" apart from "this was the last one".
+    query_limit_clause = (
+        {
+            **limit_clause,
+            "row_limit": (limit_clause["row_limit"] or app.config["SAMPLES_ROW_LIMIT"])
+            + 1,
+        }
+        if skip_count
+        else limit_clause
+    )
 
     # todo(yongjie): Constructing count(*) and samples in the same query_context,
     if payload is None:
@@ -120,7 +165,7 @@ def get_samples(  # pylint: disable=too-many-arguments
                 "type": datasource.type,
                 "id": datasource.id,
             },
-            queries=[limit_clause],
+            queries=[query_limit_clause],
             form_data=form_data,
             result_type=ChartDataResultType.SAMPLES,
             force=force,
@@ -137,13 +182,77 @@ def get_samples(  # pylint: disable=too-many-arguments
                 "type": datasource.type,
                 "id": datasource.id,
             },
-            queries=[{**payload, **limit_clause}],
+            queries=[{**payload, **query_limit_clause}],
             form_data=form_data,
             result_type=ChartDataResultType.DRILL_DETAIL,
             force=force,
         )
 
-    # constructing count(*) query
+    count_star_instance = (
+        None
+        if skip_count
+        else _count_star_query_context(datasource, payload, form_data, force)
+    )
+
+    try:
+        # Enforce access control before fetching data.
+        # This prevents users with "can samples on Datasource" permission from
+        # reading samples from datasets they don't have access to.
+        samples_instance.raise_for_access()
+        count_star_data = _get_count_star_data(count_star_instance)
+
+        engine_spec = datasource.database.db_engine_spec
+        row_offset = limit_clause["row_offset"]
+        row_limit = limit_clause["row_limit"]
+
+        via_cursor = not engine_spec.supports_offset and row_offset > 0
+        if via_cursor:
+            try:
+                sample_data = _fetch_samples_via_cursor(
+                    datasource=datasource,
+                    samples_instance=samples_instance,
+                    count_star_data=count_star_data,
+                    page_index=row_offset // row_limit,
+                    page_size=row_limit,
+                )
+            except DatasetSamplesFailedError:
+                raise
+            except Exception as exc:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                logger.exception("Cursor-based samples pagination failed")
+                raise DatasetSamplesFailedError(
+                    "Failed to fetch samples via cursor pagination"
+                ) from exc
+        else:
+            sample_data = samples_instance.get_payload()["queries"][0]
+            if sample_data.get("status") == QueryStatus.FAILED:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                raise DatasetSamplesFailedError(sample_data.get("error") or "")
+
+        sample_data["page"] = page
+        sample_data["per_page"] = per_page
+        if skip_count:
+            _set_lower_bound_total(
+                sample_data, row_offset, row_limit, probed=not via_cursor
+            )
+        else:
+            sample_data["total_count"] = count_star_data["data"][0]["COUNT(*)"]
+            sample_data["total_count_is_lower_bound"] = False
+        return sample_data
+    except (IndexError, KeyError) as exc:
+        raise DatasetSamplesFailedError from exc
+
+
+def _count_star_query_context(
+    datasource: Datasource,
+    payload: dict[str, Any] | None,
+    form_data: dict[str, Any] | None,
+    force: bool,
+) -> QueryContext:
     count_star_metric = {
         "metrics": [
             {
@@ -153,7 +262,7 @@ def get_samples(  # pylint: disable=too-many-arguments
             }
         ]
     }
-    count_star_instance = QueryContextFactory().create(
+    return QueryContextFactory().create(
         datasource={
             "type": datasource.type,
             "id": datasource.id,
@@ -164,27 +273,90 @@ def get_samples(  # pylint: disable=too-many-arguments
         force=force,
     )
 
-    try:
-        # Enforce access control before fetching data.
-        # This prevents users with "can samples on Datasource" permission from
-        # reading samples from datasets they don't have access to.
-        samples_instance.raise_for_access()
-        count_star_instance.raise_for_access()
 
-        count_star_data = count_star_instance.get_payload()["queries"][0]
+def _get_count_star_data(
+    count_star_instance: QueryContext | None,
+) -> dict[str, Any]:
+    """Run the count query, or return an empty payload when it was skipped."""
+    if count_star_instance is None:
+        return {}
 
-        if count_star_data.get("status") == QueryStatus.FAILED:
-            raise DatasetSamplesFailedError(count_star_data.get("error"))
+    count_star_instance.raise_for_access()
+    count_star_data = count_star_instance.get_payload()["queries"][0]
+    if count_star_data.get("status") == QueryStatus.FAILED:
+        raise DatasetSamplesFailedError(count_star_data.get("error"))
+    return count_star_data
 
-        sample_data = samples_instance.get_payload()["queries"][0]
 
-        if sample_data.get("status") == QueryStatus.FAILED:
-            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
-            raise DatasetSamplesFailedError(sample_data.get("error"))
+def _set_lower_bound_total(
+    sample_data: dict[str, Any], row_offset: int, row_limit: int, probed: bool
+) -> None:
+    """
+    Report the total as "the rows up to and including this page".
 
-        sample_data["page"] = page
-        sample_data["per_page"] = per_page
-        sample_data["total_count"] = count_star_data["data"][0]["COUNT(*)"]
-        return sample_data
-    except (IndexError, KeyError) as exc:
-        raise DatasetSamplesFailedError from exc
+    The rows query asked for one probe row past the page. If it came back there
+    is at least one more page, so the probe is trimmed and the total flagged as
+    a lower bound; if it did not, this page is the last one and the total is
+    exact. The cursor path pages with an exact page size and has no probe row
+    (``probed=False``), so a full page is taken to mean there may be more.
+    """
+    data = sample_data.get("data") or []
+    page_size = row_limit or app.config["SAMPLES_ROW_LIMIT"]
+    if probed:
+        has_more = len(data) > page_size
+        if has_more:
+            data = data[:page_size]
+            sample_data["data"] = data
+            sample_data["rowcount"] = len(data)
+    else:
+        has_more = len(data) >= page_size
+    sample_data["total_count"] = row_offset + len(data)
+    sample_data["total_count_is_lower_bound"] = has_more
+
+
+def _fetch_samples_via_cursor(
+    datasource: Datasource,
+    samples_instance: QueryContext,
+    count_star_data: dict[str, Any],
+    page_index: int,
+    page_size: int,
+) -> dict[str, Any]:
+    """
+    Fetch a single page of samples via engine-spec cursor pagination.
+
+    Used when ``datasource.database.db_engine_spec.supports_offset`` is
+    False and a non-first page is requested. Compiles the same SQL Superset
+    would run for the normal samples payload — without executing it — and
+    delegates cursor iteration to the engine spec. The engine spec is
+    responsible for stripping any trailing ``LIMIT`` from the SQL so the
+    cursor is not capped to a single page.
+
+    ``coltypes`` are inferred from the returned rows with
+    ``extract_dataframe_dtypes``, the same function the non-cursor path
+    uses to type page 1 — it works off the actual returned values, not
+    ``cursor.description``, so no ES-type-to-coltype translator is needed
+    and no extra query is required to source them.
+    """
+    query_obj = samples_instance.queries[0]
+    sql = samples_instance.datasource.get_query_str(query_obj.to_dict())
+    if not sql:
+        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+        raise DatasetSamplesFailedError("Empty samples query")
+
+    engine_spec = datasource.database.db_engine_spec
+    rows, colnames = engine_spec.fetch_data_with_cursor(
+        database=datasource.database,
+        sql=sql,
+        page_index=page_index,
+        page_size=page_size,
+    )
+
+    df = pd.DataFrame(rows, columns=colnames)
+    coltypes = extract_dataframe_dtypes(df, datasource)
+
+    return {
+        "data": df.to_dict(orient="records"),
+        "colnames": colnames,
+        "coltypes": coltypes,
+        "status": QueryStatus.SUCCESS,
+    }

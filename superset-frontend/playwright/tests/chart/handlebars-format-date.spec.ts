@@ -41,7 +41,7 @@ import { TIMEOUT } from '../../utils/constants';
 const DATASET_NAME = 'birth_names';
 
 testWithAssets(
-  'Handlebars formatDate helper renders a formatted date (#32960)',
+  'Handlebars formatDate helper renders a formatted date',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
@@ -97,8 +97,11 @@ testWithAssets(
     });
 
     // At least one list item should contain a DD.MM.YYYY formatted date.
-    await expect(panel.locator('li').first()).toHaveText(/\d{2}\.\d{2}\.\d{4}/, {
-      timeout: TIMEOUT.API_RESPONSE,
-    });
+    await expect(panel.locator('li').first()).toHaveText(
+      /\d{2}\.\d{2}\.\d{4}/,
+      {
+        timeout: TIMEOUT.API_RESPONSE,
+      },
+    );
   },
 );

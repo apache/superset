@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import base64
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -29,10 +30,60 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
     AesGcmEngine,
     EncryptionDecryptionBaseEngine,
 )
+from sqlalchemy_utils.types.encrypted.padding import (
+    InvalidPaddingError,
+    PADDING_MECHANISM,
+)
 
 
 class EncryptedType(SqlaEncryptedType):
     cache_ok = True
+
+
+class BackwardCompatibleAesEngine(AesEngine):
+    """AES-CBC engine that pads new writes with PKCS5, not sqlalchemy_utils'
+    default "naive" scheme, while still reading values already stored under
+    naive padding without a data migration.
+
+    ``NaivePadding`` pads short plaintext with literal ``*`` bytes and unpads
+    by unconditionally stripping every trailing ``*`` -- so a secret whose
+    real value ends in ``*`` loses that character the next time it's
+    decrypted (apache/superset#32664). PKCS5 encodes the padding length in
+    the padding bytes themselves and validates it on unpad, so it can't
+    silently eat real data, and it's the standard scheme
+    ``sqlalchemy_utils`` ships specifically as the safe alternative to naive
+    padding.
+
+    ``decrypt`` tries PKCS5 first: ``PKCS5Padding.unpad`` is self-validating
+    and raises ``InvalidPaddingError`` for anything that isn't validly
+    PKCS5-padded, so it only succeeds on values this engine (or another
+    PKCS5-padded source) actually wrote. Naive-padded legacy values fail
+    that validation in practice, so decrypt falls back to naive unpadding
+    for them -- every already-stored secret keeps decrypting correctly, no
+    re-encryption pass required, while every new write is safe going
+    forward.
+    """
+
+    def _set_padding_mechanism(self, padding_mechanism: str | None = None) -> None:
+        super()._set_padding_mechanism("pkcs5")
+        self._naive_padding_engine = PADDING_MECHANISM["naive"](self.BLOCK_SIZE)
+
+    def decrypt(self, value: Any) -> str:
+        if isinstance(value, str):
+            value = str(value)
+        decryptor = self.cipher.decryptor()
+        raw: bytes = base64.b64decode(value)
+        raw = decryptor.update(raw) + decryptor.finalize()
+        try:
+            unpadded: Any = self.padding_engine.unpad(raw)
+        except InvalidPaddingError:
+            unpadded = self._naive_padding_engine.unpad(raw)
+        if isinstance(unpadded, str):
+            return unpadded
+        try:
+            return unpadded.decode("utf-8")
+        except UnicodeDecodeError:
+            raise ValueError("Invalid decryption key") from None
 
 
 # Named encryption engines selectable via the ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE``
@@ -41,13 +92,26 @@ class EncryptedType(SqlaEncryptedType):
 # deployment from "aes" to "aes-gcm" requires re-encrypting all stored secrets
 # first — see the SIP referenced in the docs. Changing this on a populated
 # database without that migration will make existing secrets undecryptable.
+# "aes" resolves to BackwardCompatibleAesEngine, not the raw sqlalchemy_utils
+# AesEngine: it's a drop-in subclass, so this needs no migration of its own
+# (see that class's docstring) — new writes use safe PKCS5 padding, and
+# already-stored naive-padded values keep reading back correctly.
 ENCRYPTION_ENGINES: dict[str, type[EncryptionDecryptionBaseEngine]] = {
-    "aes": AesEngine,
+    "aes": BackwardCompatibleAesEngine,
     "aes-gcm": AesGcmEngine,
 }
 
 # The historical fallback engine when the config does not name one.
 DEFAULT_ENCRYPTION_ENGINE_NAME = "aes"
+
+# Tables that store encrypted data in a plain column gated by a boolean flag
+# rather than using EncryptedType directly.  Each entry is a 3-tuple of
+# (table_name, value_column, is_encrypted_flag_column).  SecretsMigrator.run()
+# handles these via a second pass that SELECTs only flagged rows and re-encrypts
+# them with the same logic used for declared EncryptedType columns.
+CONDITIONAL_ENCRYPTED_TABLES: list[tuple[str, str, str]] = [
+    ("extension_storage", "value", "is_encrypted"),
+]
 
 # Engines whose ciphertext is authenticated: a successful decrypt is
 # cryptographic proof the value is genuinely in that form. AES-GCM carries an
@@ -302,7 +366,7 @@ class SecretsMigrator:
         table_name: str,
     ) -> Row:
         cols = ",".join(pk_columns + column_names)
-        return conn.execute(f"SELECT {cols} FROM {table_name}")  # noqa: S608
+        return conn.execute(text(f"SELECT {cols} FROM {table_name}"))  # noqa: S608
 
     def _target_type(self, encrypted_type: EncryptedType) -> EncryptedType:
         """The EncryptedType to re-encrypt a value *into*.
@@ -430,7 +494,7 @@ class SecretsMigrator:
         re_encrypted_columns = {}
 
         for column_name, encrypted_type in columns.items():
-            raw_value = self._read_bytes(column_name, row[column_name])
+            raw_value = self._read_bytes(column_name, row._mapping[column_name])
 
             # NULL values aren't encrypted; there is nothing to migrate.
             if raw_value is None:
@@ -508,14 +572,86 @@ class SecretsMigrator:
 
         set_cols = ",".join(f"{name} = :{name}" for name in re_encrypted_columns)
         where_clause = " AND ".join(f"{pk} = :_pk_{pk}" for pk in pk_columns)
-        pk_bind = {f"_pk_{pk}": row[pk] for pk in pk_columns}
+        pk_bind = {f"_pk_{pk}": row._mapping[pk] for pk in pk_columns}
         conn.execute(
             text(
                 f"UPDATE {table_name} SET {set_cols} WHERE {where_clause}"  # noqa: S608
             ),
-            **pk_bind,
-            **re_encrypted_columns,
+            {**pk_bind, **re_encrypted_columns},
         )
+
+    def _re_encrypt_conditional_table(
+        self,
+        conn: Connection,
+        table_name: str,
+        value_col: str,
+        flag_col: str,
+        stats: ReEncryptStats,
+    ) -> None:
+        """Re-encrypt rows in a conditionally-encrypted table.
+
+        Unlike declared EncryptedType columns, these tables store encrypted and
+        plaintext values in the same column, gated by a boolean flag.
+        Only rows where the flag is TRUE are selected and processed; plaintext
+        rows are never touched.
+
+        The value column type is read from table metadata, so the same
+        source-decryptor waterfall and idempotency logic from _re_encrypt_row
+        applies.
+        """
+        from flask_appbuilder import (  # pylint: disable=import-outside-toplevel
+            Model as FABModel,
+        )
+
+        tables: dict[str, Any] = dict(FABModel.metadata.tables)
+        for tname, tobj in self._db.metadata.tables.items():
+            tables.setdefault(tname, tobj)
+
+        table = tables.get(table_name)
+        if table is None:
+            logger.warning(
+                "Conditional-encrypted table %s not found in metadata; skipping",
+                table_name,
+            )
+            return
+
+        pk_columns = [c.name for c in table.primary_key.columns]
+        if not pk_columns:
+            logger.warning(
+                "Skipping %s: no primary key, cannot target rows for update",
+                table_name,
+            )
+            return
+
+        # Build a synthetic EncryptedType reflecting how data is currently
+        # stored (current engine + current key).  _re_encrypt_row's
+        # _target_type / _source_decryptors machinery then handles key rotation
+        # and engine migration identically to any declared EncryptedType column.
+        engine_name = current_app.config.get(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+        )
+        current_engine = resolve_encryption_engine(engine_name)
+        enc_type = EncryptedType(
+            table.columns[value_col].type,
+            key=self._secret_key,
+            engine=current_engine,
+        )
+
+        cols = ", ".join(pk_columns + [value_col])
+        rows = conn.execute(
+            text(
+                f"SELECT {cols} FROM {table_name} WHERE {flag_col} = true"  # noqa: S608
+            )
+        )
+        for row in rows:
+            self._re_encrypt_row(
+                conn,
+                row,
+                table_name,
+                {value_col: enc_type},
+                pk_columns,
+                stats,
+            )
 
     def run(self) -> ReEncryptStats:
         """
@@ -550,6 +686,11 @@ class SecretsMigrator:
                     self._re_encrypt_row(
                         conn, row, table_name, columns, pk_columns, stats
                     )
+
+            for table_name, value_col, flag_col in CONDITIONAL_ENCRYPTED_TABLES:
+                self._re_encrypt_conditional_table(
+                    conn, table_name, value_col, flag_col, stats
+                )
 
             logger.info(
                 "Re-encryption summary: %d re-encrypted, %d skipped,"

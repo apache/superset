@@ -26,10 +26,6 @@ import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
   filterNulls,
   autozoom,
-  jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   gridSize,
   viewport,
   spatial,
@@ -92,15 +88,6 @@ const config: ControlPanelConfig = {
         ],
         [deckGLFixedColor],
         [deckGLCategoricalColorSchemeSelect],
-      ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
       ],
     },
   ],
