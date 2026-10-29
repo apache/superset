@@ -29,11 +29,11 @@
   "dependencies": {
     "@types/d3-array": "^3.2.2",
     "@types/react-redux": "^7.1.34",
-    "acorn": "^8.18.0",
+    "acorn": "^8.19.0",
     "d3-array": "^3.2.4",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
-    "zod": "^4.6.2"
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",

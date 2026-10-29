@@ -23,9 +23,9 @@ export type MapViewConfigs = {
   zoom: number;
   latitude: number;
   longitude: number;
-  fixedZoom: number;
-  fixedLatitude: number;
-  fixedLongitude: number;
+  fixedZoom?: number;
+  fixedLatitude?: number;
+  fixedLongitude?: number;
 };
 
 export type MapViewConfigsControlProps = ControlComponentProps<MapViewConfigs>;

@@ -23,6 +23,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import (
     fields,
     post_dump,
+    post_load,
     pre_load,
     Schema,
     validates_schema,
@@ -31,9 +32,17 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
+from superset.connectors.sqla.partition_mapping import (
+    MAX_TRANSFORM_LENGTH,
+    PREVIEWABLE_OPERATORS,
+)
+from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
+from superset.subjects.schemas import SubjectReferenceField
 from superset.utils import json
+from superset.utils.core import FilterOperator
+from superset.utils.number_format import is_valid_d3_format
 from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
@@ -68,7 +77,7 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(dt_format: str) -> bool:
-    if dt_format in ("epoch_s", "epoch_ms"):
+    if dt_format in EPOCH_FORMATS:
         return True
     try:
         dt_str = datetime.now().strftime(dt_format)
@@ -78,7 +87,35 @@ def validate_python_date_format(dt_format: str) -> bool:
     return True
 
 
-class DatasetColumnsPutSchema(Schema):
+def validate_d3format(value: str | None) -> None:
+    if not is_valid_d3_format(value):
+        raise ValidationError(
+            _(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
+            )
+        )
+
+
+class ResolveIsCertifiedMixin(Schema):
+    """
+    ``is_certified`` is derived from ``certified_by``/``certification_details``.
+    When either is in the payload they define the state, so the (possibly
+    stale, echoed-from-GET) flag is dropped. On its own, ``False`` clears the
+    certification and ``True`` has no effect.
+    """
+
+    # pylint: disable=unused-argument
+    @post_load
+    def resolve_is_certified(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "certified_by" in data or "certification_details" in data:
+            data.pop("is_certified", None)
+        return data
+
+
+class DatasetColumnsPutSchema(ResolveIsCertifiedMixin, Schema):
     id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
@@ -90,6 +127,14 @@ class DatasetColumnsPutSchema(Schema):
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
+    # Certification/warning metadata lives inside ``extra`` and is applied
+    # through model property setters. Declared after ``extra`` so the DAO's
+    # ``setattr`` loop applies the flat keys last and they win.
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    warning_markdown = fields.String(allow_none=True)
+    is_certified = fields.Boolean(allow_none=True)
+
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
@@ -100,6 +145,23 @@ class DatasetColumnsPutSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
+    partition_value_transform = fields.String(
+        allow_none=True,
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
+        metadata={
+            "description": (
+                "SQL expression containing a :value placeholder. Filters on "
+                "this column are mirrored onto the dataset's partition column "
+                "with the value passed through this transform."
+            )
+        },
+    )
+    # Deliberately no `load_default`: `DatasetDAO.update_columns` applies the
+    # loaded payload field by field onto the stored column, so a default here
+    # would let a partial column payload clear a monotonic flag the request
+    # never mentioned -- and silently stop mirroring range filters. Absent
+    # means "unchanged"; new columns fall back to the model's own default.
+    partition_transform_is_monotonic = fields.Boolean(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -122,14 +184,24 @@ class CurrencyField(fields.Nested):
         return super()._deserialize(value, attr, data, **kwargs)
 
 
-class DatasetMetricsPutSchema(Schema):
+class DatasetMetricsPutSchema(ResolveIsCertifiedMixin, Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
+    # Certification/warning metadata lives inside ``extra`` and is applied
+    # through model property setters. Declared after ``extra`` so the DAO's
+    # ``setattr`` loop applies the flat keys last and they win.
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    warning_markdown = fields.String(allow_none=True)
+    is_certified = fields.Boolean(allow_none=True)
+
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
-    d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    d3format = fields.String(
+        allow_none=True, validate=[Length(1, 128), validate_d3format]
+    )
     currency = CurrencyField(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
@@ -172,12 +244,14 @@ class DatasetPostSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
-    editors = fields.List(fields.Integer())
+    editors = fields.List(SubjectReferenceField())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -193,6 +267,8 @@ class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -200,7 +276,7 @@ class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     cache_timeout = fields.Integer(allow_none=True)
     is_sqllab_view = fields.Boolean(allow_none=True)
     template_params = fields.String(allow_none=True)
-    editors = fields.List(fields.Integer())
+    editors = fields.List(SubjectReferenceField())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
@@ -346,6 +422,18 @@ class ImportV1ColumnSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
+    partition_value_transform = fields.String(
+        allow_none=True, validate=Length(1, MAX_TRANSFORM_LENGTH)
+    )
+    # `load_default` so bundles predating the field do not claim their transform
+    # preserves ordering, which would silently enable range mirroring on import.
+    # `allow_none` because the column is nullable on purpose -- the legacy
+    # datasource editor writes NULL for any field its payload omits -- and export
+    # emits every field unconditionally, so an untouched export of such a dataset
+    # carries an explicit null that import would otherwise refuse outright.
+    partition_transform_is_monotonic = fields.Boolean(
+        allow_none=True, load_default=False
+    )
     uuid = fields.UUID(allow_none=True)
 
 
@@ -385,7 +473,7 @@ class ImportV1MetricSchema(Schema):
     metric_type = fields.String(allow_none=True)
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
-    d3format = fields.String(allow_none=True)
+    d3format = fields.String(allow_none=True, validate=validate_d3format)
     currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
@@ -468,6 +556,8 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    partition_column = fields.String(allow_none=True)
+    partition_mapped_column = fields.String(allow_none=True)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
     # data_file is used by the example loading system to reference Parquet files
     data_file = fields.String(allow_none=True, load_default=None)
@@ -493,6 +583,82 @@ class GetOrCreateDatasetSchema(Schema):
     )
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+
+
+class PartitionMappingPreviewSchema(Schema):
+    """
+    Payload for the dataset editor's partition mapping preview panel.
+
+    Every field is bounded. The endpoint parses `value_transform` with sqlglot
+    and then evaluates it against the warehouse, so an unbounded string is
+    parser time and warehouse time an owner can spend at will; the bounds keep
+    a malformed or oversized payload a 400 rather than work.
+    """
+
+    mapped_column = fields.String(
+        required=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={"description": "Column whose filters would be mirrored"},
+    )
+    partition_column = fields.String(
+        load_default=None,
+        allow_none=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={
+            "description": (
+                "Candidate partition column. The editor previews a mapping "
+                "before it is saved, so this overrides the stored value; "
+                "omitted, the stored one is used."
+            )
+        },
+    )
+    value_transform = fields.String(
+        required=True,
+        allow_none=True,
+        # The same bound the typed column field and the import schema enforce:
+        # a transform is one expression around `:value`, and this is far past
+        # anything that reads as one.
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
+        metadata={"description": "SQL expression containing a :value placeholder"},
+    )
+    sample_values = fields.List(
+        # Bound the items as well as the list: fifty unbounded strings is the
+        # same unbounded payload with extra steps.
+        fields.String(validate=Length(1, 250)),
+        required=True,
+        validate=Length(1, 50),
+        metadata={
+            "description": (
+                "Values to evaluate the transform at. A comparison operator "
+                "takes one; IN takes the whole list."
+            )
+        },
+    )
+    operator = fields.String(
+        # `=` mirrors under any transform, so the default is meaningful on its
+        # own. A range default would refuse unless `is_monotonic` came with it.
+        load_default=FilterOperator.EQUALS.value,
+        validate=OneOf([operator.value for operator in sorted(PREVIEWABLE_OPERATORS)]),
+        metadata={
+            "description": (
+                "Filter operator being mirrored. Only operators the preview "
+                "can construct are accepted: TEMPORAL_RANGE is mirrored by the "
+                "query path as two bounds decomposed from a since/until pair, "
+                "which this request has no way to express."
+            )
+        },
+    )
+    is_monotonic = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": (
+                "Whether the owner has declared the transform order-preserving. "
+                "Range operators only mirror when they have."
+            )
+        },
+    )
 
 
 class DatasetCacheWarmUpRequestSchema(Schema):
