@@ -27,6 +27,8 @@ import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
 import { OAuth2RedirectMessage } from '.';
 
+// jsdom does not provide BroadcastChannel, so these tests drive the component
+// through a mocked channel (see `capturedChannel`) and dispatched storage events.
 const mockStore = createStore(() => ({
   sqlLab: {
     queries: { 'query-id': { sql: 'SELECT * FROM table' } },
@@ -200,6 +202,8 @@ test('dashboard: store updates while failed charts churn do not drop the complet
   // updated) while the error banner is displayed, then the OAuth tab reports
   // completion. The listener must stay subscribed and refresh the latest chart set.
   const initialState = {
+    sqlLab: { queries: {}, queryEditors: [], tabHistory: [] },
+    explore: {},
     charts: { '1': {}, '2': {} } as Record<string, object>,
     dashboardInfo: { id: 'dashboard-id' },
   };
@@ -271,4 +275,57 @@ test('re-processes a later signal when the first arrived before state was ready'
   await waitFor(() => {
     expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
   });
+});
+
+test('triggers the chart query with the unsaved chart ID for an unsaved explore chart', async () => {
+  const store = createStore(() => ({
+    sqlLab: { queries: {}, queryEditors: [], tabHistory: [] },
+    explore: { form_data: {} },
+    charts: {},
+    dashboardInfo: {},
+  }));
+  render(
+    <Provider store={store}>
+      <OAuth2RedirectMessage {...defaultProps} source="explore" />
+    </Provider>,
+  );
+  simulateBroadcastMessage({ tabId: 'tabId' });
+  await waitFor(() => {
+    expect(triggerQuery).toHaveBeenCalledWith(true, 0);
+  });
+});
+
+test('only the instance with the matching tab ID acts when several are mounted', () => {
+  const channels: Array<{
+    onmessage: ((event: { data: OAuthMessage }) => void) | null;
+    close: jest.Mock;
+  }> = [];
+  globalWithBroadcastChannel.BroadcastChannel = jest
+    .fn()
+    .mockImplementation(() => {
+      const channel = { onmessage: null, close: jest.fn() };
+      channels.push(channel);
+      return channel;
+    });
+  const other = {
+    ...defaultProps.error,
+    extra: { ...defaultProps.error.extra, tab_id: 'otherTabId' },
+  };
+  render(
+    <Provider store={mockStore}>
+      <OAuth2RedirectMessage {...defaultProps} source="dashboard" />
+      <OAuth2RedirectMessage
+        {...defaultProps}
+        error={other}
+        source="dashboard"
+      />
+    </Provider>,
+  );
+  expect(channels).toHaveLength(2);
+
+  // Every instance hears every broadcast; only the matching tab ID refreshes.
+  channels.forEach(channel =>
+    channel.onmessage?.({ data: { tabId: 'tabId' } }),
+  );
+  expect(onRefresh).toHaveBeenCalledTimes(1);
 });
