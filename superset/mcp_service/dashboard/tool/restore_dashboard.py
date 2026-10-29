@@ -217,15 +217,21 @@ async def restore_dashboard(
         try:
             from superset.commands.dashboard.restore import RestoreDashboardCommand
 
-            RestoreDashboardCommand(str(dashboard.uuid)).run()
+            command: RestoreDashboardCommand = RestoreDashboardCommand(
+                str(dashboard.uuid)
+            )
+            command.run()
 
             return RestoreDashboardResponse(
                 success=True,
                 restored_id=dashboard_id,
                 restored_name=dashboard_name,
-                message=(
-                    f"Restored dashboard '{dashboard_name}' "
-                    f"(id={dashboard_id}) from trash."
+                message=" ".join(
+                    [
+                        f"Restored dashboard '{dashboard_name}' "
+                        f"(id={dashboard_id}) from trash.",
+                        *command.warnings,
+                    ]
                 ),
             )
         except DashboardForbiddenError:

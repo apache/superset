@@ -1477,6 +1477,51 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
+    def test_update_dataset_metric_d3format_validation(self):
+        """
+        Dataset API: a metric d3format must be a valid number format
+        """
+        dataset = self.insert_default_dataset()
+        uri = f"api/v1/dataset/{dataset.id}"
+        self.login(ADMIN_USERNAME)
+        rv = self.get_assert_metric(uri, "get")
+        existing = json.loads(rv.data.decode("utf-8"))["result"]["metrics"]
+        strip_read_only_fields(existing)
+
+        base_metric = {
+            "description": None,
+            "expression": "COUNT(*)",
+            "metric_name": "fmt_metric",
+            "metric_type": None,
+            "verbose_name": None,
+            "warning_text": None,
+        }
+
+        # An invalid number format is rejected and nothing is stored.
+        # DatasetPutSchema reports schema errors as a SIP-40 422.
+        invalid = {**base_metric, "d3format": "<img src=x onerror=alert(1)>"}
+        rv = self.client.put(uri, json={"metrics": [*existing, invalid]})
+        assert rv.status_code == 422
+        assert (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id, metric_name="fmt_metric")
+            .one_or_none()
+            is None
+        )
+
+        # A valid specifier saves.
+        valid = {**base_metric, "d3format": ",.2f"}
+        rv = self.client.put(uri, json={"metrics": [*existing, valid]})
+        assert rv.status_code == 200
+        stored = (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id, metric_name="fmt_metric")
+            .one()
+        )
+        assert stored.d3format == ",.2f"
+
+        self.items_to_delete = [dataset]
+
     def test_update_dataset_delete_metric(self):
         """
         Dataset API: Test update dataset delete metric

@@ -316,7 +316,9 @@ async def test_update_chart_mcp_entry_preflights_helper_response(
         "superset.mcp_service.auth.check_chart_data_access",
         lambda _chart: SimpleNamespace(is_valid=True, error=None),
     )
-    monkeypatch.setattr(module, "_build_update_payload", lambda *_args: boundary)
+    monkeypatch.setattr(
+        module, "_build_update_payload", lambda *_args, **_kwargs: boundary
+    )
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(

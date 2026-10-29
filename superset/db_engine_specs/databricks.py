@@ -22,16 +22,18 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import false, text, true, types
+from sqlalchemy import text, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -40,7 +42,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     DatabaseCategory,
 )
-from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec, SparkSqlBooleanEqualityMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error
 from superset.utils import json
@@ -250,8 +252,12 @@ time_grain_expressions: dict[str | None, str] = {
 }
 
 
-class DatabricksBaseEngineSpec(BaseEngineSpec):
+class DatabricksBaseEngineSpec(SparkSqlBooleanEqualityMixin, BaseEngineSpec):
     """Base engine specification for Databricks flavors and connection methods."""
+
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
 
     _time_grain_expressions = time_grain_expressions
 
@@ -260,26 +266,16 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     identifier_quote_start: str = "`"
     identifier_quote_end: str = "`"
 
-    # Databricks SQL applies strict type checking: comparing a boolean column
-    # against an integer literal (or a bound Python boolean that the
-    # Hive/Databricks driver renders as 0/1) fails with
-    # DATATYPE_MISMATCH.DATA_DIFF_TYPES (see #36765). Enabling equality
-    # operators ensures boolean filters compile as 'col = true' / 'col = false'.
-    use_equality_for_boolean_filters: bool = True
-
-    @classmethod
-    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
-        """
-        Render Python booleans as explicit boolean keywords.
-
-        The Hive/Databricks SQLAlchemy dialects render Python booleans as
-        integer literals (0/1) in some binding paths, so emit sqlalchemy
-        true()/false() instead: they always compile to the TRUE/FALSE keywords
-        and never reach the driver as bind parameters (#36765).
-        """
-        if value is None:
-            return None
-        return true() if value else false()
+    # Databricks SQL documents native MEDIAN/STDDEV_SAMP/VAR_SAMP aggregate
+    # functions (docs.databricks.com/aws/en/sql/language-manual/functions/
+    # {median,stddev_samp,var_samp}), confirmed against that reference, not a
+    # live Databricks instance. All three are plain function calls, same
+    # spelling as Postgres/DuckDB, so no dialect-specific rewriting is needed.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     @classmethod
     def convert_dttm(
@@ -1167,7 +1163,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
 # ambiguous-driver fallback in `get_engine_spec` picks the first backend-matching
 # spec by definition order, and this spec's inherited `HiveEngineSpec.execute()`
 # crashes on the `databricks.sql.client.Cursor` used by unrecognized-driver URIs.
-class DatabricksHiveEngineSpec(HiveEngineSpec):
+class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
     """Databricks engine spec using Hive connector for Interactive Clusters."""
 
     engine_name = "Databricks Interactive Cluster"
@@ -1205,21 +1201,15 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with Interactive Cluster connections.
 
-    # Databricks Interactive Clusters apply the same strict type checking as
-    # Databricks SQL, so boolean filters need equality against boolean keywords.
-    use_equality_for_boolean_filters: bool = True
-
-    @classmethod
-    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
-        # Same rationale as DatabricksBaseEngineSpec: the Hive driver renders
-        # Python booleans as 0/1 in some binding paths (#36765).
-        if value is None:
-            return None
-        return true() if value else false()
-
     _show_functions_column = "function"
 
     _time_grain_expressions = time_grain_expressions
+
+    # Interactive Clusters run Spark SQL, same as the primary Databricks
+    # connector above; same native MEDIAN/STDDEV_SAMP/VAR_SAMP functions
+    # apply here rather than the inherited (unimplemented) HiveEngineSpec/
+    # PrestoEngineSpec default.
+    _extended_aggregations = DatabricksBaseEngineSpec._extended_aggregations
 
 
 # TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x

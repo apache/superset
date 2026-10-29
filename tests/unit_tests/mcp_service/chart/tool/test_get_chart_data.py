@@ -26,7 +26,7 @@ from datetime import datetime, time as dt_time, timezone
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -731,6 +731,9 @@ class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    async def warning(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -1105,6 +1108,9 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
         coltypes=[GenericDataType.TEMPORAL],
     )
 
+    # Capture the producer offset before timezone hooks are disabled.
+    dublin_iso: str = values[0].isoformat()
+
     def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
         raise AssertionError("dateutil timezone hook executed")
 
@@ -1127,7 +1133,7 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
 
     payload = result.structured_content.get("result", result.structured_content)
     assert payload["data"] == [
-        {"value": "2024-10-27T01:30:00.123456+01:00"},
+        {"value": dublin_iso},
         {"value": "2024-03-10T02:30:00-04:00"},
         {"value": "2040-07-01T12:00:00-05:00"},
         {"value": "2024-01-01T12:00:00-03:00"},
@@ -3265,7 +3271,7 @@ class TestSavedChartExtraFormDataFilters:
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_adhoc_filters_key_reaches_executed_query(
@@ -3287,7 +3293,7 @@ class TestSavedChartExtraFormDataFilters:
             mcp_server,
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_temporal_range_filter_reaches_executed_query(
@@ -3311,6 +3317,7 @@ class TestSavedChartExtraFormDataFilters:
             "col": "order_date",
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2024-02-01",
+            "isExtra": True,
         } in filters
 
     @pytest.mark.asyncio
@@ -3927,6 +3934,324 @@ class TestOAuthErrorRouting:
 
         assert data["error_type"] == "OAUTH2_REDIRECT"
         assert data["error_type"] != "DataError"
+
+
+def _guest_rls_refusal() -> Exception:
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    return SupersetSecurityException(
+        SupersetError(
+            message="Semantic views cannot enforce guest row-level security rules.",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.WARNING,
+        )
+    )
+
+
+def _invalid_filter_rejection() -> Exception:
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    return SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+
+
+def _provider_fault() -> Exception:
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    return SemanticLayerExecutionError()
+
+
+# (raising stage, error factory, MCP error type, message fragment). Access is
+# refused while validating; providers reject or fail while running.
+CATEGORIZED_QUERY_ERRORS: list[Any] = [
+    pytest.param(
+        "validate",
+        _guest_rls_refusal,
+        "AccessDenied",
+        "Semantic views cannot enforce guest row-level security rules.",
+        id="refusal",
+    ),
+    pytest.param(
+        "run",
+        _invalid_filter_rejection,
+        "ValidationError",
+        "A semantic query filter is invalid.",
+        id="rejection",
+    ),
+    pytest.param(
+        "run",
+        _provider_fault,
+        "DataError",
+        "An error occurred while fetching the data.",
+        id="fault",
+    ),
+]
+
+
+def _raising_command(stage: str, error: Exception) -> type:
+    """Build a ChartDataCommand stand-in that raises at the given stage."""
+
+    class RaisingChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context: object = query_context
+
+        def validate(self) -> None:
+            if stage == "validate":
+                raise error
+
+        def run(self) -> dict[str, Any]:
+            raise error
+
+    return RaisingChartDataCommand
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
+)
+async def test_saved_chart_query_error_keeps_api_category(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    stage: str,
+    make_error: Callable[[], Exception],
+    error_type: str,
+    message: str,
+) -> None:
+    """Refusals are access errors and provider rejections are validation errors."""
+    routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+    routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command(stage, make_error()),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == error_type
+    assert message in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
+)
+async def test_unsaved_chart_query_error_keeps_api_category(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    stage: str,
+    make_error: Callable[[], Exception],
+    error_type: str,
+    message: str,
+) -> None:
+    """The form_data_key path categorizes errors like the saved-chart path."""
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *args, **kwargs: json.dumps(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "metrics": ["count"],
+                "groupby": ["gender"],
+                "row_limit": 10,
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *args, **kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command(stage, make_error()),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == error_type
+    assert message in data["error"]
+
+
+EMPTY_IN_QUERY: dict[str, Any] = {
+    "columns": ["STATUS"],
+    "metrics": ["ORDER_COUNT"],
+    "filters": [{"col": "STATUS", "op": "IN", "val": []}],
+}
+
+
+def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Patch in a saved semantic chart the real mapper refuses while it runs.
+
+    Returns the provider mock so tests can assert it was never queried.
+    """
+    import pyarrow as pa
+    from superset_core.semantic_layers.types import Dimension, Metric
+    from superset_core.semantic_layers.view import SemanticView as ProviderView
+
+    from superset.semantic_layers.models import SemanticView
+
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    processor_module: Any = importlib.import_module(
+        "superset.common.query_context_processor"
+    )
+    provider: MagicMock = MagicMock(spec=ProviderView)
+    provider.features = frozenset()
+    provider.selection_identity_version = None
+    provider.uid.return_value = "empty-filter-test"
+    provider.get_dimensions.return_value = {
+        Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8(), grain=None)
+    }
+    provider.get_metrics.return_value = {
+        Metric(
+            id="orders.ORDER_COUNT",
+            name="ORDER_COUNT",
+            type=pa.int64(),
+            definition="COUNT(*)",
+        )
+    }
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    # `implementation` is a plain (non-settable) property resolved through
+    # `SemanticBindingMemo`, not a `cached_property` the instance `__dict__`
+    # can pre-populate -- patch the class property itself instead.
+    monkeypatch.setattr(SemanticView, "implementation", property(lambda self: provider))
+
+    chart: MagicMock = MagicMock()
+    chart.id = 1
+    chart.slice_name = "Orders by status"
+    chart.viz_type = "table"
+    chart.datasource_id = 7
+    chart.datasource_type = "semantic_view"
+    chart.params = json.dumps({"viz_type": "table"})
+    chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [EMPTY_IN_QUERY],
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    validation: MagicMock = MagicMock(is_valid=True, warnings=[])
+    monkeypatch.setattr(chart_data_module, "is_semantic_layers_enabled", lambda: True)
+    monkeypatch.setattr(
+        chart_data_module, "find_chart_by_identifier", lambda *a, **k: chart
+    )
+    monkeypatch.setattr(
+        chart_data_module, "validate_chart_semantic_view", lambda *a, **k: validation
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        lambda *a, **k: view,
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context.QueryContext.raise_for_access",
+        lambda self: None,
+    )
+    monkeypatch.setattr(
+        "superset.security_manager.raise_for_unsupported_guest_rls",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        processor_module.QueryContextProcessor,
+        "query_cache_key",
+        lambda *a, **k: "empty-filter-test",
+    )
+    monkeypatch.setattr(
+        processor_module.QueryContextProcessor, "get_cache_timeout", lambda self: -1
+    )
+    return provider
+
+
+@pytest.mark.asyncio
+async def test_saved_chart_mapper_refusal_is_validation_error(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The real command path keeps a semantic mapper refusal out of DataError."""
+    from unittest.mock import AsyncMock
+
+    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    ctx_error: AsyncMock = AsyncMock()
+    monkeypatch.setattr("fastmcp.Context.error", ctx_error)
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
+    provider.get_table.assert_not_called()
+    # Validation errors are not error-level MCP notifications.
+    ctx_error.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_unsaved_chart_mapper_refusal_is_validation_error(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The form_data_key path keeps a mapper refusal out of DataError too."""
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+    from superset.common.query_context_factory import QueryContextFactory
+
+    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *a, **k: json.dumps(
+            {"datasource": "7__semantic_view", "viz_type": "table"}
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *a, **k: QueryContextFactory().create(
+            datasource={"id": 7, "type": "semantic_view"},
+            queries=[EMPTY_IN_QUERY],
+            result_type=ChartDataResultType.FULL,
+            result_format=ChartDataResultFormat.JSON,
+            force=True,
+        ),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
+    provider.get_table.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -5275,6 +5600,368 @@ class TestSavedDataFallbackSortDirection:
         assert captured["order_desc"] is False
 
 
+class TestQueryContextAccuracyWarning:
+    """When get_chart_data falls back to building a query from form_data, the
+    structured response must say so. ``ctx.warning`` alone is an MCP log
+    notification, not part of the tool result, so an LLM client has no way to
+    know the returned numbers skip the frontend's buildQuery logic (time
+    grain, trend line, period comparison) (#45237).
+    """
+
+    @pytest.mark.asyncio
+    async def test_missing_query_context_fallback_is_visible_in_response(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=201,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=None,
+            params=json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": {"label": "SUM(revenue)"},
+                    "time_grain_sqla": "P3M",
+                    "compare_lag": 1,
+                    "show_trend_line": True,
+                }
+            ),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        class _Factory:
+            def create(self, **_kwargs: Any) -> object:
+                return object()
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.common.query_context_factory.QueryContextFactory", _Factory
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 201}}
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_format", ["csv", "excel"])
+    async def test_missing_query_context_fallback_is_visible_in_export_formats(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        response_format: str,
+    ) -> None:
+        """_export_data_as_csv and the Excel builders build their own
+        ``insights`` list, so the missing-query_context caveat must be
+        threaded into those too, not only the default JSON response."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=203,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=None,
+            params=json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": {"label": "SUM(revenue)"},
+                    "time_grain_sqla": "P3M",
+                    "compare_lag": 1,
+                    "show_trend_line": True,
+                }
+            ),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        class _Factory:
+            def create(self, **_kwargs: Any) -> object:
+                return object()
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.common.query_context_factory.QueryContextFactory", _Factory
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 203, "format": response_format}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
+
+    @pytest.mark.asyncio
+    async def test_cached_form_data_override_is_flagged_in_response(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A form_data_key override on a saved chart bypasses the chart's
+        query_context the same way an unsaved chart does — it goes through
+        build_query_context_from_form_data, which calls the same
+        build_query_dicts_from_form_data fallback used when a chart has no
+        saved query_context at all — so it must carry the same caveat."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        cached_form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+        chart = SimpleNamespace(
+            id=206,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {"datasource": {"id": 1, "type": "table"}, "queries": []}
+            ),
+            params=json.dumps(cached_form_data),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(cached_form_data)
+        )
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 206, "form_data_key": "edited-growth"}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any("form_data" in insight.lower() for insight in data["insights"]), (
+            data["insights"]
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_format", ["json", "csv", "excel"])
+    async def test_form_data_key_without_identifier_is_flagged_in_response(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        response_format: str,
+    ) -> None:
+        """An unsaved chart queried by form_data_key alone goes through the same
+        buildQuery-skipping fallback, so every response format carries the
+        caveat."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        cached_form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(cached_form_data)
+        )
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        "form_data_key": "unsaved-growth",
+                        "format": response_format,
+                    }
+                },
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any("form_data" in insight.lower() for insight in data["insights"]), (
+            data["insights"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_explore_saved_query_context_is_not_flagged(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A chart saved from Explore must produce no accuracy warning.
+
+        Explore persists ``params`` and ``query_context`` together, but the
+        query_context's embedded form_data is never identical to params: the
+        request-time keys below are added on the way in, and several viz
+        plugins rewrite form_data before building the context. Comparing the
+        two is therefore not a staleness signal.
+        """
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+        chart = SimpleNamespace(
+            id=202,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "form_data": {
+                        **form_data,
+                        "force": False,
+                        "result_format": "json",
+                        "result_type": "full",
+                    },
+                    "queries": [{"metrics": [{"label": "SUM(revenue)"}]}],
+                }
+            ),
+            params=json.dumps(form_data),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            lambda self, payload: SimpleNamespace(
+                queries=payload.get("queries", []), form_data=payload.get("form_data")
+            ),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 202}}
+            )
+
+        data = json.loads(response.content[0].text)
+        assert not any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "invalid_fields, message",
@@ -5401,6 +6088,9 @@ async def test_rebuilt_table_data_does_not_use_saved_server_pagination(
     assert query["row_limit"] == limit
     assert not query.get("is_rowcount")
     assert query["row_offset"] == 0
+    if path != "unsaved":
+        assert chart.params == json.dumps(form_data)
+        assert chart.query_context is None
     if response_format == "csv":
         assert len(wire["csv_data"].splitlines()) == 101
     elif response_format == "json":
@@ -5684,6 +6374,54 @@ class TestBigNumberHeadline:
             assert headline is not None
             assert headline["value"] == expected_value
             assert headline["aggregation"] == expected_aggregation
+
+
+@pytest.mark.asyncio
+async def test_disabled_semantic_chart_returns_availability_error(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    """Semantic chart data is refused before validation, cache or provider work."""
+    import importlib
+    from types import ModuleType
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from fastmcp.client.client import CallToolResult
+
+    from superset.models.slice import Slice
+
+    client: Client
+    command: MagicMock
+    validate: MagicMock
+    module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    chart: Slice = Slice(
+        id=17,
+        slice_name="semantic",
+        datasource_id=17,
+        datasource_type="semantic_view",
+        viz_type="table",
+        params="{}",
+    )
+    with (
+        patch("superset.feature_flag_manager.is_feature_enabled", return_value=False),
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module, "validate_chart_dataset") as validate,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 17}}
+            )
+    payload: dict[str, Any] = json.loads(result.content[0].text)
+    assert payload["error"] == "Semantic layers are not enabled."
+    assert payload["error_type"] == "SemanticLayersDisabledError"
+    validate.assert_not_called()
+    command.assert_not_called()
 
 
 @pytest.mark.parametrize("engine", ["csv", "openpyxl", "xlsxwriter"])

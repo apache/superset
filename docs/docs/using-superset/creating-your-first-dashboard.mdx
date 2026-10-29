@@ -198,6 +198,43 @@ To add a filter on a semantic view:
 Any chart on the dashboard that's powered by the same semantic view is filtered by the selected
 dimension when the filter is applied.
 
+When a semantic view exposes multiple time-grain variants of one dimension,
+filters and time ranges use its raw (unaggregated) variant if available. Otherwise,
+the default is the finest supported known grain (second through year), followed
+by other grain representations in lexical order. The same preference applies to
+column metadata and grouping without an explicit matching grain.
+
+Choosing a supported grain for grouping does not change the filter operand: a
+chart grouped by month with a January 15 lower bound still filters the raw time
+dimension from January 15, rather than testing month buckets against that bound.
+Without a raw variant, the preferred available variant is used; Superset does not
+synthesize finer source data. Providers must expose at most one dimension ID per
+name and grain; conflicting IDs produce an ambiguity error. Sorting and series
+limits use the selected grouping grain, while filters and time bounds keep the
+default. On dashboards, an ambiguous dataset shows its error only on charts using
+that dataset; other datasets continue loading. Compatibility selections use the
+same default identity and reject ambiguous catalogs. In the main query,
+independent date filters remain separate from the chart's generated time bounds,
+including filters on a second date column or a different range on the same column.
+Time-series offset comparisons and group-limit queries with separate inner bounds
+replace all temporal ranges on the selected time axis with their comparison or
+inner bounds. Independent ranges on other date columns remain in those queries.
+
+Semantic views apply filters to dimensions, not metrics. A metric filter defined
+by the chart returns a client error naming the metric; select a dimension or
+remove that predicate. It is not automatically translated into a HAVING filter.
+
+Dashboard cross-filters and native filters may target charts from other datasets.
+If their column is not a dimension of the semantic view (including metric names),
+the chart still renders and reports the filter as **Incompatible**. A filter
+defined by the chart on a column the view no longer has returns a client error
+naming the column; edit the chart's filters and select a dimension. Compatible
+dimension filters still apply, and the response reports both applied and rejected
+columns so skipped predicates are visible.
+
+The **Incompatible filters** badge and detail section apply only to semantic-view
+charts. SQL-dataset charts retain their applied-filter badge behavior.
+
 :::note
 Semantic views and native filter support for them are part of the experimental Semantic Layers
 feature and require the `SEMANTIC_LAYERS` feature flag to be enabled.
@@ -483,8 +520,18 @@ Access it via the **Customize** tab → **ECharts Options** section at the botto
 }
 ```
 
+A `series` object is merged into every series of the chart, including forecast series. Use it to style all series at once, for example with a dashed outline:
+
+```json
+{
+  "series": {
+    "itemStyle": { "borderType": "dashed", "borderWidth": 2, "borderColor": "#333" }
+  }
+}
+```
+
 :::caution
-ECharts option overrides bypass Superset's validation layer. Invalid option keys are silently ignored by ECharts. Overrides that conflict with Superset-generated options (e.g., `series`) may produce unexpected results.
+ECharts option overrides bypass Superset's validation layer. Invalid option keys are silently ignored by ECharts. Overrides that conflict with Superset-generated options (e.g., a `series` array, which replaces the generated series) may produce unexpected results.
 :::
 
 ### Table Chart: Exporting Filtered Data
