@@ -31,7 +31,7 @@ from pandas.api.types import infer_dtype
 
 from superset import is_feature_enabled
 from superset.charts.client_processing import apply_export_number_formats
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -673,7 +673,17 @@ class QueryContextProcessor:
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
 
-            if is_feature_enabled("EXPORT_FORMATTED_NUMBERS"):
+            # The POST_PROCESSED export path re-parses this serialized output and
+            # runs pivot/table arithmetic on it (see apply_client_processing),
+            # which would coerce a formatted "1,000.00" into NaN. Skip formatting
+            # here for that path -- apply_client_processing formats after the
+            # post-processing step instead.
+            format_numeric_export = (
+                is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
+                and self._query_context.result_type
+                != ChartDataResultType.POST_PROCESSED
+            )
+            if format_numeric_export:
                 apply_export_number_formats(
                     df,
                     coltypes,
@@ -692,7 +702,19 @@ class QueryContextProcessor:
                     current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                excel.apply_column_types(df, coltypes)
+                export_coltypes = coltypes
+                if format_numeric_export:
+                    # Every numeric column was rendered to display text above, so
+                    # treat them as strings here; otherwise apply_column_types
+                    # would coerce e.g. "3.50" back to the number 3.5 and drop
+                    # the configured decimals.
+                    export_coltypes = [
+                        GenericDataType.STRING
+                        if coltype == GenericDataType.NUMERIC
+                        else coltype
+                        for coltype in coltypes
+                    ]
+                excel.apply_column_types(df, export_coltypes)
                 result = excel.df_to_excel(
                     df, index=include_index, **current_app.config["EXCEL_EXPORT"]
                 )

@@ -25,6 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+import math
 from collections.abc import Callable
 from decimal import Decimal
 from functools import partial
@@ -1223,6 +1224,29 @@ def merge_currency_formats(
     return currency_formats
 
 
+def _fallback_export_value(value: Any) -> Any:
+    """Render a finite numeric cell as exact fixed-point text.
+
+    An unconfigured numeric column must never serialize as a raw float
+    (``1e-07``/``19.7999992``) or lose precision to float64 re-inference, so
+    finite ``float`` and ``int`` cells become exact text here while every other
+    value -- ``Decimal`` (handled by ``csv.format_decimal``), ``None``, ``NaN``,
+    infinity and non-numeric cells -- passes through unchanged.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, float) and math.isfinite(value):
+        # Route through ``Decimal(str())`` so the exact value the user sees is
+        # emitted as fixed-point text rather than a float repr or scientific
+        # notation, matching the Decimal branch below.
+        return format(Decimal(str(value)), "f")
+    if isinstance(value, int):
+        # Keep large integers exact: ``.map`` would otherwise re-infer an object
+        # column of ints with nulls as float64 and round them.
+        return str(value)
+    return csv.format_decimal(value)
+
+
 def apply_export_number_formats(
     df: pd.DataFrame,
     coltypes: list[GenericDataType],
@@ -1235,11 +1259,12 @@ def apply_export_number_formats(
     resolved to its configured d3 format, currency and small-number format the
     same way the live Table plugin does -- ``column_config`` overrides first,
     then the datasource's saved per-metric formats -- and handed to
-    ``format_column``. A numeric column with nothing configured takes the
-    fixed-point fallback so its cells are never serialized as raw floats.
-    Non-numeric columns, nulls, NaN and infinity are left to the existing
-    helpers and pass through unchanged. The passed frame is mutated in place and
-    returned; the helper runs no query and performs no I/O.
+    ``format_column``. Percent metric columns default to ``PERCENT_3_POINT`` and
+    a numeric column with nothing configured takes the fixed-point fallback so
+    its cells are never serialized as raw floats. Non-numeric columns, nulls,
+    NaN and infinity are left to the existing helpers and pass through
+    unchanged. The passed frame is mutated in place and returned; the helper
+    runs no query and performs no I/O.
     """
     saved_formats, verbose_map = get_datasource_column_formats(datasource)
     saved_currency_formats, _ = get_datasource_currency_formats(datasource)
@@ -1258,6 +1283,20 @@ def apply_export_number_formats(
         label_of(name): currency for name, currency in saved_currency_formats.items()
     }
     config_by_label = {label_of(name): config for name, config in column_config.items()}
+
+    # Percent metric columns are emitted with a leading ``%`` and are not
+    # verbose-renamed, so match them by that prefixed label; they default to
+    # PERCENT_3_POINT the way the Table plugin's percent formatter does.
+    percent_metric_labels = {
+        f"%{name}"
+        for name in get_metric_names(form_data.get("percent_metrics"))
+        if f"%{name}" in df.columns
+    }
+
+    # The AG Grid table paints its cells through ``valueFormatter``, which never
+    # builds the small-number formatter, so an export leaves that format alone
+    # for it -- mirroring ``table()``'s own ``applies_small_number_format``.
+    applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
 
     numeric_columns = {
         column
@@ -1284,10 +1323,25 @@ def apply_export_number_formats(
             else currency_by_label.get(column) or {}
         )
         # A cleared Select leaves a blank string behind, which the browser
-        # treats as unset.
-        small_number_format = (config.get("d3SmallNumberFormat") or "").strip() or None
+        # treats as unset; the AG Grid table ignores the small-number format.
+        small_number_format = (
+            (config.get("d3SmallNumberFormat") or "").strip() or None
+            if applies_small_number_format
+            else None
+        )
 
-        if number_format or currency.get("symbol") or small_number_format:
+        if column in percent_metric_labels:
+            # A percent metric defaults to PERCENT_3_POINT and its own formatter
+            # never carries a currency, matching the Table plugin.
+            format_column(
+                df,
+                column,
+                number_format or PERCENT_3_POINT,
+                {},
+                small_d3_format=small_number_format,
+                small_currency=small_currency,
+            )
+        elif number_format or currency.get("symbol") or small_number_format:
             format_column(
                 df,
                 column,
@@ -1298,8 +1352,8 @@ def apply_export_number_formats(
             )
         else:
             # Nothing configured: keep exact fixed-point text rather than a raw
-            # float. Non-finite and non-decimal cells pass through untouched.
-            df[column] = df[column].map(csv.format_decimal)
+            # float. Non-finite and non-numeric cells pass through untouched.
+            df[column] = df[column].map(_fallback_export_value)
 
     return df
 
@@ -1721,7 +1775,16 @@ def apply_client_processing(  # noqa: C901
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
+        # With EXPORT_FORMATTED_NUMBERS the tabular export formats are formatted
+        # here, after the pivot/table post-processing arithmetic has run on the
+        # raw numbers, so the formatter never sees (and cannot coerce to NaN)
+        # the intermediate values the way pre-serialization formatting would.
+        from superset import is_feature_enabled  # noqa: PLC0415
+
+        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON or (
+            is_feature_enabled("EXPORT_FORMATTED_NUMBERS")
+            and query["result_format"] in ChartDataResultFormat.table_like()
+        )
         processed_df = post_processor(
             df,
             form_data,

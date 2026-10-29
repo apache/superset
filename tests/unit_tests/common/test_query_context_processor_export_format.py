@@ -23,7 +23,7 @@ from typing import Any, cast
 
 import pandas as pd
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
@@ -34,11 +34,13 @@ def _make_processor(
     result_format: ChartDataResultFormat,
     form_data: dict[str, Any],
     datasource_data: dict[str, Any] | None = None,
+    result_type: ChartDataResultType = ChartDataResultType.FULL,
 ) -> QueryContextProcessor:
     datasource = SimpleNamespace(data=datasource_data or {})
     context = SimpleNamespace(
         datasource=datasource,
         result_format=result_format,
+        result_type=result_type,
         form_data=form_data,
     )
     return QueryContextProcessor(cast(QueryContext, context))
@@ -109,8 +111,8 @@ def test_xlsx_export_matches_csv_for_shared_column(app_context: None) -> None:
     )
     xlsx_value = _read_xlsx_column(xlsx_result, "amount")[0]
 
-    # Both formats display 19.8 for the same source value; XLSX re-coerces the
-    # simple decimal text back to a number, CSV keeps it as text.
+    # Both formats display 19.8 for the same source value; the formatted text is
+    # now kept as a string in XLSX too, so the configured decimals survive.
     assert str(xlsx_value) == csv_value == "19.8"
 
 
@@ -343,3 +345,108 @@ def test_csv_export_unformattable_decimal_edge_values(app_context: None) -> None
     assert "19.7999992" in text
     # No scientific notation leaked into the serialized decimal.
     assert "e+" not in text.lower()
+
+
+# @AC-FR002-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_xlsx_export_keeps_configured_trailing_decimals(app_context: None) -> None:
+    # A ",.2f" format renders 3.5 as "3.50"; the XLSX cell must stay text so the
+    # trailing zero is not coerced back to the number 3.5 by apply_column_types.
+    # (pd.read_excel would re-infer a numeric-looking string, so read the raw
+    # cell via openpyxl to observe what was actually stored.)
+    from openpyxl import load_workbook
+
+    processor = _make_processor(
+        ChartDataResultFormat.XLSX,
+        {"column_config": {"amount": {"d3NumberFormat": ",.2f"}}},
+    )
+    df = pd.DataFrame({"amount": [3.5]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    assert isinstance(result, bytes)
+    cell = load_workbook(io.BytesIO(result)).active["A2"]
+    assert cell.data_type == "s"
+    assert cell.value == "3.50"
+
+
+# @AC-FR001-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_chart_config_format_wins_over_saved_datasource_format(
+    app_context: None,
+) -> None:
+    # A chart's column_config override must win over the datasource's saved
+    # per-metric format and currency, pinning the config.get(...) precedence in
+    # apply_export_number_formats (a saved ",.2f"/USD would otherwise leak).
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {
+            "column_config": {
+                "amount": {
+                    "d3NumberFormat": ",.1f",
+                    "currencyFormat": {"symbol": "EUR", "symbolPosition": None},
+                }
+            }
+        },
+        datasource_data={
+            "column_formats": {"amount": ",.2f"},
+            "currency_formats": {"amount": {"symbol": "USD"}},
+        },
+    )
+    df = pd.DataFrame({"amount": [1234.5]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    text = _csv_text(result)
+    # The chart override (one decimal, EUR) wins over the saved format.
+    assert "€" in text
+    assert "1,234.5" in text
+    assert "1,234.50" not in text
+    assert "$" not in text
+
+
+# @AC-FR001-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_small_number_format_forwarded_to_export(app_context: None) -> None:
+    # The column's d3SmallNumberFormat is applied per cell: a sub-one value takes
+    # it while larger values keep the column's normal format, matching the chart.
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {
+            "column_config": {
+                "amount": {
+                    "d3NumberFormat": ",.0f",
+                    "d3SmallNumberFormat": ",.1%",
+                }
+            }
+        },
+    )
+    df = pd.DataFrame({"amount": [0.125, 5.0]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    text = _csv_text(result)
+    # Sub-one value rendered by the small-number format, the other by the main.
+    assert "12.5%" in text
+    assert "5" in text
+
+
+# @AC-FR001-01
+@with_feature_flags(EXPORT_FORMATTED_NUMBERS=True)
+def test_post_processed_export_skips_pre_pivot_formatting(app_context: None) -> None:
+    # A POST_PROCESSED export is re-parsed and pivoted by apply_client_processing,
+    # so get_data must leave the raw numbers here to avoid turning a formatted
+    # thousands string into NaN; formatting happens after post-processing.
+    processor = _make_processor(
+        ChartDataResultFormat.CSV,
+        {"column_config": {"amount": {"d3NumberFormat": ",.1f"}}},
+        result_type=ChartDataResultType.POST_PROCESSED,
+    )
+    df = pd.DataFrame({"amount": [19.7999992]})
+
+    result = processor.get_data(df, [GenericDataType.NUMERIC])
+
+    text = _csv_text(result)
+    # Raw value survives: the pre-pivot formatting stage was skipped.
+    assert "19.7999992" in text
+    assert "19.8" not in text

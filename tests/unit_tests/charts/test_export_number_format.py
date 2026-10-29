@@ -194,3 +194,57 @@ def test_verbose_map_renamed_column_gets_configured_format() -> None:
     result = apply_export_number_formats(df, [GenericDataType.NUMERIC], {}, datasource)
 
     assert result["Total Amount"].tolist() == ["1,234.50"]
+
+
+# @AC-FR003-01
+def test_unconfigured_float_column_takes_fixed_point_fallback() -> None:
+    # An unconfigured numeric column holding floats must serialize as exact
+    # fixed-point text, never a float repr or scientific notation.
+    df = pd.DataFrame({"amount": [19.7999992, 1e-07]})
+
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], {}, None)
+
+    values = result["amount"].tolist()
+    assert values == ["19.7999992", "0.0000001"]
+    assert all(isinstance(value, str) for value in values)
+
+
+# @AC-FR003-01
+def test_unconfigured_large_int_column_stays_exact() -> None:
+    # Large integers must not be rounded by a float64 re-inference of the column.
+    df = pd.DataFrame({"n": [9007199254740993, None]}, dtype=object)
+
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], {}, None)
+
+    assert result["n"].tolist()[0] == "9007199254740993"
+
+
+# @AC-FR001-01
+def test_percent_metric_defaults_to_percent_format() -> None:
+    # A percent metric column (leading "%") with nothing configured defaults to
+    # PERCENT_3_POINT, matching the Table plugin, rather than the raw fallback.
+    df = pd.DataFrame({"%share": [0.3]})
+    form_data = {"percent_metrics": ["share"]}
+
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], form_data, None)
+
+    assert result["%share"].tolist() == ["30.000%"]
+
+
+# @AC-FR001-01
+def test_ag_grid_table_skips_small_number_format() -> None:
+    # The AG Grid table never builds the small-number formatter, so an export
+    # leaves that format alone for it and uses only the column's normal format.
+    df = pd.DataFrame({"amount": [0.125]})
+    form_data = {
+        "viz_type": "ag-grid-table",
+        "column_config": {
+            "amount": {"d3NumberFormat": ",.0f", "d3SmallNumberFormat": ",.1%"}
+        },
+    }
+
+    result = apply_export_number_formats(df, [GenericDataType.NUMERIC], form_data, None)
+
+    # The small-number format (",.1%" -> "12.5%") is ignored; the main format
+    # (",.0f" -> "0") applies to the sub-one value instead.
+    assert result["amount"].tolist() == ["0"]

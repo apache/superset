@@ -851,7 +851,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     "ALLOW_FULL_CSV_EXPORT": False,
     # Apply the chart's configured number formats to chart-data CSV/XLSX exports
-    # instead of serializing raw values.
+    # instead of serializing raw values. Scope: the per-request chart-data export
+    # path (QueryContextProcessor.get_data and the post-processing pivot/table
+    # step), covering formats resolved from column_config and the datasource's
+    # saved per-metric formats. It does not reach the StreamingCSVExportCommand
+    # path used for downloads above CSV_STREAMING_ROW_THRESHOLD, and it only
+    # resolves the per-column formats a table-like viz carries, not chart-level
+    # keys such as a Time-series chart's y_axis_format.
     # @lifecycle: testing
     "EXPORT_FORMATTED_NUMBERS": False,
     # Enable caching per impersonation key in datasources with user impersonation
