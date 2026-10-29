@@ -191,7 +191,7 @@ from superset.utils.date_parser import (
     normalize_time_delta,
     TimeDeltaAmbiguousError,
 )
-from superset.utils.dates import datetime_to_epoch
+from superset.utils.dates import datetime_to_epoch, normalize_time_bound
 from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
 
 
@@ -455,13 +455,6 @@ def _coerce_temporal_join_series(
         return timestamp.tz_localize(None) if timestamp.tzinfo else timestamp
 
     return converted.map(as_wall_clock)
-
-
-def _to_naive_utc(dttm: datetime | None) -> datetime | None:
-    """Normalize explicit offsets to naive UTC while preserving naive bounds."""
-    if dttm is not None and dttm.utcoffset() is not None:
-        return dttm.astimezone(timezone.utc).replace(tzinfo=None)
-    return dttm
 
 
 def _has_multiple_utc_offsets(series: pd.Series) -> bool:
@@ -5877,9 +5870,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         start_dttm: Optional[sa.DateTime],
         end_dttm: Optional[sa.DateTime],
         time_col: Optional["TableColumn"] = None,
+        *,
+        target_type: str | None = None,
     ) -> tuple[Optional[sa.DateTime], Optional[sa.DateTime]]:
         """
         Apply the dataset's time-boundary adjustments to a pair of bounds.
+
+        Explicit timestamp offsets identify instants and bypass Hour Offset.
+        Explicit DATE bounds retain their calendar date. Naive bounds keep the
+        dataset timezone or legacy Hour Offset interpretation described below.
 
         A configured `extra.timezone` (an IANA name, DST-aware) takes
         precedence: naive UI boundaries are interpreted in that zone and
@@ -5895,55 +5894,51 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         against the engine -- see exactly the instants the clause compares
         against, rather than a copy of this logic that can drift.
         """
-        dataset_timezone = self.get_dataset_timezone()
-
-        if dataset_timezone and (start_dttm or end_dttm):
+        tz = None
+        if dataset_timezone := self.get_dataset_timezone():
             try:
                 tz = ZoneInfo(dataset_timezone)
-
-                # Interpret naive UI bounds in the dataset timezone. Explicit
-                # offsets already identify an instant and must be preserved
-                # when converting to UTC for comparison with UTC-stored data.
-                if start_dttm is not None:
-                    start_dttm = (
-                        start_dttm.replace(tzinfo=start_dttm.tzinfo or tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
-                if end_dttm is not None:
-                    end_dttm = (
-                        end_dttm.replace(tzinfo=end_dttm.tzinfo or tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
             except (ZoneInfoNotFoundError, TypeError):
                 logger.warning(
                     "Invalid timezone %r in dataset extra; falling back to Hour "
                     "Offset if configured",
                     dataset_timezone,
                 )
-                dataset_timezone = None
-
-        # Without a dataset timezone, explicit offsets still identify UTC
-        # instants. Strip tzinfo only after conversion so text-based timestamp
-        # comparisons do not depend on an engine's handling of offset suffixes.
-        if not dataset_timezone:
-            start_dttm = _to_naive_utc(start_dttm)
-            end_dttm = _to_naive_utc(end_dttm)
-
-        if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
+        column_type = target_type or (time_col.type if time_col is not None else None)
+        sqla_type = (
+            self.db_engine_spec.get_sqla_column_type(column_type)
+            if column_type
+            else None
+        )
+        is_date = isinstance(sqla_type, sa.Date) and not isinstance(
+            sqla_type, sa.DateTime
+        )
+        offset_hours = 0
+        if tz is None and (offset_hours := getattr(self, "offset", 0) or 0):
             offset_hours = get_effective_hours_offset(
                 self.db_engine_spec,
-                time_col.type if time_col is not None else None,
+                column_type,
                 offset_hours,
                 db_extra=self.db_extra,
             )
-            if start_dttm is not None:
-                start_dttm = start_dttm - timedelta(hours=offset_hours)
-            if end_dttm is not None:
-                end_dttm = end_dttm - timedelta(hours=offset_hours)
-
-        return start_dttm, end_dttm
+        return (
+            normalize_time_bound(
+                start_dttm,
+                dataset_timezone=tz,
+                offset_hours=offset_hours,
+                is_date=is_date,
+            )
+            if start_dttm is not None
+            else None,
+            normalize_time_bound(
+                end_dttm,
+                dataset_timezone=tz,
+                offset_hours=offset_hours,
+                is_date=is_date,
+            )
+            if end_dttm is not None
+            else None,
+        )
 
     def get_time_filter(  # pylint: disable=too-many-arguments
         self,

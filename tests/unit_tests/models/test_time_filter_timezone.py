@@ -94,8 +94,8 @@ def test_aware_quarter_filter_queries_sqlite_text_rows(
     )
     with app.app_context():
         clause = table.get_time_filter(time_col, start, end)
-    boundary = f"2024-03-31 {16 - offset:02d}:00:00"
-    end_boundary = f"2024-06-30 {16 - offset:02d}:00:00"
+    boundary = "2024-03-31 16:00:00"
+    end_boundary = "2024-06-30 16:00:00"
     with sqlite3.connect(":memory:") as connection:
         connection.execute("CREATE TABLE events (last_modified TEXT)")
         connection.executemany(

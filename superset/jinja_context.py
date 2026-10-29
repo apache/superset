@@ -35,7 +35,7 @@ from jinja2.sandbox import safe_range, SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.expression import bindparam
-from sqlalchemy.types import String
+from sqlalchemy.types import Date, DateTime, String
 
 from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -59,6 +59,7 @@ from superset.utils.core import (
     get_username,
     merge_extra_filters,
 )
+from superset.utils.dates import normalize_time_bound
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -727,6 +728,37 @@ class ExtraCache:
         return filters
 
     # pylint: disable=too-many-arguments
+    def _normalize_time_filter_bounds(
+        self,
+        start: datetime | None,
+        end: datetime | None,
+        column: str | None,
+        target_type: str | None,
+    ) -> tuple[datetime | None, datetime | None]:
+        """Use the same bound interpretation as the datasource's chart filter."""
+        if self.table:
+            time_col = next(
+                (
+                    col
+                    for col in self.table.columns
+                    if col.column_name == (column or self.table.main_dttm_col)
+                ),
+                None,
+            )
+            return self.table.adjust_time_bounds(
+                start, end, time_col, target_type=target_type
+            )
+        sql_type = (
+            self.database.db_engine_spec.get_sqla_column_type(target_type)
+            if self.database and target_type
+            else None
+        )
+        is_date = isinstance(sql_type, Date) and not isinstance(sql_type, DateTime)
+        return (
+            normalize_time_bound(start, is_date=is_date) if start is not None else None,
+            normalize_time_bound(end, is_date=is_date) if end is not None else None,
+        )
+
     def get_time_filter(
         self,
         column: str | None = None,
@@ -787,6 +819,9 @@ class ExtraCache:
         if time_range == NO_TIME_RANGE and default:
             time_range = default
         from_expr, to_expr = get_since_until_from_time_range(time_range)
+        from_expr, to_expr = self._normalize_time_filter_bounds(
+            from_expr, to_expr, column, target_type
+        )
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if strftime and dttm:

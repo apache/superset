@@ -153,7 +153,9 @@ def get_past_or_future(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
     human_readable = _rewrite_quarters_as_months(human_readable)
-    return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0])
+    return dttm_from_timetuple(cal.parse(human_readable, source_dttm)[0]).replace(
+        tzinfo=source_time.tzinfo if source_time else None
+    )
 
 
 def is_parseable_human_timedelta(human_readable: str | None) -> bool:
@@ -208,7 +210,9 @@ def parse_human_timedelta(
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    return get_past_or_future(human_readable, source_time) - source_dttm
+    return get_past_or_future(human_readable, source_time) - source_dttm.replace(
+        tzinfo=source_time.tzinfo if source_time else None
+    )
 
 
 def parse_past_timedelta(
@@ -833,16 +837,14 @@ class EvalDateDiffFunc:  # pylint: disable=too-few-public-methods
         self.value = tokens[1]
 
     def eval(self) -> int:
-        if len(self.value) == 2:
-            _dttm_from, _dttm_to = self.value
-            return (_dttm_to.eval() - _dttm_from.eval()).days
-
-        if len(self.value) == 3:
-            _dttm_from, _dttm_to, _unit = self.value
-            if _unit == "year":
-                return _dttm_to.eval().year - _dttm_from.eval().year
-            if _unit == "day":
-                return (_dttm_to.eval() - _dttm_from.eval()).days
+        if len(self.value) in (2, 3):
+            dttm_from, dttm_to = get_comparable_bounds(
+                self.value[0].eval(), self.value[1].eval()
+            )
+            if len(self.value) == 2 or self.value[2] == "day":
+                return (dttm_to - dttm_from).days
+            if self.value[2] == "year":
+                return dttm_to.year - dttm_from.year
         raise ValueError(_("Unable to calculate such a date delta"))
 
 

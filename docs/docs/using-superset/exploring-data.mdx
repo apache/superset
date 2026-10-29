@@ -493,14 +493,22 @@ When using datetime expressions, `DATETRUNC` preserves an explicit UTC offset wh
 truncating to a quarter. For example,
 `DATETRUNC(DATETIME('2024-05-31T12:34:56+08:00'), QUARTER)` evaluates to
 `2024-04-01T00:00:00+08:00`, so it can be paired with an offset-aware end date.
-Explicit offsets are converted to UTC before generating SQL filters, even when
-the dataset has no configured timezone. Boundaries without an offset use the
-dataset timezone when one is configured. Ranges that
+For timestamp columns, explicit offsets are converted to UTC before generating
+SQL filters, even when the dataset has no configured timezone. DATE columns keep
+the explicit boundary's calendar date. Boundaries without an offset use the
+dataset timezone when one is configured, or the legacy Hour Offset otherwise;
+an explicit offset is never shifted by Hour Offset a second time. Ranges that
 mix boundaries with and without offsets (for example, a quarter expression and
 `now`) retain their offsets and use wall-clock ordering for range validation.
 Use explicit offsets on both boundaries when validation must compare instants.
-Time-comparison periods preserve explicit offsets. Comparison durations and MCP
-dashboard range intersections use the same mixed-bound ordering rule.
+Time-comparison periods preserve explicit offsets. Mixed-bound date arithmetic
+uses the same wall-clock compatibility rule as validation. MCP dashboard range
+intersections compare the instants used by the destination dataset's SQL filter,
+so an intersection cannot widen the dashboard range. Jinja time-filter macros
+use the same bound adjustments as chart filters. Resampling converts explicit
+bounds to the index timezone, or UTC for a naive index; datasource display
+timezone and Hour Offset settings are also reflected when filling a displayed
+time series.
 
 ### Sunburst cross-filtering
 

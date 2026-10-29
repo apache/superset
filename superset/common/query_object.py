@@ -19,14 +19,16 @@ from __future__ import annotations
 
 import inspect
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pprint import pformat
 from typing import Any, cast, NamedTuple, TYPE_CHECKING
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from sqlalchemy.types import Date, DateTime
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
@@ -782,11 +784,54 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     func = extra_ops[operation]
                 options = post_process.get("options", {})
                 if operation == "resample":
-                    options = self._resolve_resample_options(options)
+                    options = self._resolve_resample_options(options, df)
                 df = func(df, **options)
             return df
 
-    def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
+    def _resample_display_bound(
+        self, bound: datetime | None, df: DataFrame
+    ) -> datetime | None:
+        """Align explicit instants with a datasource's normalized display frame."""
+        if (
+            bound is None
+            or bound.utcoffset() is None
+            or self.datasource is None
+            or getattr(df.index, "tz", None) is not None
+        ):
+            return bound
+        column_type = next(
+            (
+                col.type
+                for col in getattr(self.datasource, "columns", [])
+                if col.column_name == self.granularity
+            ),
+            None,
+        )
+        engine_spec = getattr(self.datasource, "db_engine_spec", None)
+        sql_type = (
+            engine_spec.get_sqla_column_type(column_type)
+            if engine_spec and column_type
+            else None
+        )
+        if isinstance(sql_type, Date) and not isinstance(sql_type, DateTime):
+            return bound.replace(tzinfo=None)
+        get_timezone = getattr(self.datasource, "get_dataset_timezone", None)
+        dataset_timezone = get_timezone() if callable(get_timezone) else None
+        if isinstance(dataset_timezone, str):
+            try:
+                return bound.astimezone(ZoneInfo(dataset_timezone)).replace(tzinfo=None)
+            except ZoneInfoNotFoundError:
+                pass
+        # normalize_dttm_col applies the legacy display offset after reading
+        # UTC timestamps. Padding must use that same frame, exactly once.
+        offset = getattr(self.datasource, "offset", 0) or 0
+        return bound.astimezone(timezone.utc).replace(tzinfo=None) + timedelta(
+            hours=offset
+        )
+
+    def _resolve_resample_options(
+        self, options: dict[str, Any], df: DataFrame
+    ) -> dict[str, Any]:
         """
         Translate the `fill_time_range` flag into explicit resample boundaries.
 
@@ -806,6 +851,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             for key, value in options.items()
             if key not in ("fill_time_range", "time_range_start", "time_range_end")
         }
-        resolved["time_range_start"] = self.from_dttm
-        resolved["time_range_end"] = self.to_dttm
+        resolved["time_range_start"] = self._resample_display_bound(self.from_dttm, df)
+        resolved["time_range_end"] = self._resample_display_bound(self.to_dttm, df)
         return resolved
