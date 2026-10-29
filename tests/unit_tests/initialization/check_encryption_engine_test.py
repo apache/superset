@@ -76,7 +76,7 @@ def test_silent_when_engine_value_is_unrecognized() -> None:
 
 
 def test_never_raises_system_exit() -> None:
-    """Unlike check_secret_key/check_guest_token_secret/check_async_query_secret,
+    """Unlike check_secret_key/check_guest_token_secret,
     this check must never refuse to start: the legacy engine is a supported
     configuration, not a known-bad placeholder, so blocking startup on it
     would turn an opt-in hardening step into a forced-migration outage.

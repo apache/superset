@@ -23,19 +23,27 @@ from flask_babel import lazy_gettext as _
 from marshmallow import (
     fields,
     post_dump,
+    post_load,
     pre_load,
     Schema,
     validates_schema,
     ValidationError,
 )
-from marshmallow.validate import Length, OneOf
+from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import (
+    MAX_TRANSFORM_LENGTH,
+    PREVIEWABLE_OPERATORS,
+)
+from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
-from superset.subjects.schemas import SubjectResponseSchema
+from superset.subjects.schemas import SubjectReferenceField
 from superset.utils import json
+from superset.utils.core import FilterOperator
+from superset.utils.number_format import is_valid_d3_format
+from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
     "type": "array",
@@ -47,6 +55,7 @@ get_export_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
+get_related_objects_ids_schema = get_delete_ids_schema
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -68,7 +77,7 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(dt_format: str) -> bool:
-    if dt_format in ("epoch_s", "epoch_ms"):
+    if dt_format in EPOCH_FORMATS:
         return True
     try:
         dt_str = datetime.now().strftime(dt_format)
@@ -78,7 +87,35 @@ def validate_python_date_format(dt_format: str) -> bool:
     return True
 
 
-class DatasetColumnsPutSchema(Schema):
+def validate_d3format(value: str | None) -> None:
+    if not is_valid_d3_format(value):
+        raise ValidationError(
+            _(
+                "Invalid number format: must be a d3-format specifier or a "
+                "supported named format"
+            )
+        )
+
+
+class ResolveIsCertifiedMixin(Schema):
+    """
+    ``is_certified`` is derived from ``certified_by``/``certification_details``.
+    When either is in the payload they define the state, so the (possibly
+    stale, echoed-from-GET) flag is dropped. On its own, ``False`` clears the
+    certification and ``True`` has no effect.
+    """
+
+    # pylint: disable=unused-argument
+    @post_load
+    def resolve_is_certified(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "certified_by" in data or "certification_details" in data:
+            data.pop("is_certified", None)
+        return data
+
+
+class DatasetColumnsPutSchema(ResolveIsCertifiedMixin, Schema):
     id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
@@ -90,6 +127,14 @@ class DatasetColumnsPutSchema(Schema):
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
+    # Certification/warning metadata lives inside ``extra`` and is applied
+    # through model property setters. Declared after ``extra`` so the DAO's
+    # ``setattr`` loop applies the flat keys last and they win.
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    warning_markdown = fields.String(allow_none=True)
+    is_certified = fields.Boolean(allow_none=True)
+
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
@@ -100,6 +145,23 @@ class DatasetColumnsPutSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
+    partition_value_transform = fields.String(
+        allow_none=True,
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
+        metadata={
+            "description": (
+                "SQL expression containing a :value placeholder. Filters on "
+                "this column are mirrored onto the dataset's partition column "
+                "with the value passed through this transform."
+            )
+        },
+    )
+    # Deliberately no `load_default`: `DatasetDAO.update_columns` applies the
+    # loaded payload field by field onto the stored column, so a default here
+    # would let a partial column payload clear a monotonic flag the request
+    # never mentioned -- and silently stop mirroring range filters. Absent
+    # means "unchanged"; new columns fall back to the model's own default.
+    partition_transform_is_monotonic = fields.Boolean(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -122,14 +184,24 @@ class CurrencyField(fields.Nested):
         return super()._deserialize(value, attr, data, **kwargs)
 
 
-class DatasetMetricsPutSchema(Schema):
+class DatasetMetricsPutSchema(ResolveIsCertifiedMixin, Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
+    # Certification/warning metadata lives inside ``extra`` and is applied
+    # through model property setters. Declared after ``extra`` so the DAO's
+    # ``setattr`` loop applies the flat keys last and they win.
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    warning_markdown = fields.String(allow_none=True)
+    is_certified = fields.Boolean(allow_none=True)
+
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
-    d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    d3format = fields.String(
+        allow_none=True, validate=[Length(1, 128), validate_d3format]
+    )
     currency = CurrencyField(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
@@ -172,17 +244,19 @@ class DatasetPostSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     sql = fields.String(allow_none=True)
-    editors = fields.List(fields.Integer())
+    editors = fields.List(SubjectReferenceField())
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
 
-class DatasetPutSchema(Schema):
+class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
     database_id = fields.Integer()
     sql = fields.String(allow_none=True)
@@ -193,6 +267,8 @@ class DatasetPutSchema(Schema):
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -200,12 +276,11 @@ class DatasetPutSchema(Schema):
     cache_timeout = fields.Integer(allow_none=True)
     is_sqllab_view = fields.Boolean(allow_none=True)
     template_params = fields.String(allow_none=True)
-    editors = fields.List(fields.Integer())
+    editors = fields.List(SubjectReferenceField())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -241,6 +316,9 @@ class DatasetRelatedDashboard(Schema):
 
 class DatasetRelatedCharts(Schema):
     count = fields.Integer(metadata={"description": "Chart count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Charts the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedChart),
         metadata={"description": "A list of dashboards"},
@@ -249,6 +327,9 @@ class DatasetRelatedCharts(Schema):
 
 class DatasetRelatedDashboards(Schema):
     count = fields.Integer(metadata={"description": "Dashboard count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Dashboards the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedDashboard),
         metadata={"description": "A list of dashboards"},
@@ -258,6 +339,58 @@ class DatasetRelatedDashboards(Schema):
 class DatasetRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatasetRelatedCharts)
     dashboards = fields.Nested(DatasetRelatedDashboards)
+
+
+class DatasetPurgeRequestSchema(Schema):
+    """Validate a dataset purge confirmation payload."""
+
+    confirmed_impact_token: fields.String = fields.String(
+        required=True,
+        allow_none=False,
+        validate=Length(min=1),
+    )
+
+
+class DatasetPurgeImpactObjectSchema(Schema):
+    """Describe one dependent object visible to the caller."""
+
+    uuid: fields.UUID = fields.UUID(required=True)
+    name: fields.String = fields.String(required=True)
+    archived: fields.Boolean = fields.Boolean(required=True)
+    url: fields.String = fields.String(required=True, allow_none=True)
+
+
+class DatasetPurgeImpactCollectionSchema(Schema):
+    """Validate totals and visible results for one dependent object type."""
+
+    count: fields.Integer = fields.Integer(required=True, validate=Range(min=0))
+    restricted_count: fields.Integer = fields.Integer(
+        required=True, validate=Range(min=0)
+    )
+    result: fields.List = fields.List(
+        fields.Nested(DatasetPurgeImpactObjectSchema), required=True
+    )
+
+    @validates_schema
+    def validate_totals(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Require visible and restricted records to equal the total."""
+        count: int = data["count"]
+        restricted_count: int = data["restricted_count"]
+        result: list[dict[str, Any]] = data["result"]
+        if restricted_count > count or len(result) + restricted_count != count:
+            raise ValidationError("Impact totals do not match the result")
+
+
+class DatasetPurgeImpactSchema(Schema):
+    """Describe the authoritative, access-filtered dataset purge impact."""
+
+    impact_token: fields.String = fields.String(required=True)
+    charts: fields.Nested = fields.Nested(
+        DatasetPurgeImpactCollectionSchema, required=True
+    )
+    dashboards: fields.Nested = fields.Nested(
+        DatasetPurgeImpactCollectionSchema, required=True
+    )
 
 
 class ImportV1ColumnSchema(Schema):
@@ -283,8 +416,24 @@ class ImportV1ColumnSchema(Schema):
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
-    python_date_format = fields.String(allow_none=True)
-    datetime_format = fields.String(allow_none=True)
+    python_date_format = fields.String(
+        allow_none=True, validate=[Length(1, 255), validate_python_date_format]
+    )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
+    partition_value_transform = fields.String(
+        allow_none=True, validate=Length(1, MAX_TRANSFORM_LENGTH)
+    )
+    # `load_default` so bundles predating the field do not claim their transform
+    # preserves ordering, which would silently enable range mirroring on import.
+    # `allow_none` because the column is nullable on purpose -- the legacy
+    # datasource editor writes NULL for any field its payload omits -- and export
+    # emits every field unconditionally, so an untouched export of such a dataset
+    # carries an explicit null that import would otherwise refuse outright.
+    partition_transform_is_monotonic = fields.Boolean(
+        allow_none=True, load_default=False
+    )
     uuid = fields.UUID(allow_none=True)
 
 
@@ -324,7 +473,7 @@ class ImportV1MetricSchema(Schema):
     metric_type = fields.String(allow_none=True)
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
-    d3format = fields.String(allow_none=True)
+    d3format = fields.String(allow_none=True, validate=validate_d3format)
     currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
@@ -407,6 +556,8 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    partition_column = fields.String(allow_none=True)
+    partition_mapped_column = fields.String(allow_none=True)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
     # data_file is used by the example loading system to reference Parquet files
     data_file = fields.String(allow_none=True, load_default=None)
@@ -432,6 +583,82 @@ class GetOrCreateDatasetSchema(Schema):
     )
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+
+
+class PartitionMappingPreviewSchema(Schema):
+    """
+    Payload for the dataset editor's partition mapping preview panel.
+
+    Every field is bounded. The endpoint parses `value_transform` with sqlglot
+    and then evaluates it against the warehouse, so an unbounded string is
+    parser time and warehouse time an owner can spend at will; the bounds keep
+    a malformed or oversized payload a 400 rather than work.
+    """
+
+    mapped_column = fields.String(
+        required=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={"description": "Column whose filters would be mirrored"},
+    )
+    partition_column = fields.String(
+        load_default=None,
+        allow_none=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={
+            "description": (
+                "Candidate partition column. The editor previews a mapping "
+                "before it is saved, so this overrides the stored value; "
+                "omitted, the stored one is used."
+            )
+        },
+    )
+    value_transform = fields.String(
+        required=True,
+        allow_none=True,
+        # The same bound the typed column field and the import schema enforce:
+        # a transform is one expression around `:value`, and this is far past
+        # anything that reads as one.
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
+        metadata={"description": "SQL expression containing a :value placeholder"},
+    )
+    sample_values = fields.List(
+        # Bound the items as well as the list: fifty unbounded strings is the
+        # same unbounded payload with extra steps.
+        fields.String(validate=Length(1, 250)),
+        required=True,
+        validate=Length(1, 50),
+        metadata={
+            "description": (
+                "Values to evaluate the transform at. A comparison operator "
+                "takes one; IN takes the whole list."
+            )
+        },
+    )
+    operator = fields.String(
+        # `=` mirrors under any transform, so the default is meaningful on its
+        # own. A range default would refuse unless `is_monotonic` came with it.
+        load_default=FilterOperator.EQUALS.value,
+        validate=OneOf([operator.value for operator in sorted(PREVIEWABLE_OPERATORS)]),
+        metadata={
+            "description": (
+                "Filter operator being mirrored. Only operators the preview "
+                "can construct are accepted: TEMPORAL_RANGE is mirrored by the "
+                "query path as two bounds decomposed from a since/until pair, "
+                "which this request has no way to express."
+            )
+        },
+    )
+    is_monotonic = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": (
+                "Whether the owner has declared the transform order-preserving. "
+                "Range operators only mirror when they have."
+            )
+        },
+    )
 
 
 class DatasetCacheWarmUpRequestSchema(Schema):
@@ -477,44 +704,73 @@ class DatasetCacheWarmUpResponseSchema(Schema):
 class DatasetColumnDrillInfoSchema(Schema):
     column_name = fields.String(required=True)
     verbose_name = fields.String(required=False)
+    # Consumers need every column to resolve display labels, but only dimensions
+    # belong in the drill-by picker, so ship the flag and let them narrow.
+    groupby = fields.Boolean(required=False)
+
+
+class DatasetMetricDrillInfoSchema(Schema):
+    metric_name = fields.String(required=True)
+    verbose_name = fields.String(required=False)
 
 
 class UserSchema(Schema):
+    # Deliberately excludes ``email``: drill_info is reachable by any user
+    # with read access to the dataset (and, via the dashboard fallback, by
+    # embedded guests), so exposing maintainer emails here would leak user
+    # PII across an access boundary. Mirrors the dashboard/RLS user schemas,
+    # which expose names only.
     first_name = fields.String()
     last_name = fields.String()
-    email = fields.String()
+
+
+class DrillInfoEditorSchema(Schema):
+    # Deliberately excludes ``secondary_label``: for a user-backed Subject,
+    # user-subject synchronization (superset.subjects.sync.sync_user_subject)
+    # stores that user's email in this field, so including it here would
+    # leak the same maintainer PII that ``UserSchema`` above excludes
+    # ``email`` to avoid, just through a different field name.
+    id = fields.Int()
+    label = fields.String()
+    img = fields.String()
+    type = fields.Integer()
 
 
 class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
+    metrics = fields.List(fields.Nested(DatasetMetricDrillInfoSchema))
     table_name = fields.String()
-    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    editors = fields.List(fields.Nested(DrillInfoEditorSchema))
     created_by = fields.Nested(UserSchema)
     created_on_humanized = fields.String()
     changed_by = fields.Nested(UserSchema)
     changed_on_humanized = fields.String()
 
     # pylint: disable=unused-argument
-    @post_dump(pass_original=True)
-    def post_dump(
-        self, serialized: dict[str, Any], obj: SqlaTable, **kwargs: Any
-    ) -> dict[str, Any]:
+    @post_dump
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Clear API response to avoid exposing sensitive information for embedded users,
-        and filter columns to only include those with groupby=True for drill operations.
-        """
-        dimensions = {
-            col.column_name
-            for col in getattr(obj, "columns", [])
-            if getattr(col, "groupby", False)
-        }
-        serialized["columns"] = [
-            col
-            for col in serialized.get("columns", [])
-            if col["column_name"] in dimensions
-        ]
+        Clear API response to avoid exposing sensitive information for embedded users.
 
+        Both ``columns`` and ``metrics`` are returned whole. Besides feeding the
+        drill-by dimension picker, this response is the source of the verbose map
+        that labels the dashboard "View as table" results grid, and a chart can
+        select any column or metric -- a raw-records table routinely selects
+        non-dimension columns. Narrowing to ``groupby=True`` here left those
+        columns, and every metric, showing their raw technical names. Each column
+        carries its ``groupby`` flag instead, so the drill-by picker can narrow to
+        dimensions client-side, which is the only consumer that needs it.
+
+        Guests get the same lists. They reach this endpoint only through the
+        dashboard fallback, which first verifies dashboard access to a dashboard
+        built on this dataset, and they already see these labels rendered in that
+        dashboard's charts. The branch stays minimal in every other respect.
+        """
         if security_manager.is_guest_user():
-            return {"id": serialized["id"], "columns": serialized["columns"]}
+            return {
+                "id": serialized["id"],
+                "columns": serialized["columns"],
+                "metrics": serialized.get("metrics", []),
+            }
         return serialized

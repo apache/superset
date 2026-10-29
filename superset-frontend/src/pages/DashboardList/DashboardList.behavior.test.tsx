@@ -26,6 +26,7 @@ import {
   mockDashboards,
   setupMocks,
   renderDashboardList,
+  waitForDashboardsPageReady,
 } from './DashboardList.testHelpers';
 
 jest.setTimeout(30000);
@@ -394,4 +395,33 @@ test('opens delete confirmation from list view trash icon', async () => {
       screen.queryByText(/Are you sure you want to delete/i),
     ).not.toBeInTheDocument();
   });
+});
+
+test('shows a loading state on the + Dashboard button while navigating', async () => {
+  // /dashboard/new/ is a hard navigation (window.location.assign) whose GET
+  // creates the dashboard server-side before redirecting to the editor —
+  // without a pending state the click looks dead for the whole round-trip
+  // on large instances (issue #43385).
+  const assignMock = jest.fn();
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    assign: assignMock,
+  } as Location);
+
+  renderDashboardList(mockUser);
+
+  await waitForDashboardsPageReady();
+
+  const createButton = screen.getByRole('button', { name: /dashboard$/i });
+  expect(createButton).not.toHaveClass('ant-btn-loading');
+
+  fireEvent.click(createButton);
+
+  await waitFor(() => {
+    expect(assignMock).toHaveBeenCalledWith('/dashboard/new/');
+  });
+  await waitFor(() => {
+    expect(createButton).toHaveClass('ant-btn-loading');
+  });
+  locationSpy.mockRestore();
 });

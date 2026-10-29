@@ -27,6 +27,7 @@ import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
   defaultValue?: string | null;
+  displayFormat?: string;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &

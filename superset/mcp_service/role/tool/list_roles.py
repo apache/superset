@@ -53,6 +53,7 @@ _DEFAULT_LIST_ROLES_REQUEST = ListRolesRequest()
         title="List roles",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_roles(

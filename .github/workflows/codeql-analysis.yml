@@ -19,14 +19,17 @@ permissions:
 
 jobs:
   changes:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
+      # Lets the availability probe below tell "code scanning is not
+      # enabled" apart from "this token cannot read alerts".
+      security-events: read
     outputs:
-      python: ${{ steps.check.outputs.python }}
-      frontend: ${{ steps.check.outputs.frontend }}
+      languages: ${{ steps.check.outputs.languages }}
+      code-scanning: ${{ steps.code-scanning.outputs.available }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,9 +37,17 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      # A repository without code scanning (e.g. a private fork or mirror
+      # without GitHub Code Security) rejects the SARIF upload, so the
+      # analysis would run to completion and then fail on every push.
+      - name: Check code scanning availability
+        id: code-scanning
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/workflows/scripts/check-code-scanning-available.sh
 
   analyze:
     name: Analyze
@@ -44,9 +55,14 @@ jobs:
     # Skip on PRs that touch neither code group (e.g. docs-only) so the
     # analysis runners don't spin up. push/schedule runs always proceed:
     # the change-detector returns "all changed" for non-PR events.
-    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    # Skipped entirely where code scanning is unavailable, since the upload
+    # is this job's only product.
+    if: >-
+      needs.changes.outputs.code-scanning != 'false' &&
+      (contains(fromJSON(needs.changes.outputs.languages), 'python') ||
+       contains(fromJSON(needs.changes.outputs.languages), 'javascript'))
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -56,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["python", "javascript"]
+        language: ${{ fromJson(needs.changes.outputs.languages) }}
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:
@@ -67,7 +83,7 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: ${{ matrix.language }}
           # If you wish to specify custom queries, you can do so here or in a config file.
@@ -78,6 +94,6 @@ jobs:
           # queries: security-extended,security-and-quality
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: "/language:${{matrix.language}}"

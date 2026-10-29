@@ -39,9 +39,8 @@ from superset.mcp_service.dashboard.schemas import (
     DeleteDashboardRequest,
     DeleteDashboardResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
 )
 
 if TYPE_CHECKING:
@@ -55,7 +54,7 @@ def _find_dashboard_by_identifier(identifier: int | str) -> "Dashboard | None":
     from superset.daos.dashboard import DashboardDAO
 
     if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
+        isinstance(identifier, str) and identifier.isdecimal()
     ):
         return DashboardDAO.find_by_id(int(identifier))
     # Try UUID, then fall back to slug.
@@ -90,6 +89,53 @@ def _routes_to_soft_delete() -> bool:
     return issubclass(Dashboard, SoftDeleteMixin) and is_feature_enabled("SOFT_DELETE")
 
 
+def _pre_delete_refusal(
+    dashboard: "Dashboard | None", identifier: int | str
+) -> DeleteDashboardResponse | None:
+    """Reject a missing or externally managed dashboard before deleting it."""
+    if dashboard is None:
+        display_id: str = str(identifier)[:200]
+        message: str = (
+            f"No dashboard found with identifier: {display_id}. "
+            "Use list_dashboards to get valid dashboard IDs."
+        )
+        return DeleteDashboardResponse(
+            success=False, error=message, error_type="NotFound"
+        )
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is None:
+        return None
+
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    try:
+        security_manager.raise_for_editorship(dashboard)
+    except SupersetSecurityException:
+        return DeleteDashboardResponse(
+            success=False,
+            permission_denied=True,
+            error="You do not have permission to delete this dashboard.",
+            error_type="Forbidden",
+        )
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Editorship check failed during delete_dashboard")
+        return DeleteDashboardResponse(
+            success=False,
+            error=(
+                "Failed to verify dashboard edit permission due to a database error."
+            ),
+            error_type="LookupFailed",
+        )
+    return DeleteDashboardResponse(
+        success=False,
+        managed_externally=True,
+        error=refusal,
+    )
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -97,12 +143,17 @@ def _routes_to_soft_delete() -> bool:
         title="Delete dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def delete_dashboard(
     request: DeleteDashboardRequest, ctx: Context
 ) -> DeleteDashboardResponse:
     """Delete a dashboard.
+
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
 
     Identify the dashboard by numeric ID, UUID string, or slug. When the
     ``SOFT_DELETE`` feature flag is enabled the dashboard is moved to trash and
@@ -148,19 +199,16 @@ async def delete_dashboard(
             error="Dashboard lookup failed due to a database error.",
             error_type="LookupFailed",
         )
-    if not dashboard:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
-        msg = (
-            f"No dashboard found with identifier: {safe_id}. "
-            "Use list_dashboards to get valid dashboard IDs."
-        )
-        return DeleteDashboardResponse(success=False, error=msg, error_type="NotFound")
+    pre_delete_refusal: DeleteDashboardResponse | None = _pre_delete_refusal(
+        dashboard, request.identifier
+    )
+    if pre_delete_refusal is not None:
+        return pre_delete_refusal
+    assert dashboard is not None
 
     dashboard_id = dashboard.id
-    # Dashboard titles are user-controlled; wrap before composing responses.
-    dashboard_name = sanitize_for_llm_context(
-        dashboard.dashboard_title, field_path=("dashboard_title",)
-    )
+    # Dashboard titles are user-controlled and must remain exact in responses.
+    dashboard_name = dashboard.dashboard_title
 
     # The try/except sits inside log_context so failed attempts (forbidden,
     # reports-exist, db errors) are recorded in the audit log too — the

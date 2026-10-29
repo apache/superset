@@ -200,10 +200,9 @@ class SupersetTestCases(SupersetTestCase):
             "orderby": [["gender_cc", True]],
         }
         sql = table.get_query_str(query_obj)
-        assert (
-            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"  # noqa: E501
-            in sql
-        )
+        # The calculated column is parenthesized by the converter, so the raw
+        # expression in ORDER BY is wrapped in ``(...)``.
+        assert f"ORDER BY ({column.expression}) ASC" in sql
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

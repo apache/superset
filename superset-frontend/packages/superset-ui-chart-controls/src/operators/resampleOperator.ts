@@ -35,6 +35,9 @@ export const resampleOperator: PostProcessingFactory<PostProcessingResample> = (
         method: resampleMethod,
         rule: resampleRule,
         fill_value: resampleZeroFill ? 0 : null,
+        ...(formData.resample_fill_time_range
+          ? { fill_time_range: true }
+          : undefined),
       },
     };
   }

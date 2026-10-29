@@ -145,6 +145,46 @@ D3_TIME_FORMAT = {
 Restart Superset after changing `superset_config.py` so the frontend receives
 the updated formatter configuration.
 
+## Serving translated language packs
+
+Non-English page loads need the frontend translation catalog (the "language
+pack") available before the entry bundle runs, so translations are in place
+for the very first render instead of racing a later fetch. Superset delivers
+that pack as a separate, cacheable script rather than inlining it into the
+HTML:
+
+```html
+<script src="/language_pack/pt_BR/1a2b3c4d5e6f/script.js"></script>
+```
+
+`spa.html` emits this tag, pointing at the `language_pack_script` view, before
+loading the entry bundle whenever the request's locale isn't English. The
+`<version>` segment is a short hash of the pack's contents, so the URL is
+content-addressed:
+
+- When the version in the URL matches the server's current pack, the response
+  carries `Cache-Control: public, max-age=31536000, immutable` — the browser
+  fetches that language's pack once and reuses it across sessions.
+- If a cached HTML page references a version that's since changed (e.g. after
+  a translation update or upgrade), the endpoint still serves the current
+  pack, but with `Cache-Control: no-cache` so any copy stored under the
+  now-stale URL must be revalidated with the server before it's reused.
+- English pages emit no script tag; there's no pack to load.
+
+Each worker caches a locale's pack and version hash in memory for its
+lifetime, so a translation file changed on disk isn't picked up, and doesn't
+produce a new version hash, until the worker restarts. Restart (or roll)
+Superset after deploying a translation update so clients get the new pack.
+
+This endpoint is intentionally unauthenticated. Translation catalogs are
+static, public content shipped in the Superset repo, and the login page and
+embedded dashboards need them to load before a user session exists.
+
+If you already override the language pack via `COMMON_BOOTSTRAP_OVERRIDES_FUNC`
+(a `common.language_pack` value, historically used to work around translation
+race conditions), that override still takes precedence: `spa.html` skips the
+script tag and uses your supplied pack instead.
+
 ## Chart-data query timing
 
 Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object
@@ -239,6 +279,10 @@ using SQLite is highly discouraged due to security, scalability, and data integr
 It's important to use only the supported database engines and consider using a different
 database engine on a separate host or container.
 
+When purge-audit pruning is enabled on a SQLite metadata database, SQLite 3.25+
+uses window queries. Older or unknown SQLite versions use correlated predecessor
+queries instead; measure pruning cost on the selected backend before enabling it.
+
 Superset supports the following database engines/versions:
 
 | Database Engine                           | Supported Versions                             |
@@ -303,6 +347,13 @@ If you are running superset behind a load balancer or reverse proxy (e.g. NGINX 
 may need to utilize a healthcheck endpoint so that your load balancer knows if your superset
 instance is running. This is provided at `/health` which will return a 200 response containing “OK”
 if the webserver is running.
+
+Routes on the health blueprint, including `/health`, `/healthcheck`, `/ping`, and
+`/version`, are exempt from forced password changes. Even with
+`ENABLE_FORCE_PASSWORD_CHANGE = True`, a probe carrying a session cookie for a user
+with a pending password change receives the route's normal response rather than a
+redirect to the profile page's password change. This exemption does not bypass other security
+checks or change which version details the user may see.
 
 If the load balancer is inserting `X-Forwarded-For/X-Forwarded-Proto` headers, you should set
 `ENABLE_PROXY_FIX = True` in the superset config file (`superset_config.py`) to extract and use the
@@ -503,6 +554,8 @@ OAUTH_PROVIDERS = [
 
 PKCE (`S256`) is recommended for all OAuth2 flows, even when a client secret is present, as it protects against authorization code interception attacks.
 
+For a complete Keycloak example (PKCE, group-to-role mapping, access denial and single logout), see [OAuth Configuration](/admin-docs/security/oauth).
+
 ## LDAP Authentication
 
 FAB supports authenticating user credentials against an LDAP server.
@@ -565,6 +618,104 @@ PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
 def FLASK_APP_MUTATOR(app: Flask) -> None:
     app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
 ```
+
+## Reacting to chart and dashboard creation
+
+`AFTER_ASSET_CREATE` is an optional hook that runs after a chart or dashboard
+is created, letting deployments react to new assets without forking the
+creation commands or views — for example to auto-categorize the asset, write
+an audit log entry, or fire a notification.
+
+The hook receives the model instance and the asset type string (`"chart"` or
+`"dashboard"`):
+
+```python
+# superset_config.py
+from superset import db
+
+
+def _after_asset_create(model, asset_type):
+    # The model is pending in the session but may not be flushed yet, so
+    # flush first if you need database-assigned fields like ``id``.
+    db.session.flush()
+    audit_log.write(f"{asset_type} {model.id} created by {model.created_by}")
+
+
+AFTER_ASSET_CREATE = _after_asset_create
+```
+
+It defaults to `None`, which is a no-op: with nothing configured, chart and
+dashboard creation behaves exactly as it did before this hook existed.
+
+The hook runs before the surrounding database transaction commits, so an
+exception raised inside it aborts the chart or dashboard creation, while work
+it does outside the session (an external audit write, a notification) is not
+undone if the transaction later rolls back. Keep it fast and
+side-effect-light, and avoid raising unless you intend to cancel the
+creation. The model may not be flushed when the hook is called (the chart
+create command never flushes first), so `id`, `created_by`, and other
+database-assigned fields can still be `None` unless the hook flushes the
+session itself, as in the example above.
+
+The hook fires for any chart or dashboard created through the REST API
+(including Explore's Save As) and for blank dashboards created from the UI's
+"+ New dashboard" button. MCP-generated charts go through the same path, but
+MCP-generated dashboards currently build the dashboard directly and skip the
+hook. The dashboard copy endpoint (`POST /api/v1/dashboard/<id>/copy/`) also
+bypasses it, since it clones the dashboard directly rather than going through
+the create command. The chart, dashboard, and bulk asset import endpoints
+(`POST /api/v1/chart/import/`, `POST /api/v1/dashboard/import/`, and
+`POST /api/v1/assets/import/`) create assets via `import_from_dict` and skip
+the hook as well.
+
+## Carrying extra data through chart and dashboard exports
+
+Deployments often attach their own metadata to charts and dashboards — an owning
+team, a catalogue entry, a cost centre — and need it to survive an export/import
+round trip between environments. `EXTRA_ASSET_EXPORT_FIELDS` and
+`EXTRA_ASSET_IMPORT_HANDLER` let you do that without forking the export commands.
+
+The export hook receives the model and the asset type (`"chart"` or `"dashboard"`)
+and returns a mapping, which is serialised under the `extra` key of the asset's
+YAML. The import hook receives the model, the asset type and that same mapping,
+once the asset exists and has an id:
+
+```python
+# superset_config.py
+def _export_fields(model, asset_type):
+    return {"owning_team": lookup_team(model)}
+
+
+def _import_handler(model, asset_type, extra):
+    if team := extra.get("owning_team"):
+        assign_team(model, team)
+
+
+EXTRA_ASSET_EXPORT_FIELDS = _export_fields
+EXTRA_ASSET_IMPORT_HANDLER = _import_handler
+```
+
+The exported YAML then carries:
+
+```yaml
+slice_name: Revenue by region
+...
+extra:
+  owning_team: analytics-platform
+```
+
+A few things worth knowing:
+
+- **Both hooks are optional and default to `None`.** With neither configured,
+exported files are byte-for-byte what they were before, and imports behave
+identically.
+- **Everything lives under the single `extra` key.** The import schemas reject
+unknown top-level fields, so namespacing under `extra` keeps that strictness
+while leaving you free to change the shape of your own payload later.
+- **An export hook returning `None` or an empty mapping writes nothing**, so
+assets without your metadata do not gain an empty `extra` block.
+- **The import handler runs after the asset is created or updated**, which means
+you can rely on `model.id`. Raising from it will fail the import.
 
 ## Customizing the landing page (index view)
 
@@ -643,6 +794,46 @@ A companion `HASH_ALGORITHM_FALLBACKS` list (default: `["md5"]`) lets UUID looku
 :::note
 This setting affects internal Superset operations only, not user passwords or authentication tokens. Changing it in an existing deployment may invalidate cached values but does not require a database migration.
 :::
+
+### Self-service password recovery
+
+With `AUTH_TYPE = AUTH_DB`, users can reset a forgotten password from the login page. Superset emails a single-use link that expires after `token_ttl_minutes` (30 by default); opening it lets the user choose a new password, which goes through the configured `FAB_PASSWORD_COMPLEXITY_VALIDATOR` and signs out every existing browser session for the account. API access tokens obtained from `/api/v1/security/login` are not revoked and stay valid until they expire.
+
+The flow is off by default. It needs working `SMTP_*` settings and a public address for the links:
+
+```python
+AUTH_PASSWORD_RECOVERY = {
+    "enabled": True,
+    # The address users reach Superset at. Links are never built from the
+    # request's Host header. Falls back to WEBDRIVER_BASEURL_USER_FRIENDLY.
+    "base_url": "https://superset.example.com/",
+    # How long a reset link stays valid. Capped at 24 hours (1440); a value
+    # that is not a positive whole number falls back to 30.
+    "token_ttl_minutes": 30,
+    # Flask-Limiter limit per client address, applied when RATELIMIT_ENABLED is on.
+    "rate_limit": "5 per 15 minutes",
+    # Minimum time between two recovery emails to the same address.
+    "resend_cooldown_seconds": 120,
+}
+```
+
+The rate limit is keyed on the client address. Behind a reverse proxy or load balancer that is the proxy's address unless `ENABLE_PROXY_FIX` is on, and with the default `memory://` storage each worker counts separately; set `RATELIMIT_STORAGE_URI` to a shared backend such as Redis for a deployment-wide limit. The per-address resend cooldown is stored in the metadata database and does not depend on either setting.
+
+Keys you leave out keep their defaults, and so does `token_ttl_minutes` when it is not a positive whole number; values above 1440 are cut down to 24 hours. If the whole setting is not a dict, Superset logs a warning and behaves as if it were unset. No link is sent while the base address is still the shipped `http://0.0.0.0:8080/`; Superset logs an error instead.
+
+The response to a recovery request is the same whether or not the address belongs to an account. Only active accounts with a local password receive a link; accounts provisioned through OAuth, LDAP or another backend do not. Requests, completed resets and failed attempts are recorded as `PasswordRecoveryRequested`, `PasswordRecoveryCompleted` and `PasswordRecoveryFailed` events in the action log.
+
+Expired tokens are swept whenever a new recovery request comes in. They are also removed by the `prune_key_value` Celery beat task if you enable it.
+
+## Impala Result Fetching
+
+Statements that produce no result set return no rows without attempting a fetch.
+For Impala, Superset waits for asynchronous execution to complete before checking
+for results, and propagates asynchronous database errors. If an operation is still
+pending when result fetching begins, the additional polling wait is bounded by
+`SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
+a timeout. Configure the driver's network timeout separately to bound individual
+RPC calls.
 
 ## SQL Lab Query History Pruning
 

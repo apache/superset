@@ -13,6 +13,7 @@ import d3tip from 'd3-tip';
 import { t } from '@apache-superset/core/translation';
 import { getContrastingColor } from '@superset-ui/core';
 import { CALENDAR_TOOLTIP_CLASS } from '../tooltip';
+import { escapeHtml } from '../utils';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
 
@@ -22,14 +23,16 @@ var CalHeatMap = function () {
   'use strict';
 
   var self = this;
+  // d3-tip assigns the .html() return value to the tip node via
+  // innerHTML, so formatter output is HTML-escaped first.
   self.tip = d3tip()
     .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')
     .offset([-5, 0])
     .html(
       d => `
-      ${self.options.timeFormatter(d.t)}: <strong>${self.options.valueFormatter(
-        d.v,
+      ${escapeHtml(self.options.timeFormatter(d.t))}: <strong>${escapeHtml(
+        self.options.valueFormatter(d.v),
       )}</strong>
     `,
     );
@@ -37,7 +40,7 @@ var CalHeatMap = function () {
     .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')
     .offset([-5, 0])
-    .html(d => self.options.valueFormatter(d));
+    .html(d => escapeHtml(self.options.valueFormatter(d)));
 
   this.allowedDataType = ['json', 'csv', 'tsv', 'txt'];
 
@@ -581,10 +584,15 @@ var CalHeatMap = function () {
           case 'year':
             return self._domainType.week.maxItemNumber;
           case 'month':
+            // +1: this must match the number of cells computeWeekSubDomainSize
+            // generates for the block (an inclusive week-number range), or the
+            // block is rendered one column narrower than its own content.
             return self.options.domainDynamicDimension
               ? self.getWeekNumber(
                   new Date(d.getFullYear(), d.getMonth() + 1, 0),
-                ) - self.getWeekNumber(d)
+                ) -
+                  self.getWeekNumber(d) +
+                  1
               : 5;
         }
       },
@@ -596,16 +604,19 @@ var CalHeatMap = function () {
         return self.getSubDomainColumnNumber(d);
       },
       position: {
-        x: function (d) {
+        x: function (d, i) {
           switch (self.options.domain) {
             case 'year':
               return Math.floor(
                 self.getWeekNumber(d) / self._domainType.week.row(d),
               );
             case 'month':
-              return Math.floor(
-                self.getMonthWeekNumber(d) / self._domainType.week.row(d),
-              );
+              // Position by index within the block's own cell list rather
+              // than by a week-number difference against the cell's own
+              // month: a month block also renders the tail (or head) of an
+              // adjacent month's week, and that borrowed cell's "own month"
+              // is not the block it is being drawn into.
+              return Math.floor(i / self._domainType.week.row(d));
           }
         },
         y: function (d) {
@@ -762,10 +773,11 @@ var CalHeatMap = function () {
       .map(function (d) {
         self._domains.set(
           d,
-          self.getSubDomain(d).map(function (d) {
+          self.getSubDomain(d).map(function (d, i) {
             return {
               t: self._domainType[self.options.subDomain].extractUnit(d),
               v: null,
+              i: i,
             };
           }),
         );
@@ -1059,10 +1071,10 @@ var CalHeatMap = function () {
       .attr('width', options.cellSize)
       .attr('height', options.cellSize)
       .attr('x', function (d) {
-        return self.positionSubDomainX(d.t);
+        return self.positionSubDomainX(d);
       })
       .attr('y', function (d) {
-        return self.positionSubDomainY(d.t);
+        return self.positionSubDomainY(d);
       })
       .on('click', function (d) {
         if (options.onClick !== null) {
@@ -1227,10 +1239,10 @@ var CalHeatMap = function () {
           return 'subdomain-text' + self.getHighlightClassName(d.t);
         })
         .attr('x', function (d) {
-          return self.positionSubDomainX(d.t) + options.cellSize / 2;
+          return self.positionSubDomainX(d) + options.cellSize / 2;
         })
         .attr('y', function (d) {
-          return self.positionSubDomainY(d.t) + options.cellSize / 2;
+          return self.positionSubDomainY(d) + options.cellSize / 2;
         })
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'central')
@@ -2102,10 +2114,11 @@ CalHeatMap.prototype = {
     var total = newDomains.length;
     var domains = this.getDomainKeys();
 
-    function buildSubDomain(d) {
+    function buildSubDomain(d, i) {
       return {
         t: parent._domainType[parent.options.subDomain].extractUnit(d),
         v: null,
+        i: i,
       };
     }
 
@@ -2211,7 +2224,8 @@ CalHeatMap.prototype = {
     'use strict';
 
     var index = this._domainType[this.options.subDomain].position.x(
-      new Date(d),
+      new Date(d.t),
+      d.i,
     );
     return index * this.options.cellSize + index * this.options.cellPadding;
   },
@@ -2219,8 +2233,12 @@ CalHeatMap.prototype = {
   positionSubDomainY: function (d) {
     'use strict';
 
+    // Takes the whole subdomain datum, like positionSubDomainX: the
+    // transposed 'x_*' subdomain types map position.y onto another type's
+    // position.x, which is index-based.
     var index = this._domainType[this.options.subDomain].position.y(
-      new Date(d),
+      new Date(d.t),
+      d.i,
     );
     return index * this.options.cellSize + index * this.options.cellPadding;
   },
@@ -2444,25 +2462,6 @@ CalHeatMap.prototype = {
         ? d3.time.format('%W')
         : d3.time.format('%U');
     return f(d);
-  },
-
-  /**
-   * Return the week number, relative to its month
-   *
-   * @param  int|Date d Date or timestamp in milliseconds
-   * @return int Week number, relative to the month [0-5]
-   */
-  getMonthWeekNumber: function (d) {
-    'use strict';
-
-    if (typeof d === 'number') {
-      d = new Date(d);
-    }
-
-    var monthFirstWeekNumber = this.getWeekNumber(
-      new Date(d.getFullYear(), d.getMonth()),
-    );
-    return this.getWeekNumber(d) - monthFirstWeekNumber - 1;
   },
 
   /**

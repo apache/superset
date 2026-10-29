@@ -29,6 +29,7 @@ import {
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterGroupByProps, ColumnOption, ColumnData } from './types';
+import { getAllowedGroupByColumns } from './columnAllowlist';
 
 const EMPTY_OBJECT = {};
 
@@ -102,21 +103,48 @@ export default function PluginFilterDynamicGroupBy(
     return EMPTY_OBJECT as FormItemProps;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
+  // The columns a default may use: the builder's allowlist, narrowed to the
+  // dataset's groupable columns. Unrestricted (null) when neither is known.
+  const allowedColumns = useMemo(
+    () =>
+      getAllowedGroupByColumns(
+        formData.columnsAllowlist,
+        formData.groupableColumns,
+      ),
+    [formData.columnsAllowlist, formData.groupableColumns],
+  );
+
   const options = useMemo(
     () =>
-      (data || []).map((row: ColumnOption | ColumnData) => {
-        const columnName = 'column_name' in row ? row.column_name : row.value;
-        const label =
-          ('verbose_name' in row && row.verbose_name) ||
-          ('label' in row && row.label) ||
-          columnName;
-        return {
-          label,
-          value: columnName,
-        };
-      }),
-    [data],
+      (data || [])
+        .map((row: ColumnOption | ColumnData) => {
+          const columnName = 'column_name' in row ? row.column_name : row.value;
+          const label =
+            ('verbose_name' in row && row.verbose_name) ||
+            ('label' in row && row.label) ||
+            columnName;
+          return {
+            label,
+            value: columnName,
+          };
+        })
+        .filter(option => !allowedColumns || allowedColumns.has(option.value)),
+    [data, allowedColumns],
   );
+
+  // A default that the allowlist excludes would put every viewer into a
+  // group-by they cannot choose, so drop excluded columns from the selection
+  // as soon as the options are known (never before, or an unloaded column
+  // list would wipe a valid default).
+  useEffect(() => {
+    if (!allowedColumns || !(data || []).length) {
+      return;
+    }
+    const kept = value.filter(column => allowedColumns.has(column));
+    if (kept.length !== value.length) {
+      handleChange(kept);
+    }
+  }, [allowedColumns, data, value]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {

@@ -56,7 +56,7 @@ def engine() -> Engine:
     including duplicate (user_id, database_id) rows -- id 2 and id 3 both
     belong to user 1 + database 10, which the plain index never prevented.
     """
-    engine = create_engine("sqlite:///:memory:", future=True)
+    engine = create_engine("sqlite:///:memory:")
     md = MetaData()
     table = Table(
         TABLE_NAME,

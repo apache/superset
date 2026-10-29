@@ -30,7 +30,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.auth import MCPPermissionDeniedError
+from superset.mcp_service.auth import _token_scope_allows, MCPPermissionDeniedError
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -201,6 +201,7 @@ _MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
         title="Get schema",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_schema(
@@ -220,10 +221,13 @@ async def get_schema(
     Column metadata is extracted dynamically from SQLAlchemy models.
 
     Args:
-        model_type: One of "chart", "dataset", "dashboard", "database", or "report"
+        request (GetSchemaRequest): Request schema for unified get_schema tool. Its
+            model_type is one of "chart", "dataset", "dashboard", "database" or
+            "report".
 
     Returns:
-        Comprehensive schema information for the requested model type
+        (GetSchemaResponse | PrivacyError): Comprehensive schema information for
+            the requested model type.
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
 
@@ -235,9 +239,10 @@ async def get_schema(
 
         from superset import security_manager
 
-        if current_app.config.get("MCP_RBAC_ENABLED", True) and not (
-            security_manager.can_access("can_read", class_permission)
-        ):
+        rbac_allows = not current_app.config.get(
+            "MCP_RBAC_ENABLED", True
+        ) or security_manager.can_access("can_read", class_permission)
+        if not (rbac_allows and _token_scope_allows("read", class_permission)):
             user_str = getattr(getattr(g, "user", None), "username", None)
             logger.warning(
                 "get_schema RBAC denied: user=%s type=%s view=%s",

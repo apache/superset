@@ -103,6 +103,17 @@ def test_unrelated_path_is_not_intercepted() -> None:
     assert headers == upstream
 
 
+def test_storage_endpoints_are_not_intercepted() -> None:
+    """Per-user storage responses must keep Vary: Cookie for shared caches."""
+    upstream = [("Vary", "Accept-Encoding, Cookie")]
+    for path in (
+        "/api/v1/extensions/acme/my-ext/storage/ephemeral/some-key",
+        "/api/v1/extensions/acme/my-ext/storage/persistent/some-key",
+    ):
+        headers = call_middleware(path, upstream)
+        assert headers == upstream
+
+
 # --- Vary stripping logic ---
 
 

@@ -18,7 +18,14 @@
  */
 // Mark this file as a module so its top-level declarations stay file-scoped
 // (the file has no imports; modules are loaded via require() inside tests).
-export {};
+import { TextEncoder } from 'util';
+
+Object.assign(global, { TextEncoder });
+
+const mockConfig = {
+  GUEST_TOKEN_HEADER_NAME: 'X-Custom-Guest',
+  GUEST_TOKEN_HEADER_MAX_BYTES: 100,
+};
 
 // Stable mock references so they survive jest.resetModules() between tests
 // (a factory-created jest.fn() would otherwise be replaced on each reset,
@@ -59,13 +66,14 @@ jest.mock('src/components/UiConfigContext', () => ({
 
 // Capture the guestToken handler that start() is wired to, so tests can
 // re-trigger the handshake and assert the retry behavior.
+const mockSwitchboardInit = jest.fn();
 const mockSwitchboard = {
   handler: undefined as ((arg: { guestToken: string }) => void) | undefined,
 };
 jest.mock('@superset-ui/switchboard', () => ({
   __esModule: true,
   default: {
-    init: jest.fn(),
+    init: mockSwitchboardInit,
     start: jest.fn(),
     defineMethod: (name: string, fn: (arg: { guestToken: string }) => void) => {
       if (name === 'guestToken') {
@@ -76,7 +84,8 @@ jest.mock('@superset-ui/switchboard', () => ({
   },
 }));
 
-jest.mock('src/setup/setupClient', () => jest.fn(), { virtual: true });
+const mockSetupClient = jest.fn();
+jest.mock('src/setup/setupClient', () => mockSetupClient, { virtual: true });
 
 jest.mock('src/views/store', () => ({
   store: {
@@ -113,6 +122,7 @@ jest.mock('react-dom/client', () => ({
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
+    config: mockConfig,
     embedded: { dashboard_id: '123', allowed_domains: [] },
     common: {
       application_root: '/',
@@ -147,55 +157,148 @@ function sendHandshake() {
   );
 }
 
-describe('embedded/index.tsx', () => {
-  beforeEach(() => {
-    jest.resetModules();
-    mockSwitchboard.handler = undefined;
-    mockSetupPlugins.mockReset();
-    mockSetupAGGridModules.mockReset();
-    mockLogging.error.mockClear();
-    mockGetMeWithRole.mockReset();
-    mockGetMeWithRole.mockResolvedValue({ result: { roles: {} } });
-    document.body.innerHTML = '<div id="app"></div>';
-  });
+beforeEach(() => {
+  jest.resetModules();
+  mockSwitchboard.handler = undefined;
+  mockSetupPlugins.mockReset();
+  mockSetupAGGridModules.mockReset();
+  mockLogging.error.mockClear();
+  mockGetMeWithRole.mockReset();
+  mockGetMeWithRole.mockResolvedValue({ result: { roles: {} } });
+  document.body.innerHTML = '<div id="app"></div>';
+});
 
-  test('initializes AG Grid modules on bootstrap', async () => {
-    mockSetupPlugins.mockImplementation(() => undefined);
+test('initializes AG Grid modules on bootstrap', async () => {
+  mockSetupPlugins.mockImplementation(() => undefined);
+  require('./index');
+  await flush();
+
+  expect(mockSetupAGGridModules).toHaveBeenCalled();
+});
+
+test('retries plugin setup after setupPlugins rejects, then bootstraps the user', async () => {
+  // First plugin setup throws; the second attempt (after a re-handshake) succeeds.
+  mockSetupPlugins
+    .mockImplementationOnce(() => {
+      throw new Error('setupPlugins failed');
+    })
+    .mockImplementation(() => undefined);
+
+  require('./index');
+  await flush();
+
+  sendHandshake();
+  expect(mockSwitchboard.handler).toBeDefined();
+
+  // First guest token: plugin setup rejects, start() resets the guard and
+  // recreates pluginsReady so a retry can re-run setup.
+  mockSwitchboard.handler!({ guestToken: 'token-1' });
+  await flush();
+  expect(mockLogging.error).toHaveBeenCalled();
+  expect(mockGetMeWithRole).not.toHaveBeenCalled();
+  // The user gets a visible failure message rather than a blank #app.
+  expect(document.getElementById('app')!.innerHTML).toContain(
+    'Something went wrong loading the dashboard',
+  );
+
+  // Second guest token retries: plugin setup now succeeds and the user loads.
+  mockSwitchboard.handler!({ guestToken: 'token-2' });
+  await flush();
+  expect(mockSetupPlugins).toHaveBeenCalledTimes(2);
+  expect(mockGetMeWithRole).toHaveBeenCalled();
+});
+
+test.each([
+  ['short', { status: 400, text: '<html>proxy error</html>' }, false],
+  ['short', { status: 401 }, false],
+  ['x'.repeat(100), { status: 401 }, false],
+  ['x'.repeat(100), { status: 500 }, false],
+  ['x'.repeat(100), new SyntaxError('private response body'), true],
+])(
+  'authentication failure uses size evidence, not response content',
+  async (token, error, targeted) => {
+    mockGetMeWithRole.mockRejectedValue(error);
     require('./index');
     await flush();
-
-    expect(mockSetupAGGridModules).toHaveBeenCalled();
-  });
-
-  test('retries plugin setup after setupPlugins rejects, then bootstraps the user', async () => {
-    // First plugin setup throws; the second attempt (after a re-handshake) succeeds.
-    mockSetupPlugins
-      .mockImplementationOnce(() => {
-        throw new Error('setupPlugins failed');
-      })
-      .mockImplementation(() => undefined);
-
-    require('./index');
-    await flush();
-
     sendHandshake();
-    expect(mockSwitchboard.handler).toBeDefined();
-
-    // First guest token: plugin setup rejects, start() resets the guard and
-    // recreates pluginsReady so a retry can re-run setup.
-    mockSwitchboard.handler!({ guestToken: 'token-1' });
+    mockSwitchboard.handler!({ guestToken: token });
     await flush();
-    expect(mockLogging.error).toHaveBeenCalled();
-    expect(mockGetMeWithRole).not.toHaveBeenCalled();
-    // The user gets a visible failure message rather than a blank #app.
-    expect(document.getElementById('app')!.innerHTML).toContain(
-      'Something went wrong loading the dashboard',
+    expect(
+      document.getElementById('app')!.textContent?.includes('may exceed'),
+    ).toBe(targeted);
+    expect(JSON.stringify(mockLogging.error.mock.calls)).not.toContain(
+      'private response body',
     );
-
-    // Second guest token retries: plugin setup now succeeds and the user loads.
-    mockSwitchboard.handler!({ guestToken: 'token-2' });
+    expect(JSON.stringify(mockLogging.error.mock.calls)).not.toContain(
+      '<html>',
+    );
+    // Failed authentication still permits the existing retry.
+    mockGetMeWithRole.mockResolvedValue({ result: { roles: {} } });
+    mockSwitchboard.handler!({ guestToken: 'replacement' });
     await flush();
-    expect(mockSetupPlugins).toHaveBeenCalledTimes(2);
-    expect(mockGetMeWithRole).toHaveBeenCalled();
-  });
+    expect(mockGetMeWithRole).toHaveBeenCalledTimes(2);
+  },
+);
+
+test('oversized refresh updates diagnostics without restarting successful auth', async () => {
+  mockLogging.warn.mockClear();
+  require('./index');
+  await flush();
+  sendHandshake();
+  mockSwitchboard.handler!({ guestToken: 'short' });
+  await flush();
+  mockSwitchboard.handler!({ guestToken: 'x'.repeat(100) });
+  await flush();
+  expect(mockGetMeWithRole).toHaveBeenCalledTimes(1);
+  expect(mockLogging.warn).toHaveBeenLastCalledWith(
+    'Guest token exceeds configured request-header budget',
+    {
+      tokenBytes: 100,
+      headerBytes: 118,
+      headerBudgetBytes: 100,
+      headerBudgetExceeded: true,
+    },
+  );
+  expect(mockSetupClient).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      guestToken: 'x'.repeat(100),
+      guestTokenHeaderName: 'X-Custom-Guest',
+    }),
+  );
+});
+
+test('refresh during pending authentication does not misattribute size evidence', async () => {
+  let rejectRequest: (error: unknown) => void = () => {};
+  mockGetMeWithRole.mockReturnValue(
+    new Promise((_resolve, reject) => {
+      rejectRequest = reject;
+    }),
+  );
+  require('./index');
+  await flush();
+  sendHandshake();
+  mockSwitchboard.handler!({ guestToken: 'x'.repeat(100) });
+  await flush();
+  mockSwitchboard.handler!({ guestToken: 'short' });
+  rejectRequest({ status: 400 });
+  await flush();
+  expect(document.getElementById('app')!.textContent).not.toContain(
+    'may exceed',
+  );
+  expect(mockGetMeWithRole).toHaveBeenCalledTimes(1);
+
+  // Clearing the guard after failure lets a subsequent token retry authentication.
+  mockGetMeWithRole.mockResolvedValue({ result: { roles: {} } });
+  mockSwitchboard.handler!({ guestToken: 'retry' });
+  await flush();
+  expect(mockGetMeWithRole).toHaveBeenCalledTimes(2);
+});
+
+test('Switchboard does not log credential-bearing message bodies', async () => {
+  require('./index');
+  await flush();
+  sendHandshake();
+  expect(mockSwitchboardInit).toHaveBeenLastCalledWith(
+    expect.objectContaining({ debug: false }),
+  );
 });
