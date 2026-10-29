@@ -33,7 +33,7 @@ from superset.connectors.sqla.partition_mapping import (
     stored_expression_error,
     validate_partition_mapping,
 )
-from superset.utils.core import GenericDataType, QueryStatus
+from superset.utils.core import GenericDataType, QueryStatus, remove_duplicates
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -96,7 +96,7 @@ def validate_partition_data(
         result["message"] = str(error)
         return result
 
-    keys = list(dict.fromkeys(int(value) for value in partition_values))
+    keys = remove_duplicates(int(value) for value in partition_values)
     result["partitions_requested"] = len(keys)
     context = QueryContextFactory().create(
         datasource={"type": datasource.type, "id": datasource.id},

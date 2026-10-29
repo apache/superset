@@ -144,6 +144,26 @@ def test_floor_and_unrelated_databricks_spec_are_not_refused(app: Flask) -> None
         )
 
 
+def test_half_typed_transform_is_not_refused_and_does_not_raise(app: Flask) -> None:
+    """An unterminated quote tokenizes badly; the dataset must still load."""
+    table = _table(transform="unix_timestamp(':value)")
+    with (
+        app.app_context(),
+        patch.object(
+            Database,
+            "db_engine_spec",
+            new_callable=PropertyMock,
+            return_value=HiveEngineSpec,
+        ),
+    ):
+        assert (
+            epoch_mapping_refusal(
+                table, "event_time", "dt_epoch", "unix_timestamp(':value)"
+            )
+            is None
+        )
+
+
 @pytest.mark.parametrize(
     "answers,status",
     [

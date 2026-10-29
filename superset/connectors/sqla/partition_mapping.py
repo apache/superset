@@ -191,7 +191,6 @@ from typing import Any, cast, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-import sqlglot
 from dateutil.relativedelta import relativedelta
 from flask import current_app as app
 from flask_babel import lazy_gettext as _
@@ -1144,12 +1143,14 @@ def epoch_mapping_refusal(
         or _native_generic_type(target) != utils.GenericDataType.NUMERIC
     ):
         return None
-    try:
-        expression = sqlglot.parse_one(parse_skeleton(transform), read="hive").unnest()
-        former_default = sqlglot.parse_one("unix_timestamp(NULL)", read="hive")
-        if expression != former_default:
-            return None
-    except sqlglot.errors.ParseError:
+    engine = datasource.database.backend
+    candidate = _parse_skeleton(transform, engine)
+    former_default = _parse_skeleton("unix_timestamp(:value)", engine)
+    if (
+        candidate is None
+        or former_default is None
+        or not candidate.has_same_projection(former_default)
+    ):
         return None
     return {
         "reason": "unbucketed_epoch",

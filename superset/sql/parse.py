@@ -1390,6 +1390,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return 0
         return len(self._parsed.expressions)
 
+    def has_same_projection(self, other: SQLStatement) -> bool:
+        """
+        Whether both statements select one structurally equal expression.
+
+        Redundant parentheses, letter case, whitespace and comments do not
+        count as differences, so a caller can recognize a known expression
+        however it was typed.
+        """
+        projections = [
+            statement._parsed.expressions[0].unnest()
+            for statement in (self, other)
+            if isinstance(statement._parsed, exp.Select)
+            and len(statement._parsed.expressions) == 1
+        ]
+        return len(projections) == 2 and projections[0] == projections[1]
+
     def is_bare_select_expression(self) -> bool:
         """
         Whether this is ``SELECT <one expression>`` and nothing else.

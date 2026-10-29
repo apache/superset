@@ -7754,6 +7754,21 @@ def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT (UNIX_TIMESTAMP(NULL)) -- note", True),
+        ("SELECT  unix_timestamp( NULL )", True),
+        ("SELECT floor(unix_timestamp(NULL) / 3600) * 3600", False),
+        ("SELECT unix_timestamp(NULL), 1", False),
+    ],
+)
+def test_has_same_projection(sql: str, expected: bool) -> None:
+    """Check the `has_same_projection` method."""
+    reference = SQLStatement("SELECT unix_timestamp(NULL)", "hive")
+    assert SQLStatement(sql, "hive").has_same_projection(reference) is expected
+
+
+@pytest.mark.parametrize(
     "sql, engine, expected",
     [
         ("SELECT lower(country) AS v0", "hive", ["v0"]),
