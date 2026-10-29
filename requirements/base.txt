@@ -36,7 +36,7 @@ blinker==1.9.0
     # via flask
 bottleneck==1.5.0
     # via apache-superset (pyproject.toml)
-brotli==1.2.0
+brotli==1.2.1
     # via
     #   -r requirements/base.in
     #   flask-compress
@@ -395,7 +395,7 @@ sqlalchemy-utils==0.43.0
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.21.0
+sqlglot==30.24.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
