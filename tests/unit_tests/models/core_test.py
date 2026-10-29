@@ -168,6 +168,14 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         PostgresDBEngineSpec,
         OldDBEngineSpec,
     ]
+    # `get_db_engine_spec` is an `lru_cache` keyed on the URL, and the specs
+    # below are only loaded on a miss -- so this test passed only as long as
+    # nothing earlier in the session had resolved a Postgres URL. Any new test
+    # anywhere that builds a `postgresql://` database made it fail, which is a
+    # property of test ordering rather than of the code under test. Cleared
+    # here, and again afterwards so the real specs are not left cached under a
+    # mock's verdict.
+    Database.get_db_engine_spec.cache_clear()
 
     assert (
         Database(database_name="db", sqlalchemy_uri="postgresql://").db_engine_spec
@@ -207,6 +215,11 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+    # The mocked specs above are cached against these URLs now; leaving them
+    # there would answer a later test with a spec defined in this function's
+    # body.
+    Database.get_db_engine_spec.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -2086,6 +2099,7 @@ def test_apply_limit_to_sql(
     """
     db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
     db_engine_spec = mocker.MagicMock(limit_method=method)
+    db_engine_spec.get_limit_method.return_value = method
     db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
 
     limited = db.apply_limit_to_sql(sql, limit, force)
@@ -2108,7 +2122,11 @@ def test_apply_limit_to_sql_preserves_restrictions(
     mocker.patch.object(
         db,
         "get_db_engine_spec",
-        return_value=mocker.Mock(engine="sqlite", limit_method=method),
+        return_value=mocker.Mock(
+            engine="sqlite",
+            limit_method=method,
+            get_limit_method=mocker.Mock(return_value=method),
+        ),
     )
     # The LIMIT expression comes only from the fixed test parameters above.
     sql = (
