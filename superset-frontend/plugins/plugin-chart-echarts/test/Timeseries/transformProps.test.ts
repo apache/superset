@@ -3447,10 +3447,12 @@ describe('weekly x-axis tick alignment', () => {
     // axisTick: a label surviving hideOverlap thinning then always lands on
     // a real tick and gridline rather than a capped-away bucket.
     const { manyMondays, chartProps } = manyMondaysChartProps();
-    const { xAxis } = transformProps(chartProps).echartOptions as any;
+    const { xAxis, toolbox } = transformProps(chartProps).echartOptions as any;
 
     expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
     expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+    // a hidden toolbox would still filter series data through its dataZoom
+    expect(toolbox).toBeUndefined();
   });
 
   test('keeps the full bucket set for axisLabel on a zoomable axis', () => {

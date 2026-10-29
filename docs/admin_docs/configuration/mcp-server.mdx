@@ -2437,3 +2437,64 @@ Context names are returned verbatim per the Tool Result Value Contract.
 "Did you mean" column candidates also preserve dataset spelling, including
 quotes and ampersands, with a 200-character bound per candidate. Use
 `get_dataset_info` for the complete schema.
+
+### Title validation errors
+
+Rejected MCP titles report a field-specific reason without echoing the input.
+Titles exceeding 500 characters for dashboards or 250 characters for charts
+report "String exceeds the allowed maximum length". `duplicate_dashboard`
+requires a non-blank title and reports "Text must not be empty" for blank or
+whitespace-only input. A title containing only removed HTML/script content
+(such as `<script>alert(1)</script>`) reports "Contains disallowed content"
+(`unsafe_text`), not an empty-text error. Optional titles on creation retain
+their existing empty-value behavior, including whitespace-only values longer
+than the title limit. On creation, blank chart names fall back to generated
+names; `generate_dashboard` falls back to chart-based titles when
+`dashboard_title` (or its `title` / `name` alias) is omitted, empty, or
+whitespace-only. `update_dashboard` rejects explicit blank
+or whitespace-only dashboard renames with "Text must not be empty"; omitting
+`dashboard_title` leaves the stored title unchanged.
+
+Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
+`update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
+`save_sql_query`, report "Text must not be empty" at the corresponding name field.
+Blank-name checks precede length checks, including whitespace-only inputs longer
+than the field limit.
+Explicit null metric or dataset names remain invalid; omitting them from updates
+leaves the stored name unchanged.
+
+### Chart and dashboard titles
+
+MCP chart names and dashboard titles preserve literal comparisons such as
+`Users aged <30`, `Revenue <$1M`, and `Love <3 charts`. HTML tags are stripped;
+script-only names, dangerous URL schemes, and entity-encoded markup that would
+leave tag-shaped text or rebuild entities that would change on resubmission
+are rejected. A title altered by sanitization
+includes a warning. Python callers supplying UTF-8 bytes or bytearrays receive
+the same title normalization as string inputs; invalid UTF-8 reports an error on
+the title field. Names are sanitized once before
+persistence, including by
+`generate_chart`'s schema revalidation, so a stored name does not change when
+it is sent back.
+
+### Object-name validation
+
+MCP object names must fit their persisted model columns: chart and dataset names
+and theme names allow 250 characters, dashboard titles allow 500, saved-query
+labels and SQL Lab tab titles allow 256, and dashboard slugs allow 255.
+For fields that trim whitespace, length validation applies after trimming.
+Physical-dataset `schema` and `catalog` values trim whitespace and treat blanks
+as omitted namespaces, including UTF-8 bytes supplied by Python callers.
+For fields using the shared user-text sanitizer (including chart names, dashboard
+titles, column names, labels, and certification text), the limit applies to the
+trimmed sanitized text, not removed markup, entity encoding, or surrounding
+whitespace exposed by tag removal. Raw user-text sanitizer
+input has a separate 10,000-character resource bound (or the field limit, if larger).
+Nonblank theme names, saved-metric names, and dataset renames retain their
+whitespace and count it toward the limit.
+
+Blank saved-query labels and explicit blank dashboard renames return
+`Text must not be empty`, matching virtual-dataset names and duplicated dashboard
+titles. Omit an update field to retain the existing value.
+Chart creation and updates reject names reduced entirely to disallowed content;
+partial sanitization returns a warning alongside the normalized name.
