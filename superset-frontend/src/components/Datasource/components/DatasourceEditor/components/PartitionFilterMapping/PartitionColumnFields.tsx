@@ -126,8 +126,16 @@ export default function PartitionColumnFields({
   // with something that works, watch the row's own preview come back valid --
   // and the banner still said nothing would mirror, because this read a summary
   // computed when the editor opened.
+  //
+  // The same goes for the columns: the verdict is keyed on the expression
+  // alone, so re-pointing the partition column, or moving the mapping onto a
+  // column whose default is the same text, would otherwise inherit a pass
+  // that was about a different mapping.
+  const stored = datasource.partition_filter_mapping;
   const storedVerdictApplies =
-    liveTransform === datasource.partition_filter_mapping?.evaluated_transform;
+    liveTransform === stored?.evaluated_transform &&
+    mappedColumn === stored?.mapped_column &&
+    datasource.partition_column === stored?.partition_column;
   // The engine's answer on the transform in the box: the mapped row's own
   // preview when it has one, otherwise the stored verdict while it is still
   // about this transform. `null` is nobody having asked -- never previewed,

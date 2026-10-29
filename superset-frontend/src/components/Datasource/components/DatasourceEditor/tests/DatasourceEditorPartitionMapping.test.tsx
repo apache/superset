@@ -77,11 +77,14 @@ const confirmStoredVerdict = (
   props: DatasourceEditorProps,
   transform: string,
 ) => {
-  (
-    props.datasource as DatasetObject & PartitionMappingDatasource
-  ).partition_filter_mapping = {
+  const datasource = props.datasource as DatasetObject &
+    PartitionMappingDatasource;
+  datasource.partition_filter_mapping = {
     evaluable: true,
     evaluated_transform: transform,
+    mapped_column:
+      datasource.partition_mapped_column || datasource.main_dttm_col,
+    partition_column: datasource.partition_column,
   };
 };
 
