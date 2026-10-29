@@ -49,7 +49,7 @@ import base64
 import binascii
 import logging
 import zlib
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -89,7 +89,7 @@ ROW_OVERRIDE_KEYS = frozenset(
 )
 # Keys that choose the column a time range applies to. Setting one while the
 # scope carries filters would move the dashboard window to another column, and
-# Superset's granularity handling drops existing filters on the chosen column.
+# Superset's granularity handling drops filters on the replaced column.
 TIME_TARGET_KEYS = frozenset({"granularity_sqla", "time_column"})
 # Keys that only change presentation (bucketing, interactivity), never which
 # rows are included. The model's value wins.
@@ -803,22 +803,6 @@ def _iso(value: datetime | None) -> str:
     return value.isoformat() if value is not None else ""
 
 
-def removed_granularity_column(
-    filters: Sequence[Mapping[str, Any]], granularity: str | None
-) -> str | None:
-    """The column Superset drops filters on when building this query.
-
-    ``QueryContextFactory._apply_granularity`` removes every filter on the
-    granularity column (or, failing that, the first temporal-range column)
-    before re-adding a single time filter. A dashboard clause on that column
-    would silently disappear, so callers refuse instead.
-    """
-    temporal = [f.get("col") for f in filters if f.get("op") == TEMPORAL_RANGE]
-    if not granularity or not temporal:
-        return None
-    return granularity if granularity in temporal else temporal[0]
-
-
 # ---------------------------------------------------------------------------
 # Request helpers
 # ---------------------------------------------------------------------------
@@ -990,7 +974,6 @@ def scoped_dataset_query(
     subject: str,
     columns: set[str],
     temporal_columns: set[str],
-    main_dttm_col: str | None,
     filters: list[dict[str, Any]],
     time_range: str | None,
     time_column: str | None,
@@ -1039,22 +1022,19 @@ def scoped_dataset_query(
         time_range = intersect_time_ranges(constraints.time_range, time_range)
         time_column = scope_column
 
-    granularity = (time_column or main_dttm_col) if time_range else time_column
     final = [*filters, *scope_filters]
-    if time_range and granularity:
-        final_with_time = [
-            *final,
-            {"col": granularity, "op": TEMPORAL_RANGE, "val": time_range},
-        ]
-    else:
-        final_with_time = final
-    removed = removed_granularity_column(final_with_time, granularity)
-    if removed is not None and removed in constraints.columns:
+    temporal = {f["col"] for f in final if f.get("op") == TEMPORAL_RANGE}
+    # An explicit range appends a TEMPORAL_RANGE on the query's time column.
+    # Without it, granularity can replace a different column's temporal filter
+    # and discard both caller and dashboard predicates on that column.
+    if not time_range and temporal and time_column and time_column not in temporal:
+        dropped = sorted(temporal)[0]
         raise MCPDashboardScopeError(
-            f"the dashboard filter on {removed!r} would be dropped because that "
-            "column is also the query's time column.",
-            "Query without a time range on that column, or use the dashboard's charts.",
+            f"the filter on {dropped!r} would be dropped because "
+            f"the query's time column is {time_column!r} instead.",
+            "Pass the time range on that column, or use the dashboard's charts.",
         )
+
     return final, time_range, time_column
 
 
@@ -1124,7 +1104,6 @@ def _rewrite_dataset_request(
         subject=f"dataset {getattr(dataset, 'table_name', dataset.id)!r}",
         columns={column.column_name for column in dataset.columns},
         temporal_columns={c.column_name for c in dataset.columns if c.is_dttm},
-        main_dttm_col=getattr(dataset, "main_dttm_col", None),
         filters=[_as_clause(f) for f in request_filters],
         time_range=_field(request, "time_range"),
         time_column=_field(request, "time_column"),
