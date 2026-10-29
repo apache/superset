@@ -114,6 +114,7 @@ import {
   discardedMappedTransform,
   nextMappedColumnOverride,
   partitionMappingErrors,
+  resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
@@ -1406,6 +1407,13 @@ function DatasourceEditor({
   // refused. Reported rather than lifted: the transform the preview judges is
   // the debounced local one that panel owns. `null` means no verdict yet.
   const [previewMirrors, setPreviewMirrors] = useState<boolean | null>(null);
+  // A verdict about the old mapping says nothing about the new one, and the
+  // banner now reads a `true` as well as a `false` -- so a mapping moved off a
+  // column whose preview passed must not inherit that pass.
+  const mappedColumnName = resolveMappedColumn(datasource);
+  useEffect(() => {
+    setPreviewMirrors(null);
+  }, [mappedColumnName, datasource.partition_column]);
 
   const [modal, modalContextHolder] = Modal.useModal();
   // One confirmation at a time: clearing a select reports through both its

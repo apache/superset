@@ -25,6 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import type { DatasetObject } from 'src/features/datasets/types';
+import type { PartitionMappingDatasource } from '../components/PartitionFilterMapping/types';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -65,6 +66,23 @@ const columnNamed = (columns: EditorColumn[], name: string) =>
 const lastValidationErrors = (props: DatasourceEditorProps): string[] => {
   const { calls } = props.onChange.mock;
   return (calls[calls.length - 1][1] ?? []) as string[];
+};
+
+/**
+ * Record that the engine confirmed `transform` mirrors, as the dataset read's
+ * summary does once a probe has passed. Without one the editor no longer
+ * promises a mirror (SC-130302).
+ */
+const confirmStoredVerdict = (
+  props: DatasourceEditorProps,
+  transform: string,
+) => {
+  (
+    props.datasource as DatasetObject & PartitionMappingDatasource
+  ).partition_filter_mapping = {
+    evaluable: true,
+    evaluated_transform: transform,
+  };
 };
 
 /** Accept the dialog that asks before the mapped transform is discarded. */
@@ -110,6 +128,7 @@ test('removing the mapping does not leave the default datetime column mirroring'
     'unix_timestamp(:value)';
   columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -491,6 +510,7 @@ test('"Customize the value transform" opens the mapped column\'s editor', async 
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -521,6 +541,7 @@ test('"Customize the value transform" works from the Calculated columns tab', as
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -611,6 +632,7 @@ test('re-pointing the partition column keeps the mapped transform', async () => 
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  confirmStoredVerdict(props, 'lower(:value)');
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -680,6 +702,7 @@ const workingImplicitMapping = () => {
     groupby: false,
     column_name: 'ingest_time',
   } as EditorColumn);
+  confirmStoredVerdict(props, 'unix_timestamp(:value)');
   return props;
 };
 

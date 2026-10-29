@@ -119,6 +119,7 @@ test('an active mapping states which column mirrors onto which', () => {
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={jest.fn()}
     />,
   );
@@ -141,6 +142,7 @@ test('without "preserves ordering" the banner does not promise the time range', 
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={jest.fn()}
     />,
   );
@@ -167,6 +169,7 @@ test('with "preserves ordering" the banner promises every filter', () => {
       columns={orderedColumns}
       allColumns={orderedColumns}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={jest.fn()}
     />,
   );
@@ -231,9 +234,11 @@ test('the banner also defers to the stored mapping the engine refused', () => {
   ).not.toBeInTheDocument();
 });
 
-test('a mapping nothing has judged yet still states what it will do', () => {
+test('a mapping nothing has judged yet says so rather than promising a mirror', () => {
   // `null` is not a refusal: a preview still in flight, or a mapping no chart
-  // has run, must not read as broken.
+  // has run, must not read as broken. It is not a pass either (SC-130302): a
+  // transform that only emits NULL clears every static check, and the banner
+  // promised a mirror for it until its verdict came back.
   render(
     <PartitionColumnFields
       datasource={{
@@ -249,9 +254,13 @@ test('a mapping nothing has judged yet still states what it will do', () => {
     />,
   );
 
+  expect(screen.getByTestId('partition-mapping-unconfirmed')).toHaveTextContent(
+    'Partition pruning on event_time has not been confirmed.',
+  );
   expect(
-    screen.getByText(/will automatically apply an equivalent filter to/),
-  ).toBeInTheDocument();
+    screen.queryByText(/will automatically apply an equivalent filter to/),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/scan every partition/)).not.toBeInTheDocument();
 });
 
 test('no partition column means no "maps to partition" at all', () => {
@@ -538,10 +547,14 @@ test('a stored refusal stops applying once the transform changes', () => {
     />,
   );
 
-  // `MAPPED_COLUMNS` holds `unix_timestamp(:value)`, not the refused text.
+  // `MAPPED_COLUMNS` holds `unix_timestamp(:value)`, not the refused text, so
+  // the refusal says nothing about it -- and nothing else has judged it yet.
   expect(
-    screen.getByText(/will automatically apply an equivalent filter to/),
+    screen.getByTestId('partition-mapping-unconfirmed'),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/is not mirroring filters/),
+  ).not.toBeInTheDocument();
 });
 
 test('designating a partition column does not claim it is hidden from Explore', () => {
@@ -916,6 +929,7 @@ test.each([
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
+      previewMirrors
       onNavigateToColumn={onNavigateToColumn}
     />,
   );
