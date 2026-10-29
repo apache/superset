@@ -367,6 +367,23 @@ test('createSpacedXAxisFormatter blanks labels that would visually collide', () 
   expect(labels).toEqual(['0', '', '', '300', '1000']);
 });
 
+test('createSpacedXAxisFormatter uses raw tick text without a formatter', () => {
+  const formatter = createSpacedXAxisFormatter(undefined, 0, 1000, 400);
+
+  expect([0, 500, 1000, 'label'].map(formatter)).toEqual([
+    '0',
+    '500',
+    '1000',
+    'label',
+  ]);
+});
+
+test('createSpacedXAxisFormatter keeps nearby ticks when the starting boundary is unknown', () => {
+  const formatter = createSpacedXAxisFormatter(String, undefined, 1000, 100);
+
+  expect([100, 101, 1000].map(formatter)).toEqual(['100', '101', '1000']);
+});
+
 test('createSpacedXAxisFormatter shows every label when showAllLabels bypasses the spacing check', () => {
   const formatter = createSpacedXAxisFormatter(
     (value: number | string) => String(value),
