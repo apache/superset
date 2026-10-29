@@ -1460,7 +1460,12 @@ test.each([429, 500])(
   'an unavailable preview (%s) is not a failed mapping verdict and can be retried',
   async status => {
     let calls = 0;
-    fetchMock.post(PREVIEW_URL, () => {
+    fetchMock.post(PREVIEW_URL, callLog => {
+      // `fetch-retry` re-sends a request an earlier test aborted, and
+      // fetch-mock still runs this handler for it. Count live requests only.
+      if (callLog.signal?.aborted) {
+        return { status: 499 };
+      }
       calls += 1;
       return calls === 1
         ? { status, body: { message: 'Preview request failed' } }
