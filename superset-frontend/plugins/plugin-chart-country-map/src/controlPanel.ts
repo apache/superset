@@ -23,8 +23,10 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   getStandardizedControls,
+  Dataset,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
+import { GenericDataType } from '@apache-superset/core/common';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -46,8 +48,31 @@ const config: ControlPanelConfig = {
           },
         ],
         ['entity'],
+        [
+          {
+            name: 'region_format',
+            config: {
+              type: 'SelectControl',
+              label: t('Region value format'),
+              default: null,
+              choices: [
+                [null, t('Legacy ISO values')],
+                ['name', t('Region name')],
+                ['abbreviation', t('ISO suffix / abbreviation')],
+                ['iso_3166_2', t('ISO 3166-2')],
+              ],
+              description: t(
+                'Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions.',
+              ),
+              renderTrigger: true,
+            },
+          },
+        ],
         ['metric'],
         ['adhoc_filters'],
+        ['row_limit'],
+        ['mcp_geographic'],
+        ['_mcp_dashboard_time_filter_subject'],
       ],
     },
     {
@@ -71,6 +96,47 @@ const config: ControlPanelConfig = {
         ],
         ['currency_format'],
         ['linear_color_scheme'],
+        [
+          {
+            name: 'conditional_formatting',
+            config: {
+              type: 'ConditionalFormattingControl',
+              renderTrigger: true,
+              label: t('Custom conditional formatting'),
+              description: t(
+                'Apply conditional color formatting to numeric columns',
+              ),
+              metricOnly: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                const chartStatus = chart?.chartStatus;
+                const datasource = explore?.datasource;
+                const verboseMap =
+                  datasource &&
+                  Object.prototype.hasOwnProperty.call(
+                    datasource,
+                    'verbose_map',
+                  )
+                    ? ((datasource as Dataset).verbose_map ?? {})
+                    : {};
+                const columnOptions = [
+                  {
+                    value: 'metric',
+                    label: 'metric',
+                    dataType: GenericDataType.Numeric,
+                  },
+                ];
+                return {
+                  removeIrrelevantConditions: chartStatus === 'success',
+                  columnOptions,
+                  verboseMap,
+                };
+              },
+            },
+          },
+        ],
       ],
     },
   ],

@@ -30,6 +30,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.connectors.sqla.models import (
@@ -43,11 +44,16 @@ from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
     get_template_processor,
+    JinjaTemplateProcessor,
     JsonValue,
     metric_macro,
+    NoOpTemplateProcessor,
+    OpaqueTemplateError,
+    PrestoTemplateProcessor,
     safe_proxy,
     TimeFilter,
     to_datetime,
+    TrinoTemplateProcessor,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -261,6 +267,80 @@ def test_get_filters_remove_not_present() -> None:
     assert cache.removed_filters == []
 
 
+@pytest.mark.parametrize("value", [0, False])
+def test_get_filters_falsy_value(value: Any) -> None:
+    """
+    Test that ``get_filters`` returns filters whose value is falsy but set.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": value,
+                            "expressionType": "SIMPLE",
+                            "operator": "==",
+                            "subject": "amount",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("amount", remove_filter=True) == [
+            {"op": "==", "col": "amount", "val": value}
+        ]
+        assert cache.removed_filters == ["amount"]
+        assert cache.applied_filters == ["amount"]
+
+
+def test_get_filters_range_filter_starting_at_zero() -> None:
+    """
+    Test that both bounds of a native Range filter starting at 0 are returned.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "extra_form_data": {
+                        "filters": [
+                            {"col": "amount", "op": ">=", "val": 0},
+                            {"col": "amount", "op": "<=", "val": 100},
+                        ]
+                    }
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("amount") == [
+            {"op": ">=", "col": "amount", "val": 0},
+            {"op": "<=", "col": "amount", "val": 100},
+        ]
+
+
+@pytest.mark.parametrize("value", [0, False])
+def test_filter_values_falsy_value(value: Any) -> None:
+    """
+    Test that ``filter_values`` returns falsy but set values.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "amount", "op": "==", "val": value}]
+    )
+    assert cache.filter_values("amount", default="fallback") == [value]
+
+
+def test_filter_values_empty_string_uses_default() -> None:
+    """
+    Test that ``filter_values`` treats an empty-string value as absent.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "amount", "op": "==", "val": ""}])
+    assert cache.filter_values("amount", default="fallback") == ["fallback"]
+
+
 def test_get_filters_query_context_filters() -> None:
     """
     Test that ``get_filters`` falls back to native query_context_filters when no
@@ -472,6 +552,90 @@ def test_get_filters_no_escaped_val_without_dialect() -> None:
         result = cache.get_filters("name")
         assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
         assert "escaped_val" not in result[0]
+
+
+def test_escape_value_nested_list_is_escaped() -> None:
+    """
+    Regression: string leaves nested more than one level deep used to pass
+    through ``_escape_value`` untouched, and Jinja's whole-container
+    rendering of the nested list re-emitted the single quote raw --
+    terminating the surrounding SQL string literal.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {
+                "col": "name",
+                "op": "LIKE",
+                "val": [["x' UNION SELECT username FROM users --"]],
+            },
+        ],
+    )
+    [entry] = cache.get_filters("name")
+    rendered = str(entry["escaped_val"])
+    # every single quote in the rendered output must be escaped (doubled)
+    assert "'" not in rendered.replace("''", "")
+    assert "x'' UNION SELECT username FROM users --" in rendered
+
+
+def test_escape_value_flat_list_renders_without_raw_quotes() -> None:
+    """
+    Regression: rendering a whole escaped list used to go through Python's
+    default ``str()``/``repr()``, which wraps elements in fresh quote
+    delimiters -- letting even a payload containing no single quotes break
+    out of the template's own quotes. The escaped list must render as
+    escaped elements only, with no delimiters added.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": ['x") OR 1=1 --', "O'Brien"]},
+        ],
+    )
+    [entry] = cache.get_filters("name")
+    # element-wise access still compares equal to the plain escaped values
+    assert entry["escaped_val"] == ['x") OR 1=1 --', "O''Brien"]
+    # whole-list rendering must not add quote delimiters around elements
+    rendered = str(entry["escaped_val"])
+    assert rendered == "x\") OR 1=1 --, O''Brien"
+    assert "'" not in rendered.replace("''", "")
+
+
+def test_escape_value_dict_renders_without_raw_quotes() -> None:
+    """
+    Regression: a dict value returned by ``get_guest_user_attribute`` is
+    recursively escaped at the leaf level, but rendering the whole dict in
+    a template used to go through Python's default ``repr()``, which
+    re-wraps string values in fresh quote delimiters -- reopening the
+    same whole-container escape hatch as for lists.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"id": "foo' OR 1=1 --", "names": ["O'Brien", 42]}
+    )
+    # equality and member access behave exactly like a plain dict
+    assert escaped == {"id": "foo'' OR 1=1 --", "names": ["O''Brien", 42]}
+    assert isinstance(escaped, dict)
+    # whole-container rendering must not add quote delimiters
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
+
+
+def test_escape_value_dict_escapes_keys_too() -> None:
+    """
+    Regression: a dict key, like a value, can originate from data the
+    caller does not fully control (for example a guest-token attribute
+    key). Rendering the whole dict must not let a quote in a key
+    re-introduce an unescaped delimiter.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"O'Brien' OR 1=1 --": "value"}
+    )
+    [key] = escaped.keys()
+    assert key == "O''Brien'' OR 1=1 --"
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
 
 
 def test_url_param_query() -> None:
@@ -698,6 +862,77 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_rls_rules() is None
 
 
+def test_current_user_roles_rolls_back_only_on_db_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_user_roles()`` lazy-loads from ``db.session``, so a DB error caught
+    here leaves it in "pending rollback" state. This runs during SQL templating,
+    upstream of the engine build that would otherwise inherit the failed
+    transaction, so roll it back.
+
+    A non-DB failure touches no session and must not roll anything back, or it
+    would discard pending work unrelated to templating.
+    """
+    session = mocker.patch("superset.jinja_context.db").session
+
+    mocker.patch(
+        "superset.jinja_context.security_manager.get_user_roles",
+        side_effect=SQLAlchemyError("connection lost"),
+    )
+    assert ExtraCache(table=mocker.MagicMock()).current_user_roles() is None
+    session.rollback.assert_called_once()
+
+    session.reset_mock()
+    mocker.patch(
+        "superset.jinja_context.security_manager.get_user_roles",
+        side_effect=TypeError("not a DB problem"),
+    )
+    assert ExtraCache(table=mocker.MagicMock()).current_user_roles() is None
+    session.rollback.assert_not_called()
+
+
+def test_current_username_email_escaped(mocker: MockerFixture) -> None:
+    """
+    ``current_username`` / ``current_user_email`` apply the same dialect
+    escaping as the other viewer-controlled macros, so a quote in the value
+    cannot break out of a SQL literal it is interpolated into.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(dialect=dialect(), table=mocker.MagicMock())
+    assert cache.current_username() == "O''Brien"
+    assert cache.current_user_email() == "o''brien@test.com"
+
+
+def test_current_username_email_unescaped_opt_out(mocker: MockerFixture) -> None:
+    """
+    ``escape_result=False`` opts out of escaping, mirroring ``url_param``.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(dialect=dialect(), table=mocker.MagicMock())
+    assert cache.current_username(escape_result=False) == "O'Brien"
+    assert cache.current_user_email(escape_result=False) == "o'brien@test.com"
+
+
+def test_current_username_email_unchanged_without_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Without a configured dialect the value is returned unchanged, preserving
+    the prior behavior.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(table=mocker.MagicMock())
+    assert cache.current_username() == "O'Brien"
+    assert cache.current_user_email() == "o'brien@test.com"
+
+
 def _user_metadata_cache_keys(
     mocker: MockerFixture,
     *,
@@ -884,6 +1119,126 @@ def test_where_in() -> None:
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 
+@pytest.mark.parametrize(
+    "dialect_name,paramstyle",
+    [
+        ("mysql", "format"),
+        ("mysql", "pyformat"),
+        ("postgresql", "pyformat"),
+        ("postgresql", "named"),
+        ("sqlite", "qmark"),
+        ("mssql", "named"),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "plain",
+        "%",
+        "%%",
+        "50%",
+        "%%%",
+        "%s",
+        "a_b",
+        "O'Reilly",
+        r"back\slash",
+        "50%_O'Reilly\\backslash",
+    ],
+)
+def test_where_in_literal_percent(
+    dialect_name: str, paramstyle: str, value: str
+) -> None:
+    """Return literal SQL without changing the dialect's DBAPI escaping."""
+    from importlib import import_module
+
+    from sqlalchemy import bindparam
+
+    sql_dialect = import_module(f"sqlalchemy.dialects.{dialect_name}").dialect(
+        paramstyle=paramstyle
+    )
+    where_in = WhereInMacro(sql_dialect)
+    bind = bindparam("value", value)
+    # Quote and backslash escaping remains dialect-specific; percent is literal.
+    escaped = value.replace("'", "''")
+    if dialect_name == "mysql":
+        escaped = escaped.replace("\\", "\\\\")
+    # SQLAlchemy doubles percents only for the ``format``/``pyformat`` paramstyles,
+    # so a DBAPI can interpolate parameters. Derive the expected compiler output
+    # from the paramstyle instead of reading it back off the dialect, so the
+    # assertions below are pinned to an explicit literal rather than to whatever
+    # the dialect happens to produce.
+    compiler_escaped = (
+        escaped.replace("%", "%%") if paramstyle in {"format", "pyformat"} else escaped
+    )
+    assert (
+        str(bind.compile(dialect=sql_dialect, compile_kwargs={"literal_binds": True}))
+        == f"'{compiler_escaped}'"
+    )
+    assert where_in([value]) == f"('{escaped}')"
+    # The macro ran between the two compilations. Recompiling to the same explicit
+    # escaped literal shows it undid the percent escaping only in its own return
+    # value, leaving the shared dialect's compiler escaping untouched.
+    assert (
+        str(bind.compile(dialect=sql_dialect, compile_kwargs={"literal_binds": True}))
+        == f"'{compiler_escaped}'"
+    )
+    assert where_in([1, None, "50%", "%%"]) == "(1, NULL, '50%', '%%')"
+    assert where_in([]) == "()"
+    assert where_in([], default_to_none=True) is None
+
+
+def test_where_in_athena_parameterless_execution() -> None:
+    """PyAthena must receive literal percents without a parameter-unescape pass."""
+    pytest.importorskip("pyathena")
+    from pyathena.formatter import DefaultParameterFormatter
+    from sqlalchemy import create_engine
+
+    engine = create_engine("awsathena+rest://athena.us-west-2.amazonaws.com/default")
+    where_in = WhereInMacro(engine.dialect)
+    formatter = DefaultParameterFormatter()
+    values = ["50%", "%%", "%(value)s", "50%_O'Reilly\\backslash"]
+    for value in values:
+        expected = "SELECT '" + value.replace("'", "''") + "' AS value"
+        # Use the same parameterless formatter path as cursor.execute(query).
+        rendered = where_in([value])
+        assert rendered is not None
+        assert formatter.format("SELECT " + rendered[1:-1] + " AS value") == expected
+        assert (
+            formatter.format("SELECT %(value)s AS value", {"value": value}) == expected
+        )
+    engine.dispose()
+
+
+@pytest.mark.parametrize("dialect_factory", [mysql.dialect, dialect])
+def test_where_in_pyformat_placeholder_literal(dialect_factory: Any) -> None:
+    """Placeholder-looking data is not interpolated as a parameter."""
+    where_in = WhereInMacro(dialect_factory(paramstyle="pyformat"))
+    assert where_in(["%(value)s", "%s"]) == "('%(value)s', '%s')"
+
+
+@pytest.mark.parametrize("dialect_factory", [mysql.dialect, dialect])
+def test_where_in_chart_compilation(
+    dialect_factory: Any, mocker: MockerFixture
+) -> None:
+    """A chart's second compilation preserves macro and unrelated SQL literals."""
+    from sqlalchemy import literal_column, select, text
+
+    sql_dialect = dialect_factory()
+    engine = mocker.MagicMock(dialect=sql_dialect)
+    database = Database(database_name="test")
+    mocker.patch.object(
+        database, "get_sqla_engine"
+    ).return_value.__enter__.return_value = engine
+    mocker.patch("superset.models.core.is_feature_enabled", return_value=False)
+    rendered = WhereInMacro(sql_dialect)(["50%", "%%"])
+    query = select(literal_column("value")).select_from(
+        text(f"(SELECT 'unrelated%%' AS value WHERE value IN {rendered}) AS virtual")
+    )
+    sql = database.compile_sqla_query(query, is_virtual=True)
+    assert "'unrelated%%'" in sql
+    assert "IN ('50%', '%%')" in sql
+
+
 def test_where_in_empty_list() -> None:
     """
     Test the ``where_in`` Jinja2 filter when it receives an
@@ -1026,7 +1381,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     assert (
         dataset_macro(1)
         == f"""(
-SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit{space}
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
 FROM my_schema.old_dataset
 ) AS dataset_1"""  # noqa: S608, E501
     )
@@ -1034,8 +1389,8 @@ FROM my_schema.old_dataset
     assert (
         dataset_macro(1, include_metrics=True)
         == f"""(
-SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit, COUNT(*) AS cnt{space}
-FROM my_schema.old_dataset GROUP BY ds, num_boys, revenue, expenses, revenue-expenses
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit, COUNT(*) AS cnt{space}
+FROM my_schema.old_dataset GROUP BY ds, num_boys, revenue, expenses, (revenue-expenses)
 ) AS dataset_1"""  # noqa: S608, E501
     )
 
@@ -1094,6 +1449,34 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     env = SandboxedEnvironment(undefined=DebugUndefined)
     assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
     mock_get_form_data.assert_not_called()
+
+
+def test_metric_macro_guest_user_dataset_out_of_scope(mocker: MockerFixture) -> None:
+    """
+    Test that ``metric_macro`` denies a guest user a dataset that is not
+    reachable through any dashboard their guest token grants.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    guest_user = mocker.MagicMock()
+    guest_user.guest_token = {}
+    mocker.patch(
+        "superset.security_manager.get_current_guest_user_if_guest",
+        return_value=guest_user,
+    )
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        id=1,
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError):
+        metric_macro(env, {}, "count", 1)
 
 
 def test_metric_macro_recursive(mocker: MockerFixture) -> None:
@@ -1321,6 +1704,31 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
     mock_g.form_data = {}
     env = SandboxedEnvironment(undefined=DebugUndefined)
     with current_app.test_request_context():
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
+        DatasetDAO.find_by_id.assert_not_called()
+
+
+def test_metric_macro_no_dataset_id_non_json_body_with_json_content_type(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the ``metric_macro`` when the request context's Content-Type claims
+    JSON but the body isn't parseable JSON -- the shape of the request an MCP
+    tool call runs in. Previously ``request.get_json()`` let a raw Werkzeug
+    ``BadRequest`` escape here instead of falling through to the
+    dataset-not-specified path.
+    """
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with current_app.test_request_context(
+        data="not-json-at-all", content_type="application/json"
+    ):
         with pytest.raises(SupersetTemplateException) as excinfo:
             metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
@@ -1731,6 +2139,13 @@ def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> 
     """
     mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
     mock_is_guest_user.return_value = True
+
+    # Dashboard-level guest scope is asserted separately; here the dataset is
+    # in scope so the test can focus on the base-filter bypass.
+    mocker.patch(
+        "superset.jinja_context.guest_user_can_access_dataset",
+        return_value=True,
+    )
 
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(
@@ -3272,3 +3687,183 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        # Warehouse, metadata and viewer-dependent callables.
+        "{{ presto.latest_partition('t') }}",
+        "{{ presto.latest_sub_partition('t', ds='x') }}",
+        "{% if presto.latest_partition %}x{% endif %}",
+        "{{ dataset(1) }}",
+        "{{ metric('m') }}",
+        "{{ current_username() }}",
+        "{{ current_user_id() }}",
+        "{{ get_time_filter('ds') }}",
+        "{{ addon() }}",
+        # Any use of a stub, not only a call.
+        "{{ current_username }}",
+        "{{ current_username ~ '' }}",
+        "{% for x in current_username %}{% endfor %}",
+        "{{ current_username == 1 }}",
+        "{% if current_username %}x{% endif %}",
+        "{{ current_username | length }}",
+        "{{ current_username.__name__ }}",
+        # Non-deterministic built-ins could render differently at execution.
+        "{{ ['a', 'b'] | random }}",
+        "{{ lipsum(1) }}",
+        "{{ 'a' | custom_probe }}",
+        "{{ 'a' is custom_test }}",
+        # Tests and filters can inspect a stub without using it.
+        "{% if presto is mapping %}x{% endif %}",
+        "{% if presto is not sameas trino %}x{% endif %}",
+        "{% if current_username is callable %}x{% endif %}",
+        "{% if current_username is defined %}x{% endif %}",
+        "{{ current_username | default('x') }}",
+        "{% if addon_value is not callable %}x{% endif %}",
+        # Existing attributes, whose sandbox undefined names the real type.
+        "{{ current_user_id.__class__ }}",
+        "{{ current_user_id.__doc__ }}",
+        "{% if 'partial' in (current_user_id.__class__|string) %}x{% endif %}",
+        "{% if 'dict' in (presto.__class__|string) %}x{% endif %}",
+        # The engine namespace persists across execution renders.
+        "{{ presto.update({'x': 1}) }}",
+        "{% if presto.seen is defined %}x{% endif %}",
+    ],
+)
+def test_render_for_discovery_stubs_macros(
+    mocker: MockerFixture, template: str
+) -> None:
+    """Discovery rendering never runs a macro; using one makes it opaque."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    probe = mocker.MagicMock(return_value="1")
+    mocker.patch(
+        "superset.jinja_context.context_addons",
+        return_value={"addon": probe, "addon_value": datetime(2020, 1, 1)},
+    )
+    mocker.patch.object(PrestoTemplateProcessor, "latest_partitions", probe)
+    mocker.patch.object(PrestoTemplateProcessor, "latest_sub_partition", probe)
+    processor = TrinoTemplateProcessor(database=database)
+    processor.env.filters["custom_probe"] = probe
+    processor.env.tests["custom_test"] = probe
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery(template)
+    probe.assert_not_called()
+
+
+def test_render_for_discovery_matches_execution_for_data() -> None:
+    """Plain parameters, built-ins and structure render exactly as execution."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = PrestoTemplateProcessor(
+        database=database,
+        p="(FROM t) + LENGTH('",
+        q=[1],
+        d={"k": "v"},
+        s={"a"},
+        r="')",
+    )
+    template = (
+        "{{ p ~ q ~ r }}|{{ p + q|string + r }}|{{ d.k|upper }}|{{ d['k'] }}"
+        "|{{ q|join(',') }}|{{ s|first }}|{% set x = namespace(v=1) %}{{ x.v }}"
+        "|{% for i in range(2) %}{{ i }}{% endfor %}|{{ q is sequence }}"
+        "|{{ ['a']|map('upper')|join }}"
+        "|{{ q|where_in }}|{{ ''|to_datetime }}|{{ missing }}"
+    )
+    rendered = processor.render_for_discovery(template)
+    assert rendered == processor.process_template(template)
+    assert rendered.startswith("(FROM t) + LENGTH('[1]')|")
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        # The clock could differ between discovery and execution renders.
+        "{% if ('2020-01-01 00:00:00'|to_datetime).now().second % 2 %}1"
+        "{% else %}(SELECT MAX(col1) FROM physical){% endif %}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).today() }}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).utcnow() }}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).date().today() }}",
+        "{{ ('2020-01-01 00:00:00'|to_datetime).min.now() }}",
+        "{{ '2020-01-01 00:00:00'|to_datetime }}",
+        "{% if '2020-01-01 00:00:00'|to_datetime %}x{% endif %}",
+    ],
+)
+def test_render_for_discovery_stubs_to_datetime_results(template: str) -> None:
+    """A ``to_datetime`` result exposes clock methods, so discovery stubs it."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = JinjaTemplateProcessor(database=database)
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery(template)
+
+
+def test_render_for_discovery_runs_request_filter_readers(
+    mocker: MockerFixture,
+) -> None:
+    """Request-only readers stay live, so FROM removal state is discoverable."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "in",
+                "subject": "name",
+            }
+        ],
+        "url_params": {"p": "bar"},
+    }
+    mocker.patch("superset.views.utils.get_form_data", return_value=(form_data, None))
+    removed: list[str] = []
+    processor = JinjaTemplateProcessor(database=database, removed_filters=removed)
+    template = (
+        "{{ filter_values('name', remove_filter=True) }}"
+        "{{ get_filters('name')[0].op }}{{ url_param('p') }}"
+        "{{ cache_key_wrapper('k') }}"
+    )
+    with current_app.test_request_context():
+        assert processor.render_for_discovery(template) == "['foo']INbark"
+    assert removed == ["name"]
+
+
+def test_render_for_discovery_custom_processors(mocker: MockerFixture) -> None:
+    """Processors whose rendering is unknown are opaque; no-op ones are exact."""
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    class CustomProcessor(JinjaTemplateProcessor):
+        def process_template(self, sql: str, **kwargs: Any) -> str:
+            return sql.replace("$X", "(SELECT 1 FROM t)")
+
+    class CustomNoOp(NoOpTemplateProcessor):
+        def process_template(self, sql: str, **kwargs: Any) -> str:
+            return sql.replace("$X", "(SELECT 1 FROM t)")
+
+    for processor_class in (CustomProcessor, CustomNoOp):
+        with pytest.raises(OpaqueTemplateError):
+            processor_class(database=database).render_for_discovery("$X")
+    assert (
+        NoOpTemplateProcessor(database=database).render_for_discovery("{{ $X }}")
+        == "{{ $X }}"
+    )
+
+    processor = JinjaTemplateProcessor(database=database)
+    processor.env.finalize = str
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("1")
+    processor = JinjaTemplateProcessor(database=database)
+    processor.env.add_extension("jinja2.ext.do")
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("1")
+    # Unknown context values and globals are stubbed rather than evaluated.
+    processor = JinjaTemplateProcessor(database=database)
+    processor.env.globals["probe"] = mocker.MagicMock()
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("{{ probe() }}")
+    processor = JinjaTemplateProcessor(database=database, value=datetime(2020, 1, 1))
+    mocker.patch(
+        "superset.jinja_context.validate_template_context",
+        side_effect=lambda engine, context: context,
+    )
+    with pytest.raises(OpaqueTemplateError):
+        processor.render_for_discovery("{{ value.now() }}")

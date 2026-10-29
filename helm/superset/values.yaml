@@ -112,7 +112,10 @@ extraEnv: {}
   # GUNICORN_KEEPALIVE: 2
   # SERVER_LIMIT_REQUEST_LINE: 0
   # SERVER_LIMIT_REQUEST_FIELD_SIZE: 0
-
+  # See: https://superset.apache.org/docs/configuration/event-logging/#statsd-logging
+  # SERVER_STATSD_HOST: localhost
+  # SERVER_STATSD_PORT: 8125
+  # SERVER_STATSD_PREFIX: superset
   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
@@ -410,8 +413,8 @@ supersetNode:
     enabled: false
     # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
-    maxUnavailable: 1
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: ~
 
   # -- Startup command
   # @default -- See `values.yaml`
@@ -542,8 +545,8 @@ supersetWorker:
     enabled: false
     # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
-    maxUnavailable: 1
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: ~
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:
@@ -665,8 +668,8 @@ supersetCeleryBeat:
     enabled: false
     # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
-    maxUnavailable: 1
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: ~
   # -- Command
   # @default -- a `celery beat` command
   command:
@@ -751,8 +754,8 @@ supersetCeleryFlower:
     enabled: false
     # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
-    maxUnavailable: 1
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: ~
   # -- Command
   # @default -- a `celery flower` command
   command:
@@ -869,8 +872,8 @@ supersetWebsockets:
     enabled: false
     # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
-    maxUnavailable: 1
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: ~
   ingress:
     path: /ws
     pathType: Prefix
@@ -999,10 +1002,10 @@ supersetMcp:
   podDisruptionBudget:
     # -- Whether the pod disruption budget should be created
     enabled: false
-    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget
-    maxUnavailable: 1
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: ~
   # -- Command
   # @default -- a `superset mcp run` command
   command:

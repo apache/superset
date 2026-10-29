@@ -34,6 +34,7 @@ import {
   BOTTOM_RESIZE_DIRECTION,
 } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
+import { DASHBOARD_GRID_CLASS } from '../util/embeddedLayout';
 
 export interface DashboardGridProps {
   depth: number;
@@ -326,7 +327,7 @@ function DashboardGrid({
             : dashboardEmptyState}
         </DashboardEmptyStateContainer>
       )}
-      <div className="dashboard-grid" ref={setGridRef}>
+      <div className={DASHBOARD_GRID_CLASS} ref={setGridRef}>
         <GridContent
           className="grid-content"
           data-test="grid-content"

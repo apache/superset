@@ -28,11 +28,15 @@ from superset.commands.tag.export import ExportTagsCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.importers.v1.utils import find_chart_uuids
 from superset.daos.dashboard import DashboardDAO
-from superset.commands.export.models import ExportModelsCommand
+from superset.commands.export.models import (
+    ExportModelsCommand,
+    get_extra_export_fields,
+)
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.semantic_layers.import_export import export_dashboard_references
 from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
@@ -46,6 +50,42 @@ logger = logging.getLogger(__name__)
 JSON_KEYS = {"position_json": "position", "json_metadata": "metadata"}
 DEFAULT_CHART_HEIGHT = 50
 DEFAULT_CHART_WIDTH = 4
+
+
+def _coerce_dataset_id(raw_dataset_id: Any) -> Optional[int]:
+    if isinstance(raw_dataset_id, bool):
+        return None
+    if isinstance(raw_dataset_id, int):
+        return raw_dataset_id
+    if isinstance(raw_dataset_id, str) and raw_dataset_id.isdigit():
+        try:
+            return int(raw_dataset_id)
+        except ValueError:
+            return None
+    return None
+
+
+def dashboard_dataset_ids(metadata: dict[str, Any]) -> set[int]:
+    """Dataset ids a dashboard's native filters and display controls target.
+
+    A semantic-view target's ``datasetId`` names a view, not a table, so it is
+    left out here, as ``export_dashboard_references`` leaves it out for tables.
+    """
+    targets = [
+        target
+        for native_filter in metadata.get("native_filter_configuration", [])
+        for target in native_filter.get("targets", [])
+    ] + [
+        target
+        for customization in metadata.get("chart_customization_config") or []
+        for target in customization.get("targets") or []
+    ]
+    return {
+        dataset_id
+        for target in targets
+        if target.get("datasourceType") in (None, "table")
+        and (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
+    }
 
 
 def get_default_position(title: str) -> dict[str, Any]:
@@ -314,37 +354,48 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
+        metadata = payload.get("metadata") or {}
+        export_dashboard_references(metadata)
+
+        referenced_dataset_ids = dashboard_dataset_ids(metadata)
+        # A dataset in the trash is still the one the filters point at, and the
+        # bundle carries it (see _export), so it is looked up there as well.
+        datasets_by_id = {
+            dataset.id: dataset
+            for dataset in DatasetDAO.find_by_ids(
+                list(referenced_dataset_ids), skip_visibility_filter=True
+            )
+        }
+
         # Extract all native filter datasets and replace native
         # filter dataset references with uuid
-        for native_filter in payload.get("metadata", {}).get(
-            "native_filter_configuration", []
-        ):
+        for native_filter in metadata.get("native_filter_configuration", []):
             for target in native_filter.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
-                if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
-                        target["datasetUuid"] = str(dataset.uuid)
+                dataset_id = _coerce_dataset_id(target.pop("datasetId", None))
+                if dataset_id is not None and (
+                    dataset := datasets_by_id.get(dataset_id)
+                ):
+                    target["datasetUuid"] = str(dataset.uuid)
 
         # Replace display control dataset references with uuid.
         # datasetId is intentionally preserved alongside datasetUuid so that
         # bundles remain importable by older versions that do not yet understand
         # datasetUuid for display-control targets.
-        for customization in (
-            payload.get("metadata", {}).get("chart_customization_config") or []
-        ):
+        for customization in metadata.get("chart_customization_config") or []:
             for target in customization.get("targets") or []:
-                dataset_id = target.get("datasetId")
-                if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
+                raw_dataset_id = target.get("datasetId")
+                if raw_dataset_id is not None:
+                    dataset_id = _coerce_dataset_id(raw_dataset_id)
+                    if dataset_id is not None and (
+                        dataset := datasets_by_id.get(dataset_id)
+                    ):
                         target["datasetUuid"] = str(dataset.uuid)
                     else:
                         logger.warning(
                             "Dashboard '%s': display control target references "
                             "missing dataset %s; datasetUuid will not be set",
                             model.dashboard_title,
-                            dataset_id,
+                            raw_dataset_id,
                         )
 
         # the mapping between dashboard -> charts is inferred from the position
@@ -377,14 +428,21 @@ class ExportDashboardsCommand(ExportModelsCommand):
             tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
+        if extra_fields := get_extra_export_fields(model, "dashboard"):
+            payload["extra"] = extra_fields
+
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
     # ruff: noqa: C901
     def _export(
-        model: Dashboard, export_related: bool = True
+        model: Dashboard, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportDashboardsCommand._file_name(model),
             lambda: ExportDashboardsCommand._file_content(model),
@@ -395,18 +453,25 @@ class ExportDashboardsCommand(ExportModelsCommand):
             dashboard_ids = model.id
             command = ExportChartsCommand(chart_ids)
             command.disable_tag_export()
-            yield from command.run()
-            command.enable_tag_export()
+            try:
+                # Pass the shared seen set to the chart export command
+                yield from command.run(seen=seen)
+            finally:
+                command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                yield from ExportTagsCommand.export(
-                    dashboard_ids=dashboard_ids, chart_ids=chart_ids
-                )
+                yield from ExportTagsCommand(
+                    dashboard_ids=dashboard_ids,
+                    chart_ids=ExportChartsCommand.chart_ids_with_annotation_sources(
+                        model.slices
+                    ),
+                ).run()
 
             # Export related theme
             if model.theme:
                 from superset.commands.theme.export import ExportThemesCommand
 
-                yield from ExportThemesCommand([model.theme.id]).run()
+                # Pass the shared seen set to the theme export command
+                yield from ExportThemesCommand([model.theme.id]).run(seen=seen)
 
         payload = model.export_to_dict(
             recursive=False,
@@ -426,24 +491,34 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     payload[new_name] = {}
 
         if export_related:
+            metadata = payload.get("metadata") or {}
+            export_dashboard_references(metadata)
+
             # Extract all native filter datasets and export referenced datasets
-            for native_filter in payload.get("metadata", {}).get(
-                "native_filter_configuration", []
-            ):
+            referenced_dataset_ids: set[int] = set()
+            for native_filter in metadata.get("native_filter_configuration", []):
                 for target in native_filter.get("targets", []):
-                    dataset_id = target.pop("datasetId", None)
+                    dataset_id = _coerce_dataset_id(target.pop("datasetId", None))
                     if dataset_id is not None:
-                        dataset = DatasetDAO.find_by_id(dataset_id)
-                        if dataset:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
+                        referenced_dataset_ids.add(dataset_id)
 
             # Export datasets referenced by display controls
-            for customization in (
-                payload.get("metadata", {}).get("chart_customization_config") or []
-            ):
+            for customization in metadata.get("chart_customization_config") or []:
                 for target in customization.get("targets") or []:
-                    dataset_id = target.get("datasetId")
+                    dataset_id = _coerce_dataset_id(target.get("datasetId"))
                     if dataset_id is not None:
-                        dataset = DatasetDAO.find_by_id(dataset_id)
-                        if dataset:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
+                        referenced_dataset_ids.add(dataset_id)
+
+            # Datasets in the trash are exported too, as for a chart's dataset,
+            # so the filters' datasetUuid references resolve on import.
+            found_dataset_ids = [
+                dataset.id
+                for dataset in DatasetDAO.find_by_ids(
+                    list(referenced_dataset_ids), skip_visibility_filter=True
+                )
+            ]
+            if found_dataset_ids:
+                # Pass the shared seen set to the dataset export command
+                yield from ExportDatasetsCommand(
+                    found_dataset_ids, include_deleted=True
+                ).run(seen=seen)

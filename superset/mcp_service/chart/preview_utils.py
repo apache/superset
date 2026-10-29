@@ -24,18 +24,91 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+import re
+import unicodedata
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import date, datetime, time, timezone
+from decimal import Decimal, localcontext
+from enum import Enum
+from numbers import Real
 from typing import Any, Dict, List
+from uuid import UUID
 
+import numpy as np
+
+from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
+from superset.mcp_service.chart.query_result import (
+    first_query_data,
+    MAX_RESULT_VALUE_DEPTH,
+    metric_result_label,
+    normalize_chart_query_result,
+    normalize_gauge_query_result,
+)
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.sunburst import (
+    normalize_and_validate_sunburst_result_data,
+    resolve_sunburst_result_roles,
+)
+from superset.utils import json
+from superset.utils.core import DatasourceType, get_column_name
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+MAX_PREVIEW_CELLS = 10_000
+MAX_PREVIEW_NESTED_ITEMS = 20
+MAX_PREVIEW_VALUE_LENGTH = 1_000
+
+
+def _canonical_preview_value(value: Any, *, depth: int = 0) -> Any:
+    """Convert validated exact values to bounded JSON-compatible primitives."""
+    value_type = type(value)
+    if value_type in {type(None), bool, int, float}:  # noqa: E721
+        return value
+    if value_type is str:
+        return value[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type is Decimal:
+        return format(value, "f")[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type in {date, datetime, time}:  # noqa: E721
+        return value.isoformat()[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type is UUID:
+        return str(value)
+    if value_type is list and depth < MAX_RESULT_VALUE_DEPTH:
+        return [
+            _canonical_preview_value(item, depth=depth + 1)
+            for item in value[:MAX_PREVIEW_NESTED_ITEMS]
+        ]
+    if value_type is dict and depth < MAX_RESULT_VALUE_DEPTH:
+        return {
+            key: _canonical_preview_value(item, depth=depth + 1)
+            for key, item in list(value.items())[:MAX_PREVIEW_NESTED_ITEMS]
+        }
+    return "[truncated]"
+
+
+def _canonical_preview_text(value: Any) -> str:
+    """Render a validated exact value with bounded nested work."""
+    canonical = _canonical_preview_value(value)
+    if type(canonical) is str:
+        return canonical
+    return repr(canonical)[:MAX_PREVIEW_VALUE_LENGTH]
+
+
+def _bounded_vega_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Bound the rows, cells, and nested values embedded in a Vega spec."""
+    if not data:
+        return []
+    row_limit = max(1, MAX_PREVIEW_CELLS // max(len(data[0]), 1))
+    return [
+        {key: _canonical_preview_value(value) for key, value in row.items()}
+        for row in data[:row_limit]
+    ]
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
@@ -49,83 +122,86 @@ def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     return columns_from_form_data(form_data)
 
 
+def _preview_source_exists(dataset_id: int, datasource_type: str) -> bool:
+    """Resolve the requested family without changing the table lookup path."""
+    # avoid app-init regression: preview constants load before models initialize.
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import db
+    from superset.mcp_service.chart.datasource_resolver import resolve_semantic_view
+
+    if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+        return resolve_semantic_view(dataset_id) is not None
+    if datasource_type == DatasourceType.TABLE.value:
+        return db.session.get(SqlaTable, dataset_id) is not None
+    raise ValueError("Unsupported chart datasource type")
+
+
 def generate_preview_from_form_data(
-    form_data: Dict[str, Any], dataset_id: int, preview_format: str
+    form_data: Dict[str, Any],
+    dataset_id: int,
+    preview_format: str,
+    datasource_type: str = "table",
 ) -> Any:
     """
     Generate preview from form data without a saved chart.
 
     Args:
         form_data: Chart configuration form data
-        dataset_id: Dataset ID
+        dataset_id: Dataset (or semantic view) ID
         preview_format: Preview format (ascii, table, etc.)
+        datasource_type: "table" (default) or "semantic_view"
 
     Returns:
         Preview object or ChartError
     """
+    if (
+        unsupported := plugin_unsupported_preview(
+            form_data.get("viz_type"), preview_format
+        )
+    ) is not None:
+        return unsupported
+
     try:
         # Execute query to get data
+        from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
-        from superset.connectors.sqla.models import SqlaTable
-        from superset.extensions import db
 
-        dataset = db.session.query(SqlaTable).get(dataset_id)
-        if not dataset:
+        if not _preview_source_exists(dataset_id, datasource_type):
             return ChartError(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
 
-        # Create query context from form data using factory
-        from superset.common.query_context_factory import QueryContextFactory
-        from superset.mcp_service.chart.chart_utils import (
-            adhoc_filters_to_query_filters,
+        # Create query context through the chart-aware shared builder used by
+        # saved/cached get_chart_data and compile validation.
+        from superset.mcp_service.chart.chart_helpers import (
+            build_query_context_from_form_data,
         )
 
-        # Build columns list: include x_axis and groupby for XY charts,
-        # fall back to form_data "columns" for table charts
-        columns = _build_query_columns(form_data)
-
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
+        query_form_data = canonicalize_operation_form_data(
+            deepcopy(form_data),
+            datasource_id=dataset_id,
+            datasource_type=datasource_type,
         )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context_obj = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": form_data.get("row_limit", 100),
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_context_obj = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=form_data.get("row_limit", 100),
+            force=False,
         )
+        set_query_context_form_data(query_context_obj, dataset_id, datasource_type)
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
         command.validate()
         result = command.run()
 
-        if not result or not result.get("queries"):
-            return ChartError(
-                error="No data returned from query", error_type="EmptyResult"
-            )
+        result = normalize_chart_query_result(result, form_data)
+        if isinstance(result, ChartError):
+            return result
 
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data, result_error = first_query_data(result)
+        if result_error is not None:
+            return result_error
+        assert data is not None
 
         # Generate preview based on format
         if preview_format == "ascii":
@@ -147,25 +223,133 @@ def generate_preview_from_form_data(
         )
 
 
+def plugin_ascii_preview(
+    data: List[Any], form_data: Dict[str, Any], width: int, height: int = 20
+) -> str | ChartError | None:
+    """Return the owning plugin's ASCII preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.ascii_preview(data, form_data, width, height)
+
+
+def plugin_table_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> TablePreview | ChartError | None:
+    """Return the owning plugin's table preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.table_preview(data, form_data)
+
+
+def plugin_unsupported_preview(
+    viz_type: str | None, preview_format: str
+) -> ChartError | None:
+    """Return the owning plugin's error for a format it cannot represent."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    if plugin is None:
+        return None
+    return plugin.unsupported_preview(preview_format)
+
+
+def empty_vega_lite_preview_error(
+    data: object, form_data: Dict[str, Any]
+) -> ChartError | None:
+    """Reject empty Vega-Lite results unless the owning plugin allows them."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    if not isinstance(data, list) or data:
+        return None
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is not None and plugin.allows_empty_result:
+        return None
+    return ChartError(
+        error="No data available for Vega-Lite visualization",
+        error_type="NoDataError",
+    )
+
+
+def plugin_vega_lite_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError | None:
+    """Return the owning plugin's Vega-Lite preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.vega_lite_preview(data, form_data)
+
+
 def _generate_ascii_preview_from_data(
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> ASCIIPreview:
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    width: int = 80,
+    height: int = 20,
+) -> ASCIIPreview | ChartError:
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
 
-    # Handle different chart types
-    if viz_type in ["bar", "dist_bar", "column"]:
-        content = _generate_safe_ascii_bar_chart(data)
-    elif viz_type in ["line", "area"]:
-        content = _generate_safe_ascii_line_chart(data)
-    elif viz_type == "pie":
-        content = _generate_safe_ascii_pie_chart(data)
+    content_or_error = plugin_ascii_preview(data, form_data, width, height)
+    if isinstance(content_or_error, ChartError):
+        return content_or_error
+    if content_or_error is not None:
+        content = content_or_error
     else:
-        content = _generate_safe_ascii_table(data)
+        renderer = _GENERIC_ASCII_RENDERERS.get(viz_type, _generate_safe_ascii_table)
+        content = renderer(data)
 
     return ASCIIPreview(
-        ascii_content=content, width=80, height=20, supports_color=False
+        ascii_content=fit_ascii_frame(content, width, height),
+        width=width,
+        height=height,
+        supports_color=False,
     )
+
+
+def fit_ascii_frame(content: str, width: int, height: int) -> str:
+    """Clip rendered ASCII text to the reported ``width`` x ``height`` frame."""
+    return "\n".join(
+        _truncate_display_line(line, width) for line in content.splitlines()[:height]
+    )
+
+
+def _truncate_display_line(line: str, width: int) -> str:
+    """Bound terminal columns conservatively and mark truncated content."""
+    if width <= 0:
+        return ""
+    characters: list[str] = []
+    sizes: list[int] = []
+    columns = 0
+    for character in line:
+        # Replace terminal controls, including embedded newlines and escape codes.
+        if unicodedata.category(character).startswith("C"):
+            character = "?"
+        size = (
+            0
+            if unicodedata.combining(character)
+            else 2
+            if unicodedata.east_asian_width(character) in {"W", "F"}
+            else 1
+        )
+        if columns + size > width:
+            marker = "." * min(3, width)
+            while characters and columns + len(marker) > width:
+                characters.pop()
+                columns -= sizes.pop()
+            return "".join(characters) + marker
+        characters.append(character)
+        sizes.append(size)
+        columns += size
+    return "".join(characters)
 
 
 def _calculate_column_widths(
@@ -175,17 +359,17 @@ def _calculate_column_widths(
     column_widths = {}
     for col in display_columns:
         # Start with column name length
-        max_width = len(str(col))
+        max_width = len(col)
 
         # Check data values to determine width
         for row in data[:20]:  # Sample first 20 rows
             val = row.get(col, "")
-            if isinstance(val, float):
+            if type(val) is float:
                 val_str = f"{val:.2f}"
-            elif isinstance(val, int):
+            elif type(val) is int:
                 val_str = str(val)
             else:
-                val_str = str(val)
+                val_str = _canonical_preview_text(val)
             max_width = max(max_width, len(val_str))
 
         # Set reasonable bounds
@@ -195,7 +379,7 @@ def _calculate_column_widths(
 
 def _format_value(val: Any, width: int) -> str:
     """Format a value based on its type."""
-    if isinstance(val, float):
+    if type(val) is float:
         if math.isnan(val):
             val_str = "N/A"
         elif math.isfinite(val) and val.is_integer():
@@ -207,12 +391,12 @@ def _format_value(val: Any, width: int) -> str:
             val_str = f"{val:,.2f}"  # Thousands separator
         else:
             val_str = f"{val:g}"
-    elif isinstance(val, int):
+    elif type(val) is int:
         val_str = str(val)
     elif val is None:
         val_str = "N/A"
     else:
-        val_str = str(val)
+        val_str = _canonical_preview_text(val)
 
     # Truncate if too long
     if len(val_str) > width:
@@ -222,8 +406,15 @@ def _format_value(val: Any, width: int) -> str:
 
 def _generate_table_preview_from_data(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> TablePreview:
+) -> TablePreview | ChartError:
     """Generate table preview from raw data with improved formatting."""
+    if (plugin_preview := plugin_table_preview(data, form_data)) is not None:
+        return plugin_preview
+    return render_table_preview(data)
+
+
+def render_table_preview(data: List[Dict[str, Any]]) -> TablePreview:
+    """Render rows as the aligned, bounded form-data table preview."""
     if not data:
         return TablePreview(
             table_data="No data available", row_count=0, supports_sorting=False
@@ -247,7 +438,7 @@ def _generate_table_preview_from_data(
     separator_parts = []
     for col in display_columns:
         width = column_widths[col]
-        col_name = str(col)
+        col_name = col
         if len(col_name) > width:
             col_name = col_name[: width - 2] + ".."
         header_parts.append(f"{col_name:<{width}}")
@@ -298,9 +489,9 @@ def _generate_safe_ascii_bar_chart(data: List[Dict[str, Any]]) -> str:
         value = None
 
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val) and value is None:
+            if _is_finite_number(val) and value is None:
                 value = val
-            elif isinstance(val, str) and label is None:
+            elif type(val) is str and label is None:
                 label = val
 
         if value is not None:
@@ -348,7 +539,7 @@ def _extract_numeric_values_safe(data: List[Dict[str, Any]]) -> List[float]:
     values = []
     for row in data[:20]:
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val):
+            if _is_finite_number(val):
                 values.append(val)
                 break
     return values
@@ -407,9 +598,9 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
         value = None
 
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val) and value is None:
+            if _is_finite_number(val) and value is None:
                 value = val
-            elif isinstance(val, str) and label is None:
+            elif type(val) is str and label is None:
                 label = val
 
         if value is not None and value > 0:
@@ -433,6 +624,92 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _generate_safe_ascii_sunburst(
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    height: int = 20,
+) -> str:
+    """Render hierarchy paths and both Sunburst metrics without flattening roles."""
+    if not data:
+        return "No data available for sunburst chart"
+
+    roles, error = resolve_sunburst_result_roles(form_data)
+    if error is not None or roles is None:
+        return "Malformed form data for sunburst chart"
+
+    if height < 3:
+        return f"... {len(data)} more rows" if height > 0 else ""
+    row_limit = min(20, height - 2)
+    if len(data) > row_limit:
+        row_limit = max(0, min(20, height - 3))
+    lines = _sunburst_preview_lines(
+        data[:row_limit],
+        list(roles.hierarchy),
+        roles.primary_metric,
+        roles.secondary_metric,
+    )
+    rows_rendered = len(lines) - 2
+
+    if len(data) > rows_rendered:
+        lines.append(f"... {len(data) - rows_rendered} more rows")
+    return "\n".join(lines)
+
+
+def generate_sunburst_ascii_preview(
+    data: List[Any], form_data: Dict[str, Any], width: int, height: int
+) -> str | ChartError:
+    """Validate Sunburst rows and render their bounded hierarchy paths."""
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    content = _generate_safe_ascii_sunburst(rows, form_data, height=height)
+    return "\n".join(
+        _truncate_display_line(line, width) for line in content.splitlines()[:height]
+    )
+
+
+def generate_sunburst_table_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> TablePreview | ChartError:
+    """Validate Sunburst rows before rendering the shared table preview."""
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    return render_table_preview(rows)
+
+
+def _sunburst_preview_lines(
+    data: List[Dict[str, Any]],
+    hierarchy: list[str],
+    primary_label: str,
+    secondary_label: str | None,
+) -> list[str]:
+    """Build safe Sunburst hierarchy rows for the ASCII representation."""
+    lines = ["ASCII Sunburst Hierarchy", "=" * 50]
+    for row in data[:20]:
+        if not isinstance(row, dict):
+            continue
+        path = " > ".join(
+            "N/A"
+            if row.get(column) is None
+            else _canonical_preview_text(row.get(column))
+            for column in hierarchy
+        )
+        values = [
+            f"{primary_label}={_canonical_preview_text(row.get(primary_label, 'N/A'))}"
+        ]
+        if secondary_label:
+            values.append(
+                f"{secondary_label}="
+                f"{_canonical_preview_text(row.get(secondary_label, 'N/A'))}"
+            )
+        lines.append(" ".join(f"{path}: {', '.join(values)}".splitlines()))
+    return lines
+
+
 def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     """Generate ASCII table with safe formatting."""
     if not data:
@@ -444,13 +721,15 @@ def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     columns = list(data[0].keys()) if data else []
 
     # Format header
-    header = " | ".join(str(col)[:10] for col in columns[:5])
+    header = " | ".join(col[:10] for col in columns[:5])
     lines.append(header)
     lines.append("-" * len(header))
 
     # Format rows
     for row in data[:10]:
-        row_str = " | ".join(str(row.get(col, ""))[:10] for col in columns[:5])
+        row_str = " | ".join(
+            _canonical_preview_text(row.get(col, ""))[:10] for col in columns[:5]
+        )
         lines.append(row_str)
 
     if len(data) > 10:
@@ -459,21 +738,968 @@ def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+# Generic ASCII renderers for viz types without a plugin-owned preview.
+_GENERIC_ASCII_RENDERERS = {
+    "bar": _generate_safe_ascii_bar_chart,
+    "dist_bar": _generate_safe_ascii_bar_chart,
+    "column": _generate_safe_ascii_bar_chart,
+    "line": _generate_safe_ascii_line_chart,
+    "area": _generate_safe_ascii_line_chart,
+    "pie": _generate_safe_ascii_pie_chart,
+}
+
+
 def _is_nan(value: Any) -> bool:
     """Check if a value is NaN."""
-    try:
-        import math
+    return type(value) is float and math.isnan(value)
 
-        return math.isnan(float(value))
-    except (ValueError, TypeError):
+
+def _gantt_metric_label(metric: Any) -> str | None:
+    """Resolve metric labels, accepting native columnName/column_name objects."""
+    if isinstance(metric, str) and metric:
+        return metric
+    if not isinstance(metric, dict) or not 0 < len(metric) <= 20:
+        return None
+
+    label = metric.get("label")
+    if label:
+        return label if isinstance(label, str) else None
+    if label not in (None, ""):
+        return None
+
+    expression_type = metric.get("expressionType")
+    if expression_type == "SIMPLE":
+        aggregate = metric.get("aggregate")
+        column = metric.get("column")
+        if (
+            not isinstance(aggregate, str)
+            or not aggregate
+            or len(aggregate) > 100
+            or not isinstance(column, dict)
+            or not 0 < len(column) <= 50
+        ):
+            return None
+        column_name = column.get("columnName") or column.get("column_name")
+        if not isinstance(column_name, str) or not column_name:
+            return None
+        return f"{aggregate}({column_name})"
+    if expression_type == "SQL":
+        sql_expression = metric.get("sqlExpression")
+        if (
+            isinstance(sql_expression, str)
+            and sql_expression
+            and len(sql_expression) <= 2000
+        ):
+            return sql_expression
+    return None
+
+
+def _gantt_result_field(field: Any, _field_name: str) -> str | None:
+    """Use frontend label/SQL precedence, then native physical column_name."""
+    if isinstance(field, str) and field:
+        return field
+    if not isinstance(field, dict) or not 0 < len(field) <= 20:
+        return None
+    label = field.get("label") or field.get("sqlExpression") or field.get("column_name")
+    return label if isinstance(label, str) and label else None
+
+
+def _gantt_temporal_value(value: Any) -> float | None:  # noqa: C901
+    """Return a comparable millisecond timestamp for one bounded date value."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            converted = float(value)
+        except OverflowError:
+            return None
+        return converted if math.isfinite(converted) else None
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, time.min)
+    elif isinstance(value, str) and 0 < len(value) <= 128:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                parsed = datetime.combine(date.fromisoformat(value), time.min)
+            except ValueError:
+                return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    try:
+        return parsed.timestamp() * 1000
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _is_valid_gantt_category(value: Any) -> bool:
+    """Return whether a category can produce a stable, visible nominal label."""
+    if value is None or isinstance(value, bool):
         return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (int, float)):
+        try:
+            return math.isfinite(float(value))
+        except OverflowError:
+            return False
+    return False
+
+
+def _generate_gantt_vega_lite_preview(  # noqa: C901
+    data: Any, form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Build a bounded preview from renderable intervals, checking result shape."""
+    if not isinstance(data, list):
+        return ChartError(
+            error="Gantt result data is not an array of rows.",
+            error_type="InvalidGanttResult",
+        )
+    start = _gantt_result_field(form_data.get("start_time"), "start_time")
+    end = _gantt_result_field(form_data.get("end_time"), "end_time")
+    category = _gantt_result_field(form_data.get("y_axis"), "y_axis")
+    if not all((start, end, category)):
+        return ChartError(
+            error=(
+                "Gantt Vega-Lite preview requires valid start_time, end_time, "
+                "and y_axis form-data column references."
+            ),
+            error_type="InvalidGanttFormData",
+        )
+    assert isinstance(start, str)
+    assert isinstance(end, str)
+    assert isinstance(category, str)
+    if len({start.casefold(), end.casefold(), category.casefold()}) != 3:
+        return ChartError(
+            error=(
+                "Gantt start_time, end_time, and y_axis must resolve to distinct "
+                "query-result fields."
+            ),
+            error_type="InvalidGanttFormData",
+        )
+
+    series_value = form_data.get("series")
+    series = (
+        _gantt_result_field(series_value, "series")
+        if series_value is not None
+        else None
+    )
+    if series_value is not None and series is None:
+        return ChartError(
+            error="Gantt series must be a valid column reference.",
+            error_type="InvalidGanttFormData",
+        )
+
+    raw_tooltip_columns = form_data.get("tooltip_columns") or []
+    raw_tooltip_metrics = form_data.get("tooltip_metrics") or []
+    if not isinstance(raw_tooltip_columns, list) or len(raw_tooltip_columns) > 50:
+        return ChartError(
+            error="Gantt tooltip_columns must contain at most 50 column references.",
+            error_type="InvalidGanttFormData",
+        )
+    if not isinstance(raw_tooltip_metrics, list) or len(raw_tooltip_metrics) > 50:
+        return ChartError(
+            error="Gantt tooltip_metrics must contain at most 50 metric references.",
+            error_type="InvalidGanttFormData",
+        )
+    tooltip_columns: list[str] = []
+    for index, field in enumerate(raw_tooltip_columns):
+        label = _gantt_result_field(field, f"tooltip_columns[{index}]")
+        if label is None:
+            return ChartError(
+                error=(
+                    f"Gantt tooltip_columns[{index}] must be a valid column reference."
+                ),
+                error_type="InvalidGanttFormData",
+            )
+        tooltip_columns.append(label)
+    tooltip_metrics: list[str] = []
+    for index, metric in enumerate(raw_tooltip_metrics):
+        label = _gantt_metric_label(metric)
+        if label is None:
+            return ChartError(
+                error=(
+                    f"Gantt tooltip_metrics[{index}] must expose a non-empty "
+                    "result label."
+                ),
+                error_type="InvalidGanttFormData",
+            )
+        tooltip_metrics.append(label)
+
+    required = {start, end, category, *tooltip_columns, *tooltip_metrics}
+    if series:
+        required.add(series)
+    renderable_rows: list[dict[str, Any]] = []
+    for index, row in enumerate(data):
+        if not isinstance(row, dict):
+            return ChartError(
+                error=f"Gantt result row {index} is not an object.",
+                error_type="InvalidGanttResult",
+            )
+        missing = required - row.keys()
+        if missing:
+            return ChartError(
+                error=(
+                    f"Gantt result row {index} is missing required output fields: "
+                    f"{', '.join(sorted(missing))}."
+                ),
+                error_type="InvalidGanttResult",
+            )
+        start_value = _gantt_temporal_value(row[start])
+        end_value = _gantt_temporal_value(row[end])
+        if (
+            start_value is None
+            or end_value is None
+            or end_value < start_value
+            or not _is_valid_gantt_category(row[category])
+        ):
+            continue
+        # Limit the LLM-facing payload and omit fields unused by the preview.
+        if len(renderable_rows) < 1000:
+            renderable_rows.append({field: row[field] for field in sorted(required)})
+
+    if data and not renderable_rows:
+        return ChartError(
+            error="Gantt result contains no renderable intervals.",
+            error_type="InvalidGanttResult",
+        )
+
+    tooltip_fields: list[dict[str, str]] = [
+        {"field": category, "type": "nominal"},
+        {"field": start, "type": "temporal"},
+        {"field": end, "type": "temporal"},
+    ]
+    for field in ([series] if series else []) + tooltip_columns:
+        if isinstance(field, str) and field not in {
+            item["field"] for item in tooltip_fields
+        }:
+            tooltip_fields.append({"field": field, "type": "nominal"})
+    for label in tooltip_metrics:
+        if label not in {item["field"] for item in tooltip_fields}:
+            tooltip_fields.append({"field": label, "type": "quantitative"})
+
+    encoding: dict[str, Any] = {
+        "x": {
+            "field": start,
+            "type": "temporal",
+            "title": form_data.get("x_axis_title"),
+        },
+        "x2": {"field": end},
+        "y": {
+            "field": category,
+            "type": "nominal",
+            "title": form_data.get("y_axis_title") or category,
+        },
+        "tooltip": tooltip_fields,
+    }
+    if series:
+        encoding["color"] = {"field": series, "type": "nominal", "title": series}
+        if form_data.get("subcategories"):
+            encoding["yOffset"] = {"field": series, "type": "nominal"}
+
+    return VegaLitePreview(
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": renderable_rows},
+            "mark": {"type": "bar", "tooltip": True},
+            "encoding": encoding,
+            "width": "container",
+            "height": 400,
+        },
+    )
+
+
+_GAUGE_COLORS = (
+    "#1FA8C9",
+    "#454E7C",
+    "#5AC189",
+    "#FF7F44",
+    "#666666",
+    "#E04355",
+    "#FCC700",
+    "#A868B7",
+)
+
+
+def _gauge_column_label(column: Any) -> str | None:
+    """Resolve the result label for a native QueryFormColumn."""
+    if isinstance(column, str) and column:
+        return column
+    if not isinstance(column, dict) or not 0 < len(column) <= 20:
+        return None
+    label = (
+        column.get("label")
+        or column.get("sqlExpression")
+        or column.get("column_name")
+        or column.get("columnName")
+    )
+    return label if isinstance(label, str) and label else None
+
+
+def _parse_gauge_number_list(value: Any, field_name: str) -> list[float]:
+    """Parse a bounded comma-separated Gauge control."""
+    if value in (None, ""):
+        return []
+    if not isinstance(value, str) or len(value) > 1000:
+        raise ValueError(f"Gauge {field_name} must be a bounded string")
+    try:
+        parsed = [float(part.strip()) for part in value.split(",")]
+    except ValueError as ex:
+        raise ValueError(
+            f"Gauge {field_name} must be a comma-separated list of numbers"
+        ) from ex
+    if not all(math.isfinite(number) for number in parsed):
+        raise ValueError(f"Gauge {field_name} values must be finite")
+    return parsed
+
+
+def _prepare_gauge_preview(  # noqa: C901
+    data: Any, form_data: Dict[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]] | ChartError:
+    """Validate Gauge rows and derive display values used by both previews."""
+    normalized = normalize_gauge_query_result(
+        {"queries": [{"data": data}]}, {**form_data, "viz_type": "gauge_chart"}
+    )
+    if isinstance(normalized, ChartError):
+        return normalized
+    data = normalized["queries"][0]["data"]
+    metric_label = metric_result_label(form_data.get("metric"))
+    if not isinstance(data, list) or metric_label is None:
+        return ChartError(
+            error="Gauge preview requires rows and a metric result label.",
+            error_type="InvalidGaugeFormData",
+        )
+
+    raw_groupby = form_data.get("groupby") or []
+    if isinstance(raw_groupby, str):
+        raw_groupby = [raw_groupby]
+    if not isinstance(raw_groupby, list) or len(raw_groupby) > 10:
+        return ChartError(
+            error="Gauge groupby must contain at most 10 column references.",
+            error_type="InvalidGaugeFormData",
+        )
+    group_labels: list[str] = []
+    for index, column in enumerate(raw_groupby):
+        label = _gauge_column_label(column)
+        if label is None:
+            return ChartError(
+                error=f"Gauge groupby[{index}] has no resolvable result label.",
+                error_type="InvalidGaugeFormData",
+            )
+        group_labels.append(label)
+
+    values = [float(row[metric_label]) for row in data]
+
+    def numeric_bound(field_name: str) -> float | None:
+        value = form_data.get(field_name)
+        if value in (None, ""):
+            return None
+        if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+            raise ValueError(f"Gauge {field_name} must be numeric")
+        try:
+            converted = float(value)
+        except ValueError as ex:
+            raise ValueError(f"Gauge {field_name} must be numeric") from ex
+        if not math.isfinite(converted):
+            raise ValueError(f"Gauge {field_name} must be finite")
+        return converted
+
+    try:
+        minimum = numeric_bound("min_val")
+        maximum = numeric_bound("max_val")
+        interval_bounds = _parse_gauge_number_list(
+            form_data.get("intervals", ""), "intervals"
+        )
+        color_indices = _parse_gauge_number_list(
+            form_data.get("interval_color_indices", ""),
+            "interval_color_indices",
+        )
+    except ValueError as ex:
+        return ChartError(error=str(ex), error_type="InvalidGaugeFormData")
+
+    configured_minimum, configured_maximum = minimum, maximum
+
+    # Match transformProps auto-range semantics: twice the extrema including 0.
+    if minimum is None:
+        minimum = 2 * min([*values, 0]) if values else 0
+    if maximum is None:
+        maximum = 2 * max([*values, 0]) if values else 1
+    if configured_minimum is None and configured_maximum is None and minimum == maximum:
+        maximum = minimum + 1
+    if minimum >= maximum:
+        return ChartError(
+            error=(
+                f"Gauge preview range is invalid: min_val {minimum:g} must be "
+                f"less than max_val {maximum:g}."
+            ),
+            error_type="InvalidGaugeRange",
+        )
+    if any(
+        left >= right
+        for left, right in zip(interval_bounds, interval_bounds[1:], strict=False)
+    ):
+        return ChartError(
+            error="Gauge intervals must be strictly increasing.",
+            error_type="InvalidGaugeFormData",
+        )
+    if any(
+        (configured_minimum is not None and bound <= configured_minimum)
+        or (configured_maximum is not None and bound > configured_maximum)
+        for bound in interval_bounds
+    ):
+        return ChartError(
+            error="Gauge intervals must fall within the configured min/max range.",
+            error_type="InvalidGaugeFormData",
+        )
+    if color_indices and len(color_indices) != len(interval_bounds):
+        return ChartError(
+            error="Gauge interval colors must match the number of interval bounds.",
+            error_type="InvalidGaugeFormData",
+        )
+    if any(index < 1 or not index.is_integer() for index in color_indices):
+        return ChartError(
+            error="Gauge interval color indices must be positive integers.",
+            error_type="InvalidGaugeFormData",
+        )
+
+    currency = form_data.get("currency_format")
+    if currency is not None and not isinstance(currency, dict):
+        return ChartError(
+            error="Gauge currency_format must be an object.",
+            error_type="InvalidGaugeFormData",
+        )
+    number_format = form_data.get("number_format", "SMART_NUMBER")
+    value_formatter = form_data.get("value_formatter", "{value}")
+    if not isinstance(number_format, str) or not isinstance(value_formatter, str):
+        return ChartError(
+            error="Gauge number_format and value_formatter must be strings.",
+            error_type="InvalidGaugeFormData",
+        )
+    from superset.utils.number_format import format_number_with_config
+
+    decorated: list[dict[str, Any]] = []
+    for row_index, row in enumerate(data):
+        value = float(row[metric_label])
+        group = (
+            ", ".join(f"{label}: {row.get(label)}" for label in group_labels) or "Value"
+        )
+        formatted = format_number_with_config(number_format, currency, value)
+        decorated.append(
+            {
+                **row,
+                "__mcp_gauge_group": group,
+                "__mcp_gauge_ratio": (value - minimum) / (maximum - minimum),
+                "__mcp_gauge_display": value_formatter.replace(
+                    "{value}", str(formatted), 1
+                ),
+                "__mcp_gauge_row": row_index,
+            }
+        )
+
+    colors = [
+        _GAUGE_COLORS[(int(index) - 1) % len(_GAUGE_COLORS)] for index in color_indices
+    ] or list(_GAUGE_COLORS[: max(1, len(interval_bounds))])
+    return decorated, {
+        "metric_label": metric_label,
+        "group_labels": group_labels,
+        "minimum": minimum,
+        "maximum": maximum,
+        "interval_bounds": interval_bounds,
+        "interval_colors": colors,
+    }
+
+
+def generate_gauge_ascii_preview(
+    data: Any, form_data: Dict[str, Any], width: int = 80
+) -> str | ChartError:
+    """Render a bounded dial-like ASCII Gauge using the configured value format."""
+    prepared = _prepare_gauge_preview(data, form_data)
+    if isinstance(prepared, ChartError):
+        return prepared
+    decorated, metadata = prepared
+    minimum = metadata["minimum"]
+    maximum = metadata["maximum"]
+    lines = [
+        "Gauge Chart",
+        f"Range: {minimum:g} to {maximum:g}",
+    ]
+    if metadata["interval_bounds"]:
+        lines.append(
+            "Intervals: "
+            + ", ".join(f"{value:g}" for value in metadata["interval_bounds"])
+        )
+    if not decorated:
+        lines.append("No data available")
+        return "\n".join(lines)
+
+    width = min(max(width, 40), 200)
+    bar_width = max(10, min(40, width - 38))
+    for row in decorated[:10]:
+        ratio = min(1.0, max(0.0, row["__mcp_gauge_ratio"]))
+        filled = round(ratio * bar_width)
+        bar = "█" * filled + "░" * (bar_width - filled)
+        label = str(row["__mcp_gauge_group"])
+        lines.append(f"{label[:20]:>20} [{bar}] {row['__mcp_gauge_display']}")
+    return "\n".join(lines)
+
+
+def generate_gauge_vega_lite_preview(  # noqa: C901
+    data: Any, form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Build a Gauge-specific layered radial Vega-Lite preview."""
+    prepared = _prepare_gauge_preview(data, form_data)
+    if isinstance(prepared, ChartError):
+        return prepared
+    decorated, metadata = prepared
+    start_angle = form_data.get("start_angle", 225)
+    end_angle = form_data.get("end_angle", -45)
+
+    def finite_angle(value: Any) -> float | None:
+        if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+            return None
+        try:
+            converted = float(value)
+        except ValueError:
+            return None
+        return converted if math.isfinite(converted) else None
+
+    numeric_start_angle = finite_angle(start_angle)
+    numeric_end_angle = finite_angle(end_angle)
+    if numeric_start_angle is None or numeric_end_angle is None:
+        return ChartError(
+            error="Gauge start_angle and end_angle must be finite numbers.",
+            error_type="InvalidGaugeFormData",
+        )
+
+    angle_range = [math.radians(numeric_start_angle), math.radians(numeric_end_angle)]
+    theta_scale = {"domain": [0, 1], "range": angle_range}
+    metric_label = metadata["metric_label"]
+    tooltip = [
+        {"field": field, "type": "nominal"} for field in metadata["group_labels"]
+    ]
+    tooltip.extend(
+        [
+            {"field": metric_label, "type": "quantitative"},
+            {"field": "__mcp_gauge_display", "type": "nominal", "title": "Value"},
+        ]
+    )
+    progress_color: dict[str, Any]
+    interval_bounds = metadata["interval_bounds"]
+    if interval_bounds:
+        progress_color = {
+            "field": metric_label,
+            "type": "quantitative",
+            "scale": {
+                "type": "threshold",
+                "domain": interval_bounds[:-1],
+                "range": metadata["interval_colors"],
+            },
+            "legend": None,
+        }
+    elif metadata["group_labels"]:
+        progress_color = {
+            "field": "__mcp_gauge_group",
+            "type": "nominal",
+            "legend": None,
+        }
+    else:
+        progress_color = {"value": _GAUGE_COLORS[0]}
+
+    inner_radius, outer_radius = 55, 82
+    pointer_radius = (inner_radius + outer_radius) / 2
+    background_layers: list[dict[str, Any]] = []
+    previous_ratio = 0.0
+    for bound, color in zip(interval_bounds, metadata["interval_colors"], strict=False):
+        # Automatic bounds can put configured thresholds outside the visible dial.
+        ratio = min(
+            1.0,
+            max(
+                0.0,
+                (bound - metadata["minimum"])
+                / (metadata["maximum"] - metadata["minimum"]),
+            ),
+        )
+        if ratio <= previous_ratio:
+            continue
+        background_layers.append(
+            {
+                "mark": {
+                    "type": "arc",
+                    "innerRadius": inner_radius,
+                    "outerRadius": outer_radius,
+                    "color": color,
+                    "opacity": 0.35,
+                },
+                "encoding": {
+                    "theta": {
+                        "datum": previous_ratio,
+                        "type": "quantitative",
+                        "scale": theta_scale,
+                        "stack": None,
+                    },
+                    "theta2": {"datum": ratio},
+                },
+            }
+        )
+        previous_ratio = ratio
+    if not background_layers:
+        background_layers.append(
+            {
+                "mark": {
+                    "type": "arc",
+                    "innerRadius": inner_radius,
+                    "outerRadius": outer_radius,
+                    "color": "#D3D3D3",
+                },
+                "encoding": {
+                    "theta": {
+                        "datum": 1,
+                        "type": "quantitative",
+                        "scale": theta_scale,
+                        "stack": None,
+                    },
+                    "theta2": {"datum": 0},
+                },
+            }
+        )
+
+    progress_layer = {
+        "mark": {
+            "type": "arc",
+            "innerRadius": inner_radius,
+            "outerRadius": outer_radius,
+            "cornerRadius": 4 if form_data.get("round_cap") else 0,
+            "tooltip": True,
+        },
+        "encoding": {
+            "theta": {
+                "field": "__mcp_gauge_ratio",
+                "type": "quantitative",
+                "scale": theta_scale,
+                "stack": None,
+            },
+            "theta2": {"datum": 0},
+            "color": progress_color,
+            "tooltip": tooltip,
+        },
+    }
+    facet_width, dial_height = 200, 300
+    # Faceted value expressions cannot use the outer width/height signals.
+    center_x = str(facet_width / 2) if metadata["group_labels"] else "width / 2"
+    center_y = str(dial_height / 2) if metadata["group_labels"] else "height / 2"
+    pointer_layer = {
+        "transform": [
+            {
+                "calculate": (
+                    f"{angle_range[0]} + datum.__mcp_gauge_ratio * "
+                    f"({angle_range[1]} - {angle_range[0]})"
+                ),
+                "as": "__mcp_gauge_angle",
+            },
+        ],
+        "mark": {"type": "rule", "strokeWidth": 3, "color": "#444"},
+        "encoding": {
+            "x": {"value": {"expr": center_x}},
+            "y": {"value": {"expr": center_y}},
+            "x2": {
+                "value": {
+                    "expr": (
+                        f"{center_x} + {pointer_radius} * sin(datum.__mcp_gauge_angle)"
+                    )
+                }
+            },
+            "y2": {
+                "value": {
+                    "expr": (
+                        f"{center_y} - {pointer_radius} * cos(datum.__mcp_gauge_angle)"
+                    )
+                }
+            },
+            "tooltip": tooltip,
+        },
+    }
+    text_layer = {
+        "mark": {"type": "text", "fontSize": form_data.get("font_size", 15)},
+        "encoding": {"text": {"field": "__mcp_gauge_display", "type": "nominal"}},
+    }
+    layers: list[dict[str, Any]] = [*background_layers]
+    if form_data.get("show_progress", True):
+        layers.append(progress_layer)
+    if form_data.get("show_pointer", True):
+        layers.append(pointer_layer)
+    layers.append(text_layer)
+    unit_spec: dict[str, Any] = {"layer": layers}
+    specification: dict[str, Any] = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {"values": decorated},
+        "width": "container",
+        "height": dial_height,
+        "usermeta": {
+            "viz_type": "gauge_chart",
+            "min_val": metadata["minimum"],
+            "max_val": metadata["maximum"],
+            "intervals": interval_bounds,
+            "interval_color_indices": form_data.get("interval_color_indices", ""),
+            "color_scheme": form_data.get("color_scheme"),
+            "show_pointer": form_data.get("show_pointer", True),
+            "show_progress": form_data.get("show_progress", True),
+            "show_axis_tick": form_data.get("show_axis_tick", False),
+            "show_split_line": form_data.get("show_split_line", False),
+            "split_number": form_data.get("split_number", 10),
+            "overlap": form_data.get("overlap", True),
+            "round_cap": form_data.get("round_cap", False),
+            "animation": form_data.get("animation", True),
+            "font_size": form_data.get("font_size", 15),
+            "number_format": form_data.get("number_format", "SMART_NUMBER"),
+            "value_formatter": form_data.get("value_formatter", "{value}"),
+        },
+    }
+    if metadata["group_labels"]:
+        specification.pop("width")
+        unit_spec["width"] = facet_width
+        unit_spec["height"] = specification.pop("height")
+        specification.update(
+            {
+                "facet": {
+                    "field": "__mcp_gauge_group",
+                    "type": "nominal",
+                },
+                "columns": min(3, max(1, len(decorated))),
+                "spec": unit_spec,
+            }
+        )
+    else:
+        specification.update(unit_spec)
+    return VegaLitePreview(
+        specification=specification,
+        data_url=None,
+        supports_streaming=False,
+    )
+
+
+def _is_finite_number(value: Any) -> bool:
+    """Accept exact finite preview numerics without conversion hooks."""
+    return type(value) is int or (type(value) is float and math.isfinite(value))
+
+
+def generate_bubble_vega_lite_preview(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> VegaLitePreview:
+    """Build a Bubble-specific Vega-Lite preview.
+
+    x and y position each bubble, size sets its area and the series (or the
+    entity when no series is set) colors it — mirroring the frontend Bubble
+    encoding rather than the generic x-axis/metrics layout.
+    """
+    sample = data[0] if data else {}
+    encoding: Dict[str, Any] = {}
+
+    for channel in ("x", "y", "size"):
+        field = metric_result_label(form_data.get(channel))
+        if field and field in sample:
+            encoding[channel] = {
+                "field": field,
+                "type": "quantitative",
+                "title": field,
+            }
+
+    entity = form_data.get("entity")
+    color_field = form_data.get("series") or entity
+    if isinstance(color_field, str) and color_field in sample:
+        encoding["color"] = {
+            "field": color_field,
+            "type": "nominal",
+            "title": color_field,
+        }
+
+    tooltip = [
+        {"field": enc["field"], "type": enc["type"]} for enc in encoding.values()
+    ]
+    if isinstance(entity, str) and entity in sample and entity != color_field:
+        tooltip.insert(0, {"field": entity, "type": "nominal"})
+
+    spec: Dict[str, Any] = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {"values": data},
+        "mark": "circle",
+        "width": "container",
+        "height": 400,
+    }
+    if encoding:
+        if tooltip:
+            encoding["tooltip"] = tooltip
+        spec["encoding"] = encoding
+
+    return VegaLitePreview(
+        specification=spec,
+        data_url=None,
+        supports_streaming=False,
+    )
+
+
+# Native geometries the Vega-Lite adapter cannot represent faithfully.
+_UNSUPPORTED_VEGA_GEOMETRIES: frozenset[str] = frozenset(
+    {"sankey", "sankey_v2", "radar"}
+)
+
+
+def unsupported_vega_geometry(viz_type: str) -> ChartError | None:
+    """Reject native geometries the Vega-Lite adapter cannot represent."""
+    if viz_type not in _UNSUPPORTED_VEGA_GEOMETRIES:
+        return None
+    return ChartError(
+        error=(
+            f"Vega-Lite previews do not support {viz_type} geometry. "
+            "Use Explore for the native visualization or ASCII/table for data."
+        ),
+        error_type="UnsupportedFormat",
+    )
+
+
+def generate_funnel_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Render funnel stages as horizontal value bars, preserving query order."""
+    from superset.mcp_service.chart.chart_helpers import normalize_groupby
+
+    groupby = normalize_groupby(form_data)
+    metric = metric_result_label(form_data.get("metric"))
+    if not groupby or not metric:
+        return ChartError(
+            error="Funnel requires a stage and metric", error_type="InvalidFormData"
+        )
+    try:
+        stage = get_column_name(groupby[0])
+    except ValueError:
+        return ChartError(
+            error="Funnel stage must have a resolvable result label",
+            error_type="InvalidFormData",
+        )
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": data},
+            "mark": "bar",
+            "width": "container",
+            "height": 400,
+            "encoding": {
+                "y": {"field": stage, "type": "nominal", "sort": None},
+                "x": {"field": metric, "type": "quantitative"},
+                "tooltip": [
+                    {"field": stage, "type": "nominal"},
+                    {"field": metric, "type": "quantitative"},
+                ],
+            },
+        },
+        supports_streaming=False,
+    )
+
+
+def generate_histogram_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview:
+    """Render histogram operator output without re-binning its counts."""
+    from superset.mcp_service.chart.chart_helpers import normalize_groupby
+
+    groupby = [get_column_name(column) for column in normalize_groupby(form_data)]
+    bins = [column for column in data[0] if column not in groupby] if data else []
+    values = [
+        {
+            "bin": bin_label,
+            "value": row.get(bin_label),
+            "series": " / ".join(str(row.get(column, "")) for column in groupby)
+            or "All",
+        }
+        for row in data
+        for bin_label in bins
+    ]
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": values},
+            "mark": "bar",
+            "width": "container",
+            "height": 400,
+            "encoding": {
+                "x": {"field": "bin", "type": "ordinal", "sort": bins},
+                "y": {"field": "value", "type": "quantitative", "stack": None},
+                "color": {"field": "series", "type": "nominal"},
+                "tooltip": [
+                    {"field": "bin", "type": "ordinal"},
+                    {"field": "value", "type": "quantitative"},
+                    {"field": "series", "type": "nominal"},
+                ],
+            },
+        },
+        supports_streaming=False,
+    )
+
+
+# Vega-Lite renderers for native viz types that have no plugin-owned preview.
+_FALLBACK_VEGA_RENDERERS = {"funnel": generate_funnel_vega_lite_preview}
+
+
+def fallback_vega_lite_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError | None:
+    """Preview viz types without a plugin renderer, or None for the generic spec.
+
+    Plugin hooks take precedence; this covers saved native charts whose type
+    is not registered or whose plugin does not render Vega-Lite.
+    """
+    viz_type = form_data.get("viz_type") or ""
+    if unsupported := unsupported_vega_geometry(viz_type):
+        return unsupported
+    if renderer := _FALLBACK_VEGA_RENDERERS.get(viz_type):
+        return renderer(data, form_data)
+    return None
+
+
+def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | None:
+    """Pick the y-axis column for a Vega-Lite preview.
+
+    Prefers the first chart metric with a numeric or null result value.
+    Falls back to a numeric column only when no metric label matches.
+    Booleans are never treated as numeric.
+    """
+    matched_metric = False
+    for metric in metrics:
+        label = metric_result_label(metric)
+        if label is not None and label in row:
+            matched_metric = True
+            value = row[label]
+            if value is None or (
+                isinstance(value, (Real, Decimal)) and not isinstance(value, bool)
+            ):
+                return label
+
+    if matched_metric:
+        return None
+
+    for col, value in row.items():
+        if isinstance(value, (Real, Decimal)) and not isinstance(value, bool):
+            return col
+    return None
 
 
 def _generate_vega_lite_preview_from_data(  # noqa: C901
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> VegaLitePreview:
+    data: List[Dict[str, Any]], form_data: Dict[str, Any], *, use_plugin: bool = True
+) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
+    if empty_error := empty_vega_lite_preview_error(data, form_data):
+        return empty_error
     viz_type = form_data.get("viz_type", "table")
+    if use_plugin:
+        if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
+            return plugin_preview
+    if (fallback := fallback_vega_lite_preview(data, form_data)) is not None:
+        return fallback
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {
@@ -492,19 +1718,21 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     mark = viz_to_mark.get(viz_type, "bar")
 
     # Basic Vega-Lite spec
-    spec = {
+    preview_data = _bounded_vega_data(data)
+    spec: dict[str, Any] = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "data": {"values": data},
+        "data": {"values": preview_data},
         "mark": mark,
     }
 
     # Get x_axis and metrics from form_data
-    x_axis = form_data.get("x_axis")
+    axis = form_data.get("x_axis")
+    x_axis = get_column_name(axis) if axis else "__timestamp"
     metrics = form_data.get("metrics", [])
     groupby = form_data.get("groupby", [])
 
     # Build encoding based on available fields
-    encoding = {}
+    encoding: dict[str, Any] = {}
 
     # Handle X-axis
     if x_axis and x_axis in (data[0] if data else {}):
@@ -512,13 +1740,13 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         field_type = "nominal"  # default
         if data and len(data) > 0:
             sample_val = data[0].get(x_axis)
-            if isinstance(sample_val, str):
+            if type(sample_val) is str:
                 # Check if it's a date/time
-                if any(char in str(sample_val) for char in ["-", "/", ":"]):
+                if any(char in sample_val for char in ["-", "/", ":"]):
                     field_type = "temporal"
                 else:
                     field_type = "nominal"
-            elif isinstance(sample_val, (int, float)):
+            elif _is_finite_number(sample_val):
                 field_type = "quantitative"
 
         encoding["x"] = {
@@ -529,20 +1757,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Handle Y-axis (metrics)
     if metrics and data:
-        # Find the first metric column in the data
-        metric_col = None
-        for col in data[0].keys():
-            # Check if this is a metric column (usually has aggregation in name)
-            if any(
-                agg in str(col).upper()
-                for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
-            ):
-                metric_col = col
-                break
-            # Or check if it's numeric
-            elif isinstance(data[0].get(col), (int, float)):
-                metric_col = col
-                break
+        metric_col = _resolve_y_metric_column(data[0], metrics)
 
         if metric_col:
             encoding["y"] = {
@@ -552,11 +1767,11 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
             }
 
     # Handle color encoding for groupby
-    if groupby and len(groupby) > 0 and groupby[0] in (data[0] if data else {}):
+    if groupby and get_column_name(groupby[0]) in (data[0] if data else {}):
         encoding["color"] = {
-            "field": groupby[0],
+            "field": get_column_name(groupby[0]),
             "type": "nominal",
-            "title": groupby[0],
+            "title": get_column_name(groupby[0]),
         }
 
     # Special handling for pie charts
@@ -579,7 +1794,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Add responsive sizing - Vega-Lite supports "container" as a special width value
     spec["width"] = "container"
-    spec["height"] = 400  # type: ignore
+    spec["height"] = 400
 
     # Add interactivity
     if mark in ["line", "point", "bar", "area"]:
@@ -594,5 +1809,1127 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     return VegaLitePreview(
         specification=spec,
         data_url=None,
+        supports_streaming=False,
+    )
+
+
+def generate_xy_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Render long-form and post-processed wide timeseries results."""
+    preview = _generate_vega_lite_preview_from_data(data, form_data, use_plugin=False)
+    if isinstance(preview, ChartError):
+        return preview
+    spec = preview.specification
+    preview_data = spec["data"]["values"]
+    encoding = spec.setdefault("encoding", {})
+    x_axis = encoding.get("x", {}).get("field")
+    groupby = form_data.get("groupby", [])
+    # Timeseries post-processing pivots group-bys into flattened wide columns.
+    # Fold the complete column labels rather than splitting on commas: labels
+    # can contain escaped separators, multiple dimensions, or time offsets.
+    if (
+        groupby
+        and preview_data
+        and x_axis in preview_data[0]
+        and not any(get_column_name(column) in preview_data[0] for column in groupby)
+    ):
+        series_columns = [
+            column
+            for column in preview_data[0]
+            if column != x_axis
+            and all(
+                row.get(column) is None
+                or (
+                    isinstance(row.get(column), (Real, Decimal))
+                    and not isinstance(row.get(column), bool)
+                )
+                for row in data[: len(preview_data)]
+            )
+        ]
+        if series_columns:
+            series_field, value_field = "series", "value"
+            while series_field in preview_data[0]:
+                series_field += "_"
+            while value_field in preview_data[0]:
+                value_field += "_"
+            spec["transform"] = [
+                {"fold": series_columns, "as": [series_field, value_field]}
+            ]
+            # Vega-Lite stacks bar and area marks colored by a nominal field
+            # by default; follow the chart's saved ``stack`` control instead.
+            encoding["y"] = {
+                "field": value_field,
+                "type": "quantitative",
+                "stack": _xy_vega_lite_stack(form_data.get("stack")),
+            }
+            encoding["color"] = {"field": series_field, "type": "nominal"}
+            if (
+                spec.get("mark") == "bar"
+                and encoding["y"]["stack"] is None
+                and "x" in encoding
+            ):
+                # Unstacked bars sit side by side like Explore's grouped bars.
+                # Offset channels need a discrete band x scale, so temporal
+                # values stay date-formatted through a millisecond time unit so
+                # sub-second timestamps keep distinct bands as in Explore.
+                x_encoding = encoding["x"]
+                if x_encoding.get("type") == "temporal":
+                    x_encoding["timeUnit"] = (
+                        "yearmonthdatehoursminutessecondsmilliseconds"
+                    )
+                x_encoding["type"] = "ordinal"
+                encoding["xOffset"] = {"field": series_field, "type": "nominal"}
+
+    return preview
+
+
+def _xy_vega_lite_stack(stack: Any) -> str | None:
+    """Map the ECharts timeseries ``stack`` control to a Vega-Lite stack."""
+    if not stack:
+        return None
+    return "normalize" if stack == "Expand" else "zero"
+
+
+def _truncate_utf8(value: str, max_bytes: int) -> str:
+    """Return bounded, replacement-decoded UTF-8 text.
+
+    Encoding even the non-truncated path is intentional: Python strings may
+    contain unpaired surrogates, while MCP/JSON responses must always be valid
+    UTF-8.  Slicing by characters before encoding also prevents an
+    attacker-sized string from being encoded in full.
+    """
+    if max_bytes <= 0:
+        return ""
+    candidate = value[:max_bytes]
+    encoded = candidate.encode("utf-8", errors="replace")
+    if len(encoded) <= max_bytes and len(candidate) == len(value):
+        return encoded.decode("utf-8", errors="replace")
+    suffix = "... [truncated]"
+    suffix_bytes = suffix.encode()
+    if max_bytes <= len(suffix_bytes):
+        return suffix_bytes[:max_bytes].decode("ascii")
+    content_limit = max(0, max_bytes - len(suffix_bytes))
+    content = encoded[:content_limit].decode("utf-8", errors="ignore")
+    return content + suffix
+
+
+_MAX_BULLET_FIELDS = 256
+
+
+_MAX_BULLET_FIELD_BYTES = 1000
+
+
+_MAX_BULLET_TEXT_BYTES = 2000
+
+
+# ECMAScript WhiteSpace and LineTerminator characters used by trim/Number.
+_JAVASCRIPT_WHITESPACE = (
+    "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004"
+    "\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+)
+
+
+_MAX_BULLET_TOKENS = 256
+
+
+# A comma-joined presentation control holds up to _MAX_BULLET_TOKENS tokens of
+# _MAX_BULLET_TEXT_BYTES each, so the whole-control bound must cover that many
+# tokens plus separators rather than reuse the per-token bound.
+_MAX_BULLET_CONTROL_CHARS = _MAX_BULLET_TOKENS * (_MAX_BULLET_TEXT_BYTES + 1)
+
+
+_ENUM_SCALAR_TYPES = (str, int, float, bool, Decimal)
+
+
+class BulletOutputError(ValueError):
+    """A Bullet query result cannot be rendered without guessing its roles."""
+
+    def __init__(self, message: str, error_type: str = "MalformedBulletOutput") -> None:
+        super().__init__(message)
+        self.error_type = error_type
+
+
+@dataclass(frozen=True)
+class BulletRenderModel:
+    """Strict, frontend-aligned data and presentation roles for one preview."""
+
+    rows: list[dict[str, Any]]
+    metric_field: str
+    dimensions: list[str]
+    measures: list[float]
+    ranges: list[float]
+    range_labels: list[str]
+    markers: list[float]
+    marker_labels: list[str]
+    marker_lines: list[float]
+    marker_line_labels: list[str]
+    y_axis_format: str
+    show_labels: bool
+    show_legend: bool
+
+
+def _form_metric_label(metric: Any) -> str | None:
+    """Return the result-column label for a native QueryFormMetric."""
+    if type(metric) is str:
+        return metric
+    if type(metric) is not dict:
+        return None
+    if label := dict.get(metric, "label"):
+        return label if type(label) is str else None
+    if dict.get(metric, "expressionType") == "SQL":
+        expression = dict.get(metric, "sqlExpression")
+        return expression if type(expression) is str and expression else None
+    column = dict.get(metric, "column")
+    column_name = dict.get(column, "column_name") if type(column) is dict else column
+    aggregate = dict.get(metric, "aggregate")
+    if type(column_name) is str and type(aggregate) is str:
+        return f"{aggregate}({column_name})"
+    return None
+
+
+def _form_column_label(column: Any) -> str | None:
+    """Return the result-column label for a native QueryFormColumn."""
+    if type(column) is str:
+        return column
+    if type(column) is not dict:
+        return None
+    # getColumnLabel: an adhoc column without a label is keyed by its SQL.
+    for key in ("label", "sqlExpression", "column_name"):
+        if type(value := dict.get(column, key)) is str and value:
+            return value
+    return None
+
+
+def _require_result_field(label: str | None, row: dict[str, Any], role: str) -> str:
+    """Resolve a role without falling back to an unrelated result field."""
+    if not label:
+        raise BulletOutputError(f"Bullet {role} has no declared result alias")
+    if label in dict.keys(row):
+        return label
+    matches = sorted(
+        field
+        for field in dict.keys(row)
+        if type(field) is str and field.casefold() == label.casefold()
+    )
+    if len(matches) == 1:
+        return matches[0]
+    if matches:
+        raise BulletOutputError(
+            f"Bullet {role} alias {label!r} is ambiguous; candidates: "
+            f"{', '.join(matches)}"
+        )
+    raise BulletOutputError(
+        f"Bullet {role} alias {label!r} is missing from query output"
+    )
+
+
+def _safe_enum_backing(value: Any) -> Any:
+    """Extract Enum's stored value without public descriptors/conversions."""
+    value_type = type(value)
+    try:
+        mro = type.__getattribute__(value_type, "__mro__")
+    except (AttributeError, TypeError):  # pragma: no cover - normal types have MRO
+        return value
+    if type(mro) is not tuple or not any(base is Enum for base in mro):
+        return value
+    try:
+        backing = object.__getattribute__(value, "_value_")
+    except Exception as ex:
+        raise BulletOutputError("Bullet output contains an unreadable enum") from ex
+    if not any(type(backing) is allowed for allowed in _ENUM_SCALAR_TYPES):
+        raise BulletOutputError("Bullet output contains an unsupported enum value")
+    return backing
+
+
+def _decimal_javascript_string(value: Decimal) -> str:
+    """Render an exact binary64 spelling with JavaScript Number thresholds."""
+    sign, digits_tuple, exponent = Decimal.as_tuple(value)
+    if type(exponent) is not int:  # finite Decimals always have an integer exponent
+        raise BulletOutputError("Bullet dimension contains a non-finite Decimal")
+    if not any(digits_tuple):
+        return "0"
+
+    digits = "".join(str(digit) for digit in digits_tuple)
+    adjusted = len(digits) + exponent - 1
+    prefix = "-" if sign else ""
+    if -6 <= adjusted < 21:
+        point = len(digits) + exponent
+        if point <= 0:
+            text = f"0.{('0' * -point)}{digits}"
+        elif point >= len(digits):
+            text = digits + ("0" * (point - len(digits)))
+        else:
+            text = f"{digits[:point]}.{digits[point:]}"
+        if "." in text:
+            text = text.rstrip("0").rstrip(".")
+        return prefix + text
+
+    fraction = digits[1:].rstrip("0")
+    coefficient = digits[0] + (f".{fraction}" if fraction else "")
+    exponent_text = f"+{adjusted}" if adjusted >= 0 else str(adjusted)
+    return f"{prefix}{coefficient}e{exponent_text}"
+
+
+def _javascript_number_string(value: int | float | Decimal) -> str:
+    """Apply JSON-number -> IEEE-754 Number -> JavaScript String semantics.
+
+    Exact result scalars can retain precision that the frontend cannot: JSON
+    parsing first rounds a numeric token to binary64, and ``String`` then emits
+    the shortest round-tripping decimal with fixed notation for exponents in
+    [-6, 20].  Converting exact builtin scalars to an exact builtin float keeps
+    the path hook-free.  Python and JavaScript use the same shortest
+    round-tripping binary64 digits; ``_decimal_javascript_string`` only adjusts
+    the notation thresholds and exponent spelling.
+
+    A finite integer or Decimal outside binary64's range becomes an infinity
+    after JSON parsing, matching JavaScript.  Non-finite source values are
+    rejected by the trusted scalar normalizer before this helper is called.
+    """
+    value_type = type(value)
+    if value_type not in {int, float, Decimal}:
+        raise BulletOutputError("Bullet dimension contains an unsupported number")
+    if value_type is float and not math.isfinite(value):
+        raise BulletOutputError("Bullet dimension contains a non-finite number")
+    if isinstance(value, Decimal) and not Decimal.is_finite(value):
+        raise BulletOutputError("Bullet dimension contains a non-finite Decimal")
+    try:
+        number = float(value)
+    except OverflowError:
+        number = -math.inf if value < 0 else math.inf
+
+    if math.isinf(number):
+        return "-Infinity" if number < 0 else "Infinity"
+    if number == 0:
+        # String(-0) is "0" even though JSON.parse preserves negative zero.
+        return "0"
+    return _decimal_javascript_string(Decimal(float.__repr__(number)))
+
+
+def _bullet_category_value(  # noqa: C901
+    value: Any, dimension: str, row_index: int, *, bound_labels: bool = True
+) -> tuple[Any, str]:
+    """Return a JSON-safe value and bounded frontend ``String(value)`` text.
+
+    The trusted scalar normalizer is type-exact and does not dispatch through
+    application hooks.  Vega data retains the normalized Chart Data wire value
+    (including epoch-ms temporal numbers); only the derived category key and
+    ASCII label use the JavaScript-compatible text.
+
+    With ``bound_labels=False`` (raw row export) no label text is derived, so
+    string values keep the shared result-cell limit instead of the label bound.
+    """
+    from superset.mcp_service.chart.query_result import (
+        _bounded_utf8_length,
+        _chart_data_duration_text,
+        _chart_data_temporal_number,
+        _is_chart_data_duration_scalar,
+        _is_chart_data_temporal_scalar,
+        _normalize_scalar,
+        MAX_RESULT_STRING_LENGTH,
+    )
+
+    text_limit = _MAX_BULLET_TEXT_BYTES if bound_labels else MAX_RESULT_STRING_LENGTH
+
+    normalized: Any
+    reason: str | None
+    if type(value) in {list, tuple, dict}:
+        data, failure = first_query_data(
+            {"queries": [{"data": [{"value": value}]}]}, temporal_json_numbers=True
+        )
+        if failure is not None or data is None:
+            raise BulletOutputError(
+                f"Bullet dimension {dimension!r} row {row_index} "
+                "has an invalid or unbounded container value"
+            )
+        normalized = data[0]["value"]
+        reason = None
+    elif _is_chart_data_temporal_scalar(value := _safe_enum_backing(value)):
+        normalized, reason = _chart_data_temporal_number(value)
+    elif _is_chart_data_duration_scalar(value):
+        normalized, reason = _chart_data_duration_text(value)
+    else:
+        normalized, reason = _normalize_scalar(value)
+        if (
+            reason is None
+            and normalized is None
+            and value is not None
+            and type(value) in {float, np.float16, np.float32, np.float64}
+            and math.isinf(float(value))
+        ):
+            # NaN keeps the shared null normalization, but an infinite source
+            # value has no faithful category text and is rejected.
+            reason = "contains a non-finite number"
+        if (
+            reason is None
+            and type(normalized) is str
+            and _bounded_utf8_length(normalized, text_limit) is None
+        ):
+            reason = "exceeds the size limit"
+    if reason is not None:
+        if reason == "an unsupported or subclassed value":
+            reason = "has an unsupported value type"
+        elif not reason.startswith(("contains ", "exceeds ", "has ")):
+            reason = f"contains {reason}"
+        raise BulletOutputError(
+            f"Bullet dimension {dimension!r} row {row_index} {reason}"
+        )
+    if not bound_labels:
+        return normalized, ""
+
+    value_type = type(normalized)
+    if value_type in {list, dict}:
+        text = _bullet_container_category_text(normalized, dimension, row_index)
+    elif normalized is None:
+        text = "null"
+    elif value_type is str:
+        text = normalized
+    elif value_type is bool:
+        text = "true" if normalized else "false"
+    elif value_type is int or value_type is float or value_type is Decimal:
+        text = _javascript_number_string(normalized)
+    else:
+        raise BulletOutputError(
+            f"Bullet dimension {dimension!r} row {row_index} has an "
+            "unsupported value type"
+        )
+
+    if _bounded_utf8_length(text, _MAX_BULLET_TEXT_BYTES) is None:
+        raise BulletOutputError(
+            f"Bullet dimension {dimension!r} row {row_index} exceeds the size limit"
+        )
+    return normalized, text
+
+
+def _bullet_container_category_text(value: Any, dimension: str, row_index: int) -> str:
+    """Stringify validated containers like JavaScript with a bounded text budget."""
+    from superset.mcp_service.chart.query_result import _bounded_utf8_length
+
+    if type(value) is dict:
+        return "[object Object]"
+    parts: list[str] = []
+    size = 0
+    for index, item in enumerate(value):
+        if type(item) in {list, dict}:
+            text = _bullet_container_category_text(item, dimension, row_index)
+        else:
+            text = (
+                ""
+                if item is None
+                else _bullet_category_value(item, dimension, row_index)[1]
+            )
+        text_size = _bounded_utf8_length(text, _MAX_BULLET_TEXT_BYTES)
+        size += (text_size if text_size is not None else _MAX_BULLET_TEXT_BYTES + 1) + (
+            index > 0
+        )
+        if size > _MAX_BULLET_TEXT_BYTES:
+            raise BulletOutputError(
+                f"Bullet dimension {dimension!r} row {row_index} exceeds the size limit"
+            )
+        parts.append(text)
+    return ",".join(parts)
+
+
+def _javascript_numeric_string(value: str) -> float:
+    """Parse a nonempty trimmed string using JavaScript Number's grammar."""
+    if re.fullmatch(r"0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+", value):
+        return float(int(value, 0))
+    if re.fullmatch(
+        r"[+-]?(?:Infinity|(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)",
+        value,
+    ):
+        return float(value)
+    raise ValueError("Invalid JavaScript number spelling")
+
+
+def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
+    """Apply the frontend's useful ``Number(value ?? 0)`` numeric subset."""
+    value = _safe_enum_backing(value)
+    if value is None:
+        number = 0.0
+    elif type(value) is bool:
+        raise BulletOutputError(
+            f"Bullet metric {metric_field!r} row {row_index} returned a boolean"
+        )
+    elif type(value) is int or type(value) is float or type(value) is Decimal:
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError) as ex:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+            ) from ex
+    elif type(value) is str:
+        if len(value) > _MAX_BULLET_TEXT_BYTES:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+            )
+        stripped = value.strip(_JAVASCRIPT_WHITESPACE)
+        if not stripped:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+            )
+        try:
+            number = _javascript_numeric_string(stripped)
+        except (ValueError, OverflowError) as ex:
+            raise BulletOutputError(
+                f"Bullet metric {metric_field!r} row {row_index} returned "
+                f"non-numeric text"
+            ) from ex
+    else:
+        raise BulletOutputError(
+            f"Bullet metric {metric_field!r} row {row_index} is not numeric"
+        )
+    if not math.isfinite(number):
+        raise BulletOutputError(
+            f"Bullet metric {metric_field!r} row {row_index} is NaN or infinite"
+        )
+    return number
+
+
+def _bullet_string_tokens(value: Any) -> list[str]:
+    """Parse labels exactly like the frontend's comma tokenizer."""
+    value = _safe_enum_backing(value)
+    if value is None:
+        return []
+    if type(value) is not str or len(value) > _MAX_BULLET_CONTROL_CHARS:
+        raise BulletOutputError("Bullet labels must be a bounded comma-separated list")
+    if not value.strip():
+        return []
+    tokens = value.split(",")
+    if len(tokens) > _MAX_BULLET_TOKENS:
+        raise BulletOutputError("Bullet labels exceed the item limit")
+    return [_truncate_utf8(token.strip(), _MAX_BULLET_TEXT_BYTES) for token in tokens]
+
+
+def _unique_bullet_derived_field(
+    rows: list[dict[str, Any]], base: str, reserved: tuple[str, ...] = ()
+) -> str:
+    """Return one internal key absent from result rows and prior derived keys."""
+    occupied = {key for row in rows for key in dict.keys(row)}
+    occupied.update(reserved)
+    candidate = base
+    suffix = 0
+    while candidate in occupied:
+        suffix += 1
+        candidate = f"{base}_{suffix}"
+    return candidate
+
+
+def _unique_bullet_category_field(rows: list[dict[str, Any]]) -> str:
+    """Return an internal category key absent from every query-result row."""
+    return _unique_bullet_derived_field(rows, "__mcp_bullet_category")
+
+
+def _validate_bullet_format(format_: Any, values: list[float]) -> str:
+    """Reject a presentation format the backend cannot reproduce."""
+    format_ = _safe_enum_backing(format_)
+    if format_ is None or format_ == "":
+        format_ = "SMART_NUMBER"
+    if type(format_) is not str or len(format_) > 50:
+        raise BulletOutputError(
+            "Bullet number format is unsupported by previews",
+            error_type="UnsupportedFormat",
+        )
+    from superset.utils.number_format import D3_FORMAT_RE
+
+    # Specifier length does not bound its requested output precision. Check the
+    # parsed precision before the formatter can allocate or round any value.
+    match = D3_FORMAT_RE.match(format_)
+    if match and match.group(8) is not None and int(match.group(8)) > 20:
+        raise BulletOutputError(
+            "Bullet number format precision must not exceed 20",
+            error_type="UnsupportedFormat",
+        )
+    try:
+        for value in values:
+            _format_bullet_number(format_, value)
+    except (TypeError, ValueError, OverflowError) as ex:
+        raise BulletOutputError(
+            f"Bullet number format {format_!r} is unsupported by previews",
+            error_type="UnsupportedFormat",
+        ) from ex
+    return format_
+
+
+def _format_bullet_number(format_: str, value: float) -> str:
+    """Format finite Bullet values, including the full binary-float range."""
+    from superset.utils.number_format import format_numeric
+
+    try:
+        # Binary64 has at most 309 integer digits. Leave room for the bounded
+        # fractional precision, percent scaling, and a rounding carry without
+        # changing the caller's Decimal context.
+        with localcontext() as context:
+            context.prec = max(context.prec, 334)
+            return format_numeric(format_, value)
+    except OverflowError:
+        # SMART_NUMBER's significant-digit rounding can overflow a finite float
+        # near DBL_MAX. Scientific repr remains deterministic and informative.
+        if format_ in {"SMART_NUMBER", "SMART_NUMBER_SIGNED"} and math.isfinite(value):
+            prefix = "+" if format_ == "SMART_NUMBER_SIGNED" and value > 0 else ""
+            return prefix + repr(value)
+        raise
+
+
+def _containing_bullet_range_label(
+    measure: float, ranges: list[float], labels: list[str]
+) -> str | None:
+    """Match the frontend's labelled containing-range tooltip selection."""
+    ascending = sorted(
+        (
+            (value, labels[index] if index < len(labels) else "")
+            for index, value in enumerate(ranges)
+        ),
+        key=lambda entry: entry[0],
+    )
+    for threshold, label in ascending:
+        if measure <= threshold:
+            return label or None
+    if ascending and ascending[-1][1]:
+        return f"> {ascending[-1][1]}"
+    return None
+
+
+def resolve_bullet_render_model(  # noqa: C901
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    validate_format: bool = True,
+    bound_labels: bool = True,
+) -> BulletRenderModel:
+    """Resolve Bullet rows; check preview formatter support only when rendering.
+
+    ``bound_labels=False`` serves raw-data consumers (get_chart_data and its
+    exports): dimension values keep the shared result limits, and the preview
+    label bound applies only where category text is rendered.
+    """
+    if type(data) is not list:
+        raise BulletOutputError("Bullet query output must be an array of objects")
+    for row_index in range(list.__len__(data)):
+        row = list.__getitem__(data, row_index)
+        if type(row) is not dict:
+            raise BulletOutputError("Bullet query output must be an array of objects")
+        if dict.__len__(row) > _MAX_BULLET_FIELDS:
+            raise BulletOutputError("Bullet query row exceeds the field limit")
+        for key in dict.keys(row):
+            if type(key) is not str:
+                raise BulletOutputError("Bullet query row keys must be strings")
+            if len(key) > _MAX_BULLET_FIELD_BYTES:
+                raise BulletOutputError("Bullet query row key exceeds the size limit")
+
+    if type(form_data) is not dict:
+        raise BulletOutputError("Bullet form data must be an object")
+
+    metric_label = _form_metric_label(dict.get(form_data, "metric"))
+    if not metric_label:
+        raise BulletOutputError("Bullet metric has no declared result alias")
+    raw_groupby = dict.get(form_data, "groupby")
+    # Bullet/transformProps.ts reads ensureIsArray(groupby): a saved scalar
+    # column (or adhoc column object) is a one-level hierarchy.
+    if raw_groupby is None:
+        raw_groupby = []
+    elif type(raw_groupby) is str or type(raw_groupby) is dict:
+        raw_groupby = [raw_groupby]
+    if type(raw_groupby) is not list:
+        raise BulletOutputError("Bullet dimensions must be an array")
+    dimension_labels = [
+        _form_column_label(list.__getitem__(raw_groupby, index))
+        for index in range(list.__len__(raw_groupby))
+    ]
+    if any(not label for label in dimension_labels):
+        raise BulletOutputError("Bullet dimension has no declared result alias")
+
+    if data:
+        first_row = list.__getitem__(data, 0)
+        metric_field = _require_result_field(metric_label, first_row, "metric")
+        dimensions = [
+            _require_result_field(label, first_row, "dimension")
+            for label in dimension_labels
+        ]
+    else:
+        # The frontend accepts empty results. Ungrouped charts retain one
+        # zero-valued measure; grouped charts retain the declared roles but no
+        # categories or rows are fabricated.
+        metric_field = metric_label
+        dimensions = [label for label in dimension_labels if label is not None]
+
+    measures: list[float] = []
+    copied_rows: list[dict[str, Any]] = []
+    for index in range(list.__len__(data)):
+        row = list.__getitem__(data, index)
+        row_metric_field = _require_result_field(
+            metric_label, row, f"metric row {index}"
+        )
+        measure = _bullet_number(
+            dict.__getitem__(row, row_metric_field), index, metric_field
+        )
+        # Reserve every exact output key so the internal Vega category alias
+        # cannot collide with an unselected result field. Unselected values are
+        # deliberately replaced with None rather than converted or serialized.
+        copied: dict[str, Any] = dict.fromkeys(dict.keys(row))
+        copied[metric_field] = measure
+        for label, dimension in zip(dimension_labels, dimensions, strict=True):
+            row_dimension = _require_result_field(label, row, f"dimension row {index}")
+            dimension_value, _ = _bullet_category_value(
+                dict.__getitem__(row, row_dimension),
+                dimension,
+                index,
+                bound_labels=bound_labels,
+            )
+            copied[dimension] = dimension_value
+        copied_rows.append(copied)
+        measures.append(measure)
+
+    # The frontend validates/coerces the whole result array but renders only
+    # the first row for an ungrouped aggregate.
+    if not dimensions:
+        copied_rows = copied_rows[:1]
+        measures = measures[:1]
+        if not copied_rows:
+            copied_rows = [{metric_field: 0.0}]
+            measures = [0.0]
+
+    ranges = _bullet_numeric_control_tokens(dict.get(form_data, "ranges"), "ranges")
+    if not ranges:
+        # Match Bullet/transformProps.ts: the largest measure drives one
+        # qualitative band whose upper threshold is 110% of that measure.
+        ranges = [0.0, max(measures, default=0.0) * 1.1]
+    markers = _bullet_numeric_control_tokens(dict.get(form_data, "markers"), "markers")
+    marker_lines = _bullet_numeric_control_tokens(
+        dict.get(form_data, "marker_lines"), "marker lines"
+    )
+    all_numbers = [*measures, *ranges, *markers, *marker_lines]
+    if any(not math.isfinite(value) for value in all_numbers):
+        raise BulletOutputError("Bullet presentation values must be finite")
+
+    show_labels = dict.get(form_data, "show_labels", False)
+    show_legend = dict.get(form_data, "show_legend", False)
+    if type(show_labels) is not bool or type(show_legend) is not bool:
+        raise BulletOutputError("Bullet label and legend controls must be booleans")
+
+    range_labels = _bullet_string_tokens(dict.get(form_data, "range_labels"))
+    marker_labels = _bullet_string_tokens(dict.get(form_data, "marker_labels"))
+    marker_line_labels = _bullet_string_tokens(
+        dict.get(form_data, "marker_line_labels")
+    )
+    return BulletRenderModel(
+        rows=copied_rows,
+        metric_field=metric_field,
+        dimensions=dimensions,
+        measures=measures,
+        ranges=ranges,
+        range_labels=range_labels,
+        markers=markers,
+        marker_labels=marker_labels,
+        marker_lines=marker_lines,
+        marker_line_labels=marker_line_labels,
+        y_axis_format=(
+            _validate_bullet_format(
+                dict.get(form_data, "y_axis_format", "SMART_NUMBER"), all_numbers
+            )
+            if validate_format
+            else "SMART_NUMBER"
+        ),
+        show_labels=show_labels,
+        show_legend=show_legend,
+    )
+
+
+def _generate_ascii_bullet_chart(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> str:
+    """Generate a horizontal Bullet preview from the shared strict model."""
+    model = resolve_bullet_render_model(data, form_data)
+    if model.dimensions and not model.rows:
+        return "No data available for grouped Bullet chart"
+    extent = (
+        max(
+            [abs(value) for value in [*model.measures, *model.ranges, *model.markers]],
+            default=1,
+        )
+        or 1
+    )
+    lines = [f"ASCII Bullet Chart — {model.metric_field}", "=" * 60]
+    for row_index, (row, value) in enumerate(
+        zip(model.rows[:10], model.measures[:10], strict=True)
+    ):
+        category = ", ".join(
+            _bullet_category_value(dict.get(row, field), field, row_index)[1]
+            for field in model.dimensions
+        )
+        category = category or "Measure"
+        width = round(abs(value) / extent * 32)
+        bar = "█" * width
+        formatted = _format_bullet_number(model.y_axis_format, value)
+        lines.append(f"{category[:20]:>20} |{bar:<32} {formatted}")
+
+    def labeled(values: list[float], labels: list[str], prefix: str) -> list[str]:
+        return [
+            f"{labels[index] if index < len(labels) and labels[index] else prefix}: "
+            f"{_format_bullet_number(model.y_axis_format, value)}"
+            for index, value in enumerate(values)
+        ]
+
+    # The frontend always draws range bands, markers, and marker lines;
+    # show_labels/show_legend only toggle their text. A text preview has no
+    # geometry, so the comparison targets are always listed.
+    lines.append("Key:")
+    lines.extend(
+        f"  range {item}" for item in labeled(model.ranges, model.range_labels, "Range")
+    )
+    lines.extend(
+        f"  marker {item}"
+        for item in labeled(model.markers, model.marker_labels, "Marker")
+    )
+    lines.extend(
+        f"  line {item}"
+        for item in labeled(model.marker_lines, model.marker_line_labels, "Marker line")
+    )
+    return "\n".join(lines)
+
+
+def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noqa: C901
+    """Drop non-numeric native tokens like Explore, retaining safety bounds."""
+    value = _safe_enum_backing(value)
+    if value is None or (type(value) is str and value == ""):
+        return []
+    if type(value) is str:
+        if len(value) > _MAX_BULLET_CONTROL_CHARS:
+            raise BulletOutputError(f"Bullet {role} exceeds the size limit")
+        tokens: list[Any] = value.split(",")
+    elif type(value) is list:
+        tokens = [
+            list.__getitem__(value, index) for index in range(list.__len__(value))
+        ]
+    else:
+        raise BulletOutputError(f"Bullet {role} must be a comma-separated list")
+    if len(tokens) > _MAX_BULLET_TOKENS:
+        raise BulletOutputError(f"Bullet {role} exceeds the item limit")
+
+    numbers: list[float] = []
+    for index, token in enumerate(tokens):
+        token = _safe_enum_backing(token)
+        if type(token) is str:
+            token = token.strip(_JAVASCRIPT_WHITESPACE)
+        if type(token) is str and token == "":
+            continue
+        if type(token) is bool or not (
+            type(token) is str
+            or type(token) is int
+            or type(token) is float
+            or type(token) is Decimal
+        ):
+            raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
+        if type(token) is str and len(token) > _MAX_BULLET_TEXT_BYTES:
+            raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
+        try:
+            number = (
+                _javascript_numeric_string(token)
+                if type(token) is str
+                else float(token)
+            )
+        except ValueError:
+            # Native controls tolerate stray text and incomplete input.
+            continue
+        except (TypeError, OverflowError) as ex:
+            raise BulletOutputError(f"Bullet {role}[{index}] is not numeric") from ex
+        if math.isnan(number):
+            continue
+        if not math.isfinite(number):
+            raise BulletOutputError(f"Bullet {role}[{index}] is NaN or infinite")
+        numbers.append(number)
+    return numbers
+
+
+def _generate_bullet_vega_lite_preview(  # noqa: C901
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> VegaLitePreview:
+    """Build a horizontal layered preview from the shared strict model."""
+    model = resolve_bullet_render_model(data, form_data)
+
+    metric_reference = "".join(
+        "\\" + char if char in ".[]\\" else char for char in model.metric_field
+    )
+    category_field = _unique_bullet_category_field(model.rows)
+    row_field = _unique_bullet_derived_field(
+        model.rows, "__mcp_bullet_row", (category_field,)
+    )
+    containing_range_labels = (
+        [
+            _containing_bullet_range_label(measure, model.ranges, model.range_labels)
+            for measure in model.measures
+        ]
+        if model.range_labels
+        else [None] * len(model.rows)
+    )
+    range_tooltip_field = (
+        _unique_bullet_derived_field(
+            model.rows, "__mcp_bullet_range", (category_field, row_field)
+        )
+        if any(label is not None for label in containing_range_labels)
+        else None
+    )
+    values = []
+    for row_index, row in enumerate(model.rows):
+        copied = dict.copy(row)
+        copied[row_field] = row_index
+        copied[category_field] = (
+            ", ".join(
+                _bullet_category_value(dict.get(row, field), field, row_index)[1]
+                for field in model.dimensions
+            )
+            if model.dimensions
+            else ""
+        )
+        if (
+            range_tooltip_field is not None
+            and containing_range_labels[row_index] is not None
+        ):
+            copied[range_tooltip_field] = containing_range_labels[row_index]
+        values.append(copied)
+
+    # Explore uses indexed rows even when their display labels are identical.
+    category_labels = [row[category_field] for row in values]
+    vega_format = {
+        "SMART_NUMBER": "~s",
+        "SMART_NUMBER_SIGNED": "+~s",
+    }.get(model.y_axis_format, model.y_axis_format)
+    y_encoding = {
+        "field": row_field,
+        "type": "nominal",
+        "title": ", ".join(model.dimensions) if model.dimensions else None,
+        "sort": None,
+        "axis": {"labelExpr": f"{json.dumps(category_labels)}[datum.value]"},
+    }
+    tooltip = [
+        {
+            "field": category_field,
+            "type": "nominal",
+            "title": ", ".join(model.dimensions) if model.dimensions else None,
+        },
+        {
+            "field": metric_reference,
+            "type": "quantitative",
+            "title": model.metric_field,
+            "format": vega_format,
+        },
+    ]
+    if range_tooltip_field is not None:
+        tooltip.append(
+            {"field": range_tooltip_field, "type": "nominal", "title": "Range"}
+        )
+    axis_min = min(
+        0.0,
+        *model.measures,
+        *model.ranges,
+        *model.markers,
+        *model.marker_lines,
+    )
+    axis_max = max(
+        [*model.measures, *model.ranges, *model.markers, *model.marker_lines]
+    )
+    if axis_min == axis_max:
+        axis_max = axis_min + (abs(axis_min) or 1)
+
+    def label_at(labels: list[str], index: int, value: float, prefix: str) -> str:
+        if index < len(labels) and labels[index]:
+            return labels[index]
+        return (
+            ""
+            if prefix == "Range"
+            else _format_bullet_number(model.y_axis_format, value)
+        )
+
+    def legend_color(name: str) -> dict[str, Any]:
+        return {
+            "datum": name,
+            "type": "nominal",
+            "legend": {"title": None} if model.show_legend else None,
+        }
+
+    label_field = _unique_bullet_derived_field(values, "__mcp_bullet_threshold_label")
+    value_field = _unique_bullet_derived_field(
+        values, "__mcp_bullet_threshold_value", (label_field,)
+    )
+
+    def threshold_details(
+        label: str, value: float, label_title: str, value_title: str
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Materialize constants as fields for valid Vega tooltip arrays."""
+        return (
+            [
+                {"calculate": json.dumps(label), "as": label_field},
+                {"calculate": json.dumps(value), "as": value_field},
+            ],
+            [
+                {"field": label_field, "type": "nominal", "title": label_title},
+                {
+                    "field": value_field,
+                    "type": "quantitative",
+                    "title": value_title,
+                    "format": vega_format,
+                },
+            ],
+        )
+
+    layers: list[dict[str, Any]] = []
+    range_entries = sorted(
+        [
+            (
+                threshold,
+                label_at(model.range_labels, index, threshold, "Range"),
+            )
+            for index, threshold in enumerate(model.ranges)
+        ],
+        key=lambda entry: entry[0],
+        reverse=True,
+    )
+    for index, (threshold, label) in enumerate(range_entries):
+        transforms, threshold_tooltip = threshold_details(
+            label, threshold, "Range", "Threshold"
+        )
+        layers.append(
+            {
+                "transform": transforms,
+                "mark": {
+                    "type": "rect",
+                    "opacity": max(0.08, 0.28 - index * 0.04),
+                },
+                "encoding": {
+                    "x": {"datum": axis_min, "type": "quantitative"},
+                    "x2": {"datum": threshold},
+                    "y": y_encoding,
+                    "color": legend_color(
+                        (f"{label}: " if label else "")
+                        + f"≤ {_format_bullet_number(model.y_axis_format, threshold)}"
+                    ),
+                    "tooltip": threshold_tooltip,
+                },
+            }
+        )
+        if model.show_labels and label:
+            layers.append(
+                {
+                    "mark": {"type": "text", "align": "right", "dx": -3},
+                    "encoding": {
+                        "x": {"datum": threshold, "type": "quantitative"},
+                        "y": y_encoding,
+                        "text": {"value": label},
+                    },
+                }
+            )
+    layers.append(
+        {
+            "mark": {"type": "bar", "tooltip": True, "size": 16},
+            "encoding": {
+                "x": {
+                    "field": metric_reference,
+                    "type": "quantitative",
+                    "title": model.metric_field,
+                    "scale": {"domain": [axis_min, axis_max]},
+                    "axis": {"format": vega_format},
+                },
+                "y": y_encoding,
+                "tooltip": tooltip,
+                "color": legend_color(model.metric_field),
+            },
+        }
+    )
+    for index, marker in enumerate(model.markers):
+        label = label_at(model.marker_labels, index, marker, "Marker")
+        transforms, threshold_tooltip = threshold_details(
+            label, marker, "Marker", "Value"
+        )
+        layers.append(
+            {
+                "transform": transforms,
+                "mark": {
+                    "type": "point",
+                    "shape": "triangle-up",
+                    "filled": True,
+                    "size": 80,
+                },
+                "encoding": {
+                    "x": {"datum": marker, "type": "quantitative"},
+                    "y": y_encoding,
+                    "color": legend_color(
+                        f"{label}: {_format_bullet_number(model.y_axis_format, marker)}"
+                    ),
+                    "tooltip": threshold_tooltip,
+                },
+            }
+        )
+        if model.show_labels:
+            layers.append(
+                {
+                    "mark": {"type": "text", "dy": 14},
+                    "encoding": {
+                        "x": {"datum": marker, "type": "quantitative"},
+                        "y": y_encoding,
+                        "text": {"value": label},
+                    },
+                }
+            )
+    for index, marker_line in enumerate(model.marker_lines):
+        label = label_at(model.marker_line_labels, index, marker_line, "Marker line")
+        transforms, threshold_tooltip = threshold_details(
+            label, marker_line, "Marker line", "Value"
+        )
+        layers.append(
+            {
+                "transform": transforms,
+                "mark": {"type": "rule", "strokeWidth": 2},
+                "encoding": {
+                    "x": {"datum": marker_line, "type": "quantitative"},
+                    "color": legend_color(
+                        f"{label}: "
+                        f"{_format_bullet_number(model.y_axis_format, marker_line)}"
+                    ),
+                    "tooltip": threshold_tooltip,
+                },
+            }
+        )
+        # ECharts markLine renders its label regardless of show_labels. Keep
+        # Vega faithful by always materializing one label per reference line.
+        layers.append(
+            {
+                "transform": [{"aggregate": []}],
+                "mark": {"type": "text", "align": "right", "dx": -3, "dy": -8},
+                "encoding": {
+                    "x": {"datum": marker_line, "type": "quantitative"},
+                    "y": {"value": 8},
+                    "text": {"value": label},
+                },
+            }
+        )
+
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            **(
+                {"description": "No data available for grouped Bullet chart"}
+                if model.dimensions and not model.rows
+                else {}
+            ),
+            "data": {"values": values},
+            "layer": layers,
+            "resolve": {"scale": {"color": "independent"}},
+            "usermeta": {
+                "bullet": {
+                    "metric": model.metric_field,
+                    "dimensions": model.dimensions,
+                    "ranges": model.ranges,
+                    "range_labels": model.range_labels,
+                    "markers": model.markers,
+                    "marker_labels": model.marker_labels,
+                    "marker_lines": model.marker_lines,
+                    "marker_line_labels": model.marker_line_labels,
+                    "y_axis_format": model.y_axis_format,
+                    "show_labels": model.show_labels,
+                    "show_legend": model.show_legend,
+                }
+            },
+        },
         supports_streaming=False,
     )

@@ -95,11 +95,12 @@ documentation.
 Affecting the Docker build process:
 
 - **SUPERSET_BUILD_TARGET (default=dev):** which --target to build, either `lean` or `dev` are commonly used
-- **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
-- **INCLUDE_CHROMIUM (default=false):** whether to include the Chromium headless browser in the build
+- **INCLUDE_CHROMIUM (default=false):** whether to include Playwright and the Chromium headless browser in the build, which Alerts & Reports and thumbnails need to take screenshots
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
 - **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,
-  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
+  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`. Once the example
+  data and dashboards are present in the databases, later `docker compose up` runs skip loading
+  them; run `SUPERSET_FORCE_LOAD_EXAMPLES=yes docker compose up` to reload the examples anyway.
 - **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
   for more verbose logging
 - **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
@@ -493,8 +494,8 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 22 (LTS)
-- `npm`: Version 10
+- `Node.js`: Version 24 (see `superset-frontend/.nvmrc` for the exact version)
+- `npm`: Version 11
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
@@ -507,8 +508,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 cd superset-frontend
-nvm install --lts
-nvm use --lts
+nvm install
+nvm use
 ```
 
 Or if you use the default macOS starting with Catalina shell `zsh`, try:
@@ -518,6 +519,30 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
+
+##### zstd
+
+`npm run dev-server` proxies requests to your local Superset server and rewrites the HTML it returns, so it has to decompress responses sent with `Content-Encoding: zstd`. It does that with [`simple-zstd`](https://www.npmjs.com/package/simple-zstd), which wraps the system `zstd` binary instead of bundling one. That binary has to be on your `PATH`:
+
+```bash
+# macOS
+brew install zstd
+
+# Ubuntu/Debian
+sudo apt install zstd
+
+# Windows
+choco install zstd
+```
+
+`simple-zstd` looks for the binary when it is first imported, not when a response is decompressed, so a missing `zstd` stops the dev server at startup with:
+
+```
+Error: Can not access zstd! Is it installed?
+    at Object.<anonymous> (.../node_modules/simple-zstd/dist/src/index.js:102:11)
+```
+
+The message names the dependency, but it surfaces from inside `webpack.proxy-config.js` while the webpack config is loading, which reads like a build-tooling failure rather than a missing system package.
 
 #### Install dependencies
 
@@ -550,7 +575,7 @@ There are three types of assets you can build:
 
 1. `npm run build`: the production assets, CSS/JSS minified and optimized
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
-3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+3. `npm run build-instrumented`: instrumented application code for collecting code coverage from end-to-end tests
 
 If while using the above commands you encounter an error related to the limit of file watchers:
 
@@ -693,7 +718,7 @@ can find all of the workflows and other assets under the `.github/` folder. This
 
 - running the backend unit test suites (`tests/`)
 - running the frontend test suites (`superset-frontend/src/**.*.test.*`)
-- running our Playwright end-to-end tests (`superset-frontend/playwright/`) and legacy Cypress tests (`superset-frontend/cypress-base/`)
+- running our Playwright end-to-end tests (`superset-frontend/playwright/`)
 - linting the codebase, including all Python, Typescript and Javascript, yaml and beyond
 - checking for all sorts of other rules conventions
 
@@ -768,7 +793,7 @@ pytest tests/unit_tests/*
 
 #### Integration Tests
 
-For more complex pytest-defined integration tests (not to be confused with our end-to-end Cypress tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
+For more complex pytest-defined integration tests (not to be confused with our end-to-end Playwright tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
 
 ### Running Tests with `act`
 
@@ -807,6 +832,12 @@ To run a single test file:
 
 ```bash
 npm run test -- path/to/file.js
+```
+
+Jest uses 80% of the machine's cores by default. On a shared or busy machine, cap the worker pool with `JEST_MAX_WORKERS` (a number or a percentage):
+
+```bash
+JEST_MAX_WORKERS=2 npm run test -- path/to/file.js
 ```
 
 #### Known Issues and Workarounds
@@ -879,8 +910,6 @@ superset:
     user: "root"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 ```
 
 Start Superset as usual

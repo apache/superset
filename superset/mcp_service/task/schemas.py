@@ -34,7 +34,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 DEFAULT_TASK_COLUMNS: list[str] = ["id", "uuid", "task_type", "status", "changed_on"]
 ALL_TASK_COLUMNS: list[str] = [
@@ -153,14 +152,8 @@ def serialize_task_object(task: Any) -> TaskInfo | None:
         id=getattr(task, "id", None),
         uuid=str(uuid_val) if uuid_val is not None else None,
         task_type=getattr(task, "task_type", None),
-        task_key=sanitize_for_llm_context(
-            getattr(task, "task_key", None),
-            field_path=("task_key",),
-        ),
-        task_name=sanitize_for_llm_context(
-            getattr(task, "task_name", None),
-            field_path=("task_name",),
-        ),
+        task_key=getattr(task, "task_key", None),
+        task_name=getattr(task, "task_name", None),
         status=getattr(task, "status", None),
         scope=getattr(task, "scope", None),
         changed_on=changed_on,

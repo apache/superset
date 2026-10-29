@@ -73,6 +73,7 @@ class SyncPermissionsCommand(BaseCommand):
         self.username = username
         self._old_db_connection_name: str | None = old_db_connection_name
         self._db_connection: Database | None = db_connection
+        self._user_id: int | None = None
 
         self.async_mode: bool = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
 
@@ -99,11 +100,15 @@ class SyncPermissionsCommand(BaseCommand):
         if not self._db_connection:
             raise DatabaseNotFoundError()
 
-        # Need user info to impersonate for OAuth2 connections
-        if not self.username or not security_manager.get_user_by_username(
-            self.username
+        # Need user info to impersonate for OAuth2 connections. The id is
+        # captured here, at validation/enqueue time, so that an async run of
+        # this command binds to whoever held the username right now, rather
+        # than re-resolving the (mutable) username at execution time.
+        if not self.username or not (
+            user := security_manager.get_user_by_username(self.username)
         ):
             raise UserNotFoundInSessionError()
+        self._user_id = user.id
 
         with self.db_connection.get_sqla_engine() as engine:
             try:
@@ -126,7 +131,7 @@ class SyncPermissionsCommand(BaseCommand):
         self.validate()
         if self.async_mode:
             sync_database_permissions_task.delay(
-                self.db_connection_id, self.username, self.old_db_connection_name
+                self.db_connection_id, self._user_id, self.old_db_connection_name
             )
             return
 
@@ -313,14 +318,14 @@ class SyncPermissionsCommand(BaseCommand):
 
 @celery_app.task(name="sync_database_permissions", soft_time_limit=600)
 def sync_database_permissions_task(
-    database_id: int, username: str, old_db_connection_name: str
+    database_id: int, user_id: int, old_db_connection_name: str
 ) -> None:
     """
     Celery task that triggers the SyncPermissionsCommand in async mode.
     """
     with app.test_request_context():
         try:
-            user = security_manager.get_user_by_username(username)
+            user = security_manager.get_user_by_id(user_id)
             if not user:
                 raise UserNotFoundInSessionError()
             g.user = user
@@ -336,7 +341,7 @@ def sync_database_permissions_task(
 
             SyncPermissionsCommand(
                 database_id,
-                username,
+                user.username,
                 old_db_connection_name=old_db_connection_name,
                 db_connection=db_connection,
             ).sync_database_permissions()

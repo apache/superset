@@ -26,8 +26,14 @@ import {
   lruCache,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import Chart from 'src/types/Chart';
-import { deletedToast, deleteFailedToast } from 'src/utils/softDeleteCopy';
+import {
+  deletedToastContent,
+  rememberArchivedType,
+  ToastContent,
+  deleteFailedToast,
+} from 'src/utils/softDeleteCopy';
 import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {
@@ -345,7 +351,7 @@ export function createErrorHandler(
 
 export function handleChartDelete(
   { id, slice_name: sliceName }: Chart,
-  addSuccessToast: (arg0: string) => void,
+  addSuccessToast: (arg0: string, options?: ToastContent['options']) => void,
   addDangerToast: (arg0: string) => void,
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
@@ -376,18 +382,20 @@ export function handleChartDelete(
       if (chartFilter === 'Mine') refreshData(filters);
       else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
-      addSuccessToast(deletedToast(sliceName));
+      rememberArchivedType('chart');
+      const toast = deletedToastContent(sliceName, 'chart');
+      addSuccessToast(toast.text, toast.options);
     },
-    () => {
-      addDangerToast(deleteFailedToast(sliceName));
-    },
+    createErrorHandler(errMsg =>
+      addDangerToast(deleteFailedToast(sliceName, errMsg)),
+    ),
   );
 }
 
 export function handleDashboardDelete(
   { id, dashboard_title: dashboardTitle }: Dashboard,
   refreshData: (config?: FetchDataConfig | null) => void,
-  addSuccessToast: (arg0: string) => void,
+  addSuccessToast: (arg0: string, options?: ToastContent['options']) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
   userId?: string | number,
@@ -418,7 +426,9 @@ export function handleDashboardDelete(
       else if (dashboardFilter === 'Other' && getData)
         getData(dashboardFilter as TableTab);
       else refreshData();
-      addSuccessToast(deletedToast(dashboardTitle));
+      rememberArchivedType('dashboard');
+      const toast = deletedToastContent(dashboardTitle, 'dashboard');
+      addSuccessToast(toast.text, toast.options);
     },
     createErrorHandler(errMsg =>
       addDangerToast(deleteFailedToast(dashboardTitle, errMsg)),
@@ -457,6 +467,17 @@ export const CardContainer = styled.div<{
         ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
         : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
+
+    /* Full-width cards on mobile (consumption mode) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      grid-template-columns: 1fr;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+    }`
+        : ''
+    }
   `}
 `;
 
@@ -470,6 +491,18 @@ export const CardStyles = styled.div`
     height: 168px;
   }
 `;
+
+/**
+ * Cards make their whole surface clickable, but `ListViewCard` also renders its
+ * cover as a router `<Link>`. A click on the cover is therefore handled twice —
+ * once by the link and once by the card wrapper — pushing two identical history
+ * entries for a single click, so the Back button only pops the duplicate and
+ * leaves the user on the page they tried to leave. Let the link win in that case.
+ */
+export const isNavigationHandledByLink = (event: {
+  target: EventTarget | null;
+}): boolean =>
+  Boolean((event.target as HTMLElement | null)?.closest?.('a[href]'));
 
 export /* eslint-disable no-underscore-dangle */
 const isNeedsPassword = (payload: any) =>

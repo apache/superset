@@ -49,6 +49,7 @@ _SORTABLE_LAYER_COLUMNS = ["id", "name", "changed_on", "created_on"]
         title="List annotation layers",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_annotation_layers(

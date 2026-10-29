@@ -132,6 +132,40 @@ tables in the **Permissions** dropdown. To select the data sources you want to a
 You can then confirm with users assigned to the **Gamma** role that they see the
 objects (dashboards and slices) associated with the tables you just extended them.
 
+### Actionable Access-Denied Messages
+
+When a viewer opens a chart or dashboard built on a dataset they don't have access to, Superset
+can show a plain-language error explaining that access is denied (naming the tables for SQL Lab
+errors) and, when known, the dataset owners to contact. This applies only where the structured
+access-denied payload reaches the UI; some paths, such as `/api/v1/chart/data`, return a bare 403
+instead, so neither the owner contacts nor the "Request access" link appear there. You can also point users at your own access-request process by setting
+`PERMISSION_INSTRUCTIONS_LINK` in `superset_config.py`:
+
+```python
+PERMISSION_INSTRUCTIONS_LINK = (
+    "https://access.example.com/request?dataset={datasource_id}&table={table_names}&user={username}"
+)
+```
+
+The URL may include any of the following placeholders, which are substituted with URL-encoded
+values so the link can deep-link into an internal ticketing or access-request tool with the
+denied resource pre-filled:
+
+- `{datasource_id}` — id of the denied dataset (chart/dashboard errors only)
+- `{table_names}` — comma-separated denied table names (SQL Lab/table errors only)
+- `{username}` — the requesting user's username
+
+There's deliberately no `{datasource_name}` placeholder: the link is handed to a user who was just
+denied that dataset, so templating its name would disclose a resource they aren't entitled to see.
+
+Only the placeholders that apply to the triggering error type are filled in; the rest are replaced
+with an empty string, so a single URL template can cover both chart/dashboard and SQL Lab denials.
+A URL with no placeholders is used as-is, and leaving `PERMISSION_INSTRUCTIONS_LINK` unset (the
+default) only omits the "Request access" link. The contact guidance shown alongside it doesn't
+depend on the link: chart/dashboard errors name the dataset owners when they're known, while SQL
+Lab/table errors carry no owner information and always tell the viewer to contact their Superset
+administrator.
+
 ### Subjects
 
 A **subject** is a unified identity that can be granted access to Superset resources such as
@@ -143,17 +177,19 @@ dashboards, charts, and datasets. Subjects come in three types:
 
 Subjects are used throughout Superset to assign **editors** (who can modify a resource) and
 **viewers** (who can view it). For new resource-specific assignments, Superset defaults to
-**Users** and **Groups** in subject pickers. Groups are the recommended way to grant access to a
-set of people because they represent organizational membership, while roles remain focused on
-capability grants such as "can read dashboards" or "can write charts".
+**Users** and **Groups** in dashboard, chart, and alert/report subject pickers. The Row Level
+Security picker also includes **Roles** by default to preserve role-based RLS workflows. Groups
+are the recommended way to grant access to a set of people because they represent organizational
+membership, while roles remain focused on capability grants such as "can read dashboards" or
+"can write charts".
 
 Role subjects are still supported for backwards compatibility with features that previously used
 roles directly, including Row Level Security role assignments and `DASHBOARD_RBAC`. Existing role
 subject assignments continue to be enforced even when roles are not exposed in the default picker
-configuration. However, when an administrator edits a subject list, roles are not available as new
-dropdown values unless that picker has been configured to expose role subjects. Roles are not
-recommended for new subject assignments, because using roles for both permissions and resource
-membership couples two separate concerns.
+configuration. The RLS picker exposes roles by default; other subject pickers do not expose roles
+as new dropdown values unless configured to do so. Roles are not recommended for new
+resource-specific assignments, because using roles for both permissions and resource membership
+couples two separate concerns.
 
 Administrators can control which subject types are available in pickers with
 `SUBJECTS_RELATED_TYPES`. By default, this setting exposes only users and groups:
@@ -167,8 +203,10 @@ SUBJECTS_RELATED_TYPES = [
 ]
 ```
 
-Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types, including roles. To expose roles
-only for a specific entity, set that entity's override:
+Set `SUBJECTS_RELATED_TYPES = None` to expose all subject types globally, including roles.
+
+The RLS picker has the following entity-specific default so role-based RLS rules remain
+selectable:
 
 ```python
 from superset.subjects.types import SubjectType
@@ -178,15 +216,15 @@ SUBJECTS_RELATED_TYPES = [
     SubjectType.GROUP,
 ]
 
-# Leave dashboard, chart, and alert/report overrides unset so they inherit
-# the users + groups default. Expose roles only in the RLS subject picker for
-# compatibility with existing role-based RLS workflows.
 SUBJECTS_RELATED_TYPES_RLS = [
     SubjectType.USER,
-    SubjectType.GROUP,
     SubjectType.ROLE,
+    SubjectType.GROUP,
 ]
 ```
+
+Dashboard, chart, and alert/report overrides remain `None` by default and inherit the global
+users-and-groups setting. Set an entity-specific override explicitly to customize its picker.
 
 Available per-entity overrides are:
 
@@ -242,6 +280,105 @@ GET /api/v1/security/subject/?q=(filters:!((col:label,opr:subject_all_text,value
 Each subject in the response includes flat scalar ids (`user_id`, `role_id`, `group_id`) rather
 than a nested object, so callers can match directly on whichever id they already have — only the
 id field matching the subject's `type` is populated; the others are `null`.
+
+#### Extending Editorship with EXTRA_EDITORS_RESOLVER
+
+Deployments that grant edit access to a dashboard or chart through a mechanism outside
+Superset's own Subject-based `editors` list — for example, a folder-permission system or an
+internal directory service — can plug that logic in with `EXTRA_EDITORS_RESOLVER`:
+
+```python
+def extra_editors_resolver(resource):
+    # `resource` is the Dashboard or Slice instance being checked.
+    # Return Subject instances, raw subject ids, or dicts with an `id` key.
+    return [...]
+
+
+EXTRA_EDITORS_RESOLVER = extra_editors_resolver
+```
+
+The resolver's result is unioned with the resource's own `editors` for editorship checks: it
+feeds `is_editor`, `raise_for_editorship`, save-as, and soft-delete restore. When
+`EXTRA_EDITORS_RESOLVER` is configured, the usual lockout-prevention behavior — automatically
+re-adding a non-admin who removes themselves from a resource's editors — is skipped, since the
+deployment has its own way of keeping the resource editable. This skip is global to the setting,
+not per-resource: it still applies on a resource where the resolver currently returns no
+subjects, so a resolver that can't guarantee an alternate editor for every resource can let the
+last editor remove themselves and leave it uneditable by non-admins.
+
+Resolved subject ids are also surfaced as `extra_editors` in the chart and dashboard `GET`
+responses, so API clients can distinguish resolver-granted editorship from the resource's own
+`editors` list. This field is attached after serialization and isn't part of the OpenAPI response
+schema, so generated API clients won't see it as a typed field.
+
+Because the resolver is arbitrary per-deployment Python rather than a SQL-expressible condition,
+editorship it grants cannot be reflected in list-view filtering (for example, the soft-deleted
+archive is scoped to editors via a SQL query). It does still run once per row on chart and
+dashboard list responses to populate `extra_editors`, so a slow or unavailable external resolver
+affects ordinary list requests, not just direct per-object checks.
+
+#### Widening and Narrowing List Visibility
+
+Two config hooks let a deployment adjust which charts and dashboards a principal sees in list
+queries. They are a pair: one can only widen a result set, the other only narrow it.
+
+`EXTRA_ACCESS_QUERY_FILTERS` grants visibility to assets the role paths would not reach. Its
+conditions are OR'd into `ChartFilter` and `DashboardAccessFilter`, so it can add rows and never
+remove them:
+
+```python
+EXTRA_ACCESS_QUERY_FILTERS = {
+    "charts": lambda user_id: ...,      # ids to additionally make visible
+    "dashboards": lambda user_id: ...,
+}
+```
+
+`EXTRA_ACCESS_QUERY_EXCLUSIONS` is the opposite: the ids it names are withheld, as an
+`AND NOT`:
+
+```python
+EXTRA_ACCESS_QUERY_EXCLUSIONS = {
+    "charts": lambda user_id: ...,                 # ids to withhold
+    "report_target_dashboards": lambda user_id: ...,
+}
+```
+
+Each callable receives the current user id — or `None` on an anonymous request — and returns the
+asset ids as an ORM `Query`, a Core `select()`, or a `.subquery()`; all three are accepted.
+
+Three details govern the behavior:
+
+- Exclusions are applied **before** the `is_admin()` and `can_access_all_datasources()`
+  short-circuits, because those are the principals the role paths stop narrowing. An exclusion
+  therefore withholds an asset from an Admin as well.
+- Embedded guests are **exempt**. A guest token already scopes its holder to the dashboards it
+  names and fails closed, so narrowing further would make an embedded dashboard's contents
+  depend on state the token has no knowledge of.
+- Anonymous requests are **not** exempt. A deployment serving published dashboards through the
+  Public role has callers with no user id, and skipping a withholding rule for them would reveal
+  rather than hide — so the callable is invoked with `None` and decides for itself.
+- Both hooks feed `ChartFilter` and `DashboardAccessFilter`, which are also the DAO base
+  filters. One entry therefore covers list views, `find_by_ids` — and so exports — and
+  related-field lookups together, plus the REST detail endpoints: a withheld dashboard is
+  absent from `/api/v1/dashboard/<id>` and from `/api/v1/dashboard/<uuid>`, which reaches it
+  through a branch that skips the base filter.
+
+An exclusion shapes what a principal is *offered*; it is not an access check. Superset
+decides whether a principal may read a given asset in `raise_for_access`, so a deployment
+that needs an asset to be unreadable rather than merely unlisted enforces that there,
+through a custom security manager. The two are complementary: the check makes the asset
+unreadable, the exclusion keeps it out of the places it would otherwise be offered.
+
+The `report_target_charts` and `report_target_dashboards` keys are a narrower variant, consulted
+only where a scheduled report's target is chosen or validated. A report is rendered by whichever
+principal `ALERT_REPORTS_EXECUTORS` names rather than by its author, so "may this user read this
+asset" and "may this user schedule a report on it" are separate questions a deployment may answer
+differently.
+
+A list filter is not an authorization boundary: an id posted directly to an API never passes
+through one. Report creation and update therefore consult the same exclusion where the posted id
+is resolved, and refuse it with a 403. A deployment adding its own command paths should do the
+same rather than relying on the asset being absent from a picker.
 
 ### Dashboard Access Control
 
@@ -400,7 +537,7 @@ Once enabled, each user manages their own keys from their profile page:
 1. Open the user menu (top-right) and click **Info** to navigate to the User Info page
 2. Expand the **API Keys** section
 3. Click **+ API Key**
-4. Enter a name and (optionally) an expiration date
+4. Enter a name and optionally select resource scopes
 5. Copy the generated token — it is shown only once
 
 Only users with the `can_read` and `can_write` permissions on `ApiKey` (granted by default to Admins) can manage API keys.
@@ -414,6 +551,18 @@ Authorization: Bearer <your-api-key>
 ```
 
 This works for all REST API endpoints and the MCP server. The request is executed with the permissions of the user who created the key.
+
+#### API Key Scopes
+
+The creation dialog can restrict an API key to MCP resource actions such as
+`superset:dashboard:read` or `superset:chart:write`. A scope is an additional
+restriction: it never grants a permission that the creating user does not
+already have through Superset RBAC. Write scopes also cover update and delete
+operations for that resource; `superset:sqllab:write` covers SQL execution.
+
+Keys created without scopes retain legacy RBAC-only behavior. The scoped-key
+restrictions described here are enforced by the MCP server; regular REST API
+routes continue to apply their existing Superset RBAC checks.
 
 #### Use Cases
 
@@ -547,6 +696,25 @@ has important implications when working with virtual (SQL-based) datasets:
   Additionally, RLS filters on the **underlying physical datasets** referenced by the
   virtual dataset's SQL are injected into the inner subquery for each referenced table.
 
+When `ALLOW_ADHOC_SUBQUERY` is enabled, subqueries in chart columns, metrics and filters
+also receive the referenced datasets' RLS filters, and those filters contribute to the
+chart's cache key. Each predicate is associated with its qualified table in the
+cache key, so different assignments of the same predicates to different tables do
+not share cached results. For unqualified table names on engines that cannot change schema
+per query, the connection's execution schema takes precedence when it can be
+discovered. The configured dataset schema remains the fallback for RLS lookup and
+cache keys when neither the connection parameters nor the inspector yields a schema.
+Expression RLS cache keys are collected without building the chart query or running
+series-limit prequeries; schema discovery is shared with the dataset SQL's RLS lookup.
+For predicate discovery, each expression template is rendered with the context query
+execution uses (including a series-limit prequery's), before the cache lookup and
+without calling warehouse or viewer-dependent macros. Template parameters and the macros
+that only read the request's filters and URL parameters (`filter_values`, `get_filters`,
+`url_param`) are evaluated. Other macros, such as `presto.latest_partition`, `dataset`,
+`metric`, `get_time_filter` and the `current_user_*` functions, are not called: an
+expression that uses one gets a cache key scoped to the current user instead of RLS
+predicates. Literal template syntax produced by a template is not evaluated again.
+
 For example, if you have:
 
 1. A physical dataset `orders` with RLS filter `region = 'US'`
@@ -570,6 +738,28 @@ SELECT * FROM (
 - In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
   queries run against tables that have associated datasets with RLS filters will then have
   the appropriate predicates injected automatically.
+
+#### RLS Indicator in the Dataset List and Explore
+
+When a dataset has one or more RLS filters that apply to it, Superset shows a lock
+icon badge next to the dataset name in the **Datasets** list and next to the dataset
+selector in **Explore**. Hovering over the badge shows a tooltip listing each
+applicable filter's name, filter type (Regular or Base), group key (if any), assigned
+subjects (labeled "Roles" in the tooltip, but may include users and groups too), and
+clause.
+
+This badge also surfaces filters that are inherited from the physical tables
+referenced by a virtual (SQL-based) dataset, as described above. Inherited filters
+are marked "from underlying table" in the tooltip, and a summary note is shown
+whenever any of the listed filters are inherited rather than assigned directly to
+the dataset. Inherited-filter detection depends on Superset's SQL parser being able
+to identify the referenced tables and match them to a physical dataset by name,
+schema, and database, so it's best-effort: unparseable or unmatched references won't
+surface a filter on the badge even if one would apply at query time.
+
+The badge is a visibility aid only — it does not change which filters are applied to
+a query. Use the RLS REST API described below if you need to confirm exactly which
+filters affect a dataset.
 
 #### Checking RLS Filters via the API
 
@@ -651,16 +841,9 @@ To enable this extension you have to set:
 SESSION_SERVER_SIDE = True
 ```
 
-Flask-Session offers multiple backend session interfaces for Flask, here's an example for Redis:
-
-```python
-from redis import Redis
-
-SESSION_TYPE = "redis"
-SESSION_REDIS = Redis(host="redis", port=6379, db=0)
-# sign the session cookie sid
-SESSION_USE_SIGNER = True
-```
+Flask-Session offers multiple backend session interfaces for Flask. See the
+[production hardening guide](/admin-docs/security/securing_superset#session-management-security-critical)
+for a complete Redis example.
 
 ### Content Security Policy (CSP)
 

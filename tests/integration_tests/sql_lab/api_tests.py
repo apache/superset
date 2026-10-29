@@ -262,8 +262,11 @@ class TestSqlLabApi(SupersetTestCase):
             return_value=formatter_response
         )
 
-        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = db_mock
+        with (
+            mock.patch("superset.commands.sql_lab.estimate.DatabaseDAO") as mock_dao,
+            mock.patch("superset.security_manager.raise_for_access"),
+        ):
+            mock_dao.find_by_id.return_value = db_mock
 
             data = {"database_id": 1, "sql": "SELECT 1"}
             rv = self.client.post(

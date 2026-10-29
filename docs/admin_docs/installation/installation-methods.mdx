@@ -25,21 +25,21 @@ You manage a superset-config.py file and a docker-compose.yml file. Docker Compo
 
 You will need to back up your metadata DB. That could mean backing up the service running as a Docker container and its volume; ideally you are running Postgres as a service outside of that container and backing up that service.
 
-You will also need to extend the Superset docker image. The default `lean` images do not contain drivers needed to access your metadata database (Postgres or MySQL), nor to access your data warehouse, nor the headless browser needed for Alerts & Reports. You could run a `-dev` image while demoing Superset, which has some of this, but you'll still need to install the driver for your data warehouse. The `-dev` images run as root, which is not recommended for production.
+You will also need to extend the Superset docker image. Beginning in 7.0.0, the default image (e.g. the `latest` and `<version>` tags) includes the drivers for a Postgres or MySQL metadata database and the headless browser needed for Alerts & Reports, but you'll still need to install the driver for your data warehouse.
 
-Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs. See [Building your own production Docker image](/admin-docs/installation/docker-builds/#building-your-own-production-docker-image).
+Ideally you will build your own image of Superset that extends the default image, adding what your deployment needs. See [Building your own production Docker image](/admin-docs/installation/docker-builds/#building-your-own-production-docker-image).
 
 ## [Kubernetes (K8s)](/admin-docs/installation/kubernetes)
 
 **Summary:** This is the best-practice way to deploy a production instance of Superset, but has the steepest skill requirement - someone who knows Kubernetes.
 
-You will deploy Superset into a K8s cluster. The most common method is using the community-maintained Helm chart, though work is now underway to implement [SIP-149 - a Kubernetes Operator for Superset](https://github.com/apache/superset/issues/31408).
+You will deploy Superset into a K8s cluster. The recommended method is the official [Apache Superset Kubernetes Operator](https://apache.github.io/superset-kubernetes-operator/). The in-tree Helm chart is deprecated and is not recommended for new deployments.
 
 A K8s deployment can scale up and down based on usage and deploy rolling updates with zero downtime - features that big deployments appreciate.
 
 **Responsibilities**
 
-You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to customize your Helm chart values and deploy and maintain your Kubernetes cluster.
+You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to configure the operator's Superset resources and deploy and maintain your Kubernetes cluster.
 
 ## [PyPI (Python)](/admin-docs/installation/pypi)
 

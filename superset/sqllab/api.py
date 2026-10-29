@@ -35,6 +35,7 @@ from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.commands.sql_lab.streaming_export_command import (
     StreamingSqlResultExportCommand,
 )
+from superset.commands.streaming_export.base import encode_csv_stream
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
@@ -257,7 +258,22 @@ class SqlLabRestApi(BaseSupersetApi):
                                 if isinstance(template_params, str)
                                 else template_params
                             )
+                            if not isinstance(template_params, dict):
+                                logger.warning(
+                                    "template_params is not a dict: %s."
+                                    " Skipping processing",
+                                    type(template_params).__name__,
+                                )
+                                template_params = None
                             if template_params:
+                                # Check access before rendering the Jinja
+                                # template (mirrors the SQL Lab execute path).
+                                security_manager.raise_for_access(
+                                    database=database,
+                                    sql=sql,
+                                    template_params=template_params,
+                                    force_dataset_match=True,
+                                )
                                 template_processor = get_template_processor(
                                     database=database
                                 )
@@ -451,7 +467,8 @@ class SqlLabRestApi(BaseSupersetApi):
 
         # Create response with streaming headers
         response = Response(
-            csv_generator_callable(),  # Call the callable to get generator
+            # Call the callable to get generator
+            encode_csv_stream(csv_generator_callable(), encoding),
             mimetype=f"text/csv; charset={encoding}",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',

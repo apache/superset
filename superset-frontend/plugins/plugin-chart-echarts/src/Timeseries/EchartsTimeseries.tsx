@@ -21,13 +21,18 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   AxisType,
+  type TimeGranularity,
   getTimeFormatter,
   getColumnLabel,
   getNumberFormatter,
   LegendState,
+  WithLegend,
   ensureIsArray,
+  createTimeRangeFromGranularity,
 } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
+import { logging } from '@apache-superset/core/utils';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -37,15 +42,73 @@ import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import {
+  getViableTimeseriesEchartOptions,
+  resolveTimeseriesGridOffset,
+} from './transformers';
+import {
   rebaseSeriesData,
   snapToNearestX,
   SeriesDataPoint,
 } from './percentChange';
-import { OrientationType, TimeseriesChartTransformedProps } from './types';
+import {
+  OrientationType,
+  TimeseriesChartTransformedProps,
+  TimeseriesCustomLegend,
+} from './types';
 import { formatSeriesName } from '../utils/series';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { ExtraControls } from '../components/ExtraControls';
+import TimeseriesLegend from './TimeseriesLegend';
+import { TIMESERIES_CONSTANTS, X_AXIS_CROSS_FILTER_SOURCE } from '../constants';
 
 const TIMER_DURATION = 300;
+const MAX_CUSTOM_LEGEND_HEIGHT = 160;
+const MAX_CUSTOM_LEGEND_HEIGHT_RATIO = 0.3;
+const MIN_TIMESERIES_PLOT_HEIGHT = 80;
+
+// Bound the legend after accounting for the fixed ECharts grid reservations,
+// leaving enough coordinate space for the plot itself to remain usable.
+export const getTimeseriesLegendMaxHeight = (
+  chartBodyHeight: number,
+  grid: TimeseriesCustomLegend['grid'],
+) =>
+  Math.min(
+    MAX_CUSTOM_LEGEND_HEIGHT,
+    Math.floor(Math.max(chartBodyHeight, 0) * MAX_CUSTOM_LEGEND_HEIGHT_RATIO),
+    Math.max(
+      Math.floor(
+        chartBodyHeight -
+          resolveTimeseriesGridOffset(grid.top, chartBodyHeight) -
+          resolveTimeseriesGridOffset(grid.bottom, chartBodyHeight) -
+          MIN_TIMESERIES_PLOT_HEIGHT,
+      ),
+      0,
+    ),
+  );
+const getTimestampFromTimeAxisValue = (value: string | number) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    logging.warn('Unable to parse time axis value for cross-filtering', value);
+  }
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+};
+
+// Day, month, and year ranges end at 23:59:59.999, so adding 1ms lands on a
+// whole-second next bucket boundary. The formatter intentionally emits seconds.
+const formatDateTime = (date: Date) =>
+  `${[
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-')}T${[
+    String(date.getUTCHours()).padStart(2, '0'),
+    String(date.getUTCMinutes()).padStart(2, '0'),
+    String(date.getUTCSeconds()).padStart(2, '0'),
+  ].join(':')}`;
 
 // Percent-change draggable baseline handle geometry, in pixels.
 const BASELINE_HANDLE_WIDTH = 8;
@@ -56,6 +119,7 @@ const BASELINE_HANDLE_STRIPE_WIDTH = 2;
 export default function EchartsTimeseries({
   formData,
   height,
+  customLegend,
   width,
   echartOptions,
   groupby,
@@ -69,6 +133,7 @@ export default function EchartsTimeseries({
   onFocusedSeries,
   xValueFormatter,
   xAxis,
+  resolvedTimeGrain,
   refs,
   emitCrossFilters,
   coltypeMapping,
@@ -353,12 +418,81 @@ export default function EchartsTimeseries({
             label: values.length ? values : undefined,
             value: values.length ? values : null,
             selectedValues: values.length ? values : null,
+            ...(values.length && {
+              crossFilterSource: X_AXIS_CROSS_FILTER_SOURCE,
+            }),
           },
         },
         isCurrentValueSelected: selected.includes(stringValue),
       };
     },
     [selectedValues, xAxis.label],
+  );
+
+  const getTimeAxisCrossFilterDataMask = useCallback(
+    (clickedTimestamp: number) => {
+      const filterColumn =
+        xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+      const grain = resolvedTimeGrain as TimeGranularity | undefined;
+
+      if (!filterColumn || !grain) {
+        return {
+          dataMask: {
+            extraFormData: {
+              filters: [],
+            },
+            filterState: {
+              label: undefined,
+              value: null,
+              selectedValues: null,
+            },
+          },
+          isCurrentValueSelected: false,
+        };
+      }
+
+      const [start, inclusiveEnd] = createTimeRangeFromGranularity(
+        new Date(clickedTimestamp),
+        grain,
+        false,
+      );
+      const exclusiveEnd = new Date(inclusiveEnd.getTime() + 1);
+      const timeRange = `${formatDateTime(start)} : ${formatDateTime(exclusiveEnd)}`;
+      const selected: string[] = Object.values(selectedValues);
+      const isCurrentValueSelected = selected.includes(timeRange);
+      const values = isCurrentValueSelected ? [] : [timeRange];
+
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              values.length === 0
+                ? []
+                : [
+                    {
+                      col: filterColumn,
+                      op: 'TEMPORAL_RANGE' as const,
+                      val: timeRange,
+                    },
+                  ],
+            // The backend rewrites every TEMPORAL_RANGE filter's value with the
+            // query's time_range, so without this override target charts would
+            // keep their own saved range and ignore the clicked bucket.
+            ...(values.length ? { time_range: timeRange } : {}),
+          },
+          filterState: {
+            label: values.length ? values : undefined,
+            value: values.length ? values : null,
+            selectedValues: values.length ? values : null,
+            ...(values.length && {
+              crossFilterSource: X_AXIS_CROSS_FILTER_SOURCE,
+            }),
+          },
+        },
+        isCurrentValueSelected,
+      };
+    },
+    [formData.granularitySqla, resolvedTimeGrain, selectedValues, xAxis.label],
   );
 
   const handleChange = useCallback(
@@ -382,15 +516,30 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getXAxisCrossFilterDataMask],
   );
 
+  const handleTimeAxisChange = useCallback(
+    (clickedTimestamp: number) => {
+      if (!emitCrossFilters) {
+        return;
+      }
+      setDataMask(getTimeAxisCrossFilterDataMask(clickedTimestamp).dataMask);
+    },
+    [emitCrossFilters, setDataMask, getTimeAxisCrossFilterDataMask],
+  );
+
   // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
   const canCrossFilterByXAxis =
-    !hasDimensions && xAxis.type === AxisType.Category;
-  const categoryAxisValueIndex =
+    !hasDimensions &&
+    (xAxis.type === AxisType.Category || xAxis.type === AxisType.Time);
+  // Axis labels always map to an x-axis value, so they can cross-filter by it
+  // even when dimensions are set
+  const canCrossFilterByXAxisLabel =
+    xAxis.type === AxisType.Category || xAxis.type === AxisType.Time;
+  const xAxisValueIndex =
     formData.orientation === OrientationType.Horizontal ? 1 : 0;
-  const getCategoryAxisValue = useCallback(
+  const getXAxisValue = useCallback(
     (data: unknown, name: unknown) => {
       if (Array.isArray(data)) {
-        const categoryAxisValue = data[categoryAxisValueIndex];
+        const categoryAxisValue = data[xAxisValueIndex];
         if (
           typeof categoryAxisValue === 'string' ||
           typeof categoryAxisValue === 'number'
@@ -403,10 +552,16 @@ export default function EchartsTimeseries({
       }
       return undefined;
     },
-    [categoryAxisValueIndex],
+    [xAxisValueIndex],
+  );
+
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
   );
 
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: props => {
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
@@ -418,17 +573,32 @@ export default function EchartsTimeseries({
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
         if (hasDimensions) {
-          // Cross-filter by dimension (original behavior)
-          const { seriesName: name } = props;
-          handleChange(name);
-        } else if (canCrossFilterByXAxis && props.componentType === 'series') {
+          // Cross-filter by dimension (original behavior). Axis label clicks
+          // are handled by handleXAxisLabelClick.
+          if (props.componentType === 'series') {
+            handleChange(props.seriesName);
+          }
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Category &&
+          props.componentType === 'series'
+        ) {
           // Cross-filter by X-axis value when no dimensions (issue #25334)
-          const categoryAxisValue = getCategoryAxisValue(
-            props.data,
-            props.name,
-          );
+          const categoryAxisValue = getXAxisValue(props.data, props.name);
           if (categoryAxisValue !== undefined) {
             handleXAxisChange(categoryAxisValue);
+          }
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Time &&
+          props.componentType === 'series'
+        ) {
+          const timeAxisValue = getXAxisValue(props.data, props.name);
+          if (timeAxisValue !== undefined) {
+            const timestamp = getTimestampFromTimeAxisValue(timeAxisValue);
+            if (timestamp !== undefined) {
+              handleTimeAxisChange(timestamp);
+            }
           }
         }
       }, TIMER_DURATION);
@@ -439,19 +609,12 @@ export default function EchartsTimeseries({
     mouseover: params => {
       onFocusedSeries(params.seriesName);
     },
-    legendscroll: payload => {
-      onLegendScroll?.(payload.scrollDataIndex);
-    },
-    legendselectchanged: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendselectall: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendinverseselect: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
     contextmenu: async eventParams => {
+      // Axis labels carry no series, so the dimension-based filters below
+      // cannot be built from them
+      if (hasDimensions && eventParams.componentType !== 'series') {
+        return;
+      }
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName } = eventParams;
@@ -464,17 +627,20 @@ export default function EchartsTimeseries({
         ];
         const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
-          drillToDetailFilters.push({
-            col:
-              // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-              xAxis.label === DTTM_ALIAS
-                ? formData.granularitySqla
-                : xAxis.label,
-            grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
-            formattedVal: xValueFormatter(data[0]),
-          });
+          const timeAxisValue = getXAxisValue(data, eventParams.name);
+          if (timeAxisValue !== undefined) {
+            drillToDetailFilters.push({
+              col:
+                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: resolvedTimeGrain,
+              op: '==',
+              val: timeAxisValue,
+              formattedVal: xValueFormatter(timeAxisValue),
+            });
+          }
         }
         [
           ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
@@ -507,26 +673,84 @@ export default function EchartsTimeseries({
           });
         });
 
+        // Filters for the clicked x-axis value, so Drill By can subset the
+        // drilled data to the clicked bar/point rather than only the series
+        const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
+        const xAxisCol =
+          // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        if (data && xAxis.type === AxisType.Time && xAxisCol) {
+          // For horizontal orientation the [x, value] pair is swapped
+          const xValue = Array.isArray(data) ? data[xAxisValueIndex] : data;
+          const xAxisFilter = getTemporalXAxisDrillByFilter(
+            xAxisCol,
+            xValue,
+            formData.timeGrainSqla,
+            String(xValueFormatter(xValue as number)),
+          );
+          if (xAxisFilter) {
+            xAxisFilters.push(xAxisFilter);
+          }
+        } else if (xAxis.type === AxisType.Category && xAxisCol) {
+          const categoryAxisValue = getXAxisValue(data, eventParams.name);
+          if (categoryAxisValue !== undefined) {
+            // A category axis can still sit on a temporal column when the
+            // axis is forced categorical; filter by time bucket in that case
+            const xAxisFilter =
+              coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+              GenericDataType.Temporal
+                ? getTemporalXAxisDrillByFilter(
+                    xAxisCol,
+                    categoryAxisValue,
+                    formData.timeGrainSqla,
+                    String(eventParams.name ?? categoryAxisValue),
+                  )
+                : {
+                    col: xAxisCol,
+                    op: '==' as const,
+                    val: categoryAxisValue,
+                    formattedVal: String(categoryAxisValue),
+                  };
+            if (xAxisFilter) {
+              xAxisFilters.push(xAxisFilter);
+            }
+          }
+        }
+
         // Provide cross-filter for dimensions OR categorical X-axis (issue #25334)
         let crossFilter;
         if (hasDimensions) {
           crossFilter = getCrossFilterDataMask(seriesName);
         } else if (
           canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Category &&
           eventParams.componentType === 'series'
         ) {
-          const categoryAxisValue = getCategoryAxisValue(
-            data,
-            eventParams.name,
-          );
+          const categoryAxisValue = getXAxisValue(data, eventParams.name);
           if (categoryAxisValue !== undefined) {
             crossFilter = getXAxisCrossFilterDataMask(categoryAxisValue);
+          }
+        } else if (
+          canCrossFilterByXAxis &&
+          xAxis.type === AxisType.Time &&
+          eventParams.componentType === 'series'
+        ) {
+          const timeAxisValue = getXAxisValue(data, eventParams.name);
+          if (timeAxisValue !== undefined) {
+            const timestamp = getTimestampFromTimeAxisValue(timeAxisValue);
+            if (timestamp !== undefined) {
+              crossFilter = getTimeAxisCrossFilterDataMask(timestamp);
+            }
           }
         }
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: 'groupby',
+            ...(xAxisFilters.length > 0 && { xAxisFilters }),
+          },
           crossFilter,
         });
       }
@@ -537,27 +761,40 @@ export default function EchartsTimeseries({
     (event: ECElementEvent) => {
       const { value } = event;
       if (
-        canCrossFilterByXAxis &&
+        canCrossFilterByXAxisLabel &&
+        event.targetType === 'axisLabel' &&
         (typeof value === 'string' || typeof value === 'number')
       ) {
-        handleXAxisChange(value);
+        if (xAxis.type === AxisType.Time) {
+          const timestamp = getTimestampFromTimeAxisValue(value);
+          if (timestamp !== undefined) {
+            handleTimeAxisChange(timestamp);
+          }
+        } else {
+          handleXAxisChange(value);
+        }
       }
     },
-    [canCrossFilterByXAxis, handleXAxisChange],
+    [
+      canCrossFilterByXAxisLabel,
+      handleTimeAxisChange,
+      handleXAxisChange,
+      xAxis.type,
+    ],
   );
 
-  const categoryAxis =
+  const renderedXAxis =
     formData.orientation === OrientationType.Horizontal ? 'yAxis' : 'xAxis';
 
   const queryEventHandlers = useMemo(
     () => [
       {
         name: 'click',
-        query: `${categoryAxis}.category`,
+        query: renderedXAxis,
         handler: handleXAxisLabelClick,
       },
     ],
-    [categoryAxis, handleXAxisLabelClick],
+    [renderedXAxis, handleXAxisLabelClick],
   );
 
   const zrEventHandlers: EventHandlers = {
@@ -589,23 +826,87 @@ export default function EchartsTimeseries({
     },
   };
 
+  const dispatchLegendAction = useCallback(
+    (action: { name?: string; seriesName?: string; type: string }) => {
+      echartRef.current?.getEchartInstance()?.dispatchAction(action);
+    },
+    [],
+  );
+
+  const chartBodyHeight = Math.max(height - extraControlHeight, 0);
+  const customLegendMaxHeight = customLegend
+    ? getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
+    : 0;
+  const shouldRenderCustomLegend =
+    customLegend !== undefined &&
+    chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
+    customLegendMaxHeight > 0;
+  const chartEchartOptions = useMemo(
+    () =>
+      getViableTimeseriesEchartOptions(
+        echartOptions,
+        chartBodyHeight,
+        formData.zoomable,
+      ),
+    [chartBodyHeight, echartOptions, formData.zoomable],
+  );
+  const renderEchart = ({
+    chartHeight,
+    chartWidth,
+  }: {
+    chartHeight: number;
+    chartWidth: number;
+  }) => (
+    <Echart
+      ref={echartRef}
+      refs={refs}
+      height={chartHeight}
+      width={chartWidth}
+      echartOptions={chartEchartOptions}
+      eventHandlers={eventHandlers}
+      queryEventHandlers={queryEventHandlers}
+      zrEventHandlers={zrEventHandlers}
+      selectedValues={selectedValues}
+      vizType={formData.vizType}
+    />
+  );
+
   return (
     <>
       <div ref={extraControlRef}>
         <ExtraControls formData={formData} setControlValue={setControlValue} />
       </div>
-      <Echart
-        ref={echartRef}
-        refs={refs}
-        height={height - extraControlHeight}
-        width={width}
-        echartOptions={echartOptions}
-        eventHandlers={eventHandlers}
-        queryEventHandlers={queryEventHandlers}
-        zrEventHandlers={zrEventHandlers}
-        selectedValues={selectedValues}
-        vizType={formData.vizType}
-      />
+      {customLegend && shouldRenderCustomLegend ? (
+        <WithLegend
+          height={chartBodyHeight}
+          position={customLegend.orientation}
+          width={width}
+          renderLegend={() => (
+            <TimeseriesLegend
+              {...customLegend}
+              maxHeight={customLegendMaxHeight}
+              onAll={() => dispatchLegendAction({ type: 'legendAllSelect' })}
+              onHover={name =>
+                dispatchLegendAction({
+                  seriesName: name ?? undefined,
+                  type: name === null ? 'downplay' : 'highlight',
+                })
+              }
+              onInverse={() =>
+                dispatchLegendAction({ type: 'legendInverseSelect' })
+              }
+              onToggle={name =>
+                dispatchLegendAction({ name, type: 'legendToggleSelect' })
+              }
+            />
+          )}
+          renderChart={({ height: chartHeight, width: chartWidth }) =>
+            renderEchart({ chartHeight, chartWidth })
+          }
+        />
+      ) : (
+        renderEchart({ chartHeight: chartBodyHeight, chartWidth: width })
+      )}
     </>
   );
 }

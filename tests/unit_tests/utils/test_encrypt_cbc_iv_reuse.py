@@ -47,11 +47,21 @@ def _field(engine: type) -> EncryptedType:
 
 def test_default_encryption_engine_name_resolves_to_cbc() -> None:
     """The engine name the codebase falls back to when config is unset resolves
-    to the unauthenticated AES-CBC engine, not the authenticated AES-GCM one.
+    to the unauthenticated AES-CBC family, not the authenticated AES-GCM one.
+
+    Specifically ``BackwardCompatibleAesEngine`` (see ``superset/utils/
+    encrypt.py``), a drop-in ``AesEngine`` subclass that pads new writes with
+    PKCS5 instead of sqlalchemy_utils' lossy "naive" scheme while still
+    decrypting values already stored under naive padding -- so this file's
+    deterministic-IV characterization below still holds unchanged.
     """
     from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine
 
-    assert resolve_encryption_engine(DEFAULT_ENCRYPTION_ENGINE_NAME) is AesEngine
+    from superset.utils.encrypt import BackwardCompatibleAesEngine
+
+    engine = resolve_encryption_engine(DEFAULT_ENCRYPTION_ENGINE_NAME)
+    assert engine is BackwardCompatibleAesEngine
+    assert issubclass(engine, AesEngine)
 
 
 def test_default_engine_repeats_ciphertext_for_repeated_plaintext() -> None:

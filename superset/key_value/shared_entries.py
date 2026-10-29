@@ -35,6 +35,7 @@ RESOURCE = KeyValueResource.APP
 CODEC = JsonKeyValueCodec()
 
 
+@transaction()
 def get_shared_value(key: SharedKey) -> Optional[Any]:
     """
     Get a shared value by key, with configurable fallback for backward compatibility.

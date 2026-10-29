@@ -17,7 +17,10 @@
 """Task registry for the Global Task Framework (GTF)"""
 
 import logging
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from superset.tasks.subscription import TaskSubscriptionPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +32,32 @@ class TaskRegistry:
     Stores task functions by name, allowing the Celery executor to look up
     and execute registered tasks. This enables the decorator pattern where
     functions are registered at module import time.
+
+    A task type may also register a :class:`TaskSubscriptionPolicy`, which the
+    submit/cancel commands look up by ``task_type`` to refine per-client
+    subscription semantics (see ``superset.tasks.subscription``).
     """
 
     _tasks: dict[str, Callable[..., Any]] = {}
+    # Optional per-task-type subscription policies, keyed by the same task name
+    # as ``_tasks``. Absent for task types that use plain principal-grain
+    # subscriptions.
+    _subscription_policies: dict[str, "TaskSubscriptionPolicy"] = {}
 
     @classmethod
-    def register(cls, task_name: str, func: Callable[..., Any]) -> None:
+    def register(
+        cls,
+        task_name: str,
+        func: Callable[..., Any],
+        subscription_policy: "TaskSubscriptionPolicy | None" = None,
+    ) -> None:
         """
         Register a task function by name.
 
         :param task_name: Unique task identifier (e.g., "superset.generate_thumbnail")
         :param func: The task function to register
+        :param subscription_policy: Optional per-client subscription policy for
+            this task type (see ``superset.tasks.subscription``)
         :raises ValueError: If task name is already registered
         """
         if task_name in cls._tasks:
@@ -56,6 +74,8 @@ class TaskRegistry:
             return
 
         cls._tasks[task_name] = func
+        if subscription_policy is not None:
+            cls._subscription_policies[task_name] = subscription_policy
         logger.info(
             "Registered async task: %s -> %s.%s",
             task_name,
@@ -90,6 +110,17 @@ class TaskRegistry:
         return task_name in cls._tasks
 
     @classmethod
+    def get_subscription_policy(cls, task_name: str) -> "TaskSubscriptionPolicy | None":
+        """
+        Get the subscription policy for a task type, if one was registered.
+
+        :param task_name: Task identifier to look up
+        :returns: The registered policy, or ``None`` for plain principal-grain
+            subscriptions
+        """
+        return cls._subscription_policies.get(task_name)
+
+    @classmethod
     def list_tasks(cls) -> list[str]:
         """
         Get list of all registered task names.
@@ -107,4 +138,5 @@ class TaskRegistry:
         tasks should remain registered for the lifetime of the process.
         """
         cls._tasks.clear()
+        cls._subscription_policies.clear()
         logger.warning("Task registry cleared")

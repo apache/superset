@@ -83,7 +83,7 @@ describe('ColorBreakpointPopoverControl', () => {
     renderComponent({ onClose });
 
     const closeButton = screen.getByTestId('close-button');
-    userEvent.click(closeButton);
+    await userEvent.click(closeButton);
 
     expect(onClose).toHaveBeenCalled();
   });
@@ -101,8 +101,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '10');
-    userEvent.type(maxInput, '90');
+    await userEvent.type(minInput, '10');
+    await userEvent.type(maxInput, '90');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -123,8 +123,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '10');
-    userEvent.type(maxInput, '90');
+    await userEvent.type(minInput, '10');
+    await userEvent.type(maxInput, '90');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -132,7 +132,7 @@ describe('ColorBreakpointPopoverControl', () => {
     });
 
     const saveButton = screen.getByTestId('save-button');
-    userEvent.click(saveButton);
+    await userEvent.click(saveButton);
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -155,8 +155,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '100');
-    userEvent.type(maxInput, '50');
+    await userEvent.type(minInput, '100');
+    await userEvent.type(maxInput, '50');
 
     const saveButton = screen.getByTestId('save-button');
     expect(saveButton).toBeDisabled();
@@ -186,8 +186,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '25');
-    userEvent.type(maxInput, '75');
+    await userEvent.type(minInput, '25');
+    await userEvent.type(maxInput, '75');
 
     const saveButton = screen.getByTestId('save-button');
     expect(saveButton).toBeDisabled();
@@ -199,8 +199,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, 'abc');
-    userEvent.type(maxInput, '100');
+    await userEvent.type(minInput, 'abc');
+    await userEvent.type(maxInput, '100');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -212,8 +212,8 @@ describe('ColorBreakpointPopoverControl', () => {
     renderComponent();
 
     const minInput = screen.getByDisplayValue('0');
-    userEvent.clear(minInput);
-    userEvent.type(minInput, '20');
+    await userEvent.clear(minInput);
+    await userEvent.type(minInput, '20');
 
     expect(screen.getByDisplayValue('20')).toBeInTheDocument();
   });
@@ -222,8 +222,8 @@ describe('ColorBreakpointPopoverControl', () => {
     renderComponent();
 
     const maxInput = screen.getByDisplayValue('100');
-    userEvent.clear(maxInput);
-    userEvent.type(maxInput, '200');
+    await userEvent.clear(maxInput);
+    await userEvent.type(maxInput, '200');
 
     expect(screen.getByDisplayValue('200')).toBeInTheDocument();
   });
@@ -236,8 +236,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '0');
-    userEvent.type(maxInput, '10');
+    await userEvent.type(minInput, '0');
+    await userEvent.type(maxInput, '10');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -253,8 +253,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '-10');
-    userEvent.type(maxInput, '10');
+    await userEvent.type(minInput, '-10');
+    await userEvent.type(maxInput, '10');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -270,8 +270,8 @@ describe('ColorBreakpointPopoverControl', () => {
     const minInput = screen.getByTestId('min-value-input');
     const maxInput = screen.getByTestId('max-value-input');
 
-    userEvent.type(minInput, '0.5');
-    userEvent.type(maxInput, '99.9');
+    await userEvent.type(minInput, '0.5');
+    await userEvent.type(maxInput, '99.9');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');
@@ -302,8 +302,8 @@ describe('ColorBreakpointPopoverControl', () => {
     });
 
     const minInput = screen.getByDisplayValue('0');
-    userEvent.clear(minInput);
-    userEvent.type(minInput, '10');
+    await userEvent.clear(minInput);
+    await userEvent.type(minInput, '10');
 
     await waitFor(() => {
       const saveButton = screen.getByTestId('save-button');

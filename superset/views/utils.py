@@ -37,10 +37,14 @@ from flask_babel import _
 from werkzeug.exceptions import BadRequest
 
 from superset import appbuilder, dataframe, db, result_set
+from superset.charts.data.dashboard_filter_context import (
+    get_dashboard_filter_context,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import (
     SerializationError,
     SupersetException,
+    SupersetSecurityException,
 )
 from superset.extensions import security_manager
 from superset.legacy import update_time_range
@@ -501,12 +505,32 @@ def get_dashboard_extra_filters(
     ):
         return []
 
+    # Does the caller actually have access to this dashboard? A chart can
+    # legitimately be reused across multiple dashboards, so passing chart
+    # membership above isn't an entitlement check -- without this, a
+    # principal who owns/can access some chart also embedded on a
+    # dashboard they have no access to could pull that dashboard's default
+    # filter configuration into their own request.
+    try:
+        security_manager.raise_for_access(dashboard=dashboard)
+    except SupersetSecurityException:
+        return []
+
     with contextlib.suppress(json.JSONDecodeError):
-        # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
+        native_filters = [
+            flt
+            for flt in get_dashboard_filter_context(
+                dashboard_id=dashboard_id,
+                chart_id=slice_id,
+            ).extra_form_data.get("filters", [])
+            if isinstance(flt, dict)
+        ]
+
+        # does this dashboard have legacy default filters?
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
         if not default_filters:
-            return []
+            return native_filters
 
         # are default filters applicable to the given slice?
         filter_scopes = json_metadata.get("filter_scopes", {})
@@ -517,7 +541,15 @@ def get_dashboard_extra_filters(
             and isinstance(filter_scopes, dict)
             and isinstance(default_filters, dict)
         ):
-            return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+            return [
+                *build_extra_filters(
+                    layout,
+                    filter_scopes,
+                    default_filters,
+                    slice_id,
+                ),
+                *native_filters,
+            ]
     return []
 
 
@@ -633,7 +665,7 @@ def _deserialize_results_payload(
                 raise SerializationError("Unable to deserialize table") from ex
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
-        ds_payload["data"] = dataframe.df_to_records(df) or []
+        ds_payload["data"] = dataframe.df_to_records(df, convert_decimals=True) or []
 
         for column in ds_payload["selected_columns"]:
             if "name" in column:
