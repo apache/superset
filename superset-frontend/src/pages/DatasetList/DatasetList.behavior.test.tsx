@@ -81,12 +81,12 @@ test('single semantic view delete displays the counted dependency conflict', asy
     kind: 'semantic_view',
   };
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   const addDangerToast = jest.fn();
   mockDatasetListEndpoints({ result: [view], count: 1 });
   fetchMock.delete('glob:*/api/v1/semantic_view/99', {
     status: 409,
-    body: { message: reason },
+    body: { message: reason, total: 25, archived_count: 3 },
   });
   renderDatasetList(mockAdminUser, {
     addDangerToast,
@@ -95,16 +95,30 @@ test('single semantic view delete displays the counted dependency conflict', asy
   await screen.findByText(view.table_name);
   await userEvent.click(screen.getByTestId('dataset-row-delete'));
   const modal = await screen.findByRole('dialog');
+  expect(modal).toHaveTextContent('This cannot be undone.');
+  expect(modal).not.toHaveTextContent('Deletion is blocked');
   await userEvent.type(
     within(modal).getByTestId('delete-modal-input'),
     'DELETE',
   );
   await userEvent.click(within(modal).getByRole('button', { name: 'Delete' }));
-  await waitFor(() =>
-    expect(addDangerToast).toHaveBeenCalledWith(
-      `There was an issue deleting orders_semantic: ${reason}`,
-    ),
-  );
+  const alert = await within(modal).findByRole('alert');
+  expect(alert).toHaveTextContent('25 dependent assets');
+  expect(alert).toHaveTextContent('3 archived');
+  expect(
+    within(alert).getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/');
+  expect(within(modal).getByTestId('delete-modal-input')).toHaveValue('DELETE');
+  expect(addDangerToast).not.toHaveBeenCalled();
+  await userEvent.click(within(modal).getByRole('button', { name: 'Cancel' }));
+  await userEvent.click(screen.getByTestId('dataset-row-delete'));
+  await screen.findByRole('dialog');
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('alert'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByTestId('delete-modal-input'),
+  ).toHaveValue('');
 });
 
 test('mixed bulk delete names refused semantic views and their conflict reason', async () => {
@@ -117,7 +131,7 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
   };
   const addDangerToast = jest.fn();
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   mockDatasetListEndpoints({ result: [dataset, semanticView], count: 2 });
   fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
     charts: { count: 0, result: [] },
