@@ -122,6 +122,11 @@ jobs:
       github.event.workflow_run.head_repository.full_name == github.repository
     name: Build (after integration tests)
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      # Required to download the diagnostics artifact from the triggering
+      # run; a public repository allows it implicitly, a private one does not.
+      actions: read
     defaults:
       run:
         working-directory: docs

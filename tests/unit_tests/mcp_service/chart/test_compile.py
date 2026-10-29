@@ -29,6 +29,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.compile import (
@@ -1133,3 +1134,466 @@ def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
     assert result.error_obj.error_type == "compile_error"
     assert "tooltip_columns must contain at most 50 entries" in (result.error or "")
     mock_cmd_cls.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Error in jinja expression in metric expression: "
+        "Unsafe template value for key time_grain: TimeGrain",
+        "Invalid post-processing operation",
+    ],
+)
+def test_compile_chart_validation_failure_is_not_connection_error(
+    mocker: MockerFixture, message: str
+) -> None:
+    """Typed template/processing failures must bypass generic DB classification."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    context = Mock()
+    context.get_payload.return_value = {
+        "queries": [
+            {"error": QueryObjectValidationMessage(QueryObjectValidationError(message))}
+        ]
+    }
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert result.error_obj.error_code == "CHART_COMPILE_FAILED"
+    assert message in result.error_obj.details
+
+
+@pytest.mark.parametrize(
+    ("message", "validation_failure", "expected_error_type"),
+    [
+        (
+            "(psycopg2.OperationalError) connection to server failed: "
+            "Connection refused",
+            False,
+            "database_connection_error",
+        ),
+        (
+            "Unsafe template value for key time_grain: TimeGrain",
+            True,
+            "compile_error",
+        ),
+        ("Invalid post-processing operation", True, "compile_error"),
+    ],
+)
+def test_compile_chart_annotation_failure_preserves_error_classification(
+    mocker: MockerFixture,
+    message: str,
+    validation_failure: bool,
+    expected_error_type: str,
+) -> None:
+    """Annotation failures retain their classification through validation wraps."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    annotation_context = Mock(queries=[])
+    annotation_error = (
+        QueryObjectValidationMessage(QueryObjectValidationError(message))
+        if validation_failure
+        else message
+    )
+    annotation_context.get_payload.return_value = {
+        "queries": [{"error": annotation_error}]
+    }
+    chart = Mock()
+    chart.get_query_context.return_value = annotation_context
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+
+    def get_payload(**kwargs: Any) -> dict[str, Any]:
+        """Record the annotation error like the main query processor."""
+        try:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 2, "name": "annotation"}, force=False
+            )
+        except QueryObjectValidationError as exc:
+            return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
+        raise AssertionError("Expected the annotation query to fail")
+
+    context = Mock()
+    context.get_payload.side_effect = get_payload
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+
+
+_POSTGRES_CONNECTION_REFUSED = (
+    "(psycopg2.OperationalError) could not connect to server: Connection refused\n"
+    '\tIs the server running on host "db.example" (10.0.0.1) and accepting\n'
+    "\tTCP/IP connections on port 5432?"
+)
+
+
+def _annotation_compile_result(
+    mocker: MockerFixture,
+    annotation_failure: str | Exception,
+    *,
+    dataset_engine_spec: Any,
+    annotation_engine_spec: Any | None = None,
+    other_annotation_engine_spec: Any | None = None,
+    annotation_key: str = "annotation_layers",
+    other_annotation_key: str = "annotation_layers",
+) -> Any:
+    """Compile a chart whose first line annotation chart fails.
+
+    ``other_annotation_engine_spec`` adds a second, healthy annotation chart on
+    another engine, so the exception alone does not say which engine failed.
+
+    ``annotation_failure`` is either the annotation query's payload error text or
+    an exception raised while the annotation chart builds its payload.
+    """
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    annotation_context = Mock(queries=[])
+    if isinstance(annotation_failure, Exception):
+        annotation_context.get_payload.side_effect = annotation_failure
+    else:
+        annotation_context.get_payload.return_value = {
+            "queries": [{"error": annotation_failure}]
+        }
+    chart = Mock()
+    chart.get_query_context.return_value = annotation_context
+    if annotation_engine_spec is None:
+        chart.datasource = None
+    else:
+        chart.datasource.database.db_engine_spec = annotation_engine_spec
+    other_chart = Mock()
+    other_chart.datasource.database.db_engine_spec = other_annotation_engine_spec
+    mocker.patch(
+        "superset.daos.chart.ChartDAO.find_by_id",
+        side_effect=lambda chart_id: other_chart if chart_id == 3 else chart,
+    )
+    layer = {
+        "annotationType": "TIME_SERIES",
+        "name": "annotation",
+        "sourceType": "line",
+        "value": 2,
+    }
+    form_data: dict[str, Any] = {"metrics": ["count"], annotation_key: [layer]}
+    if annotation_key == "annotation_layers_b":
+        form_data["viz_type"] = "mixed_timeseries"
+    if other_annotation_engine_spec is not None:
+        form_data.setdefault(other_annotation_key, []).append(
+            {**layer, "name": "other annotation", "value": 3}
+        )
+
+    def get_payload(**kwargs: Any) -> dict[str, Any]:
+        """Record the annotation error like the main query processor."""
+        try:
+            QueryContextProcessor.get_viz_annotation_data(layer, force=False)
+        except QueryObjectValidationError as exc:
+            return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
+        raise AssertionError("Expected the annotation query to fail")
+
+    context = Mock()
+    context.get_payload.side_effect = get_payload
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = dataset_engine_spec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    return _compile_chart(form_data, dataset_id=1)
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (_POSTGRES_CONNECTION_REFUSED, "database_connection_error"),
+        (
+            '(psycopg2.errors.SyntaxError) syntax error at or near "FROMM"',
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_annotation_failure_uses_engine_error_patterns(
+    mocker: MockerFixture, message: str, expected_error_type: str
+) -> None:
+    """Only the engine's connection patterns make an annotation failure a DB error.
+
+    PostgresEngineSpec recognizes both texts, so a syntax error in the
+    annotation query stays a compile error instead of the generic fallback.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+
+
+def test_compile_chart_annotation_dbapi_error_is_connection_error(
+    mocker: MockerFixture,
+) -> None:
+    """A typed DB-API failure raised outside the annotation query stays a DB error.
+
+    The annotation chart raises it before any payload exists, so the chain holds
+    no chart-data query failure, only the typed engine error.
+    """
+    from superset.db_engine_specs.exceptions import SupersetDBAPIOperationalError
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        SupersetDBAPIOperationalError(_POSTGRES_CONNECTION_REFUSED),
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (
+            "(MySQLdb.OperationalError) (2003, \"Can't connect to MySQL server "
+            "on 'mysql.example' (111)\")",
+            "database_connection_error",
+        ),
+        (
+            "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+            "syntax; check the manual that corresponds to your MySQL server "
+            "version for the right syntax to use near 'FROMM x' at line 1')",
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_annotation_failure_uses_annotation_engine_spec(
+    mocker: MockerFixture, message: str, expected_error_type: str
+) -> None:
+    """An annotation chart's failure is classified by its own database's engine.
+
+    The main dataset is on Postgres, whose patterns match neither MySQL text and
+    so fall back to the generic engine error.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    if expected_error_type == "database_connection_error":
+        assert "annotation layer" in result.error_obj.message
+
+
+def test_classify_as_database_error_stops_on_cyclic_cause_chain() -> None:
+    """A cyclic ``__cause__`` chain ends the walk instead of looping forever."""
+    from superset.commands.chart.exceptions import ChartDataQueryValidationError
+    from superset.exceptions import QueryObjectValidationError
+    from superset.mcp_service.chart.compile import _classify_as_database_error
+
+    outer = ChartDataQueryValidationError("Error: annotation failed")
+    cause_reads = 0
+
+    class BoundedValidationError(QueryObjectValidationError):
+        """Fail synchronously if the cycle guard stops bounding the walk."""
+
+        def __getattribute__(self, name: str) -> Any:
+            nonlocal cause_reads
+            if name == "__cause__":
+                cause_reads += 1
+                assert cause_reads <= 2, "cause-chain walk revisited the cycle"
+            return super().__getattribute__(name)
+
+    inner = BoundedValidationError("annotation failed")
+    outer.__cause__ = inner
+    inner.__cause__ = outer
+    assert _classify_as_database_error(outer, {}, 1) is None
+    assert cause_reads == 1
+
+
+def test_compile_chart_annotation_syntax_error_with_several_engines_is_not_connection(
+    mocker: MockerFixture,
+) -> None:
+    """Which annotation engine failed is unknown, so no generic fallback applies.
+
+    Two annotation charts sit on Postgres and MySQL. A MySQL syntax error matches
+    no specific connection pattern; an engine's generic fallback must not turn it
+    into a database connection error.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    message = (
+        "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+        "syntax; check the manual that corresponds to your MySQL server "
+        "version for the right syntax to use near 'FROMM x' at line 1')"
+    )
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+        other_annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert message in result.error_obj.details
+
+
+def test_compile_chart_annotation_connection_error_with_several_engines(
+    mocker: MockerFixture,
+) -> None:
+    """A specific connection pattern still classifies with several engines."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        _POSTGRES_CONNECTION_REFUSED,
+        dataset_engine_spec=MySQLEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+        other_annotation_engine_spec=MySQLEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+    assert "annotation layer's chart" in result.error_obj.message
+
+
+@pytest.mark.parametrize("with_query_a_layer", [False, True])
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (
+            "(MySQLdb.OperationalError) (2003, \"Can't connect to MySQL server "
+            "on 'mysql.example' (111)\")",
+            "database_connection_error",
+        ),
+        (
+            "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+            "syntax; check the manual that corresponds to your MySQL server "
+            "version for the right syntax to use near 'FROMM x' at line 1')",
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_mixed_timeseries_query_b_annotation_failure(
+    mocker: MockerFixture,
+    with_query_a_layer: bool,
+    message: str,
+    expected_error_type: str,
+) -> None:
+    """Query B contributes both the annotation source and possible failing engines."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+        other_annotation_engine_spec=(
+            PostgresEngineSpec if with_query_a_layer else None
+        ),
+        annotation_key="annotation_layers_b",
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+    if expected_error_type == "database_connection_error":
+        assert "annotation layer's chart" in result.error_obj.message
+
+
+@pytest.mark.parametrize("source", ["dataset", "annotation"])
+def test_classification_debug_log_identifies_candidate_engine_source(
+    mocker: MockerFixture, source: str
+) -> None:
+    """Engine lookup failures identify the source, not an annotation dataset."""
+    from superset.commands.chart.exceptions import (
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+    from superset.mcp_service.chart.compile import _classify_as_database_error
+
+    failure = ChartDataQueryFailedError("query failed")
+    exc: Exception = failure
+    form_data: dict[str, Any] = {}
+    spec = Mock()
+    spec.extract_errors.side_effect = RuntimeError("classification failed")
+    dataset = Mock()
+    dataset.database.db_engine_spec = spec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+    mocker.patch(
+        "superset.mcp_service.chart.compile._annotation_engine_specs",
+        return_value=([spec], True),
+    )
+    if source == "annotation":
+        exc = ChartDataQueryValidationError("annotation failed")
+        exc.__cause__ = failure
+        form_data["annotation_layers"] = [{"sourceType": "line", "value": 2}]
+    debug = mocker.patch("superset.mcp_service.chart.compile.logger.debug")
+
+    assert _classify_as_database_error(exc, form_data, 1) is None
+    debug.assert_called_once_with(
+        "Failed to classify %s error via candidate engine specs (main dataset %s): %s",
+        source,
+        1,
+        exc,
+    )

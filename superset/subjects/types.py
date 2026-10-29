@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from enum import IntEnum
+from typing import Literal, TypedDict
 
 
 class SubjectType(IntEnum):
@@ -26,3 +27,13 @@ class SubjectType(IntEnum):
 class ActionType(IntEnum):
     EDIT = 1
     VIEW = 2
+
+
+class PrincipalReference(TypedDict):
+    """An explicitly named ID namespace, never inferred from its integer value."""
+
+    type: Literal["user", "role", "group", "subject"]
+    id: int
+
+
+SubjectReference = int | PrincipalReference

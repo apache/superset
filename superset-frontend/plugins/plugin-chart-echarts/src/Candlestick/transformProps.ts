@@ -355,6 +355,7 @@ export default function transformProps(
     tooltipTimeFormat,
     tooltipValuesFormat,
     showLegend,
+    showSelectorLegend,
     legendMargin,
     legendOrientation = LegendOrientation.Top,
     legendType = LegendType.Scroll,
@@ -596,6 +597,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -645,6 +647,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         zoomable,
         legendState,
       ),
