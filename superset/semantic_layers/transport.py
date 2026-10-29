@@ -59,6 +59,17 @@ MAX_REDIRECTS: int = 3
 _CHUNK_BYTES: int = 65536
 
 
+class _ProviderPoolLogFilter(logging.Filter):
+    """Keep provider URLs out of pool records without hiding unrelated traffic."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Preserve records outside the active provider request context."""
+        return PROVIDER_DEADLINE.get() is None
+
+
+logging.getLogger("urllib3.connectionpool").addFilter(_ProviderPoolLogFilter())
+
+
 class HostProviderTransport(ProviderTransport):
     """Fix operator policy at construction; keep budgets and sockets call-local."""
 

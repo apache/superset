@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import importlib.util
 import ipaddress
+import logging
 import os
 import socket
 import ssl
@@ -30,14 +31,14 @@ import textwrap
 import time
 import traceback
 from collections.abc import Callable, Iterator
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib.machinery import ModuleSpec
 from io import BytesIO
 from pathlib import Path
-from threading import get_ident, Lock, Thread
+from threading import Event, get_ident, Lock, Thread
 from types import ModuleType
 from typing import Any, cast, TypeAlias
 from unittest.mock import Mock, patch
@@ -928,8 +929,14 @@ def test_bounded_redirect_bodies_are_never_read(
 
 
 @contextmanager
-def _framing_server(context: ssl.SSLContext, mode: str) -> Iterator[int]:
+def _framing_server(
+    context: ssl.SSLContext, mode: str
+) -> Iterator[tuple[int, Event, Event]]:
     """Drip HTTP framing bytes (a header or chunk trailer), not body bytes."""
+
+    ready: Event = Event()
+    release: Event = Event()
+    stop: Event = Event()
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802
@@ -944,10 +951,12 @@ def _framing_server(context: ssl.SSLContext, mode: str) -> Iterator[int]:
             try:
                 self.wfile.write(prefix)
                 self.wfile.flush()
-                for _ in range(14):
+                ready.set()
+                if not release.wait(timeout=10):
+                    return
+                while not stop.wait(0.04):
                     self.wfile.write(b"x")
                     self.wfile.flush()
-                    time.sleep(0.04)
                 self.wfile.write(b"\r\n\r\n")
                 self.wfile.flush()
             except OSError:
@@ -961,8 +970,10 @@ def _framing_server(context: ssl.SSLContext, mode: str) -> Iterator[int]:
     thread: Thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        yield server.server_address[1]
+        yield server.server_address[1], ready, release
     finally:
+        stop.set()
+        release.set()
         server.shutdown()
         server.server_close()
         thread.join()
@@ -971,16 +982,48 @@ def _framing_server(context: ssl.SSLContext, mode: str) -> Iterator[int]:
 @pytest.mark.parametrize("mode", ["headers", "chunk-trailers", "close-delimited"])
 @pytest.mark.parametrize("allow_internal", [False, True])
 def test_bounded_framing_obeys_the_absolute_deadline(
-    public_tls: tuple[ssl.SSLContext, list[str]], mode: str, allow_internal: bool
+    public_tls: tuple[ssl.SSLContext, list[str]],
+    mode: str,
+    allow_internal: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Allowing internal hosts relaxes destinations only, never the deadline.
-    with _framing_server(public_tls[0], mode) as port, _internal_hosts(allow_internal):
-        started: float = time.monotonic()
+    # Leave setup a generous budget. Only the transport's clock advances to
+    # the final 200 ms once the server has sent the named framing prefix.
+    offset: float = 0.0
+    clock: Mock = Mock(wraps=time)
+    clock.monotonic.side_effect = lambda: time.monotonic() + offset
+    monkeypatch.setattr(semantic_layer_http, "time", clock)
+    worker: ThreadPoolExecutor
+    port: int
+    ready: Event
+    release: Event
+    with (
+        ThreadPoolExecutor(1) as worker,
+        _framing_server(public_tls[0], mode) as (port, ready, release),
+        _internal_hosts(allow_internal),
+    ):
+        deadline: float = time.monotonic() + 30
+        future: Future[bytes] = worker.submit(
+            provider_body,
+            "MetricFlow",
+            "POST",
+            f"https://public.example.test:{port}/q",
+            deadline=deadline,
+            max_bytes=4096,
+            timeout=(5.0, 30.0),
+            json={"query": "{ ok }"},
+        )
+        assert ready.wait(timeout=10), "server did not reach framing mode"
+        scheduler: semantic_layer_http.DeadlineScheduler = (
+            semantic_layer_http._scheduler()
+        )
+        with scheduler._condition:
+            offset = deadline - time.monotonic() - 0.2
+            scheduler._condition.notify()
+        release.set()
         with pytest.raises(ProviderRequestError) as raised:
-            _body(f"https://public.example.test:{port}/q", seconds=0.15)
+            future.result(timeout=10)
         assert raised.value.failure == ProviderRequestFailure.TIMEOUT
-        elapsed: float = time.monotonic() - started
-    assert elapsed < 0.40, (mode, allow_internal, elapsed)
 
 
 def test_bounded_lookup_and_connect_attempts_share_the_deadline(
@@ -1495,7 +1538,7 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
         import signal
         import socket
         import time
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import Future, ThreadPoolExecutor
         from superset.semantic_layers import transport
         from superset.utils import network
 
@@ -1795,7 +1838,7 @@ def test_scheduler_lock_initialization_is_serialized_across_os_threads() -> None
     """Widen first-use interleavings without leaving orphan workers in pytest."""
     script: str = textwrap.dedent("""
         import time
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import Future, ThreadPoolExecutor
         from threading import Barrier, Lock
         from types import SimpleNamespace
         from superset.semantic_layers import transport
@@ -1931,3 +1974,37 @@ def test_post_transmits_query_params_and_json_body() -> None:
         finally:
             server.shutdown()
             thread.join(timeout=2)
+
+
+def test_provider_debug_logs_omit_query_tokens(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Provider requests stay private while unrelated urllib3 logs remain visible."""
+
+    def consume(count: int) -> None:
+        """Run unrelated HTTP while the provider request context is active."""
+        worker: ThreadPoolExecutor
+        # Provider context is active here, but not in this unrelated thread.
+        with ThreadPoolExecutor(1) as worker:
+            worker.submit(_background_request).result(timeout=5)
+
+    port: int
+    with (
+        caplog.at_level(logging.DEBUG, logger="urllib3.connectionpool"),
+        _server() as (port, _),
+        _internal_hosts(True),
+    ):
+        response: ProviderResponse = provider_request(
+            "Example",
+            "GET",
+            f"http://127.0.0.1:{port}/catalog?token=SECRET",
+            timeout=2,
+            consume=consume,
+        )
+        assert response.status == 200
+    assert "SECRET" not in caplog.text
+    assert "/catalog" not in caplog.text
+    assert any(
+        record.name == "urllib3.connectionpool" and "/background" in record.getMessage()
+        for record in caplog.records
+    )

@@ -461,3 +461,18 @@ def test_resolver_submission_failure_returns_capacity(
         network.resolve_public_addresses("fixture.test", 443, timeout=1)
     assert slots.acquire(blocking=False)
     slots.release()
+
+
+def test_pinned_connect_uses_ipv6_socket_for_public_numeric_target() -> None:
+    """A checked IPv6 address retains its family without a second DNS lookup."""
+    import socket
+
+    from superset.utils.network import _connect_address
+
+    address: tuple[str, int] = ("2606:4700:4700::1111", 443)
+    factory: MagicMock
+    with patch("superset.utils.network.socket.socket") as factory:
+        sock: MagicMock = factory.return_value
+        assert _connect_address(address, 2, None) is sock
+        factory.assert_called_once_with(socket.AF_INET6, socket.SOCK_STREAM)
+        sock.connect.assert_called_once_with(address)
