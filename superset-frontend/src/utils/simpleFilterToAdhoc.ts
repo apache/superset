@@ -92,7 +92,7 @@ export const simpleFilterToAdhoc = (
         },
         timeGrain: filterClause.grain,
         comparator: 'val' in filterClause ? filterClause.val : undefined,
-      } as SimpleAdhocFilter;
+      } as unknown as SimpleAdhocFilter;
     } else {
       result = {
         expressionType: 'SQL',
