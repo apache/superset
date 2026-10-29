@@ -837,18 +837,41 @@ def _pivot_grouping_sets(
     needs_rows_collapsed = show_values_as in {"percent_col", "percent_total"}
     needs_columns_collapsed = show_values_as in {"percent_row", "percent_total"}
 
+    # The metric pseudo-dimension sits first on the axis chosen by
+    # `metricsLayout`, so the fully collapsed level on that axis is drawn as
+    # each metric group's Subtotal line and is also requested by that axis's
+    # own subtotal toggle. Combined metrics draw no such line.
+    metrics_on_rows = form_data.get("metricsLayout") == "ROWS"
+    combine_metric = bool(form_data.get("combineMetric"))
+    needs_metric_row_subtotal = (
+        not combine_metric and bool(form_data.get("rowSubTotals")) and metrics_on_rows
+    )
+    needs_metric_column_subtotal = (
+        not combine_metric
+        and bool(form_data.get("colSubTotals"))
+        and not metrics_on_rows
+    )
+
     def row_prefix_needed(prefix: list[Any]) -> bool:
         if len(prefix) == len(rows):
             return True
         if not prefix:
-            return bool(form_data.get("colTotals")) or needs_rows_collapsed
+            return (
+                bool(form_data.get("colTotals"))
+                or needs_rows_collapsed
+                or needs_metric_row_subtotal
+            )
         return bool(form_data.get("rowSubTotals"))
 
     def column_prefix_needed(prefix: list[Any]) -> bool:
         if len(prefix) == len(columns):
             return True
         if not prefix:
-            return bool(form_data.get("rowTotals")) or needs_columns_collapsed
+            return (
+                bool(form_data.get("rowTotals"))
+                or needs_columns_collapsed
+                or needs_metric_column_subtotal
+            )
         return bool(form_data.get("colSubTotals"))
 
     levels = [
@@ -858,8 +881,7 @@ def _pivot_grouping_sets(
         for column_prefix in column_prefixes
         if column_prefix_needed(column_prefix)
     ]
-    if form_data.get("combineMetric"):
-        metrics_layout = form_data.get("metricsLayout")
+    if combine_metric:
 
         def forced_denominator(level: tuple[list[Any], list[Any]]) -> bool:
             row_prefix, column_prefix = level
@@ -867,7 +889,7 @@ def _pivot_grouping_sets(
                 needs_columns_collapsed and not column_prefix
             )
 
-        if metrics_layout == "ROWS":
+        if metrics_on_rows:
             levels = [
                 level
                 for level in levels

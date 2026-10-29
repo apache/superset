@@ -104,7 +104,7 @@ bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-brotli==1.2.0
+brotli==1.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-compress
@@ -529,8 +529,10 @@ jmespath==1.1.0
     #   boto3
     #   botocore
     #   pymongosql
-joserfc==1.7.2
-    # via fastmcp-slim
+joserfc==1.7.7
+    # via
+    #   -r requirements/development.in
+    #   fastmcp-slim
 jsonpath-ng==1.13.0
     # via
     #   -c requirements/base-constraint.txt
@@ -943,8 +945,9 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.29
+python-multipart==0.0.32
     # via
+    #   -r requirements/development.in
     #   fastmcp-slim
     #   mcp
 pytz==2025.2
@@ -1102,7 +1105,7 @@ sqlalchemy-utils==0.43.0
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.21.0
+sqlglot==30.24.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

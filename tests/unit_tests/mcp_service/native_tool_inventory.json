@@ -42,11 +42,11 @@
       "compact_description_chars": 256,
       "description_chars": 1145,
       "entry_bytes": {
-        "structured": 8192,
+        "structured": 8529,
         "text_only": 2602
       },
       "input_schema_bytes": 1114,
-      "output_schema_bytes": 5574
+      "output_schema_bytes": 5911
     },
     "create_dataset_metric": {
       "annotations": {
@@ -506,11 +506,11 @@
       "compact_description_chars": 175,
       "description_chars": 1567,
       "entry_bytes": {
-        "structured": 9034,
+        "structured": 9371,
         "text_only": 3444
       },
       "input_schema_bytes": 1575,
-      "output_schema_bytes": 5574
+      "output_schema_bytes": 5911
     },
     "get_instance_info": {
       "annotations": {
@@ -810,11 +810,11 @@
       "compact_description_chars": 230,
       "description_chars": 2331,
       "entry_bytes": {
-        "structured": 14755,
+        "structured": 15092,
         "text_only": 6798
       },
       "input_schema_bytes": 4146,
-      "output_schema_bytes": 7941
+      "output_schema_bytes": 8278
     },
     "list_layer_annotations": {
       "annotations": {
@@ -1267,11 +1267,11 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 526793,
+      "structured": 527804,
       "text_only": 215676
     },
     "compact_catalog_bytes": {
-      "structured": 472742,
+      "structured": 473753,
       "text_only": 161625
     },
     "largest_entry": {
