@@ -68,6 +68,7 @@ from superset.commands.canvas.draft import (
     DeleteCanvasDraftCommand,
     draft_payload,
     load_draft,
+    RewindCanvasDraftCommand,
 )
 from superset.commands.canvas.exceptions import (
     CanvasCreateFailedError,
@@ -235,6 +236,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "create_draft",
         "get_draft",
         "apply_draft_operations",
+        "undo_draft",
+        "redo_draft",
         "commit_draft",
         "delete_draft",
         "get_placement_data",
@@ -251,6 +254,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "create_draft": "write",
         "get_draft": "write",
         "apply_draft_operations": "write",
+        "undo_draft": "write",
+        "redo_draft": "write",
         "commit_draft": "write",
         "delete_draft": "write",
         "get_placement_data": "read",
@@ -874,6 +879,99 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             _draft_token(), body.revision, body.ops
         ).run()
         return self.response(200, result={**draft_payload(draft), "ops": ops})
+
+    @expose("/draft/undo", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.undo_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def undo_draft(self) -> Response:
+        """Step the draft named by the `X-Canvas-Draft` header back one request.
+        ---
+        post:
+          summary: Undo the last change to a canvas draft
+          description: >-
+            Takes the operations of the most recent request off the draft and
+            rebuilds it from the rest, one request at a time. A request that
+            changed only a widget's props is a step like any other. Does
+            nothing when there is nothing to undo. Rejected with 409 if the
+            draft moved on, or if the canvas has changed since the draft
+            started, which a rebuild cannot replay against.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required: [revision]
+                  properties:
+                    revision:
+                      type: integer
+          responses:
+            200:
+              description: The draft after the step, as the definition response
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: The draft or the canvas changed
+        """
+        return self._rewind_draft(forward=False)
+
+    @expose("/draft/redo", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.redo_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def redo_draft(self) -> Response:
+        """Put back the request the draft last stepped off.
+        ---
+        post:
+          summary: Redo the last undone change to a canvas draft
+          description: >-
+            Reapplies the request undo last removed. Any new change to the
+            draft discards what was undone, so this does nothing once the
+            draft has moved on in another direction.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  required: [revision]
+                  properties:
+                    revision:
+                      type: integer
+          responses:
+            200:
+              description: The draft after the step, as the definition response
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: The draft or the canvas changed
+        """
+        return self._rewind_draft(forward=True)
+
+    def _rewind_draft(self, forward: bool) -> Response:
+        try:
+            body = CommitDraftRequest.model_validate(request.get_json(silent=True))
+        except PydanticValidationError as ex:
+            return self.response(400, message=_pydantic_errors(ex))
+        draft = RewindCanvasDraftCommand(
+            _draft_token(), body.revision, forward=forward
+        ).run()
+        return self.response(200, result=draft_payload(draft))
 
     @expose("/draft/commit", methods=("POST",))
     @protect()

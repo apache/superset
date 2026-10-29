@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -10066,6 +10066,9 @@ msgstr "ปิดใช้งานคุณสมบัติการเจา
 msgid "Discard"
 msgstr "ละทิ้ง"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -10370,6 +10373,9 @@ msgid "Draft"
 msgstr "ร่าง"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -15424,6 +15430,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -19472,9 +19481,6 @@ msgstr ""
 msgid "Plain"
 msgstr "ธรรมดา"
 
-msgid "Plan mode"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20068,6 +20074,9 @@ msgstr "เฉพาะชีตที่แชร์แบบสาธารณ
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -20430,6 +20439,9 @@ msgstr "สี่เหลี่ยมผืนผ้า"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "เกิดซ้ำ (ทุก)"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -25465,6 +25477,9 @@ msgstr ""
 "มีดพับสวิสสำหรับการแสดงข้อมูล เลือกระหว่างแผนภูมิขั้นบันได เส้น กระจาย "
 "และแท่ง ประเภทการแสดงผลนี้ยังมีตัวเลือกการปรับแต่งมากมาย"
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -25476,6 +25491,9 @@ msgstr "สลับไปยังแท็บถัดไป"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "สลับไปยังแท็บก่อนหน้า"
+
+msgid "Switch to view mode"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk, zh, zh_TW]
@@ -25989,7 +26007,10 @@ msgstr "ข้อความที่ฝังในอีเมล"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -28568,6 +28589,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

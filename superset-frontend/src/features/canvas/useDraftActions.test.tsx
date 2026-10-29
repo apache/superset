@@ -23,7 +23,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
-import DraftBanner from './DraftBanner';
+import { useDraftActions } from './useDraftActions';
 
 const commitEndpoint = 'glob:*/api/v1/canvas/draft/commit';
 const draftEndpoint = 'glob:*/api/v1/canvas/draft';
@@ -33,26 +33,43 @@ beforeEach(() => {
   fetchMock.clearHistory();
 });
 
-const renderBanner = (saving = false, onClose = jest.fn()) => {
-  render(
-    <DraftBanner
-      token="tok-123"
-      revision={4}
-      onClose={onClose}
-      saving={saving}
-    />,
-    { useRedux: true },
+function Harness({
+  onClosed,
+  onBusyChange,
+}: {
+  onClosed: () => void;
+  onBusyChange?: (busy: boolean) => void;
+}) {
+  const actions = useDraftActions('tok-123', 4, onClosed, onBusyChange);
+  return (
+    <>
+      <button type="button" onClick={actions.publish}>
+        Publish
+      </button>
+      <button type="button" onClick={actions.discard}>
+        Discard
+      </button>
+      <span>{actions.busy ? 'busy' : 'free'}</span>
+    </>
   );
-  return onClose;
+}
+
+const renderHarness = (onBusyChange?: (busy: boolean) => void) => {
+  const onClosed = jest.fn();
+  render(<Harness onClosed={onClosed} onBusyChange={onBusyChange} />, {
+    useRedux: true,
+  });
+  return onClosed;
 };
 
-const publishButton = () => screen.getByRole('button', { name: /Publish/ });
+const click = (name: string) =>
+  fireEvent.click(screen.getByRole('button', { name }));
 
 test('publishing commits the draft at the revision it was given', async () => {
   fetchMock.post(commitEndpoint, { result: { revision: 5 } });
-  const onClose = renderBanner();
+  const onClosed = renderHarness();
 
-  fireEvent.click(publishButton());
+  click('Publish');
 
   await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
   const [call] = fetchMock.callHistory.calls();
@@ -60,30 +77,17 @@ test('publishing commits the draft at the revision it was given', async () => {
   expect(
     (call.options.headers as Record<string, string>)['x-canvas-draft'],
   ).toBe('tok-123');
-  await waitFor(() => expect(onClose).toHaveBeenCalled());
-});
-
-test('publishing is held while a layout change is still saving', () => {
-  fetchMock.post(commitEndpoint, { result: { revision: 5 } });
-  renderBanner(true);
-
-  expect(publishButton()).toBeDisabled();
-
-  fireEvent.click(publishButton());
-
-  // Committing now would publish the revision before that change landed and
-  // then delete the draft, losing it.
-  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  await waitFor(() => expect(onClosed).toHaveBeenCalled());
 });
 
 test('discarding deletes the draft', async () => {
   fetchMock.delete(draftEndpoint, { result: 'deleted' });
-  const onClose = renderBanner();
+  const onClosed = renderHarness();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+  click('Discard');
 
-  // The request itself, not just the close: the banner closes after any
-  // resolved action, so asserting only `onClose` passes even when nothing is
+  // The request itself, not just the close: the draft closes after any
+  // resolved action, so asserting only `onClosed` passes even when nothing is
   // sent and the draft survives.
   await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
   const [call] = fetchMock.callHistory.calls();
@@ -92,10 +96,10 @@ test('discarding deletes the draft', async () => {
   expect(
     (call.options.headers as Record<string, string>)['x-canvas-draft'],
   ).toBe('tok-123');
-  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  await waitFor(() => expect(onClosed).toHaveBeenCalled());
 });
 
-test('the banner reports busy for the whole commit, so edits can be stopped', async () => {
+test('busy is reported for the whole commit, so edits can be stopped', async () => {
   // Guards the race: a commit reads a revision then deletes the draft, so a
   // change accepted in between is replayed by nothing and silently lost.
   let finishCommit: () => void = () => {};
@@ -109,21 +113,14 @@ test('the banner reports busy for the whole commit, so edits can be stopped', as
   });
   fetchMock.post(commitEndpoint, () => held);
   const onBusyChange = jest.fn();
-  render(
-    <DraftBanner
-      token="tok-123"
-      revision={4}
-      onClose={jest.fn()}
-      onBusyChange={onBusyChange}
-    />,
-    { useRedux: true },
-  );
+  renderHarness(onBusyChange);
 
-  fireEvent.click(publishButton());
+  click('Publish');
 
   // Busy before the request settles, which is the window the race lives in.
   await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(true));
   expect(onBusyChange).not.toHaveBeenCalledWith(false);
+  expect(screen.getByText('busy')).toBeInTheDocument();
 
   finishCommit();
 
@@ -133,33 +130,12 @@ test('the banner reports busy for the whole commit, so edits can be stopped', as
 test('busy is reported false again when a commit fails', async () => {
   fetchMock.post(commitEndpoint, 409);
   const onBusyChange = jest.fn();
-  render(
-    <DraftBanner
-      token="tok-123"
-      revision={4}
-      onClose={jest.fn()}
-      onBusyChange={onBusyChange}
-    />,
-    { useRedux: true },
-  );
+  const onClosed = renderHarness(onBusyChange);
 
-  fireEvent.click(publishButton());
+  click('Publish');
 
   // Otherwise a rejected publish would leave the canvas uneditable.
   await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(false));
-});
-
-test('discarding is held while a layout change is still saving', () => {
-  // A discard landing between a save's read and its write-back would delete
-  // the draft and then have it recreated by that save, so the token still
-  // opens changes the user was told were discarded.
-  fetchMock.delete(draftEndpoint, { result: 'deleted' });
-  renderBanner(true);
-
-  const discard = screen.getByRole('button', { name: 'Discard' });
-  expect(discard).toBeDisabled();
-
-  fireEvent.click(discard);
-
-  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  // And the draft stays open: its changes are still only in the draft.
+  expect(onClosed).not.toHaveBeenCalled();
 });

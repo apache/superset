@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -6785,6 +6785,9 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 msgid "Discard"
 msgstr "Negeren"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Toon naam"
 
@@ -6998,6 +7001,9 @@ msgid "Draft"
 msgstr "Concept"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -10308,6 +10314,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -12922,9 +12931,6 @@ msgstr ""
 msgid "Plain"
 msgstr "Gewoon"
 
-msgid "Plan mode"
-msgstr ""
-
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13315,6 +13321,9 @@ msgstr "Alleen openbaar gedeelde bladen"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -13519,6 +13528,9 @@ msgstr "Rechthoek"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "Terugkerend (elke)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "De actie opnieuw uitvoeren"
@@ -16828,6 +16840,9 @@ msgstr ""
 "stap, lijn, verspreidings en staafdiagrammen. Dit viz type heeft ook veel"
 " aanpassingsmogelijkheden."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16839,6 +16854,9 @@ msgstr "Naar het volgende tabblad gaan"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "Naar het vorige tabblad gaan"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbool"
@@ -17182,7 +17200,10 @@ msgstr "Tekst ingesloten in e-mail"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -19203,6 +19224,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

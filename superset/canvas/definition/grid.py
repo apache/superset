@@ -121,13 +121,18 @@ def insert_index(rects: list[Rect], target: Rect) -> int:
     between two others. It goes before the first sibling it overlaps, or that
     starts after it by row and then column, and last if there is no such
     sibling.
+
+    Landing on a sibling is above it or below it depending on where: past the
+    sibling's middle is below it. Without that, aiming at the bottom of a tall
+    neighbour -- a ten-row group, say -- still counts as landing on it, so the
+    widget is inserted ahead and the whole group is pushed down underneath
+    something dropped at its feet.
     """
-    return next(
-        (
-            i
-            for i, rect in enumerate(rects)
-            if rect.cells() & target.cells()
-            or (rect.row, rect.col) >= (target.row, target.col)
-        ),
-        len(rects),
-    )
+    for i, rect in enumerate(rects):
+        if rect.cells() & target.cells():
+            if target.row < rect.row + rect.row_span / 2:
+                return i
+            continue
+        if (rect.row, rect.col) >= (target.row, target.col):
+            return i
+    return len(rects)

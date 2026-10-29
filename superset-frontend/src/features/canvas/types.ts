@@ -131,6 +131,12 @@ export interface CanvasDefinitionResult {
   widgets?: Record<string, StoredWidget>;
   /** Whether the current user may apply operations to this canvas. */
   canEdit: boolean;
+  /**
+   * Whether the draft has a step to go back to, or one to put back. Only a
+   * draft has history, so these are absent on the published canvas.
+   */
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 /** A widget entity's content, as a canvas renders it. */
@@ -166,6 +172,14 @@ export interface ApplyOperationsResult {
   widgetTypes: Record<string, string>;
   gridColumns: Record<string, number>;
   layoutConstraints: Record<string, SpanConstraints>;
+  /**
+   * The scopes the write resolved, as the definition route returns them. A
+   * scope follows the tree, so a `move` changes them without being asked to,
+   * exactly as `childOrder` does.
+   */
+  filterScopes: Record<string, string[]>;
+  crossFilterScopes: Record<string, string[]>;
+  customizationScopes: Record<string, string[]>;
 }
 
 /** A row of `GET /api/v1/canvas/`. */

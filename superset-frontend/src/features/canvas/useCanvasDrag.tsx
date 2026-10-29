@@ -49,6 +49,18 @@ export interface RegisteredGrid {
   /** The container whose children this grid lays out; the root grid's id. */
   parentId: string;
   element: HTMLElement;
+  /**
+   * The box a pointer is tested against, which is the container's whole
+   * widget box rather than this grid's own.
+   *
+   * A grid is only as tall as the rows its children fill. A container is as
+   * tall as it was placed -- a group of ten rows holding four rows of tiles
+   * has six rows of empty space below them that is plainly still inside the
+   * group. Testing the grid's box would hand that space to the grid above,
+   * and a widget dragged down through it would be thrown out of the group it
+   * is visibly still in.
+   */
+  bounds: HTMLElement;
   columns: number;
   gap: number;
   rowUnit: number;
@@ -111,8 +123,18 @@ export interface CanvasDrag {
    * where it is only once you are already there.
    */
   dragging: boolean;
-  /** The innermost grid under a point, if any; pinned positions while frozen. */
-  gridAt: (clientX: number, clientY: number) => GridHit | undefined;
+  /**
+   * The innermost grid under a point, if any; pinned positions while frozen.
+   *
+   * `inside` names a node whose own grid, and every grid nested in it, is
+   * skipped: a container dragged across its own footprint is otherwise found
+   * to be over itself, and would be asked to become its own child.
+   */
+  gridAt: (
+    clientX: number,
+    clientY: number,
+    inside?: string,
+  ) => GridHit | undefined;
   /** Where the live drag would land, when that is another grid. */
   landing?: Landing;
   setLanding: (landing?: Landing) => void;
@@ -133,6 +155,13 @@ interface PinnedBox {
   top: number;
   right: number;
   bottom: number;
+}
+
+/** Both of a grid's boxes: what a pointer is tested against, and where the
+ * grid itself begins, which is what a placement is measured from. */
+interface PinnedGrid {
+  hit: PinnedBox;
+  frame: PinnedBox;
 }
 
 const CanvasDragContext = createContext<CanvasDrag>(NOT_DRAGGING);
@@ -158,7 +187,7 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
 
   // Pinned relative to the root grid rather than to the viewport, so the
   // positions survive the page scrolling under a drag.
-  const pinned = useRef<{ base: string; boxes: Map<string, PinnedBox> }>();
+  const pinned = useRef<{ base: string; boxes: Map<string, PinnedGrid> }>();
   const [dragging, setDragging] = useState(false);
 
   const rootGrid = useCallback(
@@ -170,14 +199,17 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
     const base = rootGrid();
     if (!base) return;
     const origin = base.element.getBoundingClientRect();
-    const boxes = new Map<string, PinnedBox>();
+    const relative = (box: DOMRect): PinnedBox => ({
+      left: box.left - origin.left,
+      top: box.top - origin.top,
+      right: box.right - origin.left,
+      bottom: box.bottom - origin.top,
+    });
+    const boxes = new Map<string, PinnedGrid>();
     grids.current.forEach(grid => {
-      const box = grid.element.getBoundingClientRect();
       boxes.set(grid.parentId, {
-        left: box.left - origin.left,
-        top: box.top - origin.top,
-        right: box.right - origin.left,
-        bottom: box.bottom - origin.top,
+        hit: relative(grid.bounds.getBoundingClientRect()),
+        frame: relative(grid.element.getBoundingClientRect()),
       });
     });
     pinned.current = { base: base.parentId, boxes };
@@ -189,38 +221,68 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
     setDragging(false);
   }, []);
 
-  const gridAt = useCallback((clientX: number, clientY: number) => {
-    const snapshot = pinned.current;
-    const base = snapshot && grids.current.get(snapshot.base);
-    const origin = base?.element.getBoundingClientRect();
-    let found: GridHit | undefined;
+  /** Every registered grid's child, by the container it belongs to. */
+  const parentOf = useCallback(() => {
+    const parents = new Map<string, string>();
     grids.current.forEach(grid => {
-      const box =
-        snapshot && origin
-          ? snapshot.boxes.get(grid.parentId)
-          : grid.element.getBoundingClientRect();
-      if (!box) return;
-      // Pinned boxes are relative to the root grid's corner, so the pointer
-      // is measured from there too and a scroll moves neither.
-      const x = origin ? clientX - origin.left : clientX;
-      const y = origin ? clientY - origin.top : clientY;
-      const inside =
-        x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
-      // The innermost wins, as it does for presses: a nested grid is always
-      // inside its container's, so both match and the deeper one is meant.
-      if (inside && (!found || grid.depth > found.grid.depth)) {
-        found = {
-          grid,
-          // Back into viewport coordinates, which is what a drop is measured
-          // in, from whichever box it was actually found by.
-          left: (origin?.left ?? 0) + box.left,
-          top: (origin?.top ?? 0) + box.top,
-          width: box.right - box.left,
-        };
-      }
+      grid
+        .snapshot()
+        .childIds.forEach(child => parents.set(child, grid.parentId));
     });
-    return found;
+    return parents;
   }, []);
+
+  const gridAt = useCallback(
+    (clientX: number, clientY: number, inside?: string) => {
+      const snapshot = pinned.current;
+      const base = snapshot && grids.current.get(snapshot.base);
+      const origin = base?.element.getBoundingClientRect();
+      // Walked from each candidate up to the root, so a grid deeper inside
+      // the dragged node is skipped as well as the node's own.
+      const parents = inside ? parentOf() : undefined;
+      const nested = (parentId: string): boolean => {
+        let current: string | undefined = parentId;
+        while (current) {
+          if (current === inside) return true;
+          current = parents?.get(current);
+        }
+        return false;
+      };
+      let found: GridHit | undefined;
+      grids.current.forEach(grid => {
+        if (inside && nested(grid.parentId)) return;
+        const pinnedGrid =
+          snapshot && origin && snapshot.boxes.get(grid.parentId);
+        const hit = pinnedGrid
+          ? pinnedGrid.hit
+          : grid.bounds.getBoundingClientRect();
+        const frame = pinnedGrid
+          ? pinnedGrid.frame
+          : grid.element.getBoundingClientRect();
+        // Pinned boxes are relative to the root grid's corner, so the pointer
+        // is measured from there too and a scroll moves neither.
+        const x = origin ? clientX - origin.left : clientX;
+        const y = origin ? clientY - origin.top : clientY;
+        const over =
+          x >= hit.left && x <= hit.right && y >= hit.top && y <= hit.bottom;
+        // The innermost wins, as it does for presses: a nested grid is always
+        // inside its container's, so both match and the deeper one is meant.
+        if (over && (!found || grid.depth > found.grid.depth)) {
+          found = {
+            grid,
+            // Back into viewport coordinates, which is what a drop is
+            // measured in. The frame, not the box it was found by: a
+            // placement is measured from where the grid's first row begins.
+            left: (origin?.left ?? 0) + frame.left,
+            top: (origin?.top ?? 0) + frame.top,
+            width: frame.right - frame.left,
+          };
+        }
+      });
+      return found;
+    },
+    [parentOf],
+  );
 
   const value = useMemo(
     () => ({

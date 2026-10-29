@@ -139,6 +139,11 @@ const layoutOf = (
   place,
   move: jest.fn(),
   swap: jest.fn(),
+  // From the same definition: the hook keeps these in step with the writes,
+  // and the grid reads them from it rather than from the fetched result.
+  filterScopes: gridResult.filterScopes,
+  crossFilterScopes: gridResult.crossFilterScopes,
+  customizationScopes: gridResult.customizationScopes,
   dismissError: jest.fn(),
 });
 
@@ -454,6 +459,9 @@ test('a widget dragged out of a group moves into the grid it was dropped on', ()
     });
   box(root, 0, 800);
   box(inner, 200, 400);
+  // The group's box, which is what "inside the group" means: its grid is
+  // only as tall as the rows its children fill.
+  box(container.querySelector('[data-node-id="g"]') as HTMLElement, 200, 400);
 
   // 'c1' lives in the group. Drag it out, down into the root grid.
   const group = screen.getByRole('region', { name: 'group' });
@@ -482,13 +490,83 @@ test('a widget dragged out of a group moves into the grid it was dropped on', ()
   // Reparented, not merely re-laid-out.
   expect(place).not.toHaveBeenCalled();
   expect(move).toHaveBeenCalledTimes(1);
-  const [nodeId, parent, index, placement] = move.mock.calls[0];
-  expect(nodeId).toBe('c1');
-  expect(parent).toBe('root');
-  expect(typeof index).toBe('number');
-  // Landed in the root's 24 columns, not the group's 12.
-  expect(placement.colSpan).toBeLessThanOrEqual(24);
-  expect(placement.row).toBeGreaterThan(0);
+  expect(move).toHaveBeenCalledWith(
+    'c1',
+    'root',
+    // Last in the root's reading order: it was dropped below everything
+    // there. An insert at 0 would put it ahead of widgets it landed under.
+    5,
+    // Twelve columns, not six: half of the group's twelve carried across as
+    // half of the root's twenty-four. Keeping the number would halve it on
+    // screen; keeping the proportion is what the drop promised.
+    { col: 1, row: 12, colSpan: 12, rowSpan: 1 },
+  );
+});
+
+test('a group dragged across its own footprint is not moved into itself', () => {
+  // The grid under the pointer is the innermost one, and while a container is
+  // still over the place it started, that is its own. Asking the server to
+  // make it its own child is refused, and the whole reposition is lost with
+  // the refusal.
+  const place = jest.fn();
+  const move = jest.fn();
+  const { container } = render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutWith(result, { place, move })}
+      editable
+    />,
+  );
+
+  const rect = (top: number, bottom: number) => ({
+    configurable: true,
+    value: () => ({
+      left: 0,
+      top,
+      right: 1000,
+      bottom,
+      width: 1000,
+      height: bottom - top,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    }),
+  });
+  const grids = container.querySelectorAll('[data-test="canvas-grid-surface"]');
+  const [root, inner] = Array.from(grids) as HTMLElement[];
+  Object.defineProperty(root, 'getBoundingClientRect', rect(0, 800));
+  Object.defineProperty(inner, 'getBoundingClientRect', rect(200, 400));
+  Object.defineProperty(
+    container.querySelector('[data-node-id="g"]') as HTMLElement,
+    'getBoundingClientRect',
+    rect(200, 400),
+  );
+
+  // The group's *own* handle: the one whose nearest node is the group, not
+  // the handle of the child inside it.
+  const handle = Array.from(
+    container.querySelectorAll('[data-test="canvas-drag-handle"]'),
+  ).find(
+    node =>
+      node.closest('[data-node-id]')?.getAttribute('data-node-id') === 'g',
+  ) as HTMLElement;
+  expect(handle).toBeDefined();
+  [
+    new TestPointerEvent('pointerdown', {
+      button: 0,
+      clientX: 100,
+      clientY: 220,
+    }),
+    new TestPointerEvent('pointermove', { clientX: 100, clientY: 320 }),
+    new TestPointerEvent('pointerup', { clientX: 100, clientY: 320 }),
+  ].forEach(event => fireEvent(handle, event));
+
+  // Repositioned where it already lives, not reparented.
+  expect(move).not.toHaveBeenCalled();
+  expect(place).toHaveBeenCalled();
 });
 
 test('a widget dragged into a group moves into it', () => {
@@ -526,6 +604,9 @@ test('a widget dragged into a group moves into it', () => {
     });
   box(root, 0, 800);
   box(inner, 200, 400);
+  // The group's box, which is what "inside the group" means: its grid is
+  // only as tall as the rows its children fill.
+  box(container.querySelector('[data-node-id="g"]') as HTMLElement, 200, 400);
 
   // 'lost' sits on the root grid. Drag it up into the group's band.
   const node = container.querySelector(
@@ -552,6 +633,95 @@ test('a widget dragged into a group moves into it', () => {
   expect(place).not.toHaveBeenCalled();
   expect(move).toHaveBeenCalledTimes(1);
   expect(move.mock.calls[0][1]).toBe('g');
+});
+
+test('a group does not scroll; a chart still does', () => {
+  // What a group holds is placed in its own grid, bounded by the group's
+  // rows, so there is nothing below to scroll to -- and a scrollbar inside a
+  // group reads as a widget with more in it, which is never true. A chart or
+  // a table renders at its natural height and still needs one.
+  const { container } = render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutOf(result)}
+      editable
+    />,
+  );
+  const group = container.querySelector(
+    '[data-node-id="g"] > div > div',
+  ) as HTMLElement;
+  const chart = container.querySelector(
+    '[data-node-id="lost"] > div > div',
+  ) as HTMLElement;
+
+  expect(getComputedStyle(group).overflow).toBe('hidden');
+  expect(getComputedStyle(chart).overflow).toBe('auto');
+});
+
+test('a widget dragged down through a tall group stays in it', () => {
+  // A group is as tall as it was placed; its grid is only as tall as the rows
+  // its children fill. Dragging a child down through the empty space below
+  // them is still dragging it around inside the group -- testing the pointer
+  // against the grid instead threw the widget out to the root the moment it
+  // passed the last row, and shoved the group down to make room for it.
+  const place = jest.fn();
+  const move = jest.fn();
+  const { container } = render(
+    <CanvasGrid
+      canvasId={7}
+      result={result}
+      values={emptyScopeValues()}
+      onValueChange={jest.fn()}
+      layout={layoutWith(result, { place, move })}
+      editable
+    />,
+  );
+
+  const rect = (top: number, bottom: number) => ({
+    configurable: true,
+    value: () => ({
+      left: 0,
+      top,
+      right: 1000,
+      bottom,
+      width: 1000,
+      height: bottom - top,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    }),
+  });
+  const grids = container.querySelectorAll('[data-test="canvas-grid-surface"]');
+  const [root, inner] = Array.from(grids) as HTMLElement[];
+  Object.defineProperty(root, 'getBoundingClientRect', rect(0, 800));
+  // Four rows of group holding one row of child.
+  Object.defineProperty(inner, 'getBoundingClientRect', rect(200, 250));
+  Object.defineProperty(
+    container.querySelector('[data-node-id="g"]') as HTMLElement,
+    'getBoundingClientRect',
+    rect(200, 400),
+  );
+
+  const handle = container.querySelector(
+    '[data-node-id="c1"] [data-test="canvas-drag-handle"]',
+  ) as HTMLElement;
+  [
+    new TestPointerEvent('pointerdown', {
+      button: 0,
+      clientX: 100,
+      clientY: 220,
+    }),
+    new TestPointerEvent('pointermove', { clientX: 100, clientY: 380 }),
+    new TestPointerEvent('pointerup', { clientX: 100, clientY: 380 }),
+  ].forEach(event => fireEvent(handle, event));
+
+  // Still the group's child: a move would have handed it to another parent.
+  expect(move).not.toHaveBeenCalled();
+  expect(place).toHaveBeenCalled();
+  expect(place.mock.calls[0][0]).toBe('c1');
 });
 
 test('a container stays aimable while the grid around it reflows', () => {
@@ -593,10 +763,19 @@ test('a container stays aimable while the grid around it reflows', () => {
     value: () => rect(0, 0, 1000, 800),
   });
   // The group runs away as soon as the drag starts, as a live reflow does.
+  // Its box and its grid move together, since one is inside the other.
   Object.defineProperty(inner, 'getBoundingClientRect', {
     configurable: true,
     value: () => rect(0, innerTop, 1000, innerTop + 200),
   });
+  Object.defineProperty(
+    container.querySelector('[data-node-id="g"]') as HTMLElement,
+    'getBoundingClientRect',
+    {
+      configurable: true,
+      value: () => rect(0, innerTop, 1000, innerTop + 200),
+    },
+  );
 
   const node = container.querySelector(
     '[data-node-id="lost"] [data-test="canvas-drag-handle"]',

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -9039,6 +9039,9 @@ msgstr "이 데이터베이스의 세부 정보 드릴 기능을 비활성화합
 msgid "Discard"
 msgstr "대시보드"
 
+msgid "Discard and leave"
+msgstr ""
+
 #, fuzzy
 msgid "Display Name"
 msgstr "필터"
@@ -9313,6 +9316,9 @@ msgid "Draft"
 msgstr "초안"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -13987,6 +13993,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -17804,9 +17813,6 @@ msgstr ""
 msgid "Plain"
 msgstr "일반"
 
-msgid "Plan mode"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18399,6 +18405,9 @@ msgstr "공개 공유 시트만"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18718,6 +18727,9 @@ msgstr "직사각형"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "반복 (매)"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23219,6 +23231,9 @@ msgstr ""
 "데이터 시각화를 위한 만능 도구입니다. 계단형, 선형, 산점도, 막대 차트 중에서 선택할 수 있으며, 다양한 사용자 정의 옵션도 "
 "제공합니다."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -23230,6 +23245,9 @@ msgstr "다음 탭으로 전환"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "이전 탭으로 전환"
+
+msgid "Switch to view mode"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -23680,7 +23698,10 @@ msgstr "이메일에 포함된 텍스트"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -26189,6 +26210,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

@@ -16,41 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { Button } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 /**
- * What entering a draft is called in the UI. A working name, still being
- * settled; changing it here changes it everywhere it is shown.
+ * Starting a draft on a canvas.
+ *
+ * The draft is only ever opened on the canvas that asked for it: if the user
+ * has moved on, or left the page, the token belongs to a canvas that is no
+ * longer shown, and opening it there would show another canvas's draft and
+ * publish to it.
  */
-export const PLAN_MODE_LABEL = () => t('Plan mode');
-
-interface PlanModeButtonProps {
-  canvasId: number;
-  /** Called with the new draft's token, to open it on this page. */
-  onStarted: (token: string) => void;
-}
-
-/**
- * Starts a plan: a private draft of the canvas, which is where changes are
- * made. The published canvas itself is read-only, so this is how a user with
- * edit permission gets somewhere they can drag, resize and ask for changes.
- * The draft is published or discarded from the banner it shows.
- */
-export default function PlanModeButton({
-  canvasId,
-  onStarted,
-}: PlanModeButtonProps) {
+export function useStartDraft(
+  canvasId: number,
+  onStarted: (token: string) => void,
+) {
   const { addDangerToast } = useToasts();
   const [starting, setStarting] = useState(false);
-  // The canvas this button is for. A draft is only ever opened on the canvas
-  // that asked for it: if the user has navigated on, or left the page, the
-  // token belongs to a canvas that is no longer shown -- opening it there
-  // would render another canvas's draft and publish to it.
   const current = useRef<number | undefined>(canvasId);
+
   useEffect(() => {
     current.current = canvasId;
     return () => {
@@ -58,7 +44,7 @@ export default function PlanModeButton({
     };
   }, [canvasId]);
 
-  const start = async () => {
+  const start = useCallback(async () => {
     const startedFor = canvasId;
     setStarting(true);
     try {
@@ -70,25 +56,16 @@ export default function PlanModeButton({
       if (typeof token === 'string') {
         onStarted(token);
       } else {
-        addDangerToast(t('That plan could not be started.'));
+        addDangerToast(t('That draft could not be started.'));
       }
     } catch (response) {
       if (current.current !== startedFor) return;
       const { message, error } = await getClientErrorObject(response);
-      addDangerToast(message || error || t('That plan could not be started.'));
+      addDangerToast(message || error || t('That draft could not be started.'));
     } finally {
       setStarting(false);
     }
-  };
+  }, [canvasId, onStarted, addDangerToast]);
 
-  return (
-    <Button
-      buttonStyle="secondary"
-      loading={starting}
-      onClick={start}
-      data-test="canvas-plan-mode"
-    >
-      {PLAN_MODE_LABEL()}
-    </Button>
-  );
+  return { start, starting };
 }

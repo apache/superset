@@ -631,13 +631,41 @@ test("a root grid's grip lines up with the widget's own controls", () => {
   expect(grip.width).toBe('32px');
 });
 
-test('a nested grid offsets its handles clear of its container', () => {
-  // A container's box begins where its first child's does and its handles
-  // paint last, so sharing a position would let the container's grip swallow
-  // clicks meant for the child's.
-  renderSurface({ depth: 1 });
+/** Nested, and sitting right where the container's own handles are. */
+const underContainerHandles = {
+  live: { wide: { col: 1, row: 1, colSpan: 24, rowSpan: 4 } },
+  childIds: ['wide'],
+  depth: 1,
+};
+
+test("a nested grid offsets the handles that land on its container's", () => {
+  // A container's box begins where its first row of children does and its
+  // handles paint last, so sharing the spot would let the container's grip
+  // swallow clicks meant for the child's.
+  renderSurface(underContainerHandles);
 
   expect(gripTop()).toBe('36px');
+});
+
+test('a nested widget clear of those handles keeps its own at the top', () => {
+  // Six columns wide at the left: nothing of the container's is up there to
+  // clear, and stepping down anyway strands the handles in the middle of the
+  // widget -- which is what a nested KPI tile looked like.
+  renderSurface({ depth: 1 });
+
+  expect(gripTop()).toBe('0px');
+});
+
+test('a nested widget below the first row keeps its handles at the top', () => {
+  // The container's handles are at the top of its box; a child further down
+  // is nowhere near them, however wide it is.
+  renderSurface({
+    live: { lower: { col: 1, row: 3, colSpan: 24, rowSpan: 4 } },
+    childIds: ['lower'],
+    depth: 1,
+  });
+
+  expect(gripTop()).toBe('0px');
 });
 
 test('a nested handle stays inside a short widget', () => {
@@ -742,8 +770,17 @@ test('a drop onto one widget exchanges places with it, before the drop', () => {
 
   pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 8 });
 
-  // And both are written together, as the exchange they are.
+  // And both are written together, as the exchange they are: a `place` would
+  // move one and leave the other to be pushed somewhere by the server.
   expect(onPlace).not.toHaveBeenCalled();
+  expect(onPlace.onSwap).toHaveBeenCalledTimes(1);
+  expect(onPlace.onSwap).toHaveBeenCalledWith(
+    'kpi',
+    { col: 1, row: 9, colSpan: 6, rowSpan: 4 },
+    'trend',
+    // 'trend' keeps its own size in the slot 'kpi' left.
+    { col: 1, row: 1, colSpan: 24, rowSpan: 8 },
+  );
 });
 
 test('a drop straddling two widgets pushes them down instead', () => {
@@ -1567,7 +1604,7 @@ test("a nested widget's chrome steps down with its handles", () => {
   ).toBe('0px');
   expect(flatChrome.className).toContain('canvas-chrome');
 
-  const nested = renderSurface({ depth: 1 });
+  const nested = renderSurface(underContainerHandles);
   const grips = nested.container.querySelectorAll(
     '[data-test="canvas-drag-handle"]',
   );
@@ -1622,7 +1659,16 @@ test('a resize that grows over a neighbour is not an offer to trade places', () 
   const onPlace = renderSurface({ onSwap });
 
   // 'kpi' is 4 rows tall at row 1; eight more rows reaches 'trend' at row 9.
-  drag(corners(onPlace.container, 'se')[0], 0, ROW_PITCH * 8);
+  const corner = corners(onPlace.container, 'se')[0];
+  pointer(corner, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(corner, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 8 });
+
+  // On screen as well as in the write: a swap preview would put 'trend' in
+  // row 1, which 'kpi' still occupies, and the release would then write
+  // something else.
+  expect(rowOf(onPlace.container, 'trend')).not.toContain('1/');
+
+  pointer(corner, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 8 });
 
   expect(onSwap).not.toHaveBeenCalled();
   expect(onPlace).toHaveBeenCalledWith('kpi', {

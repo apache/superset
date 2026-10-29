@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -5814,6 +5814,9 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr ""
 
@@ -5980,6 +5983,9 @@ msgid "Draft"
 msgstr ""
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -8819,6 +8825,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11095,9 +11104,6 @@ msgstr ""
 msgid "Plain"
 msgstr ""
 
-msgid "Plan mode"
-msgstr ""
-
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -11432,6 +11438,9 @@ msgstr ""
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr ""
 
@@ -11625,6 +11634,9 @@ msgid "Rectangle"
 msgstr ""
 
 msgid "Recurring (every)"
+msgstr ""
+
+msgid "Redo"
 msgstr ""
 
 msgid "Redo the action"
@@ -14470,10 +14482,16 @@ msgid ""
 "well."
 msgstr ""
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr ""
 
 msgid "Switch to the previous tab"
+msgstr ""
+
+msgid "Switch to view mode"
 msgstr ""
 
 msgid "Symbol"
@@ -14758,7 +14776,10 @@ msgstr ""
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -16341,6 +16362,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

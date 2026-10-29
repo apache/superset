@@ -120,18 +120,27 @@ export function resolveGrid(
  * pushes the *later* child down, so the dropped node goes before the first
  * sibling it overlaps, or that starts after it by row and then column, and
  * last if there is no such sibling.
+ *
+ * Landing on a sibling is above it or below it depending on where: past the
+ * sibling's middle is below it. Without that, aiming at the bottom of a tall
+ * neighbour -- a ten-row group, say -- still counts as landing on it, so the
+ * widget is inserted ahead and the whole group is pushed down underneath
+ * something dropped at its feet.
  */
 export function insertIndex(
   rects: GridPlacement[],
   target: GridPlacement,
 ): number {
   const targetCells = new Set(cells(target));
-  const found = rects.findIndex(
-    rect =>
-      cells(rect).some(cell => targetCells.has(cell)) ||
+  const found = rects.findIndex(rect => {
+    if (cells(rect).some(cell => targetCells.has(cell))) {
+      return target.row < rect.row + rect.rowSpan / 2;
+    }
+    return (
       rect.row > target.row ||
-      (rect.row === target.row && rect.col >= target.col),
-  );
+      (rect.row === target.row && rect.col >= target.col)
+    );
+  });
   return found === -1 ? rects.length : found;
 }
 
@@ -214,8 +223,13 @@ export function swapPartner(
 export function swapped(
   partner: GridPlacement,
   vacated: GridPlacement,
+  columns: number,
 ): GridPlacement {
   // Its own size, in the slot the dragged widget left: a swap exchanges
-  // places, not shapes.
-  return { ...partner, col: vacated.col, row: vacated.row };
+  // places, not shapes. The column is pulled back far enough for that size
+  // to fit -- a widget wider than the one it changes places with would
+  // otherwise start where the narrower one did and run off the grid, which
+  // the server rejects, taking the whole swap with it.
+  const col = Math.max(1, Math.min(vacated.col, columns - partner.colSpan + 1));
+  return { ...partner, col, row: vacated.row };
 }

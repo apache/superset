@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -6813,6 +6813,9 @@ msgstr "這個數據集没有返回預覽數據"
 msgid "Discard"
 msgstr "取消"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "顯示名稱"
 
@@ -7020,6 +7023,9 @@ msgid "Draft"
 msgstr "草稿"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -10428,6 +10434,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -13127,9 +13136,6 @@ msgstr ""
 msgid "Plain"
 msgstr "平铺"
 
-msgid "Plan mode"
-msgstr ""
-
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13536,6 +13542,9 @@ msgstr "僅公開共享的工作表"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "已發布"
 
@@ -13751,6 +13760,9 @@ msgstr "長方形"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "週期性重複（每）"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17099,6 +17111,9 @@ msgid ""
 "well."
 msgstr "用於可視化時間序列數據。在步進圖、折線圖、散點圖和條形圖之間進行選擇,也有許多自定義選項"
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17110,6 +17125,9 @@ msgstr "切換至下一個分頁"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "切換至上一個分頁"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "符號"
@@ -17456,7 +17474,10 @@ msgstr "郵件中嵌入的文本"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -19348,6 +19369,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

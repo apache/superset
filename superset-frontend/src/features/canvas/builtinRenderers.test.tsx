@@ -87,6 +87,9 @@ test('renders core containers and markdown without extensions', async () => {
         place: jest.fn(),
         move: jest.fn(),
         swap: jest.fn(),
+        filterScopes: {},
+        crossFilterScopes: {},
+        customizationScopes: {},
         dismissError: jest.fn(),
       }}
       editable={false}

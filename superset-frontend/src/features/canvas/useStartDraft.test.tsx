@@ -23,24 +23,37 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
-import PlanModeButton from './PlanModeButton';
+import { useStartDraft } from './useStartDraft';
 
-const endpoint = 'glob:*/api/v1/canvas/7/draft';
+const endpoint = 'glob:*/api/v1/canvas/*/draft';
 
 beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
 });
 
-const clickPlanMode = async (onStarted = jest.fn()) => {
-  render(<PlanModeButton canvasId={7} onStarted={onStarted} />, {
+/** The hook's two outputs, as a button and a word. */
+function Harness({
+  canvasId,
+  onStarted,
+}: {
+  canvasId: number;
+  onStarted: (token: string) => void;
+}) {
+  const { start, starting } = useStartDraft(canvasId, onStarted);
+  return (
+    <button type="button" onClick={start}>
+      {starting ? 'starting' : 'idle'}
+    </button>
+  );
+}
+
+const renderHarness = (onStarted = jest.fn(), canvasId = 7) => {
+  const view = render(<Harness canvasId={canvasId} onStarted={onStarted} />, {
     useRedux: true,
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Plan mode' }));
-  return onStarted;
+  return { ...view, onStarted };
 };
-
-const planModeButton = () => screen.getByRole('button', { name: 'Plan mode' });
 
 /**
  * Waits until the response has actually been handled.
@@ -48,16 +61,17 @@ const planModeButton = () => screen.getByRole('button', { name: 'Plan mode' });
  * The request being *issued* is not enough: a `waitFor` on the call history is
  * satisfied the moment the POST goes out, so anything asserted after it runs
  * before the response continuation does, and a missing guard inside that
- * continuation still passes. The button clears its busy state in `finally`,
- * which runs only once the whole handler has.
+ * continuation still passes. `starting` is cleared in `finally`, which runs
+ * only once the whole handler has.
  */
 const settled = async () =>
-  waitFor(() => expect(planModeButton()).not.toHaveClass('ant-btn-loading'));
+  waitFor(() => expect(screen.getByRole('button')).toHaveTextContent('idle'));
 
-test('starting a plan creates a draft and opens its token', async () => {
+test('starting a draft opens its token', async () => {
   fetchMock.post(endpoint, { result: { token: 'tok-123', revision: 0 } });
+  const { onStarted } = renderHarness();
 
-  const onStarted = await clickPlanMode();
+  fireEvent.click(screen.getByRole('button'));
 
   await waitFor(() => expect(onStarted).toHaveBeenCalledWith('tok-123'));
   expect(fetchMock.callHistory.calls()).toHaveLength(1);
@@ -65,8 +79,9 @@ test('starting a plan creates a draft and opens its token', async () => {
 
 test('a draft that cannot be started does not open anything', async () => {
   fetchMock.post(endpoint, 403);
+  const { onStarted } = renderHarness();
 
-  const onStarted = await clickPlanMode();
+  fireEvent.click(screen.getByRole('button'));
 
   await settled();
   expect(onStarted).not.toHaveBeenCalled();
@@ -75,8 +90,9 @@ test('a draft that cannot be started does not open anything', async () => {
 
 test('a response without a token is treated as a failure', async () => {
   fetchMock.post(endpoint, { result: { revision: 0 } });
+  const { onStarted } = renderHarness();
 
-  const onStarted = await clickPlanMode();
+  fireEvent.click(screen.getByRole('button'));
 
   await settled();
   expect(onStarted).not.toHaveBeenCalled();
@@ -84,7 +100,7 @@ test('a response without a token is treated as a failure', async () => {
 });
 
 test('a draft that arrives after the canvas changed is not opened', async () => {
-  // Starting a plan on one canvas and navigating to another before the
+  // Starting a draft on one canvas and navigating to another before the
   // response: the token belongs to the first canvas, and opening it on the
   // second would show that canvas's draft and publish to it.
   let respond: () => void = () => {};
@@ -97,15 +113,11 @@ test('a draft that arrives after the canvas changed is not opened', async () => 
       );
   });
   fetchMock.post(endpoint, () => held);
-  const onStarted = jest.fn();
-  const { rerender } = render(
-    <PlanModeButton canvasId={7} onStarted={onStarted} />,
-    { useRedux: true },
-  );
+  const { rerender, onStarted } = renderHarness();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Plan mode' }));
+  fireEvent.click(screen.getByRole('button'));
   // The user moves on to another canvas before the draft comes back.
-  rerender(<PlanModeButton canvasId={8} onStarted={onStarted} />);
+  rerender(<Harness canvasId={8} onStarted={onStarted} />);
 
   respond();
 

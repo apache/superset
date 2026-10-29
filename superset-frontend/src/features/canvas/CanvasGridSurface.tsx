@@ -212,8 +212,15 @@ const travelled = (
   dy: clientY - gesture.startY - (top - gesture.startTop),
 });
 
-const Grid = styled.div<GridMetrics & { heldHeight?: number }>`
+const Grid = styled.div<GridMetrics & { heldHeight?: number; $fill?: boolean }>`
   display: grid;
+  /*
+   * Inside a container, the grid takes the room the container has left after
+   * its own chrome, rather than only the rows its children fill. That is what
+   * makes the empty space below them part of the grid -- to drop into, and to
+   * measure the real row count from.
+   */
+  ${({ $fill }) => $fill && 'flex: 1 1 auto; min-height: 0;'}
   grid-template-columns: repeat(${({ columns }) => columns}, minmax(0, 1fr));
   grid-auto-rows: ${({ rowUnit }) => rowUnit}px;
   gap: ${({ gap }) => gap}px;
@@ -395,18 +402,38 @@ const handleOffset = (
 };
 
 /**
+ * Whether a widget's handles have a container's handles to clear.
+ *
+ * Only the child sitting under them does. A container's handles are at the
+ * top right of its box, and its box begins where its first row of children
+ * does -- so a child in that row, reaching the container's right edge, would
+ * paint over them and make the container ungrabbable. Every other child has
+ * nothing to clear, and stepping it down would strand its handles in the
+ * middle of the widget for no reason.
+ */
+export const stepsAside = (
+  depth: number,
+  columns: number,
+  placement: { row: number; col: number; colSpan: number } | undefined,
+): boolean =>
+  depth > 0 &&
+  placement !== undefined &&
+  placement.row === 1 &&
+  placement.col + placement.colSpan - 1 >= columns;
+
+/**
  * Where a widget's top-right controls sit: the grip, and the menu beside it.
  *
- * Flush with the top on the root grid, where the resize corners are too.
- * Nested, it steps down to clear the controls of the container around it --
- * a container's box begins where its first child's does, and the child's
- * paint above, so sharing the spot makes the container unreachable.
+ * Flush with the top unless they have a container's to clear, in which case
+ * they step down far enough to leave a whole handle's worth of room.
  */
 export const handleTop = (
   sizeUnit: number,
   depth: number,
   extent: number,
-): number => (depth === 0 ? 0 : handleOffset(sizeUnit, depth, extent));
+  stepped = true,
+): number =>
+  depth === 0 || !stepped ? 0 : handleOffset(sizeUnit, depth, extent);
 
 /**
  * The widget itself, kept inside the cells it was given.
@@ -416,10 +443,10 @@ export const handleTop = (
  * handles are siblings rather than children, so they stay pinned to the box
  * while the content scrolls behind them.
  */
-const Content = styled.div<{ editable: boolean }>`
-  ${({ editable }) => css`
+const Content = styled.div<{ editable: boolean; overflow: string }>`
+  ${({ editable, overflow }) => css`
     height: 100%;
-    overflow: auto;
+    overflow: ${overflow};
     /*
      * A stacking context of its own, so a widget's internal layering stays
      * inside it rather than competing with the canvas. An antd table's
@@ -496,6 +523,22 @@ const Chrome = styled.div<{ offset: number }>`
 `;
 
 /**
+ * What a widget's box does with anything that does not fit.
+ *
+ * An ordinary widget renders at its natural height -- a table with every row
+ * -- and scrolls. A container does not: what it holds is placed in its own
+ * grid, bounded by the container's rows, so there is nothing below to scroll
+ * to, and a scrollbar inside a group reads as a widget with more in it, which
+ * is never true. While a drag is running it does not clip either: a widget on
+ * its way out of a container is over it, not in it, and cutting it in half at
+ * the border hides the thing being aimed.
+ */
+export const overflowFor = (container: boolean, dragging: boolean): string => {
+  if (!container) return 'auto';
+  return dragging ? 'visible' : 'hidden';
+};
+
+/**
  * A widget's content, and the node its chrome renders into.
  *
  * The two are siblings so chrome escapes the content's scrolling, clipping
@@ -504,17 +547,20 @@ const Chrome = styled.div<{ offset: number }>`
 function WidgetBody({
   editable,
   offset,
+  overflow,
   children,
 }: {
   editable: boolean;
   /** Where the handles sit, so the chrome can sit level with them. */
   offset: number;
+  /** How this widget's box treats what does not fit; see `overflowFor`. */
+  overflow: string;
   children: ReactNode;
 }) {
   const [chrome, setChrome] = useState<HTMLDivElement | null>(null);
   return (
     <>
-      <Content editable={editable}>
+      <Content editable={editable} overflow={overflow}>
         <CanvasWidgetChromeContext.Provider value={chrome}>
           {children}
         </CanvasWidgetChromeContext.Provider>
@@ -524,18 +570,12 @@ function WidgetBody({
   );
 }
 
-const Grip = styled.button<{ depth: number; extent: number }>`
-  ${({ theme, depth, extent }) => css`
+const Grip = styled.button<{ depth: number; offset: number }>`
+  ${({ theme, depth, offset }) => css`
     position: absolute;
-    /*
-     * On the root grid the grip sits flush with the top, where the widget's
-     * own controls and the resize corners already are, so the three read as
-     * one row. Nested, it steps down to clear the grip of the widget inside
-     * it -- a container's box begins where its first child's does, and the
-     * child's grip paints above, so sharing the spot makes the container
-     * ungrabbable.
-     */
-    top: ${handleTop(theme.sizeUnit, depth, extent)}px;
+    /* Flush with the top, beside the widget's own controls and the resize
+       corners, unless it has a container's grip to clear; see stepsAside. */
+    top: ${offset}px;
     /* Deeper handles above shallower ones: the innermost wins a shared spot. */
     z-index: ${3 + depth};
     /*
@@ -658,6 +698,8 @@ export interface CanvasGridSurfaceProps {
   depth: number;
   /** The container this grid lays out; the root grid's own id for the root. */
   parentId: string;
+  /** Whether a child holds a grid of its own, and so is bounded, not scrolled. */
+  isContainer?: (nodeId: string) => boolean;
   onPlace: (nodeId: string, placement: GridPlacement) => void;
   /**
    * Persist two widgets exchanging places, which is what a drop landing
@@ -693,6 +735,7 @@ export default function CanvasGridSurface({
   editable,
   depth,
   parentId,
+  isContainer = () => false,
   onPlace,
   onSwap,
   onMove,
@@ -714,6 +757,10 @@ export default function CanvasGridSurface({
     return drag.register({
       parentId,
       element: gridNode,
+      // The container this grid fills, whose box is the whole of what counts
+      // as "inside" it. The root grid has no container and is its own.
+      bounds:
+        gridNode.closest<HTMLElement>('[data-test="canvas-node"]') ?? gridNode,
       columns,
       gap,
       rowUnit,
@@ -746,7 +793,10 @@ export default function CanvasGridSurface({
   const landingFor = useCallback(
     (current: Gesture, clientX: number, clientY: number) => {
       if (current.kind !== 'move') return undefined;
-      const hit = drag.gridAt(clientX, clientY);
+      // Not into itself: a container dragged across its own footprint is
+      // still over its own grid, and asking the server to make it its own
+      // child is refused -- taking an otherwise valid reposition with it.
+      const hit = drag.gridAt(clientX, clientY, current.nodeId);
       const over = hit?.grid;
       if (!hit || !over || over.parentId === parentId) return undefined;
       const metrics: GridMetrics = {
@@ -854,12 +904,17 @@ export default function CanvasGridSurface({
           ? swapPartner(childIds, placements, nodeId, next)
           : undefined;
       if (partner) {
-        onSwap(nodeId, next, partner, swapped(placements[partner], from));
+        onSwap(
+          nodeId,
+          next,
+          partner,
+          swapped(placements[partner], from, columns),
+        );
         return;
       }
       onPlace(nodeId, next);
     },
-    [onPlace, onSwap, placements, childIds],
+    [onPlace, onSwap, placements, childIds, columns],
   );
 
   const begin =
@@ -1197,13 +1252,19 @@ export default function CanvasGridSurface({
     }
     if (!preview || !gesture) return placements;
     // Landing on one widget shows the exchange, so the drop matches what was
-    // on screen a moment before it.
-    const partner = swapPartner(childIds, placements, gesture.nodeId, preview);
+    // on screen a moment before it. Only a move, as the drop itself is:
+    // previewing a resize as a swap shows the neighbour jumping into a slot
+    // the widget being grown still occupies, and then the release writes
+    // something else.
+    const partner =
+      gesture.kind === 'move'
+        ? swapPartner(childIds, placements, gesture.nodeId, preview)
+        : undefined;
     if (partner) {
       return {
         ...placements,
         [gesture.nodeId]: preview,
-        [partner]: swapped(placements[partner], gesture.origin),
+        [partner]: swapped(placements[partner], gesture.origin, columns),
       };
     }
     return previewGrid(
@@ -1223,6 +1284,7 @@ export default function CanvasGridSurface({
       gap={gap}
       rowUnit={rowUnit}
       heldHeight={gesture?.heldHeight}
+      $fill={depth > 0}
       data-test="canvas-grid-surface"
     >
       {/* The widget is arriving from another grid: show where it lands. */}
@@ -1249,6 +1311,14 @@ export default function CanvasGridSurface({
         const extent = placed
           ? placed.rowSpan * rowUnit + (placed.rowSpan - 1) * gap
           : 0;
+        // One answer for the grip and the controls beside it, so the row
+        // stays a row.
+        const handlesTop = handleTop(
+          theme.sizeUnit,
+          depth,
+          extent,
+          stepsAside(depth, columns, placed),
+        );
         return (
           <GridItem
             key={childId}
@@ -1270,7 +1340,8 @@ export default function CanvasGridSurface({
             >
               <WidgetBody
                 editable={editable}
-                offset={handleTop(theme.sizeUnit, depth, extent)}
+                offset={handlesTop}
+                overflow={overflowFor(isContainer(childId), drag.dragging)}
               >
                 {renderNode(childId)}
               </WidgetBody>
@@ -1279,7 +1350,7 @@ export default function CanvasGridSurface({
                   <Grip
                     type="button"
                     depth={depth}
-                    extent={extent}
+                    offset={handlesTop}
                     className="canvas-handle"
                     aria-label={t('Move widget')}
                     data-test="canvas-drag-handle"

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -6341,6 +6341,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 msgid "Discard"
 msgstr "Atmest"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Attēlojamais nosaukums"
 
@@ -6520,6 +6523,9 @@ msgid "Draft"
 msgstr "Melnraksts"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9509,6 +9515,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11948,9 +11957,6 @@ msgstr ""
 msgid "Plain"
 msgstr "Vienkāršs"
 
-msgid "Plan mode"
-msgstr ""
-
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12315,6 +12321,9 @@ msgstr "Tikai publiski koplietotās lapas"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicēts"
 
@@ -12509,6 +12518,9 @@ msgstr "Taisnstūris"
 
 msgid "Recurring (every)"
 msgstr "Atkārtots (katru)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Atkārtot darbību"
@@ -15586,11 +15598,17 @@ msgstr ""
 "izkliedes un joslu diagrammām. Šim vizualizācijas veidam ir arī daudz "
 "pielāgošanas iespēju."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Pārslēgties uz nākamo cilni"
 
 msgid "Switch to the previous tab"
 msgstr "Pārslēgties uz iepriekšējo cilni"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Simbols"
@@ -15904,7 +15922,10 @@ msgstr "E-pastā iegults teksts"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -17744,6 +17765,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

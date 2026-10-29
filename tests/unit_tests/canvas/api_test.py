@@ -498,3 +498,24 @@ def test_schema_is_published(
     assert by_id["filterbar"]["boundsFilterScope"] is False
     assert by_id["chart"]["filterable"] is True
     assert by_id["chart"]["schemaVersion"] == 1
+
+
+def test_every_exposed_route_is_served(
+    client: Any, full_api_access: None, widget_types: FakeResolver
+) -> None:
+    """
+    An `@expose`d method that Flask-AppBuilder was never told to register is
+    simply not routed, and the endpoint answers 404 with nothing to say why.
+    One left out of the permission map is routed but asks for a permission no
+    role was granted, so it answers 403 instead.
+    """
+    from superset.canvas.api import CanvasRestApi
+
+    exposed = {
+        name
+        for name, member in vars(CanvasRestApi).items()
+        if getattr(member, "_urls", None)
+    }
+
+    assert exposed - set(CanvasRestApi.include_route_methods) == set()
+    assert exposed - set(CanvasRestApi.method_permission_name) == set()

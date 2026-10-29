@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -6310,6 +6310,9 @@ msgstr "Deaktiviert die Drill-to-Detail-Funktion für diese Datenbank."
 msgid "Discard"
 msgstr "Verwerfen"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Anzeigename"
 
@@ -6494,6 +6497,9 @@ msgid "Draft"
 msgstr "Entwurf"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -9475,6 +9481,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11888,9 +11897,6 @@ msgstr ""
 msgid "Plain"
 msgstr "Unformatiert"
 
-msgid "Plan mode"
-msgstr ""
-
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12258,6 +12264,9 @@ msgstr "Nur öffentlich geteilte Tabellen"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Veröffentlicht"
 
@@ -12451,6 +12460,9 @@ msgstr "Rechteck"
 
 msgid "Recurring (every)"
 msgstr "Wiederkehrend (alle)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Aktion wiederholen"
@@ -15481,11 +15493,17 @@ msgstr ""
 " Schritt-, Linien-, Punkt- und Balkendiagrammen. Dieser Diagrammtyp hat "
 "auch viele Anpassungsoptionen."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Zur nächsten Registerkarte wechseln"
 
 msgid "Switch to the previous tab"
 msgstr "Zur vorherigen Registerkarte wechseln"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbol"
@@ -15789,7 +15807,10 @@ msgstr "In E-Mail eingebetteter Text"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -17710,6 +17731,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

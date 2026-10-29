@@ -123,23 +123,22 @@ export default function CanvasGrid({
   draftToken,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
-  const {
-    definition,
-    widgetTypes,
-    gridColumns,
-    filterScopes,
-    crossFilterScopes,
-    customizationScopes,
-    widgets = {},
-  } = result;
+  const { definition, widgetTypes, gridColumns, widgets = {} } = result;
   // Span limits come from the layout rather than the fetched definition: a
   // container's row minimum follows the rows its children occupy, so a write
   // that moves a child moves the minimum with it.
+  // Scopes come from the layout for the same reason: a scope follows the
+  // tree, so a widget dragged from one group into another is driven by the
+  // second group's filters from the moment the write lands -- not from the
+  // next refetch, which a canvas with polling off never makes.
   const {
     placements,
     layouts,
     childOrder,
     layoutConstraints,
+    filterScopes,
+    crossFilterScopes,
+    customizationScopes,
     place,
     move,
     swap,
@@ -199,6 +198,7 @@ export default function CanvasGrid({
       columns={gridColumnCount}
       gap={gap}
       rowUnit={rowUnit}
+      isContainer={nodeId => gridColumns[nodeId] !== undefined}
       placements={placements}
       layouts={layouts}
       constraints={layoutConstraints}

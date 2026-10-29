@@ -24,6 +24,7 @@
  * Asserting those props in isolation let either side be deleted silently.
  */
 import fetchMock from 'fetch-mock';
+
 import { canvas } from 'src/core';
 import {
   fireEvent,
@@ -34,6 +35,13 @@ import {
 import CanvasBody from './CanvasBody';
 import { emptyScopeValues } from './CanvasGrid';
 import type { CanvasDefinitionResult, GridPlacement } from './types';
+
+const mockToasts = { addDangerToast: jest.fn(), addSuccessToast: jest.fn() };
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: unknown) => Component,
+  useToasts: () => mockToasts,
+}));
 
 const draftEndpoint = 'glob:*/api/v1/canvas/draft';
 const commitEndpoint = 'glob:*/api/v1/canvas/draft/commit';
@@ -103,6 +111,7 @@ beforeAll(() => {
 beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
+  jest.clearAllMocks();
 });
 
 class TestPointerEvent extends MouseEvent {
@@ -137,6 +146,7 @@ const renderWith = (draftToken?: string) =>
       onValueChange={jest.fn()}
       refreshKeys={{}}
       draftToken={draftToken}
+      onDraftOpened={jest.fn()}
       onDraftClosed={jest.fn()}
       isEmpty={false}
     />,
@@ -261,4 +271,15 @@ test('the published canvas has no handles, even for someone who may edit', () =>
   ).not.toBeInTheDocument();
   // The widgets themselves still render.
   expect(screen.getAllByText('widget')).toHaveLength(2);
+});
+
+test('a layout write that does not land says so where the user is looking', async () => {
+  // Not in a notice above the canvas: on anything taller than the window that
+  // is off-screen, and the drag just snaps back for no stated reason.
+  fetchMock.patch(draftEndpoint, 422);
+
+  renderBody();
+  dragFirstWidget(COL_PITCH * 4);
+
+  await waitFor(() => expect(mockToasts.addDangerToast).toHaveBeenCalled());
 });

@@ -760,6 +760,47 @@
       }
     },
     {
+      "name": "a drop past a taller sibling's middle goes below it, not ahead of it",
+      "columns": 24,
+      "childIds": ["tall", "short"],
+      "layouts": {
+        "tall": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 8,
+          "rowSpan": 6
+        },
+        "short": {
+          "col": 9,
+          "row": 1,
+          "colSpan": 8,
+          "rowSpan": 2
+        }
+      },
+      "moving": "short",
+      "target": {
+        "col": 1,
+        "row": 5,
+        "colSpan": 8,
+        "rowSpan": 2
+      },
+      "order": ["tall", "short"],
+      "expected": {
+        "tall": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 8,
+          "rowSpan": 6
+        },
+        "short": {
+          "col": 1,
+          "row": 7,
+          "colSpan": 8,
+          "rowSpan": 2
+        }
+      }
+    },
+    {
       "name": "a narrow grid clamps the dropped span",
       "columns": 12,
       "childIds": ["left", "right"],

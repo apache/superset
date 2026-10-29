@@ -18,7 +18,12 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { previewGrid, resolveGrid, type GridLayout } from './resolveGrid';
+import {
+  previewGrid,
+  resolveGrid,
+  swapped,
+  type GridLayout,
+} from './resolveGrid';
 import type { GridPlacement } from './types';
 
 /**
@@ -285,4 +290,26 @@ test('a side-by-side drop goes ahead of the sibling to its right', () => {
   expect(preview.right).toEqual({ col: 1, row: 1, colSpan: 12, rowSpan: 4 });
   // `left` lost its spot and is pushed down rather than sideways.
   expect(preview.left).toEqual({ col: 1, row: 5, colSpan: 12, rowSpan: 4 });
+});
+
+test('a widget swapped into a narrower slot is pulled back onto the grid', () => {
+  // A swap exchanges places, not shapes, so the wider widget keeps its span.
+  // Starting it where the narrow one began would run it off the right edge,
+  // and the server rejects the whole swap -- which the user sees as a drag
+  // that undoes itself.
+  const wide = { col: 1, row: 13, colSpan: 24, rowSpan: 8 };
+  const narrowSlot = { col: 13, row: 21, colSpan: 12, rowSpan: 8 };
+
+  const landed = swapped(wide, narrowSlot, 24);
+
+  expect(landed).toEqual({ col: 1, row: 21, colSpan: 24, rowSpan: 8 });
+  expect(landed.col + landed.colSpan - 1).toBeLessThanOrEqual(24);
+});
+
+test('a swap that already fits is left where it lands', () => {
+  const narrow = { col: 13, row: 21, colSpan: 12, rowSpan: 8 };
+
+  expect(
+    swapped(narrow, { col: 1, row: 13, colSpan: 24, rowSpan: 8 }, 24),
+  ).toEqual({ col: 1, row: 13, colSpan: 12, rowSpan: 8 });
 });

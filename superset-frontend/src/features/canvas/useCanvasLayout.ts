@@ -61,7 +61,30 @@ interface AppliedLayout {
   childOrder: Record<string, string[]>;
   /** Span limits per node; see `CanvasLayout.layoutConstraints`. */
   layoutConstraints: Record<string, SpanConstraints>;
+  /**
+   * Which nodes each filter, cross-filter and customization drives.
+   *
+   * A scope follows the tree: a chart dragged from one group into another is
+   * driven by the second group's filters, not the first's. The write returns
+   * the resolved maps, and without them the chart renders in its new place
+   * while still querying with its old group's filter -- until a refetch,
+   * which a canvas with polling off never makes.
+   */
+  scopes: Scopes;
 }
+
+/** The three scope maps a definition resolves, by response key. */
+interface Scopes {
+  filterScopes: Record<string, string[]>;
+  crossFilterScopes: Record<string, string[]>;
+  customizationScopes: Record<string, string[]>;
+}
+
+const scopesOf = (source: Scopes): Scopes => ({
+  filterScopes: source.filterScopes,
+  crossFilterScopes: source.crossFilterScopes,
+  customizationScopes: source.customizationScopes,
+});
 
 export interface CanvasLayout {
   /** Placements to render: the newest local ones, else the server's. */
@@ -127,6 +150,15 @@ export interface CanvasLayout {
     index: number,
     placement: GridPlacement,
   ) => void;
+  /**
+   * Which nodes each filter, cross-filter and customization drives, kept in
+   * step with every write for the same reason as `childOrder`: a reparented
+   * widget is driven by its new container's filters, and a scope read from
+   * the fetched definition would keep it on its old one's.
+   */
+  filterScopes: Record<string, string[]>;
+  crossFilterScopes: Record<string, string[]>;
+  customizationScopes: Record<string, string[]>;
   /** Why the last write failed, for a dismissable notice. */
   error?: string;
   dismissError: () => void;
@@ -177,6 +209,7 @@ export function useCanvasLayout(
   const fetchedLayouts = useRef(result.layouts);
   const fetchedOrder = useRef(result.childOrder);
   const fetchedConstraints = useRef(result.layoutConstraints);
+  const fetchedScopes = useRef(scopesOf(result));
   // The last layout the server acknowledged, without any optimistic overlay.
   // A failed write falls back to this rather than to the fetched definition,
   // which may be several acknowledged drags behind.
@@ -188,12 +221,16 @@ export function useCanvasLayout(
     fetchedLayouts.current = result.layouts;
     fetchedOrder.current = result.childOrder;
     fetchedConstraints.current = result.layoutConstraints;
+    fetchedScopes.current = scopesOf(result);
   }, [
     revision,
     result.placements,
     result.layouts,
     result.childOrder,
     result.layoutConstraints,
+    result.filterScopes,
+    result.crossFilterScopes,
+    result.customizationScopes,
   ]);
 
   // Which surface this state belongs to. A request already in flight when the
@@ -255,6 +292,7 @@ export function useCanvasLayout(
             layouts: written.layouts,
             childOrder: written.childOrder,
             layoutConstraints: written.layoutConstraints,
+            scopes: scopesOf(written),
           };
           // Gestures queued while this write was in flight are newer than the
           // placements it resolved, so they stay on top -- otherwise the
@@ -278,6 +316,9 @@ export function useCanvasLayout(
             // order is the server's to decide, and the follow-up returns it.
             childOrder: written.childOrder,
             layoutConstraints: written.layoutConstraints,
+            // The tree and its scopes advance together: a reparented chart
+            // that kept its old group's filter would query with it.
+            scopes: scopesOf(written),
           });
         })
         .catch(async response => {
@@ -353,6 +394,9 @@ export function useCanvasLayout(
           childOrder: newer?.childOrder ?? fetchedOrder.current,
           layoutConstraints:
             newer?.layoutConstraints ?? fetchedConstraints.current,
+          // Resolved from the tree, which only the server rebuilds; left as
+          // it stands until the write returns the new one.
+          scopes: newer?.scopes ?? fetchedScopes.current,
         };
       });
       if (writing.current) {
@@ -410,6 +454,11 @@ export function useCanvasLayout(
     layouts: newer?.layouts ?? result.layouts,
     childOrder: newer?.childOrder ?? result.childOrder,
     layoutConstraints: newer?.layoutConstraints ?? result.layoutConstraints,
+    filterScopes: newer?.scopes.filterScopes ?? result.filterScopes,
+    crossFilterScopes:
+      newer?.scopes.crossFilterScopes ?? result.crossFilterScopes,
+    customizationScopes:
+      newer?.scopes.customizationScopes ?? result.customizationScopes,
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,

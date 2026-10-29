@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -7649,6 +7649,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 msgid "Discard"
 msgstr "Odbaci"
 
+msgid "Discard and leave"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Naziv za prikaz"
@@ -7871,6 +7874,9 @@ msgid "Draft"
 msgstr "Nacrt"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -11524,6 +11530,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -14454,9 +14463,6 @@ msgstr ""
 msgid "Plain"
 msgstr "Običan"
 
-msgid "Plan mode"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -14891,6 +14897,9 @@ msgstr "Samo javno deljeni listovi"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Published"
 msgstr "Objavljeno"
@@ -15144,6 +15153,9 @@ msgstr "Pravougaonik"
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "Recurring (every)"
 msgstr "Ponavljajuće (svakih)"
+
+msgid "Redo"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Redo the action"
@@ -18816,6 +18828,9 @@ msgstr ""
 "linijskih, tačkastih i trakastih grafikona. Ovaj tip vizualizacije takođe"
 " ima mnogo opcija za prilagođavanje."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Switch to the next tab"
 msgstr "Pređi na sledeću karticu"
@@ -18823,6 +18838,9 @@ msgstr "Pređi na sledeću karticu"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Switch to the previous tab"
 msgstr "Pređi na prethodnu karticu"
+
+msgid "Switch to view mode"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Symbol"
@@ -19196,7 +19214,10 @@ msgstr "Tekst ugrađen u e-poštu"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -21295,6 +21316,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

@@ -38,7 +38,6 @@ import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
-import PlanModeButton from 'src/features/canvas/PlanModeButton';
 import CanvasBody from 'src/features/canvas/CanvasBody';
 
 registerBuiltinRenderers();
@@ -115,6 +114,10 @@ function CanvasContent({ id }: { id: number }) {
   // `reload` is how a rejected layout write resyncs (see `useCanvasLayout`).
   const { state, reload } = useCanvasDefinition(id, draft.token);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
+  // The header's right-hand side, handed to the body so its toolbar lands on
+  // the title row. State rather than a ref: the body renders into the node, so
+  // it has to re-render once the node exists.
+  const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null);
   const refreshKeys = useCanvasRefresh(
     state.status === 'complete' ? state.result.definition : undefined,
   );
@@ -196,9 +199,7 @@ function CanvasContent({ id }: { id: number }) {
               <Description>{metadata.result.description}</Description>
             )}
           </Heading>
-          {state.result.canEdit && !draft.token && (
-            <PlanModeButton canvasId={id} onStarted={draft.open} />
-          )}
+          <div ref={setToolbarSlot} />
         </Header>
         <CanvasBody
           canvasId={id}
@@ -208,8 +209,10 @@ function CanvasContent({ id }: { id: number }) {
           onValueChange={onValueChange}
           refreshKeys={refreshKeys}
           draftToken={draft.token}
+          onDraftOpened={draft.open}
           onDraftClosed={draft.clear}
           isEmpty={isEmpty}
+          toolbarSlot={toolbarSlot}
         />
       </Page>
     </CrudThemeProvider>

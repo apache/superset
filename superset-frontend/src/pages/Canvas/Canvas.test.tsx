@@ -140,10 +140,10 @@ test('explains when the canvas cannot be opened', async () => {
   ).toBeInTheDocument();
 });
 
-test('starting a plan opens the draft on this canvas', async () => {
-  // The page is what connects the button to the draft: without `onStarted`
-  // wired to `draft.open`, clicking Plan mode would create a draft the page
-  // never shows, and nothing else here would notice.
+test('switching to draft mode opens the draft on this canvas', async () => {
+  // The page is what connects the switch to the draft: without
+  // `onDraftOpened` wired to `draft.open`, the switch would create a draft
+  // the page never shows, and nothing else here would notice.
   fetchMock.get(definitionEndpoint, definition([], 1, true));
   fetchMock.post('glob:*/api/v1/canvas/7/draft', {
     result: { token: 'tok-123', revision: 0 },
@@ -153,7 +153,12 @@ test('starting a plan opens the draft on this canvas', async () => {
 
   render(<CanvasPage />, { useRedux: true, useRouter: true });
 
-  fireEvent.click(await screen.findByRole('button', { name: 'Plan mode' }));
+  const draftMode = await screen.findByRole('switch', { name: 'Draft mode' });
+  // On the title row: the body owns the toolbar, but the page says where it
+  // goes, and a toolbar on a row of its own was not the design.
+  expect(screen.getByRole('banner')).toContainElement(draftMode);
+
+  fireEvent.click(draftMode);
 
   // The draft banner only renders once the page is showing a draft.
   expect(

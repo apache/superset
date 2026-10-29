@@ -93,6 +93,10 @@ export function gridDelta(
  *
  * The spans don't change, so the widget stays whole: it stops at the right
  * edge rather than being clipped, and can't move above the first row.
+ *
+ * Rows are not clamped to a container's height: a container grows to fit what
+ * it holds (`_fit`, `superset/canvas/definition/validation.py`), so a child
+ * dropped past its last row makes it taller instead of being cut off there.
  */
 export function movedPlacement(
   placement: GridPlacement,
@@ -143,7 +147,8 @@ export function resizedPlacement(
     maxColSpan,
   );
 
-  // Rows are unbounded downwards; going north they stop at row 1.
+  // Rows are unbounded downwards -- a container grows to fit what it holds;
+  // going north they stop at row 1.
   const rowRoom = north ? bottom : Number.MAX_SAFE_INTEGER;
   const maxRowSpan = Math.min(
     constraints.maxRowSpan ?? Number.MAX_SAFE_INTEGER,

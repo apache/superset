@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 12:52+0200\n"
+"POT-Creation-Date: 2026-10-29 16:39+0200\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -6896,6 +6896,9 @@ msgstr "لم يتم إرجاع أي عينات لمجموعة البيانات �
 msgid "Discard"
 msgstr "تجاهل"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Display Name"
 msgstr "اسم العرض"
 
@@ -7106,6 +7109,9 @@ msgid "Draft"
 msgstr "مسودة"
 
 msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
 msgstr ""
 
 msgid "Draft published"
@@ -10418,6 +10424,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -13022,9 +13031,6 @@ msgstr ""
 msgid "Plain"
 msgstr "عادي"
 
-msgid "Plan mode"
-msgstr ""
-
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -13421,6 +13427,9 @@ msgstr "الأوراق المشتركة علنياً فقط"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "منشورة"
 
@@ -13625,6 +13634,9 @@ msgstr "مستطيل"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "متكرر (كل)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "أعد الإجراء"
@@ -16930,6 +16942,9 @@ msgstr ""
 "والمبعثرة والشريطية. يحتوي هذا النوع من viz على العديد من خيارات التخصيص "
 "أيضًا."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16941,6 +16956,9 @@ msgstr "الانتقال إلى علامة التبويب التالية"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "الانتقال إلى علامة التبويب السابقة"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "الرمز "
@@ -17283,7 +17301,10 @@ msgstr "نص مضمن في البريد الإلكتروني"
 msgid "That change could not be saved."
 msgstr ""
 
-msgid "That plan could not be started."
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
 msgstr ""
 
 #, python-format
@@ -19235,6 +19256,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"

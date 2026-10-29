@@ -48,6 +48,9 @@ const resultAt = (
     // Deliberately different from what the writes below return, so a test
     // that asserts the server's limits replaced these cannot pass by accident.
     layoutConstraints: { kpi: { minRowSpan: 4 } },
+    filterScopes: { f: ['kpi'] },
+    crossFilterScopes: {},
+    customizationScopes: {},
     // Through `unknown`: a deliberately partial fixture, carrying only the
     // fields this hook reads.
   }) as unknown as CanvasDefinitionResult;
@@ -794,4 +797,33 @@ test('a failed write keeps the layout the server already acknowledged', async ()
   expect(result.current.placements.kpi).toEqual(MOVED);
   expect(result.current.placements.trend).toEqual(pushed);
   expect(result.current.revision).toBe(4);
+});
+
+test('the scopes a write resolves arrive with it', async () => {
+  // A scope follows the tree: a widget reparented by a drag is driven by its
+  // new container's filters. Reading them from the fetched definition instead
+  // leaves it querying with the old container's filter until a refetch --
+  // and with polling off there is none.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      filterScopes: { f: ['kpi', 'trend'] },
+      crossFilterScopes: { trend: ['kpi'] },
+      customizationScopes: {},
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.filterScopes).toEqual({ f: ['kpi'] });
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() =>
+    expect(result.current.filterScopes).toEqual({ f: ['kpi', 'trend'] }),
+  );
+  expect(result.current.crossFilterScopes).toEqual({ trend: ['kpi'] });
 });
